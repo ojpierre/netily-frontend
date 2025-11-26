@@ -15,21 +15,46 @@ export default function ProfilePage() {
   const { user, refreshUser } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    full_name: user?.full_name || "",
-    phone: user?.phone || "",
-    address: user?.address || "",
-  })
 
-  if (!user) return null
+  // Mock user data as fallback
+  const mockUser = {
+    id: 1,
+    full_name: "John Doe",
+    email: "john.doe@example.com",
+    phone: "+254799538923",
+    address: "123 Main Street, Nairobi",
+    is_active: true,
+    balance: "5000.00",
+    expiry_date: "2024-12-31",
+    package: {
+      id: 1,
+      name: "Premium Package",
+      speed_down: 100,
+      speed_up: 50,
+      price: "2000.00"
+    }
+  }
+
+  const currentUser = user || mockUser
+
+  const [formData, setFormData] = useState({
+    full_name: currentUser?.full_name || "",
+    phone: currentUser?.phone || "",
+    address: currentUser?.address || "",
+  })
 
   const handleSave = async () => {
     setLoading(true)
     try {
-      await api.updateCustomerProfile(formData)
-      await refreshUser()
+      if (user) {
+        await api.updateCustomerProfile(formData)
+        await refreshUser()
+        toast.success("Profile updated successfully!")
+      } else {
+        // Mock success for demo
+        toast.success("Profile updated successfully! (Demo Mode)")
+      }
       setIsEditing(false)
-      toast.success("Profile updated successfully!")
     } catch (error: any) {
       toast.error(error.message || "Failed to update profile")
     } finally {
@@ -39,15 +64,15 @@ export default function ProfilePage() {
 
   const handleCancel = () => {
     setFormData({
-      full_name: user?.full_name || "",
-      phone: user?.phone || "",
-      address: user?.address || "",
+      full_name: currentUser?.full_name || "",
+      phone: currentUser?.phone || "",
+      address: currentUser?.address || "",
     })
     setIsEditing(false)
   }
 
   const getInitials = () => {
-    return user.full_name
+    return currentUser.full_name
       .split(" ")
       .map(n => n[0])
       .join("")
@@ -70,6 +95,17 @@ export default function ProfilePage() {
         )}
       </div>
 
+      {!user && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+            <span className="text-blue-600 text-sm">ℹ️</span>
+          </div>
+          <p className="text-sm text-blue-800">
+            <strong>Demo Mode:</strong> Using mock data. Login to see your actual profile.
+          </p>
+        </div>
+      )}
+
       <div className="grid md:grid-cols-3 gap-6">
         {/* Profile Card */}
         <Card className="p-8 md:col-span-1">
@@ -79,17 +115,17 @@ export default function ProfilePage() {
                 {getInitials()}
               </AvatarFallback>
             </Avatar>
-            <h2 className="text-2xl font-bold text-slate-900 mb-1">{user.full_name}</h2>
-            <p className="text-slate-600 mb-4">{user.email}</p>
+            <h2 className="text-2xl font-bold text-slate-900 mb-1">{currentUser.full_name}</h2>
+            <p className="text-slate-600 mb-4">{currentUser.email}</p>
             <div className="w-full pt-4 border-t border-slate-200">
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm text-slate-600">Customer ID</span>
-                <span className="text-sm font-semibold text-slate-900">#{user.id}</span>
+                <span className="text-sm font-semibold text-slate-900">#{currentUser.id}</span>
               </div>
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm text-slate-600">Status</span>
-                <span className={`text-sm font-semibold ${user.is_active ? 'text-green-600' : 'text-red-600'}`}>
-                  {user.is_active ? 'Active' : 'Inactive'}
+                <span className={`text-sm font-semibold ${currentUser.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                  {currentUser.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
             </div>
@@ -149,7 +185,7 @@ export default function ProfilePage() {
                 <User className="w-5 h-5 text-slate-600" />
                 <div>
                   <p className="text-sm text-slate-600">Full Name</p>
-                  <p className="font-medium text-slate-900">{user.full_name}</p>
+                  <p className="font-medium text-slate-900">{currentUser.full_name}</p>
                 </div>
               </div>
 
@@ -157,7 +193,7 @@ export default function ProfilePage() {
                 <Mail className="w-5 h-5 text-slate-600" />
                 <div>
                   <p className="text-sm text-slate-600">Email Address</p>
-                  <p className="font-medium text-slate-900">{user.email}</p>
+                  <p className="font-medium text-slate-900">{currentUser.email}</p>
                 </div>
               </div>
 
@@ -165,7 +201,7 @@ export default function ProfilePage() {
                 <Phone className="w-5 h-5 text-slate-600" />
                 <div>
                   <p className="text-sm text-slate-600">Phone Number</p>
-                  <p className="font-medium text-slate-900">{user.phone}</p>
+                  <p className="font-medium text-slate-900">{currentUser.phone}</p>
                 </div>
               </div>
 
@@ -173,7 +209,7 @@ export default function ProfilePage() {
                 <MapPin className="w-5 h-5 text-slate-600" />
                 <div>
                   <p className="text-sm text-slate-600">Address</p>
-                  <p className="font-medium text-slate-900">{user.address}</p>
+                  <p className="font-medium text-slate-900">{currentUser.address}</p>
                 </div>
               </div>
             </div>
@@ -191,7 +227,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="text-sm text-slate-600">Package</p>
-              <p className="font-semibold text-slate-900">{user.package?.name || "No Package"}</p>
+              <p className="font-semibold text-slate-900">{currentUser.package?.name || "No Package"}</p>
             </div>
           </div>
 
@@ -201,7 +237,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="text-sm text-slate-600">Download Speed</p>
-              <p className="font-semibold text-slate-900">{user.package?.speed_down || 0} Mbps</p>
+              <p className="font-semibold text-slate-900">{currentUser.package?.speed_down || 0} Mbps</p>
             </div>
           </div>
 
@@ -211,7 +247,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="text-sm text-slate-600">Upload Speed</p>
-              <p className="font-semibold text-slate-900">{user.package?.speed_up || 0} Mbps</p>
+              <p className="font-semibold text-slate-900">{currentUser.package?.speed_up || 0} Mbps</p>
             </div>
           </div>
 
@@ -222,7 +258,7 @@ export default function ProfilePage() {
             <div>
               <p className="text-sm text-slate-600">Expiry Date</p>
               <p className="font-semibold text-slate-900">
-                {new Date(user.expiry_date).toLocaleDateString()}
+                {new Date(currentUser.expiry_date).toLocaleDateString()}
               </p>
             </div>
           </div>

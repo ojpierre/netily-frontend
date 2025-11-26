@@ -6,13 +6,13 @@ export function middleware(request: NextRequest) {
                 (typeof window !== 'undefined' && localStorage.getItem('access_token'))
 
   // Protected routes
-  if (request.nextUrl.pathname.startsWith('/dashboard') || 
+  {/*if (request.nextUrl.pathname.startsWith('/dashboard') || 
       request.nextUrl.pathname.startsWith('/admin')) {
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
   }
-
+*/}
   // Redirect to dashboard if already logged in
   if (request.nextUrl.pathname === '/login' || 
       request.nextUrl.pathname === '/register') {

@@ -25,7 +25,16 @@ export default function RechargePage() {
   const [method, setMethod] = useState("mpesa")
   const [loading, setLoading] = useState(false)
 
-  if (!user) return null
+  // Mock user data as fallback
+  const mockUser = {
+    balance: "5000.00",
+    package: {
+      name: "Premium Package",
+      price: "2000.00"
+    }
+  }
+
+  const currentUser = user || mockUser
 
   const handleQuickAmount = (value: number) => {
     setAmount(value.toString())
@@ -41,9 +50,15 @@ export default function RechargePage() {
 
     setLoading(true)
     try {
-      await api.createPayment(amount, method)
-      toast.success("Payment initiated successfully!")
-      await refreshUser()
+      if (user) {
+        await api.createPayment(amount, method)
+        toast.success("Payment initiated successfully!")
+        await refreshUser()
+      } else {
+        // Mock success for demo
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        toast.success(`Payment of KSh ${amount} initiated successfully! (Demo Mode)`)
+      }
       setAmount("")
     } catch (error: any) {
       toast.error(error.message || "Payment failed")
@@ -59,23 +74,34 @@ export default function RechargePage() {
         <p className="text-slate-600 mt-1">Add credit to your account balance</p>
       </div>
 
+      {!user && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+            <span className="text-blue-600 text-sm">ℹ️</span>
+          </div>
+          <p className="text-sm text-blue-800">
+            <strong>Demo Mode:</strong> Payment simulation only. Login to make real payments.
+          </p>
+        </div>
+      )}
+
       <div className="grid md:grid-cols-3 gap-6">
         {/* Balance Card */}
         <Card className="p-8">
           <div className="text-center">
             <p className="text-sm text-slate-600 mb-2">Current Balance</p>
             <p className="text-4xl font-bold text-blue-600 mb-4">
-              KSh {parseFloat(user.balance || "0").toFixed(2)}
+              KSh {parseFloat(currentUser.balance || "0").toFixed(2)}
             </p>
             <div className="pt-4 border-t border-slate-200">
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm text-slate-600">Package</span>
-                <span className="text-sm font-semibold">{user.package?.name || "None"}</span>
+                <span className="text-sm font-semibold">{currentUser.package?.name || "None"}</span>
               </div>
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm text-slate-600">Monthly Cost</span>
                 <span className="text-sm font-semibold">
-                  KSh {user.package?.price || "0"}
+                  KSh {currentUser.package?.price || "0"}
                 </span>
               </div>
             </div>
@@ -117,23 +143,40 @@ export default function RechargePage() {
               <RadioGroup value={method} onValueChange={setMethod} className="mt-3 space-y-3">
                 {paymentMethods.map((pm) => {
                   const Icon = pm.icon
+                  const isSelected = method === pm.value
                   return (
                     <div
                       key={pm.value}
                       className={`flex items-center space-x-3 border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                        method === pm.value
-                          ? `border-${pm.color}-500 bg-${pm.color}-50`
+                        isSelected
+                          ? pm.color === "green"
+                            ? "border-green-500 bg-green-50"
+                            : pm.color === "blue"
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-purple-500 bg-purple-50"
                           : "border-slate-200 hover:border-slate-300"
                       }`}
                       onClick={() => setMethod(pm.value)}
                     >
                       <RadioGroupItem value={pm.value} id={pm.value} />
-                      <Icon className={`w-5 h-5 text-${pm.color}-600`} />
+                      <Icon className={`w-5 h-5 ${
+                        pm.color === "green"
+                          ? "text-green-600"
+                          : pm.color === "blue"
+                          ? "text-blue-600"
+                          : "text-purple-600"
+                      }`} />
                       <Label htmlFor={pm.value} className="flex-1 cursor-pointer">
                         {pm.label}
                       </Label>
-                      {method === pm.value && (
-                        <CheckCircle2 className={`w-5 h-5 text-${pm.color}-600`} />
+                      {isSelected && (
+                        <CheckCircle2 className={`w-5 h-5 ${
+                          pm.color === "green"
+                            ? "text-green-600"
+                            : pm.color === "blue"
+                            ? "text-blue-600"
+                            : "text-purple-600"
+                        }`} />
                       )}
                     </div>
                   )

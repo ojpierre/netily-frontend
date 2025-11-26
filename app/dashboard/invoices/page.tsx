@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api, Invoice } from "@/lib/api"
+import { api } from "@/lib/api"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -16,10 +16,58 @@ import {
 import { FileText, Download, Eye, Calendar, DollarSign, CheckCircle2, Clock } from "lucide-react"
 import { toast } from "sonner"
 
+interface Invoice {
+  id: number
+  invoice_date: string
+  due_date: string
+  amount: string
+  paid: boolean
+}
+
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<"all" | "paid" | "unpaid">("all")
+  const [useMockData, setUseMockData] = useState(false)
+
+  // Mock data
+  const mockInvoices: Invoice[] = [
+    {
+      id: 1,
+      invoice_date: "2024-11-01",
+      due_date: "2024-11-15",
+      amount: "2000.00",
+      paid: true
+    },
+    {
+      id: 2,
+      invoice_date: "2024-10-01",
+      due_date: "2024-10-15",
+      amount: "2000.00",
+      paid: true
+    },
+    {
+      id: 3,
+      invoice_date: "2024-09-01",
+      due_date: "2024-09-15",
+      amount: "2000.00",
+      paid: true
+    },
+    {
+      id: 4,
+      invoice_date: "2024-12-01",
+      due_date: "2024-12-15",
+      amount: "2000.00",
+      paid: false
+    },
+    {
+      id: 5,
+      invoice_date: "2024-08-01",
+      due_date: "2024-08-15",
+      amount: "1500.00",
+      paid: true
+    },
+  ]
 
   useEffect(() => {
     loadInvoices()
@@ -29,8 +77,12 @@ export default function InvoicesPage() {
     try {
       const response = await api.getInvoices()
       setInvoices(response.results || [])
+      setUseMockData(false)
     } catch (error) {
-      toast.error("Failed to load invoices")
+      console.log("API failed, using mock data")
+      setInvoices(mockInvoices)
+      setUseMockData(true)
+      toast.info("Using demo data")
     } finally {
       setLoading(false)
     }
@@ -41,9 +93,9 @@ export default function InvoicesPage() {
     if (filter === "unpaid") return !inv.paid
     return true
   })
-  
-  const totalAmount = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.amount), 0)
-  const paidAmount = filteredInvoices
+
+  const totalAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.amount), 0)
+  const paidAmount = invoices
     .filter((inv) => inv.paid)
     .reduce((sum, inv) => sum + parseFloat(inv.amount), 0)
   const unpaidAmount = totalAmount - paidAmount
@@ -62,6 +114,17 @@ export default function InvoicesPage() {
         <h1 className="text-3xl font-bold text-slate-900">Invoices</h1>
         <p className="text-slate-600 mt-1">View and manage your billing invoices</p>
       </div>
+
+      {useMockData && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+            <span className="text-blue-600 text-sm">ℹ️</span>
+          </div>
+          <p className="text-sm text-blue-800">
+            <strong>Demo Mode:</strong> Using mock data. Login to see your actual invoices.
+          </p>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid md:grid-cols-3 gap-4">
@@ -190,10 +253,10 @@ export default function InvoicesPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => toast.info("View invoice details")}>
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => toast.info("Download invoice")}>
                         <Download className="w-4 h-4" />
                       </Button>
                     </div>
