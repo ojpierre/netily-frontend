@@ -1,80 +1,131 @@
 "use client"
 
-import type React from "react"
+import { createContext, useContext, useState, useEffect, ReactNode } from "react"
+import { useRouter } from "next/navigation"
+import { api, Customer } from "@/lib/api"
 
-import { createContext, useContext, useState, useEffect } from "react"
+interface AuthContextType {
+  user: Customer | null
+  isLoading: boolean
+  login: (email: string, password: string) => Promise<void>
+  register: (data: RegisterFormData) => Promise<void>
+  logout: () => void
+  refreshUser: () => Promise<void>
+}
 
-interface User {
-  id: string
+interface RegisterFormData {
   name: string
   email: string
   phone: string
   address: string
   zipcode: string
-}
-
-interface AuthContextType {
-  user: User | null
-  isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
-  register: (data: any) => Promise<void>
-  logout: () => void
+  password: string
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<Customer | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Check localStorage on mount
+  // Load user on mount
   useEffect(() => {
-    const stored = localStorage.getItem("netily_user")
-    if (stored) {
-      setUser(JSON.parse(stored))
-    }
+    loadUser()
   }, [])
+
+  const loadUser = async () => {
+    try {
+      const token = localStorage.getItem("access_token")
+      if (token) {
+        const customer = await api.getCustomerProfile()
+        setUser(customer)
+      }
+    } catch (error) {
+      console.error("Failed to load user:", error)
+      // Clear invalid tokens
+      localStorage.removeItem("access_token")
+      localStorage.removeItem("refresh_token")
+      setUser(null)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const login = async (email: string, password: string) => {
     setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    const userData: User = {
-      id: "1",
-      name: "Peter Ouma",
-      email: email,
-      phone: "254799538923",
-      address: "Sakina",
-      zipcode: "001",
+    try {
+      // Django uses username field for login (send email as username)
+      const { access, refresh } = await api.login(email, password)
+      
+      // Store tokens
+      localStorage.setItem("access_token", access)
+      localStorage.setItem("refresh_token", refresh)
+
+      // Fetch user profile
+      const customer = await api.getCustomerProfile()
+      setUser(customer)
+      
+      // Success - router.push will be handled by the page component
+    } catch (error: any) {
+      setIsLoading(false)
+      throw new Error(error.message || "Login failed. Please check your credentials.")
+    } finally {
+      setIsLoading(false)
     }
-    setUser(userData)
-    localStorage.setItem("netily_user", JSON.stringify(userData))
-    setIsLoading(false)
   }
 
-  const register = async (data: any) => {
+  const register = async (data: RegisterFormData) => {
     setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    const userData: User = {
-      id: Math.random().toString(),
-      name: data.name,
-      email: data.email,
-      phone: data.phone,
-      address: data.address,
-      zipcode: data.zipcode,
+    try {
+      // Call backend register endpoint
+      const response = await api.register({
+        username: data.email, // Backend uses email as username
+        email: data.email,
+        password: data.password,
+        full_name: data.name,
+        phone: data.phone,
+        address: `${data.address}, ${data.zipcode}`, // Combine address and zipcode
+      })
+
+      // Store tokens
+      localStorage.setItem("access_token", response.access)
+      localStorage.setItem("refresh_token", response.refresh)
+
+      // Fetch full customer profile
+      const customer = await api.getCustomerProfile()
+      setUser(customer)
+
+      // Success - router.push will be handled by the page component
+    } catch (error: any) {
+      setIsLoading(false)
+      throw new Error(error.message || "Registration failed. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
-    setUser(userData)
-    localStorage.setItem("netily_user", JSON.stringify(userData))
-    setIsLoading(false)
   }
 
   const logout = () => {
+    localStorage.removeItem("access_token")
+    localStorage.removeItem("refresh_token")
     setUser(null)
-    localStorage.removeItem("netily_user")
   }
 
-  return <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>{children}</AuthContext.Provider>
+  const refreshUser = async () => {
+    try {
+      const customer = await api.getCustomerProfile()
+      setUser(customer)
+    } catch (error) {
+      console.error("Failed to refresh user:", error)
+      // If refresh fails, logout
+      logout()
+    }
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, refreshUser }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
