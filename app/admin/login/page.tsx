@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
+import { adminApi } from "@/lib/admin-api"
 
 interface LoginFormData {
   username: string
@@ -49,23 +50,15 @@ export default function AdminLoginPage() {
   }
 
   const loginWithBackend = async (): Promise<LoginResponse> => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/admin/login/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: formData.username,
-        password: formData.password,
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.detail || "Invalid admin credentials")
+    // Use centralized admin API service
+    const data = await adminApi.login(formData.username, formData.password)
+    
+    // Validate response structure
+    if (!data.access || !data.user) {
+      throw new Error("Invalid response from server")
     }
 
-    return response.json()
+    return data
   }
 
   const loginWithFallback = async (): Promise<LoginResponse> => {
@@ -114,24 +107,37 @@ export default function AdminLoginPage() {
       // Try backend first, fallback to mock if unavailable
       try {
         data = await loginWithBackend()
+        console.log("✅ Admin authenticated with Django backend")
       } catch (backendError) {
-        console.warn("Backend unavailable, using fallback authentication")
-        data = await loginWithFallback()
+        console.warn("⚠️ Backend unavailable, using fallback authentication:", backendError)
+        try {
+          data = await loginWithFallback()
+          console.log("✅ Admin authenticated with fallback mock data")
+        } catch (fallbackError) {
+          throw fallbackError
+        }
       }
 
       // Verify admin privileges
-      if (!data.user.is_staff && !data.user.is_superuser) {
+      if (!data.user || (!data.user.is_staff && !data.user.is_superuser)) {
         throw new Error("Access denied. Admin privileges required.")
       }
 
       // Store tokens and user data
       const storage = formData.rememberMe ? localStorage : sessionStorage
+      const maxAge = formData.rememberMe ? 604800 : 86400 // 7 days or 1 day
+      
       storage.setItem("adminToken", data.access)
-      storage.setItem("adminRefreshToken", data.refresh)
+      if (data.refresh) {
+        storage.setItem("adminRefreshToken", data.refresh)
+      }
       storage.setItem("adminUser", JSON.stringify(data.user))
       
-      // Sync to cookies for middleware
-      document.cookie = `adminToken=${data.access}; path=/; max-age=${formData.rememberMe ? 604800 : 86400}; SameSite=Lax`
+      // Sync to cookies for middleware (client-side cookies)
+      document.cookie = `adminToken=${data.access}; path=/; max-age=${maxAge}; SameSite=Lax`
+      
+      // Log successful login
+      console.log(`✅ Admin logged in: ${data.user.username} (${data.user.is_superuser ? 'Superuser' : 'Staff'})`)
 
       // Redirect to admin dashboard
       router.push("/admin")
@@ -226,9 +232,15 @@ export default function AdminLoginPage() {
             </Button>
 
             <div className="text-center text-sm text-slate-500 mt-4">
-              <p>Dev credentials:</p>
+              <p className="font-semibold mb-1">Development Mode</p>
+              <p className="text-xs">
+                Backend fallback credentials:
+              </p>
               <p className="font-mono text-xs mt-1">
-                admin / admin123 or superadmin / super123
+                admin / admin123 (Staff)
+              </p>
+              <p className="font-mono text-xs">
+                superadmin / super123 (Superuser)
               </p>
             </div>
           </form>
