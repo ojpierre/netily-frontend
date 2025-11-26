@@ -129,6 +129,9 @@ export default function AdminLoginPage() {
       storage.setItem("adminToken", data.access)
       storage.setItem("adminRefreshToken", data.refresh)
       storage.setItem("adminUser", JSON.stringify(data.user))
+      
+      // Sync to cookies for middleware
+      document.cookie = `adminToken=${data.access}; path=/; max-age=${formData.rememberMe ? 604800 : 86400}; SameSite=Lax`
 
       // Redirect to admin dashboard
       router.push("/admin")

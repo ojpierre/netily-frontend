@@ -111,6 +111,13 @@ class ApiService {
     return this.handleResponse(response)
   }
 
+  async getCurrentUser(): Promise<any> {
+    const response = await fetch(`${API_BASE}/users/me/`, {
+      headers: this.getAuthHeaders(),
+    })
+    return this.handleResponse(response)
+  }
+
   // CUSTOMER
   async getCustomerProfile(): Promise<Customer> {
     const response = await fetch(`${API_BASE}/customers/me/`, {

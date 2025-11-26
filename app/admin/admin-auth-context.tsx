@@ -46,6 +46,10 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.removeItem("adminToken")
     sessionStorage.removeItem("adminRefreshToken")
     sessionStorage.removeItem("adminUser")
+    
+    // Clear cookies
+    document.cookie = "adminToken=; path=/; max-age=0"
+    
     setUser(null)
     router.push("/admin/login")
   }

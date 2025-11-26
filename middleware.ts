@@ -4,8 +4,9 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
-  // Get tokens from cookies
-  const userToken = request.cookies.get('token')?.value || request.cookies.get('access_token')?.value
+  // Get tokens from cookies (for now, middleware will be lenient since we use localStorage)
+  // In production, tokens should be in httpOnly cookies
+  const userToken = request.cookies.get('access_token')?.value
   const adminToken = request.cookies.get('adminToken')?.value
 
   // Admin routes protection

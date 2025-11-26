@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { AuthProvider } from "./auth-context"
+import { AuthGuard } from "@/components/auth-guard"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
@@ -41,8 +42,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geist.className} ${geistMono.className}`} suppressHydrationWarning>
         <AuthProvider>
-          {children}
-          <Toaster />
+          <AuthGuard>
+            {children}
+            <Toaster />
+          </AuthGuard>
         </AuthProvider>
         <Analytics />
       </body>

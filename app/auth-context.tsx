@@ -26,6 +26,7 @@ interface AuthContextType {
   user: User | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
+  register: (data: any) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
 }
@@ -67,6 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Store tokens
       localStorage.setItem("access_token", access)
       localStorage.setItem("refresh_token", refresh)
+      
+      // Sync to cookies for middleware (client-side cookies)
+      document.cookie = `access_token=${access}; path=/; max-age=86400; SameSite=Lax`
 
       // Fetch user profile
       const userData = await api.getCurrentUser()
@@ -81,9 +85,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const register = async (data: any) => {
+    setIsLoading(true)
+    try {
+      // Register user with Django backend
+      const response = await api.register({
+        username: data.email, // Use email as username
+        email: data.email,
+        password: data.password,
+        full_name: data.name,
+        phone: data.phone,
+        address: `${data.address}, ${data.zipcode}`,
+      })
+      
+      // Store tokens from registration response
+      localStorage.setItem("access_token", response.access)
+      localStorage.setItem("refresh_token", response.refresh)
+      
+      // Sync to cookies for middleware
+      document.cookie = `access_token=${response.access}; path=/; max-age=86400; SameSite=Lax`
+
+      // Set user data
+      setUser(response.user)
+      
+    } catch (error: any) {
+      setIsLoading(false)
+      throw new Error(error.message || "Registration failed. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const logout = () => {
     localStorage.removeItem("access_token")
     localStorage.removeItem("refresh_token")
+    
+    // Clear cookies
+    document.cookie = "access_token=; path=/; max-age=0"
+    
     setUser(null)
     router.push("/")
   }
@@ -98,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )
