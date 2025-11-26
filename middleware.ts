@@ -2,28 +2,46 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('access_token')?.value || 
-                (typeof window !== 'undefined' && localStorage.getItem('access_token'))
+  const { pathname } = request.nextUrl
+  
+  // Get tokens from cookies
+  const userToken = request.cookies.get('token')?.value || request.cookies.get('access_token')?.value
+  const adminToken = request.cookies.get('adminToken')?.value
 
-  // Protected routes
-  {/*if (request.nextUrl.pathname.startsWith('/dashboard') || 
-      request.nextUrl.pathname.startsWith('/admin')) {
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url))
+  // Admin routes protection
+  if (pathname.startsWith('/admin')) {
+    // Allow access to admin login page
+    if (pathname === '/admin/login') {
+      // Redirect to dashboard if already logged in
+      if (adminToken) {
+        return NextResponse.redirect(new URL('/admin', request.url))
+      }
+      return NextResponse.next()
+    }
+
+    // Protect all other admin routes
+    if (!adminToken) {
+      return NextResponse.redirect(new URL('/admin/login', request.url))
     }
   }
-*/}
-  // Redirect to dashboard if already logged in
-  if (request.nextUrl.pathname === '/login' || 
-      request.nextUrl.pathname === '/register') {
-    if (token) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
+
+  // Regular user routes protection
+  const publicPaths = ['/login', '/register', '/']
+  const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
+
+  if (!userToken && !isPublicPath && !pathname.startsWith('/admin')) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  if (userToken && (pathname === '/login' || pathname === '/register')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/admin/:path*', '/login', '/register']
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 }

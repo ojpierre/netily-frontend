@@ -20,6 +20,7 @@ import {
   User,
   ChevronDown,
 } from "lucide-react"
+import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -44,14 +45,11 @@ const navigation = [
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const pathname = usePathname()
+  const { user, logout } = useAdminAuth()
 
   return (
     <div className="min-h-screen bg-slate-50" suppressHydrationWarning>
@@ -177,12 +175,12 @@ export default function AdminLayout({
                   <Avatar className="w-8 h-8">
                     <AvatarImage src="" alt="Admin" />
                     <AvatarFallback className="bg-blue-600 text-white">
-                      AD
+                      {user?.username?.charAt(0).toUpperCase() || "A"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden md:flex flex-col items-start">
-                    <span className="text-sm font-medium">Admin User</span>
-                    <span className="text-xs text-slate-500">admin@netily.com</span>
+                    <span className="text-sm font-medium">{user?.username || "Admin"}</span>
+                    <span className="text-xs text-slate-500">{user?.email || "admin@netily.com"}</span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-slate-400" />
                 </Button>
@@ -199,7 +197,7 @@ export default function AdminLayout({
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600">
+                <DropdownMenuItem className="text-red-600" onClick={logout}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
                 </DropdownMenuItem>
@@ -212,5 +210,17 @@ export default function AdminLayout({
         <main className="p-4 lg:p-6">{children}</main>
       </div>
     </div>
+  )
+}
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <AdminAuthProvider>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </AdminAuthProvider>
   )
 }

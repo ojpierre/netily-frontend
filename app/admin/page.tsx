@@ -11,12 +11,14 @@ import {
   TrendingDown,
   ArrowUpRight,
   Loader2,
+  LogOut,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useAdminAuth } from "./admin-auth-context"
 
 // Mock data generator
 const generateMockStats = () => ({
@@ -35,6 +37,7 @@ const generateMockStats = () => ({
 })
 
 export default function AdminDashboard() {
+  const { user, logout } = useAdminAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState<ReturnType<typeof generateMockStats> | null>(null)
@@ -78,12 +81,20 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-500 mt-1">Overview of your ISP operations</p>
+          <p className="text-slate-500 mt-1">
+            Welcome back, {user?.username || "Admin"}
+          </p>
         </div>
-        <Button>
-          <ArrowUpRight className="w-4 h-4 mr-2" />
-          Export Report
-        </Button>
+        <div className="flex gap-2">
+          <Button>
+            <ArrowUpRight className="w-4 h-4 mr-2" />
+            Export Report
+          </Button>
+          <Button variant="outline" onClick={logout}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
+        </div>
       </div>
 
       {/* Stats Grid */}
