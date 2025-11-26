@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -9,13 +7,13 @@ import { Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/app/auth-context"
+import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
   const { login, isLoading } = useAuth()
   const [formData, setFormData] = useState({ email: "", password: "" })
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [submitError, setSubmitError] = useState("")
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -38,20 +36,23 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitError("")
 
-    if (!validateForm()) return
+    if (!validateForm()) {
+      toast.error("Please fix the errors in the form")
+      return
+    }
 
     try {
       await login(formData.email, formData.password)
+      toast.success("Welcome back!")
       router.push("/dashboard")
-    } catch (error) {
-      setSubmitError("Login failed. Please try again.")
+    } catch (error: any) {
+      toast.error(error.message || "Login failed. Please check your credentials.")
     }
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
@@ -66,10 +67,6 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold mb-2 text-slate-900">Welcome back</h1>
           <p className="text-slate-600 mb-8">Sign in to your account to continue</p>
 
-          {submitError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">{submitError}</div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
@@ -81,7 +78,7 @@ export default function LoginPage() {
                   setFormData({ ...formData, email: e.target.value })
                   if (errors.email) setErrors({ ...errors, email: "" })
                 }}
-                className={`${errors.email ? "border-red-500" : ""}`}
+                className={errors.email ? "border-red-500" : ""}
               />
               {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
             </div>
@@ -96,15 +93,25 @@ export default function LoginPage() {
                   setFormData({ ...formData, password: e.target.value })
                   if (errors.password) setErrors({ ...errors, password: "" })
                 }}
-                className={`${errors.password ? "border-red-500" : ""}`}
+                className={errors.password ? "border-red-500" : ""}
               />
               {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password}</p>}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" className="rounded border-slate-300" />
+                <span className="text-sm text-slate-600">Remember me</span>
+              </label>
+              <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                Forgot password?
+              </Link>
             </div>
 
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg font-medium"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg font-medium mt-6"
             >
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>

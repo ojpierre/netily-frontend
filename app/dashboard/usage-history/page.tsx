@@ -1,133 +1,409 @@
 "use client"
 
+import { useState, useEffect } from "react"
+import { useAuth } from "@/app/auth-context"
 import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Calendar, TrendingUp, Download, Clock } from "lucide-react"
-import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { 
+  BarChart3, 
+  Calendar, 
+  Download, 
+  TrendingUp, 
+  Clock, 
+  Activity,
+  Eye,
+  Filter,
+  RefreshCw
+} from "lucide-react"
+import { toast } from "sonner"
+
+// Mock usage data (replace with API call)
+interface UsageRecord {
+  id: number
+  date: string
+  duration: number // in minutes
+  data_used: number // in MB
+  session_start: string
+  session_end: string
+  status: "active" | "completed"
+}
 
 export default function UsageHistoryPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [dateFilter, setDateFilter] = useState("all")
+  const { user } = useAuth()
+  const [usageData, setUsageData] = useState<UsageRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [timeFilter, setTimeFilter] = useState("7days")
+  const [selectedSession, setSelectedSession] = useState<UsageRecord | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  const usageData = [
-    { date: "Nov 13, 2025", time: "14:30", duration: "2h 45m", volume: "Unlimited", speed: "1500 Mbps", activity: "Streaming & Browsing" },
-    { date: "Nov 13, 2025", time: "10:15", duration: "1h 20m", volume: "Unlimited", speed: "1500 Mbps", activity: "Video Conference" },
-    { date: "Nov 12, 2025", time: "20:45", duration: "4h 10m", volume: "Unlimited", speed: "1500 Mbps", activity: "Gaming & Downloads" },
-    { date: "Nov 12, 2025", time: "08:30", duration: "3h 30m", volume: "Unlimited", speed: "1500 Mbps", activity: "Work & Email" },
-    { date: "Nov 11, 2025", time: "18:00", duration: "5h 15m", volume: "Unlimited", speed: "1500 Mbps", activity: "HD Streaming" },
-    { date: "Nov 11, 2025", time: "09:00", duration: "2h 00m", volume: "Unlimited", speed: "1500 Mbps", activity: "Social Media" },
-    { date: "Nov 10, 2025", time: "16:20", duration: "3h 45m", volume: "Unlimited", speed: "1500 Mbps", activity: "Video Streaming" },
-  ]
+  useEffect(() => {
+    loadUsageData()
+  }, [timeFilter])
 
-  const filtered = usageData.filter(
-    (item) =>
-      item.activity.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.date.includes(searchTerm)
-  )
+  const loadUsageData = async () => {
+    setLoading(true)
+    try {
+      // TODO: Replace with actual API call
+      // const response = await api.getUsageHistory(timeFilter)
+      // setUsageData(response.results)
+      
+      // Mock data for now
+      const mockData: UsageRecord[] = [
+        {
+          id: 1,
+          date: "2024-11-26",
+          duration: 480,
+          data_used: 2400,
+          session_start: "2024-11-26T08:00:00",
+          session_end: "2024-11-26T16:00:00",
+          status: "completed"
+        },
+        {
+          id: 2,
+          date: "2024-11-25",
+          duration: 360,
+          data_used: 1800,
+          session_start: "2024-11-25T09:00:00",
+          session_end: "2024-11-25T15:00:00",
+          status: "completed"
+        },
+        {
+          id: 3,
+          date: "2024-11-24",
+          duration: 540,
+          data_used: 3200,
+          session_start: "2024-11-24T07:30:00",
+          session_end: "2024-11-24T16:30:00",
+          status: "completed"
+        },
+        {
+          id: 4,
+          date: "2024-11-23",
+          duration: 420,
+          data_used: 2100,
+          session_start: "2024-11-23T10:00:00",
+          session_end: "2024-11-23T17:00:00",
+          status: "completed"
+        },
+      ]
+      
+      setUsageData(mockData)
+      toast.success("Usage data loaded")
+    } catch (error) {
+      toast.error("Failed to load usage data")
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const totalDuration = usageData.reduce((acc, item) => {
-    const hours = parseInt(item.duration.split('h')[0])
-    const minutes = parseInt(item.duration.split('h')[1].split('m')[0])
-    return acc + hours + (minutes / 60)
-  }, 0)
+  const totalDuration = usageData.reduce((sum, record) => sum + record.duration, 0)
+  const totalData = usageData.reduce((sum, record) => sum + record.data_used, 0)
+  const averageDaily = usageData.length > 0 ? totalData / usageData.length : 0
+
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    return `${hours}h ${mins}m`
+  }
+
+  const formatData = (mb: number) => {
+    if (mb >= 1000) {
+      return `${(mb / 1000).toFixed(2)} GB`
+    }
+    return `${mb} MB`
+  }
+
+  const handleViewDetails = (record: UsageRecord) => {
+    setSelectedSession(record)
+    setIsDialogOpen(true)
+  }
+
+  const handleExport = () => {
+    toast.success("Exporting usage data...")
+    // TODO: Implement CSV/PDF export
+  }
+
+  if (!user) return null
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Usage History</h1>
-        <p className="text-slate-600 mt-1">Track your internet activity and connection history</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Usage History</h1>
+          <p className="text-slate-600 mt-1">Track your internet usage and activity</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={loadUsageData}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+          <Button onClick={handleExport}>
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
       <div className="grid md:grid-cols-4 gap-4">
-        <Card className="p-6 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <Clock className="w-8 h-8 opacity-80" />
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-600 mb-1">Total Sessions</p>
+              <p className="text-2xl font-bold text-slate-900">{usageData.length}</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Activity className="w-6 h-6 text-blue-600" />
+            </div>
           </div>
-          <p className="text-3xl font-bold">{Math.round(totalDuration)}h</p>
-          <p className="text-blue-100 text-sm">Total Usage This Week</p>
         </Card>
 
-        <Card className="p-6 bg-white">
-          <div className="flex items-center justify-between mb-2">
-            <TrendingUp className="w-8 h-8 text-green-600" />
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-600 mb-1">Total Duration</p>
+              <p className="text-2xl font-bold text-slate-900">{formatDuration(totalDuration)}</p>
+            </div>
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <Clock className="w-6 h-6 text-green-600" />
+            </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900">1500</p>
-          <p className="text-slate-600 text-sm">Average Mbps</p>
         </Card>
 
-        <Card className="p-6 bg-white">
-          <div className="flex items-center justify-between mb-2">
-            <Calendar className="w-8 h-8 text-purple-600" />
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-600 mb-1">Data Used</p>
+              <p className="text-2xl font-bold text-slate-900">{formatData(totalData)}</p>
+            </div>
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-purple-600" />
+            </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900">7</p>
-          <p className="text-slate-600 text-sm">Active Days</p>
         </Card>
 
-        <Card className="p-6 bg-white">
-          <div className="flex items-center justify-between mb-2">
-            <Download className="w-8 h-8 text-blue-600" />
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-600 mb-1">Avg. Daily</p>
+              <p className="text-2xl font-bold text-slate-900">{formatData(averageDaily)}</p>
+            </div>
+            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <BarChart3 className="w-6 h-6 text-orange-600" />
+            </div>
           </div>
-          <p className="text-3xl font-bold text-slate-900">∞</p>
-          <p className="text-slate-600 text-sm">Data Remaining</p>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card className="p-6 bg-white">
-        <div className="grid md:grid-cols-3 gap-4">
-          <Input
-            placeholder="Search by activity or date..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <select
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="h-10 px-4 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
-          >
-            <option value="all">All Time</option>
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-          </select>
+      <Card className="p-6">
+        <div className="flex items-center gap-4">
+          <Filter className="w-5 h-5 text-slate-600" />
+          <span className="text-sm font-medium text-slate-700">Time Period:</span>
+          <Select value={timeFilter} onValueChange={setTimeFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7days">Last 7 Days</SelectItem>
+              <SelectItem value="30days">Last 30 Days</SelectItem>
+              <SelectItem value="90days">Last 90 Days</SelectItem>
+              <SelectItem value="all">All Time</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
+
+      {/* Usage Chart Placeholder */}
+      <Card className="p-8">
+        <div className="flex items-center gap-2 mb-6">
+          <BarChart3 className="w-5 h-5 text-slate-600" />
+          <h2 className="text-lg font-semibold">Usage Trends</h2>
+        </div>
+        <div className="h-64 bg-slate-50 rounded-lg flex items-center justify-center border-2 border-dashed border-slate-200">
+          <div className="text-center">
+            <BarChart3 className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+            <p className="text-slate-600">Usage chart will appear here</p>
+            <p className="text-sm text-slate-400 mt-1">Install recharts library to enable charts</p>
+          </div>
         </div>
       </Card>
 
       {/* Usage Table */}
-      <Card className="p-6 bg-white">
-        <h2 className="text-xl font-bold text-slate-900 mb-6">Connection History</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-200">
-                <th className="text-left py-3 px-4 font-semibold text-slate-900">Date</th>
-                <th className="text-left py-3 px-4 font-semibold text-slate-900">Time</th>
-                <th className="text-left py-3 px-4 font-semibold text-slate-900">Duration</th>
-                <th className="text-left py-3 px-4 font-semibold text-slate-900">Speed</th>
-                <th className="text-left py-3 px-4 font-semibold text-slate-900">Activity</th>
-                <th className="text-left py-3 px-4 font-semibold text-slate-900">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((usage, idx) => (
-                <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="py-4 px-4 text-slate-900">{usage.date}</td>
-                  <td className="py-4 px-4 text-slate-600">{usage.time}</td>
-                  <td className="py-4 px-4 text-slate-900 font-medium">{usage.duration}</td>
-                  <td className="py-4 px-4 text-blue-600 font-semibold">{usage.speed}</td>
-                  <td className="py-4 px-4 text-slate-600">{usage.activity}</td>
-                  <td className="py-4 px-4">
-                    <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-semibold rounded-full">
-                      Completed
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <Card>
+        <div className="p-6 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-slate-600" />
+            <h2 className="text-lg font-semibold">Session History</h2>
+          </div>
         </div>
+
+        {usageData.length === 0 ? (
+          <div className="p-12 text-center">
+            <Activity className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+            <p className="text-slate-600">No usage data available</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Session Start</TableHead>
+                <TableHead>Session End</TableHead>
+                <TableHead>Duration</TableHead>
+                <TableHead>Data Used</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {usageData.map((record) => (
+                <TableRow key={record.id}>
+                  <TableCell className="font-medium">
+                    {new Date(record.date).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(record.session_start).toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(record.session_end).toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </TableCell>
+                  <TableCell>{formatDuration(record.duration)}</TableCell>
+                  <TableCell className="font-semibold">{formatData(record.data_used)}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={record.status === "completed" ? "default" : "secondary"}
+                      className={record.status === "completed" ? "bg-green-100 text-green-700" : ""}
+                    >
+                      {record.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleViewDetails(record)}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Details
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </Card>
+
+      {/* Session Details Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Session Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about this usage session
+            </DialogDescription>
+          </DialogHeader>
+          {selectedSession && (
+            <div className="space-y-4 pt-4">
+              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                <span className="text-sm text-slate-600">Date</span>
+                <span className="font-semibold">
+                  {new Date(selectedSession.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                <span className="text-sm text-slate-600">Session Start</span>
+                <span className="font-semibold">
+                  {new Date(selectedSession.session_start).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                <span className="text-sm text-slate-600">Session End</span>
+                <span className="font-semibold">
+                  {new Date(selectedSession.session_end).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                <span className="text-sm text-slate-600">Total Duration</span>
+                <span className="font-semibold text-blue-600">
+                  {formatDuration(selectedSession.duration)}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                <span className="text-sm text-slate-600">Data Used</span>
+                <span className="font-semibold text-green-600">
+                  {formatData(selectedSession.data_used)}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                <span className="text-sm text-slate-600">Status</span>
+                <Badge 
+                  variant={selectedSession.status === "completed" ? "default" : "secondary"}
+                  className={selectedSession.status === "completed" ? "bg-green-100 text-green-700" : ""}
+                >
+                  {selectedSession.status}
+                </Badge>
+              </div>
+
+              <Button 
+                className="w-full mt-4" 
+                onClick={() => setIsDialogOpen(false)}
+              >
+                Close
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
