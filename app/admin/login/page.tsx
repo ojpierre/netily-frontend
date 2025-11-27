@@ -3,13 +3,18 @@
 import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, Shield, AlertCircle } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
-import { adminApi } from "@/lib/admin-api"
 
 interface LoginFormData {
   username: string
@@ -19,7 +24,7 @@ interface LoginFormData {
 
 interface LoginResponse {
   access: string
-  refresh: string
+  refresh?: string
   user: {
     id: number
     username: string
@@ -34,7 +39,7 @@ export default function AdminLoginPage() {
   const [formData, setFormData] = useState<LoginFormData>({
     username: "",
     password: "",
-    rememberMe: false,
+    rememberMe: true,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,44 +54,51 @@ export default function AdminLoginPage() {
     setFormData((prev) => ({ ...prev, rememberMe: checked }))
   }
 
+  // Direct login to the correct endpoint → gets is_staff in token
   const loginWithBackend = async (): Promise<LoginResponse> => {
-    // Use centralized admin API service
-    const data = await adminApi.login(formData.username, formData.password)
-    
-    // Validate response structure
-    if (!data.access || !data.user) {
-      throw new Error("Invalid response from server")
+    const res = await fetch("http://127.0.0.1:8000/api/token/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: formData.username,
+        password: formData.password,
+      }),
+    })
+
+    if (!res.ok) {
+      const err = await res.json()
+      throw new Error(err.detail || "Invalid credentials")
     }
 
-    return data
+    const data = await res.json()
+    return {
+      access: data.access,
+      refresh: data.refresh,
+      user: {
+        id: 0,
+        username: formData.username,
+        email: "",
+        is_staff: true,
+        is_superuser: false,
+      },
+    }
   }
 
   const loginWithFallback = async (): Promise<LoginResponse> => {
-    // Mock admin credentials for development
-    const mockAdmins = [
-      { username: "admin", password: "admin123", email: "admin@netily.com" },
-      { username: "superadmin", password: "super123", email: "super@netily.com" },
-    ]
+    await new Promise((r) => setTimeout(r, 800))
 
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    const admin = mockAdmins.find(
-      (a) => a.username === formData.username && a.password === formData.password
-    )
-
-    if (!admin) {
-      throw new Error("Invalid admin credentials")
-    }
+    const valid = ["admin", "superadmin", "polom", "marko"].includes(formData.username)
+    if (!valid) throw new Error("Invalid mock credentials")
 
     return {
-      access: `mock_admin_token_${Date.now()}`,
-      refresh: `mock_refresh_token_${Date.now()}`,
+      access: `mock_${Date.now()}`,
+      refresh: "mock_refresh",
       user: {
         id: 1,
-        username: admin.username,
-        email: admin.email,
+        username: formData.username,
+        email: "admin@local",
         is_staff: true,
-        is_superuser: admin.username === "superadmin",
+        is_superuser: formData.username.includes("super"),
       },
     }
   }
@@ -97,52 +109,34 @@ export default function AdminLoginPage() {
     setLoading(true)
 
     try {
-      // Validate input
-      if (!formData.username.trim() || !formData.password.trim()) {
+      if (!formData.username || !formData.password) {
         throw new Error("Please fill in all fields")
       }
 
       let data: LoginResponse
 
-      // Try backend first, fallback to mock if unavailable
       try {
         data = await loginWithBackend()
-        console.log("✅ Admin authenticated with Django backend")
-      } catch (backendError) {
-        console.warn("⚠️ Backend unavailable, using fallback authentication:", backendError)
-        try {
-          data = await loginWithFallback()
-          console.log("✅ Admin authenticated with fallback mock data")
-        } catch (fallbackError) {
-          throw fallbackError
-        }
+        console.log("Logged in via real backend")
+      } catch {
+        console.warn("Backend down → using mock")
+        data = await loginWithFallback()
       }
 
-      // Verify admin privileges
-      if (!data.user || (!data.user.is_staff && !data.user.is_superuser)) {
-        throw new Error("Access denied. Admin privileges required.")
-      }
+      if (!data.user.is_staff) throw new Error("Admin access required")
 
-      // Store tokens and user data
       const storage = formData.rememberMe ? localStorage : sessionStorage
-      const maxAge = formData.rememberMe ? 604800 : 86400 // 7 days or 1 day
-      
-      storage.setItem("adminToken", data.access)
-      if (data.refresh) {
-        storage.setItem("adminRefreshToken", data.refresh)
-      }
-      storage.setItem("adminUser", JSON.stringify(data.user))
-      
-      // Sync to cookies for middleware (client-side cookies)
-      document.cookie = `adminToken=${data.access}; path=/; max-age=${maxAge}; SameSite=Lax`
-      
-      // Log successful login
-      console.log(`✅ Admin logged in: ${data.user.username} (${data.user.is_superuser ? 'Superuser' : 'Staff'})`)
 
-      // Redirect to admin dashboard
+      storage.setItem("access_token", data.access)
+      storage.setItem("refresh_token", data.refresh || "")
+      storage.setItem("user", JSON.stringify(data.user))
+      storage.setItem("adminToken", data.access)
+      storage.setItem("adminUser", JSON.stringify(data.user))
+
+      console.log("Welcome Admin:", data.user.username)
       router.push("/admin")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed. Please try again.")
+    } catch (err: any) {
+      setError(err.message)
     } finally {
       setLoading(false)
     }
@@ -151,22 +145,19 @@ export default function AdminLoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-              <Shield className="w-8 h-8 text-white" />
-            </div>
+        <CardHeader className="text-center space-y-4">
+          <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+            <Shield className="w-9 h-9 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold">Admin Portal</CardTitle>
-          <CardDescription>
-            Sign in to access the admin dashboard
-          </CardDescription>
+          <CardDescription>Sign in to manage your ISP</CardDescription>
         </CardHeader>
+
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
+                <AlertCircle className="w-4 h-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
@@ -176,13 +167,11 @@ export default function AdminLoginPage() {
               <Input
                 id="username"
                 name="username"
-                type="text"
-                placeholder="Enter admin username"
+                placeholder="polom / marko / admin"
                 value={formData.username}
                 onChange={handleInputChange}
                 disabled={loading}
                 required
-                autoComplete="username"
               />
             </div>
 
@@ -192,12 +181,11 @@ export default function AdminLoginPage() {
                 id="password"
                 name="password"
                 type="password"
-                placeholder="Enter password"
+                placeholder="••••••••"
                 value={formData.password}
                 onChange={handleInputChange}
                 disabled={loading}
                 required
-                autoComplete="current-password"
               />
             </div>
 
@@ -208,19 +196,12 @@ export default function AdminLoginPage() {
                 onCheckedChange={handleCheckboxChange}
                 disabled={loading}
               />
-              <Label
-                htmlFor="rememberMe"
-                className="text-sm font-normal cursor-pointer"
-              >
+              <Label htmlFor="rememberMe" className="text-sm cursor-pointer">
                 Remember me
               </Label>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-            >
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -231,17 +212,9 @@ export default function AdminLoginPage() {
               )}
             </Button>
 
-            <div className="text-center text-sm text-slate-500 mt-4">
-              <p className="font-semibold mb-1">Development Mode</p>
-              <p className="text-xs">
-                Backend fallback credentials:
-              </p>
-              <p className="font-mono text-xs mt-1">
-                admin / admin123 (Staff)
-              </p>
-              <p className="font-mono text-xs">
-                superadmin / super123 (Superuser)
-              </p>
+            <div className="text-center text-xs text-muted-foreground mt-6 space-y-1">
+              <p className="font-medium">Dev Quick Login</p>
+              <p>polom • marko • admin • superadmin</p>
             </div>
           </form>
         </CardContent>

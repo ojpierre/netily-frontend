@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Settings as SettingsIcon,
   Server,
@@ -30,23 +30,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // RADIUS Settings State
   const [radiusSettings, setRadiusSettings] = useState({
-    primaryServer: "192.168.1.10",
-    primaryPort: "1812",
-    primarySecret: "shared-secret-123",
-    secondaryServer: "192.168.1.11",
-    secondaryPort: "1812",
-    secondarySecret: "shared-secret-456",
-    accountingPort: "1813",
-    timeout: "5",
-    retries: "3",
+    primaryServer: "",
+    primaryPort: "",
+    primarySecret: "",
+    secondaryServer: "",
+    secondaryPort: "",
+    secondarySecret: "",
+    accountingPort: "",
+    timeout: "",
+    retries: "",
   })
 
   // Automation Settings State
@@ -56,7 +57,7 @@ export default function SettingsPage() {
     autoNotifications: true,
     autoBackup: false,
     autoReports: true,
-    gracePeriod: "3",
+    gracePeriod: "",
     backupFrequency: "daily",
     reportFrequency: "weekly",
   })
@@ -69,54 +70,165 @@ export default function SettingsPage() {
     expiryNotifications: true,
     systemAlerts: true,
     marketingEmails: false,
-    adminEmail: "admin@netily.com",
+    adminEmail: "",
     smsGateway: "africastalking",
   })
 
-  const handleSaveSettings = () => {
-    // Simulate save
-    console.log("Saving settings:", {
-      radiusSettings,
-      automationSettings,
-      notificationSettings,
-    })
-    setSaveSuccess(true)
-    setTimeout(() => setSaveSuccess(false), 3000)
+  // Load settings from backend
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const token = localStorage.getItem("access_token")
+        if (!token) throw new Error("No access token")
+
+        const res = await fetch("http://127.0.0.1:8000/api/admin/settings/", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+
+        if (!res.ok) throw new Error("Failed to load settings")
+
+        const data = await res.json()
+
+        setRadiusSettings({
+          primaryServer: data.primary_server || "",
+          primaryPort: data.primary_port || "",
+          primarySecret: data.primary_secret || "",
+          secondaryServer: data.secondary_server || "",
+          secondaryPort: data.secondary_port || "",
+          secondarySecret: data.secondary_secret || "",
+          accountingPort: data.accounting_port || "",
+          timeout: data.timeout?.toString() || "5",
+          retries: data.retries?.toString() || "3",
+        })
+
+        setAutomationSettings({
+          autoRenew: data.auto_renew ?? true,
+          autoExpiry: data.auto_expiry ?? true,
+          autoNotifications: data.auto_notifications ?? true,
+          autoBackup: data.auto_backup ?? false,
+          autoReports: data.auto_reports ?? true,
+          gracePeriod: data.grace_period?.toString() || "3",
+          backupFrequency: data.backup_frequency || "daily",
+          reportFrequency: data.report_frequency || "weekly",
+        })
+
+        setNotificationSettings({
+          emailEnabled: data.email_enabled ?? true,
+          smsEnabled: data.sms_enabled ?? true,
+          paymentNotifications: data.payment_notifications ?? true,
+          expiryNotifications: data.expiry_notifications ?? true,
+          systemAlerts: data.system_alerts ?? true,
+          marketingEmails: data.marketing_emails ?? false,
+          adminEmail: data.admin_email || "",
+          smsGateway: data.sms_gateway || "africastalking",
+        })
+      } catch (err: any) {
+        console.error("Failed to load settings:", err)
+        setError(err.message || "Failed to load settings")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchSettings()
+  }, [])
+
+const handleSaveSettings = async () => {
+  try {
+    setIsLoading(true)
+    setError(null)
+
+    // Better token retrieval
+   const token = localStorage.getItem("access_token") || localStorage.getItem("adminToken")
+    if (!token) {
+      setError("No access token — please log in again")
+      return
+    }
+
+    // Optional: decode token to check is_staff
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      if (!payload.is_staff) {
+        setError("You must be an admin to save settings")
+        return
+      }
+    } catch (e) {
+      console.log("Token decode failed, continuing...")
+    }
+      const payload = {
+        // RADIUS
+        primary_server: radiusSettings.primaryServer,
+        primary_port: radiusSettings.primaryPort,
+        primary_secret: radiusSettings.primarySecret,
+        secondary_server: radiusSettings.secondaryServer || "",
+        secondary_port: radiusSettings.secondaryPort || "",
+        secondary_secret: radiusSettings.secondarySecret || "",
+        accounting_port: radiusSettings.accountingPort,
+        timeout: parseInt(radiusSettings.timeout) || 5,
+        retries: parseInt(radiusSettings.retries) || 3,
+
+        // Automation
+        auto_renew: automationSettings.autoRenew,
+        auto_expiry: automationSettings.autoExpiry,
+        auto_notifications: automationSettings.autoNotifications,
+        auto_backup: automationSettings.autoBackup,
+        auto_reports: automationSettings.autoReports,
+        grace_period: parseInt(automationSettings.gracePeriod) || 3,
+        backup_frequency: automationSettings.backupFrequency,
+        report_frequency: automationSettings.reportFrequency,
+
+        // Notifications
+        email_enabled: notificationSettings.emailEnabled,
+        sms_enabled: notificationSettings.smsEnabled,
+        payment_notifications: notificationSettings.paymentNotifications,
+        expiry_notifications: notificationSettings.expiryNotifications,
+        system_alerts: notificationSettings.systemAlerts,
+        marketing_emails: notificationSettings.marketingEmails,
+        admin_email: notificationSettings.adminEmail,
+        sms_gateway: notificationSettings.smsGateway,
+      }
+
+      const res = await fetch("http://127.0.0.1:8000/api/admin/settings/", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.detail || "Failed to save")
+      }
+
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 3000)
+    } catch (err: any) {
+      setError(err.message || "Save failed")
+      console.error(err)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleResetSettings = () => {
-    // Reset to defaults
-    setRadiusSettings({
-      primaryServer: "192.168.1.10",
-      primaryPort: "1812",
-      primarySecret: "shared-secret-123",
-      secondaryServer: "192.168.1.11",
-      secondaryPort: "1812",
-      secondarySecret: "shared-secret-456",
-      accountingPort: "1813",
-      timeout: "5",
-      retries: "3",
-    })
-    setAutomationSettings({
-      autoRenew: true,
-      autoExpiry: true,
-      autoNotifications: true,
-      autoBackup: false,
-      autoReports: true,
-      gracePeriod: "3",
-      backupFrequency: "daily",
-      reportFrequency: "weekly",
-    })
-    setNotificationSettings({
-      emailEnabled: true,
-      smsEnabled: true,
-      paymentNotifications: true,
-      expiryNotifications: true,
-      systemAlerts: true,
-      marketingEmails: false,
-      adminEmail: "admin@netily.com",
-      smsGateway: "africastalking",
-    })
+    if (confirm("Reset all settings to current database values?")) {
+      window.location.reload()
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg text-slate-600">Loading settings...</div>
+      </div>
+    )
   }
 
   return (
@@ -128,21 +240,27 @@ export default function SettingsPage() {
           <p className="text-slate-500 mt-1">Configure system preferences and integrations</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleResetSettings}>
+          <Button variant="outline" onClick={handleResetSettings} disabled={isLoading}>
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset
           </Button>
-          <Button onClick={handleSaveSettings}>
+          <Button onClick={handleSaveSettings} disabled={isLoading}>
             <Save className="w-4 h-4 mr-2" />
-            Save Changes
+            {isLoading ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </div>
 
-      {/* Success Alert */}
+      {/* Alerts */}
       {saveSuccess && (
         <Alert className="bg-green-50 text-green-900 border-green-200">
           <AlertDescription>Settings saved successfully!</AlertDescription>
+        </Alert>
+      )}
+
+      {error && (
+        <Alert className="bg-red-50 text-red-900 border-red-200">
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
@@ -172,9 +290,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Primary RADIUS Server</CardTitle>
-              <CardDescription>
-                Configure the main authentication server settings
-              </CardDescription>
+              <CardDescription>Configure the main authentication server settings</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -219,9 +335,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Secondary RADIUS Server (Backup)</CardTitle>
-              <CardDescription>
-                Fallback server for high availability
-              </CardDescription>
+              <CardDescription>Fallback server for high availability</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -266,9 +380,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Accounting & Connection Settings</CardTitle>
-              <CardDescription>
-                Configure accounting and connection parameters
-              </CardDescription>
+              <CardDescription>Configure accounting and connection parameters</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
