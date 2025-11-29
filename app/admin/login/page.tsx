@@ -133,8 +133,27 @@ export default function AdminLoginPage() {
       storage.setItem("adminToken", data.access)
       storage.setItem("adminUser", JSON.stringify(data.user))
 
+      // Sync to cookies for middleware
+      const maxAge = formData.rememberMe ? 604800 : 86400 // 7 days or 1 day
+      document.cookie = `adminToken=${data.access}; path=/; max-age=${maxAge}; SameSite=Lax`
+      document.cookie = `access_token=${data.access}; path=/; max-age=${maxAge}; SameSite=Lax`
+
       console.log("Welcome Admin:", data.user.username)
-      router.push("/admin")
+      console.log("Tokens stored and synced to cookies")
+      
+      // Force a small delay to ensure cookies are set before navigation
+      setTimeout(() => {
+        console.log("Attempting to navigate to /admin...")
+        router.push("/admin")
+        
+        // Fallback: if router.push doesn't work after 2 seconds, use window.location
+        setTimeout(() => {
+          if (window.location.pathname === "/admin/login") {
+            console.log("Router push failed, using window.location.href")
+            window.location.href = "/admin"
+          }
+        }, 2000)
+      }, 100)
     } catch (err: any) {
       setError(err.message)
     } finally {
