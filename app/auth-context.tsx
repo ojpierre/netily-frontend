@@ -38,11 +38,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  // Load user on mount
+  // AUTH DISABLED FOR DEVELOPMENT - Auto-provide mock user
   useEffect(() => {
-    checkAuth()
+    // Bypass auth check - provide demo user immediately
+    setUser({
+      id: 1,
+      full_name: "Demo User",
+      email: "demo@netily.com",
+      phone: "+254712345678",
+      address: "123 Demo Street, Nairobi",
+      balance: "2500.00",
+      expiry_date: "2025-02-15",
+      is_active: true,
+      package: {
+        id: 1,
+        name: "Premium 50Mbps",
+        speed_down: 50,
+        speed_up: 25,
+        price: "3500.00",
+      },
+    })
+    setIsLoading(false)
   }, [])
 
+  /* COMMENTED OUT - Original auth check
   const checkAuth = async () => {
     try {
       const token = localStorage.getItem("access_token")
@@ -58,31 +77,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false)
     }
   }
+  */
 
   const login = async (email: string, password: string) => {
     setIsLoading(true)
+    // AUTH DISABLED - Mock login, accept any credentials
+    await new Promise(r => setTimeout(r, 500)) // Simulate delay
+    
+    setUser({
+      id: 1,
+      full_name: "Demo User",
+      email: email || "demo@netily.com",
+      phone: "+254712345678",
+      address: "123 Demo Street, Nairobi",
+      balance: "2500.00",
+      expiry_date: "2025-02-15",
+      is_active: true,
+      package: {
+        id: 1,
+        name: "Premium 50Mbps",
+        speed_down: 50,
+        speed_up: 25,
+        price: "3500.00",
+      },
+    })
+    setIsLoading(false)
+    
+    /* COMMENTED OUT - Original API login
     try {
-      // Django uses username field for login (send email as username)
       const { access, refresh } = await api.login(email, password)
-      
-      // Store tokens
       localStorage.setItem("access_token", access)
       localStorage.setItem("refresh_token", refresh)
-      
-      // Sync to cookies for middleware (client-side cookies)
       document.cookie = `access_token=${access}; path=/; max-age=86400; SameSite=Lax`
-
-      // Fetch user profile
       const userData = await api.getCurrentUser()
       setUser(userData)
-      
-      // Success - router.push will be handled by the page component
     } catch (error: any) {
       setIsLoading(false)
       throw new Error(error.message || "Login failed. Please check your credentials.")
     } finally {
       setIsLoading(false)
     }
+    */
   }
 
   const register = async (data: any) => {

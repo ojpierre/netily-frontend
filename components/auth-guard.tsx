@@ -3,11 +3,18 @@
 import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 
+// AUTH DISABLED FOR DEVELOPMENT
+const ENABLE_AUTH = false
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
+    // Skip auth checks if disabled
+    if (!ENABLE_AUTH) return
+
+    /* COMMENTED OUT - Original auth sync and route protection
     // Sync localStorage tokens to cookies for middleware
     const syncTokens = () => {
       if (typeof window !== "undefined") {
@@ -42,6 +49,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     syncTokens()
+    */
   }, [pathname, router])
 
   return <>{children}</>

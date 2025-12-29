@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import {
   Search,
   Filter,
@@ -15,6 +15,21 @@ import {
   Calendar,
   Loader2,
   X,
+  Wifi,
+  Globe,
+  Server,
+  Activity,
+  Users,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Signal,
+  Upload,
+  FileUp,
+  Send,
+  UserCheck,
+  Power,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,6 +53,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -57,33 +73,102 @@ import {
 } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
+import { Textarea } from "@/components/ui/textarea"
 
-type User = {
+// User types for different connection methods
+type UserType = "hotspot" | "pppoe" | "static"
+type UserStatus = "active" | "expired" | "suspended" | "online" | "offline"
+
+interface User {
   id: string
   name: string
   email: string
   phone: string
-  status: "active" | "expired" | "suspended"
+  status: UserStatus
+  connectionStatus: "online" | "offline"
+  type: UserType
   plan: string
+  planPrice: number
   joinedDate: string
   expiryDate: string
   lastOnline: string
-  dataUsed: string
+  dataUsed: number
+  dataLimit: number | null
+  macAddress?: string
+  ipAddress?: string
+  router: string
+  downloadSpeed: number
+  uploadSpeed: number
+  loyaltyPoints: number
+  balance: number
 }
 
+// Stats cards data interface
+interface UserStats {
+  total: number
+  active: number
+  expired: number
+  online: number
+  hotspot: number
+  pppoe: number
+  static: number
+}
+
+// Mock data generator
 const generateMockUsers = (): User[] => {
-  return Array.from({ length: 25 }, (_, i) => ({
-    id: `USR-${1000 + i}`,
-    name: `User ${i + 1}`,
-    email: `user${i + 1}@example.com`,
-    phone: `+254 7${Math.floor(10000000 + Math.random() * 90000000)}`,
-    status: ["active", "expired", "suspended"][Math.floor(Math.random() * 3)] as User["status"],
-    plan: ["Mtaani-8 Weekly", "Mtaani-10 Monthly", "Mtaani-12 Quarterly"][Math.floor(Math.random() * 3)],
-    joinedDate: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString(),
-    expiryDate: new Date(2025, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString(),
-    lastOnline: `${Math.floor(Math.random() * 24)}h ago`,
-    dataUsed: `${(Math.random() * 100).toFixed(1)} GB`,
-  }))
+  const types: UserType[] = ["hotspot", "pppoe", "static"]
+  const plans = [
+    { name: "Basic Daily", price: 50 },
+    { name: "Weekly 8Mbps", price: 500 },
+    { name: "Monthly 10Mbps", price: 1500 },
+    { name: "Premium Monthly", price: 3000 },
+    { name: "Business Quarterly", price: 8000 },
+  ]
+  const routers = ["Router-Nairobi-01", "Router-Mombasa-02", "Router-Kisumu-03", "Router-Nakuru-04"]
+  
+  return Array.from({ length: 50 }, (_, i) => {
+    const type = types[Math.floor(Math.random() * types.length)]
+    const plan = plans[Math.floor(Math.random() * plans.length)]
+    const isOnline = Math.random() > 0.4
+    const statuses: UserStatus[] = ["active", "expired", "suspended"]
+    const status = statuses[Math.floor(Math.random() * statuses.length)]
+    
+    return {
+      id: `USR-${1000 + i}`,
+      name: `User ${i + 1}`,
+      email: `user${i + 1}@example.com`,
+      phone: `+254 7${Math.floor(10000000 + Math.random() * 90000000)}`,
+      status,
+      connectionStatus: isOnline && status === "active" ? "online" : "offline",
+      type,
+      plan: plan.name,
+      planPrice: plan.price,
+      joinedDate: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString(),
+      expiryDate: new Date(2025, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString(),
+      lastOnline: isOnline ? "Now" : `${Math.floor(Math.random() * 24)}h ago`,
+      dataUsed: Math.random() * 100,
+      dataLimit: Math.random() > 0.5 ? 100 + Math.floor(Math.random() * 400) : null,
+      macAddress: type === "hotspot" || type === "static" ? `AA:BB:CC:${Math.floor(Math.random() * 99).toString().padStart(2, '0')}:${Math.floor(Math.random() * 99).toString().padStart(2, '0')}:${Math.floor(Math.random() * 99).toString().padStart(2, '0')}` : undefined,
+      ipAddress: type !== "hotspot" ? `192.168.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 254) + 1}` : undefined,
+      router: routers[Math.floor(Math.random() * routers.length)],
+      downloadSpeed: Math.floor(Math.random() * 20) + 2,
+      uploadSpeed: Math.floor(Math.random() * 10) + 1,
+      loyaltyPoints: Math.floor(Math.random() * 5000),
+      balance: Math.floor(Math.random() * 1000),
+    }
+  })
 }
 
 export default function UsersPage() {
@@ -96,33 +181,75 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [activeTab, setActiveTab] = useState("all")
+  const [showAddUserDialog, setShowAddUserDialog] = useState(false)
+  const [showBulkImportDialog, setShowBulkImportDialog] = useState(false)
+  const [showSmsDialog, setShowSmsDialog] = useState(false)
+  const [smsMessage, setSmsMessage] = useState("")
+  const [refreshing, setRefreshing] = useState(false)
   const itemsPerPage = 10
 
   useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        await new Promise((resolve) => setTimeout(resolve, 800))
-        setUsers(generateMockUsers())
-      } catch (err) {
-        setError("Failed to load users. Please try again.")
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadUsers()
   }, [])
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.phone.includes(searchQuery)
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  const loadUsers = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 800))
+      setUsers(generateMockUsers())
+    } catch (err) {
+      setError("Failed to load users. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await loadUsers()
+    setRefreshing(false)
+  }
+
+  // Calculate stats
+  const stats: UserStats = useMemo(() => {
+    return {
+      total: users.length,
+      active: users.filter(u => u.status === "active").length,
+      expired: users.filter(u => u.status === "expired").length,
+      online: users.filter(u => u.connectionStatus === "online").length,
+      hotspot: users.filter(u => u.type === "hotspot").length,
+      pppoe: users.filter(u => u.type === "pppoe").length,
+      static: users.filter(u => u.type === "static").length,
+    }
+  }, [users])
+
+  // Filter users based on tab and search
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      // Tab filter
+      const matchesTab = 
+        activeTab === "all" ||
+        (activeTab === "hotspot" && user.type === "hotspot") ||
+        (activeTab === "pppoe" && user.type === "pppoe") ||
+        (activeTab === "static" && user.type === "static") ||
+        (activeTab === "online" && user.connectionStatus === "online")
+
+      // Search filter
+      const matchesSearch =
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.phone.includes(searchQuery) ||
+        user.id.toLowerCase().includes(searchQuery.toLowerCase())
+
+      // Status filter
+      const matchesStatus = statusFilter === "all" || user.status === statusFilter
+
+      return matchesTab && matchesSearch && matchesStatus
+    })
+  }, [users, activeTab, searchQuery, statusFilter])
 
   const paginatedUsers = filteredUsers.slice(
     (currentPage - 1) * itemsPerPage,
@@ -130,6 +257,11 @@ export default function UsersPage() {
   )
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [activeTab, searchQuery, statusFilter])
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -147,11 +279,13 @@ export default function UsersPage() {
     }
   }
 
-  const getStatusBadge = (status: User["status"]) => {
+  const getStatusBadge = (status: UserStatus) => {
     const variants = {
       active: "bg-green-100 text-green-700 border-green-200",
       expired: "bg-red-100 text-red-700 border-red-200",
       suspended: "bg-yellow-100 text-yellow-700 border-yellow-200",
+      online: "bg-blue-100 text-blue-700 border-blue-200",
+      offline: "bg-slate-100 text-slate-700 border-slate-200",
     }
     return (
       <Badge variant="outline" className={variants[status]}>
@@ -160,9 +294,51 @@ export default function UsersPage() {
     )
   }
 
+  const getConnectionBadge = (status: "online" | "offline") => {
+    if (status === "online") {
+      return (
+        <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200">
+          <Activity className="w-3 h-3 mr-1" />
+          Online
+        </Badge>
+      )
+    }
+    return (
+      <Badge variant="outline" className="bg-slate-100 text-slate-500 border-slate-200">
+        <XCircle className="w-3 h-3 mr-1" />
+        Offline
+      </Badge>
+    )
+  }
+
+  const getTypeBadge = (type: UserType) => {
+    const config = {
+      hotspot: { icon: Wifi, class: "bg-blue-100 text-blue-700 border-blue-200", label: "Hotspot" },
+      pppoe: { icon: Globe, class: "bg-purple-100 text-purple-700 border-purple-200", label: "PPPoE" },
+      static: { icon: Server, class: "bg-orange-100 text-orange-700 border-orange-200", label: "Static IP" },
+    }
+    const Icon = config[type].icon
+    return (
+      <Badge variant="outline" className={config[type].class}>
+        <Icon className="w-3 h-3 mr-1" />
+        {config[type].label}
+      </Badge>
+    )
+  }
+
   const handleViewUser = (user: User) => {
     setSelectedUser(user)
     setDrawerOpen(true)
+  }
+
+  const handleDisconnectUser = (user: User) => {
+    // TODO: Implement disconnect via API
+    console.log("Disconnecting user:", user.id)
+  }
+
+  const handleExtendSubscription = (user: User) => {
+    // TODO: Implement extend subscription
+    console.log("Extending subscription for:", user.id)
   }
 
   if (error) {
@@ -183,13 +359,257 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Users Management</h1>
-          <p className="text-slate-500 mt-1">Manage and monitor all user accounts</p>
+          <p className="text-slate-500 mt-1">Manage Hotspot, PPPoE, and Static IP users</p>
         </div>
-        <Button>
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add User
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <Dialog open={showBulkImportDialog} onOpenChange={setShowBulkImportDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <FileUp className="w-4 h-4 mr-2" />
+                Bulk Import
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Bulk Import Users</DialogTitle>
+                <DialogDescription>
+                  Upload a CSV file to import multiple users at once
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-slate-200 rounded-lg p-8 text-center">
+                  <Upload className="w-10 h-10 mx-auto text-slate-400 mb-3" />
+                  <p className="text-sm text-slate-600 mb-2">
+                    Drag & drop your CSV file here, or click to browse
+                  </p>
+                  <Button variant="outline" size="sm">
+                    Choose File
+                  </Button>
+                </div>
+                <div className="text-xs text-slate-500">
+                  <p className="font-medium mb-1">CSV Format:</p>
+                  <code className="bg-slate-100 p-1 rounded">
+                    name,email,phone,type,plan
+                  </code>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowBulkImportDialog(false)}>
+                  Cancel
+                </Button>
+                <Button>Import Users</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={showAddUserDialog} onOpenChange={setShowAddUserDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add User
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Add New User</DialogTitle>
+                <DialogDescription>
+                  Create a new customer account
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Full Name</Label>
+                  <Input placeholder="John Doe" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" placeholder="john@example.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Phone Number</Label>
+                  <Input placeholder="+254 7XX XXX XXX" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Connection Type</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hotspot">Hotspot</SelectItem>
+                      <SelectItem value="pppoe">PPPoE</SelectItem>
+                      <SelectItem value="static">Static IP</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Plan</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="basic">Basic Daily - KES 50</SelectItem>
+                      <SelectItem value="weekly">Weekly 8Mbps - KES 500</SelectItem>
+                      <SelectItem value="monthly">Monthly 10Mbps - KES 1500</SelectItem>
+                      <SelectItem value="premium">Premium Monthly - KES 3000</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Router</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Assign router" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="r1">Router-Nairobi-01</SelectItem>
+                      <SelectItem value="r2">Router-Mombasa-02</SelectItem>
+                      <SelectItem value="r3">Router-Kisumu-03</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowAddUserDialog(false)}>
+                  Cancel
+                </Button>
+                <Button>Create User</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("all")}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-slate-100 rounded-lg">
+                <Users className="w-5 h-5 text-slate-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-xs text-slate-500">Total Users</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("online")}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <Activity className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-emerald-600">{stats.online}</p>
+                <p className="text-xs text-slate-500">Online Now</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab("all"); setStatusFilter("active"); }}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+                <p className="text-xs text-slate-500">Active</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab("all"); setStatusFilter("expired"); }}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <XCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-red-600">{stats.expired}</p>
+                <p className="text-xs text-slate-500">Expired</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("hotspot")}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Wifi className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-blue-600">{stats.hotspot}</p>
+                <p className="text-xs text-slate-500">Hotspot</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("pppoe")}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Globe className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-purple-600">{stats.pppoe}</p>
+                <p className="text-xs text-slate-500">PPPoE</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("static")}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <Server className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-orange-600">{stats.static}</p>
+                <p className="text-xs text-slate-500">Static IP</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+          <TabsTrigger value="all" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            <span className="hidden sm:inline">All Users</span>
+          </TabsTrigger>
+          <TabsTrigger value="hotspot" className="flex items-center gap-2">
+            <Wifi className="w-4 h-4" />
+            <span className="hidden sm:inline">Hotspot</span>
+          </TabsTrigger>
+          <TabsTrigger value="pppoe" className="flex items-center gap-2">
+            <Globe className="w-4 h-4" />
+            <span className="hidden sm:inline">PPPoE</span>
+          </TabsTrigger>
+          <TabsTrigger value="static" className="flex items-center gap-2">
+            <Server className="w-4 h-4" />
+            <span className="hidden sm:inline">Static IP</span>
+          </TabsTrigger>
+          <TabsTrigger value="online" className="flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            <span className="hidden sm:inline">Online</span>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Filters & Search */}
       <Card>
@@ -199,7 +619,7 @@ export default function UsersPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
-                  placeholder="Search by name, email, or phone..."
+                  placeholder="Search by name, email, phone, or ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
@@ -230,13 +650,50 @@ export default function UsersPage() {
                 {selectedUsers.length} user(s) selected
               </span>
               <div className="flex-1" />
+              <Dialog open={showSmsDialog} onOpenChange={setShowSmsDialog}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <Send className="w-4 h-4 mr-2" />
+                    Send SMS
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Send Bulk SMS</DialogTitle>
+                    <DialogDescription>
+                      Send SMS to {selectedUsers.length} selected users
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Message</Label>
+                      <Textarea 
+                        placeholder="Enter your message..."
+                        value={smsMessage}
+                        onChange={(e) => setSmsMessage(e.target.value)}
+                        rows={4}
+                      />
+                      <p className="text-xs text-slate-500">{smsMessage.length}/160 characters</p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowSmsDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button>Send SMS</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
               <Button size="sm" variant="outline">
                 <Mail className="w-4 h-4 mr-2" />
                 Send Email
               </Button>
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelectedUsers([])}>
+                <X className="w-4 h-4" />
               </Button>
             </div>
           )}
@@ -246,7 +703,14 @@ export default function UsersPage() {
       {/* Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Users ({filteredUsers.length})</CardTitle>
+          <CardTitle>
+            {activeTab === "all" && "All Users"}
+            {activeTab === "hotspot" && "Hotspot Users"}
+            {activeTab === "pppoe" && "PPPoE Users"}
+            {activeTab === "static" && "Static IP Users"}
+            {activeTab === "online" && "Online Users"}
+            {" "}({filteredUsers.length})
+          </CardTitle>
           <CardDescription>
             Showing {paginatedUsers.length} of {filteredUsers.length} users
           </CardDescription>
@@ -260,7 +724,7 @@ export default function UsersPage() {
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-12">
-              <Search className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+              <Users className="w-12 h-12 mx-auto mb-4 text-slate-400" />
               <p className="text-slate-600 font-medium">No users found</p>
               <p className="text-slate-500 text-sm mt-1">
                 Try adjusting your search or filters
@@ -268,7 +732,7 @@ export default function UsersPage() {
             </div>
           ) : (
             <>
-              <div className="rounded-lg border">
+              <div className="rounded-lg border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -282,16 +746,18 @@ export default function UsersPage() {
                         />
                       </TableHead>
                       <TableHead>User</TableHead>
-                      <TableHead>Contact</TableHead>
+                      <TableHead>Type</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Connection</TableHead>
                       <TableHead>Plan</TableHead>
+                      <TableHead>Data Usage</TableHead>
                       <TableHead>Expiry</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedUsers.map((user) => (
-                      <TableRow key={user.id}>
+                      <TableRow key={user.id} className="hover:bg-slate-50">
                         <TableCell>
                           <Checkbox
                             checked={selectedUsers.includes(user.id)}
@@ -301,31 +767,43 @@ export default function UsersPage() {
                           />
                         </TableCell>
                         <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium text-sm">
+                              {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-900">{user.name}</p>
+                              <p className="text-xs text-slate-500">{user.phone}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getTypeBadge(user.type)}</TableCell>
+                        <TableCell>{getStatusBadge(user.status)}</TableCell>
+                        <TableCell>{getConnectionBadge(user.connectionStatus)}</TableCell>
+                        <TableCell>
                           <div>
-                            <p className="font-medium text-slate-900">{user.name}</p>
-                            <p className="text-sm text-slate-500">{user.id}</p>
+                            <p className="text-sm font-medium">{user.plan}</p>
+                            <p className="text-xs text-slate-500">KES {user.planPrice.toLocaleString()}</p>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <p className="text-sm flex items-center gap-1">
-                              <Mail className="w-3 h-3 text-slate-400" />
-                              {user.email}
-                            </p>
-                            <p className="text-sm flex items-center gap-1">
-                              <Phone className="w-3 h-3 text-slate-400" />
-                              {user.phone}
-                            </p>
+                            <p className="text-sm">{user.dataUsed.toFixed(1)} GB</p>
+                            {user.dataLimit && (
+                              <Progress value={(user.dataUsed / user.dataLimit) * 100} className="h-1.5 w-16" />
+                            )}
                           </div>
                         </TableCell>
-                        <TableCell>{getStatusBadge(user.status)}</TableCell>
                         <TableCell>
-                          <span className="text-sm font-medium">{user.plan}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-slate-600">
-                            {new Date(user.expiryDate).toLocaleDateString()}
-                          </span>
+                          <div>
+                            <p className="text-sm">{new Date(user.expiryDate).toLocaleDateString()}</p>
+                            <p className="text-xs text-slate-500">
+                              {new Date(user.expiryDate) > new Date() 
+                                ? `${Math.ceil((new Date(user.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left`
+                                : "Expired"
+                              }
+                            </p>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -343,6 +821,25 @@ export default function UsersPage() {
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit User
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleExtendSubscription(user)}>
+                                <Calendar className="w-4 h-4 mr-2" />
+                                Extend Subscription
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              {user.connectionStatus === "online" && (
+                                <DropdownMenuItem 
+                                  onClick={() => handleDisconnectUser(user)}
+                                  className="text-yellow-600"
+                                >
+                                  <Power className="w-4 h-4 mr-2" />
+                                  Disconnect
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem>
+                                <Send className="w-4 h-4 mr-2" />
+                                Send SMS
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-red-600">
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Delete User
@@ -397,57 +894,96 @@ export default function UsersPage() {
 
           {selectedUser && (
             <div className="mt-6 space-y-6">
-              {/* Status Badge */}
-              <div className="flex items-center justify-between">
+              {/* Status Badges */}
+              <div className="flex flex-wrap items-center gap-2">
+                {getTypeBadge(selectedUser.type)}
                 {getStatusBadge(selectedUser.status)}
-                <Button variant="outline" size="sm">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
+                {getConnectionBadge(selectedUser.connectionStatus)}
               </div>
 
               {/* Basic Info */}
               <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-600">Full Name</label>
-                  <p className="text-lg font-semibold text-slate-900 mt-1">
-                    {selectedUser.name}
-                  </p>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
+                    {selectedUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </div>
+                  <div>
+                    <p className="text-xl font-semibold text-slate-900">{selectedUser.name}</p>
+                    <p className="text-sm text-slate-500">{selectedUser.id}</p>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-slate-600">User ID</label>
-                  <p className="text-slate-900 mt-1">{selectedUser.id}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-slate-500">Email</label>
+                    <p className="text-sm text-slate-900">{selectedUser.email}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-500">Phone</label>
+                    <p className="text-sm text-slate-900">{selectedUser.phone}</p>
+                  </div>
                 </div>
+              </div>
 
-                <div>
-                  <label className="text-sm font-medium text-slate-600">Email</label>
-                  <p className="text-slate-900 mt-1">{selectedUser.email}</p>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-slate-600">Phone</label>
-                  <p className="text-slate-900 mt-1">{selectedUser.phone}</p>
+              {/* Connection Info */}
+              <div className="p-4 bg-slate-50 rounded-lg border">
+                <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                  <Signal className="w-4 h-4" />
+                  Connection Details
+                </h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-slate-500">Router:</span>
+                    <p className="font-medium">{selectedUser.router}</p>
+                  </div>
+                  {selectedUser.ipAddress && (
+                    <div>
+                      <span className="text-slate-500">IP Address:</span>
+                      <p className="font-medium">{selectedUser.ipAddress}</p>
+                    </div>
+                  )}
+                  {selectedUser.macAddress && (
+                    <div>
+                      <span className="text-slate-500">MAC Address:</span>
+                      <p className="font-medium font-mono text-xs">{selectedUser.macAddress}</p>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-slate-500">Last Online:</span>
+                    <p className="font-medium">{selectedUser.lastOnline}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Download:</span>
+                    <p className="font-medium">{selectedUser.downloadSpeed} Mbps</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Upload:</span>
+                    <p className="font-medium">{selectedUser.uploadSpeed} Mbps</p>
+                  </div>
                 </div>
               </div>
 
               {/* Subscription Info */}
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <h3 className="font-semibold text-slate-900 mb-3">Subscription</h3>
-                <div className="space-y-2">
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Current Plan</span>
-                    <span className="text-sm font-medium">{selectedUser.plan}</span>
+                    <span className="text-slate-600">Current Plan</span>
+                    <span className="font-medium">{selectedUser.plan}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Joined Date</span>
-                    <span className="text-sm font-medium">
+                    <span className="text-slate-600">Price</span>
+                    <span className="font-medium">KES {selectedUser.planPrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Joined Date</span>
+                    <span className="font-medium">
                       {new Date(selectedUser.joinedDate).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Expiry Date</span>
-                    <span className="text-sm font-medium">
+                    <span className="text-slate-600">Expiry Date</span>
+                    <span className="font-medium">
                       {new Date(selectedUser.expiryDate).toLocaleDateString()}
                     </span>
                   </div>
@@ -456,29 +992,59 @@ export default function UsersPage() {
 
               {/* Usage Stats */}
               <div className="p-4 bg-slate-50 rounded-lg border">
-                <h3 className="font-semibold text-slate-900 mb-3">Usage Statistics</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Data Used</span>
-                    <span className="text-sm font-medium">{selectedUser.dataUsed}</span>
+                <h3 className="font-semibold text-slate-900 mb-3">Usage & Balance</h3>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-slate-600">Data Used</span>
+                      <span className="font-medium">
+                        {selectedUser.dataUsed.toFixed(1)} GB 
+                        {selectedUser.dataLimit && ` / ${selectedUser.dataLimit} GB`}
+                      </span>
+                    </div>
+                    {selectedUser.dataLimit && (
+                      <Progress value={(selectedUser.dataUsed / selectedUser.dataLimit) * 100} className="h-2" />
+                    )}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Last Online</span>
-                    <span className="text-sm font-medium">{selectedUser.lastOnline}</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600">Account Balance</span>
+                    <span className="font-medium">KES {selectedUser.balance.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600">Loyalty Points</span>
+                    <span className="font-medium text-amber-600">{selectedUser.loyaltyPoints.toLocaleString()} pts</span>
                   </div>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2 pt-4">
-                <Button className="flex-1" variant="outline">
-                  <Mail className="w-4 h-4 mr-2" />
-                  Send Email
-                </Button>
-                <Button className="flex-1" variant="outline">
-                  <Phone className="w-4 h-4 mr-2" />
-                  Call User
-                </Button>
+              <div className="space-y-2 pt-4">
+                <div className="flex gap-2">
+                  <Button className="flex-1">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit User
+                  </Button>
+                  <Button variant="outline" className="flex-1">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Extend
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1">
+                    <Send className="w-4 h-4 mr-2" />
+                    Send SMS
+                  </Button>
+                  <Button variant="outline" className="flex-1">
+                    <Mail className="w-4 h-4 mr-2" />
+                    Email
+                  </Button>
+                </div>
+                {selectedUser.connectionStatus === "online" && (
+                  <Button variant="outline" className="w-full text-yellow-600 hover:text-yellow-700">
+                    <Power className="w-4 h-4 mr-2" />
+                    Disconnect User
+                  </Button>
+                )}
               </div>
             </div>
           )}

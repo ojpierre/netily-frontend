@@ -1,4 +1,6 @@
-# Django Backend API Requirements for Netily Frontend
+# Django Backend API Requirements for Netily v2.0
+
+> Complete API specification for the Netily ISP Management System, inspired by Lipanet v2.1.1 architecture.
 
 This document describes all the API endpoints that the Next.js frontend expects from the Django backend.
 
@@ -714,9 +716,18 @@ class Payment(models.Model):
 
 ```python
 # urls.py
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from . import views
+
+router = DefaultRouter()
+router.register(r'admin/customers', views.CustomerViewSet, basename='admin-customers')
+router.register(r'admin/packages', views.PackageViewSet, basename='admin-packages')
+router.register(r'admin/routers', views.RouterViewSet, basename='admin-routers')
+router.register(r'admin/tickets', views.TicketViewSet, basename='admin-tickets')
+router.register(r'admin/leads', views.LeadViewSet, basename='admin-leads')
+router.register(r'admin/ads', views.AdvertisementViewSet, basename='admin-ads')
 
 urlpatterns = [
     # Auth
@@ -729,17 +740,52 @@ urlpatterns = [
     path('api/auth/admin/login/', views.AdminLoginView.as_view(), name='admin_login'),
     path('api/auth/admin/me/', views.AdminProfileView.as_view(), name='admin_profile'),
     
-    # Admin
+    # Admin Dashboard
     path('api/admin/stats/', views.AdminStatsView.as_view(), name='admin_stats'),
-    path('api/admin/customers/', views.AdminCustomerListView.as_view(), name='admin_customers'),
-    path('api/admin/customers/<int:pk>/', views.AdminCustomerDetailView.as_view(), name='admin_customer_detail'),
-    path('api/admin/customers/<int:pk>/activate/', views.ActivateCustomerView.as_view(), name='activate_customer'),
-    path('api/admin/customers/<int:pk>/deactivate/', views.DeactivateCustomerView.as_view(), name='deactivate_customer'),
-    path('api/admin/payments/', views.AdminPaymentListView.as_view(), name='admin_payments'),
     path('api/admin/logs/', views.SystemLogsView.as_view(), name='system_logs'),
     
-    # Customer
+    # Analytics
+    path('api/admin/analytics/dashboard/', views.AnalyticsDashboardView.as_view()),
+    path('api/admin/analytics/revenue/', views.RevenueAnalyticsView.as_view()),
+    path('api/admin/analytics/revenue/forecast/', views.RevenueForecastView.as_view()),
+    path('api/admin/analytics/clv/', views.CustomerLifetimeValueView.as_view()),
+    path('api/admin/analytics/usage/', views.UsagePatternsView.as_view()),
+    path('api/admin/analytics/churn/', views.ChurnAnalysisView.as_view()),
+    
+    # Router Monitoring
+    path('api/admin/routers/<int:pk>/status/', views.RouterStatusView.as_view()),
+    path('api/admin/routers/<int:pk>/uptime/', views.RouterUptimeView.as_view()),
+    path('api/admin/routers/<int:pk>/backup/', views.RouterBackupView.as_view()),
+    path('api/admin/routers/<int:pk>/backups/', views.RouterBackupListView.as_view()),
+    path('api/admin/routers/sla/', views.SLADashboardView.as_view()),
+    
+    # Loyalty Points
+    path('api/admin/loyalty/settings/', views.LoyaltySettingsView.as_view()),
+    path('api/admin/loyalty/transactions/', views.LoyaltyTransactionsView.as_view()),
+    
+    # SMS
+    path('api/admin/sms/send/', views.SendSMSView.as_view()),
+    path('api/admin/sms/bulk/', views.BulkSMSView.as_view()),
+    path('api/admin/sms/history/', views.SMSHistoryView.as_view()),
+    path('api/admin/sms/balance/', views.SMSBalanceView.as_view()),
+    
+    # Vouchers
+    path('api/admin/vouchers/', views.VoucherListView.as_view()),
+    path('api/admin/vouchers/generate/', views.GenerateVouchersView.as_view()),
+    
+    # Bulk Import
+    path('api/admin/users/import/', views.BulkUserImportView.as_view()),
+    path('api/admin/users/export/', views.UserExportView.as_view()),
+    
+    # Customer Portal
     path('api/customers/me/', views.CustomerProfileView.as_view(), name='customer_profile'),
+    path('api/customers/me/loyalty/', views.CustomerLoyaltyView.as_view()),
+    path('api/customers/me/loyalty/redeem/', views.RedeemPointsView.as_view()),
+    
+    # Tickets (Customer)
+    path('api/tickets/', views.CustomerTicketListView.as_view()),
+    path('api/tickets/<int:pk>/', views.CustomerTicketDetailView.as_view()),
+    path('api/tickets/<int:pk>/reply/', views.TicketReplyView.as_view()),
     
     # Invoices
     path('api/invoices/', views.InvoiceListView.as_view(), name='invoices'),
@@ -749,7 +795,87 @@ urlpatterns = [
     
     # Packages
     path('api/packages/', views.PackageListView.as_view(), name='packages'),
+    
+    # Captive Portal (Public)
+    path('api/captive/ads/', views.CaptivePortalAdsView.as_view()),
+    
+    # Router API endpoints
+    path('api/', include(router.urls)),
 ]
+```
+
+---
+
+## Additional Required Packages
+
+```bash
+# Core
+pip install djangorestframework
+pip install djangorestframework-simplejwt
+pip install django-cors-headers
+
+# Background Tasks
+pip install celery
+pip install redis
+
+# MikroTik Integration
+pip install librouteros
+
+# Analytics & ML
+pip install pandas
+pip install numpy
+pip install scikit-learn
+
+# SMS (choose one)
+pip install africastalking  # For Africa's Talking
+pip install twilio          # For Twilio
+
+# File handling
+pip install openpyxl        # Excel export
+pip install python-csv      # CSV processing
+
+# WebSocket (optional, for real-time)
+pip install channels
+pip install channels-redis
+```
+
+---
+
+## Celery Configuration
+
+For background tasks (uptime monitoring, backups, SMS):
+
+```python
+# settings.py
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+# celery.py
+from celery import Celery
+from celery.schedules import crontab
+
+app = Celery('netily')
+app.config_from_object('django.conf:settings', namespace='CELERY')
+app.autodiscover_tasks()
+
+# Scheduled tasks
+app.conf.beat_schedule = {
+    'check-router-uptime': {
+        'task': 'core.tasks.check_router_uptime',
+        'schedule': 60.0,  # Every minute
+    },
+    'backup-routers': {
+        'task': 'core.tasks.backup_all_routers',
+        'schedule': crontab(hour=2, minute=0),  # Daily at 2 AM
+    },
+    'expire-subscriptions': {
+        'task': 'core.tasks.check_subscription_expiry',
+        'schedule': crontab(minute=0),  # Every hour
+    },
+}
 ```
 
 ---
@@ -766,6 +892,32 @@ The frontend will automatically switch between Django backend and mock data base
 
 ---
 
+## Implementation Priority
+
+### Phase 1 (Essential)
+1. Authentication (JWT)
+2. User CRUD with types (Hotspot, PPPoE, Static)
+3. Package management
+4. Router management
+5. Payment processing
+
+### Phase 2 (Important)
+6. Support tickets
+7. Leads management
+8. Router uptime monitoring
+9. Basic analytics
+
+### Phase 3 (Advanced)
+10. Loyalty points system
+11. Captive portal ads
+12. SMS integration
+13. Advanced analytics (ML)
+14. Bulk import/export
+
+---
+
 ## Questions?
 
 Contact the frontend team if you need clarification on any endpoint or response format.
+
+See [FEATURE_ROADMAP.md](./FEATURE_ROADMAP.md) for complete feature specifications.

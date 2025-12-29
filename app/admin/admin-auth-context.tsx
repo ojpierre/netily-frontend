@@ -26,6 +26,17 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   const loadUser = () => {
+    // AUTH DISABLED - Always provide mock admin user
+    setUser({
+      id: 1,
+      username: "admin",
+      email: "admin@netily.com",
+      is_staff: true,
+      is_superuser: true,
+    })
+    setLoading(false)
+    
+    /* COMMENTED OUT - Original user loading
     try {
       const storage = localStorage.getItem("adminToken") ? localStorage : sessionStorage
       const userStr = storage.getItem("adminUser")
@@ -37,6 +48,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false)
     }
+    */
   }
 
   const logout = () => {

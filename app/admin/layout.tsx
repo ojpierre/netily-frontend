@@ -19,6 +19,14 @@ import {
   LogOut,
   User,
   ChevronDown,
+  MessageSquare,
+  Image,
+  Gift,
+  Ticket,
+  UserPlus,
+  Network,
+  Gauge,
+  TrendingUp,
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -33,17 +41,55 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 
-const navigation = [
-  { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { name: "Users", href: "/admin/users", icon: Users },
-  { name: "Routers", href: "/admin/routers", icon: Wifi },
-  { name: "Plans", href: "/admin/plans", icon: Package },
-  { name: "Payments", href: "/admin/payments", icon: CreditCard },
-  { name: "Usage & Accounting", href: "/admin/usage", icon: BarChart3 },
-  { name: "System Logs", href: "/admin/logs", icon: FileText },
-  { name: "Settings", href: "/admin/settings", icon: Settings },
+// Navigation organized by sections
+const navigationSections = [
+  {
+    title: "Main",
+    items: [
+      { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+      { name: "Users", href: "/admin/users", icon: Users },
+      { name: "Plans", href: "/admin/plans", icon: Package },
+    ],
+  },
+  {
+    title: "Engagement",
+    items: [
+      { name: "Tickets", href: "/admin/tickets", icon: Ticket },
+      { name: "Leads", href: "/admin/leads", icon: UserPlus },
+      { name: "Loyalty", href: "/admin/loyalty", icon: Gift },
+      { name: "SMS", href: "/admin/sms", icon: MessageSquare },
+      { name: "Ads", href: "/admin/ads", icon: Image },
+    ],
+  },
+  {
+    title: "Finance",
+    items: [
+      { name: "Payments", href: "/admin/payments", icon: CreditCard },
+      { name: "Analytics", href: "/admin/analytics", icon: TrendingUp },
+    ],
+  },
+  {
+    title: "Networking",
+    items: [
+      { name: "Routers", href: "/admin/routers", icon: Wifi },
+      { name: "IPv4 Networks", href: "/admin/networks", icon: Network },
+      { name: "FUP", href: "/admin/fup", icon: Gauge },
+      { name: "Usage", href: "/admin/usage", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "System",
+    items: [
+      { name: "Logs", href: "/admin/logs", icon: FileText },
+      { name: "Settings", href: "/admin/settings", icon: Settings },
+    ],
+  },
 ]
+
+// Flat navigation for easy iteration
+const navigation = navigationSections.flatMap(section => section.items)
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -89,29 +135,41 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-2">
-          <ul className="space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href))
-              return (
-                <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                      isActive
-                        ? "bg-blue-600 text-white"
-                        : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"
-                    }`}
-                    title={sidebarCollapsed ? item.name : undefined}
-                  >
-                    <item.icon className="w-5 h-5 flex-shrink-0" />
-                    {!sidebarCollapsed && (
-                      <span className="font-medium">{item.name}</span>
-                    )}
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
+          {navigationSections.map((section, sectionIndex) => (
+            <div key={section.title} className={sectionIndex > 0 ? "mt-4" : ""}>
+              {!sidebarCollapsed && (
+                <p className="px-3 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  {section.title}
+                </p>
+              )}
+              {sidebarCollapsed && sectionIndex > 0 && (
+                <Separator className="my-2 bg-slate-700" />
+              )}
+              <ul className="space-y-1">
+                {section.items.map((item) => {
+                  const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href))
+                  return (
+                    <li key={item.name}>
+                      <Link
+                        href={item.href}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                          isActive
+                            ? "bg-blue-600 text-white"
+                            : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"
+                        }`}
+                        title={sidebarCollapsed ? item.name : undefined}
+                      >
+                        <item.icon className="w-5 h-5 flex-shrink-0" />
+                        {!sidebarCollapsed && (
+                          <span className="font-medium">{item.name}</span>
+                        )}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
         {/* Sidebar footer */}

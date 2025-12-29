@@ -17,7 +17,8 @@ import {
   LogOut,
   Menu,
   X,
-  Zap
+  Zap,
+  Gift,
 } from "lucide-react"
 
 const navItems = [
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/dashboard/invoices", label: "Invoices", icon: FileText },
   { href: "/dashboard/recharge", label: "Recharge", icon: CreditCard },
   { href: "/dashboard/usage-history", label: "Usage History", icon: BarChart3 },
+  { href: "/dashboard/loyalty", label: "Loyalty Rewards", icon: Gift },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
   { href: "/dashboard/support", label: "Support", icon: HelpCircle },

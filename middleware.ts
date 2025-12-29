@@ -1,7 +1,18 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// =====================================================
+// AUTHENTICATION DISABLED FOR DEVELOPMENT
+// Set ENABLE_AUTH = true to enable route protection
+// =====================================================
+const ENABLE_AUTH = false
+
 export function middleware(request: NextRequest) {
+  // Skip all auth checks if disabled
+  if (!ENABLE_AUTH) {
+    return NextResponse.next()
+  }
+
   const { pathname } = request.nextUrl
   
   // Get tokens from cookies (for now, middleware will be lenient since we use localStorage)
