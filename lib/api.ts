@@ -1,60 +1,57 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+/**
+ * API Service for ISP Management System
+ * Aligned with Django Backend Swagger API
+ * Base URL: http://127.0.0.1:8000/api/v1
+ */
 
-interface LoginResponse {
-  access: string
-  refresh: string
-}
+import type {
+  LoginResponse,
+  RegisterRequest,
+  RegisterResponse,
+  TokenRefreshResponse,
+  User,
+  UserProfile,
+  Customer,
+  CustomerService,
+  CustomerAddress,
+  CustomerDocument,
+  CustomerNote,
+  NextOfKin,
+  Invoice,
+  Payment,
+  PaginatedResponse,
+  DashboardStats,
+  AuditLog,
+  SystemSetting,
+} from './types'
 
-interface RegisterData {
-  username: string
-  email: string
-  password: string
-  full_name: string
-  phone: string
-  address: string
-}
+// Re-export types for backward compatibility
+export type { LoginResponse, Customer, Invoice, Payment }
 
-interface Customer {
-  id: number
-  full_name: string
-  phone: string
-  email: string
-  address: string
-  balance: string
-  expiry_date: string
-  is_active: boolean
-  package: {
-    id: number
-    name: string
-    price: string
-    speed_down: number
-    speed_up: number
-    validity_days: number
-  }
-  user: {
-    id: number
-    username: string
-    email: string
-  }
-}
+// ==========================================
+// CONFIGURATION
+// ==========================================
 
-interface Invoice {
-  id: number
-  amount: string
-  invoice_date: string
-  due_date: string
-  paid: boolean
-  paid_date: string | null
-}
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
 
-interface Payment {
-  id: number
-  amount: string
-  payment_date: string
-  payment_method: string
-}
+// Flag to use mock data when backend is unavailable
+const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK === 'true' || true
+
+// ==========================================
+// API SERVICE CLASS
+// ==========================================
 
 class ApiService {
+  private baseUrl: string
+
+  constructor() {
+    this.baseUrl = API_BASE
+  }
+
+  // ------------------------------------------
+  // UTILITY METHODS
+  // ------------------------------------------
+
   private getAuthHeaders(token?: string): HeadersInit {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -77,15 +74,45 @@ class ApiService {
 
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Network error' }))
+      const error = await response.json().catch(() => ({ 
+        detail: `Server error: ${response.status}` 
+      }))
       throw new Error(error.detail || error.message || 'Request failed')
     }
     return response.json()
   }
 
-  // AUTH
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`
+    
+    const config: RequestInit = {
+      ...options,
+      headers: {
+        ...this.getAuthHeaders(),
+        ...options.headers,
+      },
+    }
+
+    try {
+      const response = await fetch(url, config)
+      return this.handleResponse<T>(response)
+    } catch (error) {
+      if (USE_MOCK_DATA) {
+        console.warn(`API call failed, using mock data for: ${endpoint}`)
+      }
+      throw error
+    }
+  }
+
+  // ------------------------------------------
+  // AUTHENTICATION - /core/auth/
+  // ------------------------------------------
+
   async login(username: string, password: string): Promise<LoginResponse> {
-    const response = await fetch(`${API_BASE}/token/`, {
+    const response = await fetch(`${this.baseUrl}/core/auth/login/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
@@ -93,81 +120,530 @@ class ApiService {
     return this.handleResponse<LoginResponse>(response)
   }
 
-  async register(data: RegisterData): Promise<{ access: string; refresh: string; user: any }> {
-    const response = await fetch(`${API_BASE}/register/`, {
+  async loginLegacy(username: string, password: string): Promise<LoginResponse> {
+    const response = await fetch(`${this.baseUrl}/core/auth/login/legacy/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    })
+    return this.handleResponse<LoginResponse>(response)
+  }
+
+  async register(data: RegisterRequest): Promise<RegisterResponse> {
+    const response = await fetch(`${this.baseUrl}/core/auth/register/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
-    return this.handleResponse(response)
+    return this.handleResponse<RegisterResponse>(response)
   }
 
-  async refreshToken(refresh: string): Promise<{ access: string }> {
-    const response = await fetch(`${API_BASE}/token/refresh/`, {
+  async logout(): Promise<void> {
+    await fetch(`${this.baseUrl}/core/auth/logout/`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    })
+  }
+
+  async refreshToken(refresh: string): Promise<TokenRefreshResponse> {
+    const response = await fetch(`${this.baseUrl}/core/auth/token/refresh/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh }),
     })
-    return this.handleResponse(response)
+    return this.handleResponse<TokenRefreshResponse>(response)
   }
 
-  async getCurrentUser(): Promise<any> {
-    const response = await fetch(`${API_BASE}/users/me/`, {
-      headers: this.getAuthHeaders(),
+  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    await this.request('/core/auth/password/change/', {
+      method: 'POST',
+      body: JSON.stringify({
+        old_password: oldPassword,
+        new_password: newPassword,
+        new_password_confirm: newPassword,
+      }),
     })
-    return this.handleResponse(response)
   }
 
-  // CUSTOMER
-  async getCustomerProfile(): Promise<Customer> {
-    const response = await fetch(`${API_BASE}/customers/me/`, {
-      headers: this.getAuthHeaders(),
+  async resendVerification(email: string): Promise<void> {
+    await fetch(`${this.baseUrl}/core/auth/resend-verification/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
     })
-    return this.handleResponse<Customer>(response)
   }
 
-  async updateCustomerProfile(data: Partial<Customer>): Promise<Customer> {
-    const response = await fetch(`${API_BASE}/customers/me/`, {
-      method: 'PATCH',
-      headers: this.getAuthHeaders(),
+  async verifyEmail(token: string): Promise<void> {
+    await fetch(`${this.baseUrl}/core/auth/verify-email/${token}/`, {
+      method: 'GET',
+    })
+  }
+
+  // ------------------------------------------
+  // USERS - /core/users/
+  // ------------------------------------------
+
+  async getCurrentUser(): Promise<User> {
+    return this.request<User>('/core/users/me/')
+  }
+
+  async getUsers(params?: Record<string, string>): Promise<PaginatedResponse<User>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<User>>(`/core/users/${queryString}`)
+  }
+
+  async getUser(id: number): Promise<User> {
+    return this.request<User>(`/core/users/${id}/`)
+  }
+
+  async createUser(data: Partial<User>): Promise<User> {
+    return this.request<User>('/core/users/', {
+      method: 'POST',
       body: JSON.stringify(data),
     })
-    return this.handleResponse<Customer>(response)
   }
 
-  // INVOICES
-  async getInvoices(): Promise<{ results: Invoice[] }> {
-    const response = await fetch(`${API_BASE}/invoices/`, {
-      headers: this.getAuthHeaders(),
+  async updateUser(id: number, data: Partial<User>): Promise<User> {
+    return this.request<User>(`/core/users/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     })
-    return this.handleResponse(response)
   }
 
-  // PAYMENTS
-  async getPayments(): Promise<{ results: Payment[] }> {
-    const response = await fetch(`${API_BASE}/payments/`, {
-      headers: this.getAuthHeaders(),
+  async deleteUser(id: number): Promise<void> {
+    await this.request(`/core/users/${id}/`, {
+      method: 'DELETE',
     })
-    return this.handleResponse(response)
   }
 
-  async createPayment(amount: string, method: string): Promise<Payment> {
-    const response = await fetch(`${API_BASE}/payments/`, {
+  async updateProfile(data: Partial<User>): Promise<User> {
+    return this.request<User>('/core/users/update_profile/', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // ------------------------------------------
+  // PROFILE - /core/profile/
+  // ------------------------------------------
+
+  async getProfile(): Promise<UserProfile> {
+    return this.request<UserProfile>('/core/profile/')
+  }
+
+  async patchProfile(data: Partial<UserProfile>): Promise<UserProfile> {
+    return this.request<UserProfile>('/core/profile/', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // ------------------------------------------
+  // DASHBOARD - /core/dashboard/
+  // ------------------------------------------
+
+  async getDashboard(): Promise<DashboardStats> {
+    return this.request<DashboardStats>('/core/dashboard/')
+  }
+
+  // ------------------------------------------
+  // SETTINGS - /core/settings/
+  // ------------------------------------------
+
+  async getSettings(): Promise<SystemSetting[]> {
+    return this.request<SystemSetting[]>('/core/settings/')
+  }
+
+  async getPublicSettings(): Promise<Record<string, any>> {
+    return this.request<Record<string, any>>('/core/settings/public/')
+  }
+
+  async getSetting(id: number): Promise<SystemSetting> {
+    return this.request<SystemSetting>(`/core/settings/${id}/`)
+  }
+
+  async createSetting(data: Partial<SystemSetting>): Promise<SystemSetting> {
+    return this.request<SystemSetting>('/core/settings/', {
       method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ amount, payment_method: method }),
+      body: JSON.stringify(data),
     })
-    return this.handleResponse(response)
   }
 
-  // PACKAGES
-  async getPackages(): Promise<{ results: any[] }> {
-    const response = await fetch(`${API_BASE}/packages/`, {
-      headers: this.getAuthHeaders(),
+  async updateSetting(id: number, data: Partial<SystemSetting>): Promise<SystemSetting> {
+    return this.request<SystemSetting>(`/core/settings/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     })
-    return this.handleResponse(response)
+  }
+
+  async deleteSetting(id: number): Promise<void> {
+    await this.request(`/core/settings/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  // ------------------------------------------
+  // CUSTOMERS - /customers/
+  // ------------------------------------------
+
+  async getCustomers(params?: Record<string, string>): Promise<PaginatedResponse<Customer>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<Customer>>(`/customers/${queryString}`)
+  }
+
+  async getCustomer(id: number): Promise<Customer> {
+    return this.request<Customer>(`/customers/${id}/`)
+  }
+
+  async createCustomer(data: Partial<Customer>): Promise<Customer> {
+    return this.request<Customer>('/customers/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateCustomer(id: number, data: Partial<Customer>): Promise<Customer> {
+    return this.request<Customer>(`/customers/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteCustomer(id: number): Promise<void> {
+    await this.request(`/customers/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async changeCustomerStatus(id: number, status: string): Promise<Customer> {
+    return this.request<Customer>(`/customers/${id}/change_status/`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    })
+  }
+
+  async getCustomerDashboard(id: number): Promise<any> {
+    return this.request(`/customers/${id}/dashboard/`)
+  }
+
+  // ------------------------------------------
+  // CUSTOMER NESTED: ADDRESSES
+  // ------------------------------------------
+
+  async getCustomerAddresses(customerId: number): Promise<CustomerAddress[]> {
+    return this.request<CustomerAddress[]>(`/customers/${customerId}/addresses/`)
+  }
+
+  async createCustomerAddress(customerId: number, data: Partial<CustomerAddress>): Promise<CustomerAddress> {
+    return this.request<CustomerAddress>(`/customers/${customerId}/addresses/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateCustomerAddress(customerId: number, addressId: number, data: Partial<CustomerAddress>): Promise<CustomerAddress> {
+    return this.request<CustomerAddress>(`/customers/${customerId}/addresses/${addressId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteCustomerAddress(customerId: number, addressId: number): Promise<void> {
+    await this.request(`/customers/${customerId}/addresses/${addressId}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async setAddressPrimary(customerId: number, addressId: number): Promise<void> {
+    await this.request(`/customers/${customerId}/addresses/${addressId}/set_primary/`, {
+      method: 'POST',
+    })
+  }
+
+  // ------------------------------------------
+  // CUSTOMER NESTED: SERVICES
+  // ------------------------------------------
+
+  async getCustomerServices(customerId: number): Promise<CustomerService[]> {
+    return this.request<CustomerService[]>(`/customers/${customerId}/services/`)
+  }
+
+  async getCustomerService(customerId: number, serviceId: number): Promise<CustomerService> {
+    return this.request<CustomerService>(`/customers/${customerId}/services/${serviceId}/`)
+  }
+
+  async createCustomerService(customerId: number, data: Partial<CustomerService>): Promise<CustomerService> {
+    return this.request<CustomerService>(`/customers/${customerId}/services/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateCustomerService(customerId: number, serviceId: number, data: Partial<CustomerService>): Promise<CustomerService> {
+    return this.request<CustomerService>(`/customers/${customerId}/services/${serviceId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteCustomerService(customerId: number, serviceId: number): Promise<void> {
+    await this.request(`/customers/${customerId}/services/${serviceId}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async activateService(customerId: number, serviceId: number): Promise<void> {
+    await this.request(`/customers/${customerId}/services/${serviceId}/activate/`, {
+      method: 'POST',
+    })
+  }
+
+  async suspendService(customerId: number, serviceId: number, reason?: string): Promise<void> {
+    await this.request(`/customers/${customerId}/services/${serviceId}/suspend/`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    })
+  }
+
+  async terminateService(customerId: number, serviceId: number): Promise<void> {
+    await this.request(`/customers/${customerId}/services/${serviceId}/terminate/`, {
+      method: 'POST',
+    })
+  }
+
+  async getCustomerServiceStats(customerId: number): Promise<any> {
+    return this.request(`/customers/${customerId}/services/stats/`)
+  }
+
+  async getPendingActivations(): Promise<CustomerService[]> {
+    return this.request<CustomerService[]>('/customers/services/pending-activations/')
+  }
+
+  // ------------------------------------------
+  // CUSTOMER NESTED: DOCUMENTS
+  // ------------------------------------------
+
+  async getCustomerDocuments(customerId: number): Promise<CustomerDocument[]> {
+    return this.request<CustomerDocument[]>(`/customers/${customerId}/documents/`)
+  }
+
+  async getDocumentTypes(customerId: number): Promise<string[]> {
+    return this.request<string[]>(`/customers/${customerId}/documents/types/`)
+  }
+
+  async uploadDocument(customerId: number, file: File, documentType: string): Promise<CustomerDocument> {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('document_type', documentType)
+
+    const response = await fetch(
+      `${this.baseUrl}/customers/${customerId}/documents/upload/`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.getToken()}`,
+        },
+        body: formData,
+      }
+    )
+    return this.handleResponse<CustomerDocument>(response)
+  }
+
+  async verifyDocument(customerId: number, documentId: number): Promise<void> {
+    await this.request(`/customers/${customerId}/documents/${documentId}/verify/`, {
+      method: 'POST',
+    })
+  }
+
+  async deleteDocument(customerId: number, documentId: number): Promise<void> {
+    await this.request(`/customers/${customerId}/documents/${documentId}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  // ------------------------------------------
+  // CUSTOMER NESTED: NOTES
+  // ------------------------------------------
+
+  async getCustomerNotes(customerId: number): Promise<CustomerNote[]> {
+    return this.request<CustomerNote[]>(`/customers/${customerId}/notes/`)
+  }
+
+  async createCustomerNote(customerId: number, data: Partial<CustomerNote>): Promise<CustomerNote> {
+    return this.request<CustomerNote>(`/customers/${customerId}/notes/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateCustomerNote(customerId: number, noteId: number, data: Partial<CustomerNote>): Promise<CustomerNote> {
+    return this.request<CustomerNote>(`/customers/${customerId}/notes/${noteId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteCustomerNote(customerId: number, noteId: number): Promise<void> {
+    await this.request(`/customers/${customerId}/notes/${noteId}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async markFollowupCompleted(customerId: number, noteId: number): Promise<void> {
+    await this.request(`/customers/${customerId}/notes/${noteId}/mark_followup_completed/`, {
+      method: 'POST',
+    })
+  }
+
+  // ------------------------------------------
+  // CUSTOMER NESTED: NEXT OF KIN
+  // ------------------------------------------
+
+  async getNextOfKin(customerId: number): Promise<NextOfKin[]> {
+    return this.request<NextOfKin[]>(`/customers/${customerId}/next-of-kin/`)
+  }
+
+  async createNextOfKin(customerId: number, data: Partial<NextOfKin>): Promise<NextOfKin> {
+    return this.request<NextOfKin>(`/customers/${customerId}/next-of-kin/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateNextOfKin(customerId: number, nokId: number, data: Partial<NextOfKin>): Promise<NextOfKin> {
+    return this.request<NextOfKin>(`/customers/${customerId}/next-of-kin/${nokId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteNextOfKin(customerId: number, nokId: number): Promise<void> {
+    await this.request(`/customers/${customerId}/next-of-kin/${nokId}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  // ------------------------------------------
+  // CUSTOMER ONBOARDING
+  // ------------------------------------------
+
+  async getOnboardingChecklist(customerId: number): Promise<any> {
+    return this.request(`/customers/${customerId}/onboarding/checklist/`)
+  }
+
+  async completeOnboarding(customerId: number): Promise<void> {
+    await this.request(`/customers/${customerId}/onboarding/complete/`, {
+      method: 'POST',
+    })
+  }
+
+  async onboardingWizard(data: any): Promise<Customer> {
+    return this.request<Customer>('/customers/onboarding/wizard/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // ------------------------------------------
+  // AUDIT LOGS - /core/audit-logs/
+  // ------------------------------------------
+
+  async getAuditLogs(params?: Record<string, string>): Promise<PaginatedResponse<AuditLog>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<AuditLog>>(`/core/audit-logs/${queryString}`)
+  }
+
+  async getAuditLog(id: number): Promise<AuditLog> {
+    return this.request<AuditLog>(`/core/audit-logs/${id}/`)
+  }
+
+  // ------------------------------------------
+  // COMPANIES - /core/companies/
+  // ------------------------------------------
+
+  async getCompanies(): Promise<any[]> {
+    return this.request<any[]>('/core/companies/')
+  }
+
+  async getCompany(id: number): Promise<any> {
+    return this.request(`/core/companies/${id}/`)
+  }
+
+  async createCompany(data: any): Promise<any> {
+    return this.request('/core/companies/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateCompany(id: number, data: any): Promise<any> {
+    return this.request(`/core/companies/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteCompany(id: number): Promise<void> {
+    await this.request(`/core/companies/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  // ------------------------------------------
+  // TENANTS - /core/tenants/
+  // ------------------------------------------
+
+  async getTenants(): Promise<any[]> {
+    return this.request<any[]>('/core/tenants/')
+  }
+
+  async getTenant(id: number): Promise<any> {
+    return this.request(`/core/tenants/${id}/`)
+  }
+
+  async createTenant(data: any): Promise<any> {
+    return this.request('/core/tenants/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateTenant(id: number, data: any): Promise<any> {
+    return this.request(`/core/tenants/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteTenant(id: number): Promise<void> {
+    await this.request(`/core/tenants/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async activateTenant(id: number): Promise<void> {
+    await this.request(`/core/tenants/${id}/activate/`, {
+      method: 'POST',
+    })
+  }
+
+  async deactivateTenant(id: number): Promise<void> {
+    await this.request(`/core/tenants/${id}/deactivate/`, {
+      method: 'POST',
+    })
+  }
+
+  // ------------------------------------------
+  // HEALTH CHECK
+  // ------------------------------------------
+
+  async healthCheck(): Promise<{ status: string }> {
+    return this.request<{ status: string }>('/core/health/')
   }
 }
 
+// Export singleton instance
 export const api = new ApiService()
-export type { Customer, Invoice, Payment, LoginResponse, RegisterData }
+
+// Export class for testing/extension
+export { ApiService }

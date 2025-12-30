@@ -1,66 +1,51 @@
-const ADMIN_API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+/**
+ * Admin API Service for ISP Management System
+ * Aligned with Django Backend Swagger API
+ * Base URL: http://127.0.0.1:8000/api/v1
+ */
 
-interface AdminLoginResponse {
-  access: string
-  refresh: string
-  user: {
-    id: number
-    username: string
-    email: string
-    first_name?: string
-    last_name?: string
-    is_staff: boolean
-    is_superuser: boolean
-    is_active: boolean
-    date_joined?: string
-  }
+import type {
+  LoginResponse,
+  User,
+  Customer,
+  CustomerService,
+  PaginatedResponse,
+  DashboardStats,
+  AuditLog,
+} from './types'
+
+// Re-export for backward compatibility
+export type { Customer }
+
+export interface AdminLoginResponse extends LoginResponse {
+  user: User
 }
 
-interface AdminUser {
-  id: number
-  username: string
-  email: string
-  first_name?: string
-  last_name?: string
-  is_staff: boolean
-  is_superuser: boolean
-  is_active: boolean
-  date_joined?: string
-}
+export interface AdminUser extends User {}
 
-interface AdminStats {
-  total_users: number
-  active_users: number
-  expired_users: number
-  total_revenue: number
-  monthly_revenue: number
-  bandwidth_usage: number
-}
+export interface AdminStats extends DashboardStats {}
 
-interface Customer {
-  id: number
-  user: {
-    id: number
-    username: string
-    email: string
-  }
-  full_name: string
-  phone: string
-  address: string
-  balance: string
-  expiry_date: string
-  is_active: boolean
-  package?: {
-    id: number
-    name: string
-    price: string
-    speed_down: number
-    speed_up: number
-  }
-  created_at: string
-}
+// ==========================================
+// CONFIGURATION
+// ==========================================
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+
+// ==========================================
+// ADMIN API SERVICE CLASS
+// ==========================================
 
 class AdminApiService {
+  private baseUrl: string
+
+  constructor() {
+    this.baseUrl = API_BASE
+  }
+
+  // ------------------------------------------
+  // UTILITY METHODS
+  // ------------------------------------------
+
   private getAuthHeaders(): HeadersInit {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -91,155 +76,306 @@ class AdminApiService {
     return response.json()
   }
 
-  // AUTHENTICATION
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`
+    
+    const config: RequestInit = {
+      ...options,
+      headers: {
+        ...this.getAuthHeaders(),
+        ...options.headers,
+      },
+    }
+
+    const response = await fetch(url, config)
+    return this.handleResponse<T>(response)
+  }
+
+  // ------------------------------------------
+  // AUTHENTICATION - /core/auth/
+  // ------------------------------------------
+
   async login(username: string, password: string): Promise<AdminLoginResponse> {
-    const response = await fetch(`${ADMIN_API_BASE}/auth/admin/login/`, {
+    const response = await fetch(`${this.baseUrl}/core/auth/login/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
       credentials: 'include',
     })
-    return this.handleResponse<AdminLoginResponse>(response)
+    
+    const data = await this.handleResponse<AdminLoginResponse>(response)
+    
+    // Verify the user has admin privileges
+    if (!data.user?.is_staff && !data.user?.is_superuser) {
+      throw new Error('Access denied. Admin privileges required.')
+    }
+    
+    return data
   }
 
   async refreshToken(refresh: string): Promise<{ access: string }> {
-    const response = await fetch(`${ADMIN_API_BASE}/token/refresh/`, {
+    return this.request<{ access: string }>('/core/auth/token/refresh/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh }),
     })
-    return this.handleResponse(response)
+  }
+
+  async logout(): Promise<void> {
+    await this.request('/core/auth/logout/', {
+      method: 'POST',
+    })
   }
 
   async getCurrentAdmin(): Promise<AdminUser> {
-    const response = await fetch(`${ADMIN_API_BASE}/auth/admin/me/`, {
-      headers: this.getAuthHeaders(),
-    })
-    return this.handleResponse<AdminUser>(response)
+    return this.request<AdminUser>('/core/users/me/')
   }
 
-  // DASHBOARD STATS
+  // ------------------------------------------
+  // DASHBOARD - /core/dashboard/
+  // ------------------------------------------
+
   async getStats(): Promise<AdminStats> {
-    const response = await fetch(`${ADMIN_API_BASE}/admin/stats/`, {
-      headers: this.getAuthHeaders(),
-    })
-    return this.handleResponse<AdminStats>(response)
+    return this.request<AdminStats>('/core/dashboard/')
   }
 
-  // USERS MANAGEMENT
-  async getUsers(params?: { 
-    page?: number
-    search?: string
-    is_active?: boolean
-  }): Promise<{ results: Customer[]; count: number; next: string | null; previous: string | null }> {
-    const queryParams = new URLSearchParams()
-    if (params?.page) queryParams.append('page', params.page.toString())
-    if (params?.search) queryParams.append('search', params.search)
-    if (params?.is_active !== undefined) queryParams.append('is_active', params.is_active.toString())
-    
-    const url = `${ADMIN_API_BASE}/admin/customers/${queryParams.toString() ? '?' + queryParams.toString() : ''}`
-    const response = await fetch(url, {
-      headers: this.getAuthHeaders(),
-    })
-    return this.handleResponse(response)
+  async getDashboard(): Promise<DashboardStats> {
+    return this.request<DashboardStats>('/core/dashboard/')
   }
 
-  async getUser(userId: number): Promise<Customer> {
-    const response = await fetch(`${ADMIN_API_BASE}/admin/customers/${userId}/`, {
-      headers: this.getAuthHeaders(),
-    })
-    return this.handleResponse<Customer>(response)
+  // ------------------------------------------
+  // USERS/STAFF - /core/users/
+  // ------------------------------------------
+
+  async getStaffUsers(params?: Record<string, string>): Promise<PaginatedResponse<User>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<User>>(`/core/users/${queryString}`)
   }
 
-  async updateUser(userId: number, data: Partial<Customer>): Promise<Customer> {
-    const response = await fetch(`${ADMIN_API_BASE}/admin/customers/${userId}/`, {
+  async getStaffUser(id: number): Promise<User> {
+    return this.request<User>(`/core/users/${id}/`)
+  }
+
+  async createStaffUser(data: Partial<User>): Promise<User> {
+    return this.request<User>('/core/users/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateStaffUser(id: number, data: Partial<User>): Promise<User> {
+    return this.request<User>(`/core/users/${id}/`, {
       method: 'PATCH',
-      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     })
-    return this.handleResponse<Customer>(response)
   }
 
-  async deleteUser(userId: number): Promise<void> {
-    const response = await fetch(`${ADMIN_API_BASE}/admin/customers/${userId}/`, {
+  async deleteStaffUser(id: number): Promise<void> {
+    await this.request(`/core/users/${id}/`, {
       method: 'DELETE',
-      headers: this.getAuthHeaders(),
     })
-    if (!response.ok) {
-      throw new Error('Failed to delete user')
-    }
   }
 
-  async activateUser(userId: number): Promise<Customer> {
-    const response = await fetch(`${ADMIN_API_BASE}/admin/customers/${userId}/activate/`, {
+  // ------------------------------------------
+  // CUSTOMERS - /customers/
+  // ------------------------------------------
+
+  async getCustomers(params?: Record<string, string>): Promise<PaginatedResponse<Customer>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<Customer>>(`/customers/${queryString}`)
+  }
+
+  async getCustomer(id: number): Promise<Customer> {
+    return this.request<Customer>(`/customers/${id}/`)
+  }
+
+  async createCustomer(data: Partial<Customer>): Promise<Customer> {
+    return this.request<Customer>('/customers/', {
       method: 'POST',
-      headers: this.getAuthHeaders(),
-    })
-    return this.handleResponse<Customer>(response)
-  }
-
-  async deactivateUser(userId: number): Promise<Customer> {
-    const response = await fetch(`${ADMIN_API_BASE}/admin/customers/${userId}/deactivate/`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-    })
-    return this.handleResponse<Customer>(response)
-  }
-
-  // PACKAGES
-  async getPackages(): Promise<{ results: any[] }> {
-    const response = await fetch(`${ADMIN_API_BASE}/packages/`, {
-      headers: this.getAuthHeaders(),
-    })
-    return this.handleResponse(response)
-  }
-
-  async createPackage(data: any): Promise<any> {
-    const response = await fetch(`${ADMIN_API_BASE}/packages/`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     })
-    return this.handleResponse(response)
   }
 
-  // PAYMENTS
-  async getPayments(params?: { 
-    page?: number
-    customer?: number
-  }): Promise<{ results: any[]; count: number }> {
-    const queryParams = new URLSearchParams()
-    if (params?.page) queryParams.append('page', params.page.toString())
-    if (params?.customer) queryParams.append('customer', params.customer.toString())
-    
-    const url = `${ADMIN_API_BASE}/admin/payments/${queryParams.toString() ? '?' + queryParams.toString() : ''}`
-    const response = await fetch(url, {
-      headers: this.getAuthHeaders(),
+  async updateCustomer(id: number, data: Partial<Customer>): Promise<Customer> {
+    return this.request<Customer>(`/customers/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     })
-    return this.handleResponse(response)
   }
 
-  // SYSTEM LOGS
-  async getLogs(params?: { 
-    page?: number
-    level?: string
-  }): Promise<{ results: any[]; count: number }> {
-    const queryParams = new URLSearchParams()
-    if (params?.page) queryParams.append('page', params.page.toString())
-    if (params?.level) queryParams.append('level', params.level)
-    
-    const url = `${ADMIN_API_BASE}/admin/logs/${queryParams.toString() ? '?' + queryParams.toString() : ''}`
-    const response = await fetch(url, {
-      headers: this.getAuthHeaders(),
+  async deleteCustomer(id: number): Promise<void> {
+    await this.request(`/customers/${id}/`, {
+      method: 'DELETE',
     })
-    return this.handleResponse(response)
+  }
+
+  async changeCustomerStatus(id: number, status: string): Promise<Customer> {
+    return this.request<Customer>(`/customers/${id}/change_status/`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    })
+  }
+
+  async getCustomerDashboard(id: number): Promise<any> {
+    return this.request(`/customers/${id}/dashboard/`)
+  }
+
+  // Aliases for backward compatibility
+  async getUsers(params?: Record<string, string>): Promise<PaginatedResponse<Customer>> {
+    return this.getCustomers(params)
+  }
+
+  async getUser(id: number): Promise<Customer> {
+    return this.getCustomer(id)
+  }
+
+  async updateUser(id: number, data: Partial<Customer>): Promise<Customer> {
+    return this.updateCustomer(id, data)
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    return this.deleteCustomer(id)
+  }
+
+  async activateUser(id: number): Promise<Customer> {
+    return this.changeCustomerStatus(id, 'active')
+  }
+
+  async deactivateUser(id: number): Promise<Customer> {
+    return this.changeCustomerStatus(id, 'inactive')
+  }
+
+  // ------------------------------------------
+  // CUSTOMER SERVICES
+  // ------------------------------------------
+
+  async getCustomerServices(customerId: number): Promise<CustomerService[]> {
+    return this.request<CustomerService[]>(`/customers/${customerId}/services/`)
+  }
+
+  async activateService(customerId: number, serviceId: number): Promise<void> {
+    await this.request(`/customers/${customerId}/services/${serviceId}/activate/`, {
+      method: 'POST',
+    })
+  }
+
+  async suspendService(customerId: number, serviceId: number, reason?: string): Promise<void> {
+    await this.request(`/customers/${customerId}/services/${serviceId}/suspend/`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    })
+  }
+
+  async terminateService(customerId: number, serviceId: number): Promise<void> {
+    await this.request(`/customers/${customerId}/services/${serviceId}/terminate/`, {
+      method: 'POST',
+    })
+  }
+
+  async getPendingActivations(): Promise<CustomerService[]> {
+    return this.request<CustomerService[]>('/customers/services/pending-activations/')
+  }
+
+  // ------------------------------------------
+  // CUSTOMER ONBOARDING
+  // ------------------------------------------
+
+  async onboardCustomer(data: any): Promise<Customer> {
+    return this.request<Customer>('/customers/onboarding/wizard/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // ------------------------------------------
+  // AUDIT LOGS - /core/audit-logs/
+  // ------------------------------------------
+
+  async getAuditLogs(params?: Record<string, string>): Promise<PaginatedResponse<AuditLog>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<AuditLog>>(`/core/audit-logs/${queryString}`)
+  }
+
+  async getAuditLog(id: number): Promise<AuditLog> {
+    return this.request<AuditLog>(`/core/audit-logs/${id}/`)
+  }
+
+  // Alias for backward compatibility
+  async getLogs(params?: Record<string, string>): Promise<PaginatedResponse<AuditLog>> {
+    return this.getAuditLogs(params)
+  }
+
+  // ------------------------------------------
+  // SETTINGS - /core/settings/
+  // ------------------------------------------
+
+  async getSettings(): Promise<any[]> {
+    return this.request<any[]>('/core/settings/')
+  }
+
+  async getSetting(id: number): Promise<any> {
+    return this.request(`/core/settings/${id}/`)
+  }
+
+  async updateSetting(id: number, data: any): Promise<any> {
+    return this.request(`/core/settings/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // ------------------------------------------
+  // COMPANIES - /core/companies/
+  // ------------------------------------------
+
+  async getCompanies(): Promise<any[]> {
+    return this.request<any[]>('/core/companies/')
+  }
+
+  async getCompany(id: number): Promise<any> {
+    return this.request(`/core/companies/${id}/`)
+  }
+
+  async updateCompany(id: number, data: any): Promise<any> {
+    return this.request(`/core/companies/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // ------------------------------------------
+  // TENANTS - /core/tenants/
+  // ------------------------------------------
+
+  async getTenants(): Promise<any[]> {
+    return this.request<any[]>('/core/tenants/')
+  }
+
+  async activateTenant(id: number): Promise<void> {
+    await this.request(`/core/tenants/${id}/activate/`, {
+      method: 'POST',
+    })
+  }
+
+  async deactivateTenant(id: number): Promise<void> {
+    await this.request(`/core/tenants/${id}/deactivate/`, {
+      method: 'POST',
+    })
+  }
+
+  // ------------------------------------------
+  // HEALTH CHECK
+  // ------------------------------------------
+
+  async healthCheck(): Promise<{ status: string }> {
+    return this.request<{ status: string }>('/core/health/')
   }
 }
 
+// Export singleton instance
 export const adminApi = new AdminApiService()
-export type { 
-  AdminLoginResponse, 
-  AdminUser, 
-  AdminStats, 
-  Customer 
-}
+
+// Export class for testing/extension
+export { AdminApiService }

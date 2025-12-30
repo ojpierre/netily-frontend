@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, Shield, AlertCircle } from "lucide-react"
 import {
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useAdminAuth } from "@/app/admin/admin-auth-context"
 
 interface LoginFormData {
   username: string
@@ -22,20 +23,9 @@ interface LoginFormData {
   rememberMe: boolean
 }
 
-interface LoginResponse {
-  access: string
-  refresh?: string
-  user: {
-    id: number
-    username: string
-    email: string
-    is_staff: boolean
-    is_superuser: boolean
-  }
-}
-
 export default function AdminLoginPage() {
   const router = useRouter()
+  const { login, user, loading: authLoading } = useAdminAuth()
   const [formData, setFormData] = useState<LoginFormData>({
     username: "",
     password: "",
@@ -43,6 +33,13 @@ export default function AdminLoginPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !authLoading) {
+      router.push("/admin")
+    }
+  }, [user, authLoading, router])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -52,55 +49,6 @@ export default function AdminLoginPage() {
 
   const handleCheckboxChange = (checked: boolean) => {
     setFormData((prev) => ({ ...prev, rememberMe: checked }))
-  }
-
-  // Direct login to the correct endpoint → gets is_staff in token
-  const loginWithBackend = async (): Promise<LoginResponse> => {
-    const res = await fetch("http://127.0.0.1:8000/api/token/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: formData.username,
-        password: formData.password,
-      }),
-    })
-
-    if (!res.ok) {
-      const err = await res.json()
-      throw new Error(err.detail || "Invalid credentials")
-    }
-
-    const data = await res.json()
-    return {
-      access: data.access,
-      refresh: data.refresh,
-      user: {
-        id: 0,
-        username: formData.username,
-        email: "",
-        is_staff: true,
-        is_superuser: false,
-      },
-    }
-  }
-
-  const loginWithFallback = async (): Promise<LoginResponse> => {
-    await new Promise((r) => setTimeout(r, 800))
-
-    const valid = ["admin", "superadmin", "polom", "marko"].includes(formData.username)
-    if (!valid) throw new Error("Invalid mock credentials")
-
-    return {
-      access: `mock_${Date.now()}`,
-      refresh: "mock_refresh",
-      user: {
-        id: 1,
-        username: formData.username,
-        email: "admin@local",
-        is_staff: true,
-        is_superuser: formData.username.includes("super"),
-      },
-    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,52 +61,26 @@ export default function AdminLoginPage() {
         throw new Error("Please fill in all fields")
       }
 
-      let data: LoginResponse
-
-      try {
-        data = await loginWithBackend()
-        console.log("Logged in via real backend")
-      } catch {
-        console.warn("Backend down → using mock")
-        data = await loginWithFallback()
-      }
-
-      if (!data.user.is_staff) throw new Error("Admin access required")
-
-      const storage = formData.rememberMe ? localStorage : sessionStorage
-
-      storage.setItem("access_token", data.access)
-      storage.setItem("refresh_token", data.refresh || "")
-      storage.setItem("user", JSON.stringify(data.user))
-      storage.setItem("adminToken", data.access)
-      storage.setItem("adminUser", JSON.stringify(data.user))
-
-      // Sync to cookies for middleware
-      const maxAge = formData.rememberMe ? 604800 : 86400 // 7 days or 1 day
-      document.cookie = `adminToken=${data.access}; path=/; max-age=${maxAge}; SameSite=Lax`
-      document.cookie = `access_token=${data.access}; path=/; max-age=${maxAge}; SameSite=Lax`
-
-      console.log("Welcome Admin:", data.user.username)
-      console.log("Tokens stored and synced to cookies")
+      // Use the context login function
+      await login(formData.username, formData.password, formData.rememberMe)
       
-      // Force a small delay to ensure cookies are set before navigation
-      setTimeout(() => {
-        console.log("Attempting to navigate to /admin...")
-        router.push("/admin")
-        
-        // Fallback: if router.push doesn't work after 2 seconds, use window.location
-        setTimeout(() => {
-          if (window.location.pathname === "/admin/login") {
-            console.log("Router push failed, using window.location.href")
-            window.location.href = "/admin"
-          }
-        }, 2000)
-      }, 100)
+      console.log("Login successful, navigating to admin...")
+      router.push("/admin")
+      
     } catch (err: any) {
-      setError(err.message)
+      setError(err.message || "Login failed")
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    )
   }
 
   return (
@@ -186,7 +108,7 @@ export default function AdminLoginPage() {
               <Input
                 id="username"
                 name="username"
-                placeholder="polom / marko / admin"
+                placeholder="Enter username"
                 value={formData.username}
                 onChange={handleInputChange}
                 disabled={loading}
@@ -233,7 +155,8 @@ export default function AdminLoginPage() {
 
             <div className="text-center text-xs text-muted-foreground mt-6 space-y-1">
               <p className="font-medium">Dev Quick Login</p>
-              <p>polom • marko • admin • superadmin</p>
+              <p>admin • superadmin • polom • marko</p>
+              <p className="text-slate-400">(any password works in mock mode)</p>
             </div>
           </form>
         </CardContent>

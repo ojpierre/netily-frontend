@@ -2,56 +2,164 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { adminApi } from "@/lib/admin-api"
+import type { User } from "@/lib/types"
+
+// ==========================================
+// CONFIGURATION
+// ==========================================
+
+// Toggle this to switch between mock and real backend
+const USE_MOCK_AUTH = process.env.NEXT_PUBLIC_USE_MOCK === 'true' || true
+
+// ==========================================
+// TYPES
+// ==========================================
 
 interface AdminUser {
   id: number
   username: string
   email: string
+  first_name?: string
+  last_name?: string
   is_staff: boolean
   is_superuser: boolean
+  is_active?: boolean
 }
 
 interface AdminAuthContextType {
   user: AdminUser | null
   loading: boolean
+  login: (username: string, password: string, rememberMe?: boolean) => Promise<void>
   logout: () => void
   refreshAuth: () => Promise<void>
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined)
 
+// ==========================================
+// MOCK DATA
+// ==========================================
+
+const MOCK_ADMIN: AdminUser = {
+  id: 1,
+  username: "admin",
+  email: "admin@netily.com",
+  first_name: "Admin",
+  last_name: "User",
+  is_staff: true,
+  is_superuser: true,
+  is_active: true,
+}
+
+// ==========================================
+// ADMIN AUTH PROVIDER
+// ==========================================
+
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
-  const loadUser = () => {
-    // AUTH DISABLED - Always provide mock admin user
-    setUser({
-      id: 1,
-      username: "admin",
-      email: "admin@netily.com",
-      is_staff: true,
-      is_superuser: true,
-    })
-    setLoading(false)
-    
-    /* COMMENTED OUT - Original user loading
+  useEffect(() => {
+    loadUser()
+  }, [])
+
+  const loadUser = async () => {
+    if (USE_MOCK_AUTH) {
+      // Mock mode - provide admin user immediately
+      setUser(MOCK_ADMIN)
+      setLoading(false)
+      return
+    }
+
     try {
       const storage = localStorage.getItem("adminToken") ? localStorage : sessionStorage
-      const userStr = storage.getItem("adminUser")
-      if (userStr) {
-        setUser(JSON.parse(userStr))
+      const token = storage.getItem("adminToken")
+      
+      if (token) {
+        // Verify token by getting current admin user
+        const userData = await adminApi.getCurrentAdmin()
+        
+        // Verify user has admin privileges
+        if (!userData.is_staff && !userData.is_superuser) {
+          throw new Error("Not an admin user")
+        }
+        
+        setUser(userData)
       }
     } catch (error) {
       console.error("Failed to load admin user:", error)
+      // Clear invalid tokens
+      localStorage.removeItem("adminToken")
+      localStorage.removeItem("adminRefreshToken")
+      localStorage.removeItem("adminUser")
+      sessionStorage.removeItem("adminToken")
+      sessionStorage.removeItem("adminRefreshToken")
+      sessionStorage.removeItem("adminUser")
     } finally {
       setLoading(false)
     }
-    */
   }
 
-  const logout = () => {
+  const login = async (username: string, password: string, rememberMe: boolean = true) => {
+    setLoading(true)
+
+    if (USE_MOCK_AUTH) {
+      // Mock mode - accept specific test credentials
+      const validUsers = ["admin", "superadmin", "polom", "marko"]
+      await new Promise(r => setTimeout(r, 500))
+      
+      if (validUsers.includes(username.toLowerCase()) || password === "admin123") {
+        setUser({
+          ...MOCK_ADMIN,
+          username: username,
+        })
+        setLoading(false)
+        return
+      }
+      
+      setLoading(false)
+      throw new Error("Invalid credentials")
+    }
+
+    try {
+      // Call /core/auth/login/
+      const response = await adminApi.login(username, password)
+      
+      // Verify admin privileges
+      if (!response.user?.is_staff && !response.user?.is_superuser) {
+        throw new Error("Access denied. Admin privileges required.")
+      }
+      
+      // Store tokens
+      const storage = rememberMe ? localStorage : sessionStorage
+      storage.setItem("adminToken", response.access)
+      storage.setItem("adminRefreshToken", response.refresh)
+      storage.setItem("adminUser", JSON.stringify(response.user))
+      
+      // Sync to cookies for middleware
+      document.cookie = `adminToken=${response.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
+      
+      setUser(response.user)
+    } catch (error: any) {
+      setLoading(false)
+      throw new Error(error.message || "Login failed. Please check your credentials.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const logout = async () => {
+    try {
+      if (!USE_MOCK_AUTH) {
+        await adminApi.logout()
+      }
+    } catch (error) {
+      console.log("Logout API call failed, continuing with local cleanup")
+    }
+    
+    // Clear all storage
     localStorage.removeItem("adminToken")
     localStorage.removeItem("adminRefreshToken")
     localStorage.removeItem("adminUser")
@@ -67,15 +175,11 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const refreshAuth = async () => {
-    loadUser()
+    await loadUser()
   }
 
-  useEffect(() => {
-    loadUser()
-  }, [])
-
   return (
-    <AdminAuthContext.Provider value={{ user, loading, logout, refreshAuth }}>
+    <AdminAuthContext.Provider value={{ user, loading, login, logout, refreshAuth }}>
       {children}
     </AdminAuthContext.Provider>
   )

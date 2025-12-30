@@ -31,6 +31,11 @@ import {
   UserCheck,
   Power,
 } from "lucide-react"
+import { adminApi } from "@/lib/admin-api"
+import type { Customer, CustomerService, CustomerStatus } from "@/lib/types"
+
+// Mock mode toggle - set to false when backend is ready
+const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -87,12 +92,14 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 
-// User types for different connection methods
-type UserType = "hotspot" | "pppoe" | "static"
-type UserStatus = "active" | "expired" | "suspended" | "online" | "offline"
+// User types for different connection methods (maps to backend ConnectionType)
+type UserType = "hotspot" | "pppoe" | "static" | "fiber" | "wireless"
+type UserStatus = "active" | "inactive" | "expired" | "suspended" | "pending" | "online" | "offline"
 
+// Display user interface - mapped from Customer API response
 interface User {
   id: string
+  customerId: number
   name: string
   email: string
   phone: string
@@ -126,7 +133,52 @@ interface UserStats {
   static: number
 }
 
-// Mock data generator
+// Helper: Map backend Customer to frontend User display type
+const mapCustomerToUser = (customer: Customer): User => {
+  // Get the primary service if available
+  const primaryService = customer.services?.[0]
+  
+  // Determine connection status from service
+  const isOnline = primaryService?.is_online ?? false
+  
+  // Map backend status to frontend status (handle 'inactive' as 'expired' for display)
+  const mapStatus = (status: CustomerStatus): UserStatus => {
+    switch (status) {
+      case 'active': return 'active'
+      case 'inactive': return 'expired'
+      case 'suspended': return 'suspended'
+      case 'pending': return 'pending'
+      default: return 'active'
+    }
+  }
+
+  return {
+    id: customer.customer_number || `USR-${customer.id}`,
+    customerId: customer.id,
+    name: customer.full_name || `${customer.first_name} ${customer.last_name}`,
+    email: customer.email,
+    phone: customer.phone,
+    status: mapStatus(customer.status),
+    connectionStatus: isOnline ? "online" : "offline",
+    type: (primaryService?.service_type || "hotspot") as UserType,
+    plan: primaryService?.plan?.name || "No Plan",
+    planPrice: primaryService?.plan?.price ? parseFloat(String(primaryService.plan.price)) : 0,
+    joinedDate: customer.created_at,
+    expiryDate: primaryService?.expiry_date || new Date().toISOString(),
+    lastOnline: isOnline ? "Now" : (primaryService?.last_seen || "Unknown"),
+    dataUsed: primaryService?.data_used || 0,
+    dataLimit: primaryService?.data_limit || null,
+    macAddress: primaryService?.mac_address,
+    ipAddress: primaryService?.ip_address,
+    router: primaryService?.device?.name || "Unassigned",
+    downloadSpeed: primaryService?.download_speed || 0,
+    uploadSpeed: primaryService?.upload_speed || 0,
+    loyaltyPoints: 0, // Will come from loyalty module
+    balance: parseFloat(customer.balance) || 0,
+  }
+}
+
+// Mock data generator (fallback when API is unavailable)
 const generateMockUsers = (): User[] => {
   const types: UserType[] = ["hotspot", "pppoe", "static"]
   const plans = [
@@ -147,6 +199,7 @@ const generateMockUsers = (): User[] => {
     
     return {
       id: `USR-${1000 + i}`,
+      customerId: 1000 + i,
       name: `User ${i + 1}`,
       email: `user${i + 1}@example.com`,
       phone: `+254 7${Math.floor(10000000 + Math.random() * 90000000)}`,
@@ -197,10 +250,26 @@ export default function UsersPage() {
     try {
       setLoading(true)
       setError(null)
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 800))
-      setUsers(generateMockUsers())
+      
+      if (USE_MOCK_DATA) {
+        // Use mock data when backend is not available
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        setUsers(generateMockUsers())
+      } else {
+        // Fetch from real API - /customers/ endpoint
+        try {
+          const response = await adminApi.getCustomers()
+          const mappedUsers = response.results.map(mapCustomerToUser)
+          setUsers(mappedUsers)
+        } catch (apiError) {
+          console.warn('API call failed, falling back to mock data:', apiError)
+          // Fallback to mock data if API fails
+          setUsers(generateMockUsers())
+          setError("Using demo data - backend not available")
+        }
+      }
     } catch (err) {
+      console.error('Failed to load users:', err)
       setError("Failed to load users. Please try again.")
     } finally {
       setLoading(false)
@@ -280,15 +349,17 @@ export default function UsersPage() {
   }
 
   const getStatusBadge = (status: UserStatus) => {
-    const variants = {
+    const variants: Record<UserStatus, string> = {
       active: "bg-green-100 text-green-700 border-green-200",
+      inactive: "bg-gray-100 text-gray-700 border-gray-200",
       expired: "bg-red-100 text-red-700 border-red-200",
       suspended: "bg-yellow-100 text-yellow-700 border-yellow-200",
+      pending: "bg-orange-100 text-orange-700 border-orange-200",
       online: "bg-blue-100 text-blue-700 border-blue-200",
       offline: "bg-slate-100 text-slate-700 border-slate-200",
     }
     return (
-      <Badge variant="outline" className={variants[status]}>
+      <Badge variant="outline" className={variants[status] || variants.active}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     )
@@ -312,16 +383,19 @@ export default function UsersPage() {
   }
 
   const getTypeBadge = (type: UserType) => {
-    const config = {
+    const config: Record<UserType, { icon: typeof Wifi; class: string; label: string }> = {
       hotspot: { icon: Wifi, class: "bg-blue-100 text-blue-700 border-blue-200", label: "Hotspot" },
       pppoe: { icon: Globe, class: "bg-purple-100 text-purple-700 border-purple-200", label: "PPPoE" },
       static: { icon: Server, class: "bg-orange-100 text-orange-700 border-orange-200", label: "Static IP" },
+      fiber: { icon: Signal, class: "bg-teal-100 text-teal-700 border-teal-200", label: "Fiber" },
+      wireless: { icon: Wifi, class: "bg-cyan-100 text-cyan-700 border-cyan-200", label: "Wireless" },
     }
-    const Icon = config[type].icon
+    const typeConfig = config[type] || config.hotspot
+    const Icon = typeConfig.icon
     return (
-      <Badge variant="outline" className={config[type].class}>
+      <Badge variant="outline" className={typeConfig.class}>
         <Icon className="w-3 h-3 mr-1" />
-        {config[type].label}
+        {typeConfig.label}
       </Badge>
     )
   }
