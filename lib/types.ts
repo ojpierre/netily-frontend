@@ -473,6 +473,349 @@ export interface ApiError {
 }
 
 // ==========================================
+// OLT/ONU NETWORK TYPES
+// ==========================================
+
+export type OLTStatus = 'online' | 'offline' | 'warning' | 'maintenance'
+export type ONUStatus = 'online' | 'offline' | 'los' | 'dying_gasp' | 'power_fail'
+export type ONURegistrationStatus = 'registered' | 'unregistered' | 'pending'
+
+export interface OLT {
+  id: number
+  name: string
+  ip_address: string
+  model: string
+  manufacturer: 'huawei' | 'zte' | 'fiberhome' | 'nokia' | 'other'
+  serial_number: string
+  firmware_version?: string
+  total_pon_ports: number
+  active_pon_ports: number
+  total_onus: number
+  online_onus: number
+  location: string
+  latitude?: number
+  longitude?: number
+  status: OLTStatus
+  uptime?: string
+  cpu_usage?: number
+  memory_usage?: number
+  temperature?: number
+  last_seen?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface PONPort {
+  id: number
+  olt: number
+  port_number: string
+  name?: string
+  status: 'active' | 'inactive' | 'fault'
+  total_onus: number
+  online_onus: number
+  rx_power?: number
+  tx_power?: number
+  description?: string
+}
+
+export interface ONU {
+  id: number
+  serial_number: string
+  pon_port: number
+  pon_port_name?: string
+  olt: number
+  olt_name?: string
+  customer?: number
+  customer_name?: string
+  model: string
+  manufacturer: string
+  firmware_version?: string
+  status: ONUStatus
+  registration_status: ONURegistrationStatus
+  rx_power?: number
+  tx_power?: number
+  distance?: number  // in meters
+  mac_address?: string
+  ip_address?: string
+  description?: string
+  last_seen?: string
+  online_since?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ONUOpticalInfo {
+  rx_power: number
+  tx_power: number
+  temperature?: number
+  voltage?: number
+  bias_current?: number
+  status: 'good' | 'warning' | 'critical'
+}
+
+// ==========================================
+// IPAM (IP Address Management) TYPES
+// ==========================================
+
+export type SubnetStatus = 'active' | 'reserved' | 'deprecated'
+export type IPAddressStatus = 'available' | 'assigned' | 'reserved' | 'dhcp'
+
+export interface Subnet {
+  id: number
+  name: string
+  network: string  // e.g., "192.168.1.0/24"
+  gateway?: string
+  vlan_id?: number
+  description?: string
+  status: SubnetStatus
+  total_ips: number
+  used_ips: number
+  available_ips: number
+  is_dhcp_enabled: boolean
+  dhcp_range_start?: string
+  dhcp_range_end?: string
+  dns_servers?: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface IPAddress {
+  id: number
+  subnet: number
+  subnet_name?: string
+  address: string
+  status: IPAddressStatus
+  assigned_to?: number  // customer id
+  customer_name?: string
+  mac_address?: string
+  hostname?: string
+  description?: string
+  lease_expires?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface DHCPLease {
+  id: number
+  subnet: number
+  ip_address: string
+  mac_address: string
+  hostname?: string
+  customer?: number
+  customer_name?: string
+  lease_start: string
+  lease_expires: string
+  is_active: boolean
+}
+
+// ==========================================
+// TR-069 / CPE TYPES
+// ==========================================
+
+export type CPEStatus = 'online' | 'offline' | 'pending' | 'error'
+
+export interface CPEDevice {
+  id: number
+  serial_number: string
+  oui: string  // Manufacturer OUI
+  product_class: string
+  manufacturer: string
+  model: string
+  firmware_version?: string
+  hardware_version?: string
+  customer?: number
+  customer_name?: string
+  ip_address?: string
+  mac_address?: string
+  status: CPEStatus
+  last_inform?: string
+  last_boot?: string
+  uptime?: number
+  parameters?: Record<string, any>
+  created_at: string
+  updated_at: string
+}
+
+export interface CPETask {
+  id: number
+  device: number
+  task_type: 'reboot' | 'factory_reset' | 'firmware_update' | 'parameter_set' | 'diagnostic'
+  status: 'pending' | 'in_progress' | 'completed' | 'failed'
+  parameters?: Record<string, any>
+  result?: Record<string, any>
+  error_message?: string
+  created_at: string
+  completed_at?: string
+}
+
+// ==========================================
+// TECHNICIAN & DISPATCH TYPES
+// ==========================================
+
+export type TechnicianStatus = 'available' | 'busy' | 'offline' | 'on_leave'
+export type JobStatus = 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
+export type JobType = 'installation' | 'repair' | 'maintenance' | 'relocation' | 'disconnection'
+
+export interface Technician {
+  id: number
+  user: User
+  employee_id: string
+  phone: string
+  skills: string[]
+  status: TechnicianStatus
+  current_location?: string
+  latitude?: number
+  longitude?: number
+  total_jobs_completed: number
+  average_rating: number
+  created_at: string
+}
+
+export interface DispatchJob {
+  id: number
+  job_number: string
+  customer: number
+  customer_name: string
+  customer_phone: string
+  customer_address: string
+  job_type: JobType
+  description: string
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  status: JobStatus
+  assigned_to?: Technician
+  scheduled_date: string
+  scheduled_time?: string
+  started_at?: string
+  completed_at?: string
+  notes?: string
+  customer_rating?: number
+  customer_feedback?: string
+  equipment_used?: InventoryItem[]
+  created_at: string
+  updated_at: string
+}
+
+// ==========================================
+// INVENTORY TYPES
+// ==========================================
+
+export type InventoryStatus = 'in_stock' | 'assigned' | 'faulty' | 'returned' | 'disposed'
+export type EquipmentType = 'router' | 'ont' | 'onu' | 'cable' | 'splitter' | 'connector' | 'tools' | 'other'
+
+export interface InventoryItem {
+  id: number
+  name: string
+  equipment_type: EquipmentType
+  serial_number?: string
+  model?: string
+  manufacturer?: string
+  status: InventoryStatus
+  assigned_to_customer?: number
+  assigned_to_technician?: number
+  purchase_date?: string
+  purchase_price?: string
+  warranty_expires?: string
+  location?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Supplier {
+  id: number
+  name: string
+  contact_person?: string
+  email?: string
+  phone: string
+  address?: string
+  website?: string
+  notes?: string
+  is_active: boolean
+  created_at: string
+}
+
+// ==========================================
+// BILLING EXTENDED TYPES
+// ==========================================
+
+export interface BillingCycle {
+  id: number
+  name: string
+  cycle_type: 'monthly' | 'quarterly' | 'yearly'
+  billing_day: number  // Day of month
+  grace_period_days: number
+  late_fee_percentage?: number
+  is_active: boolean
+}
+
+export interface Promotion {
+  id: number
+  name: string
+  code: string
+  discount_type: 'percentage' | 'fixed'
+  discount_value: string
+  applicable_plans?: number[]
+  min_purchase?: string
+  max_discount?: string
+  start_date: string
+  end_date: string
+  usage_limit?: number
+  times_used: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface MpesaTransaction {
+  id: number
+  transaction_id: string
+  mpesa_receipt: string
+  phone_number: string
+  amount: string
+  customer?: number
+  customer_name?: string
+  payment?: number
+  status: 'pending' | 'completed' | 'failed' | 'cancelled'
+  result_code?: string
+  result_description?: string
+  transaction_date: string
+  created_at: string
+}
+
+// ==========================================
+// ALERT & NOTIFICATION TYPES
+// ==========================================
+
+export type AlertSeverity = 'info' | 'warning' | 'error' | 'critical'
+export type AlertStatus = 'active' | 'acknowledged' | 'resolved'
+
+export interface Alert {
+  id: number
+  title: string
+  message: string
+  severity: AlertSeverity
+  status: AlertStatus
+  source: 'system' | 'network' | 'billing' | 'support'
+  related_object_type?: string
+  related_object_id?: number
+  acknowledged_by?: User
+  acknowledged_at?: string
+  resolved_at?: string
+  created_at: string
+}
+
+export interface AlertRule {
+  id: number
+  name: string
+  description?: string
+  condition_type: 'threshold' | 'status_change' | 'event'
+  condition_value: Record<string, any>
+  severity: AlertSeverity
+  notification_channels: ('email' | 'sms' | 'in_app')[]
+  is_active: boolean
+  created_at: string
+}
+
+// ==========================================
 // HELPER TYPE UTILITIES
 // ==========================================
 

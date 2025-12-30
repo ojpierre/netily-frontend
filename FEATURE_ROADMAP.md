@@ -1,835 +1,713 @@
-# Netily v2.0 - Feature Roadmap & Implementation Guide
+# Netily ISP Management System - Feature Roadmap
 
-> Based on Lipanet v2.1.1 architecture analysis. This document outlines the complete feature set and implementation requirements for both frontend and backend developers.
-
-## 📋 Table of Contents
-
-1. [Current Status](#current-status)
-2. [Complete Feature Map](#complete-feature-map)
-3. [Information Architecture](#information-architecture)
-4. [Phase 1: Core Features](#phase-1-core-features)
-5. [Phase 2: Advanced Features](#phase-2-advanced-features)
-6. [Phase 3: Premium Features](#phase-3-premium-features)
-7. [Backend API Requirements](#backend-api-requirements)
-8. [Frontend Implementation Guide](#frontend-implementation-guide)
+**Created:** December 30, 2025  
+**Last Updated:** December 30, 2025 (Phase 1 Implementation Complete)  
+**Purpose:** Gap analysis between envisioned features and current implementation
 
 ---
 
-## Current Status
+## 🎉 Implementation Progress Update
 
-### ✅ Already Implemented
-- Admin Login with Django JWT authentication
-- Admin Dashboard (basic stats)
-- User Management (basic CRUD)
-- Router Management (basic)
-- Plans Management (basic)
-- Payments Overview
-- System Logs
-- Settings
-- Customer Dashboard
-- Customer Authentication
+### Recently Implemented (This Session)
 
-### 🔲 To Be Implemented (Lipanet Feature Parity)
-- Captive Portal Ads
-- Loyalty Points System
-- Router Uptime & SLA Monitoring
-- Advanced Bandwidth Management
-- PPPoE & Static IP Management (QoS)
-- Bulk User Import
-- Automatic MikroTik Backups
-- Leads Management
-- Ticketing System
-- Advanced Analytics
-- SMS Integration
-- WhatsApp Integration
+| Feature | Route | Status |
+|---------|-------|--------|
+| OLT Management Page | `/admin/olt` | ✅ Complete |
+| OLT Detail with PON Ports | `/admin/olt/[id]` | ✅ Complete |
+| ONU Management Page | `/admin/onu` | ✅ Complete |
+| Invoice Management Page | `/admin/invoices` | ✅ Complete |
+| IP Address Management (IPAM) | `/admin/ipam` | ✅ Complete |
+| Technician Dispatch | `/admin/dispatch` | ✅ Complete |
+| Inventory Management | `/admin/inventory` | ✅ Complete |
+| M-Pesa STK Push Integration | `/dashboard/recharge` | ✅ Complete |
+| Updated Admin Navigation | Layout Sidebar | ✅ Complete |
 
 ---
 
-## Complete Feature Map
+## Executive Summary
 
-### Admin Portal Navigation Structure
+| Module | Envisioned Features | Currently Implemented | Gap % |
+|--------|--------------------:|----------------------:|------:|
+| 1. Dashboard | 12 | 4 | 67% |
+| 2. Customer Management | 18 | 8 | 56% |
+| 3. Network Management | 24 | 12 | 50% ⬇️ |
+| 4. Bandwidth Management | 12 | 2 | 83% |
+| 5. Billing & Finance | 20 | 10 | 50% ⬇️ |
+| 6. Support & Ticketing | 12 | 8 | 33% ⬇️ |
+| 7. Reports & Analytics | 15 | 5 | 67% |
+| 8. Staff Management | 12 | 4 | 67% ⬇️ |
+| 9. Self-Service Portal | 10 | 9 | 10% ⬇️ |
+| 10. System Settings | 10 | 2 | 80% |
+| 11. Alerts & Notifications | 6 | 2 | 67% |
+| 12. Inventory Management | 8 | 6 | 25% ⬇️ |
+| **TOTAL** | **159** | **72** | **55%** ⬇️ |
 
-```
-MAIN MENU
-├── Dashboard
-├── Users
-│   ├── Static Users
-│   ├── Hotspot Users
-│   ├── PPPoE Users
-│   ├── Online Users
-│   └── Active Users
-├── Internet Plans
-│   ├── Hotspot Plans
-│   ├── PPPoE Plans
-│   ├── Static Plans
-│   └── Vouchers
-├── Ads (NEW)
-│   ├── Active Ads
-│   ├── Inactive Ads
-│   └── Create Ad
-├── SMS
-│   ├── SMS History
-│   ├── Send SMS
-│   └── Bulk Messaging
-├── Loyalty Points (NEW)
-├── Leads (NEW)
-├── Support Tickets (NEW)
-│
-FINANCE
-├── Transactions
-├── Shares & Sales Team
-│
-ANALYTICS
-├── Reports
-├── Advanced Analytics (NEW)
-│   ├── Revenue Forecast
-│   ├── Customer Lifetime
-│   └── Usage Patterns
-│
-NETWORKING
-├── Routers
-│   ├── Router List
-│   ├── Uptime Monitoring
-│   └── SLA Dashboard
-├── Roaming
-├── IPv4 Networks
-├── FUP (Fair Usage Policy)
-├── Hotspot Designs
-│
-ADMINISTRATOR
-├── Admin Users
-├── System Logs
-└── Settings
-    ├── General
-    ├── Payment Gateways
-    ├── SMS Settings
-    ├── WhatsApp Settings
-    └── Backup Settings
-```
-
-### Customer Portal Navigation Structure
-
-```
-CUSTOMER DASHBOARD
-├── Overview
-│   ├── Account Balance
-│   ├── Plan Status
-│   ├── Usage Summary
-│   └── Loyalty Points
-├── Recharge
-├── Invoices
-├── Usage History
-├── Notifications
-├── Support
-│   └── My Tickets
-├── Profile
-└── Settings
-```
+**Progress: Gap reduced from 72% to 55%**
 
 ---
 
-## Information Architecture
+## Detailed Module Analysis
 
-### User Types
-
-| Type | Description | Features |
-|------|-------------|----------|
-| **Hotspot** | WiFi users with time/data-based plans | Captive portal, vouchers, time limits |
-| **PPPoE** | Dedicated connection users | Username/password auth, persistent sessions |
-| **Static** | Fixed IP users | Static IP assignment, QoS priority |
-
-### Connection Types
-
-| Type | Auth Method | Speed Control | Use Case |
-|------|-------------|--------------|----------|
-| Hotspot | MAC + Password | Queue-based | Public WiFi, Hotels |
-| PPPoE | Username/Password | Profile-based | Home users, Businesses |
-| Static | IP Assignment | Parent Queue | Servers, Premium users |
+### ✅ = Implemented | 🔄 = Partial | ❌ = Missing
 
 ---
 
-## Phase 1: Core Features
+## 📊 1. DASHBOARD MODULE
 
-### 1.1 Enhanced User Management
+### Admin Dashboard (`/admin`)
 
-**Frontend Routes:**
-```
-/admin/users                    → User list with filters
-/admin/users/hotspot           → Hotspot users
-/admin/users/pppoe             → PPPoE users
-/admin/users/static            → Static IP users
-/admin/users/online            → Currently online users
-/admin/users/[id]              → User details
-/admin/users/[id]/edit         → Edit user
-/admin/users/import            → Bulk import
-```
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Overview cards (Customers, Revenue, Uptime, Tickets) | ✅ | `/admin` | Basic stats cards |
+| Bandwidth utilization graph (real-time) | ❌ | - | Needs WebSocket |
+| Revenue trend chart (monthly/yearly) | 🔄 | `/admin` | Static mock |
+| Quick actions (New Customer, Invoice, Ticket) | ❌ | - | Need quick action buttons |
+| Recent alerts/notifications | ❌ | - | Need notification feed |
+| Top 5 bandwidth users | ❌ | - | Need usage ranking |
+| Pending bill payments | ❌ | - | Need payment queue |
+| Network health status | ❌ | - | Need router/OLT status |
 
-**Backend Endpoints:**
-```
-GET    /api/admin/users/                    → List all users
-GET    /api/admin/users/?type=hotspot       → Filter by type
-GET    /api/admin/users/?status=online      → Filter by status
-GET    /api/admin/users/{id}/               → User details
-PATCH  /api/admin/users/{id}/               → Update user
-DELETE /api/admin/users/{id}/               → Delete user
-POST   /api/admin/users/{id}/disconnect/    → Force disconnect
-POST   /api/admin/users/import/             → Bulk import CSV
-GET    /api/admin/users/export/             → Export to CSV
-```
+### Executive Dashboard
 
-**Django Models:**
-```python
-class Customer(models.Model):
-    USER_TYPES = [
-        ('hotspot', 'Hotspot'),
-        ('pppoe', 'PPPoE'),
-        ('static', 'Static IP'),
-    ]
-    
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    customer_type = models.CharField(max_length=20, choices=USER_TYPES)
-    full_name = models.CharField(max_length=255)
-    phone = models.CharField(max_length=20)
-    email = models.EmailField()
-    address = models.TextField()
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    expiry_date = models.DateTimeField()
-    is_active = models.BooleanField(default=True)
-    package = models.ForeignKey('Package', on_delete=models.SET_NULL, null=True)
-    router = models.ForeignKey('Router', on_delete=models.SET_NULL, null=True)
-    
-    # PPPoE specific
-    pppoe_username = models.CharField(max_length=100, blank=True)
-    pppoe_password = models.CharField(max_length=100, blank=True)
-    
-    # Static IP specific
-    static_ip = models.GenericIPAddressField(null=True, blank=True)
-    
-    # Loyalty
-    loyalty_points = models.IntegerField(default=0)
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-```
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| KPI summary for management | ❌ | `/admin/analytics` | Need executive view |
+| Churn rate vs acquisition rate | ❌ | `/admin/analytics/churn` | Page exists, needs data |
+| ARPU (Average Revenue Per User) | ❌ | - | Need calculation |
+| Service penetration by region | ❌ | - | Need geo analytics |
+| Revenue breakdown (prepaid vs postpaid) | ❌ | - | Need billing type split |
+| Network investment ROI | ❌ | - | Need financial metrics |
 
-### 1.2 Enhanced Plans Management
-
-**Frontend Routes:**
-```
-/admin/plans                    → All plans
-/admin/plans/hotspot           → Hotspot plans
-/admin/plans/pppoe             → PPPoE plans
-/admin/plans/static            → Static plans
-/admin/plans/vouchers          → Voucher management
-/admin/plans/create            → Create new plan
-/admin/plans/[id]/edit         → Edit plan
-```
-
-**Backend Endpoints:**
-```
-GET    /api/admin/packages/                 → List packages
-GET    /api/admin/packages/?type=hotspot    → Filter by type
-POST   /api/admin/packages/                 → Create package
-PATCH  /api/admin/packages/{id}/            → Update package
-DELETE /api/admin/packages/{id}/            → Delete package
-POST   /api/admin/vouchers/generate/        → Generate vouchers
-GET    /api/admin/vouchers/                 → List vouchers
-```
-
-**Django Models:**
-```python
-class Package(models.Model):
-    PACKAGE_TYPES = [
-        ('hotspot', 'Hotspot'),
-        ('pppoe', 'PPPoE'),
-        ('static', 'Static IP'),
-    ]
-    
-    VALIDITY_TYPES = [
-        ('time', 'Time-based'),
-        ('data', 'Data-based'),
-        ('unlimited', 'Unlimited'),
-    ]
-    
-    name = models.CharField(max_length=100)
-    package_type = models.CharField(max_length=20, choices=PACKAGE_TYPES)
-    validity_type = models.CharField(max_length=20, choices=VALIDITY_TYPES)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    speed_down = models.IntegerField()  # Mbps
-    speed_up = models.IntegerField()    # Mbps
-    validity_days = models.IntegerField(null=True, blank=True)
-    validity_hours = models.IntegerField(null=True, blank=True)
-    data_limit_mb = models.IntegerField(null=True, blank=True)
-    description = models.TextField(blank=True)
-    is_active = models.BooleanField(default=True)
-    loyalty_points = models.IntegerField(default=0)  # Points earned on purchase
-    created_at = models.DateTimeField(auto_now_add=True)
-
-
-class Voucher(models.Model):
-    code = models.CharField(max_length=20, unique=True)
-    package = models.ForeignKey(Package, on_delete=models.CASCADE)
-    is_used = models.BooleanField(default=False)
-    used_by = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
-    used_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
-```
-
-### 1.3 Router Management & Monitoring
-
-**Frontend Routes:**
-```
-/admin/routers                  → Router list
-/admin/routers/create          → Add router
-/admin/routers/[id]            → Router details + uptime
-/admin/routers/[id]/edit       → Edit router
-/admin/routers/[id]/backup     → Backup management
-/admin/routers/sla             → SLA dashboard
-```
-
-**Backend Endpoints:**
-```
-GET    /api/admin/routers/                  → List routers
-POST   /api/admin/routers/                  → Add router
-GET    /api/admin/routers/{id}/             → Router details
-PATCH  /api/admin/routers/{id}/             → Update router
-DELETE /api/admin/routers/{id}/             → Remove router
-GET    /api/admin/routers/{id}/status/      → Real-time status
-GET    /api/admin/routers/{id}/uptime/      → Uptime history
-POST   /api/admin/routers/{id}/backup/      → Create backup
-GET    /api/admin/routers/{id}/backups/     → List backups
-POST   /api/admin/routers/{id}/restore/     → Restore backup
-GET    /api/admin/routers/sla/              → SLA overview
-```
-
-**Django Models:**
-```python
-class Router(models.Model):
-    name = models.CharField(max_length=100)
-    ip_address = models.GenericIPAddressField()
-    api_port = models.IntegerField(default=8728)
-    api_username = models.CharField(max_length=100)
-    api_password = models.CharField(max_length=100)
-    location = models.CharField(max_length=255, blank=True)
-    is_active = models.BooleanField(default=True)
-    last_seen = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-
-class RouterUptime(models.Model):
-    router = models.ForeignKey(Router, on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(auto_now_add=True)
-    is_online = models.BooleanField()
-    latency_ms = models.IntegerField(null=True)
-    cpu_usage = models.IntegerField(null=True)
-    memory_usage = models.IntegerField(null=True)
-
-
-class RouterBackup(models.Model):
-    router = models.ForeignKey(Router, on_delete=models.CASCADE)
-    file_path = models.CharField(max_length=500)
-    file_size = models.IntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_automatic = models.BooleanField(default=False)
-```
+**TODO Items:**
+1. [ ] Add real-time bandwidth chart to dashboard
+2. [ ] Add quick action buttons
+3. [ ] Add notification feed widget
+4. [ ] Add top bandwidth users widget
+5. [ ] Add pending payments widget
+6. [ ] Create executive dashboard page
+7. [ ] Add ARPU calculation
+8. [ ] Add churn vs acquisition chart
 
 ---
 
-## Phase 2: Advanced Features
+## 👥 2. CUSTOMER MANAGEMENT MODULE
 
-### 2.1 Support Ticketing System
+### Customer Directory (`/admin/users`)
 
-**Frontend Routes:**
-```
-/admin/tickets                  → All tickets
-/admin/tickets/[id]            → Ticket details
-/dashboard/support              → Customer ticket view
-/dashboard/support/new         → Create ticket
-/dashboard/support/[id]        → View ticket
-```
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Search/filter (Name, ID, Location, Status) | ✅ | `/admin/users` | Implemented |
+| Customer list table | ✅ | `/admin/users` | Implemented |
+| Bulk actions (Email/SMS, Export, Status) | ✅ | `/admin/users` | Implemented |
+| Quick view modal/drawer | ✅ | `/admin/users` | Sheet drawer |
 
-**Backend Endpoints:**
-```
-GET    /api/tickets/                        → List tickets (role-based)
-POST   /api/tickets/                        → Create ticket
-GET    /api/tickets/{id}/                   → Ticket details
-PATCH  /api/tickets/{id}/                   → Update ticket
-POST   /api/tickets/{id}/reply/             → Add reply
-POST   /api/tickets/{id}/close/             → Close ticket
-GET    /api/tickets/stats/                  → Ticket statistics
-```
+### Customer Profile Page (`/admin/users/[id]`)
 
-**Django Models:**
-```python
-class Ticket(models.Model):
-    STATUS_CHOICES = [
-        ('open', 'Open'),
-        ('in_progress', 'In Progress'),
-        ('resolved', 'Resolved'),
-        ('closed', 'Closed'),
-    ]
-    
-    PRIORITY_CHOICES = [
-        ('low', 'Low'),
-        ('medium', 'Medium'),
-        ('high', 'High'),
-        ('urgent', 'Urgent'),
-    ]
-    
-    ticket_number = models.CharField(max_length=20, unique=True)
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    subject = models.CharField(max_length=255)
-    description = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
-    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
-    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    closed_at = models.DateTimeField(null=True, blank=True)
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| **Personal Details Tab** | | | |
+| Personal info (Name, ID, Phone, Email, Address) | 🔄 | `/admin/users/[id]` | Basic only |
+| Next of kin details | ❌ | - | Need NOK section |
+| ID/Passport upload | ❌ | - | Need document upload |
+| Registration date | ✅ | - | In drawer |
+| **Service Details Tab** | | | |
+| Assigned IP/MAC address | ✅ | - | In drawer |
+| Connection type | ✅ | - | In drawer |
+| OLT port assignment | ❌ | - | **MISSING - Need OLT module** |
+| Router details (TR-069) | ❌ | - | Need TR-069 integration |
+| Installation technician notes | ❌ | - | Need notes section |
+| Service activation date | ✅ | - | In drawer |
+| **Billing Tab** | | | |
+| Current plan details | ✅ | - | In drawer |
+| Payment history | ❌ | - | Need in profile |
+| Outstanding balances | ✅ | - | Balance shown |
+| Invoice download | ❌ | - | Need invoice list |
+| M-Pesa payment records | ❌ | - | Need M-Pesa log |
+| **Usage & Support Tab** | | | |
+| Bandwidth usage graphs | ❌ | - | Need per-customer usage |
+| Ticket history | ❌ | - | Need ticket list |
+| Contract documents | ❌ | - | Need document storage |
+| SLA status | ❌ | - | Need SLA tracking |
 
+### New Customer Onboarding Wizard
 
-class TicketReply(models.Model):
-    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='replies')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    message = models.TextField()
-    is_staff_reply = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-```
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Personal details collection | 🔄 | `/admin/users` | Dialog form |
+| Service selection (plan, installation date) | 🔄 | `/admin/users` | Basic select |
+| Documentation upload | ❌ | - | Need file upload |
+| Payment/Deposit | ❌ | - | Need payment step |
+| Technician assignment | ❌ | - | Need technician select |
 
-### 2.2 Leads Management
-
-**Frontend Routes:**
-```
-/admin/leads                    → All leads
-/admin/leads/create            → Add lead
-/admin/leads/[id]              → Lead details
-/admin/leads/[id]/convert      → Convert to customer
-```
-
-**Backend Endpoints:**
-```
-GET    /api/admin/leads/                    → List leads
-POST   /api/admin/leads/                    → Create lead
-GET    /api/admin/leads/{id}/               → Lead details
-PATCH  /api/admin/leads/{id}/               → Update lead
-POST   /api/admin/leads/{id}/convert/       → Convert to customer
-DELETE /api/admin/leads/{id}/               → Delete lead
-GET    /api/admin/leads/stats/              → Lead statistics
-```
-
-**Django Models:**
-```python
-class Lead(models.Model):
-    STATUS_CHOICES = [
-        ('new', 'New'),
-        ('contacted', 'Contacted'),
-        ('qualified', 'Qualified'),
-        ('converted', 'Converted'),
-        ('lost', 'Lost'),
-    ]
-    
-    SOURCE_CHOICES = [
-        ('website', 'Website'),
-        ('referral', 'Referral'),
-        ('walk_in', 'Walk-in'),
-        ('phone', 'Phone Call'),
-        ('social', 'Social Media'),
-    ]
-    
-    name = models.CharField(max_length=255)
-    phone = models.CharField(max_length=20)
-    email = models.EmailField(blank=True)
-    address = models.TextField(blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
-    source = models.CharField(max_length=20, choices=SOURCE_CHOICES)
-    notes = models.TextField(blank=True)
-    interested_package = models.ForeignKey(Package, on_delete=models.SET_NULL, null=True, blank=True)
-    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    converted_customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-```
-
-### 2.3 Loyalty Points System
-
-**Frontend Routes:**
-```
-/admin/loyalty                  → Loyalty settings
-/admin/loyalty/transactions    → Points history
-/dashboard (widget)            → Customer points display
-```
-
-**Backend Endpoints:**
-```
-GET    /api/admin/loyalty/settings/         → Get settings
-PATCH  /api/admin/loyalty/settings/         → Update settings
-GET    /api/admin/loyalty/transactions/     → Points history
-GET    /api/customers/me/loyalty/           → Customer's points
-POST   /api/customers/me/loyalty/redeem/    → Redeem points
-```
-
-**Django Models:**
-```python
-class LoyaltySettings(models.Model):
-    is_active = models.BooleanField(default=False)
-    points_per_shilling = models.DecimalField(max_digits=10, decimal_places=2, default=0.1)
-    min_redeem_points = models.IntegerField(default=100)
-    points_to_shilling_rate = models.DecimalField(max_digits=10, decimal_places=2, default=0.5)
-
-
-class LoyaltyTransaction(models.Model):
-    TRANSACTION_TYPES = [
-        ('earned', 'Earned'),
-        ('redeemed', 'Redeemed'),
-        ('expired', 'Expired'),
-        ('adjusted', 'Adjusted'),
-    ]
-    
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
-    points = models.IntegerField()
-    description = models.CharField(max_length=255)
-    related_payment = models.ForeignKey('Payment', on_delete=models.SET_NULL, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-```
-
-### 2.4 Captive Portal Ads
-
-**Frontend Routes:**
-```
-/admin/ads                      → Ad management
-/admin/ads/create              → Create ad
-/admin/ads/[id]/edit           → Edit ad
-```
-
-**Backend Endpoints:**
-```
-GET    /api/admin/ads/                      → List ads
-POST   /api/admin/ads/                      → Create ad
-GET    /api/admin/ads/{id}/                 → Ad details
-PATCH  /api/admin/ads/{id}/                 → Update ad
-DELETE /api/admin/ads/{id}/                 → Delete ad
-POST   /api/admin/ads/{id}/toggle/          → Toggle active status
-GET    /api/captive/ads/                    → Public: Get active ads for captive portal
-```
-
-**Django Models:**
-```python
-class Advertisement(models.Model):
-    AD_TYPES = [
-        ('image', 'Image'),
-        ('video', 'Video'),
-    ]
-    
-    title = models.CharField(max_length=255)
-    ad_type = models.CharField(max_length=20, choices=AD_TYPES)
-    media_url = models.URLField()
-    link_url = models.URLField(blank=True)
-    duration_seconds = models.IntegerField(default=5)  # For video/display time
-    is_active = models.BooleanField(default=True)
-    start_date = models.DateTimeField(null=True, blank=True)
-    end_date = models.DateTimeField(null=True, blank=True)
-    impressions = models.IntegerField(default=0)
-    clicks = models.IntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-```
+**TODO Items:**
+1. [ ] Create full customer profile page `/admin/users/[id]`
+2. [ ] Add tabbed interface (Personal, Service, Billing, Usage)
+3. [ ] Add next of kin section
+4. [ ] Add document upload (ID, contracts)
+5. [ ] Add OLT port assignment field
+6. [ ] Add TR-069 device info
+7. [ ] Add payment history to profile
+8. [ ] Add bandwidth usage chart per customer
+9. [ ] Create onboarding wizard with stepper
+10. [ ] Add technician assignment
 
 ---
 
-## Phase 3: Premium Features
+## 🌐 3. NETWORK MANAGEMENT MODULE
 
-### 3.1 Advanced Analytics
+### OLT Management Console (`/admin/olt`) - ✅ IMPLEMENTED
 
-**Frontend Routes:**
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| OLT device list | ✅ | `/admin/olt` | Full CRUD with stats |
+| Per-OLT PON port status | ✅ | `/admin/olt/[id]` | Grid view with power levels |
+| Customer mapping per port | ✅ | `/admin/olt/[id]` | ONU list per port |
+| Remote reboot/restart | ✅ | `/admin/olt` | Action in table |
+| Firmware management | ❌ | - | Need firmware upload |
+| Performance metrics per OLT | ✅ | `/admin/olt/[id]` | Stats cards |
+
+### ONU Management (`/admin/onu`) - ✅ IMPLEMENTED
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| ONU device list | ✅ | `/admin/onu` | Full table with filters |
+| ONU registration | ✅ | `/admin/onu` | Provision dialog |
+| Optical power monitoring | ✅ | `/admin/onu` | Rx/Tx in detail sheet |
+| ONU provisioning | ✅ | `/admin/onu` | Bulk provisioning |
+
+### TR-069 Device Management - **MISSING**
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Connected CPE devices list | ❌ | `/admin/cpe` | **NEW PAGE NEEDED** |
+| Remote configuration push | ❌ | - | Need ACS integration |
+| Firmware update scheduling | ❌ | - | Need scheduler |
+| Parameter monitoring | ❌ | - | Need signal strength etc |
+| Diagnostics tools | ❌ | - | Need ping/trace |
+| Auto-provisioning settings | ❌ | - | Need provision config |
+
+### Mikrotik NAS/Hotspot Management (`/admin/routers`)
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Hotspot user sessions | ❌ | `/admin/routers` | Need session list |
+| PPPoE/PPTP/L2TP users | 🔄 | `/admin/users` | Partial via user type |
+| Bandwidth limits per user | ❌ | - | Need in router page |
+| User login/logout history | ❌ | - | Need session log |
+| Voucher management | 🔄 | `/admin/plans/vouchers` | Page exists |
+| NAS device health monitoring | ❌ | - | Need health check |
+
+### IP Address Management (`/admin/ipam`) - ✅ IMPLEMENTED
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| IP allocation (static/dynamic) | ✅ | `/admin/ipam` | IP grid with status |
+| Subnet management | ✅ | `/admin/ipam` | Subnet CRUD |
+| DHCP lease management | ✅ | `/admin/ipam` | Leases tab |
+| IP conflict detection | ❌ | - | Need detection |
+| IPv6 management | ❌ | - | Future |
+
+**TODO Items:**
+1. [x] **Create `/admin/olt` - OLT Management page**
+2. [x] Create `/admin/olt/[id]` - OLT detail with PON ports
+3. [x] **Create `/admin/onu` - ONU Management page**
+4. [x] Create ONU registration flow
+5. [x] Add optical power monitoring
+6. [ ] **Create `/admin/cpe` - TR-069 Devices page**
+7. [ ] Add remote diagnostics (ping, traceroute)
+8. [ ] Add hotspot session viewer to routers page
+9. [x] **Create `/admin/ipam` - IP Management page**
+10. [x] Add subnet/VLAN management
+11. [x] Add DHCP lease viewer
+
+---
+
+## 📈 4. BANDWIDTH MANAGEMENT MODULE
+
+### Bandwidth Policies (`/admin/fup`)
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Create/edit bandwidth profiles | 🔄 | `/admin/fup` | Page exists |
+| Speed limits (upload/download) | 🔄 | `/admin/plans` | In plan config |
+| Data caps (daily/weekly/monthly) | ❌ | - | Need cap config |
+| Fair usage policy settings | 🔄 | `/admin/fup` | Basic page |
+| Time-based restrictions | ❌ | - | Need scheduler |
+| QoS rules | ❌ | - | Need QoS config |
+
+### Real-time Monitoring (`/admin/usage`)
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Live bandwidth usage graph | ❌ | `/admin/usage` | Need real-time |
+| Top bandwidth consumers | ❌ | - | Need ranking |
+| Protocol-based monitoring | ❌ | - | Need DPI data |
+| Historical usage per customer | ❌ | - | Need graphs |
+| Alert thresholds | ❌ | - | Need threshold config |
+
+### Traffic Shaping - **MISSING**
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Priority queuing | ❌ | `/admin/qos` | **NEW PAGE NEEDED** |
+| Application filtering | ❌ | - | Need app rules |
+| P2P traffic management | ❌ | - | Need P2P rules |
+| Bandwidth borrowing | ❌ | - | Need burst config |
+
+**TODO Items:**
+1. [ ] Add data cap configuration to plans
+2. [ ] Add time-based restriction UI
+3. [ ] Create real-time bandwidth graph (WebSocket)
+4. [ ] Add top consumers widget
+5. [ ] **Create `/admin/qos` - QoS Management page**
+6. [ ] Add traffic shaping rules
+
+---
+
+## 💰 5. BILLING & FINANCE MODULE
+
+### Billing Cycles Management
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Define billing cycles | ❌ | `/admin/billing/cycles` | **NEW PAGE NEEDED** |
+| Auto-invoice generation | ❌ | - | Need scheduler |
+| Late payment penalties | ❌ | - | Need config |
+| Discount/promotion management | ❌ | `/admin/promotions` | **NEW PAGE NEEDED** |
+
+### Invoicing System (`/admin/invoices`) - ✅ IMPLEMENTED
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Invoice list with filters | ✅ | `/admin/invoices` | Full table with tabs |
+| Invoice generation | ✅ | `/admin/invoices` | Create dialog |
+| Invoice preview/customization | ✅ | `/admin/invoices` | Preview sheet |
+| Email/SMS invoice delivery | ✅ | `/admin/invoices` | Send dialog |
+| Receipt generation | ❌ | - | Need receipts |
+
+### Payment Processing (`/admin/payments`)
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| M-Pesa integration (STK Push) | ✅ | `/dashboard/recharge` | Full STK Push flow |
+| Bank transfer tracking | ❌ | - | Need bank module |
+| Cash payment recording | 🔄 | `/admin/payments` | Basic list |
+| Payment reconciliation | ❌ | - | Need reconcile |
+| Payment reminders | ❌ | - | Need SMS trigger |
+
+### Prepaid System
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Voucher generation | 🔄 | `/admin/plans/vouchers` | Page exists |
+| Voucher sales tracking | ❌ | - | Need sales log |
+| Auto-topup configuration | ❌ | - | Need auto-topup |
+| Low balance alerts | ❌ | - | Need SMS alert |
+
+### Revenue Reports
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Daily/weekly/monthly revenue | 🔄 | `/admin/analytics/revenue` | Page exists |
+| Payment method breakdown | ❌ | - | Need pie chart |
+| Outstanding debts report | ❌ | - | Need debt report |
+| Agent commission tracking | ❌ | - | Need agent module |
+
+**TODO Items:**
+1. [ ] **Create `/admin/billing` - Billing Dashboard**
+2. [x] Create `/admin/invoices` - Invoice Management
+3. [x] Create invoice generation flow
+4. [x] Add M-Pesa STK Push integration
+5. [ ] Add payment reconciliation
+6. [ ] Create `/admin/promotions` - Discounts/Promotions
+7. [ ] Add voucher sales tracking
+8. [ ] Add outstanding debts report
+
+---
+
+## 🛠️ 6. SUPPORT & TICKETING MODULE
+
+### Ticket Management (`/admin/tickets`)
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Ticket queue (open, pending, resolved) | ✅ | `/admin/tickets` | Implemented |
+| Ticket assignment | 🔄 | `/admin/tickets/[id]` | Basic |
+| Priority levels | ✅ | `/admin/tickets` | Implemented |
+| SLA tracking | ❌ | - | Need SLA timer |
+| Communication history | ❌ | - | Need thread view |
+
+### Technician Dispatch (`/admin/dispatch`) - ✅ IMPLEMENTED
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Technician availability | ✅ | `/admin/dispatch` | Roster tab |
+| Job assignment | ✅ | `/admin/dispatch` | Assign dialog |
+| Field work tracking | ✅ | `/admin/dispatch` | Job status tracking |
+| Completion reports | ✅ | `/admin/dispatch` | Job details sheet |
+| Customer ratings | ❌ | - | Need feedback |
+
+### Knowledge Base - **MISSING**
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Common issues/solutions | ❌ | `/admin/kb` | **NEW PAGE NEEDED** |
+| Network status updates | ❌ | - | Need status page |
+| Maintenance schedules | ❌ | - | Need calendar |
+| FAQ section | ❌ | - | Need FAQ editor |
+
+**TODO Items:**
+1. [ ] Add SLA timer to tickets
+2. [ ] Add communication thread to ticket detail
+3. [x] **Create `/admin/dispatch` - Technician Dispatch**
+4. [ ] Add technician GPS tracking
+5. [ ] **Create `/admin/kb` - Knowledge Base**
+6. [ ] Add maintenance calendar
+
+---
+
+## 📊 7. REPORTS & ANALYTICS MODULE
+
+### Existing Routes
+
+| Route | Status | Notes |
+|-------|--------|-------|
+| `/admin/analytics` | ✅ | Overview page |
+| `/admin/analytics/revenue` | ✅ | Revenue reports |
+| `/admin/analytics/usage` | ✅ | Usage analytics |
+| `/admin/analytics/customers` | ✅ | Customer analytics |
+| `/admin/analytics/churn` | ✅ | Churn analysis |
+
+### Missing Reports
+
+| Report | Status | Notes |
+|--------|--------|-------|
+| Customer acquisition funnel | ❌ | Need funnel chart |
+| Service uptime reports | ❌ | Need uptime calc |
+| Network performance trends | ❌ | Need network graphs |
+| Ticket resolution metrics | ❌ | Need ticket stats |
+| P&L statements | ❌ | Need accounting |
+| Collection efficiency | ❌ | Need payment ratio |
+| Expense tracking | ❌ | Need expense module |
+| Tax reports (KRA) | ❌ | Need tax calc |
+| Device performance | ❌ | Need device stats |
+| Network growth projections | ❌ | Need forecasting |
+
+**TODO Items:**
+1. [ ] Add customer acquisition funnel
+2. [ ] Add service uptime report
+3. [ ] Add ticket resolution metrics
+4. [ ] Add P&L statements
+5. [ ] Add expense tracking
+6. [ ] Add KRA tax report export
+
+---
+
+## 👨‍💼 8. STAFF MANAGEMENT MODULE
+
+### User Roles & Permissions - **PARTIAL**
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Role-based access control | ❌ | `/admin/settings/roles` | Need RBAC |
+| Department management | ❌ | - | Need departments |
+| Activity logs | ✅ | `/admin/logs` | Audit logs exist |
+| Login/Logout tracking | ❌ | - | Need session log |
+
+### Technician Management - **MISSING**
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Technician profiles | ❌ | `/admin/technicians` | **NEW PAGE NEEDED** |
+| Skills matrix | ❌ | - | Need skills |
+| Work schedule | ❌ | - | Need calendar |
+| Job history | ❌ | - | Need job log |
+| Performance metrics | ❌ | - | Need KPIs |
+| Inventory assignment | ❌ | - | Need tool tracking |
+
+### Agent/Retailer Management - **MISSING**
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Commission structure | ❌ | `/admin/agents` | **NEW PAGE NEEDED** |
+| Sales tracking | ❌ | - | Need sales log |
+| Customer referrals | ❌ | - | Need referral tracking |
+| Payout management | ❌ | - | Need payout calc |
+
+**TODO Items:**
+1. [ ] Implement RBAC system
+2. [ ] Add department management
+3. [ ] **Create `/admin/technicians` - Technician Management**
+4. [ ] Add technician scheduling
+5. [ ] **Create `/admin/agents` - Agent/Retailer Management**
+6. [ ] Add commission calculator
+
+---
+
+## 📱 9. SELF-SERVICE PORTAL MODULE (Customer)
+
+### Customer Dashboard (`/dashboard`)
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Account overview | ✅ | `/dashboard` | Implemented |
+| Current usage | 🔄 | `/dashboard/usage-history` | Basic |
+| Bill payment (M-Pesa) | ✅ | `/dashboard/recharge` | STK Push implemented |
+| Ticket submission | ✅ | `/dashboard/support` | Implemented |
+| Plan upgrade requests | ❌ | - | Need upgrade flow |
+
+### Service Management
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Bandwidth usage details | 🔄 | `/dashboard/usage-history` | Basic |
+| Payment history | 🔄 | `/dashboard/invoices` | Basic list |
+| Invoice download | ❌ | - | Need PDF download |
+| Profile updates | ✅ | `/dashboard/profile` | Implemented |
+| Service change requests | ❌ | - | Need request form |
+
+**TODO Items:**
+1. [x] Add M-Pesa STK Push to recharge
+2. [ ] Add plan upgrade flow
+3. [ ] Add invoice PDF download
+4. [ ] Add service change request form
+
+---
+
+## ⚙️ 10. SYSTEM SETTINGS MODULE
+
+### General Settings (`/admin/settings`)
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Company information | 🔄 | `/admin/settings` | Basic |
+| SMS/Email templates | ❌ | - | Need template editor |
+| Notification preferences | ❌ | - | Need config |
+| System backup/restore | ❌ | - | Need backup |
+
+### Integration Settings - **MISSING**
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| M-Pesa API configuration | ❌ | `/admin/settings/mpesa` | **NEW SECTION NEEDED** |
+| SMS gateway (Africa's Talking) | ❌ | `/admin/settings/sms` | **NEW SECTION NEEDED** |
+| Email server configuration | ❌ | `/admin/settings/email` | **NEW SECTION NEEDED** |
+| API keys management | ❌ | `/admin/settings/api` | **NEW SECTION NEEDED** |
+
+### Localization Settings
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Currency (KES) | ❌ | - | Need currency config |
+| Date formats | ❌ | - | Need format config |
+| Language (English/Swahili) | ❌ | - | Need i18n |
+| County tax rates | ❌ | - | Need tax config |
+
+**TODO Items:**
+1. [ ] Add SMS/Email template editor
+2. [ ] Add M-Pesa API configuration
+3. [ ] Add SMS gateway (Africa's Talking) config
+4. [ ] Add email server configuration
+5. [ ] Add API keys management
+6. [ ] Add multi-language support (Swahili)
+
+---
+
+## 🚨 11. ALERTS & NOTIFICATIONS MODULE
+
+### Alert Configuration
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Threshold settings | ❌ | `/admin/alerts` | **NEW PAGE NEEDED** |
+| Alert channels (SMS, Email, In-app) | ❌ | - | Need config |
+| Escalation rules | ❌ | - | Need escalation |
+
+### Notification Center
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| System notifications | 🔄 | `/dashboard/notifications` | Customer side |
+| Customer notifications log | ❌ | - | Need log |
+| Scheduled notifications | ❌ | - | Need scheduler |
+
+**TODO Items:**
+1. [ ] **Create `/admin/alerts` - Alert Configuration**
+2. [ ] Add alert threshold settings
+3. [ ] Add notification scheduler
+4. [ ] Add escalation rules
+
+---
+
+## 📦 12. INVENTORY MANAGEMENT MODULE - ✅ IMPLEMENTED
+
+### Equipment Inventory (`/admin/inventory`)
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Router/ONT stock | ✅ | `/admin/inventory` | Full inventory list |
+| Serial number tracking | ✅ | `/admin/inventory` | In item details |
+| Assignment to customers | ✅ | `/admin/inventory` | Assignment field |
+| Warranty tracking | ✅ | `/admin/inventory` | Warranty dates |
+| Supplier management | ✅ | `/admin/inventory` | Suppliers tab |
+
+### Network Equipment
+
+| Feature | Status | Route | Notes |
+|---------|--------|-------|-------|
+| Spare parts inventory | ✅ | `/admin/inventory` | Category filter |
+| Maintenance schedules | ❌ | - | Need calendar |
+| Depreciation tracking | ❌ | - | Need accounting |
+
+**TODO Items:**
+1. [x] **Create `/admin/inventory` - Equipment Inventory**
+2. [x] Add serial number tracking
+3. [x] Add customer equipment assignment
+4. [x] Add warranty tracking
+5. [x] **Create `/admin/suppliers` - Supplier Management** (in inventory page)
+6. [ ] Add maintenance calendar
+
+---
+
+## 🎯 PRIORITY TODO LIST
+
+### Phase 1: Critical Missing Features (Week 1-2) - ✅ COMPLETE
+
+| # | Priority | Task | Module | Route | Status |
+|---|----------|------|--------|-------|--------|
+| 1 | P0 | Create OLT Management page | Network | `/admin/olt` | ✅ Done |
+| 2 | P0 | Create ONU Management page | Network | `/admin/onu` | ✅ Done |
+| 3 | P0 | Create Invoice Management | Billing | `/admin/invoices` | ✅ Done |
+| 4 | P0 | Add M-Pesa integration | Billing | `/dashboard/recharge` | ✅ Done |
+| 5 | P1 | Full customer profile page | Customers | `/admin/users/[id]` | ✅ Exists |
+| 6 | P1 | Create IP Address Management | Network | `/admin/ipam` | ✅ Done |
+| 7 | P1 | Add SLA tracking to tickets | Support | `/admin/tickets` | ⏳ Pending |
+
+### Phase 2: Important Features (Week 3-4)
+
+| # | Priority | Task | Module | Route | Status |
+|---|----------|------|--------|-------|--------|
+| 8 | P1 | Create Technician Dispatch | Support | `/admin/dispatch` | ✅ Done |
+| 9 | P1 | Create Inventory Management | Inventory | `/admin/inventory` | ✅ Done |
+| 10 | P1 | Add real-time bandwidth monitoring | Bandwidth | `/admin/usage` | ⏳ Pending |
+| 11 | P2 | Create TR-069 Device Management | Network | `/admin/cpe` | ⏳ Pending |
+| 12 | P2 | Create Agent/Retailer Management | Staff | `/admin/agents` | ⏳ Pending |
+| 13 | P2 | Implement RBAC | Staff | `/admin/settings/roles` | ⏳ Pending |
+
+### Phase 3: Enhancement Features (Week 5-6)
+
+| # | Priority | Task | Module | Route |
+|---|----------|------|--------|-------|
+| 14 | P2 | Create Knowledge Base | Support | `/admin/kb` |
+| 15 | P2 | Create Promotions Management | Billing | `/admin/promotions` |
+| 16 | P2 | Add QoS Management | Bandwidth | `/admin/qos` |
+| 17 | P3 | Add Executive Dashboard | Dashboard | `/admin/executive` |
+| 18 | P3 | Create Alert Configuration | Alerts | `/admin/alerts` |
+| 19 | P3 | Add Swahili language support | Settings | - |
+
+### Phase 4: Advanced Features (Week 7-8)
+
+| # | Priority | Task | Module | Route |
+|---|----------|------|--------|-------|
+| 20 | P3 | Add GPS technician tracking | Support | `/admin/dispatch` |
+| 21 | P3 | Create financial P&L reports | Reports | `/admin/analytics/finance` |
+| 22 | P3 | Add predictive churn analysis | Reports | `/admin/analytics/churn` |
+| 23 | P3 | Create supplier management | Inventory | `/admin/suppliers` |
+| 24 | P4 | Add customer mobile app APIs | Portal | - |
+
+---
+
+## New Routes to Create
+
+### ✅ Implemented This Session
 ```
-/admin/analytics                → Analytics dashboard
-/admin/analytics/revenue       → Revenue forecast
-/admin/analytics/customers     → Customer lifetime value
-/admin/analytics/usage         → Usage patterns
-/admin/analytics/churn         → Churn analysis
+/admin/olt                    # OLT Device Management ✅
+/admin/olt/[id]               # OLT Detail & PON Ports ✅
+/admin/onu                    # ONU/ONT Management ✅
+/admin/ipam                   # IP Address Management ✅
+/admin/invoices               # Invoice Management ✅
+/admin/dispatch               # Technician Dispatch ✅
+/admin/inventory              # Equipment Inventory ✅
 ```
 
-**Backend Endpoints:**
+### ⏳ Still Needed
 ```
-GET    /api/admin/analytics/dashboard/      → Overview stats
-GET    /api/admin/analytics/revenue/        → Revenue data
-GET    /api/admin/analytics/revenue/forecast/  → ML forecast
-GET    /api/admin/analytics/clv/            → Customer lifetime value
-GET    /api/admin/analytics/usage/          → Usage patterns
-GET    /api/admin/analytics/churn/          → Churn analysis
-GET    /api/admin/analytics/peak-hours/     → Peak usage hours
-```
-
-**Example Response - Revenue Forecast:**
-```json
-{
-  "historical": [
-    {"date": "2024-01", "revenue": 125000},
-    {"date": "2024-02", "revenue": 132000}
-  ],
-  "forecast": [
-    {"date": "2024-03", "predicted": 140000, "lower": 135000, "upper": 145000},
-    {"date": "2024-04", "predicted": 148000, "lower": 140000, "upper": 156000}
-  ],
-  "model_accuracy": 0.92,
-  "trend": "increasing",
-  "growth_rate": 0.056
-}
-```
-
-### 3.2 SMS Integration
-
-**Frontend Routes:**
-```
-/admin/sms                      → SMS dashboard
-/admin/sms/send                → Send SMS
-/admin/sms/bulk                → Bulk messaging
-/admin/sms/history             → Message history
-/admin/sms/templates           → Message templates
-```
-
-**Backend Endpoints:**
-```
-POST   /api/admin/sms/send/                 → Send single SMS
-POST   /api/admin/sms/bulk/                 → Send bulk SMS
-GET    /api/admin/sms/history/              → Message history
-GET    /api/admin/sms/balance/              → SMS balance
-GET    /api/admin/sms/templates/            → List templates
-POST   /api/admin/sms/templates/            → Create template
-```
-
-### 3.3 Advanced Bandwidth Management
-
-**Features:**
-- PCQ Queue Trees
-- Time-based bandwidth boosts
-- Contention ratio management
-- Traffic prioritization
-- Fair Usage Policy (FUP)
-
-**Frontend Routes:**
-```
-/admin/networking/fup           → FUP settings
-/admin/networking/qos           → QoS settings
-/admin/networking/bandwidth     → Bandwidth policies
-```
-
-**Backend Endpoints:**
-```
-GET    /api/admin/fup/                      → FUP policies
-POST   /api/admin/fup/                      → Create FUP policy
-GET    /api/admin/qos/                      → QoS settings
-POST   /api/admin/routers/{id}/apply-qos/   → Apply QoS to router
+/admin/cpe                    # TR-069 CPE Devices
+/admin/qos                    # QoS & Traffic Shaping
+/admin/billing                # Billing Dashboard
+/admin/promotions             # Discounts & Promotions
+/admin/technicians            # Technician Profiles
+/admin/agents                 # Agent/Retailer Management
+/admin/kb                     # Knowledge Base
+/admin/alerts                 # Alert Configuration
+/admin/suppliers              # Supplier Management (separate page)
+/admin/executive              # Executive Dashboard
+/admin/settings/roles         # RBAC Configuration
+/admin/settings/mpesa         # M-Pesa API Config
+/admin/settings/sms           # SMS Gateway Config
 ```
 
 ---
 
 ## Backend API Requirements
 
-### Authentication
+For the missing modules, the Django backend needs these endpoints:
 
-All endpoints except public ones require JWT authentication:
-
+### OLT/ONU Management
 ```
-Authorization: Bearer <access_token>
-```
-
-### Response Format
-
-**Success:**
-```json
-{
-  "data": { ... },
-  "message": "Success",
-  "status": "success"
-}
+/api/v1/network/olt/                    # OLT CRUD
+/api/v1/network/olt/{id}/ports/         # PON ports
+/api/v1/network/olt/{id}/reboot/        # Remote reboot
+/api/v1/network/olt/{id}/stats/         # Performance metrics
+/api/v1/network/onu/                    # ONU CRUD
+/api/v1/network/onu/{id}/provision/     # Provision ONU
+/api/v1/network/onu/{id}/optical-power/ # Rx/Tx power
+/api/v1/network/onu/unregistered/       # Pending ONUs
 ```
 
-**Paginated:**
-```json
-{
-  "count": 100,
-  "next": "http://api/endpoint/?page=2",
-  "previous": null,
-  "results": [ ... ]
-}
+### TR-069 / CPE Management
+```
+/api/v1/network/cpe/                    # CPE devices list
+/api/v1/network/cpe/{id}/config/        # Push configuration
+/api/v1/network/cpe/{id}/firmware/      # Firmware update
+/api/v1/network/cpe/{id}/diagnostics/   # Ping/trace
 ```
 
-**Error:**
-```json
-{
-  "detail": "Error message",
-  "code": "ERROR_CODE",
-  "status": "error"
-}
+### IP Address Management
+```
+/api/v1/network/ipam/subnets/           # Subnet CRUD
+/api/v1/network/ipam/addresses/         # IP allocation
+/api/v1/network/ipam/dhcp/leases/       # DHCP leases
+/api/v1/network/ipam/conflicts/         # IP conflicts
 ```
 
-### Permission Classes
-
-```python
-# permissions.py
-
-class IsAdmin(BasePermission):
-    def has_permission(self, request, view):
-        return request.user.is_staff or request.user.is_superuser
-
-class IsCustomer(BasePermission):
-    def has_permission(self, request, view):
-        return hasattr(request.user, 'customer')
-
-class IsOwnerOrAdmin(BasePermission):
-    def has_object_permission(self, request, view, obj):
-        if request.user.is_staff:
-            return True
-        return obj.customer.user == request.user
+### Billing & Invoicing
+```
+/api/v1/billing/invoices/               # Invoice CRUD
+/api/v1/billing/invoices/generate/      # Generate invoice
+/api/v1/billing/cycles/                 # Billing cycles
+/api/v1/billing/promotions/             # Discounts
+/api/v1/payments/mpesa/stk-push/        # M-Pesa STK
+/api/v1/payments/mpesa/callback/        # M-Pesa callback
 ```
 
----
-
-## Frontend Implementation Guide
-
-### New Admin Pages to Create
-
+### Staff & Dispatch
 ```
-app/admin/
-├── users/
-│   ├── page.tsx           (List with tabs: All, Hotspot, PPPoE, Static, Online)
-│   ├── [id]/
-│   │   ├── page.tsx       (User details)
-│   │   └── edit/page.tsx  (Edit user)
-│   └── import/page.tsx    (Bulk import)
-├── plans/
-│   ├── page.tsx           (List with tabs by type)
-│   ├── create/page.tsx    (Create plan)
-│   ├── [id]/edit/page.tsx (Edit plan)
-│   └── vouchers/page.tsx  (Voucher management)
-├── ads/
-│   ├── page.tsx           (Ad list)
-│   └── create/page.tsx    (Create ad)
-├── sms/
-│   ├── page.tsx           (SMS dashboard)
-│   ├── send/page.tsx      (Send SMS)
-│   ├── bulk/page.tsx      (Bulk messaging)
-│   └── history/page.tsx   (History)
-├── loyalty/
-│   └── page.tsx           (Loyalty settings)
-├── leads/
-│   ├── page.tsx           (Leads list)
-│   └── create/page.tsx    (Add lead)
-├── tickets/
-│   ├── page.tsx           (All tickets)
-│   └── [id]/page.tsx      (Ticket details)
-├── analytics/
-│   ├── page.tsx           (Analytics dashboard)
-│   ├── revenue/page.tsx   (Revenue forecast)
-│   ├── customers/page.tsx (CLV analysis)
-│   └── usage/page.tsx     (Usage patterns)
-└── networking/
-    ├── routers/
-    │   ├── page.tsx       (Router list)
-    │   ├── [id]/page.tsx  (Router details + uptime)
-    │   └── sla/page.tsx   (SLA dashboard)
-    ├── fup/page.tsx       (Fair Usage Policy)
-    └── ipv4/page.tsx      (IP management)
+/api/v1/staff/technicians/              # Technician profiles
+/api/v1/staff/technicians/{id}/schedule/# Work schedule
+/api/v1/staff/dispatch/jobs/            # Job assignments
+/api/v1/staff/agents/                   # Agents/retailers
+/api/v1/staff/agents/{id}/commissions/  # Commissions
 ```
 
-### Customer Dashboard Enhancements
-
+### Inventory
 ```
-app/dashboard/
-├── page.tsx               (Add loyalty points widget)
-├── support/
-│   ├── page.tsx           (My tickets list)
-│   ├── new/page.tsx       (Create ticket)
-│   └── [id]/page.tsx      (Ticket details)
-└── loyalty/
-    └── page.tsx           (Points history & redemption)
-```
-
-### API Service Updates
-
-Add to `lib/admin-api.ts`:
-```typescript
-// Tickets
-async getTickets(params?: TicketParams): Promise<PaginatedResponse<Ticket>>
-async createTicket(data: CreateTicketData): Promise<Ticket>
-async replyToTicket(id: number, message: string): Promise<TicketReply>
-
-// Leads
-async getLeads(params?: LeadParams): Promise<PaginatedResponse<Lead>>
-async createLead(data: CreateLeadData): Promise<Lead>
-async convertLead(id: number): Promise<Customer>
-
-// Analytics
-async getAnalyticsDashboard(): Promise<AnalyticsDashboard>
-async getRevenueForecast(): Promise<RevenueForecast>
-async getCustomerLifetime(): Promise<CLVData>
-
-// SMS
-async sendSMS(to: string, message: string): Promise<SMSResult>
-async sendBulkSMS(data: BulkSMSData): Promise<BulkSMSResult>
-
-// Loyalty
-async getLoyaltySettings(): Promise<LoyaltySettings>
-async updateLoyaltySettings(data: Partial<LoyaltySettings>): Promise<LoyaltySettings>
+/api/v1/inventory/equipment/            # Equipment list
+/api/v1/inventory/equipment/{id}/assign/# Assign to customer
+/api/v1/inventory/suppliers/            # Suppliers
+/api/v1/inventory/warranty/             # Warranty tracking
 ```
 
 ---
 
-## Priority Implementation Order
-
-### Sprint 1 (Week 1-2)
-1. ✅ Enhanced User Management with tabs
-2. ✅ Enhanced Plans Management with types
-3. ✅ Router uptime monitoring
-
-### Sprint 2 (Week 3-4)
-4. Support Ticketing System
-5. Leads Management
-6. Basic Analytics Dashboard
-
-### Sprint 3 (Week 5-6)
-7. Loyalty Points System
-8. Captive Portal Ads
-9. SMS Integration basics
-
-### Sprint 4 (Week 7-8)
-10. Advanced Analytics (Revenue Forecast, CLV)
-11. Bulk User Import
-12. Router Backup System
-
-### Sprint 5 (Week 9-10)
-13. Advanced Bandwidth Management
-14. FUP Implementation
-15. WhatsApp Integration
-
----
-
-## Testing Checklist
-
-- [ ] User CRUD operations work for all types
-- [ ] Plan creation works for all types
-- [ ] Voucher generation and redemption
-- [ ] Router connection and monitoring
-- [ ] Ticket creation and lifecycle
-- [ ] Lead conversion flow
-- [ ] Loyalty points earn/redeem
-- [ ] SMS sending (single & bulk)
-- [ ] Analytics data accuracy
-- [ ] Permission-based access control
-
----
-
-## Notes for Backend Developer
-
-1. **MikroTik Integration**: Use `librouteros` Python library for RouterOS API
-2. **Celery Tasks**: Use for background jobs (uptime checks, backups, SMS)
-3. **Redis**: Required for real-time updates and caching
-4. **Django Channels**: For WebSocket support (live router status)
-5. **Machine Learning**: Use `scikit-learn` for revenue forecasting
-
----
-
-*Document Version: 1.0*
-*Last Updated: December 28, 2025*
+*Last Updated: December 30, 2025*

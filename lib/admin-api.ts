@@ -12,6 +12,23 @@ import type {
   PaginatedResponse,
   DashboardStats,
   AuditLog,
+  OLT,
+  PONPort,
+  ONU,
+  Subnet,
+  IPAddress,
+  DHCPLease,
+  CPEDevice,
+  CPETask,
+  Invoice,
+  Payment,
+  MpesaTransaction,
+  Technician,
+  DispatchJob,
+  InventoryItem,
+  Supplier,
+  Alert,
+  AlertRule,
 } from './types'
 
 // Re-export for backward compatibility
@@ -371,6 +388,401 @@ class AdminApiService {
 
   async healthCheck(): Promise<{ status: string }> {
     return this.request<{ status: string }>('/core/health/')
+  }
+
+  // ------------------------------------------
+  // OLT MANAGEMENT - /network/olt/
+  // ------------------------------------------
+
+  async getOLTs(params?: Record<string, string>): Promise<PaginatedResponse<OLT>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<OLT>>(`/network/olt/${queryString}`)
+  }
+
+  async getOLT(id: number): Promise<OLT> {
+    return this.request<OLT>(`/network/olt/${id}/`)
+  }
+
+  async createOLT(data: Partial<OLT>): Promise<OLT> {
+    return this.request<OLT>('/network/olt/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateOLT(id: number, data: Partial<OLT>): Promise<OLT> {
+    return this.request<OLT>(`/network/olt/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteOLT(id: number): Promise<void> {
+    await this.request(`/network/olt/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async rebootOLT(id: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/network/olt/${id}/reboot/`, {
+      method: 'POST',
+    })
+  }
+
+  async getOLTStats(id: number): Promise<any> {
+    return this.request(`/network/olt/${id}/stats/`)
+  }
+
+  async getOLTPONPorts(oltId: number): Promise<PONPort[]> {
+    return this.request<PONPort[]>(`/network/olt/${oltId}/ports/`)
+  }
+
+  // ------------------------------------------
+  // ONU MANAGEMENT - /network/onu/
+  // ------------------------------------------
+
+  async getONUs(params?: Record<string, string>): Promise<PaginatedResponse<ONU>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<ONU>>(`/network/onu/${queryString}`)
+  }
+
+  async getONU(id: number): Promise<ONU> {
+    return this.request<ONU>(`/network/onu/${id}/`)
+  }
+
+  async createONU(data: Partial<ONU>): Promise<ONU> {
+    return this.request<ONU>('/network/onu/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateONU(id: number, data: Partial<ONU>): Promise<ONU> {
+    return this.request<ONU>(`/network/onu/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteONU(id: number): Promise<void> {
+    await this.request(`/network/onu/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async provisionONU(id: number, data?: any): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/network/onu/${id}/provision/`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    })
+  }
+
+  async getONUOpticalPower(id: number): Promise<any> {
+    return this.request(`/network/onu/${id}/optical-power/`)
+  }
+
+  async getUnregisteredONUs(): Promise<ONU[]> {
+    return this.request<ONU[]>('/network/onu/unregistered/')
+  }
+
+  // ------------------------------------------
+  // IPAM - /network/ipam/
+  // ------------------------------------------
+
+  async getSubnets(params?: Record<string, string>): Promise<PaginatedResponse<Subnet>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<Subnet>>(`/network/ipam/subnets/${queryString}`)
+  }
+
+  async getSubnet(id: number): Promise<Subnet> {
+    return this.request<Subnet>(`/network/ipam/subnets/${id}/`)
+  }
+
+  async createSubnet(data: Partial<Subnet>): Promise<Subnet> {
+    return this.request<Subnet>('/network/ipam/subnets/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateSubnet(id: number, data: Partial<Subnet>): Promise<Subnet> {
+    return this.request<Subnet>(`/network/ipam/subnets/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteSubnet(id: number): Promise<void> {
+    await this.request(`/network/ipam/subnets/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async getIPAddresses(params?: Record<string, string>): Promise<PaginatedResponse<IPAddress>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<IPAddress>>(`/network/ipam/addresses/${queryString}`)
+  }
+
+  async assignIPAddress(id: number, customerId: number): Promise<IPAddress> {
+    return this.request<IPAddress>(`/network/ipam/addresses/${id}/assign/`, {
+      method: 'POST',
+      body: JSON.stringify({ customer_id: customerId }),
+    })
+  }
+
+  async releaseIPAddress(id: number): Promise<IPAddress> {
+    return this.request<IPAddress>(`/network/ipam/addresses/${id}/release/`, {
+      method: 'POST',
+    })
+  }
+
+  async getDHCPLeases(params?: Record<string, string>): Promise<PaginatedResponse<DHCPLease>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<DHCPLease>>(`/network/ipam/dhcp/leases/${queryString}`)
+  }
+
+  // ------------------------------------------
+  // CPE/TR-069 - /network/cpe/
+  // ------------------------------------------
+
+  async getCPEDevices(params?: Record<string, string>): Promise<PaginatedResponse<CPEDevice>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<CPEDevice>>(`/network/cpe/${queryString}`)
+  }
+
+  async getCPEDevice(id: number): Promise<CPEDevice> {
+    return this.request<CPEDevice>(`/network/cpe/${id}/`)
+  }
+
+  async rebootCPE(id: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/network/cpe/${id}/reboot/`, {
+      method: 'POST',
+    })
+  }
+
+  async factoryResetCPE(id: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/network/cpe/${id}/factory-reset/`, {
+      method: 'POST',
+    })
+  }
+
+  async getCPEDiagnostics(id: number): Promise<any> {
+    return this.request(`/network/cpe/${id}/diagnostics/`)
+  }
+
+  async pushCPEConfig(id: number, config: Record<string, any>): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/network/cpe/${id}/config/`, {
+      method: 'POST',
+      body: JSON.stringify(config),
+    })
+  }
+
+  // ------------------------------------------
+  // INVOICES - /billing/invoices/
+  // ------------------------------------------
+
+  async getInvoices(params?: Record<string, string>): Promise<PaginatedResponse<Invoice>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<Invoice>>(`/billing/invoices/${queryString}`)
+  }
+
+  async getInvoice(id: number): Promise<Invoice> {
+    return this.request<Invoice>(`/billing/invoices/${id}/`)
+  }
+
+  async createInvoice(data: Partial<Invoice>): Promise<Invoice> {
+    return this.request<Invoice>('/billing/invoices/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateInvoice(id: number, data: Partial<Invoice>): Promise<Invoice> {
+    return this.request<Invoice>(`/billing/invoices/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteInvoice(id: number): Promise<void> {
+    await this.request(`/billing/invoices/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async generateInvoice(customerId: number): Promise<Invoice> {
+    return this.request<Invoice>('/billing/invoices/generate/', {
+      method: 'POST',
+      body: JSON.stringify({ customer_id: customerId }),
+    })
+  }
+
+  async sendInvoice(id: number, method: 'email' | 'sms' | 'both'): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/billing/invoices/${id}/send/`, {
+      method: 'POST',
+      body: JSON.stringify({ method }),
+    })
+  }
+
+  async markInvoicePaid(id: number, paymentData?: any): Promise<Invoice> {
+    return this.request<Invoice>(`/billing/invoices/${id}/mark-paid/`, {
+      method: 'POST',
+      body: JSON.stringify(paymentData || {}),
+    })
+  }
+
+  async downloadInvoicePDF(id: number): Promise<Blob> {
+    const response = await fetch(`${this.baseUrl}/billing/invoices/${id}/pdf/`, {
+      headers: this.getAuthHeaders(),
+    })
+    if (!response.ok) throw new Error('Failed to download invoice')
+    return response.blob()
+  }
+
+  // ------------------------------------------
+  // PAYMENTS - /billing/payments/
+  // ------------------------------------------
+
+  async getPayments(params?: Record<string, string>): Promise<PaginatedResponse<Payment>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<Payment>>(`/billing/payments/${queryString}`)
+  }
+
+  async getPayment(id: number): Promise<Payment> {
+    return this.request<Payment>(`/billing/payments/${id}/`)
+  }
+
+  async createPayment(data: Partial<Payment>): Promise<Payment> {
+    return this.request<Payment>('/billing/payments/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async initiateMpesaSTKPush(phone: string, amount: number, customerId?: number): Promise<MpesaTransaction> {
+    return this.request<MpesaTransaction>('/payments/mpesa/stk-push/', {
+      method: 'POST',
+      body: JSON.stringify({ phone_number: phone, amount, customer_id: customerId }),
+    })
+  }
+
+  async getMpesaTransactions(params?: Record<string, string>): Promise<PaginatedResponse<MpesaTransaction>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<MpesaTransaction>>(`/payments/mpesa/transactions/${queryString}`)
+  }
+
+  // ------------------------------------------
+  // TECHNICIANS & DISPATCH - /staff/
+  // ------------------------------------------
+
+  async getTechnicians(params?: Record<string, string>): Promise<PaginatedResponse<Technician>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<Technician>>(`/staff/technicians/${queryString}`)
+  }
+
+  async getTechnician(id: number): Promise<Technician> {
+    return this.request<Technician>(`/staff/technicians/${id}/`)
+  }
+
+  async getDispatchJobs(params?: Record<string, string>): Promise<PaginatedResponse<DispatchJob>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<DispatchJob>>(`/staff/dispatch/jobs/${queryString}`)
+  }
+
+  async getDispatchJob(id: number): Promise<DispatchJob> {
+    return this.request<DispatchJob>(`/staff/dispatch/jobs/${id}/`)
+  }
+
+  async createDispatchJob(data: Partial<DispatchJob>): Promise<DispatchJob> {
+    return this.request<DispatchJob>('/staff/dispatch/jobs/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async assignDispatchJob(jobId: number, technicianId: number): Promise<DispatchJob> {
+    return this.request<DispatchJob>(`/staff/dispatch/jobs/${jobId}/assign/`, {
+      method: 'POST',
+      body: JSON.stringify({ technician_id: technicianId }),
+    })
+  }
+
+  async updateJobStatus(jobId: number, status: string, notes?: string): Promise<DispatchJob> {
+    return this.request<DispatchJob>(`/staff/dispatch/jobs/${jobId}/status/`, {
+      method: 'POST',
+      body: JSON.stringify({ status, notes }),
+    })
+  }
+
+  // ------------------------------------------
+  // INVENTORY - /inventory/
+  // ------------------------------------------
+
+  async getInventoryItems(params?: Record<string, string>): Promise<PaginatedResponse<InventoryItem>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<InventoryItem>>(`/inventory/equipment/${queryString}`)
+  }
+
+  async getInventoryItem(id: number): Promise<InventoryItem> {
+    return this.request<InventoryItem>(`/inventory/equipment/${id}/`)
+  }
+
+  async createInventoryItem(data: Partial<InventoryItem>): Promise<InventoryItem> {
+    return this.request<InventoryItem>('/inventory/equipment/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateInventoryItem(id: number, data: Partial<InventoryItem>): Promise<InventoryItem> {
+    return this.request<InventoryItem>(`/inventory/equipment/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async assignEquipmentToCustomer(itemId: number, customerId: number): Promise<InventoryItem> {
+    return this.request<InventoryItem>(`/inventory/equipment/${itemId}/assign/`, {
+      method: 'POST',
+      body: JSON.stringify({ customer_id: customerId }),
+    })
+  }
+
+  async getSuppliers(params?: Record<string, string>): Promise<PaginatedResponse<Supplier>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<Supplier>>(`/inventory/suppliers/${queryString}`)
+  }
+
+  // ------------------------------------------
+  // ALERTS - /alerts/
+  // ------------------------------------------
+
+  async getAlerts(params?: Record<string, string>): Promise<PaginatedResponse<Alert>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<Alert>>(`/alerts/${queryString}`)
+  }
+
+  async acknowledgeAlert(id: number): Promise<Alert> {
+    return this.request<Alert>(`/alerts/${id}/acknowledge/`, {
+      method: 'POST',
+    })
+  }
+
+  async resolveAlert(id: number): Promise<Alert> {
+    return this.request<Alert>(`/alerts/${id}/resolve/`, {
+      method: 'POST',
+    })
+  }
+
+  async getAlertRules(): Promise<AlertRule[]> {
+    return this.request<AlertRule[]>('/alerts/rules/')
+  }
+
+  async createAlertRule(data: Partial<AlertRule>): Promise<AlertRule> {
+    return this.request<AlertRule>('/alerts/rules/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
   }
 }
 

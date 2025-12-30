@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/app/auth-context"
 import { api } from "@/lib/api"
 import { Card } from "@/components/ui/card"
@@ -8,22 +8,41 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { CreditCard, Smartphone, Building2, CheckCircle2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { CreditCard, Smartphone, Building2, CheckCircle2, Loader2, Phone, AlertCircle, Clock, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
 const quickAmounts = [500, 1000, 2000, 5000]
 
 const paymentMethods = [
-  { value: "mpesa", label: "M-Pesa", icon: Smartphone, color: "green" },
-  { value: "card", label: "Credit/Debit Card", icon: CreditCard, color: "blue" },
-  { value: "bank", label: "Bank Transfer", icon: Building2, color: "purple" },
+  { value: "mpesa", label: "M-Pesa", icon: Smartphone, color: "green", description: "Pay instantly via STK Push" },
+  { value: "card", label: "Credit/Debit Card", icon: CreditCard, color: "blue", description: "Visa, Mastercard accepted" },
+  { value: "bank", label: "Bank Transfer", icon: Building2, color: "purple", description: "Manual bank transfer" },
 ]
+
+type MpesaStatus = 'idle' | 'sending' | 'waiting' | 'success' | 'failed' | 'timeout'
 
 export default function RechargePage() {
   const { user, refreshUser } = useAuth()
   const [amount, setAmount] = useState("")
   const [method, setMethod] = useState("mpesa")
   const [loading, setLoading] = useState(false)
+  
+  // M-Pesa STK Push state
+  const [phoneNumber, setPhoneNumber] = useState("")
+  const [mpesaDialogOpen, setMpesaDialogOpen] = useState(false)
+  const [mpesaStatus, setMpesaStatus] = useState<MpesaStatus>('idle')
+  const [mpesaCheckoutId, setMpesaCheckoutId] = useState<string | null>(null)
+  const [mpesaProgress, setMpesaProgress] = useState(0)
+  const [mpesaCountdown, setMpesaCountdown] = useState(60)
 
   // Mock user data as fallback
   const mockUser = {
@@ -36,8 +55,108 @@ export default function RechargePage() {
 
   const currentUser = user || mockUser
 
+  // Format phone number for M-Pesa (254XXXXXXXXX)
+  const formatPhoneNumber = (phone: string): string => {
+    let cleaned = phone.replace(/\D/g, '')
+    if (cleaned.startsWith('0')) {
+      cleaned = '254' + cleaned.slice(1)
+    } else if (cleaned.startsWith('+254')) {
+      cleaned = cleaned.slice(1)
+    } else if (!cleaned.startsWith('254')) {
+      cleaned = '254' + cleaned
+    }
+    return cleaned
+  }
+
+  // Validate phone number
+  const isValidPhone = (phone: string): boolean => {
+    const formatted = formatPhoneNumber(phone)
+    return /^254[17]\d{8}$/.test(formatted)
+  }
+
+  // Simulate M-Pesa STK Push process
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    let countdownInterval: NodeJS.Timeout
+
+    if (mpesaStatus === 'waiting') {
+      // Progress bar simulation
+      interval = setInterval(() => {
+        setMpesaProgress(prev => {
+          if (prev >= 95) return prev
+          return prev + (100 - prev) * 0.1
+        })
+      }, 1000)
+
+      // Countdown timer
+      countdownInterval = setInterval(() => {
+        setMpesaCountdown(prev => {
+          if (prev <= 1) {
+            setMpesaStatus('timeout')
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      // Simulate success after random time (demo)
+      const successTimeout = setTimeout(() => {
+        if (mpesaStatus === 'waiting') {
+          setMpesaStatus('success')
+          setMpesaProgress(100)
+          toast.success('Payment successful!')
+          if (user) {
+            refreshUser()
+          }
+        }
+      }, 5000 + Math.random() * 5000)
+
+      return () => {
+        clearInterval(interval)
+        clearInterval(countdownInterval)
+        clearTimeout(successTimeout)
+      }
+    }
+
+    return () => {
+      if (interval) clearInterval(interval)
+      if (countdownInterval) clearInterval(countdownInterval)
+    }
+  }, [mpesaStatus, user, refreshUser])
+
   const handleQuickAmount = (value: number) => {
     setAmount(value.toString())
+  }
+
+  const initiateMpesaPayment = async () => {
+    if (!isValidPhone(phoneNumber)) {
+      toast.error("Please enter a valid Safaricom phone number")
+      return
+    }
+
+    if (!amount || parseFloat(amount) < 10) {
+      toast.error("Minimum amount is KSh 10")
+      return
+    }
+
+    setMpesaStatus('sending')
+    setMpesaProgress(0)
+    setMpesaCountdown(60)
+
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // In real implementation:
+      // const response = await api.initiateMpesaSTKPush(formatPhoneNumber(phoneNumber), amount)
+      // setMpesaCheckoutId(response.checkout_request_id)
+      
+      setMpesaCheckoutId('ws_CO_' + Date.now())
+      setMpesaStatus('waiting')
+    } catch (error: any) {
+      setMpesaStatus('failed')
+      toast.error(error.message || "Failed to initiate M-Pesa payment")
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,6 +164,17 @@ export default function RechargePage() {
 
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount")
+      return
+    }
+
+    if (method === 'mpesa') {
+      // Open M-Pesa dialog
+      setMpesaDialogOpen(true)
+      setMpesaStatus('idle')
+      // Pre-fill phone from user profile if available
+      if (user?.phone) {
+        setPhoneNumber(user.phone)
+      }
       return
     }
 
@@ -64,6 +194,21 @@ export default function RechargePage() {
       toast.error(error.message || "Payment failed")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const resetMpesaDialog = () => {
+    setMpesaStatus('idle')
+    setMpesaProgress(0)
+    setMpesaCountdown(60)
+    setMpesaCheckoutId(null)
+  }
+
+  const closeMpesaDialog = () => {
+    setMpesaDialogOpen(false)
+    resetMpesaDialog()
+    if (mpesaStatus === 'success') {
+      setAmount("")
     }
   }
 
@@ -166,9 +311,12 @@ export default function RechargePage() {
                           ? "text-blue-600"
                           : "text-purple-600"
                       }`} />
-                      <Label htmlFor={pm.value} className="flex-1 cursor-pointer">
-                        {pm.label}
-                      </Label>
+                      <div className="flex-1">
+                        <Label htmlFor={pm.value} className="cursor-pointer block">
+                          {pm.label}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">{pm.description}</p>
+                      </div>
                       {isSelected && (
                         <CheckCircle2 className={`w-5 h-5 ${
                           pm.color === "green"
@@ -188,13 +336,166 @@ export default function RechargePage() {
             <Button
               type="submit"
               disabled={loading || !amount}
-              className="w-full py-6 text-lg"
+              className={`w-full py-6 text-lg ${method === 'mpesa' ? 'bg-green-600 hover:bg-green-700' : ''}`}
             >
-              {loading ? "Processing..." : `Pay KSh ${amount || "0"}`}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Processing...
+                </>
+              ) : method === 'mpesa' ? (
+                <>
+                  <Smartphone className="mr-2 h-5 w-5" />
+                  Pay KSh {amount || "0"} with M-Pesa
+                </>
+              ) : (
+                `Pay KSh ${amount || "0"}`
+              )}
             </Button>
           </form>
         </Card>
       </div>
+
+      {/* M-Pesa STK Push Dialog */}
+      <Dialog open={mpesaDialogOpen} onOpenChange={closeMpesaDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <Smartphone className="w-5 h-5 text-green-600" />
+              </div>
+              M-Pesa Payment
+            </DialogTitle>
+            <DialogDescription>
+              Pay KSh {amount} via M-Pesa STK Push
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {mpesaStatus === 'idle' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Safaricom Phone Number</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="0712 345 678"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      className="pl-10 text-lg"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Enter the phone number to receive the STK push prompt
+                  </p>
+                </div>
+
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-green-800">Amount</span>
+                    <span className="font-bold text-green-900">KSh {amount}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-green-800">Paybill</span>
+                    <span className="font-mono text-green-900">888880</span>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={initiateMpesaPayment}
+                  className="w-full bg-green-600 hover:bg-green-700"
+                  disabled={!isValidPhone(phoneNumber)}
+                >
+                  <Smartphone className="mr-2 h-4 w-4" />
+                  Send STK Push
+                </Button>
+              </>
+            )}
+
+            {mpesaStatus === 'sending' && (
+              <div className="text-center py-8">
+                <Loader2 className="h-12 w-12 animate-spin text-green-600 mx-auto mb-4" />
+                <p className="font-medium">Sending STK Push...</p>
+                <p className="text-sm text-muted-foreground">Please wait</p>
+              </div>
+            )}
+
+            {mpesaStatus === 'waiting' && (
+              <div className="text-center py-4 space-y-4">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                  <Phone className="h-10 w-10 text-green-600 animate-pulse" />
+                </div>
+                <div>
+                  <p className="font-medium text-lg">Check your phone</p>
+                  <p className="text-sm text-muted-foreground">
+                    Enter your M-Pesa PIN to complete the payment
+                  </p>
+                </div>
+                <Progress value={mpesaProgress} className="h-2" />
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>Waiting for confirmation... {mpesaCountdown}s</span>
+                </div>
+                <p className="text-xs text-muted-foreground font-mono">
+                  Ref: {mpesaCheckoutId}
+                </p>
+              </div>
+            )}
+
+            {mpesaStatus === 'success' && (
+              <div className="text-center py-8 space-y-4">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="h-12 w-12 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-xl text-green-600">Payment Successful!</p>
+                  <p className="text-muted-foreground">KSh {amount} has been added to your account</p>
+                </div>
+                <Badge variant="outline" className="font-mono">
+                  {mpesaCheckoutId}
+                </Badge>
+                <Button onClick={closeMpesaDialog} className="w-full">
+                  Done
+                </Button>
+              </div>
+            )}
+
+            {mpesaStatus === 'failed' && (
+              <div className="text-center py-8 space-y-4">
+                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                  <AlertCircle className="h-12 w-12 text-red-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-xl text-red-600">Payment Failed</p>
+                  <p className="text-muted-foreground">Unable to process your payment</p>
+                </div>
+                <Button onClick={resetMpesaDialog} variant="outline" className="w-full">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Try Again
+                </Button>
+              </div>
+            )}
+
+            {mpesaStatus === 'timeout' && (
+              <div className="text-center py-8 space-y-4">
+                <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
+                  <Clock className="h-12 w-12 text-yellow-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-xl text-yellow-600">Request Timed Out</p>
+                  <p className="text-muted-foreground">The payment request expired. Please try again.</p>
+                </div>
+                <Button onClick={resetMpesaDialog} variant="outline" className="w-full">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Try Again
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Instructions */}
       <Card className="p-8 bg-blue-50 border-blue-200">

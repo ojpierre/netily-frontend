@@ -27,6 +27,12 @@ import {
   Network,
   Gauge,
   TrendingUp,
+  Server,
+  Box,
+  Globe,
+  Truck,
+  Warehouse,
+  Receipt,
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -54,6 +60,33 @@ const navigationSections = [
     ],
   },
   {
+    title: "Network",
+    items: [
+      { name: "OLT Management", href: "/admin/olt", icon: Server },
+      { name: "ONU Devices", href: "/admin/onu", icon: Box },
+      { name: "IPAM", href: "/admin/ipam", icon: Globe },
+      { name: "Routers", href: "/admin/routers", icon: Wifi },
+      { name: "IPv4 Networks", href: "/admin/networks", icon: Network },
+      { name: "FUP", href: "/admin/fup", icon: Gauge },
+      { name: "Usage", href: "/admin/usage", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "Finance",
+    items: [
+      { name: "Invoices", href: "/admin/invoices", icon: Receipt },
+      { name: "Payments", href: "/admin/payments", icon: CreditCard },
+      { name: "Analytics", href: "/admin/analytics", icon: TrendingUp },
+    ],
+  },
+  {
+    title: "Operations",
+    items: [
+      { name: "Dispatch", href: "/admin/dispatch", icon: Truck },
+      { name: "Inventory", href: "/admin/inventory", icon: Warehouse },
+    ],
+  },
+  {
     title: "Engagement",
     items: [
       { name: "Tickets", href: "/admin/tickets", icon: Ticket },
@@ -61,22 +94,6 @@ const navigationSections = [
       { name: "Loyalty", href: "/admin/loyalty", icon: Gift },
       { name: "SMS", href: "/admin/sms", icon: MessageSquare },
       { name: "Ads", href: "/admin/ads", icon: Image },
-    ],
-  },
-  {
-    title: "Finance",
-    items: [
-      { name: "Payments", href: "/admin/payments", icon: CreditCard },
-      { name: "Analytics", href: "/admin/analytics", icon: TrendingUp },
-    ],
-  },
-  {
-    title: "Networking",
-    items: [
-      { name: "Routers", href: "/admin/routers", icon: Wifi },
-      { name: "IPv4 Networks", href: "/admin/networks", icon: Network },
-      { name: "FUP", href: "/admin/fup", icon: Gauge },
-      { name: "Usage", href: "/admin/usage", icon: BarChart3 },
     ],
   },
   {
