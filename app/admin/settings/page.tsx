@@ -9,6 +9,21 @@ import {
   Zap,
   Save,
   RotateCcw,
+  CreditCard,
+  MessageSquare,
+  Mail,
+  Key,
+  Eye,
+  EyeOff,
+  Copy,
+  CheckCircle,
+  RefreshCw,
+  TestTube,
+  Smartphone,
+  Globe,
+  Lock,
+  Wallet,
+  AlertCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,6 +32,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,12 +46,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
+import { Progress } from "@/components/ui/progress"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({})
+  const [testingConnection, setTestingConnection] = useState<string | null>(null)
+  const [connectionStatus, setConnectionStatus] = useState<Record<string, "success" | "error" | null>>({})
 
   // RADIUS Settings State
   const [radiusSettings, setRadiusSettings] = useState({
@@ -48,6 +71,74 @@ export default function SettingsPage() {
     accountingPort: "",
     timeout: "",
     retries: "",
+  })
+
+  // M-Pesa Settings State
+  const [mpesaSettings, setMpesaSettings] = useState({
+    environment: "sandbox",
+    consumerKey: "",
+    consumerSecret: "",
+    shortcode: "",
+    passkey: "",
+    callbackUrl: "",
+    accountReference: "NETILY",
+    transactionDesc: "Internet Subscription",
+    enabled: false,
+    b2cEnabled: false,
+    initiatorName: "",
+    initiatorPassword: "",
+    securityCredential: "",
+  })
+
+  // SMS Gateway Settings State
+  const [smsSettings, setSmsSettings] = useState({
+    provider: "africastalking",
+    // Africa's Talking
+    atUsername: "",
+    atApiKey: "",
+    atSenderId: "",
+    // Twilio
+    twilioAccountSid: "",
+    twilioAuthToken: "",
+    twilioPhoneNumber: "",
+    // Custom
+    customApiUrl: "",
+    customApiKey: "",
+    customHeaders: "",
+    enabled: false,
+    testPhone: "",
+  })
+
+  // Email Settings State
+  const [emailSettings, setEmailSettings] = useState({
+    provider: "smtp",
+    // SMTP
+    smtpHost: "",
+    smtpPort: "587",
+    smtpUsername: "",
+    smtpPassword: "",
+    smtpEncryption: "tls",
+    // SendGrid
+    sendgridApiKey: "",
+    // Mailgun
+    mailgunApiKey: "",
+    mailgunDomain: "",
+    // Common
+    fromEmail: "",
+    fromName: "Netily ISP",
+    replyTo: "",
+    enabled: false,
+  })
+
+  // API Keys Settings State
+  const [apiKeysSettings, setApiKeysSettings] = useState({
+    apiKey: "sk_live_xxxxxxxxxxxxxxxxxx",
+    apiSecret: "sk_secret_xxxxxxxxxxxxxx",
+    webhookSecret: "whsec_xxxxxxxxxxxxxx",
+    webhookUrl: "",
+    rateLimitPerMinute: "60",
+    ipWhitelist: "",
+    enabledEndpoints: ["payments", "customers", "subscriptions"],
   })
 
   // Automation Settings State
@@ -73,6 +164,30 @@ export default function SettingsPage() {
     adminEmail: "",
     smsGateway: "africastalking",
   })
+
+  // Helper to toggle secret visibility
+  const toggleSecretVisibility = (key: string) => {
+    setShowSecrets((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  // Copy to clipboard helper
+  const copyToClipboard = async (text: string) => {
+    await navigator.clipboard.writeText(text)
+  }
+
+  // Test connection helper
+  const testConnection = async (service: string) => {
+    setTestingConnection(service)
+    setConnectionStatus((prev) => ({ ...prev, [service]: null }))
+    
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+    
+    // Mock success/failure (in production, this would be a real API call)
+    const success = Math.random() > 0.3
+    setConnectionStatus((prev) => ({ ...prev, [service]: success ? "success" : "error" }))
+    setTestingConnection(null)
+  }
 
   // Load settings from backend
   useEffect(() => {
@@ -266,24 +381,42 @@ const handleSaveSettings = async () => {
 
       {/* Settings Tabs */}
       <Tabs defaultValue="radius" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="radius" className="flex items-center gap-2">
-            <Server className="w-4 h-4" />
-            RADIUS
-          </TabsTrigger>
-          <TabsTrigger value="automation" className="flex items-center gap-2">
-            <Zap className="w-4 h-4" />
-            Automation
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="w-4 h-4" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Security
-          </TabsTrigger>
-        </TabsList>
+        <ScrollArea className="w-full">
+          <TabsList className="inline-flex w-full md:w-auto">
+            <TabsTrigger value="radius" className="flex items-center gap-2">
+              <Server className="w-4 h-4" />
+              <span className="hidden sm:inline">RADIUS</span>
+            </TabsTrigger>
+            <TabsTrigger value="mpesa" className="flex items-center gap-2">
+              <Wallet className="w-4 h-4" />
+              <span className="hidden sm:inline">M-Pesa</span>
+            </TabsTrigger>
+            <TabsTrigger value="sms" className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">SMS</span>
+            </TabsTrigger>
+            <TabsTrigger value="email" className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              <span className="hidden sm:inline">Email</span>
+            </TabsTrigger>
+            <TabsTrigger value="api" className="flex items-center gap-2">
+              <Key className="w-4 h-4" />
+              <span className="hidden sm:inline">API</span>
+            </TabsTrigger>
+            <TabsTrigger value="automation" className="flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              <span className="hidden sm:inline">Automation</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              <span className="hidden sm:inline">Notifications</span>
+            </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              <span className="hidden sm:inline">Security</span>
+            </TabsTrigger>
+          </TabsList>
+        </ScrollArea>
 
         {/* RADIUS Settings */}
         <TabsContent value="radius" className="space-y-6">
@@ -418,6 +551,1044 @@ const handleSaveSettings = async () => {
                       setRadiusSettings({ ...radiusSettings, retries: e.target.value })
                     }
                   />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* M-Pesa Settings */}
+        <TabsContent value="mpesa" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wallet className="h-5 w-5 text-green-600" />
+                    M-Pesa Daraja API
+                  </CardTitle>
+                  <CardDescription>
+                    Configure M-Pesa payment integration via Safaricom Daraja API
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={mpesaSettings.enabled ? "default" : "secondary"}>
+                    {mpesaSettings.enabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                  <Switch
+                    checked={mpesaSettings.enabled}
+                    onCheckedChange={(checked) =>
+                      setMpesaSettings({ ...mpesaSettings, enabled: checked })
+                    }
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label>Environment</Label>
+                <Select
+                  value={mpesaSettings.environment}
+                  onValueChange={(value) =>
+                    setMpesaSettings({ ...mpesaSettings, environment: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sandbox">Sandbox (Testing)</SelectItem>
+                    <SelectItem value="production">Production (Live)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="mpesa-consumer-key">Consumer Key</Label>
+                  <div className="relative">
+                    <Input
+                      id="mpesa-consumer-key"
+                      type={showSecrets["mpesa-consumer-key"] ? "text" : "password"}
+                      placeholder="Enter consumer key"
+                      value={mpesaSettings.consumerKey}
+                      onChange={(e) =>
+                        setMpesaSettings({ ...mpesaSettings, consumerKey: e.target.value })
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleSecretVisibility("mpesa-consumer-key")}
+                    >
+                      {showSecrets["mpesa-consumer-key"] ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mpesa-consumer-secret">Consumer Secret</Label>
+                  <div className="relative">
+                    <Input
+                      id="mpesa-consumer-secret"
+                      type={showSecrets["mpesa-consumer-secret"] ? "text" : "password"}
+                      placeholder="Enter consumer secret"
+                      value={mpesaSettings.consumerSecret}
+                      onChange={(e) =>
+                        setMpesaSettings({ ...mpesaSettings, consumerSecret: e.target.value })
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleSecretVisibility("mpesa-consumer-secret")}
+                    >
+                      {showSecrets["mpesa-consumer-secret"] ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="mpesa-shortcode">Business Shortcode</Label>
+                  <Input
+                    id="mpesa-shortcode"
+                    placeholder="174379"
+                    value={mpesaSettings.shortcode}
+                    onChange={(e) =>
+                      setMpesaSettings({ ...mpesaSettings, shortcode: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mpesa-passkey">Lipa Na M-Pesa Passkey</Label>
+                  <div className="relative">
+                    <Input
+                      id="mpesa-passkey"
+                      type={showSecrets["mpesa-passkey"] ? "text" : "password"}
+                      placeholder="Enter passkey"
+                      value={mpesaSettings.passkey}
+                      onChange={(e) =>
+                        setMpesaSettings({ ...mpesaSettings, passkey: e.target.value })
+                      }
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleSecretVisibility("mpesa-passkey")}
+                    >
+                      {showSecrets["mpesa-passkey"] ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mpesa-callback">Callback URL</Label>
+                <Input
+                  id="mpesa-callback"
+                  placeholder="https://your-domain.com/api/mpesa/callback"
+                  value={mpesaSettings.callbackUrl}
+                  onChange={(e) =>
+                    setMpesaSettings({ ...mpesaSettings, callbackUrl: e.target.value })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  This URL will receive payment confirmation callbacks from M-Pesa
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="mpesa-account-ref">Account Reference</Label>
+                  <Input
+                    id="mpesa-account-ref"
+                    placeholder="NETILY"
+                    value={mpesaSettings.accountReference}
+                    onChange={(e) =>
+                      setMpesaSettings({ ...mpesaSettings, accountReference: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mpesa-trans-desc">Transaction Description</Label>
+                  <Input
+                    id="mpesa-trans-desc"
+                    placeholder="Internet Subscription"
+                    value={mpesaSettings.transactionDesc}
+                    onChange={(e) =>
+                      setMpesaSettings({ ...mpesaSettings, transactionDesc: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button
+                variant="outline"
+                onClick={() => testConnection("mpesa")}
+                disabled={testingConnection === "mpesa"}
+              >
+                {testingConnection === "mpesa" ? (
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <TestTube className="mr-2 h-4 w-4" />
+                )}
+                Test Connection
+              </Button>
+              {connectionStatus["mpesa"] && (
+                <Badge variant={connectionStatus["mpesa"] === "success" ? "default" : "destructive"}>
+                  {connectionStatus["mpesa"] === "success" ? "Connected" : "Connection Failed"}
+                </Badge>
+              )}
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>B2C Disbursement</CardTitle>
+                  <CardDescription>
+                    Configure Business to Customer payments for refunds
+                  </CardDescription>
+                </div>
+                <Switch
+                  checked={mpesaSettings.b2cEnabled}
+                  onCheckedChange={(checked) =>
+                    setMpesaSettings({ ...mpesaSettings, b2cEnabled: checked })
+                  }
+                />
+              </div>
+            </CardHeader>
+            {mpesaSettings.b2cEnabled && (
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="b2c-initiator">Initiator Name</Label>
+                    <Input
+                      id="b2c-initiator"
+                      placeholder="apitest"
+                      value={mpesaSettings.initiatorName}
+                      onChange={(e) =>
+                        setMpesaSettings({ ...mpesaSettings, initiatorName: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="b2c-password">Initiator Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="b2c-password"
+                        type={showSecrets["b2c-password"] ? "text" : "password"}
+                        placeholder="Enter password"
+                        value={mpesaSettings.initiatorPassword}
+                        onChange={(e) =>
+                          setMpesaSettings({ ...mpesaSettings, initiatorPassword: e.target.value })
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => toggleSecretVisibility("b2c-password")}
+                      >
+                        {showSecrets["b2c-password"] ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="b2c-security">Security Credential</Label>
+                  <Textarea
+                    id="b2c-security"
+                    placeholder="Encrypted security credential..."
+                    rows={3}
+                    value={mpesaSettings.securityCredential}
+                    onChange={(e) =>
+                      setMpesaSettings({ ...mpesaSettings, securityCredential: e.target.value })
+                    }
+                  />
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        </TabsContent>
+
+        {/* SMS Gateway Settings */}
+        <TabsContent value="sms" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5 text-blue-600" />
+                    SMS Gateway Configuration
+                  </CardTitle>
+                  <CardDescription>
+                    Configure SMS provider for customer notifications
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={smsSettings.enabled ? "default" : "secondary"}>
+                    {smsSettings.enabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                  <Switch
+                    checked={smsSettings.enabled}
+                    onCheckedChange={(checked) =>
+                      setSmsSettings({ ...smsSettings, enabled: checked })
+                    }
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label>SMS Provider</Label>
+                <Select
+                  value={smsSettings.provider}
+                  onValueChange={(value) =>
+                    setSmsSettings({ ...smsSettings, provider: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="africastalking">Africa's Talking</SelectItem>
+                    <SelectItem value="twilio">Twilio</SelectItem>
+                    <SelectItem value="custom">Custom API</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Africa's Talking Settings */}
+              {smsSettings.provider === "africastalking" && (
+                <div className="space-y-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    Africa's Talking Configuration
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="at-username">Username</Label>
+                      <Input
+                        id="at-username"
+                        placeholder="sandbox or your username"
+                        value={smsSettings.atUsername}
+                        onChange={(e) =>
+                          setSmsSettings({ ...smsSettings, atUsername: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="at-api-key">API Key</Label>
+                      <div className="relative">
+                        <Input
+                          id="at-api-key"
+                          type={showSecrets["at-api-key"] ? "text" : "password"}
+                          placeholder="Enter API key"
+                          value={smsSettings.atApiKey}
+                          onChange={(e) =>
+                            setSmsSettings({ ...smsSettings, atApiKey: e.target.value })
+                          }
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => toggleSecretVisibility("at-api-key")}
+                        >
+                          {showSecrets["at-api-key"] ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="at-sender-id">Sender ID (Alphanumeric)</Label>
+                    <Input
+                      id="at-sender-id"
+                      placeholder="NETILY"
+                      value={smsSettings.atSenderId}
+                      onChange={(e) =>
+                        setSmsSettings({ ...smsSettings, atSenderId: e.target.value })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty to use default shortcode
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Twilio Settings */}
+              {smsSettings.provider === "twilio" && (
+                <div className="space-y-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Smartphone className="h-4 w-4" />
+                    Twilio Configuration
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="twilio-sid">Account SID</Label>
+                      <Input
+                        id="twilio-sid"
+                        placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        value={smsSettings.twilioAccountSid}
+                        onChange={(e) =>
+                          setSmsSettings({ ...smsSettings, twilioAccountSid: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="twilio-token">Auth Token</Label>
+                      <div className="relative">
+                        <Input
+                          id="twilio-token"
+                          type={showSecrets["twilio-token"] ? "text" : "password"}
+                          placeholder="Enter auth token"
+                          value={smsSettings.twilioAuthToken}
+                          onChange={(e) =>
+                            setSmsSettings({ ...smsSettings, twilioAuthToken: e.target.value })
+                          }
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => toggleSecretVisibility("twilio-token")}
+                        >
+                          {showSecrets["twilio-token"] ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="twilio-phone">Phone Number</Label>
+                    <Input
+                      id="twilio-phone"
+                      placeholder="+1234567890"
+                      value={smsSettings.twilioPhoneNumber}
+                      onChange={(e) =>
+                        setSmsSettings({ ...smsSettings, twilioPhoneNumber: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Custom API Settings */}
+              {smsSettings.provider === "custom" && (
+                <div className="space-y-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    Custom API Configuration
+                  </h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="custom-url">API Endpoint URL</Label>
+                    <Input
+                      id="custom-url"
+                      placeholder="https://api.sms-provider.com/send"
+                      value={smsSettings.customApiUrl}
+                      onChange={(e) =>
+                        setSmsSettings({ ...smsSettings, customApiUrl: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="custom-api-key">API Key</Label>
+                    <div className="relative">
+                      <Input
+                        id="custom-api-key"
+                        type={showSecrets["custom-api-key"] ? "text" : "password"}
+                        placeholder="Enter API key"
+                        value={smsSettings.customApiKey}
+                        onChange={(e) =>
+                          setSmsSettings({ ...smsSettings, customApiKey: e.target.value })
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => toggleSecretVisibility("custom-api-key")}
+                      >
+                        {showSecrets["custom-api-key"] ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="custom-headers">Custom Headers (JSON)</Label>
+                    <Textarea
+                      id="custom-headers"
+                      placeholder='{"Authorization": "Bearer token", "X-Custom-Header": "value"}'
+                      rows={3}
+                      value={smsSettings.customHeaders}
+                      onChange={(e) =>
+                        setSmsSettings({ ...smsSettings, customHeaders: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="+254712345678"
+                  className="w-40"
+                  value={smsSettings.testPhone}
+                  onChange={(e) =>
+                    setSmsSettings({ ...smsSettings, testPhone: e.target.value })
+                  }
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => testConnection("sms")}
+                  disabled={testingConnection === "sms"}
+                >
+                  {testingConnection === "sms" ? (
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <TestTube className="mr-2 h-4 w-4" />
+                  )}
+                  Send Test SMS
+                </Button>
+              </div>
+              {connectionStatus["sms"] && (
+                <Badge variant={connectionStatus["sms"] === "success" ? "default" : "destructive"}>
+                  {connectionStatus["sms"] === "success" ? "SMS Sent" : "Send Failed"}
+                </Badge>
+              )}
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        {/* Email Settings */}
+        <TabsContent value="email" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-purple-600" />
+                    Email Server Configuration
+                  </CardTitle>
+                  <CardDescription>
+                    Configure email delivery for notifications and reports
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={emailSettings.enabled ? "default" : "secondary"}>
+                    {emailSettings.enabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                  <Switch
+                    checked={emailSettings.enabled}
+                    onCheckedChange={(checked) =>
+                      setEmailSettings({ ...emailSettings, enabled: checked })
+                    }
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label>Email Provider</Label>
+                <Select
+                  value={emailSettings.provider}
+                  onValueChange={(value) =>
+                    setEmailSettings({ ...emailSettings, provider: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="smtp">SMTP Server</SelectItem>
+                    <SelectItem value="sendgrid">SendGrid</SelectItem>
+                    <SelectItem value="mailgun">Mailgun</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* SMTP Settings */}
+              {emailSettings.provider === "smtp" && (
+                <div className="space-y-4">
+                  <h4 className="font-medium">SMTP Configuration</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="col-span-2 space-y-2">
+                      <Label htmlFor="smtp-host">SMTP Host</Label>
+                      <Input
+                        id="smtp-host"
+                        placeholder="smtp.gmail.com"
+                        value={emailSettings.smtpHost}
+                        onChange={(e) =>
+                          setEmailSettings({ ...emailSettings, smtpHost: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp-port">Port</Label>
+                      <Input
+                        id="smtp-port"
+                        placeholder="587"
+                        value={emailSettings.smtpPort}
+                        onChange={(e) =>
+                          setEmailSettings({ ...emailSettings, smtpPort: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp-username">Username</Label>
+                      <Input
+                        id="smtp-username"
+                        placeholder="your-email@gmail.com"
+                        value={emailSettings.smtpUsername}
+                        onChange={(e) =>
+                          setEmailSettings({ ...emailSettings, smtpUsername: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp-password">Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="smtp-password"
+                          type={showSecrets["smtp-password"] ? "text" : "password"}
+                          placeholder="Enter password"
+                          value={emailSettings.smtpPassword}
+                          onChange={(e) =>
+                            setEmailSettings({ ...emailSettings, smtpPassword: e.target.value })
+                          }
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => toggleSecretVisibility("smtp-password")}
+                        >
+                          {showSecrets["smtp-password"] ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Encryption</Label>
+                    <Select
+                      value={emailSettings.smtpEncryption}
+                      onValueChange={(value) =>
+                        setEmailSettings({ ...emailSettings, smtpEncryption: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="tls">TLS</SelectItem>
+                        <SelectItem value="ssl">SSL</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {/* SendGrid Settings */}
+              {emailSettings.provider === "sendgrid" && (
+                <div className="space-y-4">
+                  <h4 className="font-medium">SendGrid Configuration</h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="sendgrid-key">API Key</Label>
+                    <div className="relative">
+                      <Input
+                        id="sendgrid-key"
+                        type={showSecrets["sendgrid-key"] ? "text" : "password"}
+                        placeholder="SG.xxxxxxxxxxxxxxxxxxxxxx"
+                        value={emailSettings.sendgridApiKey}
+                        onChange={(e) =>
+                          setEmailSettings({ ...emailSettings, sendgridApiKey: e.target.value })
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => toggleSecretVisibility("sendgrid-key")}
+                      >
+                        {showSecrets["sendgrid-key"] ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Mailgun Settings */}
+              {emailSettings.provider === "mailgun" && (
+                <div className="space-y-4">
+                  <h4 className="font-medium">Mailgun Configuration</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="mailgun-key">API Key</Label>
+                      <div className="relative">
+                        <Input
+                          id="mailgun-key"
+                          type={showSecrets["mailgun-key"] ? "text" : "password"}
+                          placeholder="key-xxxxxxxxxxxxxxxxxxxxxx"
+                          value={emailSettings.mailgunApiKey}
+                          onChange={(e) =>
+                            setEmailSettings({ ...emailSettings, mailgunApiKey: e.target.value })
+                          }
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => toggleSecretVisibility("mailgun-key")}
+                        >
+                          {showSecrets["mailgun-key"] ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="mailgun-domain">Domain</Label>
+                      <Input
+                        id="mailgun-domain"
+                        placeholder="mg.your-domain.com"
+                        value={emailSettings.mailgunDomain}
+                        onChange={(e) =>
+                          setEmailSettings({ ...emailSettings, mailgunDomain: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <Separator />
+
+              {/* Common Email Settings */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Sender Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="from-email">From Email</Label>
+                    <Input
+                      id="from-email"
+                      placeholder="no-reply@netily.com"
+                      value={emailSettings.fromEmail}
+                      onChange={(e) =>
+                        setEmailSettings({ ...emailSettings, fromEmail: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="from-name">From Name</Label>
+                    <Input
+                      id="from-name"
+                      placeholder="Netily ISP"
+                      value={emailSettings.fromName}
+                      onChange={(e) =>
+                        setEmailSettings({ ...emailSettings, fromName: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reply-to">Reply-To Email</Label>
+                  <Input
+                    id="reply-to"
+                    placeholder="support@netily.com"
+                    value={emailSettings.replyTo}
+                    onChange={(e) =>
+                      setEmailSettings({ ...emailSettings, replyTo: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button
+                variant="outline"
+                onClick={() => testConnection("email")}
+                disabled={testingConnection === "email"}
+              >
+                {testingConnection === "email" ? (
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <TestTube className="mr-2 h-4 w-4" />
+                )}
+                Send Test Email
+              </Button>
+              {connectionStatus["email"] && (
+                <Badge variant={connectionStatus["email"] === "success" ? "default" : "destructive"}>
+                  {connectionStatus["email"] === "success" ? "Email Sent" : "Send Failed"}
+                </Badge>
+              )}
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        {/* API Keys Settings */}
+        <TabsContent value="api" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5 text-orange-600" />
+                API Keys Management
+              </CardTitle>
+              <CardDescription>
+                Manage API access credentials for external integrations
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Important</AlertTitle>
+                <AlertDescription>
+                  API keys provide full access to your account. Keep them secure and never share them publicly.
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>API Key (Public)</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        type={showSecrets["api-key"] ? "text" : "password"}
+                        value={apiKeysSettings.apiKey}
+                        readOnly
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => toggleSecretVisibility("api-key")}
+                      >
+                        {showSecrets["api-key"] ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => copyToClipboard(apiKeysSettings.apiKey)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>API Secret (Private)</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        type={showSecrets["api-secret"] ? "text" : "password"}
+                        value={apiKeysSettings.apiSecret}
+                        readOnly
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => toggleSecretVisibility("api-secret")}
+                      >
+                        {showSecrets["api-secret"] ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => copyToClipboard(apiKeysSettings.apiSecret)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <Button variant="outline">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Regenerate API Keys
+                </Button>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h4 className="font-medium">Webhook Configuration</h4>
+                <div className="space-y-2">
+                  <Label htmlFor="webhook-url">Webhook URL</Label>
+                  <Input
+                    id="webhook-url"
+                    placeholder="https://your-domain.com/api/webhooks"
+                    value={apiKeysSettings.webhookUrl}
+                    onChange={(e) =>
+                      setApiKeysSettings({ ...apiKeysSettings, webhookUrl: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Webhook Secret</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        type={showSecrets["webhook-secret"] ? "text" : "password"}
+                        value={apiKeysSettings.webhookSecret}
+                        readOnly
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => toggleSecretVisibility("webhook-secret")}
+                      >
+                        {showSecrets["webhook-secret"] ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => copyToClipboard(apiKeysSettings.webhookSecret)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Use this secret to verify webhook signatures
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h4 className="font-medium">Rate Limiting & Security</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="rate-limit">Rate Limit (requests/minute)</Label>
+                    <Input
+                      id="rate-limit"
+                      type="number"
+                      value={apiKeysSettings.rateLimitPerMinute}
+                      onChange={(e) =>
+                        setApiKeysSettings({ ...apiKeysSettings, rateLimitPerMinute: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ip-whitelist">IP Whitelist</Label>
+                    <Input
+                      id="ip-whitelist"
+                      placeholder="192.168.1.1, 10.0.0.1"
+                      value={apiKeysSettings.ipWhitelist}
+                      onChange={(e) =>
+                        setApiKeysSettings({ ...apiKeysSettings, ipWhitelist: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h4 className="font-medium">Enabled Endpoints</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {["payments", "customers", "subscriptions", "invoices", "usage", "tickets"].map(
+                    (endpoint) => (
+                      <div key={endpoint} className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="flex items-center gap-2">
+                          <Lock className="h-4 w-4 text-muted-foreground" />
+                          <span className="capitalize">{endpoint}</span>
+                        </div>
+                        <Switch
+                          checked={apiKeysSettings.enabledEndpoints.includes(endpoint)}
+                          onCheckedChange={(checked) => {
+                            const newEndpoints = checked
+                              ? [...apiKeysSettings.enabledEndpoints, endpoint]
+                              : apiKeysSettings.enabledEndpoints.filter((e) => e !== endpoint)
+                            setApiKeysSettings({ ...apiKeysSettings, enabledEndpoints: newEndpoints })
+                          }}
+                        />
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
             </CardContent>
