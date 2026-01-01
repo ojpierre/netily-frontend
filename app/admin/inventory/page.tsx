@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useMemo } from "react"
-import Link from "next/link"
 import {
   Package,
   Plus,
@@ -10,9 +9,7 @@ import {
   MoreVertical,
   RefreshCw,
   Download,
-  Upload,
   Search,
-  Filter,
   Box,
   CheckCircle,
   XCircle,
@@ -23,13 +20,22 @@ import {
   User,
   Tag,
   BarChart3,
-  ArrowUpDown,
   History,
   QrCode,
-  Scan,
-  PackageCheck,
-  PackageMinus,
-  PackageX,
+  UserCheck,
+  Undo2,
+  Wrench,
+  ClipboardList,
+  Filter,
+  Calendar,
+  MapPin,
+  Hash,
+  DollarSign,
+  Clock,
+  AlertCircle,
+  Settings,
+  FileText,
+  Users,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -39,6 +45,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card"
 import {
   Dialog,
@@ -84,121 +91,210 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import type { InventoryItem, Supplier } from "@/lib/types"
+import type {
+  EquipmentItem,
+  EquipmentType,
+  EquipmentStatus,
+  EquipmentCondition,
+  EquipmentAssignment,
+  Supplier,
+  StockAlert,
+} from "@/lib/types"
 
-type ItemStatus = 'in_stock' | 'assigned' | 'deployed' | 'faulty' | 'rma'
-type ItemCategory = 'onu' | 'router' | 'cable' | 'connector' | 'splitter' | 'olt_module' | 'tools' | 'other'
-
-// Mock inventory items
-const generateMockInventory = (): (InventoryItem & { quantity: number; min_quantity: number })[] => {
-  const items = [
-    { name: "Huawei HG8145V5 ONU", category: "onu" as ItemCategory, sku: "HG8145V5", unit_cost: 4500, quantity: 45, min_quantity: 20 },
-    { name: "ZTE F660 ONU", category: "onu" as ItemCategory, sku: "ZTE-F660", unit_cost: 4200, quantity: 32, min_quantity: 15 },
-    { name: "Huawei EG8145X6 WiFi 6 ONU", category: "onu" as ItemCategory, sku: "EG8145X6", unit_cost: 7500, quantity: 8, min_quantity: 10 },
-    { name: "TP-Link Archer C6 Router", category: "router" as ItemCategory, sku: "ARCHER-C6", unit_cost: 5500, quantity: 25, min_quantity: 10 },
-    { name: "Mikrotik hAP ac2 Router", category: "router" as ItemCategory, sku: "HAP-AC2", unit_cost: 8500, quantity: 12, min_quantity: 5 },
-    { name: "SC/APC Fiber Patch Cord 3m", category: "cable" as ItemCategory, sku: "FPC-SC-3M", unit_cost: 250, quantity: 150, min_quantity: 50 },
-    { name: "SC/APC Fiber Patch Cord 5m", category: "cable" as ItemCategory, sku: "FPC-SC-5M", unit_cost: 350, quantity: 80, min_quantity: 30 },
-    { name: "Drop Cable 2 Core 100m", category: "cable" as ItemCategory, sku: "DC-2C-100", unit_cost: 1200, quantity: 35, min_quantity: 20 },
-    { name: "SC/APC Fast Connector", category: "connector" as ItemCategory, sku: "SCAPC-FC", unit_cost: 85, quantity: 500, min_quantity: 200 },
-    { name: "SC/UPC Fast Connector", category: "connector" as ItemCategory, sku: "SCUPC-FC", unit_cost: 75, quantity: 300, min_quantity: 150 },
-    { name: "1x8 PLC Splitter", category: "splitter" as ItemCategory, sku: "PLC-1X8", unit_cost: 2500, quantity: 15, min_quantity: 10 },
-    { name: "1x16 PLC Splitter", category: "splitter" as ItemCategory, sku: "PLC-1X16", unit_cost: 4000, quantity: 8, min_quantity: 5 },
-    { name: "SFP+ 10G Module", category: "olt_module" as ItemCategory, sku: "SFP-10G", unit_cost: 15000, quantity: 6, min_quantity: 4 },
-    { name: "GPON OLT SFP Class C+", category: "olt_module" as ItemCategory, sku: "GPON-SFP-C", unit_cost: 25000, quantity: 4, min_quantity: 2 },
-    { name: "Fiber Cleaver", category: "tools" as ItemCategory, sku: "FBR-CLEAVER", unit_cost: 35000, quantity: 3, min_quantity: 2 },
-    { name: "Optical Power Meter", category: "tools" as ItemCategory, sku: "OPM-001", unit_cost: 12000, quantity: 5, min_quantity: 3 },
-  ]
-
-  return items.map((item, idx) => ({
-    id: idx + 1,
-    name: item.name,
-    sku: item.sku,
-    category: item.category,
-    description: `${item.name} for network installations`,
-    unit_cost: item.unit_cost.toString(),
-    quantity: item.quantity,
-    min_quantity: item.min_quantity,
-    location: ['Main Warehouse', 'Nairobi Store', 'Mombasa Store'][Math.floor(Math.random() * 3)],
-    supplier: Math.floor(Math.random() * 4) + 1,
-    status: item.quantity <= 0 ? 'out_of_stock' as const : 
-            item.quantity < item.min_quantity ? 'low_stock' as const : 'in_stock' as const,
-    created_at: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-    last_restocked: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-  }))
-}
-
-// Mock suppliers
-const mockSuppliers: Supplier[] = [
-  { id: 1, name: "Huawei Technologies", contact_name: "John Chen", email: "sales@huawei.com", phone: "+86 755 1234567", address: "Shenzhen, China", created_at: "2023-01-01T00:00:00Z" },
-  { id: 2, name: "ZTE Corporation", contact_name: "Li Wei", email: "sales@zte.com", phone: "+86 755 2345678", address: "Shenzhen, China", created_at: "2023-01-01T00:00:00Z" },
-  { id: 3, name: "Fiber Optics Kenya", contact_name: "Mary Wanjiku", email: "sales@fokltd.co.ke", phone: "+254 20 1234567", address: "Nairobi, Kenya", created_at: "2023-01-01T00:00:00Z" },
-  { id: 4, name: "Network Solutions EA", contact_name: "James Kamau", email: "info@networksolutions.co.ke", phone: "+254 20 2345678", address: "Nairobi, Kenya", created_at: "2023-01-01T00:00:00Z" },
+// Mock Equipment Types (Categories)
+const mockEquipmentTypes: EquipmentType[] = [
+  { id: 1, name: "ONU", code: "ONU", description: "Optical Network Unit", min_stock_level: 20, item_count: 45, available_count: 32, is_active: true, created_at: "2024-01-01" },
+  { id: 2, name: "Router", code: "RTR", description: "WiFi Routers", min_stock_level: 10, item_count: 28, available_count: 18, is_active: true, created_at: "2024-01-01" },
+  { id: 3, name: "Fiber Cable", code: "CBL", description: "Fiber optic cables", min_stock_level: 50, item_count: 120, available_count: 95, is_active: true, created_at: "2024-01-01" },
+  { id: 4, name: "Splitter", code: "SPL", description: "PLC Splitters", min_stock_level: 10, item_count: 25, available_count: 20, is_active: true, created_at: "2024-01-01" },
+  { id: 5, name: "Connector", code: "CON", description: "Fiber connectors", min_stock_level: 100, item_count: 350, available_count: 280, is_active: true, created_at: "2024-01-01" },
+  { id: 6, name: "Tools", code: "TLS", description: "Installation tools", min_stock_level: 3, item_count: 8, available_count: 5, is_active: true, created_at: "2024-01-01" },
 ]
 
-// Mock movements/transactions
-interface InventoryMovement {
-  id: number
-  item_id: number
-  item_name: string
-  type: 'received' | 'issued' | 'returned' | 'adjustment'
-  quantity: number
-  reference: string
-  notes: string
-  created_by: string
-  created_at: string
-}
+// Mock Equipment Items (Individual Assets)
+const generateMockEquipment = (): EquipmentItem[] => {
+  const items: EquipmentItem[] = []
+  const locations = ['Main Warehouse', 'Nairobi Store', 'Mombasa Store', 'Field']
 
-const generateMockMovements = (): InventoryMovement[] => {
-  const movements: InventoryMovement[] = []
-  const types: InventoryMovement['type'][] = ['received', 'issued', 'issued', 'issued', 'returned']
-  const items = generateMockInventory()
-  
-  for (let i = 1; i <= 30; i++) {
-    const item = items[Math.floor(Math.random() * items.length)]
-    const type = types[Math.floor(Math.random() * types.length)]
-    
-    movements.push({
+  // Generate ONU items
+  for (let i = 1; i <= 25; i++) {
+    const status: EquipmentStatus = i <= 15 ? 'in_stock' : i <= 20 ? 'assigned' : i <= 23 ? 'in_use' : 'maintenance'
+    const condition: EquipmentCondition = i <= 10 ? 'new' : i <= 20 ? 'good' : 'fair'
+    items.push({
       id: i,
-      item_id: item.id,
-      item_name: item.name,
-      type,
-      quantity: type === 'received' ? Math.floor(Math.random() * 50) + 10 : Math.floor(Math.random() * 5) + 1,
-      reference: type === 'received' ? `PO-${2024000 + i}` : 
-                 type === 'issued' ? `JOB-${String(Math.floor(Math.random() * 1000)).padStart(4, '0')}` :
-                 `RET-${i}`,
-      notes: type === 'received' ? 'Stock received from supplier' :
-             type === 'issued' ? 'Issued for installation job' :
-             type === 'returned' ? 'Returned from field - unused' : 'Stock adjustment',
-      created_by: ['Peter O.', 'James M.', 'David K.'][Math.floor(Math.random() * 3)],
-      created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+      equipment_type: 1,
+      equipment_type_name: "ONU",
+      name: i % 2 === 0 ? "Huawei HG8145V5 ONU" : "ZTE F660 ONU",
+      model: i % 2 === 0 ? "HG8145V5" : "F660",
+      serial_number: `HW${String(i).padStart(8, '0')}`,
+      asset_tag: `ONU-${String(i).padStart(6, '0')}`,
+      supplier: i % 2 === 0 ? 1 : 2,
+      supplier_name: i % 2 === 0 ? "Huawei Technologies" : "ZTE Corporation",
+      purchase_date: "2024-01-15",
+      purchase_price: i % 2 === 0 ? "4500.00" : "4200.00",
+      warranty_expiry: "2026-01-15",
+      status,
+      condition,
+      location: status === 'in_stock' ? locations[Math.floor(Math.random() * 3)] : 'Field',
+      assigned_to: status === 'assigned' ? Math.floor(Math.random() * 5) + 1 : undefined,
+      assigned_to_name: status === 'assigned' ? ['John Kamau', 'Peter Mwangi', 'James Ochieng'][Math.floor(Math.random() * 3)] : undefined,
+      assigned_to_customer: status === 'in_use' ? Math.floor(Math.random() * 100) + 1 : undefined,
+      assigned_to_customer_name: status === 'in_use' ? 'Customer ' + (Math.floor(Math.random() * 100) + 1) : undefined,
+      age_in_months: Math.floor(Math.random() * 12) + 1,
+      is_available: status === 'in_stock' && ['new', 'good', 'fair'].includes(condition),
+      created_at: "2024-01-15T00:00:00Z",
+      updated_at: "2024-01-20T00:00:00Z",
     })
   }
-  return movements.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+  // Generate Router items
+  for (let i = 26; i <= 40; i++) {
+    const status: EquipmentStatus = i <= 35 ? 'in_stock' : i <= 38 ? 'assigned' : 'in_use'
+    items.push({
+      id: i,
+      equipment_type: 2,
+      equipment_type_name: "Router",
+      name: i % 2 === 0 ? "TP-Link Archer C6" : "Mikrotik hAP ac2",
+      model: i % 2 === 0 ? "Archer C6" : "hAP ac2",
+      serial_number: `RTR${String(i).padStart(8, '0')}`,
+      asset_tag: `RTR-${String(i - 25).padStart(6, '0')}`,
+      supplier: 3,
+      supplier_name: "Network Solutions EA",
+      purchase_date: "2024-02-01",
+      purchase_price: i % 2 === 0 ? "5500.00" : "8500.00",
+      warranty_expiry: "2026-02-01",
+      status,
+      condition: 'good',
+      location: status === 'in_stock' ? 'Main Warehouse' : 'Field',
+      assigned_to: status === 'assigned' ? Math.floor(Math.random() * 5) + 1 : undefined,
+      assigned_to_name: status === 'assigned' ? 'Field Tech ' + (Math.floor(Math.random() * 5) + 1) : undefined,
+      age_in_months: Math.floor(Math.random() * 8) + 1,
+      is_available: status === 'in_stock',
+      created_at: "2024-02-01T00:00:00Z",
+      updated_at: "2024-02-05T00:00:00Z",
+    })
+  }
+
+  // Generate Tools
+  const toolNames = ['Fiber Cleaver', 'Optical Power Meter', 'OTDR', 'Fusion Splicer', 'Fiber Stripper', 'Visual Fault Locator', 'Cable Tester', 'Crimping Tool']
+  for (let i = 41; i <= 48; i++) {
+    const status: EquipmentStatus = i <= 45 ? 'in_stock' : 'assigned'
+    items.push({
+      id: i,
+      equipment_type: 6,
+      equipment_type_name: "Tools",
+      name: toolNames[i - 41],
+      model: `MODEL-${i - 40}`,
+      serial_number: `TLS${String(i).padStart(8, '0')}`,
+      asset_tag: `TLS-${String(i - 40).padStart(6, '0')}`,
+      supplier: 4,
+      supplier_name: "Fiber Optics Kenya",
+      purchase_date: "2023-06-01",
+      purchase_price: String((i - 40) * 5000 + 10000),
+      warranty_expiry: "2025-06-01",
+      status,
+      condition: 'good',
+      location: status === 'in_stock' ? 'Main Warehouse' : 'Field',
+      assigned_to: status === 'assigned' ? i - 44 : undefined,
+      assigned_to_name: status === 'assigned' ? `Tech ${i - 44}` : undefined,
+      age_in_months: 18,
+      is_available: status === 'in_stock',
+      created_at: "2023-06-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z",
+    })
+  }
+
+  return items
 }
 
-const getCategoryIcon = (category: ItemCategory) => {
-  const icons: Record<ItemCategory, React.ReactNode> = {
-    onu: <Box className="h-4 w-4" />,
-    router: <Package className="h-4 w-4" />,
-    cable: <Tag className="h-4 w-4" />,
-    connector: <Tag className="h-4 w-4" />,
-    splitter: <Tag className="h-4 w-4" />,
-    olt_module: <Box className="h-4 w-4" />,
-    tools: <Tag className="h-4 w-4" />,
-    other: <Package className="h-4 w-4" />,
-  }
-  return icons[category]
+// Mock Assignments
+const generateMockAssignments = (): EquipmentAssignment[] => {
+  return [
+    {
+      id: 1,
+      equipment: 16,
+      equipment_name: "Huawei HG8145V5 ONU",
+      equipment_serial: "HW00000016",
+      employee_id: "EMP001",
+      employee_name: "John Kamau",
+      purpose: "Customer installation - Westlands",
+      assigned_date: "2024-01-20",
+      expected_return_date: "2024-01-21",
+      condition_at_assignment: 'good',
+      status: 'active',
+      created_at: "2024-01-20T00:00:00Z",
+    },
+    {
+      id: 2,
+      equipment: 17,
+      equipment_name: "ZTE F660 ONU",
+      equipment_serial: "HW00000017",
+      employee_id: "EMP002",
+      employee_name: "Peter Mwangi",
+      purpose: "Customer installation - Kilimani",
+      assigned_date: "2024-01-19",
+      expected_return_date: "2024-01-20",
+      actual_return_date: "2024-01-20",
+      condition_at_assignment: 'good',
+      condition_at_return: 'good',
+      status: 'returned',
+      created_at: "2024-01-19T00:00:00Z",
+    },
+    {
+      id: 3,
+      equipment: 46,
+      equipment_name: "Fiber Cleaver",
+      equipment_serial: "TLS00000046",
+      employee_id: "EMP001",
+      employee_name: "John Kamau",
+      purpose: "Field installations",
+      assigned_date: "2024-01-15",
+      condition_at_assignment: 'good',
+      status: 'active',
+      created_at: "2024-01-15T00:00:00Z",
+    },
+  ]
 }
 
-const getStockBadge = (quantity: number, min_quantity: number) => {
-  if (quantity <= 0) {
-    return <Badge variant="destructive" className="gap-1"><PackageX className="h-3 w-3" />Out of Stock</Badge>
+// Mock Suppliers
+const mockSuppliers: Supplier[] = [
+  { id: 1, name: "Huawei Technologies", contact_name: "John Chen", email: "sales@huawei.com", phone: "+86 755 1234567", address: "Shenzhen, China", is_active: true, total_purchases: "450000.00", equipment_count: 15, created_at: "2023-01-01T00:00:00Z" },
+  { id: 2, name: "ZTE Corporation", contact_name: "Li Wei", email: "sales@zte.com", phone: "+86 755 2345678", address: "Shenzhen, China", is_active: true, total_purchases: "320000.00", equipment_count: 12, created_at: "2023-01-01T00:00:00Z" },
+  { id: 3, name: "Network Solutions EA", contact_name: "James Kamau", email: "info@networksolutions.co.ke", phone: "+254 20 2345678", address: "Nairobi, Kenya", is_active: true, total_purchases: "180000.00", equipment_count: 18, created_at: "2023-01-01T00:00:00Z" },
+  { id: 4, name: "Fiber Optics Kenya", contact_name: "Mary Wanjiku", email: "sales@fokltd.co.ke", phone: "+254 20 1234567", address: "Nairobi, Kenya", is_active: true, total_purchases: "95000.00", equipment_count: 8, created_at: "2023-01-01T00:00:00Z" },
+]
+
+// Mock Stock Alerts
+const mockStockAlerts: StockAlert[] = [
+  { id: 1, equipment_type: 1, equipment_type_name: "ONU", current_count: 15, min_stock_level: 20, shortfall: 5, severity: 'warning', created_at: "2024-01-20" },
+  { id: 2, equipment_type: 6, equipment_type_name: "Tools", current_count: 2, min_stock_level: 3, shortfall: 1, severity: 'critical', created_at: "2024-01-20" },
+]
+
+// Helper Functions
+const getStatusBadge = (status: EquipmentStatus) => {
+  const badges: Record<EquipmentStatus, { variant: "default" | "secondary" | "destructive" | "outline"; label: string; className?: string }> = {
+    'in_stock': { variant: 'default', label: 'In Stock', className: 'bg-green-500' },
+    'assigned': { variant: 'secondary', label: 'Assigned', className: 'bg-blue-500 text-white' },
+    'in_use': { variant: 'secondary', label: 'In Use', className: 'bg-purple-500 text-white' },
+    'maintenance': { variant: 'secondary', label: 'Maintenance', className: 'bg-yellow-500 text-black' },
+    'faulty': { variant: 'destructive', label: 'Faulty' },
+    'retired': { variant: 'outline', label: 'Retired' },
+    'lost': { variant: 'destructive', label: 'Lost' },
+    'disposed': { variant: 'outline', label: 'Disposed' },
   }
-  if (quantity < min_quantity) {
-    return <Badge variant="secondary" className="gap-1 text-yellow-600"><PackageMinus className="h-3 w-3" />Low Stock</Badge>
+  const badge = badges[status] || { variant: 'outline' as const, label: status }
+  return <Badge variant={badge.variant} className={badge.className}>{badge.label}</Badge>
+}
+
+const getConditionBadge = (condition: EquipmentCondition) => {
+  const badges: Record<EquipmentCondition, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
+    'new': { variant: 'default', label: 'New' },
+    'good': { variant: 'secondary', label: 'Good' },
+    'fair': { variant: 'outline', label: 'Fair' },
+    'poor': { variant: 'outline', label: 'Poor' },
+    'faulty': { variant: 'destructive', label: 'Faulty' },
   }
-  return <Badge variant="default" className="gap-1 bg-green-500"><PackageCheck className="h-3 w-3" />In Stock</Badge>
+  return <Badge variant={badges[condition].variant}>{badges[condition].label}</Badge>
 }
 
 const formatCurrency = (amount: string | number) => {
@@ -207,78 +303,89 @@ const formatCurrency = (amount: string | number) => {
 }
 
 export default function InventoryPage() {
-  const [inventory] = useState(generateMockInventory())
-  const [movements] = useState(generateMockMovements())
+  const [equipment] = useState(generateMockEquipment())
+  const [assignments] = useState(generateMockAssignments())
   const [searchQuery, setSearchQuery] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState<string>("all")
-  const [stockFilter, setStockFilter] = useState<string>("all")
-  const [activeTab, setActiveTab] = useState("inventory")
-  const [selectedItem, setSelectedItem] = useState<typeof inventory[0] | null>(null)
+  const [typeFilter, setTypeFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [conditionFilter, setConditionFilter] = useState<string>("all")
+  const [activeTab, setActiveTab] = useState("equipment")
+  const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isAddItemOpen, setIsAddItemOpen] = useState(false)
-  const [isReceiveStockOpen, setIsReceiveStockOpen] = useState(false)
-  const [isIssueStockOpen, setIsIssueStockOpen] = useState(false)
+  const [isAssignOpen, setIsAssignOpen] = useState(false)
+  const [isReturnOpen, setIsReturnOpen] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  // Add item form
+  // Add equipment form
   const [itemForm, setItemForm] = useState({
+    equipment_type: "",
     name: "",
-    sku: "",
-    category: "onu" as ItemCategory,
-    unit_cost: "",
-    min_quantity: "",
-    location: "",
+    model: "",
+    serial_number: "",
     supplier: "",
-    description: "",
+    purchase_date: "",
+    purchase_price: "",
+    warranty_expiry: "",
+    condition: "new" as EquipmentCondition,
+    location: "",
+    notes: "",
   })
 
-  // Stock form
-  const [stockForm, setStockForm] = useState({
-    item_id: "",
-    quantity: "",
-    reference: "",
+  // Assignment form
+  const [assignForm, setAssignForm] = useState({
+    employee_id: "",
+    purpose: "",
+    expected_return_date: "",
+  })
+
+  // Return form
+  const [returnForm, setReturnForm] = useState({
+    condition: "good" as EquipmentCondition,
     notes: "",
   })
 
   // Stats
   const stats = useMemo(() => {
-    const totalItems = inventory.length
-    const totalValue = inventory.reduce((sum, i) => sum + parseFloat(i.unit_cost) * i.quantity, 0)
-    const lowStock = inventory.filter(i => i.quantity < i.min_quantity && i.quantity > 0).length
-    const outOfStock = inventory.filter(i => i.quantity <= 0).length
-    
-    return {
-      totalItems,
-      totalValue,
-      lowStock,
-      outOfStock,
-      totalUnits: inventory.reduce((sum, i) => sum + i.quantity, 0),
-    }
-  }, [inventory])
+    const totalAssets = equipment.length
+    const available = equipment.filter(e => e.is_available).length
+    const assigned = equipment.filter(e => e.status === 'assigned').length
+    const inUse = equipment.filter(e => e.status === 'in_use').length
+    const maintenance = equipment.filter(e => e.status === 'maintenance').length
+    const faulty = equipment.filter(e => e.status === 'faulty' || e.condition === 'faulty').length
+    const totalValue = equipment.reduce((sum, e) => sum + (parseFloat(e.purchase_price || '0')), 0)
 
-  // Filtered inventory
-  const filteredInventory = useMemo(() => {
-    let filtered = inventory
+    return { totalAssets, available, assigned, inUse, maintenance, faulty, totalValue }
+  }, [equipment])
+
+  // Filtered equipment
+  const filteredEquipment = useMemo(() => {
+    let filtered = equipment
 
     if (searchQuery) {
-      filtered = filtered.filter(i =>
-        i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        i.sku.toLowerCase().includes(searchQuery.toLowerCase())
+      const q = searchQuery.toLowerCase()
+      filtered = filtered.filter(e =>
+        e.name.toLowerCase().includes(q) ||
+        e.serial_number?.toLowerCase().includes(q) ||
+        e.asset_tag.toLowerCase().includes(q) ||
+        e.model?.toLowerCase().includes(q)
       )
     }
 
-    if (categoryFilter !== "all") {
-      filtered = filtered.filter(i => i.category === categoryFilter)
+    if (typeFilter !== "all") {
+      filtered = filtered.filter(e => e.equipment_type === parseInt(typeFilter))
     }
 
-    if (stockFilter === "low") {
-      filtered = filtered.filter(i => i.quantity < i.min_quantity && i.quantity > 0)
-    } else if (stockFilter === "out") {
-      filtered = filtered.filter(i => i.quantity <= 0)
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(e => e.status === statusFilter)
+    }
+
+    if (conditionFilter !== "all") {
+      filtered = filtered.filter(e => e.condition === conditionFilter)
     }
 
     return filtered
-  }, [inventory, searchQuery, categoryFilter, stockFilter])
+  }, [equipment, searchQuery, typeFilter, statusFilter, conditionFilter])
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
@@ -286,36 +393,19 @@ export default function InventoryPage() {
     setIsRefreshing(false)
   }
 
-  const handleViewDetails = (item: typeof inventory[0]) => {
+  const handleViewDetails = (item: EquipmentItem) => {
     setSelectedItem(item)
     setIsDetailOpen(true)
   }
 
-  const handleAddItem = () => {
-    console.log("Adding item:", itemForm)
-    setIsAddItemOpen(false)
-    setItemForm({
-      name: "",
-      sku: "",
-      category: "onu",
-      unit_cost: "",
-      min_quantity: "",
-      location: "",
-      supplier: "",
-      description: "",
-    })
+  const handleAssign = (item: EquipmentItem) => {
+    setSelectedItem(item)
+    setIsAssignOpen(true)
   }
 
-  const handleReceiveStock = () => {
-    console.log("Receiving stock:", stockForm)
-    setIsReceiveStockOpen(false)
-    setStockForm({ item_id: "", quantity: "", reference: "", notes: "" })
-  }
-
-  const handleIssueStock = () => {
-    console.log("Issuing stock:", stockForm)
-    setIsIssueStockOpen(false)
-    setStockForm({ item_id: "", quantity: "", reference: "", notes: "" })
+  const handleReturn = (item: EquipmentItem) => {
+    setSelectedItem(item)
+    setIsReturnOpen(true)
   }
 
   return (
@@ -325,7 +415,7 @@ export default function InventoryPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Inventory Management</h1>
           <p className="text-muted-foreground">
-            Track equipment, consumables, and stock levels
+            Track individual equipment assets, assignments, and maintenance
           </p>
         </div>
         <div className="flex gap-2">
@@ -333,99 +423,121 @@ export default function InventoryPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button variant="outline" onClick={() => setIsReceiveStockOpen(true)}>
+          <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
-            Receive Stock
-          </Button>
-          <Button variant="outline" onClick={() => setIsIssueStockOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" />
-            Issue Stock
+            Export
           </Button>
           <Button onClick={() => setIsAddItemOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Item
+            Add Equipment
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Assets</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalItems}</div>
-            <p className="text-xs text-muted-foreground">
-              Unique products
-            </p>
+            <div className="text-2xl font-bold">{stats.totalAssets}</div>
+            <p className="text-xs text-muted-foreground">Tracked items</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Units</CardTitle>
-            <Box className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Available</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUnits.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              In stock
-            </p>
+            <div className="text-2xl font-bold text-green-600">{stats.available}</div>
+            <p className="text-xs text-muted-foreground">Ready to assign</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inventory Value</CardTitle>
+            <CardTitle className="text-sm font-medium">Assigned</CardTitle>
+            <UserCheck className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{stats.assigned}</div>
+            <p className="text-xs text-muted-foreground">With employees</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">In Use</CardTitle>
+            <Box className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{stats.inUse}</div>
+            <p className="text-xs text-muted-foreground">Deployed</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Maintenance</CardTitle>
+            <Wrench className="h-4 w-4 text-yellow-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{stats.maintenance}</div>
+            <p className="text-xs text-muted-foreground">Under repair</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Value</CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(stats.totalValue)}</div>
-            <p className="text-xs text-muted-foreground">
-              At cost
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.lowStock}</div>
-            <p className="text-xs text-muted-foreground">
-              Items below threshold
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
-            <XCircle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.outOfStock}</div>
-            <p className="text-xs text-muted-foreground">
-              Need reorder
-            </p>
+            <p className="text-xs text-muted-foreground">Total cost</p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Stock Alerts */}
+      {mockStockAlerts.length > 0 && (
+        <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              Stock Alerts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              {mockStockAlerts.map((alert) => (
+                <Badge key={alert.id} variant={alert.severity === 'critical' ? 'destructive' : 'secondary'}>
+                  {alert.equipment_type_name}: {alert.current_count}/{alert.min_stock_level} (need {alert.shortfall} more)
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="inventory" className="gap-2">
+          <TabsTrigger value="equipment" className="gap-2">
             <Package className="h-4 w-4" />
-            Inventory
+            Equipment
           </TabsTrigger>
-          <TabsTrigger value="movements" className="gap-2">
-            <History className="h-4 w-4" />
-            Movements
+          <TabsTrigger value="assignments" className="gap-2">
+            <ClipboardList className="h-4 w-4" />
+            Assignments
+          </TabsTrigger>
+          <TabsTrigger value="types" className="gap-2">
+            <Tag className="h-4 w-4" />
+            Categories
           </TabsTrigger>
           <TabsTrigger value="suppliers" className="gap-2">
             <Truck className="h-4 w-4" />
@@ -433,49 +545,62 @@ export default function InventoryPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="inventory" className="mt-4">
+        {/* Equipment Tab */}
+        <TabsContent value="equipment" className="mt-4">
           <Card>
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <CardTitle>Stock Items</CardTitle>
+                  <CardTitle>Equipment Assets</CardTitle>
                   <CardDescription>
-                    {filteredInventory.length} items found
+                    {filteredEquipment.length} items found
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="Search items..."
+                      placeholder="Search by name, serial, asset tag..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 w-[200px]"
+                      className="pl-9 w-[250px]"
                     />
                   </div>
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
                     <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Category" />
+                      <SelectValue placeholder="Type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="onu">ONU</SelectItem>
-                      <SelectItem value="router">Router</SelectItem>
-                      <SelectItem value="cable">Cable</SelectItem>
-                      <SelectItem value="connector">Connector</SelectItem>
-                      <SelectItem value="splitter">Splitter</SelectItem>
-                      <SelectItem value="olt_module">OLT Module</SelectItem>
-                      <SelectItem value="tools">Tools</SelectItem>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {mockEquipmentTypes.map((type) => (
+                        <SelectItem key={type.id} value={String(type.id)}>{type.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  <Select value={stockFilter} onValueChange={setStockFilter}>
-                    <SelectTrigger className="w-[130px]">
-                      <SelectValue placeholder="Stock" />
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Stock</SelectItem>
-                      <SelectItem value="low">Low Stock</SelectItem>
-                      <SelectItem value="out">Out of Stock</SelectItem>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="in_stock">In Stock</SelectItem>
+                      <SelectItem value="assigned">Assigned</SelectItem>
+                      <SelectItem value="in_use">In Use</SelectItem>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
+                      <SelectItem value="faulty">Faulty</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={conditionFilter} onValueChange={setConditionFilter}>
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue placeholder="Condition" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Condition</SelectItem>
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="good">Good</SelectItem>
+                      <SelectItem value="fair">Fair</SelectItem>
+                      <SelectItem value="poor">Poor</SelectItem>
+                      <SelectItem value="faulty">Faulty</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -485,48 +610,57 @@ export default function InventoryPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Category</TableHead>
+                    <TableHead>Asset Tag</TableHead>
+                    <TableHead>Name / Model</TableHead>
+                    <TableHead>Serial Number</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Location</TableHead>
-                    <TableHead>Stock</TableHead>
-                    <TableHead>Unit Cost</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Condition</TableHead>
+                    <TableHead>Assigned To</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredInventory.map((item) => (
+                  {filteredEquipment.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getCategoryIcon(item.category)}
+                        <span className="font-mono text-sm font-medium">{item.asset_tag}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div>
                           <span className="font-medium">{item.name}</span>
+                          {item.model && (
+                            <p className="text-xs text-muted-foreground">{item.model}</p>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="font-mono text-sm">{item.sku}</span>
+                        <span className="font-mono text-sm">{item.serial_number || '-'}</span>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {item.category.replace('_', ' ')}
-                        </Badge>
+                        <Badge variant="outline">{item.equipment_type_name}</Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {item.location}
+                        {item.location || '-'}
                       </TableCell>
+                      <TableCell>{getStatusBadge(item.status)}</TableCell>
+                      <TableCell>{getConditionBadge(item.condition)}</TableCell>
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span className={`font-bold ${item.quantity < item.min_quantity ? 'text-yellow-600' : ''} ${item.quantity <= 0 ? 'text-red-600' : ''}`}>
-                            {item.quantity}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            min: {item.min_quantity}
-                          </span>
-                        </div>
+                        {item.assigned_to_name ? (
+                          <div className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            <span className="text-sm">{item.assigned_to_name}</span>
+                          </div>
+                        ) : item.assigned_to_customer_name ? (
+                          <div className="flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            <span className="text-sm">{item.assigned_to_customer_name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </TableCell>
-                      <TableCell>{formatCurrency(item.unit_cost)}</TableCell>
-                      <TableCell>{getStockBadge(item.quantity, item.min_quantity)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -541,31 +675,33 @@ export default function InventoryPage() {
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                               <Edit className="mr-2 h-4 w-4" />
-                              Edit Item
+                              Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                               <QrCode className="mr-2 h-4 w-4" />
                               Print Label
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => {
-                              setStockForm({ ...stockForm, item_id: String(item.id) })
-                              setIsReceiveStockOpen(true)
-                            }}>
-                              <Download className="mr-2 h-4 w-4" />
-                              Receive Stock
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => {
-                              setStockForm({ ...stockForm, item_id: String(item.id) })
-                              setIsIssueStockOpen(true)
-                            }}>
-                              <Upload className="mr-2 h-4 w-4" />
-                              Issue Stock
+                            {item.is_available && (
+                              <DropdownMenuItem onClick={() => handleAssign(item)}>
+                                <UserCheck className="mr-2 h-4 w-4" />
+                                Assign to Employee
+                              </DropdownMenuItem>
+                            )}
+                            {item.status === 'assigned' && (
+                              <DropdownMenuItem onClick={() => handleReturn(item)}>
+                                <Undo2 className="mr-2 h-4 w-4" />
+                                Return to Stock
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem>
+                              <Wrench className="mr-2 h-4 w-4" />
+                              Send to Maintenance
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-red-600">
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
+                              Dispose
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -578,13 +714,14 @@ export default function InventoryPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="movements" className="mt-4">
+        {/* Assignments Tab */}
+        <TabsContent value="assignments" className="mt-4">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Stock Movements</CardTitle>
-                  <CardDescription>Recent inventory transactions</CardDescription>
+                  <CardTitle>Equipment Assignments</CardTitle>
+                  <CardDescription>Track equipment assigned to employees</CardDescription>
                 </div>
                 <Button variant="outline">
                   <Download className="mr-2 h-4 w-4" />
@@ -596,40 +733,53 @@ export default function InventoryPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead>By</TableHead>
+                    <TableHead>Equipment</TableHead>
+                    <TableHead>Serial Number</TableHead>
+                    <TableHead>Assigned To</TableHead>
+                    <TableHead>Purpose</TableHead>
+                    <TableHead>Assigned Date</TableHead>
+                    <TableHead>Expected Return</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {movements.map((movement) => (
-                    <TableRow key={movement.id}>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(movement.created_at).toLocaleDateString()}
+                  {assignments.map((assignment) => (
+                    <TableRow key={assignment.id}>
+                      <TableCell className="font-medium">{assignment.equipment_name}</TableCell>
+                      <TableCell className="font-mono text-sm">{assignment.equipment_serial}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          {assignment.employee_name}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate">{assignment.purpose}</TableCell>
+                      <TableCell>{new Date(assignment.assigned_date).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {assignment.expected_return_date
+                          ? new Date(assignment.expected_return_date).toLocaleDateString()
+                          : '-'}
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={movement.type === 'received' ? 'default' : movement.type === 'issued' ? 'secondary' : 'outline'}
-                          className={movement.type === 'received' ? 'bg-green-500' : ''}
+                          variant={
+                            assignment.status === 'returned' ? 'secondary' :
+                            assignment.status === 'overdue' ? 'destructive' : 'default'
+                          }
+                          className={assignment.status === 'active' ? 'bg-blue-500' : ''}
                         >
-                          {movement.type}
+                          {assignment.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium">{movement.item_name}</TableCell>
-                      <TableCell>
-                        <span className={movement.type === 'received' || movement.type === 'returned' ? 'text-green-600' : 'text-red-600'}>
-                          {movement.type === 'received' || movement.type === 'returned' ? '+' : '-'}{movement.quantity}
-                        </span>
+                      <TableCell className="text-right">
+                        {assignment.status === 'active' && (
+                          <Button size="sm" variant="outline">
+                            <Undo2 className="mr-1 h-3 w-3" />
+                            Return
+                          </Button>
+                        )}
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{movement.reference}</TableCell>
-                      <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                        {movement.notes}
-                      </TableCell>
-                      <TableCell>{movement.created_by}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -638,6 +788,68 @@ export default function InventoryPage() {
           </Card>
         </TabsContent>
 
+        {/* Types/Categories Tab */}
+        <TabsContent value="types" className="mt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Equipment Types</CardTitle>
+                <CardDescription>Categories of equipment with stock levels</CardDescription>
+              </div>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Type
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {mockEquipmentTypes.map((type) => {
+                  const stockPercent = (type.available_count / type.min_stock_level) * 100
+                  const isLow = type.available_count < type.min_stock_level
+                  return (
+                    <Card key={type.id} className={isLow ? 'border-yellow-300' : ''}>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{type.name}</CardTitle>
+                          <Badge variant="outline">{type.code}</Badge>
+                        </div>
+                        <CardDescription>{type.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex justify-between text-sm">
+                          <span>Total Items</span>
+                          <span className="font-medium">{type.item_count}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Available</span>
+                          <span className={`font-medium ${isLow ? 'text-yellow-600' : 'text-green-600'}`}>
+                            {type.available_count}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Min Stock Level</span>
+                          <span className="text-muted-foreground">{type.min_stock_level}</span>
+                        </div>
+                        <Progress
+                          value={Math.min(stockPercent, 100)}
+                          className={`h-2 ${isLow ? '[&>div]:bg-yellow-500' : ''}`}
+                        />
+                        {isLow && (
+                          <p className="text-xs text-yellow-600 flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            Below minimum stock level
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Suppliers Tab */}
         <TabsContent value="suppliers" className="mt-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -660,37 +872,35 @@ export default function InventoryPage() {
                           <h3 className="font-semibold">{supplier.name}</h3>
                           <p className="text-sm text-muted-foreground">{supplier.contact_name}</p>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Badge variant={supplier.is_active ? 'default' : 'secondary'}>
+                          {supplier.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
                       </div>
-                      <div className="mt-4 space-y-2 text-sm">
+                      <Separator className="my-4" />
+                      <div className="space-y-2 text-sm">
                         <p className="flex items-center gap-2">
-                          <span className="text-muted-foreground">Email:</span>
+                          <span className="text-muted-foreground w-20">Email:</span>
                           <a href={`mailto:${supplier.email}`} className="hover:underline">{supplier.email}</a>
                         </p>
                         <p className="flex items-center gap-2">
-                          <span className="text-muted-foreground">Phone:</span>
+                          <span className="text-muted-foreground w-20">Phone:</span>
                           {supplier.phone}
                         </p>
                         <p className="flex items-center gap-2">
-                          <span className="text-muted-foreground">Location:</span>
+                          <span className="text-muted-foreground w-20">Address:</span>
                           {supplier.address}
                         </p>
+                      </div>
+                      <Separator className="my-4" />
+                      <div className="flex justify-between text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Equipment</p>
+                          <p className="font-medium">{supplier.equipment_count} items</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-muted-foreground">Total Purchases</p>
+                          <p className="font-medium">{formatCurrency(supplier.total_purchases || 0)}</p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -701,178 +911,219 @@ export default function InventoryPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Item Detail Sheet */}
+      {/* Equipment Detail Sheet */}
       <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          {selectedItem && (
-            <>
-              <SheetHeader>
-                <SheetTitle>{selectedItem.name}</SheetTitle>
-                <SheetDescription>SKU: {selectedItem.sku}</SheetDescription>
-              </SheetHeader>
-
-              <div className="mt-6 space-y-6">
-                <div className="flex items-center justify-center p-8 bg-muted rounded-lg">
-                  <Package className="h-24 w-24 text-muted-foreground" />
+        <SheetContent className="sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>{selectedItem?.name}</SheetTitle>
+            <SheetDescription>
+              Asset Tag: {selectedItem?.asset_tag}
+            </SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-200px)] mt-4">
+            {selectedItem && (
+              <div className="space-y-6 pr-4">
+                <div className="flex gap-2">
+                  {getStatusBadge(selectedItem.status)}
+                  {getConditionBadge(selectedItem.condition)}
                 </div>
+
+                <Separator />
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <Label className="text-muted-foreground">Category</Label>
-                    <p className="font-medium capitalize">{selectedItem.category.replace('_', ' ')}</p>
+                    <p className="text-muted-foreground">Serial Number</p>
+                    <p className="font-mono font-medium">{selectedItem.serial_number || '-'}</p>
                   </div>
                   <div>
-                    <Label className="text-muted-foreground">Location</Label>
-                    <p className="font-medium">{selectedItem.location}</p>
+                    <p className="text-muted-foreground">Model</p>
+                    <p className="font-medium">{selectedItem.model || '-'}</p>
                   </div>
                   <div>
-                    <Label className="text-muted-foreground">Unit Cost</Label>
-                    <p className="font-medium">{formatCurrency(selectedItem.unit_cost)}</p>
+                    <p className="text-muted-foreground">Type</p>
+                    <p className="font-medium">{selectedItem.equipment_type_name}</p>
                   </div>
                   <div>
-                    <Label className="text-muted-foreground">Stock Value</Label>
-                    <p className="font-medium">{formatCurrency(parseFloat(selectedItem.unit_cost) * selectedItem.quantity)}</p>
+                    <p className="text-muted-foreground">Location</p>
+                    <p className="font-medium">{selectedItem.location || '-'}</p>
                   </div>
                 </div>
 
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">Stock Levels</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">Current: {selectedItem.quantity}</span>
-                      <span className="text-sm text-muted-foreground">Min: {selectedItem.min_quantity}</span>
+                <Separator />
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Purchase Date</p>
+                    <p className="font-medium">
+                      {selectedItem.purchase_date
+                        ? new Date(selectedItem.purchase_date).toLocaleDateString()
+                        : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Purchase Price</p>
+                    <p className="font-medium">{formatCurrency(selectedItem.purchase_price || 0)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Warranty Expiry</p>
+                    <p className="font-medium">
+                      {selectedItem.warranty_expiry
+                        ? new Date(selectedItem.warranty_expiry).toLocaleDateString()
+                        : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Age</p>
+                    <p className="font-medium">{selectedItem.age_in_months} months</p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="text-sm">
+                  <p className="text-muted-foreground">Supplier</p>
+                  <p className="font-medium">{selectedItem.supplier_name || '-'}</p>
+                </div>
+
+                {selectedItem.assigned_to_name && (
+                  <>
+                    <Separator />
+                    <div className="text-sm">
+                      <p className="text-muted-foreground">Assigned To (Employee)</p>
+                      <p className="font-medium flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        {selectedItem.assigned_to_name}
+                      </p>
                     </div>
-                    <Progress
-                      value={Math.min(100, (selectedItem.quantity / (selectedItem.min_quantity * 2)) * 100)}
-                      className={`h-3 ${selectedItem.quantity < selectedItem.min_quantity ? '[&>div]:bg-yellow-500' : ''}`}
-                    />
-                    <div className="mt-2">
-                      {getStockBadge(selectedItem.quantity, selectedItem.min_quantity)}
+                  </>
+                )}
+
+                {selectedItem.assigned_to_customer_name && (
+                  <>
+                    <Separator />
+                    <div className="text-sm">
+                      <p className="text-muted-foreground">Deployed To (Customer)</p>
+                      <p className="font-medium flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        {selectedItem.assigned_to_customer_name}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                  </>
+                )}
+
+                {selectedItem.notes && (
+                  <>
+                    <Separator />
+                    <div className="text-sm">
+                      <p className="text-muted-foreground">Notes</p>
+                      <p>{selectedItem.notes}</p>
+                    </div>
+                  </>
+                )}
+
+                <Separator />
 
                 <div className="flex gap-2">
-                  <Button
-                    className="flex-1"
-                    onClick={() => {
-                      setStockForm({ ...stockForm, item_id: String(selectedItem.id) })
-                      setIsReceiveStockOpen(true)
+                  {selectedItem.is_available && (
+                    <Button className="flex-1" onClick={() => {
                       setIsDetailOpen(false)
-                    }}
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Receive
+                      handleAssign(selectedItem)
+                    }}>
+                      <UserCheck className="mr-2 h-4 w-4" />
+                      Assign
+                    </Button>
+                  )}
+                  {selectedItem.status === 'assigned' && (
+                    <Button className="flex-1" onClick={() => {
+                      setIsDetailOpen(false)
+                      handleReturn(selectedItem)
+                    }}>
+                      <Undo2 className="mr-2 h-4 w-4" />
+                      Return
+                    </Button>
+                  )}
+                  <Button variant="outline">
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => {
-                      setStockForm({ ...stockForm, item_id: String(selectedItem.id) })
-                      setIsIssueStockOpen(true)
-                      setIsDetailOpen(false)
-                    }}
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Issue
+                  <Button variant="outline">
+                    <QrCode className="mr-2 h-4 w-4" />
+                    Label
                   </Button>
                 </div>
               </div>
-            </>
-          )}
+            )}
+          </ScrollArea>
         </SheetContent>
       </Sheet>
 
-      {/* Add Item Dialog */}
+      {/* Add Equipment Dialog */}
       <Dialog open={isAddItemOpen} onOpenChange={setIsAddItemOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Add Inventory Item</DialogTitle>
+            <DialogTitle>Add New Equipment</DialogTitle>
             <DialogDescription>
-              Add a new item to your inventory
+              Register a new equipment asset in the inventory
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Item Name</Label>
-              <Input
-                id="name"
-                placeholder="e.g. Huawei HG8145V5 ONU"
-                value={itemForm.name}
-                onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
-              />
-            </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="sku">SKU</Label>
-                <Input
-                  id="sku"
-                  placeholder="e.g. HG8145V5"
-                  value={itemForm.sku}
-                  onChange={(e) => setItemForm({ ...itemForm, sku: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="category">Category</Label>
-                <Select value={itemForm.category} onValueChange={(v) => setItemForm({ ...itemForm, category: v as ItemCategory })}>
-                  <SelectTrigger>
-                    <SelectValue />
+              <div className="space-y-2">
+                <Label htmlFor="equipment_type">Equipment Type *</Label>
+                <Select
+                  value={itemForm.equipment_type}
+                  onValueChange={(v) => setItemForm({ ...itemForm, equipment_type: v })}
+                >
+                  <SelectTrigger id="equipment_type">
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="onu">ONU</SelectItem>
-                    <SelectItem value="router">Router</SelectItem>
-                    <SelectItem value="cable">Cable</SelectItem>
-                    <SelectItem value="connector">Connector</SelectItem>
-                    <SelectItem value="splitter">Splitter</SelectItem>
-                    <SelectItem value="olt_module">OLT Module</SelectItem>
-                    <SelectItem value="tools">Tools</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {mockEquipmentTypes.map((type) => (
+                      <SelectItem key={type.id} value={String(type.id)}>{type.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="unit_cost">Unit Cost (KES)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="name">Name *</Label>
                 <Input
-                  id="unit_cost"
-                  type="number"
-                  placeholder="0.00"
-                  value={itemForm.unit_cost}
-                  onChange={(e) => setItemForm({ ...itemForm, unit_cost: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="min_quantity">Min Quantity</Label>
-                <Input
-                  id="min_quantity"
-                  type="number"
-                  placeholder="10"
-                  value={itemForm.min_quantity}
-                  onChange={(e) => setItemForm({ ...itemForm, min_quantity: e.target.value })}
+                  id="name"
+                  placeholder="e.g., Huawei HG8145V5 ONU"
+                  value={itemForm.name}
+                  onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
                 />
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="location">Location</Label>
-                <Select value={itemForm.location} onValueChange={(v) => setItemForm({ ...itemForm, location: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="main">Main Warehouse</SelectItem>
-                    <SelectItem value="nairobi">Nairobi Store</SelectItem>
-                    <SelectItem value="mombasa">Mombasa Store</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2">
+                <Label htmlFor="model">Model</Label>
+                <Input
+                  id="model"
+                  placeholder="e.g., HG8145V5"
+                  value={itemForm.model}
+                  onChange={(e) => setItemForm({ ...itemForm, model: e.target.value })}
+                />
               </div>
-              <div className="grid gap-2">
+              <div className="space-y-2">
+                <Label htmlFor="serial_number">Serial Number</Label>
+                <Input
+                  id="serial_number"
+                  placeholder="Optional - auto-generated if empty"
+                  value={itemForm.serial_number}
+                  onChange={(e) => setItemForm({ ...itemForm, serial_number: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label htmlFor="supplier">Supplier</Label>
-                <Select value={itemForm.supplier} onValueChange={(v) => setItemForm({ ...itemForm, supplier: v })}>
-                  <SelectTrigger>
+                <Select
+                  value={itemForm.supplier}
+                  onValueChange={(v) => setItemForm({ ...itemForm, supplier: v })}
+                >
+                  <SelectTrigger id="supplier">
                     <SelectValue placeholder="Select supplier" />
                   </SelectTrigger>
                   <SelectContent>
@@ -882,14 +1133,73 @@ export default function InventoryPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="condition">Condition *</Label>
+                <Select
+                  value={itemForm.condition}
+                  onValueChange={(v) => setItemForm({ ...itemForm, condition: v as EquipmentCondition })}
+                >
+                  <SelectTrigger id="condition">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="good">Good</SelectItem>
+                    <SelectItem value="fair">Fair</SelectItem>
+                    <SelectItem value="poor">Poor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="purchase_date">Purchase Date</Label>
+                <Input
+                  id="purchase_date"
+                  type="date"
+                  value={itemForm.purchase_date}
+                  onChange={(e) => setItemForm({ ...itemForm, purchase_date: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="purchase_price">Purchase Price (KES)</Label>
+                <Input
+                  id="purchase_price"
+                  type="number"
+                  placeholder="0.00"
+                  value={itemForm.purchase_price}
+                  onChange={(e) => setItemForm({ ...itemForm, purchase_price: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="warranty_expiry">Warranty Expiry</Label>
+                <Input
+                  id="warranty_expiry"
+                  type="date"
+                  value={itemForm.warranty_expiry}
+                  onChange={(e) => setItemForm({ ...itemForm, warranty_expiry: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                placeholder="e.g., Main Warehouse"
+                value={itemForm.location}
+                onChange={(e) => setItemForm({ ...itemForm, location: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
               <Textarea
-                id="description"
-                placeholder="Item description..."
-                value={itemForm.description}
-                onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
+                id="notes"
+                placeholder="Any additional notes..."
+                value={itemForm.notes}
+                onChange={(e) => setItemForm({ ...itemForm, notes: e.target.value })}
               />
             </div>
           </div>
@@ -897,135 +1207,106 @@ export default function InventoryPage() {
             <Button variant="outline" onClick={() => setIsAddItemOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddItem}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Item
+            <Button onClick={() => setIsAddItemOpen(false)}>
+              Add Equipment
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Receive Stock Dialog */}
-      <Dialog open={isReceiveStockOpen} onOpenChange={setIsReceiveStockOpen}>
+      {/* Assign Equipment Dialog */}
+      <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Receive Stock</DialogTitle>
+            <DialogTitle>Assign Equipment</DialogTitle>
             <DialogDescription>
-              Add stock received from supplier
+              Assign {selectedItem?.name} ({selectedItem?.asset_tag}) to an employee
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label>Item</Label>
-              <Select value={stockForm.item_id} onValueChange={(v) => setStockForm({ ...stockForm, item_id: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select item" />
-                </SelectTrigger>
-                <SelectContent>
-                  {inventory.map((item) => (
-                    <SelectItem key={item.id} value={String(item.id)}>
-                      {item.name} ({item.sku})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label>Quantity</Label>
+            <div className="space-y-2">
+              <Label htmlFor="employee_id">Employee ID *</Label>
               <Input
-                type="number"
-                placeholder="0"
-                value={stockForm.quantity}
-                onChange={(e) => setStockForm({ ...stockForm, quantity: e.target.value })}
+                id="employee_id"
+                placeholder="e.g., EMP001"
+                value={assignForm.employee_id}
+                onChange={(e) => setAssignForm({ ...assignForm, employee_id: e.target.value })}
               />
             </div>
-            <div className="grid gap-2">
-              <Label>Reference (PO Number)</Label>
-              <Input
-                placeholder="PO-2024001"
-                value={stockForm.reference}
-                onChange={(e) => setStockForm({ ...stockForm, reference: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Notes</Label>
+            <div className="space-y-2">
+              <Label htmlFor="purpose">Purpose</Label>
               <Textarea
-                placeholder="Additional notes..."
-                value={stockForm.notes}
-                onChange={(e) => setStockForm({ ...stockForm, notes: e.target.value })}
+                id="purpose"
+                placeholder="e.g., Customer installation - Westlands"
+                value={assignForm.purpose}
+                onChange={(e) => setAssignForm({ ...assignForm, purpose: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="expected_return_date">Expected Return Date</Label>
+              <Input
+                id="expected_return_date"
+                type="date"
+                value={assignForm.expected_return_date}
+                onChange={(e) => setAssignForm({ ...assignForm, expected_return_date: e.target.value })}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsReceiveStockOpen(false)}>
+            <Button variant="outline" onClick={() => setIsAssignOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleReceiveStock}>
-              <Download className="mr-2 h-4 w-4" />
-              Receive Stock
+            <Button onClick={() => setIsAssignOpen(false)}>
+              Assign Equipment
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Issue Stock Dialog */}
-      <Dialog open={isIssueStockOpen} onOpenChange={setIsIssueStockOpen}>
+      {/* Return Equipment Dialog */}
+      <Dialog open={isReturnOpen} onOpenChange={setIsReturnOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Issue Stock</DialogTitle>
+            <DialogTitle>Return Equipment</DialogTitle>
             <DialogDescription>
-              Issue stock for a job or technician
+              Return {selectedItem?.name} ({selectedItem?.asset_tag}) to inventory
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label>Item</Label>
-              <Select value={stockForm.item_id} onValueChange={(v) => setStockForm({ ...stockForm, item_id: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select item" />
+            <div className="space-y-2">
+              <Label htmlFor="return_condition">Condition at Return *</Label>
+              <Select
+                value={returnForm.condition}
+                onValueChange={(v) => setReturnForm({ ...returnForm, condition: v as EquipmentCondition })}
+              >
+                <SelectTrigger id="return_condition">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {inventory.filter(i => i.quantity > 0).map((item) => (
-                    <SelectItem key={item.id} value={String(item.id)}>
-                      {item.name} ({item.quantity} available)
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="good">Good</SelectItem>
+                  <SelectItem value="fair">Fair</SelectItem>
+                  <SelectItem value="poor">Poor</SelectItem>
+                  <SelectItem value="faulty">Faulty</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2">
-              <Label>Quantity</Label>
-              <Input
-                type="number"
-                placeholder="0"
-                value={stockForm.quantity}
-                onChange={(e) => setStockForm({ ...stockForm, quantity: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Reference (Job ID)</Label>
-              <Input
-                placeholder="JOB-0001"
-                value={stockForm.reference}
-                onChange={(e) => setStockForm({ ...stockForm, reference: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Notes</Label>
+            <div className="space-y-2">
+              <Label htmlFor="return_notes">Notes</Label>
               <Textarea
-                placeholder="e.g. Issued to Peter O. for installation"
-                value={stockForm.notes}
-                onChange={(e) => setStockForm({ ...stockForm, notes: e.target.value })}
+                id="return_notes"
+                placeholder="Any notes about the return..."
+                value={returnForm.notes}
+                onChange={(e) => setReturnForm({ ...returnForm, notes: e.target.value })}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsIssueStockOpen(false)}>
+            <Button variant="outline" onClick={() => setIsReturnOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleIssueStock}>
-              <Upload className="mr-2 h-4 w-4" />
-              Issue Stock
+            <Button onClick={() => setIsReturnOpen(false)}>
+              Return to Stock
             </Button>
           </DialogFooter>
         </DialogContent>

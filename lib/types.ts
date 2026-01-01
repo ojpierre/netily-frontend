@@ -699,17 +699,114 @@ export interface DispatchJob {
 // INVENTORY TYPES
 // ==========================================
 
-export type InventoryStatus = 'in_stock' | 'assigned' | 'faulty' | 'returned' | 'disposed'
-export type EquipmentType = 'router' | 'ont' | 'onu' | 'cable' | 'splitter' | 'connector' | 'tools' | 'other'
+// Equipment Status (Asset-based tracking, not quantity-based)
+export type EquipmentStatus = 
+  | 'in_stock'     // Available in warehouse
+  | 'assigned'     // Assigned to employee but not deployed
+  | 'in_use'       // Deployed and in use by customer
+  | 'maintenance'  // Under repair
+  | 'faulty'       // Defective, needs repair
+  | 'retired'      // End of life
+  | 'lost'         // Cannot be located
+  | 'disposed'     // Disposed of
 
+export type EquipmentCondition = 'new' | 'good' | 'fair' | 'poor' | 'faulty'
+
+export type EquipmentCategory = 
+  | 'router' 
+  | 'ont' 
+  | 'onu' 
+  | 'cable' 
+  | 'splitter' 
+  | 'connector' 
+  | 'olt_module'
+  | 'tools' 
+  | 'other'
+
+// Equipment Type (Category) - from API /api/inventory/equipment-types/
+export interface EquipmentType {
+  id: number
+  name: string
+  code: string
+  description?: string
+  parent?: number
+  parent_name?: string
+  min_stock_level: number
+  item_count: number
+  available_count: number
+  is_active: boolean
+  created_at: string
+}
+
+// Individual Equipment Item - from API /api/inventory/equipment/
+export interface EquipmentItem {
+  id: number
+  equipment_type: number
+  equipment_type_name: string
+  name: string
+  model?: string
+  serial_number?: string
+  asset_tag: string              // Auto-generated (e.g., "ONU-000001")
+  supplier?: number
+  supplier_name?: string
+  purchase_date?: string
+  purchase_price?: string
+  warranty_expiry?: string
+  status: EquipmentStatus
+  condition: EquipmentCondition
+  location?: string
+  shelf?: string
+  assigned_to?: number           // Employee ID
+  assigned_to_name?: string
+  assigned_to_customer?: number  // Customer ID if deployed
+  assigned_to_customer_name?: string
+  notes?: string
+  age_in_months: number          // Calculated
+  is_available: boolean          // Calculated (status='in_stock' and condition in ['new','good','fair'])
+  created_at: string
+  updated_at: string
+}
+
+// Equipment Assignment - from API /api/inventory/assignments/
+export interface EquipmentAssignment {
+  id: number
+  equipment: number
+  equipment_name: string
+  equipment_serial: string
+  employee_id: string
+  employee_name: string
+  purpose?: string
+  assigned_date: string
+  expected_return_date?: string
+  actual_return_date?: string
+  condition_at_assignment: EquipmentCondition
+  condition_at_return?: EquipmentCondition
+  notes?: string
+  status: 'active' | 'returned' | 'overdue'
+  created_at: string
+}
+
+// Stock Alert - from API /api/inventory/stock-alerts/
+export interface StockAlert {
+  id: number
+  equipment_type: number
+  equipment_type_name: string
+  current_count: number
+  min_stock_level: number
+  shortfall: number
+  severity: 'critical' | 'warning'
+  created_at: string
+}
+
+// Legacy InventoryItem type for backward compatibility
 export interface InventoryItem {
   id: number
   name: string
-  equipment_type: EquipmentType
+  equipment_type: EquipmentCategory
   serial_number?: string
   model?: string
   manufacturer?: string
-  status: InventoryStatus
+  status: EquipmentStatus
   assigned_to_customer?: number
   assigned_to_technician?: number
   purchase_date?: string
@@ -724,13 +821,18 @@ export interface InventoryItem {
 export interface Supplier {
   id: number
   name: string
-  contact_person?: string
+  contact_name?: string
+  contact_person?: string   // Alias for contact_name
   email?: string
   phone: string
   address?: string
   website?: string
   notes?: string
+  payment_terms?: string
   is_active: boolean
+  // Calculated fields
+  total_purchases?: string
+  equipment_count?: number
   created_at: string
 }
 

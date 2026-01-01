@@ -25,8 +25,11 @@ import type {
   MpesaTransaction,
   Technician,
   DispatchJob,
-  InventoryItem,
+  EquipmentItem,
+  EquipmentType,
+  EquipmentAssignment,
   Supplier,
+  StockAlert,
   Alert,
   AlertRule,
 } from './types'
@@ -715,42 +718,143 @@ class AdminApiService {
   }
 
   // ------------------------------------------
-  // INVENTORY - /inventory/
+  // INVENTORY - /inventory/ (Asset Tracking Model)
   // ------------------------------------------
 
-  async getInventoryItems(params?: Record<string, string>): Promise<PaginatedResponse<InventoryItem>> {
+  // Equipment Items (Individual Assets)
+  async getEquipmentItems(params?: Record<string, string>): Promise<PaginatedResponse<EquipmentItem>> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<PaginatedResponse<InventoryItem>>(`/inventory/equipment/${queryString}`)
+    return this.request<PaginatedResponse<EquipmentItem>>(`/inventory/equipment/${queryString}`)
   }
 
-  async getInventoryItem(id: number): Promise<InventoryItem> {
-    return this.request<InventoryItem>(`/inventory/equipment/${id}/`)
+  async getEquipmentItem(id: number): Promise<EquipmentItem> {
+    return this.request<EquipmentItem>(`/inventory/equipment/${id}/`)
   }
 
-  async createInventoryItem(data: Partial<InventoryItem>): Promise<InventoryItem> {
-    return this.request<InventoryItem>('/inventory/equipment/', {
+  async createEquipmentItem(data: Partial<EquipmentItem>): Promise<EquipmentItem> {
+    return this.request<EquipmentItem>('/inventory/equipment/', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  async updateInventoryItem(id: number, data: Partial<InventoryItem>): Promise<InventoryItem> {
-    return this.request<InventoryItem>(`/inventory/equipment/${id}/`, {
+  async updateEquipmentItem(id: number, data: Partial<EquipmentItem>): Promise<EquipmentItem> {
+    return this.request<EquipmentItem>(`/inventory/equipment/${id}/`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
   }
 
-  async assignEquipmentToCustomer(itemId: number, customerId: number): Promise<InventoryItem> {
-    return this.request<InventoryItem>(`/inventory/equipment/${itemId}/assign/`, {
-      method: 'POST',
-      body: JSON.stringify({ customer_id: customerId }),
+  async deleteEquipmentItem(id: number): Promise<void> {
+    return this.request<void>(`/inventory/equipment/${id}/`, {
+      method: 'DELETE',
     })
   }
 
+  // Assign equipment to employee
+  async assignEquipmentToEmployee(itemId: number, data: {
+    employee_id: string
+    purpose?: string
+    expected_return_date?: string
+  }): Promise<EquipmentAssignment> {
+    return this.request<EquipmentAssignment>(`/inventory/equipment/${itemId}/assign/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Return equipment from employee
+  async returnEquipment(itemId: number, data: {
+    condition?: string
+    notes?: string
+  }): Promise<EquipmentItem> {
+    return this.request<EquipmentItem>(`/inventory/equipment/${itemId}/return_item/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Send equipment to maintenance
+  async sendToMaintenance(itemId: number, data?: {
+    notes?: string
+  }): Promise<EquipmentItem> {
+    return this.request<EquipmentItem>(`/inventory/equipment/${itemId}/maintenance/`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    })
+  }
+
+  // Mark equipment as disposed
+  async disposeEquipment(itemId: number, data?: {
+    reason?: string
+  }): Promise<EquipmentItem> {
+    return this.request<EquipmentItem>(`/inventory/equipment/${itemId}/dispose/`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    })
+  }
+
+  // Equipment Types (Categories)
+  async getEquipmentTypes(params?: Record<string, string>): Promise<PaginatedResponse<EquipmentType>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<EquipmentType>>(`/inventory/equipment-types/${queryString}`)
+  }
+
+  async getEquipmentType(id: number): Promise<EquipmentType> {
+    return this.request<EquipmentType>(`/inventory/equipment-types/${id}/`)
+  }
+
+  async createEquipmentType(data: Partial<EquipmentType>): Promise<EquipmentType> {
+    return this.request<EquipmentType>('/inventory/equipment-types/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateEquipmentType(id: number, data: Partial<EquipmentType>): Promise<EquipmentType> {
+    return this.request<EquipmentType>(`/inventory/equipment-types/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Equipment Assignments
+  async getAssignments(params?: Record<string, string>): Promise<PaginatedResponse<EquipmentAssignment>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<EquipmentAssignment>>(`/inventory/assignments/${queryString}`)
+  }
+
+  async getAssignment(id: number): Promise<EquipmentAssignment> {
+    return this.request<EquipmentAssignment>(`/inventory/assignments/${id}/`)
+  }
+
+  // Stock Alerts
+  async getStockAlerts(): Promise<StockAlert[]> {
+    return this.request<StockAlert[]>('/inventory/stock-alerts/')
+  }
+
+  // Suppliers
   async getSuppliers(params?: Record<string, string>): Promise<PaginatedResponse<Supplier>> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
     return this.request<PaginatedResponse<Supplier>>(`/inventory/suppliers/${queryString}`)
+  }
+
+  async getSupplier(id: number): Promise<Supplier> {
+    return this.request<Supplier>(`/inventory/suppliers/${id}/`)
+  }
+
+  async createSupplier(data: Partial<Supplier>): Promise<Supplier> {
+    return this.request<Supplier>('/inventory/suppliers/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateSupplier(id: number, data: Partial<Supplier>): Promise<Supplier> {
+    return this.request<Supplier>(`/inventory/suppliers/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
   }
 
   // ------------------------------------------
