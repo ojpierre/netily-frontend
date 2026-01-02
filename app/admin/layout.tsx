@@ -111,23 +111,35 @@ const navigation = navigationSections.flatMap(section => section.items)
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
 
   // Check if we're on a public page (login)
-  const isPublicPage = pathname === '/admin/login'
+  const isPublicPage = pathname?.startsWith('/admin/login')
 
-  // Client-side protection: redirect to login if not authenticated
+  // Handle hydration
   useEffect(() => {
-    if (!loading && !user && !isPublicPage) {
-      router.push('/admin/login')
-    }
-  }, [user, loading, isPublicPage, router])
+    setMounted(true)
+  }, [])
+
+  // Debug logging
+  useEffect(() => {
+    console.log('AdminLayout state:', { loading, user: user?.email || user?.username, isPublicPage, mounted, pathname })
+  }, [loading, user, isPublicPage, mounted, pathname])
+
+  // Middleware already handles route protection, so we don't need client-side redirect
+  // Just show appropriate UI based on auth state
 
   // For login page, render without sidebar/header
   if (isPublicPage) {
     return <>{children}</>
+  }
+
+  // Don't render until mounted to avoid hydration issues
+  if (!mounted) {
+    return null
   }
 
   // Show loading state while checking auth
@@ -142,9 +154,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // If no user and not loading, don't render anything (will redirect)
+  // If no user after loading, middleware will handle redirect
+  // Show loading state briefly while middleware redirects
   if (!user) {
-    return null
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
+          <p className="text-slate-500">Checking authentication...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

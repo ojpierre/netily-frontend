@@ -79,19 +79,34 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       const storage = localStorage.getItem("adminToken") ? localStorage : sessionStorage
       const token = storage.getItem("adminToken")
       
+      console.log('loadUser: Token found?', !!token)
+      
       if (token) {
         // Verify token by getting current admin user
-        const userData = await adminApi.getCurrentAdmin()
+        console.log('loadUser: Fetching user from /core/users/me/...')
+        const userData = await adminApi.getCurrentAdmin() as any
         
-        // Verify user has admin privileges
-        if (!userData.is_staff && !userData.is_superuser) {
+        console.log('loadUser: Received user data:', userData)
+        
+        // Check for admin privileges - support multiple field formats
+        const allowedRoles = ['admin', 'staff', 'accountant', 'support', 'superadmin']
+        const hasAdminRole = userData?.role && allowedRoles.includes(userData.role.toLowerCase())
+        const isStaffOrSuper = userData?.is_staff || userData?.is_superuser
+        
+        console.log('loadUser: Privilege check:', { role: userData?.role, hasAdminRole, isStaffOrSuper })
+        
+        if (!hasAdminRole && !isStaffOrSuper) {
+          console.log('loadUser: User does not have admin privileges')
           throw new Error("Not an admin user")
         }
         
+        console.log('loadUser: Setting user successfully')
         setUser(userData)
+      } else {
+        console.log('loadUser: No token found in storage')
       }
     } catch (error) {
-      console.error("Failed to load admin user:", error)
+      console.error("loadUser: Failed to load admin user:", error)
       // Clear invalid tokens
       localStorage.removeItem("adminToken")
       localStorage.removeItem("adminRefreshToken")
@@ -128,18 +143,26 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Call /core/auth/login/ with email
       // The adminApi.login already validates admin privileges
+      console.log('login: Calling API with email:', email)
       const response = await adminApi.login(email, password)
+      console.log('login: API response:', response)
       
       // Store both access and refresh tokens
       const storage = rememberMe ? localStorage : sessionStorage
+      console.log('login: Using storage:', rememberMe ? 'localStorage' : 'sessionStorage')
+      
       storage.setItem("adminToken", response.access)
       storage.setItem("adminRefreshToken", response.refresh)
       storage.setItem("adminUser", JSON.stringify(response.user))
+      
+      // Verify tokens were saved
+      console.log('login: Token saved?', !!storage.getItem("adminToken"))
       
       // Sync access token to cookies for middleware
       document.cookie = `adminToken=${response.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
       
       setUser(response.user)
+      console.log('login: User set, login complete')
     } catch (error: any) {
       setLoading(false)
       throw new Error(error.message || "Login failed. Please check your credentials.")

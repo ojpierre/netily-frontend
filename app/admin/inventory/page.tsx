@@ -211,7 +211,10 @@ export default function InventoryPage() {
       const [equipmentRes, typesRes, assignmentsRes, suppliersRes, alertsRes] = await Promise.all([
         adminApi.getEquipmentItems(Object.keys(equipmentParams).length > 0 ? equipmentParams : undefined),
         adminApi.getEquipmentTypes(),
-        adminApi.getAssignments(),
+        adminApi.getAssignments().catch((err) => {
+          console.warn('Failed to fetch assignments:', err)
+          return { results: [] }
+        }),
         adminApi.getSuppliers(),
         adminApi.getStockAlerts().catch(() => []), // Stock alerts might not be implemented
       ])

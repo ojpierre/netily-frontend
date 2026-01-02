@@ -69,7 +69,9 @@ export default function AdminLoginPage() {
       await login(formData.email, formData.password, formData.rememberMe)
       
       console.log("Login successful, navigating to admin...")
-      router.push("/admin")
+      
+      // Use window.location for reliable navigation after login
+      window.location.href = "/admin"
       
     } catch (err: any) {
       setError(err.message || "Login failed")
