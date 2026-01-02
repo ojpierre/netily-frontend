@@ -31,9 +31,10 @@ interface AdminUser {
 interface AdminAuthContextType {
   user: AdminUser | null
   loading: boolean
-  login: (username: string, password: string, rememberMe?: boolean) => Promise<void>
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>
   logout: () => void
   refreshAuth: () => Promise<void>
+  refreshToken: () => Promise<boolean>
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined)
@@ -103,18 +104,18 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const login = async (username: string, password: string, rememberMe: boolean = true) => {
+  const login = async (email: string, password: string, rememberMe: boolean = true) => {
     setLoading(true)
 
     if (USE_MOCK_AUTH) {
       // Mock mode - accept specific test credentials
-      const validUsers = ["admin", "superadmin", "polom", "marko"]
+      const validEmails = ["admin@netily.com", "admin@example.com"]
       await new Promise(r => setTimeout(r, 500))
       
-      if (validUsers.includes(username.toLowerCase()) || password === "admin123") {
+      if (validEmails.includes(email.toLowerCase()) || email.includes("admin") || password === "admin123") {
         setUser({
           ...MOCK_ADMIN,
-          username: username,
+          email: email,
         })
         setLoading(false)
         return
@@ -125,21 +126,21 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      // Call /core/auth/login/
-      const response = await adminApi.login(username, password)
+      // Call /core/auth/login/ with email
+      const response = await adminApi.login(email, password)
       
-      // Verify admin privileges
+      // Verify admin privileges (admin, staff, accountant, support can access)
       if (!response.user?.is_staff && !response.user?.is_superuser) {
         throw new Error("Access denied. Admin privileges required.")
       }
       
-      // Store tokens
+      // Store both access and refresh tokens
       const storage = rememberMe ? localStorage : sessionStorage
       storage.setItem("adminToken", response.access)
       storage.setItem("adminRefreshToken", response.refresh)
       storage.setItem("adminUser", JSON.stringify(response.user))
       
-      // Sync to cookies for middleware
+      // Sync access token to cookies for middleware
       document.cookie = `adminToken=${response.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
       
       setUser(response.user)
@@ -148,6 +149,31 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(error.message || "Login failed. Please check your credentials.")
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Refresh the access token using the refresh token
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      const storage = localStorage.getItem("adminRefreshToken") ? localStorage : sessionStorage
+      const refresh = storage.getItem("adminRefreshToken")
+      
+      if (!refresh) {
+        return false
+      }
+      
+      const response = await adminApi.refreshToken(refresh)
+      
+      // Update the access token
+      storage.setItem("adminToken", response.access)
+      document.cookie = `adminToken=${response.access}; path=/; max-age=3600; SameSite=Lax`
+      
+      return true
+    } catch (error) {
+      console.error("Token refresh failed:", error)
+      // Clear tokens and redirect to login
+      logout()
+      return false
     }
   }
 
@@ -180,7 +206,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AdminAuthContext.Provider value={{ user, loading, login, logout, refreshAuth }}>
+    <AdminAuthContext.Provider value={{ user, loading, login, logout, refreshAuth, refreshToken }}>
       {children}
     </AdminAuthContext.Provider>
   )

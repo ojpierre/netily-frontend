@@ -22,7 +22,7 @@ import { useAdminAuth } from "@/app/admin/admin-auth-context"
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
 
 interface LoginFormData {
-  username: string
+  email: string
   password: string
   rememberMe: boolean
 }
@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
   const router = useRouter()
   const { login, user, loading: authLoading } = useAdminAuth()
   const [formData, setFormData] = useState<LoginFormData>({
-    username: "",
+    email: "",
     password: "",
     rememberMe: true,
   })
@@ -61,12 +61,12 @@ export default function AdminLoginPage() {
     setLoading(true)
 
     try {
-      if (!formData.username || !formData.password) {
+      if (!formData.email || !formData.password) {
         throw new Error("Please fill in all fields")
       }
 
-      // Use the context login function
-      await login(formData.username, formData.password, formData.rememberMe)
+      // Use the context login function (email-based auth)
+      await login(formData.email, formData.password, formData.rememberMe)
       
       console.log("Login successful, navigating to admin...")
       router.push("/admin")
@@ -108,14 +108,16 @@ export default function AdminLoginPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                name="username"
-                placeholder="Enter username"
-                value={formData.username}
+                id="email"
+                name="email"
+                type="email"
+                placeholder="admin@example.com"
+                value={formData.email}
                 onChange={handleInputChange}
                 disabled={loading}
+                autoComplete="email"
                 required
               />
             </div>
@@ -177,7 +179,7 @@ export default function AdminLoginPage() {
             {USE_MOCK && (
               <div className="text-center text-xs text-muted-foreground mt-4 space-y-1 p-3 bg-slate-50 rounded-lg">
                 <p className="font-medium">Development Mode</p>
-                <p>Use: admin, superadmin, polom, or marko</p>
+                <p>Use: admin@netily.com or admin@example.com</p>
                 <p className="text-slate-400">(any password works)</p>
               </div>
             )}

@@ -87,14 +87,55 @@ class AdminApiService {
     return null
   }
 
+  private getRefreshToken(): string | null {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('adminRefreshToken') || sessionStorage.getItem('adminRefreshToken')
+    }
+    return null
+  }
+
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
+      // Handle 401 Unauthorized - token might be expired
+      if (response.status === 401) {
+        const refreshed = await this.tryRefreshToken()
+        if (refreshed) {
+          // Token was refreshed, but caller needs to retry the request
+          throw new Error('TOKEN_REFRESHED')
+        }
+        throw new Error('Session expired. Please login again.')
+      }
+      
       const error = await response.json().catch(() => ({ 
         detail: `Server error: ${response.status}` 
       }))
       throw new Error(error.detail || error.message || `Request failed with status ${response.status}`)
     }
     return response.json()
+  }
+
+  private async tryRefreshToken(): Promise<boolean> {
+    const refresh = this.getRefreshToken()
+    if (!refresh) return false
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/core/auth/token/refresh/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh }),
+      })
+      
+      if (!response.ok) return false
+      
+      const data = await response.json()
+      const storage = localStorage.getItem('adminRefreshToken') ? localStorage : sessionStorage
+      storage.setItem('adminToken', data.access)
+      document.cookie = `adminToken=${data.access}; path=/; max-age=3600; SameSite=Lax`
+      
+      return true
+    } catch {
+      return false
+    }
   }
 
   private async request<T>(
@@ -112,29 +153,40 @@ class AdminApiService {
     }
 
     const response = await fetch(url, config)
-    return this.handleResponse<T>(response)
+    
+    try {
+      return await this.handleResponse<T>(response)
+    } catch (error: any) {
+      // If token was refreshed, retry the request once
+      if (error.message === 'TOKEN_REFRESHED') {
+        const retryResponse = await fetch(url, {
+          ...config,
+          headers: {
+            ...this.getAuthHeaders(), // Get new token
+            ...options.headers,
+          },
+        })
+        return this.handleResponse<T>(retryResponse)
+      }
+      throw error
+    }
   }
 
   // ------------------------------------------
   // AUTHENTICATION - /core/auth/
   // ------------------------------------------
 
-  async login(username: string, password: string): Promise<AdminLoginResponse> {
+  async login(email: string, password: string): Promise<AdminLoginResponse> {
     const response = await fetch(`${this.baseUrl}/core/auth/login/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Send both username and email fields - backend will use whichever it expects
-      body: JSON.stringify({ 
-        username, 
-        email: username, // In case backend expects email
-        password 
-      }),
+      body: JSON.stringify({ email, password }),
       credentials: 'include',
     })
     
     const data = await this.handleResponse<AdminLoginResponse>(response)
     
-    // Verify the user has admin privileges
+    // Verify the user has admin privileges (admin, staff, accountant, support roles)
     if (!data.user?.is_staff && !data.user?.is_superuser) {
       throw new Error('Access denied. Admin privileges required.')
     }
