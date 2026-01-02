@@ -27,6 +27,7 @@ import type {
   DispatchJob,
   EquipmentItem,
   EquipmentType,
+  EquipmentCondition,
   EquipmentAssignment,
   Supplier,
   StockAlert,
@@ -828,9 +829,37 @@ class AdminApiService {
     return this.request<EquipmentAssignment>(`/inventory/assignments/${id}/`)
   }
 
+  // Mark assignment as returned
+  async markAssignmentReturned(assignmentId: number, data: {
+    condition: EquipmentCondition
+    notes?: string
+  }): Promise<EquipmentAssignment> {
+    return this.request<EquipmentAssignment>(`/inventory/assignments/${assignmentId}/mark_returned/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Get available equipment for assignment
+  async getAvailableEquipment(params?: Record<string, string>): Promise<PaginatedResponse<EquipmentItem>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<EquipmentItem>>(`/inventory/equipment/available/${queryString}`)
+  }
+
   // Stock Alerts
   async getStockAlerts(): Promise<StockAlert[]> {
     return this.request<StockAlert[]>('/inventory/stock-alerts/')
+  }
+
+  // Stock Report
+  async getStockReport(): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>('/inventory/stock-report/')
+  }
+
+  // Equipment Report
+  async getEquipmentReport(params?: Record<string, string>): Promise<Record<string, unknown>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<Record<string, unknown>>(`/inventory/equipment/report/${queryString}`)
   }
 
   // Suppliers

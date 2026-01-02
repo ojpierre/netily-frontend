@@ -53,6 +53,8 @@ http://127.0.0.1:8000/api/v1/inventory/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/equipment/` | List all equipment |
+| GET | `/equipment/available/` | List available equipment for assignment |
+| GET | `/equipment/report/` | Get equipment report |
 | POST | `/equipment/` | Create new equipment |
 | GET | `/equipment/{id}/` | Get equipment details |
 | PATCH | `/equipment/{id}/` | Update equipment |
@@ -66,7 +68,8 @@ http://127.0.0.1:8000/api/v1/inventory/
 - `status`: Filter by status (in_stock, assigned, in_use, maintenance, faulty, retired, lost, disposed)
 - `condition`: Filter by condition (new, good, fair, poor, faulty)
 - `equipment_type`: Filter by type ID
-- `search`: Search by name, serial_number, asset_tag
+- `search`: Search by name, serial_number, asset_tag, model
+- `ordering`: Sort field (e.g., `-purchase_date` for descending)
 - `page`: Pagination page number
 - `page_size`: Items per page (default: 20)
 
@@ -134,7 +137,15 @@ http://127.0.0.1:8000/api/v1/inventory/
 |--------|----------|-------------|
 | GET | `/assignments/` | List all assignments |
 | GET | `/assignments/{id}/` | Get assignment details |
+| POST | `/assignments/{id}/mark_returned/` | Mark assignment as returned |
 
+#### Mark Returned Body
+```json
+{
+  "condition": "good",
+  "notes": "Returned in good condition"
+}
+```
 #### Assignment Response
 ```json
 {
@@ -155,11 +166,12 @@ http://127.0.0.1:8000/api/v1/inventory/
 }
 ```
 
-### Stock Alerts
+### Stock Alerts & Reports
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/stock-alerts/` | Get low stock alerts |
+| GET | `/stock-report/` | Get inventory stock report |
 
 #### Stock Alert Response
 ```json
@@ -245,8 +257,9 @@ The `adminApi` service in `lib/admin-api.ts` provides these methods:
 
 ```typescript
 // Equipment Items
-adminApi.getEquipmentItems(params?)
+adminApi.getEquipmentItems(params?)      // Supports: search, status, condition, equipment_type, ordering
 adminApi.getEquipmentItem(id)
+adminApi.getAvailableEquipment(params?)  // Equipment available for assignment
 adminApi.createEquipmentItem(data)
 adminApi.updateEquipmentItem(id, data)
 adminApi.deleteEquipmentItem(id)
@@ -265,8 +278,15 @@ adminApi.updateEquipmentType(id, data)
 adminApi.getAssignments(params?)
 adminApi.getAssignment(id)
 
-// Stock Alerts
+// Assignments
+adminApi.getAssignments(params?)
+adminApi.getAssignment(id)
+adminApi.markAssignmentReturned(assignmentId, { condition, notes? })
+
+// Stock Alerts & Reports
 adminApi.getStockAlerts()
+adminApi.getStockReport()
+adminApi.getEquipmentReport(params?)
 
 // Suppliers
 adminApi.getSuppliers(params?)

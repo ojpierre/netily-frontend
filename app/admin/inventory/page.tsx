@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect, useCallback } from "react"
 import {
   Package,
   Plus,
@@ -36,6 +36,7 @@ import {
   Settings,
   FileText,
   Users,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -91,6 +92,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
+import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
+import { adminApi } from "@/lib/admin-api"
 import type {
   EquipmentItem,
   EquipmentType,
@@ -100,175 +104,6 @@ import type {
   Supplier,
   StockAlert,
 } from "@/lib/types"
-
-// Mock Equipment Types (Categories)
-const mockEquipmentTypes: EquipmentType[] = [
-  { id: 1, name: "ONU", code: "ONU", description: "Optical Network Unit", min_stock_level: 20, item_count: 45, available_count: 32, is_active: true, created_at: "2024-01-01" },
-  { id: 2, name: "Router", code: "RTR", description: "WiFi Routers", min_stock_level: 10, item_count: 28, available_count: 18, is_active: true, created_at: "2024-01-01" },
-  { id: 3, name: "Fiber Cable", code: "CBL", description: "Fiber optic cables", min_stock_level: 50, item_count: 120, available_count: 95, is_active: true, created_at: "2024-01-01" },
-  { id: 4, name: "Splitter", code: "SPL", description: "PLC Splitters", min_stock_level: 10, item_count: 25, available_count: 20, is_active: true, created_at: "2024-01-01" },
-  { id: 5, name: "Connector", code: "CON", description: "Fiber connectors", min_stock_level: 100, item_count: 350, available_count: 280, is_active: true, created_at: "2024-01-01" },
-  { id: 6, name: "Tools", code: "TLS", description: "Installation tools", min_stock_level: 3, item_count: 8, available_count: 5, is_active: true, created_at: "2024-01-01" },
-]
-
-// Mock Equipment Items (Individual Assets)
-const generateMockEquipment = (): EquipmentItem[] => {
-  const items: EquipmentItem[] = []
-  const locations = ['Main Warehouse', 'Nairobi Store', 'Mombasa Store', 'Field']
-
-  // Generate ONU items
-  for (let i = 1; i <= 25; i++) {
-    const status: EquipmentStatus = i <= 15 ? 'in_stock' : i <= 20 ? 'assigned' : i <= 23 ? 'in_use' : 'maintenance'
-    const condition: EquipmentCondition = i <= 10 ? 'new' : i <= 20 ? 'good' : 'fair'
-    items.push({
-      id: i,
-      equipment_type: 1,
-      equipment_type_name: "ONU",
-      name: i % 2 === 0 ? "Huawei HG8145V5 ONU" : "ZTE F660 ONU",
-      model: i % 2 === 0 ? "HG8145V5" : "F660",
-      serial_number: `HW${String(i).padStart(8, '0')}`,
-      asset_tag: `ONU-${String(i).padStart(6, '0')}`,
-      supplier: i % 2 === 0 ? 1 : 2,
-      supplier_name: i % 2 === 0 ? "Huawei Technologies" : "ZTE Corporation",
-      purchase_date: "2024-01-15",
-      purchase_price: i % 2 === 0 ? "4500.00" : "4200.00",
-      warranty_expiry: "2026-01-15",
-      status,
-      condition,
-      location: status === 'in_stock' ? locations[Math.floor(Math.random() * 3)] : 'Field',
-      assigned_to: status === 'assigned' ? Math.floor(Math.random() * 5) + 1 : undefined,
-      assigned_to_name: status === 'assigned' ? ['John Kamau', 'Peter Mwangi', 'James Ochieng'][Math.floor(Math.random() * 3)] : undefined,
-      assigned_to_customer: status === 'in_use' ? Math.floor(Math.random() * 100) + 1 : undefined,
-      assigned_to_customer_name: status === 'in_use' ? 'Customer ' + (Math.floor(Math.random() * 100) + 1) : undefined,
-      age_in_months: Math.floor(Math.random() * 12) + 1,
-      is_available: status === 'in_stock' && ['new', 'good', 'fair'].includes(condition),
-      created_at: "2024-01-15T00:00:00Z",
-      updated_at: "2024-01-20T00:00:00Z",
-    })
-  }
-
-  // Generate Router items
-  for (let i = 26; i <= 40; i++) {
-    const status: EquipmentStatus = i <= 35 ? 'in_stock' : i <= 38 ? 'assigned' : 'in_use'
-    items.push({
-      id: i,
-      equipment_type: 2,
-      equipment_type_name: "Router",
-      name: i % 2 === 0 ? "TP-Link Archer C6" : "Mikrotik hAP ac2",
-      model: i % 2 === 0 ? "Archer C6" : "hAP ac2",
-      serial_number: `RTR${String(i).padStart(8, '0')}`,
-      asset_tag: `RTR-${String(i - 25).padStart(6, '0')}`,
-      supplier: 3,
-      supplier_name: "Network Solutions EA",
-      purchase_date: "2024-02-01",
-      purchase_price: i % 2 === 0 ? "5500.00" : "8500.00",
-      warranty_expiry: "2026-02-01",
-      status,
-      condition: 'good',
-      location: status === 'in_stock' ? 'Main Warehouse' : 'Field',
-      assigned_to: status === 'assigned' ? Math.floor(Math.random() * 5) + 1 : undefined,
-      assigned_to_name: status === 'assigned' ? 'Field Tech ' + (Math.floor(Math.random() * 5) + 1) : undefined,
-      age_in_months: Math.floor(Math.random() * 8) + 1,
-      is_available: status === 'in_stock',
-      created_at: "2024-02-01T00:00:00Z",
-      updated_at: "2024-02-05T00:00:00Z",
-    })
-  }
-
-  // Generate Tools
-  const toolNames = ['Fiber Cleaver', 'Optical Power Meter', 'OTDR', 'Fusion Splicer', 'Fiber Stripper', 'Visual Fault Locator', 'Cable Tester', 'Crimping Tool']
-  for (let i = 41; i <= 48; i++) {
-    const status: EquipmentStatus = i <= 45 ? 'in_stock' : 'assigned'
-    items.push({
-      id: i,
-      equipment_type: 6,
-      equipment_type_name: "Tools",
-      name: toolNames[i - 41],
-      model: `MODEL-${i - 40}`,
-      serial_number: `TLS${String(i).padStart(8, '0')}`,
-      asset_tag: `TLS-${String(i - 40).padStart(6, '0')}`,
-      supplier: 4,
-      supplier_name: "Fiber Optics Kenya",
-      purchase_date: "2023-06-01",
-      purchase_price: String((i - 40) * 5000 + 10000),
-      warranty_expiry: "2025-06-01",
-      status,
-      condition: 'good',
-      location: status === 'in_stock' ? 'Main Warehouse' : 'Field',
-      assigned_to: status === 'assigned' ? i - 44 : undefined,
-      assigned_to_name: status === 'assigned' ? `Tech ${i - 44}` : undefined,
-      age_in_months: 18,
-      is_available: status === 'in_stock',
-      created_at: "2023-06-01T00:00:00Z",
-      updated_at: "2024-01-01T00:00:00Z",
-    })
-  }
-
-  return items
-}
-
-// Mock Assignments
-const generateMockAssignments = (): EquipmentAssignment[] => {
-  return [
-    {
-      id: 1,
-      equipment: 16,
-      equipment_name: "Huawei HG8145V5 ONU",
-      equipment_serial: "HW00000016",
-      employee_id: "EMP001",
-      employee_name: "John Kamau",
-      purpose: "Customer installation - Westlands",
-      assigned_date: "2024-01-20",
-      expected_return_date: "2024-01-21",
-      condition_at_assignment: 'good',
-      status: 'active',
-      created_at: "2024-01-20T00:00:00Z",
-    },
-    {
-      id: 2,
-      equipment: 17,
-      equipment_name: "ZTE F660 ONU",
-      equipment_serial: "HW00000017",
-      employee_id: "EMP002",
-      employee_name: "Peter Mwangi",
-      purpose: "Customer installation - Kilimani",
-      assigned_date: "2024-01-19",
-      expected_return_date: "2024-01-20",
-      actual_return_date: "2024-01-20",
-      condition_at_assignment: 'good',
-      condition_at_return: 'good',
-      status: 'returned',
-      created_at: "2024-01-19T00:00:00Z",
-    },
-    {
-      id: 3,
-      equipment: 46,
-      equipment_name: "Fiber Cleaver",
-      equipment_serial: "TLS00000046",
-      employee_id: "EMP001",
-      employee_name: "John Kamau",
-      purpose: "Field installations",
-      assigned_date: "2024-01-15",
-      condition_at_assignment: 'good',
-      status: 'active',
-      created_at: "2024-01-15T00:00:00Z",
-    },
-  ]
-}
-
-// Mock Suppliers
-const mockSuppliers: Supplier[] = [
-  { id: 1, name: "Huawei Technologies", contact_name: "John Chen", email: "sales@huawei.com", phone: "+86 755 1234567", address: "Shenzhen, China", is_active: true, total_purchases: "450000.00", equipment_count: 15, created_at: "2023-01-01T00:00:00Z" },
-  { id: 2, name: "ZTE Corporation", contact_name: "Li Wei", email: "sales@zte.com", phone: "+86 755 2345678", address: "Shenzhen, China", is_active: true, total_purchases: "320000.00", equipment_count: 12, created_at: "2023-01-01T00:00:00Z" },
-  { id: 3, name: "Network Solutions EA", contact_name: "James Kamau", email: "info@networksolutions.co.ke", phone: "+254 20 2345678", address: "Nairobi, Kenya", is_active: true, total_purchases: "180000.00", equipment_count: 18, created_at: "2023-01-01T00:00:00Z" },
-  { id: 4, name: "Fiber Optics Kenya", contact_name: "Mary Wanjiku", email: "sales@fokltd.co.ke", phone: "+254 20 1234567", address: "Nairobi, Kenya", is_active: true, total_purchases: "95000.00", equipment_count: 8, created_at: "2023-01-01T00:00:00Z" },
-]
-
-// Mock Stock Alerts
-const mockStockAlerts: StockAlert[] = [
-  { id: 1, equipment_type: 1, equipment_type_name: "ONU", current_count: 15, min_stock_level: 20, shortfall: 5, severity: 'warning', created_at: "2024-01-20" },
-  { id: 2, equipment_type: 6, equipment_type_name: "Tools", current_count: 2, min_stock_level: 3, shortfall: 1, severity: 'critical', created_at: "2024-01-20" },
-]
 
 // Helper Functions
 const getStatusBadge = (status: EquipmentStatus) => {
@@ -303,19 +138,31 @@ const formatCurrency = (amount: string | number) => {
 }
 
 export default function InventoryPage() {
-  const [equipment] = useState(generateMockEquipment())
-  const [assignments] = useState(generateMockAssignments())
+  // Data states
+  const [equipment, setEquipment] = useState<EquipmentItem[]>([])
+  const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
+  const [assignments, setAssignments] = useState<EquipmentAssignment[]>([])
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([])
+
+  // Loading states
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  // Filter states
   const [searchQuery, setSearchQuery] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [conditionFilter, setConditionFilter] = useState<string>("all")
+
+  // UI states
   const [activeTab, setActiveTab] = useState("equipment")
   const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isAddItemOpen, setIsAddItemOpen] = useState(false)
   const [isAssignOpen, setIsAssignOpen] = useState(false)
   const [isReturnOpen, setIsReturnOpen] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Add equipment form
   const [itemForm, setItemForm] = useState({
@@ -345,6 +192,77 @@ export default function InventoryPage() {
     notes: "",
   })
 
+  // Fetch all data with optional filters
+  const fetchData = useCallback(async (filters?: {
+    search?: string
+    status?: string
+    condition?: string
+    equipment_type?: string
+  }) => {
+    try {
+      // Build query params for equipment
+      const equipmentParams: Record<string, string> = {}
+      if (filters?.search) equipmentParams.search = filters.search
+      if (filters?.status && filters.status !== 'all') equipmentParams.status = filters.status
+      if (filters?.condition && filters.condition !== 'all') equipmentParams.condition = filters.condition
+      if (filters?.equipment_type && filters.equipment_type !== 'all') equipmentParams.equipment_type = filters.equipment_type
+      equipmentParams.ordering = '-purchase_date' // Default ordering
+
+      const [equipmentRes, typesRes, assignmentsRes, suppliersRes, alertsRes] = await Promise.all([
+        adminApi.getEquipmentItems(Object.keys(equipmentParams).length > 0 ? equipmentParams : undefined),
+        adminApi.getEquipmentTypes(),
+        adminApi.getAssignments(),
+        adminApi.getSuppliers(),
+        adminApi.getStockAlerts().catch(() => []), // Stock alerts might not be implemented
+      ])
+
+      setEquipment(equipmentRes.results || [])
+      setEquipmentTypes(typesRes.results || [])
+      setAssignments(assignmentsRes.results || [])
+      setSuppliers(suppliersRes.results || [])
+      setStockAlerts(alertsRes || [])
+    } catch (error) {
+      console.error('Failed to fetch inventory data:', error)
+      toast.error('Failed to load inventory data')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  // Initial data load
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  // Refetch when filters change (with debounce for search)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (!isLoading) {
+        fetchData({
+          search: searchQuery,
+          status: statusFilter,
+          condition: conditionFilter,
+          equipment_type: typeFilter,
+        })
+      }
+    }, 300) // Debounce search
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, statusFilter, conditionFilter, typeFilter, fetchData, isLoading])
+
+  // Refresh data
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchData({
+      search: searchQuery,
+      status: statusFilter,
+      condition: conditionFilter,
+      equipment_type: typeFilter,
+    })
+    setIsRefreshing(false)
+    toast.success('Inventory data refreshed')
+  }
+
   // Stats
   const stats = useMemo(() => {
     const totalAssets = equipment.length
@@ -358,40 +276,12 @@ export default function InventoryPage() {
     return { totalAssets, available, assigned, inUse, maintenance, faulty, totalValue }
   }, [equipment])
 
-  // Filtered equipment
+  // Filtered equipment (server-side filtering is primary, this is fallback/display)
   const filteredEquipment = useMemo(() => {
-    let filtered = equipment
-
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase()
-      filtered = filtered.filter(e =>
-        e.name.toLowerCase().includes(q) ||
-        e.serial_number?.toLowerCase().includes(q) ||
-        e.asset_tag.toLowerCase().includes(q) ||
-        e.model?.toLowerCase().includes(q)
-      )
-    }
-
-    if (typeFilter !== "all") {
-      filtered = filtered.filter(e => e.equipment_type === parseInt(typeFilter))
-    }
-
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(e => e.status === statusFilter)
-    }
-
-    if (conditionFilter !== "all") {
-      filtered = filtered.filter(e => e.condition === conditionFilter)
-    }
-
-    return filtered
-  }, [equipment, searchQuery, typeFilter, statusFilter, conditionFilter])
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsRefreshing(false)
-  }
+    // Since we're using server-side filtering, just return the equipment
+    // This is here for compatibility and as a fallback
+    return equipment
+  }, [equipment])
 
   const handleViewDetails = (item: EquipmentItem) => {
     setSelectedItem(item)
@@ -400,12 +290,210 @@ export default function InventoryPage() {
 
   const handleAssign = (item: EquipmentItem) => {
     setSelectedItem(item)
+    setAssignForm({ employee_id: "", purpose: "", expected_return_date: "" })
     setIsAssignOpen(true)
   }
 
   const handleReturn = (item: EquipmentItem) => {
     setSelectedItem(item)
+    setReturnForm({ condition: "good", notes: "" })
     setIsReturnOpen(true)
+  }
+
+  // Form reset
+  const resetItemForm = () => {
+    setItemForm({
+      equipment_type: "",
+      name: "",
+      model: "",
+      serial_number: "",
+      supplier: "",
+      purchase_date: "",
+      purchase_price: "",
+      warranty_expiry: "",
+      condition: "new",
+      location: "",
+      notes: "",
+    })
+  }
+
+  // Create equipment
+  const handleCreateEquipment = async () => {
+    if (!itemForm.equipment_type || !itemForm.name) {
+      toast.error('Please fill in required fields')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      await adminApi.createEquipmentItem({
+        equipment_type: parseInt(itemForm.equipment_type),
+        name: itemForm.name,
+        model: itemForm.model || undefined,
+        serial_number: itemForm.serial_number || undefined,
+        supplier: itemForm.supplier ? parseInt(itemForm.supplier) : undefined,
+        purchase_date: itemForm.purchase_date || undefined,
+        purchase_price: itemForm.purchase_price || undefined,
+        warranty_expiry: itemForm.warranty_expiry || undefined,
+        condition: itemForm.condition,
+        location: itemForm.location || undefined,
+        notes: itemForm.notes || undefined,
+      })
+      toast.success('Equipment added successfully')
+      setIsAddItemOpen(false)
+      resetItemForm()
+      fetchData()
+    } catch (error) {
+      console.error('Failed to create equipment:', error)
+      toast.error('Failed to add equipment')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Assign equipment
+  const handleAssignEquipment = async () => {
+    if (!selectedItem || !assignForm.employee_id) {
+      toast.error('Please enter employee ID')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      await adminApi.assignEquipmentToEmployee(selectedItem.id, {
+        employee_id: assignForm.employee_id,
+        purpose: assignForm.purpose || undefined,
+        expected_return_date: assignForm.expected_return_date || undefined,
+      })
+      toast.success('Equipment assigned successfully')
+      setIsAssignOpen(false)
+      setSelectedItem(null)
+      fetchData()
+    } catch (error) {
+      console.error('Failed to assign equipment:', error)
+      toast.error('Failed to assign equipment')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Return equipment
+  const handleReturnEquipment = async () => {
+    if (!selectedItem) return
+
+    setIsSubmitting(true)
+    try {
+      await adminApi.returnEquipment(selectedItem.id, {
+        condition: returnForm.condition,
+        notes: returnForm.notes || undefined,
+      })
+      toast.success('Equipment returned successfully')
+      setIsReturnOpen(false)
+      setSelectedItem(null)
+      fetchData()
+    } catch (error) {
+      console.error('Failed to return equipment:', error)
+      toast.error('Failed to return equipment')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Send to maintenance
+  const handleSendToMaintenance = async (item: EquipmentItem) => {
+    try {
+      await adminApi.sendToMaintenance(item.id, {})
+      toast.success('Equipment sent to maintenance')
+      fetchData()
+    } catch (error) {
+      console.error('Failed to send to maintenance:', error)
+      toast.error('Failed to send to maintenance')
+    }
+  }
+
+  // Dispose equipment
+  const handleDispose = async (item: EquipmentItem) => {
+    if (!confirm(`Are you sure you want to dispose ${item.name}?`)) return
+
+    try {
+      await adminApi.disposeEquipment(item.id, {})
+      toast.success('Equipment disposed')
+      fetchData()
+    } catch (error) {
+      console.error('Failed to dispose equipment:', error)
+      toast.error('Failed to dispose equipment')
+    }
+  }
+
+  // Export equipment
+  const handleExport = () => {
+    const csvContent = [
+      ['Asset Tag', 'Name', 'Model', 'Serial Number', 'Type', 'Status', 'Condition', 'Location', 'Purchase Price'].join(','),
+      ...filteredEquipment.map(e => [
+        e.asset_tag,
+        `"${e.name}"`,
+        e.model || '',
+        e.serial_number || '',
+        e.equipment_type_name || '',
+        e.status,
+        e.condition,
+        e.location || '',
+        e.purchase_price || ''
+      ].join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `inventory-export-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Inventory exported')
+  }
+
+  // Loading skeleton
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <Skeleton className="h-9 w-64 mb-2" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-20" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16 mb-1" />
+                <Skeleton className="h-3 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -423,7 +511,7 @@ export default function InventoryPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
@@ -504,7 +592,7 @@ export default function InventoryPage() {
       </div>
 
       {/* Stock Alerts */}
-      {mockStockAlerts.length > 0 && (
+      {stockAlerts.length > 0 && (
         <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -514,7 +602,7 @@ export default function InventoryPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
-              {mockStockAlerts.map((alert) => (
+              {stockAlerts.map((alert) => (
                 <Badge key={alert.id} variant={alert.severity === 'critical' ? 'destructive' : 'secondary'}>
                   {alert.equipment_type_name}: {alert.current_count}/{alert.min_stock_level} (need {alert.shortfall} more)
                 </Badge>
@@ -572,7 +660,7 @@ export default function InventoryPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Types</SelectItem>
-                      {mockEquipmentTypes.map((type) => (
+                      {equipmentTypes.map((type) => (
                         <SelectItem key={type.id} value={String(type.id)}>{type.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -694,12 +782,12 @@ export default function InventoryPage() {
                                 Return to Stock
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleSendToMaintenance(item)}>
                               <Wrench className="mr-2 h-4 w-4" />
                               Send to Maintenance
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem className="text-red-600" onClick={() => handleDispose(item)}>
                               <Trash2 className="mr-2 h-4 w-4" />
                               Dispose
                             </DropdownMenuItem>
@@ -803,8 +891,8 @@ export default function InventoryPage() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {mockEquipmentTypes.map((type) => {
-                  const stockPercent = (type.available_count / type.min_stock_level) * 100
+                {equipmentTypes.map((type) => {
+                  const stockPercent = type.min_stock_level > 0 ? (type.available_count / type.min_stock_level) * 100 : 100
                   const isLow = type.available_count < type.min_stock_level
                   return (
                     <Card key={type.id} className={isLow ? 'border-yellow-300' : ''}>
@@ -864,7 +952,7 @@ export default function InventoryPage() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
-                {mockSuppliers.map((supplier) => (
+                {suppliers.map((supplier) => (
                   <Card key={supplier.id}>
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between">
@@ -1078,7 +1166,7 @@ export default function InventoryPage() {
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockEquipmentTypes.map((type) => (
+                    {equipmentTypes.map((type) => (
                       <SelectItem key={type.id} value={String(type.id)}>{type.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -1127,7 +1215,7 @@ export default function InventoryPage() {
                     <SelectValue placeholder="Select supplier" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockSuppliers.map((s) => (
+                    {suppliers.map((s) => (
                       <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -1204,10 +1292,11 @@ export default function InventoryPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddItemOpen(false)}>
+            <Button variant="outline" onClick={() => setIsAddItemOpen(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button onClick={() => setIsAddItemOpen(false)}>
+            <Button onClick={handleCreateEquipment} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Add Equipment
             </Button>
           </DialogFooter>
@@ -1253,10 +1342,11 @@ export default function InventoryPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAssignOpen(false)}>
+            <Button variant="outline" onClick={() => setIsAssignOpen(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button onClick={() => setIsAssignOpen(false)}>
+            <Button onClick={handleAssignEquipment} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Assign Equipment
             </Button>
           </DialogFooter>
@@ -1302,10 +1392,11 @@ export default function InventoryPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsReturnOpen(false)}>
+            <Button variant="outline" onClick={() => setIsReturnOpen(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button onClick={() => setIsReturnOpen(false)}>
+            <Button onClick={handleReturnEquipment} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Return to Stock
             </Button>
           </DialogFooter>
