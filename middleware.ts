@@ -2,21 +2,14 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // =====================================================
-// AUTHENTICATION DISABLED FOR DEVELOPMENT
-// Set ENABLE_AUTH = true to enable route protection
+// ROUTE PROTECTION MIDDLEWARE
+// Protects admin and dashboard routes
 // =====================================================
-const ENABLE_AUTH = false
 
 export function middleware(request: NextRequest) {
-  // Skip all auth checks if disabled
-  if (!ENABLE_AUTH) {
-    return NextResponse.next()
-  }
-
   const { pathname } = request.nextUrl
   
-  // Get tokens from cookies (for now, middleware will be lenient since we use localStorage)
-  // In production, tokens should be in httpOnly cookies
+  // Get tokens from cookies
   const userToken = request.cookies.get('access_token')?.value
   const adminToken = request.cookies.get('adminToken')?.value
 
@@ -33,18 +26,22 @@ export function middleware(request: NextRequest) {
 
     // Protect all other admin routes
     if (!adminToken) {
-      return NextResponse.redirect(new URL('/admin/login', request.url))
+      const loginUrl = new URL('/admin/login', request.url)
+      loginUrl.searchParams.set('from', pathname)
+      return NextResponse.redirect(loginUrl)
     }
   }
 
-  // Regular user routes protection
-  const publicPaths = ['/login', '/register', '/']
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
-
-  if (!userToken && !isPublicPath && !pathname.startsWith('/admin')) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  // Regular user dashboard routes protection
+  if (pathname.startsWith('/dashboard')) {
+    if (!userToken) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('from', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
   }
 
+  // Redirect logged-in users away from login/register pages
   if (userToken && (pathname === '/login' || pathname === '/register')) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }

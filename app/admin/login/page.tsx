@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Shield, AlertCircle } from "lucide-react"
+import { Loader2, Shield, AlertCircle, Wifi, WifiOff } from "lucide-react"
 import {
   Card,
   CardContent,
@@ -15,7 +15,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
 import { useAdminAuth } from "@/app/admin/admin-auth-context"
+
+// Check if using mock mode
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
 
 interface LoginFormData {
   username: string
@@ -153,11 +157,30 @@ export default function AdminLoginPage() {
               )}
             </Button>
 
-            <div className="text-center text-xs text-muted-foreground mt-6 space-y-1">
-              <p className="font-medium">Dev Quick Login</p>
-              <p>admin • superadmin • polom • marko</p>
-              <p className="text-slate-400">(any password works in mock mode)</p>
+            {/* Mode indicator */}
+            <div className="flex justify-center pt-2">
+              <Badge variant={USE_MOCK ? "secondary" : "default"} className="gap-1">
+                {USE_MOCK ? (
+                  <>
+                    <WifiOff className="h-3 w-3" />
+                    Mock Mode
+                  </>
+                ) : (
+                  <>
+                    <Wifi className="h-3 w-3" />
+                    Live Backend
+                  </>
+                )}
+              </Badge>
             </div>
+
+            {USE_MOCK && (
+              <div className="text-center text-xs text-muted-foreground mt-4 space-y-1 p-3 bg-slate-50 rounded-lg">
+                <p className="font-medium">Development Mode</p>
+                <p>Use: admin, superadmin, polom, or marko</p>
+                <p className="text-slate-400">(any password works)</p>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>

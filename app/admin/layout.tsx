@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard,
   Users,
@@ -112,7 +112,40 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const pathname = usePathname()
-  const { user, logout } = useAdminAuth()
+  const router = useRouter()
+  const { user, logout, loading } = useAdminAuth()
+
+  // Check if we're on a public page (login)
+  const isPublicPage = pathname === '/admin/login'
+
+  // Client-side protection: redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user && !isPublicPage) {
+      router.push('/admin/login')
+    }
+  }, [user, loading, isPublicPage, router])
+
+  // For login page, render without sidebar/header
+  if (isPublicPage) {
+    return <>{children}</>
+  }
+
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
+          <p className="text-slate-500">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If no user and not loading, don't render anything (will redirect)
+  if (!user) {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-slate-50" suppressHydrationWarning>

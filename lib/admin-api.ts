@@ -123,7 +123,12 @@ class AdminApiService {
     const response = await fetch(`${this.baseUrl}/core/auth/login/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      // Send both username and email fields - backend will use whichever it expects
+      body: JSON.stringify({ 
+        username, 
+        email: username, // In case backend expects email
+        password 
+      }),
       credentials: 'include',
     })
     

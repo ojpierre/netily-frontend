@@ -10,7 +10,8 @@ import type { User } from "@/lib/types"
 // ==========================================
 
 // Toggle this to switch between mock and real backend
-const USE_MOCK_AUTH = process.env.NEXT_PUBLIC_USE_MOCK === 'true' || true
+// Set NEXT_PUBLIC_USE_MOCK=true in .env.local to use mock data
+const USE_MOCK_AUTH = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
 
 // ==========================================
 // TYPES
