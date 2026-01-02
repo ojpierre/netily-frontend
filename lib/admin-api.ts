@@ -186,8 +186,18 @@ class AdminApiService {
     
     const data = await this.handleResponse<AdminLoginResponse>(response)
     
-    // Verify the user has admin privileges (admin, staff, accountant, support roles)
-    if (!data.user?.is_staff && !data.user?.is_superuser) {
+    // Debug: log the user data to see what fields are returned
+    console.log('Login response user:', data.user)
+    
+    // Check for admin privileges - support multiple field formats
+    // Backend may use role field or is_staff/is_superuser
+    const user = data.user as any
+    const allowedRoles = ['admin', 'staff', 'accountant', 'support', 'superadmin']
+    const hasAdminRole = user?.role && allowedRoles.includes(user.role.toLowerCase())
+    const isStaffOrSuper = user?.is_staff || user?.is_superuser
+    
+    if (!hasAdminRole && !isStaffOrSuper) {
+      console.log('Access check failed:', { role: user?.role, is_staff: user?.is_staff, is_superuser: user?.is_superuser })
       throw new Error('Access denied. Admin privileges required.')
     }
     

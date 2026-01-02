@@ -127,12 +127,8 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       // Call /core/auth/login/ with email
+      // The adminApi.login already validates admin privileges
       const response = await adminApi.login(email, password)
-      
-      // Verify admin privileges (admin, staff, accountant, support can access)
-      if (!response.user?.is_staff && !response.user?.is_superuser) {
-        throw new Error("Access denied. Admin privileges required.")
-      }
       
       // Store both access and refresh tokens
       const storage = rememberMe ? localStorage : sessionStorage
