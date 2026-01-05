@@ -342,27 +342,61 @@ export interface Payment {
   customer: number
   customer_name: string
   invoice?: number
+  invoice_number?: string
   amount: string
-  payment_method: 'mpesa' | 'bank' | 'cash' | 'card' | 'voucher'
+  payment_method: 'mpesa' | 'bank' | 'cash' | 'card' | 'voucher' | 'paybill' | 'till' | 'payhero'
   payment_date: string
   reference_number?: string
+  external_reference?: string
   mpesa_receipt?: string
-  status: 'pending' | 'completed' | 'failed' | 'refunded'
+  // PayHero integration fields
+  payhero_reference?: string
+  payhero_checkout_id?: string
+  payhero_response?: PayHeroResponse
+  channel_id?: number
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled'
   created_at: string
+  updated_at?: string
 }
 
-export interface Voucher {
-  id: number
-  code: string
-  plan: ServicePlan
-  amount: string
-  status: 'unused' | 'used' | 'expired'
-  used_by?: Customer
-  used_at?: string
-  expires_at: string
-  created_by: User
-  created_at: string
+// PayHero response structure
+export interface PayHeroResponse {
+  status?: string  // Can be various statuses from PayHero
+  checkout_request_id?: string
+  payment_url?: string  // For payment links
+  paybill_number?: string  // For Paybill instructions
+  till_number?: string  // For Till instructions
+  account_number?: string
+  bank_details?: {
+    bank_name?: string
+    account_name?: string
+    account_number?: string
+    branch?: string
+  }
+  message?: string
+  error?: string
 }
+
+// Payment initiate request
+export interface PaymentInitiateRequest {
+  amount: number | string
+  external_reference?: string  // Optional: unique reference (e.g., invoice_number)
+  channel_id?: number  // Optional: force specific payment method
+  phone_number?: string  // For STK Push
+  customer_id?: number
+  invoice_id?: number
+}
+
+// Payment initiate response
+export interface PaymentInitiateResponse {
+  status: 'success' | 'failed' | 'pending' | 'error'
+  payment_id?: number
+  payhero_response?: PayHeroResponse | null
+  error?: string
+  message?: string
+}
+
+// Note: Voucher interface is defined in "VOUCHERS (Backend Aligned)" section
 
 // ==========================================
 // SUPPORT MODULE TYPES (Future endpoints)
@@ -840,15 +874,7 @@ export interface Supplier {
 // BILLING EXTENDED TYPES
 // ==========================================
 
-export interface BillingCycle {
-  id: number
-  name: string
-  cycle_type: 'monthly' | 'quarterly' | 'yearly'
-  billing_day: number  // Day of month
-  grace_period_days: number
-  late_fee_percentage?: number
-  is_active: boolean
-}
+// Note: BillingCycle is now defined in "BILLING PLANS & CYCLES" section with full backend alignment
 
 export interface Promotion {
   id: number
@@ -915,6 +941,263 @@ export interface AlertRule {
   notification_channels: ('email' | 'sms' | 'in_app')[]
   is_active: boolean
   created_at: string
+}
+
+// ==========================================
+// BILLING PLANS & CYCLES (Backend Aligned)
+// ==========================================
+
+export type PlanType = 'INTERNET' | 'ADDON' | 'BUNDLE' | 'TOPUP'
+
+export interface Plan {
+  id: number
+  name: string
+  code: string
+  plan_type: PlanType
+  description?: string
+  base_price: string
+  download_speed?: number  // Mbps
+  upload_speed?: number    // Mbps
+  data_limit?: number      // GB, null = unlimited
+  duration_days?: number
+  validity_hours?: number  // For hourly plans
+  fup_limit?: number       // Fair Usage Policy limit in GB
+  fup_speed?: number       // Reduced speed after FUP
+  is_active: boolean
+  is_public: boolean       // Visible to customers
+  is_popular?: boolean
+  features?: string[]
+  subscribers_count?: number
+  created_at: string
+  updated_at: string
+}
+
+export type BillingCycleStatus = 'OPEN' | 'CLOSED' | 'PROCESSING'
+
+export interface BillingCycle {
+  id: number
+  name: string
+  start_date: string
+  end_date: string
+  due_date: string
+  status: BillingCycleStatus
+  total_invoiced?: string
+  total_collected?: string
+  total_outstanding?: string
+  invoice_count?: number
+  created_at: string
+  updated_at: string
+}
+
+export interface BillingCycleSummary {
+  id: number
+  name: string
+  status: BillingCycleStatus
+  start_date: string
+  end_date: string
+  total_invoices: number
+  total_invoiced: string
+  total_collected: string
+  total_outstanding: string
+  collection_rate: number  // Percentage
+  overdue_count: number
+  paid_count: number
+  pending_count: number
+}
+
+// ==========================================
+// PAYMENT METHODS
+// ==========================================
+
+export type PaymentMethodType = 'MPESA' | 'BANK' | 'CARD' | 'CASH' | 'VOUCHER' | 'PAYPAL' | 'STRIPE'
+
+export interface PaymentMethod {
+  id: number
+  name: string
+  code: string
+  method_type: PaymentMethodType
+  description?: string
+  // PayHero integration
+  use_payhero: boolean
+  payhero_channel_id?: number
+  // Configuration fields (JSON for flexibility)
+  config?: {
+    // M-Pesa config
+    consumer_key?: string
+    consumer_secret?: string
+    shortcode?: string
+    passkey?: string
+    environment?: 'sandbox' | 'production'
+    // Bank config
+    bank_name?: string
+    account_number?: string
+    account_name?: string
+    branch?: string
+    swift_code?: string
+    // Card config
+    merchant_id?: string
+    api_key?: string
+    // PayHero config
+    payhero_api_key?: string
+  }
+  is_active: boolean
+  is_default: boolean
+  display_order?: number
+  instructions?: string  // Instructions to show user (e.g., Paybill steps)
+  created_at: string
+  updated_at: string
+}
+
+// ==========================================
+// RECEIPTS
+// ==========================================
+
+export type ReceiptStatus = 'DRAFT' | 'ISSUED' | 'CANCELLED'
+
+export interface Receipt {
+  id: number
+  receipt_number: string
+  customer: number
+  customer_name: string
+  payment: number
+  payment_reference?: string
+  amount: string
+  status: ReceiptStatus
+  issued_by?: number
+  issued_by_name?: string
+  issued_at?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+// ==========================================
+// VOUCHERS (Backend Aligned)
+// ==========================================
+
+export type VoucherType = 'PREPAID' | 'DISCOUNT' | 'CREDIT' | 'DATA' | 'TIME'
+export type VoucherStatus = 'DRAFT' | 'ACTIVE' | 'SOLD' | 'REDEEMED' | 'EXPIRED' | 'CANCELLED'
+export type VoucherBatchStatus = 'DRAFT' | 'ACTIVE' | 'DEPLETED' | 'EXPIRED' | 'CANCELLED'
+
+export interface VoucherBatch {
+  id: number
+  batch_number: string
+  name: string
+  description?: string
+  voucher_type: VoucherType
+  face_value: string
+  quantity: number
+  generated_count: number
+  sold_count: number
+  redeemed_count: number
+  status: VoucherBatchStatus
+  expiry_date?: string
+  prefix?: string
+  code_length?: number
+  created_by?: number
+  created_by_name?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Voucher {
+  id: number
+  batch: number
+  batch_name?: string
+  code: string
+  pin?: string
+  face_value: string
+  remaining_value: string
+  voucher_type: VoucherType
+  status: VoucherStatus
+  sold_to?: number
+  sold_to_name?: string
+  sold_at?: string
+  sold_by?: number
+  redeemed_by?: number
+  redeemed_by_name?: string
+  redeemed_at?: string
+  expiry_date?: string
+  created_at: string
+}
+
+export interface VoucherUsage {
+  id: number
+  voucher: number
+  voucher_code: string
+  customer: number
+  customer_name: string
+  amount: string
+  description?: string
+  created_at: string
+}
+
+export interface VoucherBatchStats {
+  batch_id: number
+  batch_name: string
+  total_vouchers: number
+  active_vouchers: number
+  sold_vouchers: number
+  redeemed_vouchers: number
+  expired_vouchers: number
+  total_value: string
+  sold_value: string
+  redeemed_value: string
+  remaining_value: string
+  usage_rate: number  // Percentage
+}
+
+// ==========================================
+// DASHBOARD STATS (Backend Aligned)
+// ==========================================
+
+export interface InvoiceDashboardStats {
+  total_invoices: number
+  total_invoiced: string
+  total_collected: string
+  total_outstanding: string
+  collection_rate: number
+  overdue_invoices: number
+  pending_invoices: number
+  paid_invoices: number
+  average_invoice_amount: string
+  invoices_this_month: number
+  revenue_this_month: string
+  revenue_growth: number  // Percentage
+}
+
+export interface PaymentDashboardStats {
+  total_payments: number
+  total_amount: string
+  completed_payments: number
+  pending_payments: number
+  failed_payments: number
+  refunded_amount: string
+  payments_today: number
+  amount_today: string
+  payments_this_month: number
+  amount_this_month: string
+  payment_methods_breakdown: {
+    method: PaymentMethodType
+    count: number
+    amount: string
+  }[]
+  daily_trend: {
+    date: string
+    count: number
+    amount: string
+  }[]
+}
+
+export interface CustomerOutstanding {
+  customer_id: number
+  customer_name: string
+  customer_email: string
+  customer_phone: string
+  total_outstanding: string
+  overdue_amount: string
+  overdue_invoices: number
+  oldest_invoice_date?: string
 }
 
 // ==========================================

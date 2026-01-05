@@ -33,6 +33,9 @@ import {
   Truck,
   Warehouse,
   Receipt,
+  Calendar,
+  Banknote,
+  QrCode,
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -74,8 +77,12 @@ const navigationSections = [
   {
     title: "Finance",
     items: [
+      { name: "Billing Cycles", href: "/admin/billing-cycles", icon: Calendar },
       { name: "Invoices", href: "/admin/invoices", icon: Receipt },
       { name: "Payments", href: "/admin/payments", icon: CreditCard },
+      { name: "Receipts", href: "/admin/receipts", icon: FileText },
+      { name: "Vouchers", href: "/admin/vouchers", icon: QrCode },
+      { name: "Payment Methods", href: "/admin/payment-methods", icon: Banknote },
       { name: "Analytics", href: "/admin/analytics", icon: TrendingUp },
     ],
   },

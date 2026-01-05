@@ -1224,63 +1224,20 @@ export default function RoutersPage() {
 
       {/* Add Router Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add New Router</DialogTitle>
-            <DialogDescription>Configure a new NAS/Router for your network</DialogDescription>
+            <DialogDescription>
+              Enter a name for your router. After adding, go to the Script tab to get the configuration script for your MikroTik.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Router Name</Label>
-                <Input placeholder="e.g., Main Gateway" />
-              </div>
-              <div className="space-y-2">
-                <Label>Router Type</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mikrotik">MikroTik</SelectItem>
-                    <SelectItem value="cisco">Cisco</SelectItem>
-                    <SelectItem value="ubiquiti">Ubiquiti</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>IP Address</Label>
-                <Input placeholder="192.168.1.1" />
-              </div>
-              <div className="space-y-2">
-                <Label>Model</Label>
-                <Input placeholder="e.g., CCR1036-12G-4S" />
-              </div>
-            </div>
             <div className="space-y-2">
-              <Label>RADIUS Secret</Label>
-              <Input type="password" placeholder="Shared secret for RADIUS" />
-            </div>
-            <div className="space-y-2">
-              <Label>Location</Label>
-              <Input placeholder="e.g., Nairobi - Main Office" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>SLA Target (%)</Label>
-                <Input type="number" placeholder="99.9" defaultValue="99.9" />
-              </div>
-              <div className="space-y-2">
-                <Label>Tags</Label>
-                <Input placeholder="production, primary" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Notes</Label>
-              <Textarea placeholder="Additional notes about this router..." />
+              <Label>Router Name *</Label>
+              <Input placeholder="e.g., MERAKII, Main Office, Branch-001" />
+              <p className="text-xs text-muted-foreground">
+                This will be the display name in your dashboard
+              </p>
             </div>
           </div>
           <DialogFooter>

@@ -21,6 +21,7 @@ import type {
   CPEDevice,
   CPETask,
   Invoice,
+  InvoiceItem,
   Payment,
   MpesaTransaction,
   Technician,
@@ -33,6 +34,18 @@ import type {
   StockAlert,
   Alert,
   AlertRule,
+  Plan,
+  BillingCycle,
+  BillingCycleSummary,
+  PaymentMethod,
+  Receipt,
+  VoucherBatch,
+  Voucher,
+  VoucherUsage,
+  VoucherBatchStats,
+  InvoiceDashboardStats,
+  PaymentDashboardStats,
+  CustomerOutstanding,
 } from './types'
 
 // Re-export for backward compatibility
@@ -983,6 +996,474 @@ class AdminApiService {
       method: 'POST',
       body: JSON.stringify(data),
     })
+  }
+
+  // ------------------------------------------
+  // PLANS - /billing/plans/
+  // ------------------------------------------
+
+  async getPlans(params?: Record<string, string>): Promise<PaginatedResponse<Plan>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<Plan>>(`/billing/plans/${queryString}`)
+  }
+
+  async getPlan(id: number): Promise<Plan> {
+    return this.request<Plan>(`/billing/plans/${id}/`)
+  }
+
+  async createPlan(data: Partial<Plan>): Promise<Plan> {
+    return this.request<Plan>('/billing/plans/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updatePlan(id: number, data: Partial<Plan>): Promise<Plan> {
+    return this.request<Plan>(`/billing/plans/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deletePlan(id: number): Promise<void> {
+    await this.request(`/billing/plans/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async togglePlanActive(id: number): Promise<Plan> {
+    return this.request<Plan>(`/billing/plans/${id}/toggle_active/`, {
+      method: 'POST',
+    })
+  }
+
+  async getPublicPlans(): Promise<Plan[]> {
+    return this.request<Plan[]>('/billing/plans/public/')
+  }
+
+  // ------------------------------------------
+  // BILLING CYCLES - /billing/billing-cycles/
+  // ------------------------------------------
+
+  async getBillingCycles(params?: Record<string, string>): Promise<PaginatedResponse<BillingCycle>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<BillingCycle>>(`/billing/billing-cycles/${queryString}`)
+  }
+
+  async getBillingCycle(id: number): Promise<BillingCycle> {
+    return this.request<BillingCycle>(`/billing/billing-cycles/${id}/`)
+  }
+
+  async createBillingCycle(data: Partial<BillingCycle>): Promise<BillingCycle> {
+    return this.request<BillingCycle>('/billing/billing-cycles/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateBillingCycle(id: number, data: Partial<BillingCycle>): Promise<BillingCycle> {
+    return this.request<BillingCycle>(`/billing/billing-cycles/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async closeBillingCycle(id: number): Promise<BillingCycle> {
+    return this.request<BillingCycle>(`/billing/billing-cycles/${id}/close_cycle/`, {
+      method: 'POST',
+    })
+  }
+
+  async calculateBillingCycleTotals(id: number): Promise<BillingCycle> {
+    return this.request<BillingCycle>(`/billing/billing-cycles/${id}/calculate_totals/`, {
+      method: 'POST',
+    })
+  }
+
+  async getCurrentBillingCycle(): Promise<BillingCycle> {
+    return this.request<BillingCycle>('/billing/billing-cycles/current/')
+  }
+
+  async getBillingCycleSummary(id: number): Promise<BillingCycleSummary> {
+    return this.request<BillingCycleSummary>(`/billing/billing-cycles/${id}/summary/`)
+  }
+
+  // ------------------------------------------
+  // INVOICES - Extended Actions
+  // ------------------------------------------
+
+  async issueInvoice(id: number): Promise<Invoice> {
+    return this.request<Invoice>(`/billing/invoices/${id}/issue/`, {
+      method: 'POST',
+    })
+  }
+
+  async markInvoiceSent(id: number): Promise<Invoice> {
+    return this.request<Invoice>(`/billing/invoices/${id}/mark_as_sent/`, {
+      method: 'POST',
+    })
+  }
+
+  async addPaymentToInvoice(id: number, data: { amount: number; payment_method_id: number }): Promise<Invoice> {
+    return this.request<Invoice>(`/billing/invoices/${id}/add_payment/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async applyInvoiceDiscount(id: number, data: { discount_amount: number; discount_reason: string }): Promise<Invoice> {
+    return this.request<Invoice>(`/billing/invoices/${id}/apply_discount/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async getInvoiceItems(id: number): Promise<InvoiceItem[]> {
+    return this.request<InvoiceItem[]>(`/billing/invoices/${id}/items/`)
+  }
+
+  async getInvoicePayments(id: number): Promise<Payment[]> {
+    return this.request<Payment[]>(`/billing/invoices/${id}/payments/`)
+  }
+
+  async bulkGenerateInvoices(billingCycleId: number): Promise<{ message: string; count: number }> {
+    return this.request<{ message: string; count: number }>('/billing/invoices/bulk_generate/', {
+      method: 'POST',
+      body: JSON.stringify({ billing_cycle_id: billingCycleId }),
+    })
+  }
+
+  async getOverdueInvoices(): Promise<PaginatedResponse<Invoice>> {
+    return this.request<PaginatedResponse<Invoice>>('/billing/invoices/overdue/')
+  }
+
+  async getInvoiceDashboardStats(): Promise<InvoiceDashboardStats> {
+    return this.request<InvoiceDashboardStats>('/billing/invoices/dashboard_stats/')
+  }
+
+  async getCustomerOutstanding(): Promise<CustomerOutstanding[]> {
+    return this.request<CustomerOutstanding[]>('/billing/invoices/customer_outstanding/')
+  }
+
+  // ------------------------------------------
+  // PAYMENT METHODS - /billing/payment-methods/
+  // ------------------------------------------
+
+  async getPaymentMethods(params?: Record<string, string>): Promise<PaginatedResponse<PaymentMethod>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<PaymentMethod>>(`/billing/payment-methods/${queryString}`)
+  }
+
+  async getPaymentMethod(id: number): Promise<PaymentMethod> {
+    return this.request<PaymentMethod>(`/billing/payment-methods/${id}/`)
+  }
+
+  async createPaymentMethod(data: Partial<PaymentMethod>): Promise<PaymentMethod> {
+    return this.request<PaymentMethod>('/billing/payment-methods/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updatePaymentMethod(id: number, data: Partial<PaymentMethod>): Promise<PaymentMethod> {
+    return this.request<PaymentMethod>(`/billing/payment-methods/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deletePaymentMethod(id: number): Promise<void> {
+    await this.request(`/billing/payment-methods/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async togglePaymentMethodActive(id: number): Promise<PaymentMethod> {
+    return this.request<PaymentMethod>(`/billing/payment-methods/${id}/toggle_active/`, {
+      method: 'POST',
+    })
+  }
+
+  async testPaymentMethodConnection(id: number): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/billing/payment-methods/${id}/test_connection/`, {
+      method: 'POST',
+    })
+  }
+
+  // ------------------------------------------
+  // PAYMENTS - Extended Actions
+  // ------------------------------------------
+
+  async markPaymentCompleted(id: number): Promise<Payment> {
+    return this.request<Payment>(`/billing/payments/${id}/mark_completed/`, {
+      method: 'POST',
+    })
+  }
+
+  async markPaymentFailed(id: number, reason: string): Promise<Payment> {
+    return this.request<Payment>(`/billing/payments/${id}/mark_failed/`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    })
+  }
+
+  async reconcilePayment(id: number): Promise<Payment> {
+    return this.request<Payment>(`/billing/payments/${id}/reconcile/`, {
+      method: 'POST',
+    })
+  }
+
+  async refundPayment(id: number, data: { refund_amount: number; refund_reason: string }): Promise<Payment> {
+    return this.request<Payment>(`/billing/payments/${id}/refund/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async initiateMpesaStkPush(data: {
+    customer_id: number
+    invoice_id?: number
+    amount: number
+    phone_number: string
+  }): Promise<MpesaTransaction> {
+    return this.request<MpesaTransaction>('/billing/payments/mpesa_stk_push/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async processBankTransfer(data: {
+    customer_id: number
+    invoice_id?: number
+    amount: number
+    bank_name: string
+    account_number: string
+    transaction_reference: string
+  }): Promise<Payment> {
+    return this.request<Payment>('/billing/payments/bank_transfer/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // ------------------------------------------
+  // PAYHERO UNIFIED PAYMENT - /billing/payments/initiate/
+  // ------------------------------------------
+
+  /**
+   * Initiate a payment using PayHero unified flow
+   * This is the recommended method for all payments
+   */
+  async initiatePayment(data: {
+    amount: number | string
+    external_reference?: string  // Optional: unique reference (e.g., invoice_number)
+    channel_id?: number  // Optional: force specific payment method
+    phone_number?: string  // For STK Push
+    customer_id?: number
+    invoice_id?: number
+  }): Promise<{
+    status: 'success' | 'failed' | 'pending' | 'error'
+    payment_id?: number
+    payhero_response?: {
+      status?: string
+      checkout_request_id?: string
+      payment_url?: string
+      paybill_number?: string
+      till_number?: string
+      account_number?: string
+      bank_details?: {
+        bank_name?: string
+        account_name?: string
+        account_number?: string
+        branch?: string
+      }
+      message?: string
+    } | null
+    error?: string
+    message?: string
+  }> {
+    return this.request('/billing/payments/initiate/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  /**
+   * Poll payment status - useful for async payments (Paybill, Bank, Till)
+   */
+  async pollPaymentStatus(paymentId: number): Promise<Payment> {
+    return this.request<Payment>(`/billing/payments/${paymentId}/`)
+  }
+
+  /**
+   * Get active payment methods for customer selection
+   */
+  async getActivePaymentMethods(): Promise<PaymentMethod[]> {
+    const response = await this.request<PaginatedResponse<PaymentMethod>>(
+      '/billing/payment-methods/?is_active=true'
+    )
+    return response.results || []
+  }
+
+  async getPaymentDashboardStats(): Promise<PaymentDashboardStats> {
+    return this.request<PaymentDashboardStats>('/billing/payments/dashboard_stats/')
+  }
+
+  // ------------------------------------------
+  // RECEIPTS - /billing/receipts/
+  // ------------------------------------------
+
+  async getReceipts(params?: Record<string, string>): Promise<PaginatedResponse<Receipt>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<Receipt>>(`/billing/receipts/${queryString}`)
+  }
+
+  async getReceipt(id: number): Promise<Receipt> {
+    return this.request<Receipt>(`/billing/receipts/${id}/`)
+  }
+
+  async createReceipt(data: Partial<Receipt>): Promise<Receipt> {
+    return this.request<Receipt>('/billing/receipts/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async issueReceipt(id: number): Promise<Receipt> {
+    return this.request<Receipt>(`/billing/receipts/${id}/issue/`, {
+      method: 'POST',
+    })
+  }
+
+  async downloadReceiptPDF(id: number): Promise<Blob> {
+    const response = await fetch(`${this.baseUrl}/billing/receipts/${id}/download_pdf/`, {
+      headers: this.getAuthHeaders(),
+    })
+    if (!response.ok) throw new Error('Failed to download receipt')
+    return response.blob()
+  }
+
+  async shareReceipt(id: number, method: 'email' | 'sms'): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/billing/receipts/${id}/share/?method=${method}`)
+  }
+
+  // ------------------------------------------
+  // VOUCHER BATCHES - /billing/voucher-batches/
+  // ------------------------------------------
+
+  async getVoucherBatches(params?: Record<string, string>): Promise<PaginatedResponse<VoucherBatch>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<VoucherBatch>>(`/billing/voucher-batches/${queryString}`)
+  }
+
+  async getVoucherBatch(id: number): Promise<VoucherBatch> {
+    return this.request<VoucherBatch>(`/billing/voucher-batches/${id}/`)
+  }
+
+  async createVoucherBatch(data: Partial<VoucherBatch>): Promise<VoucherBatch> {
+    return this.request<VoucherBatch>('/billing/voucher-batches/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateVoucherBatch(id: number, data: Partial<VoucherBatch>): Promise<VoucherBatch> {
+    return this.request<VoucherBatch>(`/billing/voucher-batches/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async activateVoucherBatch(id: number): Promise<VoucherBatch> {
+    return this.request<VoucherBatch>(`/billing/voucher-batches/${id}/activate/`, {
+      method: 'POST',
+    })
+  }
+
+  async generateVouchers(batchId: number, count: number): Promise<{ message: string; count: number }> {
+    return this.request<{ message: string; count: number }>(`/billing/voucher-batches/${batchId}/generate_vouchers/`, {
+      method: 'POST',
+      body: JSON.stringify({ count }),
+    })
+  }
+
+  async getBatchVouchers(batchId: number): Promise<Voucher[]> {
+    return this.request<Voucher[]>(`/billing/voucher-batches/${batchId}/vouchers/`)
+  }
+
+  async getBatchStatistics(batchId: number): Promise<VoucherBatchStats> {
+    return this.request<VoucherBatchStats>(`/billing/voucher-batches/${batchId}/statistics/`)
+  }
+
+  // ------------------------------------------
+  // VOUCHERS - /billing/vouchers/
+  // ------------------------------------------
+
+  async getVouchers(params?: Record<string, string>): Promise<PaginatedResponse<Voucher>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<Voucher>>(`/billing/vouchers/${queryString}`)
+  }
+
+  async getVoucher(id: number): Promise<Voucher> {
+    return this.request<Voucher>(`/billing/vouchers/${id}/`)
+  }
+
+  async createVoucher(data: Partial<Voucher>): Promise<Voucher> {
+    return this.request<Voucher>('/billing/vouchers/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateVoucher(id: number, data: Partial<Voucher>): Promise<Voucher> {
+    return this.request<Voucher>(`/billing/vouchers/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async sellVoucher(id: number, customerId: number): Promise<Voucher> {
+    return this.request<Voucher>(`/billing/vouchers/${id}/sell/`, {
+      method: 'POST',
+      body: JSON.stringify({ customer_id: customerId }),
+    })
+  }
+
+  async redeemVoucher(id: number, data: { customer_id: number; amount?: number; description?: string }): Promise<Voucher> {
+    return this.request<Voucher>(`/billing/vouchers/${id}/redeem/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async checkVoucherValidity(id: number): Promise<{ valid: boolean; message: string }> {
+    return this.request<{ valid: boolean; message: string }>(`/billing/vouchers/${id}/check_validity/`, {
+      method: 'POST',
+    })
+  }
+
+  async validateVoucherCode(code: string, pin: string): Promise<{ valid: boolean; voucher?: Voucher }> {
+    return this.request<{ valid: boolean; voucher?: Voucher }>('/billing/vouchers/validate_code/', {
+      method: 'POST',
+      body: JSON.stringify({ code, pin }),
+    })
+  }
+
+  async getVoucherUsageHistory(id: number): Promise<VoucherUsage[]> {
+    return this.request<VoucherUsage[]>(`/billing/vouchers/${id}/usage_history/`)
+  }
+
+  // ------------------------------------------
+  // VOUCHER USAGES - /billing/voucher-usages/
+  // ------------------------------------------
+
+  async getVoucherUsages(params?: Record<string, string>): Promise<PaginatedResponse<VoucherUsage>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<VoucherUsage>>(`/billing/voucher-usages/${queryString}`)
+  }
+
+  async getCustomerVoucherHistory(customerId: number): Promise<VoucherUsage[]> {
+    return this.request<VoucherUsage[]>(`/billing/voucher-usages/customer_history/?customer_id=${customerId}`)
   }
 }
 

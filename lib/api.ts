@@ -640,6 +640,68 @@ class ApiService {
   async healthCheck(): Promise<{ status: string }> {
     return this.request<{ status: string }>('/core/health/')
   }
+
+  // ------------------------------------------
+  // PAYHERO PAYMENTS - /billing/
+  // ------------------------------------------
+
+  /**
+   * Get customer invoices
+   */
+  async getInvoices(params?: Record<string, string>): Promise<{ results: Invoice[] }> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<{ results: Invoice[] }>(`/billing/invoices/${queryString}`)
+  }
+
+  /**
+   * Get active payment methods for customer to choose from
+   */
+  async getActivePaymentMethods(): Promise<any[]> {
+    return this.request<any[]>('/billing/payment-methods/?is_active=true')
+  }
+
+  /**
+   * Initiate a payment using PayHero unified flow
+   */
+  async initiatePayment(data: {
+    amount: number | string
+    external_reference?: string
+    channel_id?: number
+    phone_number?: string
+    invoice_id?: number
+  }): Promise<{
+    status: 'success' | 'failed' | 'pending' | 'error'
+    payment_id?: number
+    payhero_response?: {
+      status?: string
+      checkout_request_id?: string
+      payment_url?: string
+      paybill_number?: string
+      till_number?: string
+      account_number?: string
+      bank_details?: {
+        bank_name?: string
+        account_name?: string
+        account_number?: string
+        branch?: string
+      }
+      message?: string
+    } | null
+    error?: string
+    message?: string
+  }> {
+    return this.request('/billing/payments/initiate/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  /**
+   * Poll payment status - useful for async payments (Paybill, Bank, Till)
+   */
+  async pollPaymentStatus(paymentId: number): Promise<Payment> {
+    return this.request<Payment>(`/billing/payments/${paymentId}/`)
+  }
 }
 
 // Export singleton instance

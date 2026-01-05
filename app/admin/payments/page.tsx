@@ -1,19 +1,29 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
 import {
   CreditCard,
   Search,
   Download,
   Eye,
-  Filter,
-  TrendingUp,
-  Loader2,
+  RefreshCw,
   Phone,
   Smartphone,
+  CheckCircle,
+  XCircle,
+  Clock,
+  MoreVertical,
+  Loader2,
+  TrendingUp,
+  Building2,
+  Banknote,
+  ArrowDownUp,
+  AlertCircle,
+  RotateCcw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
@@ -37,474 +47,1316 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Separator } from "@/components/ui/separator"
+import { Textarea } from "@/components/ui/textarea"
+import { toast } from "sonner"
+import { adminApi } from "@/lib/admin-api"
+import type { Payment, PaymentDashboardStats, PaymentMethod, PayHeroResponse, PaymentInitiateResponse } from "@/lib/types"
 
-type Payment = {
-  id: string
-  transactionId: string
-  userId: string
-  userName: string
-  amount: number
-  method: "mpesa" | "pokopoko" | "airtel" | "card"
-  status: "completed" | "pending" | "failed" | "refunded"
-  plan: string
-  phoneNumber?: string
-  date: string
-  time: string
+const formatCurrency = (amount: string | number) => {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount
+  return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(num || 0)
 }
 
-const generateMockPayments = (): Payment[] => {
-  const methods: Payment["method"][] = ["mpesa", "pokopoko", "airtel", "card"]
-  const statuses: Payment["status"][] = ["completed", "pending", "failed", "refunded"]
-  const plans = ["Mtaani-8 Weekly", "Mtaani-10 Monthly", "Mtaani-12 Quarterly"]
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-KE', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
 
-  return Array.from({ length: 30 }, (_, i) => {
-    const date = new Date(2025, 10, Math.floor(Math.random() * 16) + 1)
-    return {
-      id: `PAY-${10000 + i}`,
-      transactionId: `TXN${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-      userId: `USR-${1000 + Math.floor(Math.random() * 100)}`,
-      userName: `User ${Math.floor(Math.random() * 100) + 1}`,
-      amount: [350, 450, 1200, 2000, 3200][Math.floor(Math.random() * 5)],
-      method: methods[Math.floor(Math.random() * methods.length)],
-      status: i < 3 ? statuses[1] : i < 5 ? statuses[2] : i === 5 ? statuses[3] : statuses[0],
-      plan: plans[Math.floor(Math.random() * plans.length)],
-      phoneNumber: `+254 7${Math.floor(10000000 + Math.random() * 90000000)}`,
-      date: date.toISOString().split("T")[0],
-      time: `${String(Math.floor(Math.random() * 24)).padStart(2, "0")}:${String(
-        Math.floor(Math.random() * 60)
-      ).padStart(2, "0")}`,
-    }
-  }).sort((a, b) => new Date(b.date + " " + b.time).getTime() - new Date(a.date + " " + a.time).getTime())
+const formatDateTime = (dateString: string) => {
+  return new Date(dateString).toLocaleString('en-KE', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const getStatusBadge = (status: string) => {
+  const s = status?.toUpperCase() || 'PENDING'
+  const config: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode; className?: string }> = {
+    COMPLETED: { variant: "default", icon: <CheckCircle className="h-3 w-3" />, className: "bg-green-500" },
+    PENDING: { variant: "secondary", icon: <Clock className="h-3 w-3" /> },
+    PROCESSING: { variant: "secondary", icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+    FAILED: { variant: "destructive", icon: <XCircle className="h-3 w-3" /> },
+    REFUNDED: { variant: "outline", icon: <RotateCcw className="h-3 w-3" /> },
+    CANCELLED: { variant: "outline", icon: <XCircle className="h-3 w-3" /> },
+  }
+  const c = config[s] || config.PENDING
+  return (
+    <Badge variant={c.variant} className={`capitalize gap-1 ${c.className || ''}`}>
+      {c.icon}
+      {status?.toLowerCase()}
+    </Badge>
+  )
+}
+
+const getMethodIcon = (method: string) => {
+  const m = method?.toUpperCase() || ''
+  const icons: Record<string, typeof Phone> = {
+    MPESA: Smartphone,
+    BANK: Building2,
+    CASH: Banknote,
+    CARD: CreditCard,
+  }
+  const Icon = icons[m] || CreditCard
+  return <Icon className="h-4 w-4" />
+}
+
+const getMethodBadge = (method: string) => {
+  const m = method?.toUpperCase() || ''
+  const config: Record<string, { label: string; class: string }> = {
+    MPESA: { label: 'M-Pesa', class: 'bg-green-100 text-green-700 border-green-200' },
+    BANK: { label: 'Bank', class: 'bg-blue-100 text-blue-700 border-blue-200' },
+    CASH: { label: 'Cash', class: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+    CARD: { label: 'Card', class: 'bg-purple-100 text-purple-700 border-purple-200' },
+    VOUCHER: { label: 'Voucher', class: 'bg-orange-100 text-orange-700 border-orange-200' },
+  }
+  const c = config[m] || { label: method, class: '' }
+  return (
+    <Badge variant="outline" className={c.class}>
+      {getMethodIcon(method)}
+      <span className="ml-1">{c.label}</span>
+    </Badge>
+  )
 }
 
 export default function PaymentsPage() {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Data states
   const [payments, setPayments] = useState<Payment[]>([])
+  const [stats, setStats] = useState<PaymentDashboardStats | null>(null)
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
+
+  // Loading states
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [processingId, setProcessingId] = useState<number | null>(null)
+
+  // Filter states
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [methodFilter, setMethodFilter] = useState("all")
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 15
+  const [activeTab, setActiveTab] = useState("all")
+
+  // UI states
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [isMpesaOpen, setIsMpesaOpen] = useState(false)
+  const [isBankOpen, setIsBankOpen] = useState(false)
+  const [isRefundOpen, setIsRefundOpen] = useState(false)
+  const [isReconcileOpen, setIsReconcileOpen] = useState(false)
+
+  // Form states
+  const [mpesaForm, setMpesaForm] = useState({
+    phone_number: '',
+    amount: '',
+    invoice_id: '',
+    customer_id: '',
+  })
+  const [bankForm, setBankForm] = useState({
+    amount: '',
+    reference: '',
+    bank_name: '',
+    account_name: '',
+    invoice_id: '',
+    customer_id: '',
+  })
+  const [refundReason, setRefundReason] = useState('')
+  const [reconcileRef, setReconcileRef] = useState('')
+
+  // PayHero unified payment states
+  const [isPayNowOpen, setIsPayNowOpen] = useState(false)
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
+  const [payHeroForm, setPayHeroForm] = useState({
+    amount: '',
+    phone_number: '',
+    channel_id: '',
+    invoice_id: '',
+    customer_id: '',
+  })
+  const [payHeroResponse, setPayHeroResponse] = useState<PayHeroResponse | null>(null)
+  const [pollingPaymentId, setPollingPaymentId] = useState<number | null>(null)
+  const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'instructions'>('form')
+
+  // Fetch data
+  const fetchData = useCallback(async () => {
+    try {
+      const params: Record<string, string> = { ordering: '-created_at' }
+      if (activeTab !== 'all') {
+        params.status = activeTab.toUpperCase()
+      }
+      if (methodFilter !== 'all') {
+        params.payment_method = methodFilter.toUpperCase()
+      }
+      if (searchQuery) {
+        params.search = searchQuery
+      }
+
+      const [paymentsRes, statsRes] = await Promise.all([
+        adminApi.getPayments(params),
+        adminApi.getPaymentDashboardStats().catch(() => null),
+      ])
+
+      setPayments(paymentsRes.results || [])
+      if (statsRes) setStats(statsRes)
+    } catch (error) {
+      console.error('Failed to fetch payments:', error)
+      toast.error('Failed to load payments')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [activeTab, methodFilter, searchQuery])
 
   useEffect(() => {
-    const loadPayments = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        await new Promise((resolve) => setTimeout(resolve, 700))
-        setPayments(generateMockPayments())
-      } catch (err) {
-        setError("Failed to load payments. Please try again.")
-      } finally {
-        setLoading(false)
-      }
-    }
+    fetchData()
+  }, [fetchData])
 
-    loadPayments()
-  }, [])
-
-  const filteredPayments = payments.filter((payment) => {
-    const matchesSearch =
-      payment.transactionId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.userId.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === "all" || payment.status === statusFilter
-    const matchesMethod = methodFilter === "all" || payment.method === methodFilter
-    return matchesSearch && matchesStatus && matchesMethod
-  })
-
-  const paginatedPayments = filteredPayments.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
-
-  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage)
-
-  const getStatusBadge = (status: Payment["status"]) => {
-    const variants = {
-      completed: "bg-green-100 text-green-700 border-green-200",
-      pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
-      failed: "bg-red-100 text-red-700 border-red-200",
-      refunded: "bg-blue-100 text-blue-700 border-blue-200",
-    }
-    return (
-      <Badge variant="outline" className={variants[status]}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    )
+  // Refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchData()
+    setIsRefreshing(false)
+    toast.success('Data refreshed')
   }
 
-  const getMethodIcon = (method: Payment["method"]) => {
-    switch (method) {
-      case "mpesa":
-        return <Phone className="w-4 h-4 text-green-600" />
-      case "pokopoko":
-        return <Smartphone className="w-4 h-4 text-blue-600" />
-      case "airtel":
-        return <Smartphone className="w-4 h-4 text-red-600" />
-      case "card":
-        return <CreditCard className="w-4 h-4 text-indigo-600" />
-    }
-  }
-
-  const getMethodName = (method: Payment["method"]) => {
-    return {
-      mpesa: "M-Pesa",
-      pokopoko: "Kopokopo",
-      airtel: "Airtel Money",
-      card: "Bank Card",
-    }[method]
-  }
-
-  const handleViewPayment = (payment: Payment) => {
+  // View details
+  const handleViewDetails = (payment: Payment) => {
     setSelectedPayment(payment)
-    setDialogOpen(true)
+    setIsDetailOpen(true)
   }
 
-  const totalRevenue = filteredPayments
-    .filter((p) => p.status === "completed")
-    .reduce((sum, p) => sum + p.amount, 0)
+  // Mark completed
+  const handleMarkCompleted = async (payment: Payment) => {
+    setProcessingId(payment.id)
+    try {
+      await adminApi.markPaymentCompleted(payment.id)
+      toast.success('Payment marked as completed')
+      fetchData()
+    } catch (error: any) {
+      console.error('Failed to mark payment:', error)
+      toast.error(error.message || 'Failed to mark payment completed')
+    } finally {
+      setProcessingId(null)
+    }
+  }
 
-  if (error) {
+  // Mark failed
+  const handleMarkFailed = async (payment: Payment, reason?: string) => {
+    setProcessingId(payment.id)
+    try {
+      await adminApi.markPaymentFailed(payment.id, reason)
+      toast.success('Payment marked as failed')
+      fetchData()
+    } catch (error: any) {
+      console.error('Failed to mark payment:', error)
+      toast.error(error.message || 'Failed to mark payment failed')
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  // Reconcile payment
+  const handleReconcile = async () => {
+    if (!selectedPayment) return
+
+    setIsSubmitting(true)
+    try {
+      await adminApi.reconcilePayment(selectedPayment.id, reconcileRef || undefined)
+      toast.success('Payment reconciled')
+      setIsReconcileOpen(false)
+      setReconcileRef('')
+      fetchData()
+    } catch (error: any) {
+      console.error('Failed to reconcile:', error)
+      toast.error(error.message || 'Failed to reconcile payment')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Refund payment
+  const handleRefund = async () => {
+    if (!selectedPayment) return
+
+    setIsSubmitting(true)
+    try {
+      await adminApi.refundPayment(selectedPayment.id, refundReason || undefined)
+      toast.success('Refund initiated')
+      setIsRefundOpen(false)
+      setRefundReason('')
+      fetchData()
+    } catch (error: any) {
+      console.error('Failed to refund:', error)
+      toast.error(error.message || 'Failed to initiate refund')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // M-Pesa STK Push
+  const handleMpesaStkPush = async () => {
+    if (!mpesaForm.phone_number || !mpesaForm.amount) {
+      toast.error('Phone number and amount are required')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      await adminApi.initiateMpesaStkPush({
+        phone_number: mpesaForm.phone_number,
+        amount: mpesaForm.amount,
+        invoice: mpesaForm.invoice_id ? parseInt(mpesaForm.invoice_id) : undefined,
+        customer: mpesaForm.customer_id ? parseInt(mpesaForm.customer_id) : undefined,
+      })
+      toast.success('M-Pesa STK Push sent! Customer will receive a prompt.')
+      setIsMpesaOpen(false)
+      setMpesaForm({ phone_number: '', amount: '', invoice_id: '', customer_id: '' })
+      fetchData()
+    } catch (error: any) {
+      console.error('Failed to initiate M-Pesa:', error)
+      toast.error(error.message || 'Failed to initiate M-Pesa payment')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Bank transfer
+  const handleBankTransfer = async () => {
+    if (!bankForm.amount || !bankForm.reference) {
+      toast.error('Amount and reference are required')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      await adminApi.processBankTransfer({
+        amount: bankForm.amount,
+        reference: bankForm.reference,
+        bank_name: bankForm.bank_name || undefined,
+        account_name: bankForm.account_name || undefined,
+        invoice: bankForm.invoice_id ? parseInt(bankForm.invoice_id) : undefined,
+        customer: bankForm.customer_id ? parseInt(bankForm.customer_id) : undefined,
+      })
+      toast.success('Bank transfer recorded')
+      setIsBankOpen(false)
+      setBankForm({ amount: '', reference: '', bank_name: '', account_name: '', invoice_id: '', customer_id: '' })
+      fetchData()
+    } catch (error: any) {
+      console.error('Failed to process bank transfer:', error)
+      toast.error(error.message || 'Failed to record bank transfer')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Fetch active payment methods for PayHero
+  const fetchPaymentMethods = async () => {
+    try {
+      const methods = await adminApi.getActivePaymentMethods()
+      setPaymentMethods(methods)
+    } catch (error) {
+      console.error('Failed to fetch payment methods:', error)
+    }
+  }
+
+  // Open Pay Now dialog
+  const openPayNowDialog = async () => {
+    await fetchPaymentMethods()
+    setPaymentStep('form')
+    setPayHeroResponse(null)
+    setIsPayNowOpen(true)
+  }
+
+  // Initiate PayHero payment (unified flow)
+  const handleInitiatePayment = async () => {
+    if (!payHeroForm.amount) {
+      toast.error('Amount is required')
+      return
+    }
+
+    // Find selected payment method to check if phone is required
+    const selectedMethod = paymentMethods.find(m => 
+      String(m.id) === payHeroForm.channel_id || 
+      String(m.payhero_channel_id) === payHeroForm.channel_id
+    )
+    const methodName = selectedMethod?.name?.toUpperCase() || ''
+    const isSTKPush = methodName.includes('STK') || methodName.includes('MPESA')
+    
+    if (isSTKPush && !payHeroForm.phone_number) {
+      toast.error('Phone number is required for M-Pesa STK Push')
+      return
+    }
+
+    setIsSubmitting(true)
+    setPaymentStep('processing')
+
+    try {
+      const response = await adminApi.initiatePayment({
+        amount: payHeroForm.amount,
+        external_reference: payHeroForm.invoice_id ? payHeroForm.invoice_id : undefined,
+        channel_id: payHeroForm.channel_id ? parseInt(payHeroForm.channel_id) : undefined,
+        phone_number: payHeroForm.phone_number ? payHeroForm.phone_number : undefined,
+      })
+
+      if (response.status === 'failed' || response.status === 'error') {
+        toast.error(response.error || 'Failed to initiate payment')
+        setPaymentStep('form')
+        return
+      }
+
+      // Handle different response types based on PayHero channel
+      const payhero = response.payhero_response
+      setPayHeroResponse(payhero || null)
+
+      if (payhero?.payment_url) {
+        // Payment Link - redirect user
+        toast.success('Redirecting to payment page...')
+        window.open(payhero.payment_url, '_blank')
+        setIsPayNowOpen(false)
+        resetPayHeroForm()
+      } else if (payhero?.checkout_request_id) {
+        // STK Push - show waiting message
+        toast.success('STK Push sent! Check your phone.')
+        // Start polling for this payment
+        if (response.payment_id) {
+          startPaymentPolling(response.payment_id)
+        }
+        setPaymentStep('instructions')
+      } else if (payhero?.paybill_number || payhero?.till_number) {
+        // Paybill/Till - show payment instructions
+        setPaymentStep('instructions')
+        // Start polling for this payment
+        if (response.payment_id) {
+          startPaymentPolling(response.payment_id)
+        }
+      } else if (payhero?.bank_details) {
+        // Bank - show bank details
+        setPaymentStep('instructions')
+        // Start polling for this payment
+        if (response.payment_id) {
+          startPaymentPolling(response.payment_id)
+        }
+      } else {
+        // Generic success
+        toast.success('Payment initiated successfully')
+        setIsPayNowOpen(false)
+        resetPayHeroForm()
+        fetchData()
+      }
+    } catch (error: any) {
+      console.error('Failed to initiate payment:', error)
+      toast.error(error.message || 'Failed to initiate payment')
+      setPaymentStep('form')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Start polling for payment status
+  const startPaymentPolling = (paymentId: number) => {
+    setPollingPaymentId(paymentId)
+    let attempts = 0
+    const maxAttempts = 60 // 5 minutes with 5-second intervals
+
+    const pollInterval = setInterval(async () => {
+      attempts++
+      try {
+        const payment = await adminApi.pollPaymentStatus(paymentId)
+        const status = payment.status?.toUpperCase()
+
+        if (status === 'COMPLETED') {
+          clearInterval(pollInterval)
+          setPollingPaymentId(null)
+          toast.success('Payment completed successfully!')
+          setIsPayNowOpen(false)
+          resetPayHeroForm()
+          fetchData()
+        } else if (status === 'FAILED' || status === 'CANCELLED') {
+          clearInterval(pollInterval)
+          setPollingPaymentId(null)
+          toast.error('Payment failed or was cancelled')
+          setPaymentStep('form')
+        } else if (attempts >= maxAttempts) {
+          clearInterval(pollInterval)
+          setPollingPaymentId(null)
+          toast.info('Payment is still pending. Please check back later.')
+        }
+      } catch (error) {
+        console.error('Polling error:', error)
+        // Continue polling unless max attempts reached
+        if (attempts >= maxAttempts) {
+          clearInterval(pollInterval)
+          setPollingPaymentId(null)
+        }
+      }
+    }, 5000) // Poll every 5 seconds
+  }
+
+  // Reset PayHero form
+  const resetPayHeroForm = () => {
+    setPayHeroForm({
+      amount: '',
+      phone_number: '',
+      channel_id: '',
+      invoice_id: '',
+      customer_id: '',
+    })
+    setPayHeroResponse(null)
+    setPaymentStep('form')
+    setPollingPaymentId(null)
+  }
+
+  // Calculate local stats
+  const localStats = useMemo(() => {
+    if (stats) return stats
+    const completed = payments.filter(p => p.status?.toUpperCase() === 'COMPLETED')
+    const pending = payments.filter(p => p.status?.toUpperCase() === 'PENDING')
+    const failed = payments.filter(p => p.status?.toUpperCase() === 'FAILED')
+    
+    return {
+      total_payments: payments.length,
+      total_collected: completed.reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0),
+      total_pending: pending.reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0),
+      completed_count: completed.length,
+      pending_count: pending.length,
+      failed_count: failed.length,
+      mpesa_total: payments.filter(p => p.payment_method?.toUpperCase() === 'MPESA').reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0),
+      bank_total: payments.filter(p => p.payment_method?.toUpperCase() === 'BANK').reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0),
+    }
+  }, [payments, stats])
+
+  // Loading skeleton
+  if (isLoading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Payments & Billing</h1>
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-        <Button onClick={() => window.location.reload()}>Retry</Button>
+      <div className="flex flex-col gap-6 p-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-9 w-64" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-20" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full mb-3" />
+            ))}
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Payments & Billing</h1>
-          <p className="text-slate-500 mt-1">Track all payment transactions</p>
+          <h1 className="text-3xl font-bold tracking-tight">Payments</h1>
+          <p className="text-muted-foreground">
+            Manage and track all payment transactions
+          </p>
         </div>
-        <Button>
-          <Download className="w-4 h-4 mr-2" />
-          Export Report
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <MoreVertical className="mr-2 h-4 w-4" />
+                Manual Entry
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setIsMpesaOpen(true)}>
+                <Smartphone className="mr-2 h-4 w-4" />
+                M-Pesa STK Push (Legacy)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsBankOpen(true)}>
+                <Building2 className="mr-2 h-4 w-4" />
+                Record Bank Transfer
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={openPayNowDialog}>
+            <CreditCard className="mr-2 h-4 w-4" />
+            Pay Now
+          </Button>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-28" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold text-green-600">
-                  KSh {totalRevenue.toLocaleString()}
-                </div>
-                <p className="text-xs text-slate-500 mt-1">Completed payments</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CreditCard className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <div className="text-2xl font-bold">
-                {payments.filter((p) => p.status === "completed").length}
-              </div>
-            )}
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(localStats.total_collected)}
+            </div>
+            <p className="text-xs text-muted-foreground">{localStats.completed_count} payments</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <CreditCard className="h-4 w-4 text-yellow-500" />
+            <Clock className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <div className="text-2xl font-bold text-yellow-600">
-                {payments.filter((p) => p.status === "pending").length}
-              </div>
-            )}
+            <div className="text-2xl font-bold text-yellow-600">
+              {formatCurrency(localStats.total_pending)}
+            </div>
+            <p className="text-xs text-muted-foreground">{localStats.pending_count} awaiting</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Failed</CardTitle>
-            <CreditCard className="h-4 w-4 text-red-500" />
+            <CardTitle className="text-sm font-medium">M-Pesa</CardTitle>
+            <Smartphone className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <div className="text-2xl font-bold text-red-600">
-                {payments.filter((p) => p.status === "failed").length}
-              </div>
-            )}
+            <div className="text-2xl font-bold">
+              {formatCurrency(localStats.mpesa_total)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Bank Transfers</CardTitle>
+            <Building2 className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(localStats.bank_total)}
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Filters & Table */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle>Payment Transactions</CardTitle>
+              <CardDescription>{payments.length} total payments</CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList>
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="pending">Pending</TabsTrigger>
+                  <TabsTrigger value="completed">Completed</TabsTrigger>
+                  <TabsTrigger value="failed">Failed</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <Select value={methodFilter} onValueChange={setMethodFilter}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Methods</SelectItem>
+                  <SelectItem value="mpesa">M-Pesa</SelectItem>
+                  <SelectItem value="bank">Bank</SelectItem>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                </SelectContent>
+              </Select>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search by transaction ID, user..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 w-[180px]"
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-                <SelectItem value="refunded">Refunded</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={methodFilter} onValueChange={setMethodFilter}>
-              <SelectTrigger className="w-full md:w-[150px]">
-                <SelectValue placeholder="Method" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Methods</SelectItem>
-                <SelectItem value="mpesa">M-Pesa</SelectItem>
-                <SelectItem value="pokopoko">Kopokopo</SelectItem>
-                <SelectItem value="airtel">Airtel Money</SelectItem>
-                <SelectItem value="card">Bank Card</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Payments Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Transactions ({filteredPayments.length})</CardTitle>
-          <CardDescription>
-            Showing {paginatedPayments.length} of {filteredPayments.length} payments
-          </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-16 w-full" />
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Reference</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Method</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {payments.map((payment) => (
+                <TableRow key={payment.id}>
+                  <TableCell>
+                    <code className="font-mono text-sm bg-muted px-2 py-1 rounded">
+                      {payment.reference || payment.transaction_id || `PAY-${payment.id}`}
+                    </code>
+                  </TableCell>
+                  <TableCell>{payment.customer_name || '-'}</TableCell>
+                  <TableCell>{getMethodBadge(payment.payment_method)}</TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatCurrency(payment.amount)}
+                  </TableCell>
+                  <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                  <TableCell>{formatDate(payment.created_at)}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewDetails(payment)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
+                        {payment.status?.toUpperCase() === 'PENDING' && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => handleMarkCompleted(payment)}
+                              disabled={processingId === payment.id}
+                            >
+                              {processingId === payment.id ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                              )}
+                              Mark Completed
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleMarkFailed(payment)}
+                              disabled={processingId === payment.id}
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Mark Failed
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                              setSelectedPayment(payment)
+                              setIsReconcileOpen(true)
+                            }}>
+                              <ArrowDownUp className="mr-2 h-4 w-4" />
+                              Reconcile
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {payment.status?.toUpperCase() === 'COMPLETED' && (
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedPayment(payment)
+                            setIsRefundOpen(true)
+                          }}>
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Refund
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
               ))}
-            </div>
-          ) : filteredPayments.length === 0 ? (
-            <div className="text-center py-12">
-              <CreditCard className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-              <p className="text-slate-600 font-medium">No payments found</p>
-              <p className="text-slate-500 text-sm mt-1">
-                Try adjusting your filters
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="rounded-lg border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Transaction</TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Method</TableHead>
-                      <TableHead>Plan</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date & Time</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedPayments.map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium text-slate-900">{payment.id}</p>
-                            <p className="text-xs text-slate-500">{payment.transactionId}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="text-sm font-medium">{payment.userName}</p>
-                            <p className="text-xs text-slate-500">{payment.userId}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-bold text-slate-900">
-                            KSh {payment.amount.toLocaleString()}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {getMethodIcon(payment.method)}
-                            <span className="text-sm">{getMethodName(payment.method)}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">{payment.plan}</span>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <p className="font-medium">{payment.date}</p>
-                            <p className="text-slate-500">{payment.time}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleViewPayment(payment)}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+            </TableBody>
+          </Table>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-slate-600">
-                    Page {currentPage} of {totalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
+          {payments.length === 0 && (
+            <div className="text-center py-12">
+              <CreditCard className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-semibold">No payments found</h3>
+              <p className="text-muted-foreground">Payments will appear here once processed.</p>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Payment Detail Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Payment Details</DialogTitle>
-            <DialogDescription>Complete transaction information</DialogDescription>
-          </DialogHeader>
-
+      {/* Detail Sheet */}
+      <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <SheetContent className="sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>Payment Details</SheetTitle>
+            <SheetDescription>
+              {selectedPayment?.reference || selectedPayment?.transaction_id}
+            </SheetDescription>
+          </SheetHeader>
           {selectedPayment && (
-            <div className="space-y-4 py-4">
-              <div className="flex items-center justify-between">
+            <div className="mt-6 space-y-6">
+              <div className="flex gap-2">
                 {getStatusBadge(selectedPayment.status)}
-                <div className="flex items-center gap-2">
-                  {getMethodIcon(selectedPayment.method)}
-                  <span className="text-sm font-medium">
-                    {getMethodName(selectedPayment.method)}
-                  </span>
-                </div>
+                {getMethodBadge(selectedPayment.payment_method)}
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-lg space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-600">Payment ID</span>
-                  <span className="text-sm font-medium">{selectedPayment.id}</span>
+              <div className="text-center py-6 bg-muted rounded-lg">
+                <p className="text-4xl font-bold">{formatCurrency(selectedPayment.amount)}</p>
+              </div>
+
+              <Separator />
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Customer</p>
+                  <p className="font-medium">{selectedPayment.customer_name || '-'}</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-600">Transaction ID</span>
-                  <span className="text-sm font-mono">{selectedPayment.transactionId}</span>
+                <div>
+                  <p className="text-muted-foreground">Payment Method</p>
+                  <p className="font-medium capitalize">{selectedPayment.payment_method}</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-600">User</span>
-                  <span className="text-sm font-medium">{selectedPayment.userName}</span>
+                <div>
+                  <p className="text-muted-foreground">Reference</p>
+                  <p className="font-mono text-sm">{selectedPayment.reference || '-'}</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-600">User ID</span>
-                  <span className="text-sm">{selectedPayment.userId}</span>
+                <div>
+                  <p className="text-muted-foreground">Transaction ID</p>
+                  <p className="font-mono text-sm">{selectedPayment.transaction_id || '-'}</p>
                 </div>
-                {selectedPayment.phoneNumber && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Phone Number</span>
-                    <span className="text-sm font-medium">{selectedPayment.phoneNumber}</span>
+                <div>
+                  <p className="text-muted-foreground">Date</p>
+                  <p className="font-medium">{formatDateTime(selectedPayment.created_at)}</p>
+                </div>
+                {selectedPayment.invoice_number && (
+                  <div>
+                    <p className="text-muted-foreground">Invoice</p>
+                    <p className="font-mono">{selectedPayment.invoice_number}</p>
                   </div>
                 )}
               </div>
 
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600">Plan</span>
-                    <span className="text-sm font-medium">{selectedPayment.plan}</span>
+              {selectedPayment.notes && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-muted-foreground text-sm mb-2">Notes</p>
+                    <p>{selectedPayment.notes}</p>
                   </div>
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-sm text-slate-600">Amount</span>
-                    <span className="text-2xl font-bold text-blue-600">
-                      KSh {selectedPayment.amount.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
 
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-600">Date & Time</span>
-                <span className="font-medium">
-                  {selectedPayment.date} at {selectedPayment.time}
-                </span>
+              <div className="flex gap-2">
+                {selectedPayment.status?.toUpperCase() === 'PENDING' && (
+                  <>
+                    <Button
+                      className="flex-1"
+                      onClick={() => handleMarkCompleted(selectedPayment)}
+                      disabled={processingId === selectedPayment.id}
+                    >
+                      {processingId === selectedPayment.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Complete
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setIsDetailOpen(false)
+                        setIsReconcileOpen(true)
+                      }}
+                    >
+                      <ArrowDownUp className="mr-2 h-4 w-4" />
+                      Reconcile
+                    </Button>
+                  </>
+                )}
+                {selectedPayment.status?.toUpperCase() === 'COMPLETED' && (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setIsDetailOpen(false)
+                      setIsRefundOpen(true)
+                    }}
+                  >
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Refund
+                  </Button>
+                )}
               </div>
             </div>
           )}
+        </SheetContent>
+      </Sheet>
+
+      {/* M-Pesa STK Push Dialog */}
+      <Dialog open={isMpesaOpen} onOpenChange={setIsMpesaOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>M-Pesa STK Push</DialogTitle>
+            <DialogDescription>
+              Send a payment prompt to customer's phone
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Phone Number *</Label>
+              <Input
+                placeholder="254712345678"
+                value={mpesaForm.phone_number}
+                onChange={(e) => setMpesaForm({ ...mpesaForm, phone_number: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">Format: 254XXXXXXXXX</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Amount (KES) *</Label>
+              <Input
+                type="number"
+                placeholder="Enter amount"
+                value={mpesaForm.amount}
+                onChange={(e) => setMpesaForm({ ...mpesaForm, amount: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Invoice ID (Optional)</Label>
+              <Input
+                placeholder="Link to invoice"
+                value={mpesaForm.invoice_id}
+                onChange={(e) => setMpesaForm({ ...mpesaForm, invoice_id: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMpesaOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleMpesaStkPush} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Smartphone className="mr-2 h-4 w-4" />
+              Send STK Push
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bank Transfer Dialog */}
+      <Dialog open={isBankOpen} onOpenChange={setIsBankOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record Bank Transfer</DialogTitle>
+            <DialogDescription>
+              Record a bank transfer payment
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Amount (KES) *</Label>
+              <Input
+                type="number"
+                placeholder="Enter amount"
+                value={bankForm.amount}
+                onChange={(e) => setBankForm({ ...bankForm, amount: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Reference Number *</Label>
+              <Input
+                placeholder="Bank transaction reference"
+                value={bankForm.reference}
+                onChange={(e) => setBankForm({ ...bankForm, reference: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Bank Name</Label>
+                <Input
+                  placeholder="e.g., Equity Bank"
+                  value={bankForm.bank_name}
+                  onChange={(e) => setBankForm({ ...bankForm, bank_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Account Name</Label>
+                <Input
+                  placeholder="Sender's name"
+                  value={bankForm.account_name}
+                  onChange={(e) => setBankForm({ ...bankForm, account_name: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Invoice ID (Optional)</Label>
+              <Input
+                placeholder="Link to invoice"
+                value={bankForm.invoice_id}
+                onChange={(e) => setBankForm({ ...bankForm, invoice_id: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBankOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleBankTransfer} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Record Transfer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reconcile Dialog */}
+      <Dialog open={isReconcileOpen} onOpenChange={setIsReconcileOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reconcile Payment</DialogTitle>
+            <DialogDescription>
+              Match this payment with an external reference
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="p-3 bg-muted rounded-lg text-sm">
+              <div className="flex justify-between">
+                <span>Payment Amount</span>
+                <span className="font-bold">{formatCurrency(selectedPayment?.amount || 0)}</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>External Reference</Label>
+              <Input
+                placeholder="Bank statement reference, etc."
+                value={reconcileRef}
+                onChange={(e) => setReconcileRef(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsReconcileOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleReconcile} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Reconcile
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Refund Dialog */}
+      <Dialog open={isRefundOpen} onOpenChange={setIsRefundOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Refund Payment</DialogTitle>
+            <DialogDescription>
+              Initiate a refund for this payment
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="p-3 bg-destructive/10 rounded-lg text-sm">
+              <div className="flex items-center gap-2 text-destructive mb-2">
+                <AlertCircle className="h-4 w-4" />
+                <span className="font-semibold">Warning</span>
+              </div>
+              <p className="text-muted-foreground">
+                This will initiate a refund of {formatCurrency(selectedPayment?.amount || 0)} to the customer.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Reason for Refund</Label>
+              <Textarea
+                placeholder="Explain why this refund is being processed..."
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRefundOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRefund} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Process Refund
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PayHero Unified Payment Dialog */}
+      <Dialog open={isPayNowOpen} onOpenChange={(open) => {
+        if (!open) resetPayHeroForm()
+        setIsPayNowOpen(open)
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Initiate Payment</DialogTitle>
+            <DialogDescription>
+              {paymentStep === 'form' && 'Start a new payment using PayHero'}
+              {paymentStep === 'processing' && 'Processing your payment...'}
+              {paymentStep === 'instructions' && 'Complete your payment'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Form Step */}
+          {paymentStep === 'form' && (
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label>Amount (KES) *</Label>
+                <Input
+                  type="number"
+                  placeholder="Enter amount"
+                  value={payHeroForm.amount}
+                  onChange={(e) => setPayHeroForm({ ...payHeroForm, amount: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Payment Method</Label>
+                <Select
+                  value={payHeroForm.channel_id}
+                  onValueChange={(value) => setPayHeroForm({ ...payHeroForm, channel_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment method (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentMethods.map((method) => (
+                      <SelectItem 
+                        key={method.id} 
+                        value={String(method.payhero_channel_id || method.id || '')}
+                      >
+                        {method.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Leave empty to use the default payment method
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Phone Number</Label>
+                <Input
+                  placeholder="254712345678"
+                  value={payHeroForm.phone_number}
+                  onChange={(e) => setPayHeroForm({ ...payHeroForm, phone_number: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Required for M-Pesa STK Push. Format: 254XXXXXXXXX
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Invoice/Reference (Optional)</Label>
+                <Input
+                  placeholder="Invoice ID or external reference"
+                  value={payHeroForm.invoice_id}
+                  onChange={(e) => setPayHeroForm({ ...payHeroForm, invoice_id: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Processing Step */}
+          {paymentStep === 'processing' && (
+            <div className="py-8 flex flex-col items-center justify-center gap-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <p className="text-muted-foreground">Initiating payment...</p>
+            </div>
+          )}
+
+          {/* Instructions Step */}
+          {paymentStep === 'instructions' && payHeroResponse && (
+            <div className="grid gap-4 py-4">
+              {/* STK Push Instructions */}
+              {payHeroResponse.checkout_request_id && (
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2 text-green-700 dark:text-green-300 mb-2">
+                    <Smartphone className="h-5 w-5" />
+                    <span className="font-semibold">Check Your Phone</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    An M-Pesa prompt has been sent to your phone. Enter your PIN to complete the payment.
+                  </p>
+                  {pollingPaymentId && (
+                    <div className="mt-3 flex items-center gap-2 text-sm">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Waiting for confirmation...</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Paybill Instructions */}
+              {payHeroResponse.paybill_number && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 mb-3">
+                    <Phone className="h-5 w-5" />
+                    <span className="font-semibold">M-Pesa Paybill</span>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Paybill Number:</span>
+                      <span className="font-mono font-bold">{payHeroResponse.paybill_number}</span>
+                    </div>
+                    {payHeroResponse.account_number && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Account Number:</span>
+                        <span className="font-mono font-bold">{payHeroResponse.account_number}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Amount:</span>
+                      <span className="font-bold">{formatCurrency(payHeroForm.amount)}</span>
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
+                    Go to M-Pesa → Lipa na M-Pesa → Paybill
+                  </div>
+                  {pollingPaymentId && (
+                    <div className="mt-3 flex items-center gap-2 text-sm">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Waiting for payment...</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Till Instructions */}
+              {payHeroResponse.till_number && !payHeroResponse.paybill_number && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 mb-3">
+                    <Phone className="h-5 w-5" />
+                    <span className="font-semibold">M-Pesa Till (Buy Goods)</span>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Till Number:</span>
+                      <span className="font-mono font-bold">{payHeroResponse.till_number}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Amount:</span>
+                      <span className="font-bold">{formatCurrency(payHeroForm.amount)}</span>
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
+                    Go to M-Pesa → Lipa na M-Pesa → Buy Goods and Services
+                  </div>
+                  {pollingPaymentId && (
+                    <div className="mt-3 flex items-center gap-2 text-sm">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Waiting for payment...</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Bank Instructions */}
+              {payHeroResponse.bank_details && (
+                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300 mb-3">
+                    <Building2 className="h-5 w-5" />
+                    <span className="font-semibold">Bank Transfer</span>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    {payHeroResponse.bank_details.bank_name && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Bank:</span>
+                        <span className="font-bold">{payHeroResponse.bank_details.bank_name}</span>
+                      </div>
+                    )}
+                    {payHeroResponse.bank_details.account_number && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Account:</span>
+                        <span className="font-mono font-bold">{payHeroResponse.bank_details.account_number}</span>
+                      </div>
+                    )}
+                    {payHeroResponse.bank_details.account_name && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Account Name:</span>
+                        <span className="font-bold">{payHeroResponse.bank_details.account_name}</span>
+                      </div>
+                    )}
+                    {payHeroResponse.bank_details.branch && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Branch:</span>
+                        <span className="font-bold">{payHeroResponse.bank_details.branch}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Amount:</span>
+                      <span className="font-bold">{formatCurrency(payHeroForm.amount)}</span>
+                    </div>
+                  </div>
+                  {pollingPaymentId && (
+                    <div className="mt-3 flex items-center gap-2 text-sm">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Waiting for confirmation...</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            {paymentStep === 'form' && (
+              <>
+                <Button variant="outline" onClick={() => setIsPayNowOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleInitiatePayment} disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Pay Now
+                </Button>
+              </>
+            )}
+            {paymentStep === 'instructions' && (
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsPayNowOpen(false)
+                  resetPayHeroForm()
+                  fetchData()
+                }}
+              >
+                {pollingPaymentId ? 'Close & Continue in Background' : 'Done'}
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
