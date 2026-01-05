@@ -759,6 +759,9 @@ urlpatterns = [
     path('api/admin/routers/<int:pk>/backups/', views.RouterBackupListView.as_view()),
     path('api/admin/routers/sla/', views.SLADashboardView.as_view()),
     
+    # Router Authentication (PUBLIC - No auth required, called by MikroTik)
+    path('api/v1/routers/auth/', views.RouterAuthenticateView.as_view(), name='router_authenticate'),
+    
     # Loyalty Points
     path('api/admin/loyalty/settings/', views.LoyaltySettingsView.as_view()),
     path('api/admin/loyalty/transactions/', views.LoyaltyTransactionsView.as_view()),
@@ -919,5 +922,308 @@ The frontend will automatically switch between Django backend and mock data base
 ## Questions?
 
 Contact the frontend team if you need clarification on any endpoint or response format.
+
+---
+
+## Router Authentication System
+
+This is the public endpoint that MikroTik routers call to authenticate themselves with Netily.
+
+### Overview
+
+When a router is added in Netily, it gets assigned a unique `auth_key`. The admin copies a one-liner script to the MikroTik terminal, which calls this endpoint. The endpoint:
+1. Validates the auth key
+2. Captures the router's IP address from the request
+3. Marks the router as authenticated and online
+4. Optionally returns configuration commands
+
+### Router Model Update
+
+Add `auth_key` field to the Router model:
+
+```python
+# models.py
+import secrets
+
+class Router(models.Model):
+    name = models.CharField(max_length=100)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    mac_address = models.CharField(max_length=17, blank=True, null=True)
+    api_port = models.IntegerField(default=8728)
+    api_username = models.CharField(max_length=50, default='admin')
+    api_password = models.CharField(max_length=100, blank=True)  # Encrypted in production
+    
+    ROUTER_TYPES = [
+        ('mikrotik', 'MikroTik'),
+        ('cisco', 'Cisco'),
+        ('ubiquiti', 'Ubiquiti'),
+        ('other', 'Other'),
+    ]
+    router_type = models.CharField(max_length=20, choices=ROUTER_TYPES, default='mikrotik')
+    model = models.CharField(max_length=100, blank=True, null=True)
+    firmware_version = models.CharField(max_length=50, blank=True, null=True)
+    location = models.CharField(max_length=200, blank=True, null=True)
+    latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    
+    STATUS_CHOICES = [
+        ('online', 'Online'),
+        ('offline', 'Offline'),
+        ('warning', 'Warning'),
+        ('maintenance', 'Maintenance'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='offline')
+    
+    # Authentication
+    auth_key = models.CharField(max_length=50, unique=True, blank=True)
+    is_authenticated = models.BooleanField(default=False)
+    authenticated_at = models.DateTimeField(null=True, blank=True)
+    
+    # Stats
+    total_users = models.IntegerField(default=0)
+    active_users = models.IntegerField(default=0)
+    uptime = models.CharField(max_length=50, blank=True, null=True)
+    uptime_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    sla_target = models.DecimalField(max_digits=5, decimal_places=2, default=99.0)
+    last_seen = models.DateTimeField(null=True, blank=True)
+    
+    tags = models.JSONField(default=list, blank=True)
+    notes = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def save(self, *args, **kwargs):
+        # Auto-generate auth_key if not set
+        if not self.auth_key:
+            self.auth_key = f"RTR_{secrets.token_hex(8).upper()}_AUTH"
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.name} ({self.ip_address})"
+```
+
+### Endpoint: Router Authenticate
+
+**URL**: `GET /api/v1/routers/auth/`
+
+**Authentication**: None (Public endpoint - called by MikroTik)
+
+**Query Parameters**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| key | string | Yes | The router's unique auth key |
+
+**Example Request** (from MikroTik):
+```
+/tool fetch url="https://api.netily.io/api/v1/routers/auth?key=RTR_A1B2C3D4_AUTH" mode=https
+```
+
+**Success Response** (200):
+```json
+{
+  "status": "authenticated",
+  "router_id": 1,
+  "router_name": "Main Gateway",
+  "message": "Router successfully authenticated",
+  "ip_address": "41.90.123.45",
+  "authenticated_at": "2026-01-05T10:30:00Z"
+}
+```
+
+**Error Response - Invalid Key** (404):
+```json
+{
+  "status": "error",
+  "message": "Invalid authentication key"
+}
+```
+
+**Error Response - Missing Key** (400):
+```json
+{
+  "status": "error",
+  "message": "Authentication key is required"
+}
+```
+
+### View Implementation
+
+```python
+# views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from django.utils import timezone
+from .models import Router
+
+class RouterAuthenticateView(APIView):
+    """
+    Public endpoint for MikroTik routers to authenticate themselves.
+    
+    Called via: /tool fetch url="https://api.netily.io/api/v1/routers/auth?key=RTR_XXX_AUTH" mode=https
+    
+    This endpoint:
+    1. Validates the auth key
+    2. Captures the router's IP from the request
+    3. Marks the router as authenticated and online
+    4. Updates last_seen timestamp
+    """
+    permission_classes = [AllowAny]
+    authentication_classes = []  # No auth required
+    
+    def get(self, request):
+        auth_key = request.GET.get('key')
+        
+        if not auth_key:
+            return Response(
+                {'status': 'error', 'message': 'Authentication key is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            router = Router.objects.get(auth_key=auth_key)
+        except Router.DoesNotExist:
+            return Response(
+                {'status': 'error', 'message': 'Invalid authentication key'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get the router's IP address from the request
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip_address = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip_address = request.META.get('REMOTE_ADDR')
+        
+        # Update router
+        now = timezone.now()
+        router.ip_address = ip_address
+        router.is_authenticated = True
+        router.authenticated_at = now
+        router.status = 'online'
+        router.last_seen = now
+        router.save()
+        
+        # Log the authentication event
+        RouterEvent.objects.create(
+            router=router,
+            event_type='up',
+            message=f'Router authenticated from IP {ip_address}'
+        )
+        
+        return Response({
+            'status': 'authenticated',
+            'router_id': router.id,
+            'router_name': router.name,
+            'message': 'Router successfully authenticated',
+            'ip_address': ip_address,
+            'authenticated_at': now.isoformat()
+        })
+
+
+class RouterHeartbeatView(APIView):
+    """
+    Periodic heartbeat endpoint for routers to report they're still online.
+    Can be scheduled to run every 5 minutes on the MikroTik.
+    """
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    
+    def get(self, request):
+        auth_key = request.GET.get('key')
+        
+        if not auth_key:
+            return Response(
+                {'status': 'error', 'message': 'Authentication key is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            router = Router.objects.get(auth_key=auth_key)
+        except Router.DoesNotExist:
+            return Response(
+                {'status': 'error', 'message': 'Invalid authentication key'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Update last_seen
+        router.last_seen = timezone.now()
+        router.status = 'online'
+        router.save(update_fields=['last_seen', 'status'])
+        
+        return Response({'status': 'ok', 'timestamp': router.last_seen.isoformat()})
+```
+
+### URL Configuration
+
+```python
+# urls.py
+urlpatterns = [
+    # ... other urls ...
+    
+    # Router Authentication (PUBLIC - No auth required)
+    path('api/v1/routers/auth/', views.RouterAuthenticateView.as_view(), name='router_authenticate'),
+    path('api/v1/routers/heartbeat/', views.RouterHeartbeatView.as_view(), name='router_heartbeat'),
+]
+```
+
+### MikroTik Scripts
+
+**One-time Authentication Script** (copy to MikroTik terminal):
+```
+/tool fetch url="https://api.netily.io/api/v1/routers/auth?key=RTR_XXXXXXXX_AUTH" mode=https
+```
+
+**Scheduled Heartbeat Script** (optional - keeps router marked as online):
+```
+# Add script
+/system script add name=netily-heartbeat source="/tool fetch url=\"https://api.netily.io/api/v1/routers/heartbeat?key=RTR_XXXXXXXX_AUTH\" mode=https"
+
+# Schedule to run every 5 minutes
+/system scheduler add name=netily-heartbeat interval=5m on-event=netily-heartbeat
+```
+
+### Frontend Integration
+
+The frontend should display the auth script for each router. Update the router details page to generate the correct script:
+
+```typescript
+// Generate the auth script URL
+const getAuthScript = (router: Router) => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.netily.io';
+  return `/tool fetch url="${baseUrl}/api/v1/routers/auth?key=${router.auth_key}" mode=https`;
+};
+```
+
+### Admin API: Get Router Auth Key
+
+Add an endpoint to retrieve/regenerate the auth key:
+
+**Endpoint**: `GET /api/admin/routers/{id}/auth-key/`
+
+**Response** (200):
+```json
+{
+  "auth_key": "RTR_A1B2C3D4_AUTH",
+  "script": "/tool fetch url=\"https://api.netily.io/api/v1/routers/auth?key=RTR_A1B2C3D4_AUTH\" mode=https",
+  "is_authenticated": true,
+  "authenticated_at": "2026-01-05T10:30:00Z"
+}
+```
+
+**Endpoint**: `POST /api/admin/routers/{id}/regenerate-auth-key/`
+
+Regenerates the auth key (useful if compromised).
+
+**Response** (200):
+```json
+{
+  "auth_key": "RTR_E5F6G7H8_AUTH",
+  "script": "/tool fetch url=\"https://api.netily.io/api/v1/routers/auth?key=RTR_E5F6G7H8_AUTH\" mode=https",
+  "message": "Auth key regenerated. Router will need to re-authenticate."
+}
 
 See [FEATURE_ROADMAP.md](./FEATURE_ROADMAP.md) for complete feature specifications.

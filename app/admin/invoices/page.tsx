@@ -378,9 +378,9 @@ export default function InvoiceManagementPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(localStats.total_paid)}
+              {formatCurrency(localStats.total_paid ?? 0)}
             </div>
-            <p className="text-xs text-muted-foreground">{localStats.paid_count} invoices paid</p>
+            <p className="text-xs text-muted-foreground">{localStats.paid_count ?? 0} invoices paid</p>
           </CardContent>
         </Card>
 
@@ -391,9 +391,9 @@ export default function InvoiceManagementPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              {formatCurrency(localStats.total_pending)}
+              {formatCurrency(localStats.total_pending ?? 0)}
             </div>
-            <p className="text-xs text-muted-foreground">{localStats.pending_count} awaiting payment</p>
+            <p className="text-xs text-muted-foreground">{localStats.pending_count ?? 0} awaiting payment</p>
           </CardContent>
         </Card>
 
@@ -404,9 +404,9 @@ export default function InvoiceManagementPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(localStats.total_overdue)}
+              {formatCurrency(localStats.total_overdue ?? 0)}
             </div>
-            <p className="text-xs text-muted-foreground">{localStats.overdue_count} past due date</p>
+            <p className="text-xs text-muted-foreground">{localStats.overdue_count ?? 0} past due date</p>
           </CardContent>
         </Card>
       </div>

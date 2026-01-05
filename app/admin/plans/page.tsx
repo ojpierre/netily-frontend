@@ -19,6 +19,7 @@ import {
   Pause,
   Play,
   Eye,
+  CreditCard,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -76,12 +77,16 @@ const formatCurrency = (amount: string | number) => {
 }
 
 const getTypeBadge = (type: PlanType) => {
-  const config: Record<PlanType, { icon: typeof Wifi; class: string; label: string }> = {
+  const config: Record<string, { icon: typeof Wifi; class: string; label: string }> = {
+    INTERNET: { icon: Globe, class: "bg-green-100 text-green-700 border-green-200", label: "Internet" },
+    ADDON: { icon: Package, class: "bg-yellow-100 text-yellow-700 border-yellow-200", label: "Add-on" },
+    BUNDLE: { icon: Package, class: "bg-indigo-100 text-indigo-700 border-indigo-200", label: "Bundle" },
+    TOPUP: { icon: CreditCard, class: "bg-pink-100 text-pink-700 border-pink-200", label: "Top-up" },
     HOTSPOT: { icon: Wifi, class: "bg-blue-100 text-blue-700 border-blue-200", label: "Hotspot" },
     PPPOE: { icon: Globe, class: "bg-purple-100 text-purple-700 border-purple-200", label: "PPPoE" },
     STATIC: { icon: Server, class: "bg-orange-100 text-orange-700 border-orange-200", label: "Static IP" },
   }
-  const c = config[type] || config.PPPOE
+  const c = config[type] || { icon: Globe, class: "bg-gray-100 text-gray-700 border-gray-200", label: type }
   const Icon = c.icon
   return (
     <Badge variant="outline" className={c.class}>
@@ -533,10 +538,10 @@ export default function PlansPage() {
               <CardContent className="space-y-4">
                 <div className="text-center py-4 bg-muted rounded-lg">
                   <p className="text-3xl font-bold">
-                    {formatCurrency(plan.price)}
+                    {formatCurrency(plan.price ?? plan.base_price)}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {formatDuration(plan.validity_days || 30)}
+                    {formatDuration(plan.validity_days ?? plan.duration_days ?? 30)}
                   </p>
                 </div>
 
@@ -888,8 +893,8 @@ export default function PlansPage() {
               </div>
 
               <div className="text-center py-6 bg-muted rounded-lg">
-                <p className="text-4xl font-bold">{formatCurrency(selectedPlan.price)}</p>
-                <p className="text-muted-foreground">{formatDuration(selectedPlan.validity_days || 30)}</p>
+                <p className="text-4xl font-bold">{formatCurrency(selectedPlan.price ?? selectedPlan.base_price)}</p>
+                <p className="text-muted-foreground">{formatDuration(selectedPlan.validity_days ?? selectedPlan.duration_days ?? 30)}</p>
               </div>
 
               <Separator />

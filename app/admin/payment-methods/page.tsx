@@ -647,10 +647,13 @@ export default function PaymentMethodsPage() {
                       <Label htmlFor="environment">Environment</Label>
                       <Select
                         value={formData.config?.environment || 'sandbox'}
-                        onValueChange={(v) => setFormData({
-                          ...formData,
-                          config: { ...formData.config, environment: v }
-                        })}
+                        onValueChange={(v: string) => {
+                          const env = v as 'sandbox' | 'production'
+                          setFormData({
+                            ...formData,
+                            config: { ...formData.config, environment: env }
+                          })
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue />

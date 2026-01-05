@@ -98,17 +98,17 @@ const formatDate = (dateString: string) => {
 }
 
 const getBatchStatusBadge = (status: VoucherBatchStatus) => {
-  const badges = {
-    'DRAFT': { variant: 'secondary' as const, label: 'Draft', icon: Clock },
+  const badges: Record<string, { variant: 'default' | 'secondary' | 'outline' | 'destructive'; label: string; icon: typeof Clock; className?: string }> = {
+    'DRAFT': { variant: 'secondary' as const, label: 'Draft', icon: Clock, className: '' },
     'ACTIVE': { variant: 'default' as const, label: 'Active', icon: CheckCircle, className: 'bg-green-500' },
-    'DEPLETED': { variant: 'outline' as const, label: 'Depleted', icon: Package },
-    'EXPIRED': { variant: 'destructive' as const, label: 'Expired', icon: XCircle },
-    'CANCELLED': { variant: 'destructive' as const, label: 'Cancelled', icon: XCircle },
+    'DEPLETED': { variant: 'outline' as const, label: 'Depleted', icon: Package, className: '' },
+    'EXPIRED': { variant: 'destructive' as const, label: 'Expired', icon: XCircle, className: '' },
+    'CANCELLED': { variant: 'destructive' as const, label: 'Cancelled', icon: XCircle, className: '' },
   }
-  const badge = badges[status] || { variant: 'outline' as const, label: status, icon: Clock }
+  const badge = badges[status] || { variant: 'outline' as const, label: status, icon: Clock, className: '' }
   const Icon = badge.icon
   return (
-    <Badge variant={badge.variant} className={badge.className}>
+    <Badge variant={badge.variant} className={badge.className || ''}>
       <Icon className="mr-1 h-3 w-3" />
       {badge.label}
     </Badge>
@@ -116,7 +116,9 @@ const getBatchStatusBadge = (status: VoucherBatchStatus) => {
 }
 
 const getVoucherStatusBadge = (status: VoucherStatus) => {
-  const badges = {
+  const badges: Record<string, { variant: 'default' | 'secondary' | 'outline' | 'destructive'; label: string; icon: typeof CheckCircle; className?: string }> = {
+    'DRAFT': { variant: 'outline' as const, label: 'Draft', icon: Clock },
+    'ACTIVE': { variant: 'secondary' as const, label: 'Active', icon: CheckCircle },
     'AVAILABLE': { variant: 'default' as const, label: 'Available', icon: CheckCircle, className: 'bg-green-500' },
     'SOLD': { variant: 'secondary' as const, label: 'Sold', icon: ShoppingCart },
     'REDEEMED': { variant: 'outline' as const, label: 'Redeemed', icon: Check },
@@ -126,7 +128,7 @@ const getVoucherStatusBadge = (status: VoucherStatus) => {
   const badge = badges[status] || { variant: 'outline' as const, label: status, icon: Clock }
   const Icon = badge.icon
   return (
-    <Badge variant={badge.variant} className={badge.className}>
+    <Badge variant={badge.variant} className={badge.className || ''}>
       <Icon className="mr-1 h-3 w-3" />
       {badge.label}
     </Badge>
@@ -134,7 +136,9 @@ const getVoucherStatusBadge = (status: VoucherStatus) => {
 }
 
 const getTypeBadge = (type: VoucherType) => {
-  const types = {
+  const types: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
+    'PREPAID': { label: 'Prepaid', variant: 'default' as const },
+    'DISCOUNT': { label: 'Discount', variant: 'secondary' as const },
     'TIME': { label: 'Time Based', variant: 'outline' as const },
     'DATA': { label: 'Data Based', variant: 'secondary' as const },
     'CREDIT': { label: 'Credit', variant: 'default' as const },
@@ -258,7 +262,7 @@ export default function VouchersPage() {
       await adminApi.createVoucherBatch({
         name: batchForm.name,
         voucher_type: batchForm.voucher_type,
-        plan: batchForm.plan_id ? parseInt(batchForm.plan_id) : undefined,
+        plan_id: batchForm.plan_id ? parseInt(batchForm.plan_id) : undefined,
         face_value: batchForm.face_value || undefined,
         price: batchForm.price || undefined,
         validity_days: parseInt(batchForm.validity_days),
@@ -574,7 +578,7 @@ export default function VouchersPage() {
                       <TableCell className="font-medium">{batch.name}</TableCell>
                       <TableCell>{getTypeBadge(batch.voucher_type)}</TableCell>
                       <TableCell>{formatCurrency(batch.face_value)}</TableCell>
-                      <TableCell>{formatCurrency(batch.price)}</TableCell>
+                      <TableCell>{formatCurrency(batch.price ?? 0)}</TableCell>
                       <TableCell>
                         <span className="font-medium">{batch.available_vouchers || 0}</span>
                         <span className="text-muted-foreground">/{batch.total_vouchers || 0}</span>
@@ -919,7 +923,7 @@ export default function VouchersPage() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Selling Price</p>
-                  <p className="text-lg font-bold">{formatCurrency(selectedBatch.price)}</p>
+                  <p className="text-lg font-bold">{formatCurrency(selectedBatch.price ?? 0)}</p>
                 </div>
               </div>
 

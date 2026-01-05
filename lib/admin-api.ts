@@ -46,6 +46,10 @@ import type {
   InvoiceDashboardStats,
   PaymentDashboardStats,
   CustomerOutstanding,
+  Router,
+  RouterMetrics,
+  RouterEvent,
+  RouterDashboardStats,
 } from './types'
 
 // Re-export for backward compatibility
@@ -472,6 +476,104 @@ class AdminApiService {
 
   async healthCheck(): Promise<{ status: string }> {
     return this.request<{ status: string }>('/core/health/')
+  }
+
+  // ------------------------------------------
+  // ROUTER MANAGEMENT - /network/routers/
+  // ------------------------------------------
+
+  async getRouters(params?: Record<string, string>): Promise<PaginatedResponse<Router>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<Router>>(`/network/routers/${queryString}`)
+  }
+
+  async getRouter(id: number): Promise<Router> {
+    return this.request<Router>(`/network/routers/${id}/`)
+  }
+
+  async createRouter(data: Partial<Router>): Promise<Router> {
+    return this.request<Router>('/network/routers/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateRouter(id: number, data: Partial<Router>): Promise<Router> {
+    return this.request<Router>(`/network/routers/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteRouter(id: number): Promise<void> {
+    await this.request(`/network/routers/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async testRouterConnection(id: number): Promise<{ success: boolean; message: string; latency?: number }> {
+    return this.request<{ success: boolean; message: string; latency?: number }>(`/network/routers/${id}/test_connection/`, {
+      method: 'POST',
+    })
+  }
+
+  async rebootRouter(id: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/network/routers/${id}/reboot/`, {
+      method: 'POST',
+    })
+  }
+
+  async getRouterMetrics(id: number): Promise<RouterMetrics> {
+    return this.request<RouterMetrics>(`/network/routers/${id}/metrics/`)
+  }
+
+  async getRouterEvents(id: number, params?: Record<string, string>): Promise<PaginatedResponse<RouterEvent>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<RouterEvent>>(`/network/routers/${id}/events/${queryString}`)
+  }
+
+  async getRouterUsers(id: number): Promise<{ active_users: number; total_users: number; users: any[] }> {
+    return this.request<{ active_users: number; total_users: number; users: any[] }>(`/network/routers/${id}/users/`)
+  }
+
+  async syncRouterUsers(id: number): Promise<{ message: string; synced_count: number }> {
+    return this.request<{ message: string; synced_count: number }>(`/network/routers/${id}/sync_users/`, {
+      method: 'POST',
+    })
+  }
+
+  async getRouterDashboardStats(): Promise<RouterDashboardStats> {
+    return this.request<RouterDashboardStats>('/network/routers/dashboard_stats/')
+  }
+
+  async setRouterMaintenance(id: number, enabled: boolean, reason?: string): Promise<Router> {
+    return this.request<Router>(`/network/routers/${id}/maintenance/`, {
+      method: 'POST',
+      body: JSON.stringify({ enabled, reason }),
+    })
+  }
+
+  async backupRouterConfig(id: number): Promise<{ message: string; backup_id: number }> {
+    return this.request<{ message: string; backup_id: number }>(`/network/routers/${id}/backup/`, {
+      method: 'POST',
+    })
+  }
+
+  async restoreRouterConfig(id: number, backupId: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/network/routers/${id}/restore/`, {
+      method: 'POST',
+      body: JSON.stringify({ backup_id: backupId }),
+    })
+  }
+
+  async getRouterAuthKey(id: number): Promise<{ auth_key: string; script: string; is_authenticated: boolean; authenticated_at: string | null }> {
+    return this.request<{ auth_key: string; script: string; is_authenticated: boolean; authenticated_at: string | null }>(`/network/routers/${id}/auth-key/`)
+  }
+
+  async regenerateRouterAuthKey(id: number): Promise<{ auth_key: string; script: string; message: string }> {
+    return this.request<{ auth_key: string; script: string; message: string }>(`/network/routers/${id}/regenerate-auth-key/`, {
+      method: 'POST',
+    })
   }
 
   // ------------------------------------------
@@ -1098,20 +1200,32 @@ class AdminApiService {
     })
   }
 
-  async markInvoiceSent(id: number): Promise<Invoice> {
+  async markInvoiceSent(id: number, method?: 'email' | 'sms' | 'both'): Promise<Invoice> {
+    // If method is provided, use the send endpoint which notifies the customer
+    if (method) {
+      return this.request<Invoice>(`/billing/invoices/${id}/send/`, {
+        method: 'POST',
+        body: JSON.stringify({ method }),
+      })
+    }
+    // Otherwise, just mark as sent without notification
     return this.request<Invoice>(`/billing/invoices/${id}/mark_as_sent/`, {
       method: 'POST',
     })
   }
 
-  async addPaymentToInvoice(id: number, data: { amount: number; payment_method_id: number }): Promise<Invoice> {
+  async addPaymentToInvoice(id: number, data: { amount: string | number; payment_method: string; reference?: string }): Promise<Invoice> {
     return this.request<Invoice>(`/billing/invoices/${id}/add_payment/`, {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  async applyInvoiceDiscount(id: number, data: { discount_amount: number; discount_reason: string }): Promise<Invoice> {
+  async applyInvoiceDiscount(id: number, data: { 
+    discount_type: 'PERCENTAGE' | 'FIXED'; 
+    discount_value: string | number; 
+    reason?: string 
+  }): Promise<Invoice> {
     return this.request<Invoice>(`/billing/invoices/${id}/apply_discount/`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -1422,17 +1536,17 @@ class AdminApiService {
     })
   }
 
-  async sellVoucher(id: number, customerId: number): Promise<Voucher> {
+  async sellVoucher(id: number, sellerName?: string, notes?: string): Promise<Voucher> {
     return this.request<Voucher>(`/billing/vouchers/${id}/sell/`, {
       method: 'POST',
-      body: JSON.stringify({ customer_id: customerId }),
+      body: JSON.stringify({ seller_name: sellerName, notes }),
     })
   }
 
-  async redeemVoucher(id: number, data: { customer_id: number; amount?: number; description?: string }): Promise<Voucher> {
-    return this.request<Voucher>(`/billing/vouchers/${id}/redeem/`, {
+  async redeemVoucher(code: string, pin?: string, customerId?: number): Promise<Voucher> {
+    return this.request<Voucher>('/billing/vouchers/redeem/', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ code, pin, customer_id: customerId }),
     })
   }
 
@@ -1442,8 +1556,8 @@ class AdminApiService {
     })
   }
 
-  async validateVoucherCode(code: string, pin: string): Promise<{ valid: boolean; voucher?: Voucher }> {
-    return this.request<{ valid: boolean; voucher?: Voucher }>('/billing/vouchers/validate_code/', {
+  async validateVoucherCode(code: string, pin?: string): Promise<{ valid: boolean; message?: string; voucher?: Voucher }> {
+    return this.request<{ valid: boolean; message?: string; voucher?: Voucher }>('/billing/vouchers/validate/', {
       method: 'POST',
       body: JSON.stringify({ code, pin }),
     })

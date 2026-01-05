@@ -1,5 +1,267 @@
 # Netily - Recommended Pages & Features
 
+---
+
+## 🔴 BACKEND DEVELOPER - PRIORITY TASKS
+
+> **Note to Backend Developer:** The frontend is ready and waiting for these endpoints. Please implement in order of priority.
+
+### Priority 1: Router Management Module (BLOCKING)
+
+The frontend router management pages are complete but the backend endpoints return 404. We need the following:
+
+#### Required Endpoints:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/network/routers/` | List all routers with pagination |
+| POST | `/api/v1/network/routers/` | Create new router (only `name` required) |
+| GET | `/api/v1/network/routers/{id}/` | Get router details |
+| PATCH | `/api/v1/network/routers/{id}/` | Update router |
+| DELETE | `/api/v1/network/routers/{id}/` | Delete router |
+| GET | `/api/v1/network/routers/dashboard_stats/` | Get router stats summary |
+| GET | `/api/v1/network/routers/{id}/events/` | Get router events log |
+| GET | `/api/v1/network/routers/{id}/users/` | Get connected users |
+| POST | `/api/v1/network/routers/{id}/test_connection/` | Test router connection |
+| POST | `/api/v1/network/routers/{id}/reboot/` | Reboot router |
+| POST | `/api/v1/network/routers/{id}/maintenance/` | Toggle maintenance mode |
+| POST | `/api/v1/network/routers/{id}/sync_users/` | Sync users from router |
+| POST | `/api/v1/network/routers/{id}/backup/` | Create backup |
+
+#### Router Model Fields:
+```python
+class Router(models.Model):
+    name = models.CharField(max_length=255)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    mac_address = models.CharField(max_length=17, null=True, blank=True)
+    api_port = models.IntegerField(default=8728)
+    api_username = models.CharField(max_length=100, null=True, blank=True)
+    api_password = models.CharField(max_length=255, null=True, blank=True)  # Encrypted
+    router_type = models.CharField(max_length=50, choices=ROUTER_TYPES, default='mikrotik')
+    model = models.CharField(max_length=100, null=True, blank=True)
+    firmware_version = models.CharField(max_length=50, null=True, blank=True)
+    location = models.CharField(max_length=255, null=True, blank=True)
+    latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='offline')
+    total_users = models.IntegerField(default=0)
+    active_users = models.IntegerField(default=0)
+    uptime = models.CharField(max_length=50, null=True, blank=True)
+    uptime_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    sla_target = models.DecimalField(max_digits=5, decimal_places=2, default=99.0)
+    last_seen = models.DateTimeField(null=True, blank=True)
+    tags = models.JSONField(default=list)
+    notes = models.TextField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    # Authentication fields (NEW - for router self-registration)
+    auth_key = models.CharField(max_length=50, unique=True)  # Auto-generated
+    is_authenticated = models.BooleanField(default=False)
+    authenticated_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+```
+
+---
+
+### Priority 2: Router Authentication System (NEW FEATURE)
+
+This enables MikroTik routers to self-register by running a simple script.
+
+#### Flow:
+1. Admin creates router in dashboard (name only)
+2. System generates unique `auth_key` (e.g., `RTR_0001_XY7K_AUTH`)
+3. Admin copies script from frontend
+4. Admin runs script on MikroTik router
+5. Router calls our public endpoint
+6. Backend validates key, captures router's IP, marks as authenticated
+
+#### Required Endpoints:
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| **GET** | `/api/v1/routers/auth/?key=RTR_XXX` | **PUBLIC** | Router authentication |
+| GET | `/api/v1/network/routers/{id}/auth-key/` | Admin | Get auth key |
+| POST | `/api/v1/network/routers/{id}/regenerate-auth-key/` | Admin | Regenerate key |
+
+#### Public Auth Endpoint Implementation:
+```python
+# views.py
+class RouterAuthenticateView(APIView):
+    permission_classes = []  # PUBLIC - no auth required
+    
+    def get(self, request):
+        key = request.query_params.get('key')
+        if not key:
+            return Response({'error': 'Missing key'}, status=400)
+        
+        try:
+            router = Router.objects.get(auth_key=key)
+        except Router.DoesNotExist:
+            return Response({'error': 'Invalid key'}, status=404)
+        
+        # Get router's IP from request
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        
+        # Update router
+        router.ip_address = ip
+        router.is_authenticated = True
+        router.authenticated_at = timezone.now()
+        router.status = 'online'
+        router.last_seen = timezone.now()
+        router.save()
+        
+        return Response({
+            'status': 'success',
+            'message': f'Router {router.name} authenticated',
+            'router_id': router.id
+        })
+```
+
+#### Auth Key Generation:
+```python
+# models.py
+def generate_auth_key():
+    import secrets
+    random_part = secrets.token_hex(4).upper()
+    return f"RTR_{random_part}_AUTH"
+
+# In Router model
+auth_key = models.CharField(max_length=50, unique=True, default=generate_auth_key)
+```
+
+#### URL Pattern:
+```python
+# urls.py
+urlpatterns = [
+    # Public router auth (NO authentication required)
+    path('routers/auth/', RouterAuthenticateView.as_view(), name='router-authenticate'),
+    
+    # Admin router management
+    path('network/routers/', RouterViewSet.as_view({'get': 'list', 'post': 'create'})),
+    path('network/routers/<int:pk>/', RouterViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'})),
+    path('network/routers/<int:pk>/auth-key/', RouterViewSet.as_view({'get': 'auth_key'})),
+    path('network/routers/<int:pk>/regenerate-auth-key/', RouterViewSet.as_view({'post': 'regenerate_auth_key'})),
+]
+```
+
+---
+
+### Priority 3: Dashboard Stats Endpoint
+
+The frontend calls `/api/v1/network/routers/dashboard_stats/` on page load.
+
+#### Response Format:
+```json
+{
+  "total_routers": 15,
+  "online_routers": 12,
+  "offline_routers": 1,
+  "warning_routers": 1,
+  "maintenance_routers": 1,
+  "total_connected_users": 1250,
+  "average_uptime": 99.5,
+  "below_sla_count": 2
+}
+```
+
+---
+
+### Priority 4: Router Events Endpoint
+
+Track router lifecycle events.
+
+#### RouterEvent Model:
+```python
+class RouterEvent(models.Model):
+    router = models.ForeignKey(Router, on_delete=models.CASCADE, related_name='events')
+    event_type = models.CharField(max_length=50, choices=[
+        ('up', 'Router Online'),
+        ('down', 'Router Offline'),
+        ('reboot', 'Router Rebooted'),
+        ('config_change', 'Configuration Changed'),
+        ('warning', 'Warning'),
+        ('error', 'Error'),
+        ('maintenance', 'Maintenance Mode'),
+    ])
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+```
+
+---
+
+### Priority 5: Optional - Heartbeat Endpoint
+
+For routers to periodically check in (can be implemented later):
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/v1/routers/heartbeat/` | **PUBLIC** | Periodic check-in |
+
+```python
+class RouterHeartbeatView(APIView):
+    permission_classes = []
+    
+    def post(self, request):
+        key = request.data.get('key')
+        router = Router.objects.filter(auth_key=key).first()
+        if router:
+            router.last_seen = timezone.now()
+            router.status = 'online'
+            router.save(update_fields=['last_seen', 'status'])
+            return Response({'status': 'ok'})
+        return Response({'error': 'Invalid key'}, status=404)
+```
+
+---
+
+## Testing the Integration
+
+Once implemented, the frontend will:
+
+1. **Routers List Page** (`/admin/routers`)
+   - Display all routers from API
+   - Allow adding new router (name only)
+   - Navigate to router details
+
+2. **Router Details Page** (`/admin/routers/{id}`)
+   - Show router info from API
+   - Display auth script with the router's `auth_key`
+   - Show connected users
+   - Show events log
+   - Allow editing router details
+
+3. **MikroTik Integration**
+   - Admin copies script: `/tool fetch url="https://api.netily.io/api/v1/routers/auth?key=RTR_XXX" mode=https`
+   - Runs on router
+   - Router appears as "Authenticated" in dashboard
+
+---
+
+## 📋 Summary Checklist
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Router CRUD endpoints | 🔴 Not Started | Currently returning 404 |
+| Dashboard stats endpoint | 🔴 Not Started | Currently returning 404 |
+| Router events endpoint | 🔴 Not Started | Currently returning 404 |
+| Router users endpoint | 🔴 Not Started | Currently returning 404 |
+| Router auth endpoint (public) | 🔴 Not Started | New feature |
+| Auth key generation | 🔴 Not Started | New feature |
+| Heartbeat endpoint | ⚪ Optional | Nice to have |
+
+---
+
+See `BACKEND_API_REQUIREMENTS.md` for complete API documentation including request/response formats.
+
+---
+---
+
 ## ✅ Completed Pages
 
 ### 1. **Usage History** (`/dashboard/usage-history`)

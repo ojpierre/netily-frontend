@@ -293,19 +293,73 @@ export interface NetworkDevice {
   created_at: string
 }
 
+export type RouterType = 'mikrotik' | 'ubiquiti' | 'cisco' | 'other'
+export type RouterStatus = 'online' | 'offline' | 'warning' | 'maintenance'
+
+export interface RouterMetrics {
+  cpu_usage: number
+  memory_usage: number
+  temperature?: number
+  active_connections: number
+  download_speed: number // Mbps
+  upload_speed: number // Mbps
+  packets_in?: number
+  packets_out?: number
+  bandwidth_in?: number
+  bandwidth_out?: number
+}
+
+export interface RouterEvent {
+  id: number
+  router: number
+  event_type: 'up' | 'down' | 'warning' | 'config_change' | 'reboot'
+  message: string
+  created_at: string
+}
+
 export interface Router {
   id: number
   name: string
   ip_address: string
+  mac_address?: string
   api_port: number
   api_username: string
-  router_type: 'mikrotik' | 'ubiquiti' | 'cisco' | 'other'
+  api_password?: string  // Not returned by API, only for create/update
+  secret?: string
+  router_type: RouterType
+  model?: string
+  firmware_version?: string
   location?: string
-  status: 'online' | 'offline'
+  latitude?: number
+  longitude?: number
+  status: RouterStatus
   total_users: number
   active_users: number
   uptime?: string
+  uptime_percentage?: number
+  sla_target?: number
+  last_seen?: string
+  metrics?: RouterMetrics
+  tags?: string[]
+  notes?: string
+  is_active: boolean
+  // Authentication
+  auth_key?: string
+  is_authenticated?: boolean
+  authenticated_at?: string
   created_at: string
+  updated_at?: string
+}
+
+export interface RouterDashboardStats {
+  total_routers: number
+  online_routers: number
+  offline_routers: number
+  warning_routers: number
+  maintenance_routers: number
+  total_connected_users: number
+  average_uptime: number
+  below_sla_count: number
 }
 
 // ==========================================
@@ -318,14 +372,24 @@ export interface Invoice {
   customer: number
   customer_name: string
   amount: string
+  subtotal?: string
   tax_amount?: string
+  discount_amount?: string
+  discount_reason?: string
   total_amount: string
-  status: 'draft' | 'pending' | 'paid' | 'overdue' | 'cancelled'
+  amount_paid?: string
+  balance_due?: string
+  status: 'draft' | 'pending' | 'paid' | 'overdue' | 'cancelled' | 'partial'
   invoice_date: string
   due_date: string
   paid_date?: string
+  sent_at?: string
+  sent_via?: 'email' | 'sms' | 'both'
   items: InvoiceItem[]
+  notes?: string
+  terms?: string
   created_at: string
+  updated_at?: string
 }
 
 export interface InvoiceItem {
@@ -347,8 +411,11 @@ export interface Payment {
   payment_method: 'mpesa' | 'bank' | 'cash' | 'card' | 'voucher' | 'paybill' | 'till' | 'payhero'
   payment_date: string
   reference_number?: string
+  reference?: string  // Alias for reference_number
+  transaction_id?: string  // Transaction ID from payment gateway
   external_reference?: string
   mpesa_receipt?: string
+  notes?: string  // Payment notes/description
   // PayHero integration fields
   payhero_reference?: string
   payhero_checkout_id?: string
@@ -357,6 +424,14 @@ export interface Payment {
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled'
   created_at: string
   updated_at?: string
+  // Refund fields
+  refund_amount?: string
+  refund_reason?: string
+  refunded_at?: string
+  // Reconciliation fields
+  reconciled?: boolean
+  reconciled_at?: string
+  reconciled_by?: number
 }
 
 // PayHero response structure
@@ -947,7 +1022,7 @@ export interface AlertRule {
 // BILLING PLANS & CYCLES (Backend Aligned)
 // ==========================================
 
-export type PlanType = 'INTERNET' | 'ADDON' | 'BUNDLE' | 'TOPUP'
+export type PlanType = 'INTERNET' | 'ADDON' | 'BUNDLE' | 'TOPUP' | 'PPPOE' | 'HOTSPOT' | 'STATIC'
 
 export interface Plan {
   id: number
@@ -956,10 +1031,13 @@ export interface Plan {
   plan_type: PlanType
   description?: string
   base_price: string
+  price?: string  // Alias for base_price
+  setup_fee?: string
   download_speed?: number  // Mbps
   upload_speed?: number    // Mbps
   data_limit?: number      // GB, null = unlimited
   duration_days?: number
+  validity_days?: number   // Alias for duration_days
   validity_hours?: number  // For hourly plans
   fup_limit?: number       // Fair Usage Policy limit in GB
   fup_speed?: number       // Reduced speed after FUP
@@ -968,6 +1046,7 @@ export interface Plan {
   is_popular?: boolean
   features?: string[]
   subscribers_count?: number
+  subscriber_count?: number  // Alias
   created_at: string
   updated_at: string
 }
@@ -1076,7 +1155,7 @@ export interface Receipt {
 // ==========================================
 
 export type VoucherType = 'PREPAID' | 'DISCOUNT' | 'CREDIT' | 'DATA' | 'TIME'
-export type VoucherStatus = 'DRAFT' | 'ACTIVE' | 'SOLD' | 'REDEEMED' | 'EXPIRED' | 'CANCELLED'
+export type VoucherStatus = 'DRAFT' | 'ACTIVE' | 'AVAILABLE' | 'SOLD' | 'REDEEMED' | 'EXPIRED' | 'CANCELLED'
 export type VoucherBatchStatus = 'DRAFT' | 'ACTIVE' | 'DEPLETED' | 'EXPIRED' | 'CANCELLED'
 
 export interface VoucherBatch {
@@ -1084,12 +1163,19 @@ export interface VoucherBatch {
   batch_number: string
   name: string
   description?: string
+  notes?: string
   voucher_type: VoucherType
   face_value: string
+  price?: string
+  plan_id?: number
+  plan_name?: string
+  validity_days?: number
   quantity: number
   generated_count: number
   sold_count: number
   redeemed_count: number
+  total_vouchers?: number
+  available_vouchers?: number
   status: VoucherBatchStatus
   expiry_date?: string
   prefix?: string
@@ -1136,15 +1222,22 @@ export interface VoucherBatchStats {
   batch_id: number
   batch_name: string
   total_vouchers: number
+  total?: number
+  available?: number
   active_vouchers: number
   sold_vouchers: number
+  sold?: number
   redeemed_vouchers: number
+  redeemed?: number
   expired_vouchers: number
+  expired?: number
   total_value: string
   sold_value: string
   redeemed_value: string
   remaining_value: string
   usage_rate: number  // Percentage
+  redemption_rate?: number  // Percentage
+  total_revenue?: string | number
 }
 
 // ==========================================
@@ -1164,11 +1257,27 @@ export interface InvoiceDashboardStats {
   invoices_this_month: number
   revenue_this_month: string
   revenue_growth: number  // Percentage
+  // Frontend computed stats
+  total_paid?: number | string
+  total_pending?: number | string
+  total_overdue?: number | string
+  paid_count?: number
+  pending_count?: number
+  overdue_count?: number
 }
 
 export interface PaymentDashboardStats {
   total_payments: number
   total_amount: string
+  // Alias properties for frontend compatibility
+  total_collected?: number | string
+  total_pending?: number | string
+  completed_count?: number
+  pending_count?: number
+  failed_count?: number
+  mpesa_total?: number | string
+  bank_total?: number | string
+  // Original properties
   completed_payments: number
   pending_payments: number
   failed_payments: number
@@ -1177,12 +1286,12 @@ export interface PaymentDashboardStats {
   amount_today: string
   payments_this_month: number
   amount_this_month: string
-  payment_methods_breakdown: {
+  payment_methods_breakdown?: {
     method: PaymentMethodType
     count: number
     amount: string
   }[]
-  daily_trend: {
+  daily_trend?: {
     date: string
     count: number
     amount: string

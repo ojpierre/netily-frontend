@@ -97,15 +97,15 @@ const formatDateTime = (dateString: string) => {
 }
 
 const getStatusBadge = (status: ReceiptStatus) => {
-  const badges = {
-    'DRAFT': { variant: 'secondary' as const, label: 'Draft', icon: Clock },
+  const badges: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string; icon: typeof Clock; className?: string }> = {
+    'DRAFT': { variant: 'secondary' as const, label: 'Draft', icon: Clock, className: '' },
     'ISSUED': { variant: 'default' as const, label: 'Issued', icon: CheckCircle, className: 'bg-green-500' },
-    'CANCELLED': { variant: 'destructive' as const, label: 'Cancelled', icon: XCircle },
+    'CANCELLED': { variant: 'destructive' as const, label: 'Cancelled', icon: XCircle, className: '' },
   }
-  const badge = badges[status] || { variant: 'outline' as const, label: status, icon: Clock }
+  const badge = badges[status] || { variant: 'outline' as const, label: status, icon: Clock, className: '' }
   const Icon = badge.icon
   return (
-    <Badge variant={badge.variant} className={badge.className}>
+    <Badge variant={badge.variant} className={badge.className || ''}>
       <Icon className="mr-1 h-3 w-3" />
       {badge.label}
     </Badge>

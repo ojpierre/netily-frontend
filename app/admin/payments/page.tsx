@@ -272,7 +272,7 @@ export default function PaymentsPage() {
   const handleMarkFailed = async (payment: Payment, reason?: string) => {
     setProcessingId(payment.id)
     try {
-      await adminApi.markPaymentFailed(payment.id, reason)
+      await adminApi.markPaymentFailed(payment.id, reason || 'No reason provided')
       toast.success('Payment marked as failed')
       fetchData()
     } catch (error: any) {
@@ -289,7 +289,7 @@ export default function PaymentsPage() {
 
     setIsSubmitting(true)
     try {
-      await adminApi.reconcilePayment(selectedPayment.id, reconcileRef || undefined)
+      await adminApi.reconcilePayment(selectedPayment.id)
       toast.success('Payment reconciled')
       setIsReconcileOpen(false)
       setReconcileRef('')
@@ -308,7 +308,10 @@ export default function PaymentsPage() {
 
     setIsSubmitting(true)
     try {
-      await adminApi.refundPayment(selectedPayment.id, refundReason || undefined)
+      await adminApi.refundPayment(selectedPayment.id, {
+        refund_amount: parseFloat(selectedPayment.amount || '0'),
+        refund_reason: refundReason || 'No reason provided'
+      })
       toast.success('Refund initiated')
       setIsRefundOpen(false)
       setRefundReason('')
@@ -321,10 +324,15 @@ export default function PaymentsPage() {
     }
   }
 
-  // M-Pesa STK Push
+  // M-Pesa STK Push (Legacy - use PayHero initiatePayment instead)
   const handleMpesaStkPush = async () => {
     if (!mpesaForm.phone_number || !mpesaForm.amount) {
       toast.error('Phone number and amount are required')
+      return
+    }
+
+    if (!mpesaForm.customer_id) {
+      toast.error('Customer ID is required')
       return
     }
 
@@ -332,9 +340,9 @@ export default function PaymentsPage() {
     try {
       await adminApi.initiateMpesaStkPush({
         phone_number: mpesaForm.phone_number,
-        amount: mpesaForm.amount,
-        invoice: mpesaForm.invoice_id ? parseInt(mpesaForm.invoice_id) : undefined,
-        customer: mpesaForm.customer_id ? parseInt(mpesaForm.customer_id) : undefined,
+        amount: parseFloat(mpesaForm.amount),
+        invoice_id: mpesaForm.invoice_id ? parseInt(mpesaForm.invoice_id) : undefined,
+        customer_id: parseInt(mpesaForm.customer_id),
       })
       toast.success('M-Pesa STK Push sent! Customer will receive a prompt.')
       setIsMpesaOpen(false)
@@ -355,15 +363,25 @@ export default function PaymentsPage() {
       return
     }
 
+    if (!bankForm.customer_id) {
+      toast.error('Customer ID is required')
+      return
+    }
+
+    if (!bankForm.bank_name) {
+      toast.error('Bank name is required')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       await adminApi.processBankTransfer({
-        amount: bankForm.amount,
-        reference: bankForm.reference,
-        bank_name: bankForm.bank_name || undefined,
-        account_name: bankForm.account_name || undefined,
-        invoice: bankForm.invoice_id ? parseInt(bankForm.invoice_id) : undefined,
-        customer: bankForm.customer_id ? parseInt(bankForm.customer_id) : undefined,
+        amount: parseFloat(bankForm.amount),
+        transaction_reference: bankForm.reference,
+        bank_name: bankForm.bank_name,
+        account_number: bankForm.account_name || '', // Using account_name field for account_number
+        invoice_id: bankForm.invoice_id ? parseInt(bankForm.invoice_id) : undefined,
+        customer_id: parseInt(bankForm.customer_id),
       })
       toast.success('Bank transfer recorded')
       setIsBankOpen(false)
@@ -633,9 +651,9 @@ export default function PaymentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(localStats.total_collected)}
+              {formatCurrency(localStats.total_collected ?? 0)}
             </div>
-            <p className="text-xs text-muted-foreground">{localStats.completed_count} payments</p>
+            <p className="text-xs text-muted-foreground">{localStats.completed_count ?? 0} payments</p>
           </CardContent>
         </Card>
 
@@ -646,9 +664,9 @@ export default function PaymentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              {formatCurrency(localStats.total_pending)}
+              {formatCurrency(localStats.total_pending ?? 0)}
             </div>
-            <p className="text-xs text-muted-foreground">{localStats.pending_count} awaiting</p>
+            <p className="text-xs text-muted-foreground">{localStats.pending_count ?? 0} awaiting</p>
           </CardContent>
         </Card>
 
@@ -659,7 +677,7 @@ export default function PaymentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(localStats.mpesa_total)}
+              {formatCurrency(localStats.mpesa_total ?? 0)}
             </div>
           </CardContent>
         </Card>
@@ -671,7 +689,7 @@ export default function PaymentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(localStats.bank_total)}
+              {formatCurrency(localStats.bank_total ?? 0)}
             </div>
           </CardContent>
         </Card>

@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import {
   Server,
   Plus,
@@ -9,30 +10,21 @@ import {
   MoreVertical,
   RefreshCw,
   Activity,
-  Wifi,
-  WifiOff,
   AlertTriangle,
   CheckCircle,
   XCircle,
   Clock,
   Users,
-  TrendingUp,
-  Download,
-  Upload,
   Settings,
   Eye,
-  Power,
-  Terminal,
-  History,
   BarChart3,
   Shield,
   MapPin,
-  Signal,
-  Gauge,
-  Zap,
-  AlertCircle,
   Search,
-  Filter,
+  Loader2,
+  RotateCcw,
+  Save,
+  TestTube,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -58,13 +50,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -77,7 +62,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -86,299 +70,538 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
+import { adminApi } from "@/lib/admin-api"
+import type { Router as RouterType2, RouterType, RouterStatus, RouterDashboardStats } from "@/lib/types"
 
-type RouterStatus = "online" | "offline" | "warning" | "maintenance"
-type RouterType = "mikrotik" | "cisco" | "ubiquiti" | "other"
-
-interface RouterEvent {
-  id: string
-  type: "up" | "down" | "warning" | "config_change" | "reboot"
-  message: string
-  timestamp: string
-}
-
-interface RouterMetrics {
-  cpuUsage: number
-  memoryUsage: number
-  temperature: number
-  activeConnections: number
-  downloadSpeed: number // Mbps
-  uploadSpeed: number // Mbps
-  packetsIn: number
-  packetsOut: number
-}
-
-interface Router {
-  id: string
-  name: string
-  ipAddress: string
-  macAddress: string
-  routerType: RouterType
-  model: string
-  secret: string
-  status: RouterStatus
-  connectedUsers: number
-  uptime: string
-  uptimePercentage: number
-  location: string
-  latitude?: number
-  longitude?: number
-  lastSeen: string
-  slaTarget: number // percentage
-  metrics: RouterMetrics
-  events: RouterEvent[]
-  tags: string[]
-}
-
-const generateMockRouters = (): Router[] => {
-  return [
-    {
-      id: "NAS-001",
-      name: "Main Gateway Router",
-      ipAddress: "192.168.1.1",
-      macAddress: "AA:BB:CC:DD:EE:01",
-      routerType: "mikrotik",
-      model: "CCR1036-12G-4S",
-      secret: "shared-secret-123",
-      status: "online",
-      connectedUsers: 320,
-      uptime: "45d 12h 30m",
-      uptimePercentage: 99.98,
-      location: "Nairobi CBD - HQ",
-      lastSeen: "Just now",
-      slaTarget: 99.9,
-      metrics: {
-        cpuUsage: 32,
-        memoryUsage: 45,
-        temperature: 52,
-        activeConnections: 320,
-        downloadSpeed: 850,
-        uploadSpeed: 420,
-        packetsIn: 12500000,
-        packetsOut: 8900000,
-      },
-      events: [
-        { id: "e1", type: "up", message: "Router is online", timestamp: "2024-01-15 08:00:00" },
-        { id: "e2", type: "config_change", message: "Firewall rules updated", timestamp: "2024-01-14 14:30:00" },
-      ],
-      tags: ["primary", "production"],
+// Demo data for when API is unavailable
+const generateDemoRouters = (): RouterType2[] => [
+  {
+    id: 1,
+    name: "Main Gateway Router",
+    ip_address: "192.168.1.1",
+    mac_address: "AA:BB:CC:DD:EE:01",
+    api_port: 8728,
+    api_username: "admin",
+    router_type: "mikrotik",
+    model: "CCR1036-12G-4S",
+    firmware_version: "7.12.1",
+    location: "Nairobi CBD - HQ",
+    latitude: -1.2864,
+    longitude: 36.8172,
+    status: "online",
+    total_users: 450,
+    active_users: 320,
+    uptime: "45d 12h 30m",
+    uptime_percentage: 99.98,
+    sla_target: 99.9,
+    last_seen: new Date().toISOString(),
+    metrics: {
+      cpu_usage: 32,
+      memory_usage: 45,
+      temperature: 52,
+      active_connections: 320,
+      download_speed: 850,
+      upload_speed: 420,
+      packets_in: 12500000,
+      packets_out: 8900000,
     },
-    {
-      id: "NAS-002",
-      name: "Westlands Branch Router",
-      ipAddress: "192.168.2.1",
-      macAddress: "AA:BB:CC:DD:EE:02",
-      routerType: "mikrotik",
-      model: "RB4011iGS+RM",
-      secret: "shared-secret-456",
-      status: "online",
-      connectedUsers: 180,
-      uptime: "23d 8h 15m",
-      uptimePercentage: 99.85,
-      location: "Westlands - Branch Office",
-      lastSeen: "Just now",
-      slaTarget: 99.5,
-      metrics: {
-        cpuUsage: 28,
-        memoryUsage: 38,
-        temperature: 48,
-        activeConnections: 180,
-        downloadSpeed: 450,
-        uploadSpeed: 210,
-        packetsIn: 6500000,
-        packetsOut: 4200000,
-      },
-      events: [
-        { id: "e3", type: "up", message: "Router is online", timestamp: "2024-01-10 10:00:00" },
-      ],
-      tags: ["branch", "production"],
+    tags: ["primary", "production"],
+    is_active: true,
+    created_at: "2023-06-15T10:00:00Z",
+  },
+  {
+    id: 2,
+    name: "Westlands Branch Router",
+    ip_address: "192.168.2.1",
+    mac_address: "AA:BB:CC:DD:EE:02",
+    api_port: 8728,
+    api_username: "admin",
+    router_type: "mikrotik",
+    model: "RB4011iGS+RM",
+    firmware_version: "7.11.2",
+    location: "Westlands - Branch Office",
+    status: "online",
+    total_users: 250,
+    active_users: 180,
+    uptime: "23d 8h 15m",
+    uptime_percentage: 99.85,
+    sla_target: 99.5,
+    last_seen: new Date().toISOString(),
+    metrics: {
+      cpu_usage: 28,
+      memory_usage: 38,
+      temperature: 48,
+      active_connections: 180,
+      download_speed: 450,
+      upload_speed: 210,
     },
-    {
-      id: "NAS-003",
-      name: "Kilimani Distribution",
-      ipAddress: "192.168.3.1",
-      macAddress: "AA:BB:CC:DD:EE:03",
-      routerType: "ubiquiti",
-      model: "EdgeRouter 12P",
-      secret: "shared-secret-789",
-      status: "warning",
-      connectedUsers: 95,
-      uptime: "12d 5h 45m",
-      uptimePercentage: 97.5,
-      location: "Kilimani - Residential",
-      lastSeen: "5 min ago",
-      slaTarget: 99.0,
-      metrics: {
-        cpuUsage: 78,
-        memoryUsage: 82,
-        temperature: 68,
-        activeConnections: 95,
-        downloadSpeed: 380,
-        uploadSpeed: 190,
-        packetsIn: 4200000,
-        packetsOut: 2800000,
-      },
-      events: [
-        { id: "e4", type: "warning", message: "High CPU usage detected", timestamp: "2024-01-15 07:45:00" },
-        { id: "e5", type: "warning", message: "Memory usage above threshold", timestamp: "2024-01-15 07:30:00" },
-      ],
-      tags: ["residential", "production"],
+    tags: ["branch", "production"],
+    is_active: true,
+    created_at: "2023-08-20T14:30:00Z",
+  },
+  {
+    id: 3,
+    name: "Kilimani Distribution",
+    ip_address: "192.168.3.1",
+    mac_address: "AA:BB:CC:DD:EE:03",
+    api_port: 22,
+    api_username: "ubnt",
+    router_type: "ubiquiti",
+    model: "EdgeRouter 12P",
+    firmware_version: "2.0.9",
+    location: "Kilimani - Residential",
+    status: "warning",
+    total_users: 120,
+    active_users: 95,
+    uptime: "12d 5h 45m",
+    uptime_percentage: 97.5,
+    sla_target: 99.0,
+    last_seen: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    metrics: {
+      cpu_usage: 78,
+      memory_usage: 82,
+      temperature: 68,
+      active_connections: 95,
+      download_speed: 380,
+      upload_speed: 190,
     },
-    {
-      id: "NAS-004",
-      name: "Mombasa Gateway",
-      ipAddress: "10.0.1.1",
-      macAddress: "AA:BB:CC:DD:EE:04",
-      routerType: "cisco",
-      model: "ISR 4331",
-      secret: "shared-secret-abc",
-      status: "online",
-      connectedUsers: 245,
-      uptime: "67d 18h 20m",
-      uptimePercentage: 99.95,
-      location: "Mombasa - Main Hub",
-      lastSeen: "Just now",
-      slaTarget: 99.9,
-      metrics: {
-        cpuUsage: 42,
-        memoryUsage: 55,
-        temperature: 55,
-        activeConnections: 245,
-        downloadSpeed: 920,
-        uploadSpeed: 480,
-        packetsIn: 15800000,
-        packetsOut: 10200000,
-      },
-      events: [
-        { id: "e6", type: "up", message: "Router is online", timestamp: "2023-11-10 06:00:00" },
-      ],
-      tags: ["primary", "production", "coast"],
+    tags: ["residential", "production"],
+    notes: "High CPU usage detected - needs investigation",
+    is_active: true,
+    created_at: "2023-09-10T09:15:00Z",
+  },
+  {
+    id: 4,
+    name: "Mombasa Gateway",
+    ip_address: "10.0.1.1",
+    mac_address: "AA:BB:CC:DD:EE:04",
+    api_port: 22,
+    api_username: "admin",
+    router_type: "cisco",
+    model: "ISR 4331",
+    firmware_version: "16.12.4",
+    location: "Mombasa - Main Hub",
+    status: "online",
+    total_users: 380,
+    active_users: 245,
+    uptime: "67d 18h 20m",
+    uptime_percentage: 99.95,
+    sla_target: 99.9,
+    last_seen: new Date().toISOString(),
+    metrics: {
+      cpu_usage: 42,
+      memory_usage: 55,
+      temperature: 55,
+      active_connections: 245,
+      download_speed: 920,
+      upload_speed: 480,
     },
-    {
-      id: "NAS-005",
-      name: "Kisumu Branch",
-      ipAddress: "10.0.2.1",
-      macAddress: "AA:BB:CC:DD:EE:05",
-      routerType: "mikrotik",
-      model: "hEX S",
-      secret: "shared-secret-def",
-      status: "offline",
-      connectedUsers: 0,
-      uptime: "0d 0h 0m",
-      uptimePercentage: 85.2,
-      location: "Kisumu - Branch",
-      lastSeen: "2 hours ago",
-      slaTarget: 99.0,
-      metrics: {
-        cpuUsage: 0,
-        memoryUsage: 0,
-        temperature: 0,
-        activeConnections: 0,
-        downloadSpeed: 0,
-        uploadSpeed: 0,
-        packetsIn: 0,
-        packetsOut: 0,
-      },
-      events: [
-        { id: "e7", type: "down", message: "Router went offline - Connection timeout", timestamp: "2024-01-15 06:30:00" },
-        { id: "e8", type: "warning", message: "High latency detected", timestamp: "2024-01-15 06:15:00" },
-      ],
-      tags: ["branch", "production"],
+    tags: ["primary", "production", "coast"],
+    is_active: true,
+    created_at: "2023-05-01T08:00:00Z",
+  },
+  {
+    id: 5,
+    name: "Kisumu Branch",
+    ip_address: "10.0.2.1",
+    mac_address: "AA:BB:CC:DD:EE:05",
+    api_port: 8728,
+    api_username: "admin",
+    router_type: "mikrotik",
+    model: "hEX S",
+    firmware_version: "7.10.2",
+    location: "Kisumu - Branch",
+    status: "offline",
+    total_users: 85,
+    active_users: 0,
+    uptime: "0d 0h 0m",
+    uptime_percentage: 85.2,
+    sla_target: 99.0,
+    last_seen: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    metrics: {
+      cpu_usage: 0,
+      memory_usage: 0,
+      active_connections: 0,
+      download_speed: 0,
+      upload_speed: 0,
     },
-    {
-      id: "NAS-006",
-      name: "Nakuru Distribution",
-      ipAddress: "10.0.3.1",
-      macAddress: "AA:BB:CC:DD:EE:06",
-      routerType: "mikrotik",
-      model: "RB3011UiAS-RM",
-      secret: "shared-secret-ghi",
-      status: "maintenance",
-      connectedUsers: 0,
-      uptime: "0d 0h 0m",
-      uptimePercentage: 98.5,
-      location: "Nakuru - Distribution Center",
-      lastSeen: "1 hour ago",
-      slaTarget: 99.0,
-      metrics: {
-        cpuUsage: 0,
-        memoryUsage: 0,
-        temperature: 0,
-        activeConnections: 0,
-        downloadSpeed: 0,
-        uploadSpeed: 0,
-        packetsIn: 0,
-        packetsOut: 0,
-      },
-      events: [
-        { id: "e9", type: "config_change", message: "Scheduled maintenance started", timestamp: "2024-01-15 05:00:00" },
-      ],
-      tags: ["distribution", "maintenance"],
+    tags: ["branch", "production"],
+    notes: "Connection timeout - technician dispatched",
+    is_active: true,
+    created_at: "2023-10-15T11:30:00Z",
+  },
+  {
+    id: 6,
+    name: "Nakuru Distribution",
+    ip_address: "10.0.3.1",
+    mac_address: "AA:BB:CC:DD:EE:06",
+    api_port: 8728,
+    api_username: "admin",
+    router_type: "mikrotik",
+    model: "RB3011UiAS-RM",
+    firmware_version: "7.11.2",
+    location: "Nakuru - Distribution Center",
+    status: "maintenance",
+    total_users: 150,
+    active_users: 0,
+    uptime: "0d 0h 0m",
+    uptime_percentage: 98.5,
+    sla_target: 99.0,
+    last_seen: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    metrics: {
+      cpu_usage: 0,
+      memory_usage: 0,
+      active_connections: 0,
+      download_speed: 0,
+      upload_speed: 0,
     },
-  ]
-}
-
-const mockRouters = generateMockRouters()
+    tags: ["distribution", "maintenance"],
+    notes: "Scheduled maintenance - firmware upgrade",
+    is_active: true,
+    created_at: "2023-07-22T16:45:00Z",
+  },
+]
 
 export default function RoutersPage() {
-  const [routers, setRouters] = useState<Router[]>(mockRouters)
-  const [selectedRouter, setSelectedRouter] = useState<Router | null>(null)
-  const [isDetailOpen, setIsDetailOpen] = useState(false)
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const router = useRouter()
+  const hasFetchedRef = React.useRef(false)
+  
+  // State
+  const [routers, setRouters] = useState<RouterType2[]>([])
+  const [stats, setStats] = useState<RouterDashboardStats | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
-  const [refreshing, setRefreshing] = useState(false)
+  const [isUsingDemoData, setIsUsingDemoData] = useState(false)
+  
+  // Dialog states
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [selectedRouter, setSelectedRouter] = useState<RouterType2 | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isTesting, setIsTesting] = useState<number | null>(null)
+  
+  // Form state
+  const [formData, setFormData] = useState<Partial<RouterType2> & { api_password?: string }>({
+    name: "",
+    ip_address: "",
+    api_port: 8728,
+    api_username: "admin",
+    api_password: "",
+    router_type: "mikrotik",
+    model: "",
+    location: "",
+    sla_target: 99.0,
+    tags: [],
+    notes: "",
+    is_active: true,
+  })
 
-  // Calculate stats
-  const stats = useMemo(() => {
+  // Fetch data
+  const fetchData = useCallback(async () => {
+    try {
+      const [routersResponse, statsResponse] = await Promise.all([
+        adminApi.getRouters(),
+        adminApi.getRouterDashboardStats().catch(() => null),
+      ])
+      
+      setRouters(routersResponse.results || [])
+      setStats(statsResponse)
+      setIsUsingDemoData(false)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.log('API unavailable, using demo data:', errorMessage)
+      // Use demo data when API is unavailable
+      const demoRouters = generateDemoRouters()
+      setRouters(demoRouters)
+      setIsUsingDemoData(true)
+      
+      // Calculate demo stats
+      const online = demoRouters.filter(r => r.status === "online").length
+      const offline = demoRouters.filter(r => r.status === "offline").length
+      const warning = demoRouters.filter(r => r.status === "warning").length
+      const maintenance = demoRouters.filter(r => r.status === "maintenance").length
+      const totalUsers = demoRouters.reduce((acc, r) => acc + r.active_users, 0)
+      const avgUptime = demoRouters.reduce((acc, r) => acc + (r.uptime_percentage || 0), 0) / demoRouters.length
+      const belowSla = demoRouters.filter(r => (r.uptime_percentage || 0) < (r.sla_target || 99)).length
+      
+      setStats({
+        total_routers: demoRouters.length,
+        online_routers: online,
+        offline_routers: offline,
+        warning_routers: warning,
+        maintenance_routers: maintenance,
+        total_connected_users: totalUsers,
+        average_uptime: avgUptime,
+        below_sla_count: belowSla,
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    // Prevent duplicate fetches in React Strict Mode
+    if (hasFetchedRef.current) return
+    hasFetchedRef.current = true
+    fetchData()
+  }, [fetchData])
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchData()
+    setIsRefreshing(false)
+    toast.success("Data refreshed")
+  }
+
+  // Calculate local stats if API stats unavailable
+  const localStats = useMemo(() => {
+    if (stats) return stats
+    
     const online = routers.filter(r => r.status === "online").length
     const offline = routers.filter(r => r.status === "offline").length
     const warning = routers.filter(r => r.status === "warning").length
     const maintenance = routers.filter(r => r.status === "maintenance").length
-    const totalUsers = routers.reduce((acc, r) => acc + r.connectedUsers, 0)
-    const avgUptime = routers.reduce((acc, r) => acc + r.uptimePercentage, 0) / routers.length
-    const belowSla = routers.filter(r => r.uptimePercentage < r.slaTarget).length
+    const totalUsers = routers.reduce((acc, r) => acc + r.active_users, 0)
+    const avgUptime = routers.length > 0 
+      ? routers.reduce((acc, r) => acc + (r.uptime_percentage || 0), 0) / routers.length 
+      : 0
+    const belowSla = routers.filter(r => (r.uptime_percentage || 0) < (r.sla_target || 99)).length
 
-    return { online, offline, warning, maintenance, totalUsers, avgUptime, belowSla }
-  }, [routers])
+    return {
+      total_routers: routers.length,
+      online_routers: online,
+      offline_routers: offline,
+      warning_routers: warning,
+      maintenance_routers: maintenance,
+      total_connected_users: totalUsers,
+      average_uptime: avgUptime,
+      below_sla_count: belowSla,
+    }
+  }, [routers, stats])
 
   // Filter routers
   const filteredRouters = useMemo(() => {
-    return routers.filter(router => {
+    return routers.filter(r => {
       const matchesSearch = 
-        router.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        router.ipAddress.includes(searchQuery) ||
-        router.location.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesStatus = statusFilter === "all" || router.status === statusFilter
-      const matchesType = typeFilter === "all" || router.routerType === typeFilter
+        r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.ip_address.includes(searchQuery) ||
+        (r.location?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+      const matchesStatus = statusFilter === "all" || r.status === statusFilter
+      const matchesType = typeFilter === "all" || r.router_type === typeFilter
       return matchesSearch && matchesStatus && matchesType
     })
   }, [routers, searchQuery, statusFilter, typeFilter])
 
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setRefreshing(false)
+  // CRUD Operations
+  const handleCreate = async () => {
+    if (!formData.name) {
+      toast.error("Router name is required")
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      if (isUsingDemoData) {
+        // Demo mode - add to local state
+        const newRouter: RouterType2 = {
+          id: Math.max(...routers.map(r => r.id), 0) + 1,
+          name: formData.name!,
+          ip_address: formData.ip_address || "0.0.0.0",
+          api_port: formData.api_port || 8728,
+          api_username: formData.api_username || "admin",
+          router_type: (formData.router_type as RouterType) || "mikrotik",
+          model: formData.model,
+          location: formData.location,
+          status: "offline",
+          total_users: 0,
+          active_users: 0,
+          uptime_percentage: 0,
+          sla_target: formData.sla_target || 99.0,
+          tags: formData.tags || [],
+          notes: formData.notes,
+          is_active: true,
+          created_at: new Date().toISOString(),
+        }
+        setRouters([...routers, newRouter])
+        toast.success("Router added - Now edit it to configure and get the auth script")
+      } else {
+        const newRouter = await adminApi.createRouter(formData)
+        setRouters([...routers, newRouter])
+        toast.success("Router created successfully")
+      }
+      
+      setIsAddDialogOpen(false)
+      resetForm()
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Failed to create router:', error)
+      toast.error(errorMessage || "Failed to create router")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const handleViewDetails = (router: Router) => {
-    setSelectedRouter(router)
-    setIsDetailOpen(true)
+  const handleUpdate = async () => {
+    if (!selectedRouter) return
+
+    setIsSubmitting(true)
+    try {
+      if (isUsingDemoData) {
+        // Demo mode - update local state
+        setRouters(routers.map(r => 
+          r.id === selectedRouter.id 
+            ? { ...r, ...formData, updated_at: new Date().toISOString() } 
+            : r
+        ))
+        toast.success("Router updated (Demo Mode)")
+      } else {
+        const updatedRouter = await adminApi.updateRouter(selectedRouter.id, formData)
+        setRouters(routers.map(r => r.id === selectedRouter.id ? updatedRouter : r))
+        toast.success("Router updated successfully")
+      }
+      
+      setIsEditDialogOpen(false)
+      setSelectedRouter(null)
+      resetForm()
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Failed to update router:', error)
+      toast.error(errorMessage || "Failed to update router")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!selectedRouter) return
+
+    setIsSubmitting(true)
+    try {
+      if (isUsingDemoData) {
+        // Demo mode - remove from local state
+        setRouters(routers.filter(r => r.id !== selectedRouter.id))
+        toast.success("Router deleted (Demo Mode)")
+      } else {
+        await adminApi.deleteRouter(selectedRouter.id)
+        setRouters(routers.filter(r => r.id !== selectedRouter.id))
+        toast.success("Router deleted successfully")
+      }
+      
+      setIsDeleteDialogOpen(false)
+      setSelectedRouter(null)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Failed to delete router:', error)
+      toast.error(errorMessage || "Failed to delete router")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleTestConnection = async (routerId: number) => {
+    setIsTesting(routerId)
+    try {
+      if (isUsingDemoData) {
+        // Demo mode - simulate test
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        const r = routers.find(r => r.id === routerId)
+        if (r?.status === "offline") {
+          toast.error("Connection failed: Timeout")
+        } else {
+          toast.success(`Connection successful! Latency: ${Math.floor(Math.random() * 50 + 10)}ms`)
+        }
+      } else {
+        const result = await adminApi.testRouterConnection(routerId)
+        if (result.success) {
+          toast.success(`Connection successful! Latency: ${result.latency}ms`)
+        } else {
+          toast.error(result.message || "Connection failed")
+        }
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(errorMessage || "Failed to test connection")
+    } finally {
+      setIsTesting(null)
+    }
+  }
+
+  const handleReboot = async (routerId: number) => {
+    try {
+      if (isUsingDemoData) {
+        // Demo mode - simulate reboot
+        toast.success("Reboot command sent (Demo Mode)")
+        setRouters(routers.map(r => 
+          r.id === routerId 
+            ? { ...r, status: "maintenance" as RouterStatus, uptime: "0d 0h 0m" } 
+            : r
+        ))
+        // Simulate coming back online
+        setTimeout(() => {
+          setRouters(prev => prev.map(r => 
+            r.id === routerId 
+              ? { ...r, status: "online" as RouterStatus, uptime: "0d 0h 1m" } 
+              : r
+          ))
+        }, 5000)
+      } else {
+        await adminApi.rebootRouter(routerId)
+        toast.success("Reboot command sent successfully")
+        fetchData()
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(errorMessage || "Failed to send reboot command")
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      ip_address: "",
+      api_port: 8728,
+      api_username: "admin",
+      api_password: "",
+      router_type: "mikrotik",
+      model: "",
+      location: "",
+      sla_target: 99.0,
+      tags: [],
+      notes: "",
+      is_active: true,
+    })
+  }
+
+  const openEditDialog = (r: RouterType2) => {
+    setSelectedRouter(r)
+    setFormData({
+      name: r.name,
+      ip_address: r.ip_address,
+      api_port: r.api_port,
+      api_username: r.api_username,
+      router_type: r.router_type,
+      model: r.model,
+      location: r.location,
+      sla_target: r.sla_target,
+      tags: r.tags,
+      notes: r.notes,
+      is_active: r.is_active,
+    })
+    setIsEditDialogOpen(true)
   }
 
   const getStatusIcon = (status: RouterStatus) => {
     switch (status) {
-      case "online":
-        return <CheckCircle className="w-4 h-4 text-green-600" />
-      case "offline":
-        return <XCircle className="w-4 h-4 text-red-600" />
-      case "warning":
-        return <AlertTriangle className="w-4 h-4 text-amber-600" />
-      case "maintenance":
-        return <Settings className="w-4 h-4 text-blue-600" />
+      case "online": return <CheckCircle className="w-4 h-4 text-green-600" />
+      case "offline": return <XCircle className="w-4 h-4 text-red-600" />
+      case "warning": return <AlertTriangle className="w-4 h-4 text-amber-600" />
+      case "maintenance": return <Settings className="w-4 h-4 text-blue-600 animate-spin" />
     }
   }
 
@@ -411,19 +634,40 @@ export default function RoutersPage() {
     )
   }
 
-  const getEventIcon = (type: RouterEvent["type"]) => {
-    switch (type) {
-      case "up":
-        return <CheckCircle className="w-4 h-4 text-green-600" />
-      case "down":
-        return <XCircle className="w-4 h-4 text-red-600" />
-      case "warning":
-        return <AlertTriangle className="w-4 h-4 text-amber-600" />
-      case "config_change":
-        return <Settings className="w-4 h-4 text-blue-600" />
-      case "reboot":
-        return <RefreshCw className="w-4 h-4 text-purple-600" />
-    }
+  // Loading skeleton
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-5 w-96 mt-2" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          {[...Array(7)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-12 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-32 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -432,11 +676,18 @@ export default function RoutersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Router Management</h1>
-          <p className="text-slate-500 mt-1">Monitor and manage network access servers</p>
+          <p className="text-slate-500 mt-1">
+            Monitor and manage network access servers
+            {isUsingDemoData && (
+              <Badge variant="outline" className="ml-2 text-amber-600 border-amber-300">
+                Demo Mode
+              </Badge>
+            )}
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
           <Button onClick={() => setIsAddDialogOpen(true)}>
@@ -455,7 +706,7 @@ export default function RoutersPage() {
                 <Server className="w-5 h-5 text-slate-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{routers.length}</p>
+                <p className="text-2xl font-bold">{localStats.total_routers}</p>
                 <p className="text-xs text-slate-500">Total Routers</p>
               </div>
             </div>
@@ -469,7 +720,7 @@ export default function RoutersPage() {
                 <CheckCircle className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-green-600">{stats.online}</p>
+                <p className="text-2xl font-bold text-green-600">{localStats.online_routers}</p>
                 <p className="text-xs text-slate-500">Online</p>
               </div>
             </div>
@@ -483,7 +734,7 @@ export default function RoutersPage() {
                 <XCircle className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-red-600">{stats.offline}</p>
+                <p className="text-2xl font-bold text-red-600">{localStats.offline_routers}</p>
                 <p className="text-xs text-slate-500">Offline</p>
               </div>
             </div>
@@ -497,7 +748,7 @@ export default function RoutersPage() {
                 <AlertTriangle className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-amber-600">{stats.warning}</p>
+                <p className="text-2xl font-bold text-amber-600">{localStats.warning_routers}</p>
                 <p className="text-xs text-slate-500">Warnings</p>
               </div>
             </div>
@@ -511,7 +762,7 @@ export default function RoutersPage() {
                 <Users className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-blue-600">{stats.totalUsers}</p>
+                <p className="text-2xl font-bold text-blue-600">{localStats.total_connected_users}</p>
                 <p className="text-xs text-slate-500">Connected</p>
               </div>
             </div>
@@ -525,7 +776,7 @@ export default function RoutersPage() {
                 <Activity className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-emerald-600">{stats.avgUptime.toFixed(1)}%</p>
+                <p className="text-2xl font-bold text-emerald-600">{localStats.average_uptime.toFixed(1)}%</p>
                 <p className="text-xs text-slate-500">Avg Uptime</p>
               </div>
             </div>
@@ -539,7 +790,7 @@ export default function RoutersPage() {
                 <Shield className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-purple-600">{stats.belowSla}</p>
+                <p className="text-2xl font-bold text-purple-600">{localStats.below_sla_count}</p>
                 <p className="text-xs text-slate-500">Below SLA</p>
               </div>
             </div>
@@ -547,247 +798,291 @@ export default function RoutersPage() {
         </Card>
       </div>
 
+      {/* Filters */}
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            placeholder="Search routers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="online">Online</SelectItem>
+            <SelectItem value="offline">Offline</SelectItem>
+            <SelectItem value="warning">Warning</SelectItem>
+            <SelectItem value="maintenance">Maintenance</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="mikrotik">MikroTik</SelectItem>
+            <SelectItem value="cisco">Cisco</SelectItem>
+            <SelectItem value="ubiquiti">Ubiquiti</SelectItem>
+            <SelectItem value="other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Tabs */}
       <Tabs defaultValue="grid" className="w-full">
-        <div className="flex items-center justify-between mb-4">
-          <TabsList>
-            <TabsTrigger value="grid" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Grid View
-            </TabsTrigger>
-            <TabsTrigger value="table" className="flex items-center gap-2">
-              <Server className="w-4 h-4" />
-              Table View
-            </TabsTrigger>
-            <TabsTrigger value="monitoring" className="flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              Monitoring
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="flex gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="Search routers..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-64"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="online">Online</SelectItem>
-                <SelectItem value="offline">Offline</SelectItem>
-                <SelectItem value="warning">Warning</SelectItem>
-                <SelectItem value="maintenance">Maintenance</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="mikrotik">MikroTik</SelectItem>
-                <SelectItem value="cisco">Cisco</SelectItem>
-                <SelectItem value="ubiquiti">Ubiquiti</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        <TabsList>
+          <TabsTrigger value="grid" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Grid View
+          </TabsTrigger>
+          <TabsTrigger value="table" className="flex items-center gap-2">
+            <Server className="w-4 h-4" />
+            Table View
+          </TabsTrigger>
+        </TabsList>
 
         {/* Grid View */}
-        <TabsContent value="grid" className="mt-0">
+        <TabsContent value="grid" className="mt-4">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredRouters.map((router) => (
+            {filteredRouters.map((r) => (
               <Card 
-                key={router.id} 
+                key={r.id} 
                 className={`cursor-pointer hover:shadow-md transition-shadow ${
-                  router.status === "offline" ? "border-red-200 bg-red-50/30" :
-                  router.status === "warning" ? "border-amber-200 bg-amber-50/30" :
-                  router.status === "maintenance" ? "border-blue-200 bg-blue-50/30" :
-                  ""
+                  r.status === "offline" ? "border-red-200 bg-red-50/30" :
+                  r.status === "warning" ? "border-amber-200 bg-amber-50/30" :
+                  r.status === "maintenance" ? "border-blue-200 bg-blue-50/30" : ""
                 }`}
-                onClick={() => handleViewDetails(router)}
+                onClick={() => router.push(`/admin/routers/${r.id}`)}
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${
-                        router.status === "online" ? "bg-green-100" :
-                        router.status === "offline" ? "bg-red-100" :
-                        router.status === "warning" ? "bg-amber-100" :
-                        "bg-blue-100"
+                        r.status === "online" ? "bg-green-100" :
+                        r.status === "offline" ? "bg-red-100" :
+                        r.status === "warning" ? "bg-amber-100" : "bg-blue-100"
                       }`}>
                         <Server className={`w-5 h-5 ${
-                          router.status === "online" ? "text-green-600" :
-                          router.status === "offline" ? "text-red-600" :
-                          router.status === "warning" ? "text-amber-600" :
-                          "text-blue-600"
+                          r.status === "online" ? "text-green-600" :
+                          r.status === "offline" ? "text-red-600" :
+                          r.status === "warning" ? "text-amber-600" : "text-blue-600"
                         }`} />
                       </div>
                       <div>
-                        <CardTitle className="text-base">{router.name}</CardTitle>
-                        <CardDescription className="text-xs">{router.ipAddress}</CardDescription>
+                        <CardTitle className="text-base">{r.name}</CardTitle>
+                        <CardDescription className="text-xs">{r.ip_address}</CardDescription>
                       </div>
                     </div>
-                    {getStatusBadge(router.status)}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/routers/${r.id}`) }}>
+                          <Eye className="w-4 h-4 mr-2" /> View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(r) }}>
+                          <Edit className="w-4 h-4 mr-2" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={(e) => { e.stopPropagation(); handleTestConnection(r.id) }}
+                          disabled={isTesting === r.id}
+                        >
+                          {isTesting === r.id ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <TestTube className="w-4 h-4 mr-2" />
+                          )}
+                          Test Connection
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReboot(r.id) }}>
+                          <RotateCcw className="w-4 h-4 mr-2" /> Reboot
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={(e) => { e.stopPropagation(); setSelectedRouter(r); setIsDeleteDialogOpen(true) }}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <MapPin className="w-4 h-4" />
-                    <span>{router.location}</span>
+                  <div className="flex items-center justify-between">
+                    {getStatusBadge(r.status)}
+                    {getTypeBadge(r.router_type)}
                   </div>
+                  
+                  {r.location && (
+                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                      <MapPin className="w-4 h-4" />
+                      <span>{r.location}</span>
+                    </div>
+                  )}
                   
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-slate-400" />
-                      <span>{router.connectedUsers} users</span>
+                      <span>{r.active_users} users</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-slate-400" />
-                      <span>{router.uptime}</span>
+                      <span>{r.uptime || "N/A"}</span>
                     </div>
                   </div>
 
-                  {/* Uptime Progress */}
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span>SLA: {router.slaTarget}%</span>
-                      <span className={router.uptimePercentage >= router.slaTarget ? "text-green-600" : "text-red-600"}>
-                        {router.uptimePercentage.toFixed(2)}%
-                      </span>
+                  {/* SLA Progress */}
+                  {r.uptime_percentage !== undefined && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>SLA: {r.sla_target || 99}%</span>
+                        <span className={(r.uptime_percentage || 0) >= (r.sla_target || 99) ? "text-green-600" : "text-red-600"}>
+                          {r.uptime_percentage?.toFixed(2)}%
+                        </span>
+                      </div>
+                      <Progress 
+                        value={r.uptime_percentage} 
+                        className={`h-2 ${(r.uptime_percentage || 0) < (r.sla_target || 99) ? "[&>div]:bg-red-500" : ""}`}
+                      />
                     </div>
-                    <Progress 
-                      value={router.uptimePercentage} 
-                      className={`h-2 ${router.uptimePercentage < router.slaTarget ? "[&>div]:bg-red-500" : ""}`}
-                    />
-                  </div>
+                  )}
 
                   {/* Metrics Preview */}
-                  {router.status === "online" && (
+                  {r.status === "online" && r.metrics && (
                     <div className="grid grid-cols-3 gap-2 pt-2 border-t">
                       <div className="text-center">
                         <p className="text-xs text-slate-500">CPU</p>
-                        <p className={`font-medium ${router.metrics.cpuUsage > 80 ? "text-red-600" : router.metrics.cpuUsage > 60 ? "text-amber-600" : "text-slate-700"}`}>
-                          {router.metrics.cpuUsage}%
+                        <p className={`font-medium ${
+                          r.metrics.cpu_usage > 80 ? "text-red-600" : 
+                          r.metrics.cpu_usage > 60 ? "text-amber-600" : "text-slate-700"
+                        }`}>
+                          {r.metrics.cpu_usage}%
                         </p>
                       </div>
                       <div className="text-center">
                         <p className="text-xs text-slate-500">Memory</p>
-                        <p className={`font-medium ${router.metrics.memoryUsage > 80 ? "text-red-600" : router.metrics.memoryUsage > 60 ? "text-amber-600" : "text-slate-700"}`}>
-                          {router.metrics.memoryUsage}%
+                        <p className={`font-medium ${
+                          r.metrics.memory_usage > 80 ? "text-red-600" : 
+                          r.metrics.memory_usage > 60 ? "text-amber-600" : "text-slate-700"
+                        }`}>
+                          {r.metrics.memory_usage}%
                         </p>
                       </div>
                       <div className="text-center">
                         <p className="text-xs text-slate-500">Temp</p>
-                        <p className={`font-medium ${router.metrics.temperature > 65 ? "text-red-600" : router.metrics.temperature > 55 ? "text-amber-600" : "text-slate-700"}`}>
-                          {router.metrics.temperature}°C
+                        <p className={`font-medium ${
+                          (r.metrics.temperature || 0) > 65 ? "text-red-600" : 
+                          (r.metrics.temperature || 0) > 55 ? "text-amber-600" : "text-slate-700"
+                        }`}>
+                          {r.metrics.temperature || "N/A"}°C
                         </p>
                       </div>
                     </div>
                   )}
 
                   {/* Tags */}
-                  <div className="flex flex-wrap gap-1">
-                    {router.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
+                  {r.tags && r.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-2">
+                      {r.tags.map((tag, i) => (
+                        <Badge key={i} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
+          
+          {filteredRouters.length === 0 && (
+            <div className="text-center py-12 text-slate-500">
+              <Server className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No routers found matching your criteria</p>
+            </div>
+          )}
         </TabsContent>
 
         {/* Table View */}
-        <TabsContent value="table" className="mt-0">
+        <TabsContent value="table" className="mt-4">
           <Card>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox />
-                    </TableHead>
-                    <TableHead>Router</TableHead>
+                    <TableHead>Name</TableHead>
                     <TableHead>IP Address</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Location</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Location</TableHead>
                     <TableHead>Users</TableHead>
                     <TableHead>Uptime</TableHead>
                     <TableHead>SLA</TableHead>
-                    <TableHead>Last Seen</TableHead>
-                    <TableHead className="w-12"></TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRouters.map((router) => (
-                    <TableRow key={router.id} className="cursor-pointer" onClick={() => handleViewDetails(router)}>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox />
-                      </TableCell>
+                  {filteredRouters.map((r) => (
+                    <TableRow 
+                      key={r.id} 
+                      className="cursor-pointer hover:bg-slate-50"
+                      onClick={() => router.push(`/admin/routers/${r.id}`)}
+                    >
+                      <TableCell className="font-medium">{r.name}</TableCell>
+                      <TableCell className="font-mono text-sm">{r.ip_address}</TableCell>
+                      <TableCell>{getTypeBadge(r.router_type)}</TableCell>
+                      <TableCell>{getStatusBadge(r.status)}</TableCell>
+                      <TableCell>{r.location || "-"}</TableCell>
+                      <TableCell>{r.active_users}</TableCell>
+                      <TableCell>{r.uptime || "-"}</TableCell>
                       <TableCell>
-                        <div>
-                          <p className="font-medium">{router.name}</p>
-                          <p className="text-xs text-slate-500">{router.model}</p>
-                        </div>
+                        <span className={(r.uptime_percentage || 0) >= (r.sla_target || 99) ? "text-green-600" : "text-red-600"}>
+                          {r.uptime_percentage?.toFixed(1) || 0}%
+                        </span>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{router.ipAddress}</TableCell>
-                      <TableCell>{getTypeBadge(router.routerType)}</TableCell>
-                      <TableCell className="text-sm">{router.location}</TableCell>
-                      <TableCell>{getStatusBadge(router.status)}</TableCell>
-                      <TableCell>{router.connectedUsers}</TableCell>
-                      <TableCell className="text-sm">{router.uptime}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm ${router.uptimePercentage >= router.slaTarget ? "text-green-600" : "text-red-600"}`}>
-                            {router.uptimePercentage.toFixed(1)}%
-                          </span>
-                          {router.uptimePercentage < router.slaTarget && (
-                            <AlertCircle className="w-4 h-4 text-red-500" />
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-500">{router.lastSeen}</TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="text-right">
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewDetails(router)}>
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/routers/${r.id}`) }}>
+                              <Eye className="w-4 h-4 mr-2" /> View
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Terminal className="w-4 h-4 mr-2" />
-                              SSH Console
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(r) }}>
+                              <Edit className="w-4 h-4 mr-2" /> Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit
+                            <DropdownMenuItem 
+                              onClick={(e) => { e.stopPropagation(); handleTestConnection(r.id) }}
+                              disabled={isTesting === r.id}
+                            >
+                              {isTesting === r.id ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              ) : (
+                                <TestTube className="w-4 h-4 mr-2" />
+                              )}
+                              Test
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                              <RefreshCw className="w-4 h-4 mr-2" />
-                              Reboot
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              onClick={(e) => { e.stopPropagation(); setSelectedRouter(r); setIsDeleteDialogOpen(true) }}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" /> Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -799,428 +1094,7 @@ export default function RoutersPage() {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Monitoring View */}
-        <TabsContent value="monitoring" className="mt-0 space-y-6">
-          {/* SLA Dashboard */}
-          <Card>
-            <CardHeader>
-              <CardTitle>SLA Performance Dashboard</CardTitle>
-              <CardDescription>Service Level Agreement compliance across all routers</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {filteredRouters.map((router) => (
-                  <div key={router.id} className="flex items-center gap-4">
-                    <div className="w-48">
-                      <p className="font-medium text-sm">{router.name}</p>
-                      <p className="text-xs text-slate-500">{router.location}</p>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>Target: {router.slaTarget}%</span>
-                        <span className={router.uptimePercentage >= router.slaTarget ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                          {router.uptimePercentage.toFixed(2)}%
-                        </span>
-                      </div>
-                      <div className="relative h-4 bg-slate-100 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full transition-all ${router.uptimePercentage >= router.slaTarget ? "bg-green-500" : "bg-red-500"}`}
-                          style={{ width: `${router.uptimePercentage}%` }}
-                        />
-                        <div 
-                          className="absolute top-0 h-full w-0.5 bg-slate-800"
-                          style={{ left: `${router.slaTarget}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="w-24">
-                      {router.uptimePercentage >= router.slaTarget ? (
-                        <Badge className="bg-green-100 text-green-700">Compliant</Badge>
-                      ) : (
-                        <Badge className="bg-red-100 text-red-700">Violation</Badge>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Bandwidth Usage */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Bandwidth Utilization</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredRouters.filter(r => r.status === "online").map((router) => (
-                    <div key={router.id} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="font-medium">{router.name}</span>
-                        <div className="flex items-center gap-4 text-xs">
-                          <span className="flex items-center gap-1 text-green-600">
-                            <Download className="w-3 h-3" />
-                            {router.metrics.downloadSpeed} Mbps
-                          </span>
-                          <span className="flex items-center gap-1 text-blue-600">
-                            <Upload className="w-3 h-3" />
-                            {router.metrics.uploadSpeed} Mbps
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-1 h-2">
-                        <div 
-                          className="bg-green-500 rounded-l" 
-                          style={{ width: `${(router.metrics.downloadSpeed / 1000) * 100}%` }}
-                        />
-                        <div 
-                          className="bg-blue-500 rounded-r" 
-                          style={{ width: `${(router.metrics.uploadSpeed / 1000) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Resource Usage</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredRouters.filter(r => r.status === "online").map((router) => (
-                    <div key={router.id} className="flex items-center gap-4">
-                      <div className="w-32">
-                        <p className="font-medium text-sm truncate">{router.name}</p>
-                      </div>
-                      <div className="flex-1 grid grid-cols-3 gap-4">
-                        <div>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span>CPU</span>
-                            <span className={router.metrics.cpuUsage > 80 ? "text-red-600" : "text-slate-600"}>
-                              {router.metrics.cpuUsage}%
-                            </span>
-                          </div>
-                          <Progress 
-                            value={router.metrics.cpuUsage} 
-                            className={`h-2 ${router.metrics.cpuUsage > 80 ? "[&>div]:bg-red-500" : router.metrics.cpuUsage > 60 ? "[&>div]:bg-amber-500" : ""}`}
-                          />
-                        </div>
-                        <div>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span>Memory</span>
-                            <span className={router.metrics.memoryUsage > 80 ? "text-red-600" : "text-slate-600"}>
-                              {router.metrics.memoryUsage}%
-                            </span>
-                          </div>
-                          <Progress 
-                            value={router.metrics.memoryUsage} 
-                            className={`h-2 ${router.metrics.memoryUsage > 80 ? "[&>div]:bg-red-500" : router.metrics.memoryUsage > 60 ? "[&>div]:bg-amber-500" : ""}`}
-                          />
-                        </div>
-                        <div>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span>Temp</span>
-                            <span className={router.metrics.temperature > 65 ? "text-red-600" : "text-slate-600"}>
-                              {router.metrics.temperature}°C
-                            </span>
-                          </div>
-                          <Progress 
-                            value={(router.metrics.temperature / 80) * 100} 
-                            className={`h-2 ${router.metrics.temperature > 65 ? "[&>div]:bg-red-500" : router.metrics.temperature > 55 ? "[&>div]:bg-amber-500" : ""}`}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Recent Events */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Events</CardTitle>
-              <CardDescription>Latest router events and alerts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {routers.flatMap(router => 
-                  router.events.map(event => ({ ...event, routerName: router.name }))
-                ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 10).map((event) => (
-                  <div key={event.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
-                    {getEventIcon(event.type)}
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{event.message}</p>
-                      <p className="text-xs text-slate-500">{event.routerName}</p>
-                    </div>
-                    <span className="text-xs text-slate-400">{event.timestamp}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
-
-      {/* Router Detail Sheet */}
-      <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <SheetContent className="w-[600px] sm:max-w-[600px]">
-          {selectedRouter && (
-            <>
-              <SheetHeader>
-                <div className="flex items-center gap-3">
-                  <div className={`p-3 rounded-xl ${
-                    selectedRouter.status === "online" ? "bg-green-100" :
-                    selectedRouter.status === "offline" ? "bg-red-100" :
-                    selectedRouter.status === "warning" ? "bg-amber-100" :
-                    "bg-blue-100"
-                  }`}>
-                    <Server className={`w-6 h-6 ${
-                      selectedRouter.status === "online" ? "text-green-600" :
-                      selectedRouter.status === "offline" ? "text-red-600" :
-                      selectedRouter.status === "warning" ? "text-amber-600" :
-                      "text-blue-600"
-                    }`} />
-                  </div>
-                  <div>
-                    <SheetTitle>{selectedRouter.name}</SheetTitle>
-                    <SheetDescription>{selectedRouter.ipAddress}</SheetDescription>
-                  </div>
-                </div>
-              </SheetHeader>
-              <ScrollArea className="h-[calc(100vh-180px)] mt-6">
-                <Tabs defaultValue="overview">
-                  <TabsList className="w-full">
-                    <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
-                    <TabsTrigger value="metrics" className="flex-1">Metrics</TabsTrigger>
-                    <TabsTrigger value="events" className="flex-1">Events</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="overview" className="mt-4 space-y-4">
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(selectedRouter.status)}
-                      {getTypeBadge(selectedRouter.routerType)}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-slate-50 rounded-lg">
-                        <p className="text-xs text-slate-500">Model</p>
-                        <p className="font-medium">{selectedRouter.model}</p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-lg">
-                        <p className="text-xs text-slate-500">MAC Address</p>
-                        <p className="font-mono text-sm">{selectedRouter.macAddress}</p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-lg">
-                        <p className="text-xs text-slate-500">Location</p>
-                        <p className="font-medium">{selectedRouter.location}</p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-lg">
-                        <p className="text-xs text-slate-500">Connected Users</p>
-                        <p className="font-medium">{selectedRouter.connectedUsers}</p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-lg">
-                        <p className="text-xs text-slate-500">Uptime</p>
-                        <p className="font-medium">{selectedRouter.uptime}</p>
-                      </div>
-                      <div className="p-4 bg-slate-50 rounded-lg">
-                        <p className="text-xs text-slate-500">Last Seen</p>
-                        <p className="font-medium">{selectedRouter.lastSeen}</p>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div>
-                      <h4 className="font-medium mb-3">SLA Compliance</h4>
-                      <div className="p-4 rounded-lg border">
-                        <div className="flex justify-between mb-2">
-                          <span>Target: {selectedRouter.slaTarget}%</span>
-                          <span className={selectedRouter.uptimePercentage >= selectedRouter.slaTarget ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                            Current: {selectedRouter.uptimePercentage.toFixed(2)}%
-                          </span>
-                        </div>
-                        <Progress value={selectedRouter.uptimePercentage} className="h-3" />
-                        <div className="mt-2 text-center">
-                          {selectedRouter.uptimePercentage >= selectedRouter.slaTarget ? (
-                            <Badge className="bg-green-100 text-green-700">✓ Meeting SLA</Badge>
-                          ) : (
-                            <Badge className="bg-red-100 text-red-700">✗ SLA Violation</Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-3">Tags</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedRouter.tags.map((tag) => (
-                          <Badge key={tag} variant="secondary">{tag}</Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-3">Quick Actions</h4>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button variant="outline" className="justify-start">
-                          <Terminal className="w-4 h-4 mr-2" />
-                          SSH Console
-                        </Button>
-                        <Button variant="outline" className="justify-start">
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Reboot
-                        </Button>
-                        <Button variant="outline" className="justify-start">
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit Config
-                        </Button>
-                        <Button variant="outline" className="justify-start">
-                          <History className="w-4 h-4 mr-2" />
-                          View Logs
-                        </Button>
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="metrics" className="mt-4 space-y-4">
-                    {selectedRouter.status === "online" ? (
-                      <>
-                        <div className="grid grid-cols-2 gap-4">
-                          <Card>
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm text-slate-500">CPU Usage</span>
-                                <Gauge className="w-4 h-4 text-slate-400" />
-                              </div>
-                              <p className={`text-3xl font-bold ${
-                                selectedRouter.metrics.cpuUsage > 80 ? "text-red-600" :
-                                selectedRouter.metrics.cpuUsage > 60 ? "text-amber-600" :
-                                "text-green-600"
-                              }`}>
-                                {selectedRouter.metrics.cpuUsage}%
-                              </p>
-                              <Progress value={selectedRouter.metrics.cpuUsage} className="mt-2 h-2" />
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm text-slate-500">Memory Usage</span>
-                                <Zap className="w-4 h-4 text-slate-400" />
-                              </div>
-                              <p className={`text-3xl font-bold ${
-                                selectedRouter.metrics.memoryUsage > 80 ? "text-red-600" :
-                                selectedRouter.metrics.memoryUsage > 60 ? "text-amber-600" :
-                                "text-green-600"
-                              }`}>
-                                {selectedRouter.metrics.memoryUsage}%
-                              </p>
-                              <Progress value={selectedRouter.metrics.memoryUsage} className="mt-2 h-2" />
-                            </CardContent>
-                          </Card>
-                        </div>
-
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Bandwidth</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-4">
-                                <Download className="w-5 h-5 text-green-600" />
-                                <div className="flex-1">
-                                  <div className="flex justify-between text-sm mb-1">
-                                    <span>Download</span>
-                                    <span className="font-medium">{selectedRouter.metrics.downloadSpeed} Mbps</span>
-                                  </div>
-                                  <Progress value={(selectedRouter.metrics.downloadSpeed / 1000) * 100} className="h-2 [&>div]:bg-green-500" />
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <Upload className="w-5 h-5 text-blue-600" />
-                                <div className="flex-1">
-                                  <div className="flex justify-between text-sm mb-1">
-                                    <span>Upload</span>
-                                    <span className="font-medium">{selectedRouter.metrics.uploadSpeed} Mbps</span>
-                                  </div>
-                                  <Progress value={(selectedRouter.metrics.uploadSpeed / 1000) * 100} className="h-2 [&>div]:bg-blue-500" />
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="p-4 bg-slate-50 rounded-lg">
-                            <p className="text-xs text-slate-500">Temperature</p>
-                            <p className={`text-2xl font-bold ${
-                              selectedRouter.metrics.temperature > 65 ? "text-red-600" :
-                              selectedRouter.metrics.temperature > 55 ? "text-amber-600" :
-                              "text-green-600"
-                            }`}>
-                              {selectedRouter.metrics.temperature}°C
-                            </p>
-                          </div>
-                          <div className="p-4 bg-slate-50 rounded-lg">
-                            <p className="text-xs text-slate-500">Active Connections</p>
-                            <p className="text-2xl font-bold text-blue-600">
-                              {selectedRouter.metrics.activeConnections}
-                            </p>
-                          </div>
-                          <div className="p-4 bg-slate-50 rounded-lg">
-                            <p className="text-xs text-slate-500">Packets In</p>
-                            <p className="text-lg font-mono">
-                              {(selectedRouter.metrics.packetsIn / 1000000).toFixed(1)}M
-                            </p>
-                          </div>
-                          <div className="p-4 bg-slate-50 rounded-lg">
-                            <p className="text-xs text-slate-500">Packets Out</p>
-                            <p className="text-lg font-mono">
-                              {(selectedRouter.metrics.packetsOut / 1000000).toFixed(1)}M
-                            </p>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center py-12 text-slate-500">
-                        <WifiOff className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                        <p>Router is {selectedRouter.status}</p>
-                        <p className="text-sm">Metrics unavailable</p>
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="events" className="mt-4">
-                    <div className="space-y-3">
-                      {selectedRouter.events.length > 0 ? selectedRouter.events.map((event) => (
-                        <div key={event.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
-                          {getEventIcon(event.type)}
-                          <div className="flex-1">
-                            <p className="text-sm">{event.message}</p>
-                            <p className="text-xs text-slate-500">{event.timestamp}</p>
-                          </div>
-                        </div>
-                      )) : (
-                        <div className="text-center py-8 text-slate-500">
-                          <History className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                          <p className="text-sm">No recent events</p>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </ScrollArea>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
 
       {/* Add Router Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -1228,21 +1102,222 @@ export default function RoutersPage() {
           <DialogHeader>
             <DialogTitle>Add New Router</DialogTitle>
             <DialogDescription>
-              Enter a name for your router. After adding, go to the Script tab to get the configuration script for your MikroTik.
+              Enter a name for your router. After adding, you can edit it to configure connection details and get the authentication script.
             </DialogDescription>
           </DialogHeader>
+          
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label>Router Name *</Label>
-              <Input placeholder="e.g., MERAKII, Main Office, Branch-001" />
-              <p className="text-xs text-muted-foreground">
-                This will be the display name in your dashboard
-              </p>
+              <Label htmlFor="name">Router Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g. Main Gateway, Westlands Branch"
+                autoFocus
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="router_type">Router Type</Label>
+              <Select
+                value={formData.router_type}
+                onValueChange={(v) => setFormData({ ...formData, router_type: v as RouterType })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mikrotik">MikroTik</SelectItem>
+                  <SelectItem value="cisco">Cisco</SelectItem>
+                  <SelectItem value="ubiquiti">Ubiquiti</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="location">Location (optional)</Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="Nairobi CBD - HQ"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Additional notes..."
+                rows={2}
+              />
             </div>
           </div>
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-            <Button onClick={() => setIsAddDialogOpen(false)}>Add Router</Button>
+            <Button variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm() }}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreate} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+              Add Router
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Router Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Router</DialogTitle>
+            <DialogDescription>Update router configuration</DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Router Name *</Label>
+                <Input
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-router_type">Router Type</Label>
+                <Select
+                  value={formData.router_type}
+                  onValueChange={(v) => setFormData({ ...formData, router_type: v as RouterType })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mikrotik">MikroTik</SelectItem>
+                    <SelectItem value="cisco">Cisco</SelectItem>
+                    <SelectItem value="ubiquiti">Ubiquiti</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-ip_address">IP Address *</Label>
+                <Input
+                  id="edit-ip_address"
+                  value={formData.ip_address}
+                  onChange={(e) => setFormData({ ...formData, ip_address: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-api_port">API Port</Label>
+                <Input
+                  id="edit-api_port"
+                  type="number"
+                  value={formData.api_port}
+                  onChange={(e) => setFormData({ ...formData, api_port: parseInt(e.target.value) })}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-api_username">API Username</Label>
+                <Input
+                  id="edit-api_username"
+                  value={formData.api_username}
+                  onChange={(e) => setFormData({ ...formData, api_username: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-api_password">API Password (leave blank to keep)</Label>
+                <Input
+                  id="edit-api_password"
+                  type="password"
+                  value={formData.api_password}
+                  onChange={(e) => setFormData({ ...formData, api_password: e.target.value })}
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-model">Model</Label>
+                <Input
+                  id="edit-model"
+                  value={formData.model}
+                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-sla_target">SLA Target (%)</Label>
+                <Input
+                  id="edit-sla_target"
+                  type="number"
+                  step="0.1"
+                  value={formData.sla_target}
+                  onChange={(e) => setFormData({ ...formData, sla_target: parseFloat(e.target.value) })}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-location">Location</Label>
+              <Input
+                id="edit-location"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-notes">Notes</Label>
+              <Textarea
+                id="edit-notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={2}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); setSelectedRouter(null); resetForm() }}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdate} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Router</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{selectedRouter?.name}&quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsDeleteDialogOpen(false); setSelectedRouter(null) }}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

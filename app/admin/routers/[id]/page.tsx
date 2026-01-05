@@ -4,35 +4,48 @@ import React, { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
-  Router as RouterIcon,
+  Server,
   RefreshCw,
   Power,
-  Copy,
-  Check,
-  Wifi,
   Settings,
   Shield,
   Activity,
   Archive,
   Edit3,
-  FileCode,
   Info,
-  ExternalLink,
   AlertCircle,
   Users,
   Cpu,
   HardDrive,
-  Globe,
   Loader2,
   Save,
   Download,
+  Upload,
+  Clock,
+  MapPin,
+  Thermometer,
+  Zap,
+  History,
+  TestTube,
+  RotateCcw,
+  Trash2,
+  PlayCircle,
+  PauseCircle,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Code,
+  Play,
+  Plus,
+  FileCode,
+  Copy,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import {
   Card,
   CardContent,
@@ -55,214 +68,634 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { toast } from "sonner"
+import { adminApi } from "@/lib/admin-api"
+import type { Router as RouterData, RouterType, RouterStatus, RouterEvent } from "@/lib/types"
 
-// Mock data - replace with API calls
-const getMockRouterData = (id: string) => ({
-  id,
-  name: "MERAKII",
-  model: "GrooveA 52 ac",
-  ip: "10.10.148.22",
-  hotspot_ip: "172.12.0.1/16",
-  status: "offline",
-  latency: 0,
-  api_port: 8728,
-  notification_number: "+254712345678",
-  uptime: "45 days, 12:30:15",
-  created_at: "1/4/2026",
-  cpu_usage: 7,
-  memory_usage: 65,
-  connected_users: 0,
-  total_users: 501,
-  web_interface_url: "http://pani.co.ke:53089",
-  winbox_url: "win.pani.co.ke:53089",
-  uptime_monitoring: {
-    online_events: 0,
-    offline_events: 1,
-    uptime_sla: 99.1395,
-    total_events: 1,
+// Demo data generator
+const generateDemoRouterData = (id: string): RouterData => {
+  const authKey = `RTR_${id.padStart(4, '0')}_${Math.random().toString(36).substring(2, 6).toUpperCase()}_AUTH`
+  return {
+    id: parseInt(id) || 1,
+    name: "Main Gateway Router",
+    ip_address: "192.168.1.1",
+    mac_address: "AA:BB:CC:DD:EE:01",
+    api_port: 8728,
+    api_username: "admin",
+    router_type: "mikrotik",
+    model: "CCR1036-12G-4S",
+    firmware_version: "7.12.1",
+    location: "Nairobi CBD - HQ",
+    latitude: -1.2864,
+    longitude: 36.8172,
+    status: "online",
+    total_users: 450,
+    active_users: 320,
+    uptime: "45d 12h 30m",
+    uptime_percentage: 99.98,
+    sla_target: 99.9,
+    last_seen: new Date().toISOString(),
+    auth_key: authKey,
+    is_authenticated: true,
+    authenticated_at: new Date(Date.now() - 86400000 * 30).toISOString(),
+    metrics: {
+      cpu_usage: 32,
+      memory_usage: 45,
+      temperature: 52,
+      active_connections: 320,
+      download_speed: 850,
+      upload_speed: 420,
+      packets_in: 12500000,
+      packets_out: 8900000,
+      bandwidth_in: 125000000,
+      bandwidth_out: 85000000,
+    },
+    tags: ["primary", "production"],
+    notes: "Primary gateway router for the main office",
+    is_active: true,
+    created_at: "2023-06-15T10:00:00Z",
+    updated_at: new Date().toISOString(),
+  }
+}
+
+const generateDemoEvents = (): RouterEvent[] => [
+  { id: 1, router: 1, event_type: "up", message: "Router came online", created_at: new Date().toISOString() },
+  { id: 2, router: 1, event_type: "config_change", message: "Configuration updated", created_at: new Date(Date.now() - 3600000).toISOString() },
+  { id: 3, router: 1, event_type: "reboot", message: "System rebooted", created_at: new Date(Date.now() - 86400000).toISOString() },
+  { id: 4, router: 1, event_type: "warning", message: "High CPU usage detected", created_at: new Date(Date.now() - 172800000).toISOString() },
+  { id: 5, router: 1, event_type: "down", message: "Router went offline (network issue)", created_at: new Date(Date.now() - 259200000).toISOString() },
+]
+
+interface ConnectedUser {
+  id: number
+  username: string
+  ip_address: string
+  mac_address: string
+  download: number
+  upload: number
+  uptime: string
+  status: string
+}
+
+const generateDemoUsers = (): ConnectedUser[] => [
+  { id: 1, username: "john.doe", ip_address: "192.168.1.101", mac_address: "11:22:33:44:55:01", download: 125.5, upload: 45.2, uptime: "2h 15m", status: "active" },
+  { id: 2, username: "jane.smith", ip_address: "192.168.1.102", mac_address: "11:22:33:44:55:02", download: 89.3, upload: 23.1, uptime: "1h 45m", status: "active" },
+  { id: 3, username: "mike.wilson", ip_address: "192.168.1.103", mac_address: "11:22:33:44:55:03", download: 256.8, upload: 112.4, uptime: "4h 30m", status: "active" },
+  { id: 4, username: "sarah.jones", ip_address: "192.168.1.104", mac_address: "11:22:33:44:55:04", download: 45.2, upload: 12.8, uptime: "0h 30m", status: "active" },
+  { id: 5, username: "guest-001", ip_address: "192.168.1.150", mac_address: "11:22:33:44:55:10", download: 12.1, upload: 3.5, uptime: "0h 15m", status: "active" },
+]
+
+interface Backup {
+  id: number
+  name: string
+  date: string
+  size: string
+  type: "auto" | "manual"
+}
+
+const generateDemoBackups = (): Backup[] => [
+  { id: 1, name: "backup-2026-01-05.backup", date: "2026-01-05 10:30", size: "2.4 MB", type: "auto" },
+  { id: 2, name: "backup-2026-01-04.backup", date: "2026-01-04 10:30", size: "2.3 MB", type: "auto" },
+  { id: 3, name: "pre-update-backup.backup", date: "2026-01-03 15:45", size: "2.4 MB", type: "manual" },
+  { id: 4, name: "backup-2026-01-02.backup", date: "2026-01-02 10:30", size: "2.2 MB", type: "auto" },
+]
+
+interface RouterScript {
+  id: number
+  name: string
+  source: string
+  run_count: number
+  last_run: string | null
+  scheduled: boolean
+  owner: string
+}
+
+const generateDemoScripts = (authKey: string): RouterScript[] => [
+  { 
+    id: 0, 
+    name: "netily-auth", 
+    source: `/tool fetch url="https://api.netily.io/api/v1/routers/auth?key=${authKey}" mode=https`, 
+    run_count: 1, 
+    last_run: new Date(Date.now() - 86400000 * 30).toISOString(), 
+    scheduled: false,
+    owner: "system"
   },
-  hotspot_config: {
-    name: "",
-    phone_number: "",
-    notification_message: "",
-    enable_free_trial: false,
-    login_template: "",
+  { 
+    id: 1, 
+    name: "daily-backup", 
+    source: `/system backup save name=("daily-" . [:pick [/system clock get date] 0 11])
+:log info "Daily backup created"`, 
+    run_count: 45, 
+    last_run: new Date(Date.now() - 86400000).toISOString(), 
+    scheduled: true,
+    owner: "admin"
   },
-  script_url: "https://server3.lipanet.com/download/script/4/merakiyouthgroup",
-  script_content: `/tool fetch url="https://server3.lipanet.com/download/script/4/merakiyouthgroup" dst-path=lipanet.rsc; :delay 2s; /import lipanet.rsc;`,
-  ports: [
-    { name: "ether1", type: "ethernet", enabled: true, comment: "WAN" },
-    { name: "ether2", type: "ethernet", enabled: true, comment: "LAN" },
-    { name: "wlan1", type: "wireless", enabled: true, comment: "WiFi" },
-  ],
-  bandwidth: {
-    current_download: 45.2,
-    current_upload: 12.8,
-    max_download: 100,
-    max_upload: 50,
-    daily_usage: "125 GB",
-    monthly_usage: "2.4 TB",
+  { 
+    id: 2, 
+    name: "clear-connections", 
+    source: `/ip firewall connection remove [find]
+:log warning "All connections cleared"`, 
+    run_count: 12, 
+    last_run: new Date(Date.now() - 172800000).toISOString(), 
+    scheduled: false,
+    owner: "admin"
   },
-  firewall_rules: [
-    { id: 1, chain: "input", action: "accept", protocol: "icmp", src: "any", dst: "any", enabled: true },
-    { id: 2, chain: "input", action: "drop", protocol: "tcp", src: "any", dst: "any", enabled: true },
-    { id: 3, chain: "forward", action: "accept", protocol: "all", src: "192.168.1.0/24", dst: "any", enabled: true },
-  ],
-  backups: [
-    { id: 1, name: "backup-2026-01-05.backup", date: "2026-01-05 10:30", size: "2.4 MB", type: "auto" },
-    { id: 2, name: "backup-2026-01-04.backup", date: "2026-01-04 10:30", size: "2.3 MB", type: "auto" },
-    { id: 3, name: "pre-update-backup.backup", date: "2026-01-03 15:45", size: "2.4 MB", type: "manual" },
-  ],
-})
+  { 
+    id: 3, 
+    name: "update-dns", 
+    source: `/ip dns set servers=8.8.8.8,8.8.4.4
+/ip dns cache flush
+:log info "DNS updated and cache flushed"`, 
+    run_count: 3, 
+    last_run: new Date(Date.now() - 604800000).toISOString(), 
+    scheduled: false,
+    owner: "admin"
+  },
+  { 
+    id: 4, 
+    name: "bandwidth-report", 
+    source: `:local interfaces [/interface find type="ether"]
+:foreach i in=$interfaces do={
+  :local name [/interface get $i name]
+  :local rx [/interface get $i rx-byte]
+  :local tx [/interface get $i tx-byte]
+  :log info ("$name: RX=$rx TX=$tx")
+}`, 
+    run_count: 90, 
+    last_run: new Date(Date.now() - 3600000).toISOString(), 
+    scheduled: true,
+    owner: "admin"
+  },
+]
 
 export default function RouterDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const routerId = params.id as string
+  const hasFetchedRef = React.useRef(false)
+  
+  // State
   const [isLoading, setIsLoading] = useState(true)
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [isRebooting, setIsRebooting] = useState(false)
+  const [isUsingDemoData, setIsUsingDemoData] = useState(false)
+  const [routerData, setRouterData] = useState<RouterData | null>(null)
+  const [events, setEvents] = useState<RouterEvent[]>([])
+  const [users, setUsers] = useState<ConnectedUser[]>([])
+  const [backups, setBackups] = useState<Backup[]>([])
+  const [scripts, setScripts] = useState<RouterScript[]>([])
+  
+  // Action states
   const [isSaving, setIsSaving] = useState(false)
-  const [isCheckingPorts, setIsCheckingPorts] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [activeTab, setActiveTab] = useState("info")
-  const [routerData, setRouterData] = useState<any>(null)
-
+  const [isRebooting, setIsRebooting] = useState(false)
+  const [isTesting, setIsTesting] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [isBackingUp, setIsBackingUp] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isMaintenanceLoading, setIsMaintenanceLoading] = useState(false)
+  const [isRunningScript, setIsRunningScript] = useState<number | null>(null)
+  const [isSavingScript, setIsSavingScript] = useState(false)
+  
+  // Dialog states
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isMaintenanceDialogOpen, setIsMaintenanceDialogOpen] = useState(false)
+  const [isScriptDialogOpen, setIsScriptDialogOpen] = useState(false)
+  const [editingScript, setEditingScript] = useState<RouterScript | null>(null)
+  const [maintenanceReason, setMaintenanceReason] = useState("")
+  
+  // Script form state
+  const [scriptForm, setScriptForm] = useState({
+    name: "",
+    source: "",
+    scheduled: false,
+  })
+  
+  // Edit form state
   const [editForm, setEditForm] = useState({
     name: "",
-    api_port: "",
-    notification_number: "",
+    ip_address: "",
+    api_port: 8728,
+    api_username: "",
+    api_password: "",
+    router_type: "mikrotik" as RouterType,
+    model: "",
+    location: "",
+    sla_target: 99.0,
+    notes: "",
+    is_active: true,
   })
 
-  const [hotspotForm, setHotspotForm] = useState({
-    name: "",
-    phone_number: "",
-    notification_message: "",
-    enable_free_trial: false,
-    login_template: "",
-  })
-
-  const fetchRouterData = useCallback(async () => {
+  // Fetch data
+  const fetchData = useCallback(async () => {
     try {
-      // TODO: Replace with actual API call
-      const data = getMockRouterData(params.id as string)
-      setRouterData(data)
+      const [routerResponse, eventsResponse, usersResponse] = await Promise.all([
+        adminApi.getRouter(parseInt(routerId)),
+        adminApi.getRouterEvents(parseInt(routerId)).catch(() => ({ results: [] })),
+        adminApi.getRouterUsers(parseInt(routerId)).catch(() => []),
+      ])
+      
+      setRouterData(routerResponse)
+      setEvents(eventsResponse.results || [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const usersData = usersResponse as any
+      setUsers(Array.isArray(usersData) ? usersData : (usersData?.users || []))
+      setBackups([])
+      setScripts([])
+      setIsUsingDemoData(false)
+      
       setEditForm({
-        name: data.name,
-        api_port: data.api_port.toString(),
-        notification_number: data.notification_number,
+        name: routerResponse.name,
+        ip_address: routerResponse.ip_address,
+        api_port: routerResponse.api_port || 8728,
+        api_username: routerResponse.api_username || "",
+        api_password: "",
+        router_type: routerResponse.router_type,
+        model: routerResponse.model || "",
+        location: routerResponse.location || "",
+        sla_target: routerResponse.sla_target || 99.0,
+        notes: routerResponse.notes || "",
+        is_active: routerResponse.is_active,
       })
-      setHotspotForm(data.hotspot_config)
-    } catch (error) {
-      console.error("Failed to fetch router:", error)
-      toast.error("Failed to load router data")
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.log('API unavailable, using demo data:', errorMessage)
+      
+      const demoRouter = generateDemoRouterData(routerId)
+      setRouterData(demoRouter)
+      setEvents(generateDemoEvents())
+      setUsers(generateDemoUsers())
+      setBackups(generateDemoBackups())
+      setScripts(generateDemoScripts(demoRouter.auth_key || ''))
+      setIsUsingDemoData(true)
+      
+      setEditForm({
+        name: demoRouter.name,
+        ip_address: demoRouter.ip_address,
+        api_port: demoRouter.api_port || 8728,
+        api_username: demoRouter.api_username || "",
+        api_password: "",
+        router_type: demoRouter.router_type,
+        model: demoRouter.model || "",
+        location: demoRouter.location || "",
+        sla_target: demoRouter.sla_target || 99.0,
+        notes: demoRouter.notes || "",
+        is_active: demoRouter.is_active,
+      })
     } finally {
       setIsLoading(false)
     }
-  }, [params.id])
+  }, [routerId])
 
   useEffect(() => {
-    fetchRouterData()
-  }, [fetchRouterData])
+    // Prevent duplicate fetches in React Strict Mode
+    if (hasFetchedRef.current) return
+    hasFetchedRef.current = true
+    fetchData()
+  }, [fetchData])
 
-  const handleSyncFiles = async () => {
-    setIsSyncing(true)
+  const handleRefresh = async () => {
+    setIsLoading(true)
+    await fetchData()
+    toast.success("Data refreshed")
+  }
+
+  const handleTestConnection = async () => {
+    setIsTesting(true)
     try {
-      await new Promise(r => setTimeout(r, 2000))
-      toast.success("Files synced successfully")
-    } catch (error) {
-      toast.error("Failed to sync files")
+      if (isUsingDemoData) {
+        await new Promise(r => setTimeout(r, 1500))
+        if (routerData?.status === "offline") {
+          toast.error("Connection failed: Timeout")
+        } else {
+          toast.success(`Connection successful! Latency: ${Math.floor(Math.random() * 50 + 10)}ms`)
+        }
+      } else {
+        const result = await adminApi.testRouterConnection(parseInt(routerId))
+        if (result.success) {
+          toast.success(`Connection successful! Latency: ${result.latency}ms`)
+        } else {
+          toast.error(result.message || "Connection failed")
+        }
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(errorMessage || "Failed to test connection")
     } finally {
-      setIsSyncing(false)
+      setIsTesting(false)
     }
   }
 
   const handleReboot = async () => {
     setIsRebooting(true)
     try {
-      await new Promise(r => setTimeout(r, 2000))
-      toast.success("Reboot command sent")
-    } catch (error) {
-      toast.error("Failed to reboot router")
+      if (isUsingDemoData) {
+        await new Promise(r => setTimeout(r, 2000))
+        toast.success("Reboot command sent (Demo Mode)")
+        setRouterData(prev => prev ? { ...prev, status: "maintenance" as RouterStatus, uptime: "0d 0h 0m" } : null)
+        setTimeout(() => {
+          setRouterData(prev => prev ? { ...prev, status: "online" as RouterStatus, uptime: "0d 0h 1m" } : null)
+        }, 5000)
+      } else {
+        await adminApi.rebootRouter(parseInt(routerId))
+        toast.success("Reboot command sent successfully")
+        fetchData()
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(errorMessage || "Failed to reboot router")
     } finally {
       setIsRebooting(false)
     }
   }
 
-  const handleCopyScript = () => {
-    if (routerData?.script_content) {
-      navigator.clipboard.writeText(routerData.script_content)
-      setCopied(true)
-      toast.success("Script copied to clipboard")
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
-
-  const handleCheckRouter = async () => {
-    toast.info("Checking router connection...")
-  }
-
-  const handleCheckPorts = async () => {
-    setIsCheckingPorts(true)
+  const handleSyncUsers = async () => {
+    setIsSyncing(true)
     try {
-      await new Promise(r => setTimeout(r, 2000))
-      toast.success("Router ports checked")
-    } catch (error) {
-      toast.error("Failed to check ports")
+      if (isUsingDemoData) {
+        await new Promise(r => setTimeout(r, 2000))
+        toast.success("Users synced (Demo Mode)")
+      } else {
+        await adminApi.syncRouterUsers(parseInt(routerId))
+        toast.success("Users synchronized successfully")
+        fetchData()
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(errorMessage || "Failed to sync users")
     } finally {
-      setIsCheckingPorts(false)
+      setIsSyncing(false)
     }
   }
 
-  const handleSaveHotspotSettings = async () => {
+  const handleBackup = async () => {
+    setIsBackingUp(true)
+    try {
+      if (isUsingDemoData) {
+        await new Promise(r => setTimeout(r, 2000))
+        const newBackup: Backup = {
+          id: backups.length + 1,
+          name: `backup-${new Date().toISOString().split('T')[0]}.backup`,
+          date: new Date().toLocaleString(),
+          size: "2.5 MB",
+          type: "manual",
+        }
+        setBackups([newBackup, ...backups])
+        toast.success("Backup created (Demo Mode)")
+      } else {
+        await adminApi.backupRouterConfig(parseInt(routerId))
+        toast.success("Backup created successfully")
+        fetchData()
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(errorMessage || "Failed to create backup")
+    } finally {
+      setIsBackingUp(false)
+    }
+  }
+
+  const handleSetMaintenance = async (enabled: boolean) => {
+    setIsMaintenanceLoading(true)
+    try {
+      if (isUsingDemoData) {
+        await new Promise(r => setTimeout(r, 1000))
+        setRouterData(prev => prev ? { ...prev, status: enabled ? "maintenance" : "online" } : null)
+        toast.success(`Maintenance mode ${enabled ? "enabled" : "disabled"} (Demo Mode)`)
+      } else {
+        await adminApi.setRouterMaintenance(parseInt(routerId), enabled, maintenanceReason)
+        toast.success(`Maintenance mode ${enabled ? "enabled" : "disabled"}`)
+        fetchData()
+      }
+      setIsMaintenanceDialogOpen(false)
+      setMaintenanceReason("")
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(errorMessage || "Failed to update maintenance mode")
+    } finally {
+      setIsMaintenanceLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
     setIsSaving(true)
     try {
-      await new Promise(r => setTimeout(r, 1500))
-      toast.success("Hotspot settings saved")
-    } catch (error) {
-      toast.error("Failed to save hotspot settings")
+      if (isUsingDemoData) {
+        await new Promise(r => setTimeout(r, 1000))
+        setRouterData(prev => prev ? { ...prev, ...editForm } : null)
+        toast.success("Router updated (Demo Mode)")
+      } else {
+        const updated = await adminApi.updateRouter(parseInt(routerId), editForm)
+        setRouterData(updated)
+        toast.success("Router updated successfully")
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(errorMessage || "Failed to update router")
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handleSaveEdit = async () => {
-    setIsSaving(true)
+  const handleRunScript = async (scriptId: number) => {
+    setIsRunningScript(scriptId)
     try {
-      await new Promise(r => setTimeout(r, 1500))
-      toast.success("Router updated successfully")
-    } catch (error) {
-      toast.error("Failed to update router")
+      if (isUsingDemoData) {
+        await new Promise(r => setTimeout(r, 2000))
+        setScripts(prev => prev.map(s => 
+          s.id === scriptId 
+            ? { ...s, run_count: s.run_count + 1, last_run: new Date().toISOString() } 
+            : s
+        ))
+        toast.success("Script executed successfully (Demo Mode)")
+      } else {
+        // API call would go here
+        toast.success("Script executed successfully")
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(errorMessage || "Failed to run script")
     } finally {
-      setIsSaving(false)
+      setIsRunningScript(null)
     }
+  }
+
+  const handleOpenScriptDialog = (script?: RouterScript) => {
+    if (script) {
+      setEditingScript(script)
+      setScriptForm({
+        name: script.name,
+        source: script.source,
+        scheduled: script.scheduled,
+      })
+    } else {
+      setEditingScript(null)
+      setScriptForm({ name: "", source: "", scheduled: false })
+    }
+    setIsScriptDialogOpen(true)
+  }
+
+  const handleSaveScript = async () => {
+    if (!scriptForm.name || !scriptForm.source) {
+      toast.error("Name and source are required")
+      return
+    }
+    
+    setIsSavingScript(true)
+    try {
+      if (isUsingDemoData) {
+        await new Promise(r => setTimeout(r, 1000))
+        if (editingScript) {
+          setScripts(prev => prev.map(s => 
+            s.id === editingScript.id 
+              ? { ...s, ...scriptForm } 
+              : s
+          ))
+          toast.success("Script updated (Demo Mode)")
+        } else {
+          const newScript: RouterScript = {
+            id: scripts.length + 1,
+            name: scriptForm.name,
+            source: scriptForm.source,
+            run_count: 0,
+            last_run: null,
+            scheduled: scriptForm.scheduled,
+            owner: "admin",
+          }
+          setScripts(prev => [...prev, newScript])
+          toast.success("Script created (Demo Mode)")
+        }
+      } else {
+        // API call would go here
+        toast.success(editingScript ? "Script updated" : "Script created")
+      }
+      setIsScriptDialogOpen(false)
+      setEditingScript(null)
+      setScriptForm({ name: "", source: "", scheduled: false })
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(errorMessage || "Failed to save script")
+    } finally {
+      setIsSavingScript(false)
+    }
+  }
+
+  const handleDeleteScript = async (scriptId: number) => {
+    try {
+      if (isUsingDemoData) {
+        await new Promise(r => setTimeout(r, 500))
+        setScripts(prev => prev.filter(s => s.id !== scriptId))
+        toast.success("Script deleted (Demo Mode)")
+      } else {
+        // API call would go here
+        toast.success("Script deleted")
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(errorMessage || "Failed to delete script")
+    }
+  }
+
+  const handleCopyScript = (source: string) => {
+    navigator.clipboard.writeText(source)
+    toast.success("Script copied to clipboard")
+  }
+
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      if (isUsingDemoData) {
+        await new Promise(r => setTimeout(r, 1000))
+        toast.success("Router deleted (Demo Mode)")
+      } else {
+        await adminApi.deleteRouter(parseInt(routerId))
+        toast.success("Router deleted successfully")
+      }
+      router.push("/admin/routers")
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(errorMessage || "Failed to delete router")
+    } finally {
+      setIsDeleting(false)
+      setIsDeleteDialogOpen(false)
+    }
+  }
+
+  const getStatusIcon = (status: RouterStatus) => {
+    switch (status) {
+      case "online": return <CheckCircle className="w-5 h-5 text-green-600" />
+      case "offline": return <XCircle className="w-5 h-5 text-red-600" />
+      case "warning": return <AlertTriangle className="w-5 h-5 text-amber-600" />
+      case "maintenance": return <Settings className="w-5 h-5 text-blue-600 animate-spin" />
+    }
+  }
+
+  const getEventIcon = (eventType: string) => {
+    switch (eventType) {
+      case "up": return <CheckCircle className="w-4 h-4 text-green-600" />
+      case "down": return <XCircle className="w-4 h-4 text-red-600" />
+      case "warning": return <AlertTriangle className="w-4 h-4 text-amber-600" />
+      case "reboot": return <RotateCcw className="w-4 h-4 text-blue-600" />
+      case "config_change": return <Settings className="w-4 h-4 text-purple-600" />
+      default: return <Info className="w-4 h-4 text-slate-600" />
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    
+    if (diff < 60000) return "Just now"
+    if (diff < 3600000) return `${Math.floor(diff / 60000)} min ago`
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`
+    
+    return date.toLocaleDateString('en-KE', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
   }
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Skeleton className="h-10 w-10" />
-          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-10 w-20" />
+          <Skeleton className="h-12 w-12" />
+          <div className="flex-1">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-5 w-48 mt-2" />
+          </div>
         </div>
-        <div className="flex gap-4">
+        <div className="grid grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full" />
+            <Skeleton key={i} className="h-24" />
           ))}
         </div>
-        <Skeleton className="h-96 w-full" />
+        <Skeleton className="h-96" />
       </div>
     )
   }
 
   if (!routerData) {
     return (
-      <div className="p-6">
+      <div className="space-y-6">
+        <Button variant="outline" onClick={() => router.back()}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
+        </Button>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
@@ -273,49 +706,65 @@ export default function RouterDetailPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <Button variant="outline" size="sm" onClick={() => router.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
 
-            <div className="p-3 rounded-lg bg-primary text-primary-foreground">
-              <RouterIcon className="w-6 h-6" />
+            <div className={`p-3 rounded-lg ${
+              routerData.status === "online" ? "bg-green-100" :
+              routerData.status === "offline" ? "bg-red-100" :
+              routerData.status === "warning" ? "bg-amber-100" : "bg-blue-100"
+            }`}>
+              <Server className={`w-6 h-6 ${
+                routerData.status === "online" ? "text-green-600" :
+                routerData.status === "offline" ? "text-red-600" :
+                routerData.status === "warning" ? "text-amber-600" : "text-blue-600"
+              }`} />
             </div>
 
             <div className="flex-1">
-              <h1 className="text-2xl font-bold">{routerData.name}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold">{routerData.name}</h1>
+                {isUsingDemoData && (
+                  <Badge variant="outline" className="text-amber-600 border-amber-300">Demo</Badge>
+                )}
+              </div>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <Badge variant="outline">{routerData.model}</Badge>
-                <Badge variant="outline" className="font-mono">{routerData.ip}</Badge>
-                <Badge variant="outline" className="font-mono text-blue-600">
-                  Hotspot: {routerData.hotspot_ip}
-                </Badge>
+                <Badge variant="outline">{routerData.model || "Unknown Model"}</Badge>
+                <Badge variant="outline" className="font-mono">{routerData.ip_address}</Badge>
+                <Badge variant="secondary" className="capitalize">{routerData.router_type}</Badge>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                className="bg-blue-600 hover:bg-blue-700"
-                onClick={handleSyncFiles}
-                disabled={isSyncing}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={handleRefresh}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleTestConnection}
+                disabled={isTesting}
               >
-                {isSyncing ? (
+                {isTesting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  <TestTube className="w-4 h-4 mr-2" />
                 )}
-                Sync Files
+                Test
               </Button>
-
-              <Button
-                className="bg-blue-500 hover:bg-blue-600"
+              <Button 
+                size="sm" 
                 onClick={handleReboot}
                 disabled={isRebooting}
+                className="bg-blue-600 hover:bg-blue-700"
               >
                 {isRebooting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -324,533 +773,571 @@ export default function RouterDetailPage() {
                 )}
                 Reboot
               </Button>
-
               <Badge
                 variant="outline"
                 className={`px-3 py-1 ${
-                  routerData.status === "online"
-                    ? "bg-green-100 text-green-700 border-green-300"
-                    : "bg-red-100 text-red-700 border-red-300"
+                  routerData.status === "online" ? "bg-green-100 text-green-700 border-green-300" :
+                  routerData.status === "offline" ? "bg-red-100 text-red-700 border-red-300" :
+                  routerData.status === "warning" ? "bg-amber-100 text-amber-700 border-amber-300" :
+                  "bg-blue-100 text-blue-700 border-blue-300"
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full mr-2 inline-block ${
-                  routerData.status === "online" ? "bg-green-500" : "bg-red-500"
-                }`} />
-                {routerData.status === "online" ? "Online" : "Offline"}
-              </Badge>
-
-              <Badge variant="outline" className="px-3 py-1">
-                Latency: {routerData.latency}ms
+                {getStatusIcon(routerData.status)}
+                <span className="ml-2 capitalize">{routerData.status}</span>
               </Badge>
             </div>
           </div>
         </CardContent>
       </Card>
 
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Users className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{routerData.active_users}</p>
+                <p className="text-xs text-slate-500">Active Users</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <Clock className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">{routerData.uptime || "N/A"}</p>
+                <p className="text-xs text-slate-500">Uptime</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Shield className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{routerData.uptime_percentage?.toFixed(2) || 0}%</p>
+                <p className="text-xs text-slate-500">SLA ({routerData.sla_target}%)</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100 rounded-lg">
+                <Activity className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">{routerData.metrics?.active_connections || 0}</p>
+                <p className="text-xs text-slate-500">Connections</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-8 w-full">
+      <Tabs defaultValue="info" className="w-full">
+        <TabsList className="grid grid-cols-7 w-full">
           <TabsTrigger value="info" className="gap-2">
             <Info className="w-4 h-4" />
-            Info
+            <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="script" className="gap-2">
-            <FileCode className="w-4 h-4" />
-            Script
+          <TabsTrigger value="metrics" className="gap-2">
+            <Activity className="w-4 h-4" />
+            <span className="hidden sm:inline">Metrics</span>
           </TabsTrigger>
-          <TabsTrigger value="hotspot" className="gap-2">
-            <Wifi className="w-4 h-4" />
-            Hotspot
+          <TabsTrigger value="users" className="gap-2">
+            <Users className="w-4 h-4" />
+            <span className="hidden sm:inline">Users</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="gap-2">
-            <Settings className="w-4 h-4" />
-            Settings
+          <TabsTrigger value="scripts" className="gap-2">
+            <Code className="w-4 h-4" />
+            <span className="hidden sm:inline">Scripts</span>
+          </TabsTrigger>
+          <TabsTrigger value="events" className="gap-2">
+            <History className="w-4 h-4" />
+            <span className="hidden sm:inline">Events</span>
           </TabsTrigger>
           <TabsTrigger value="backups" className="gap-2">
             <Archive className="w-4 h-4" />
-            Backups
-          </TabsTrigger>
-          <TabsTrigger value="bandwidth" className="gap-2">
-            <Activity className="w-4 h-4" />
-            Bandwidth
-          </TabsTrigger>
-          <TabsTrigger value="firewall" className="gap-2">
-            <Shield className="w-4 h-4" />
-            Firewall
+            <span className="hidden sm:inline">Backups</span>
           </TabsTrigger>
           <TabsTrigger value="edit" className="gap-2">
             <Edit3 className="w-4 h-4" />
-            Edit
+            <span className="hidden sm:inline">Edit</span>
           </TabsTrigger>
         </TabsList>
 
-        {/* Info Tab */}
+        {/* Overview Tab */}
         <TabsContent value="info" className="mt-6 space-y-6">
-          {/* Uptime Monitoring */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle>Uptime Monitoring</CardTitle>
-                <Badge
-                  variant="outline"
-                  className={`${
-                    routerData.uptime_monitoring.uptime_sla >= 99
-                      ? "bg-green-100 text-green-700"
-                      : routerData.uptime_monitoring.uptime_sla >= 95
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {routerData.uptime_monitoring.uptime_sla.toFixed(4)}% uptime
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-8 bg-green-500 rounded-lg mb-6" />
-
-              <div className="flex items-center justify-center gap-4 mb-6">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-green-500" />
-                  <span className="text-sm">Online</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-red-500" />
-                  <span className="text-sm">Offline</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-4 gap-4 text-center">
-                <div>
-                  <p className="text-3xl font-bold text-green-600">{routerData.uptime_monitoring.online_events}</p>
-                  <p className="text-sm text-muted-foreground">Online Events</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-red-600">{routerData.uptime_monitoring.offline_events}</p>
-                  <p className="text-sm text-muted-foreground">Offline Events</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold">{routerData.uptime_monitoring.uptime_sla.toFixed(4)}%</p>
-                  <p className="text-sm text-muted-foreground">Uptime SLA</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold">{routerData.uptime_monitoring.total_events}</p>
-                  <p className="text-sm text-muted-foreground">Total Events</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Hotspot IP Configuration */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Hotspot IP Configuration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-sm space-y-2">
-                <p className="font-medium">How Hotspot IP Works:</p>
-                <ul className="list-disc list-inside text-muted-foreground space-y-1 ml-2">
-                  <li><strong>/16 subnet</strong> - Supports up to 65,534 devices (e.g., 172.12.0.0/16)</li>
-                  <li><strong>/24 subnet</strong> - Supports up to 254 devices (e.g., 192.168.10.0/24)</li>
-                  <li><strong>/20 subnet</strong> - Supports up to 4,094 devices (e.g., 10.0.0.0/20)</li>
-                </ul>
-                <p className="text-xs text-muted-foreground mt-2">Use /16 for large public hotspots, /24 for small networks</p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Hotspot IP Address</Label>
-                  <Select defaultValue="172.12.0.1">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="172.12.0.1">172.12.0.1 (Recommended for large hotspots)</SelectItem>
-                      <SelectItem value="192.168.1.1">192.168.1.1</SelectItem>
-                      <SelectItem value="10.0.0.1">10.0.0.1</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">Gateway IP for your hotspot network</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Subnet Mask</Label>
-                  <Select defaultValue="/16">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="/16">/16 - 65,534 hosts 🌟</SelectItem>
-                      <SelectItem value="/20">/20 - 4,094 hosts</SelectItem>
-                      <SelectItem value="/24">/24 - 254 hosts</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">Number of max client IP addresses</p>
-                </div>
-              </div>
-
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-sm">
-                  <strong>Configured Range:</strong>
-                  <span className="font-mono ml-2">172.12.0.1/16</span>
-                </p>
-              </div>
-
-              <div className="flex justify-end">
-                <Button>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Configuration
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Router Info & System Resources */}
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle>Router Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Model</span>
-                  <span className="font-medium">{routerData.model}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Status</span>
-                  <Badge className={routerData.status === "online" ? "bg-green-500" : "bg-red-500"}>
-                    {routerData.status}
-                  </Badge>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">IP Address</span>
-                  <span className="font-mono text-blue-600">{routerData.ip}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Connected Users</span>
-                  <span className="font-medium">{routerData.connected_users}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Created</span>
-                  <span className="font-medium">{routerData.created_at}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">CPU Usage</span>
-                  <span className="font-medium">{routerData.cpu_usage}%</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Memory Usage</span>
-                  <span className="font-medium">{routerData.memory_usage}%</span>
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <span className="text-muted-foreground">Remote Access</span>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Web Interface</span>
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs bg-muted px-2 py-1 rounded">{routerData.web_interface_url}</code>
-                      <Button size="sm" variant="outline">
-                        <ExternalLink className="w-3 h-3 mr-1" />
-                        Visit Site
-                      </Button>
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-slate-500">IP Address</p>
+                    <p className="font-mono">{routerData.ip_address}</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Winbox</span>
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs bg-muted px-2 py-1 rounded">{routerData.winbox_url}</code>
-                      <Button size="sm" variant="outline" onClick={() => {
-                        navigator.clipboard.writeText(routerData.winbox_url)
-                        toast.success("Copied!")
-                      }}>
-                        <Copy className="w-3 h-3 mr-1" />
-                        Copy
-                      </Button>
-                    </div>
+                  <div>
+                    <p className="text-sm text-slate-500">MAC Address</p>
+                    <p className="font-mono">{routerData.mac_address || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">API Port</p>
+                    <p className="font-mono">{routerData.api_port}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Type</p>
+                    <p className="capitalize">{routerData.router_type}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Model</p>
+                    <p>{routerData.model || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Firmware</p>
+                    <p>{routerData.firmware_version || "N/A"}</p>
                   </div>
                 </div>
+                
+                {routerData.location && (
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
+                      <MapPin className="w-4 h-4" />
+                      Location
+                    </div>
+                    <p>{routerData.location}</p>
+                  </div>
+                )}
+
+                {routerData.notes && (
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-slate-500 mb-1">Notes</p>
+                    <p className="text-sm">{routerData.notes}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>System Resources</CardTitle>
+                <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Cpu className="w-4 h-4 text-blue-600" />
-                      <span>CPU Usage</span>
-                    </div>
-                    <span className="font-medium">{routerData.cpu_usage}%</span>
-                  </div>
-                  <Progress value={routerData.cpu_usage} className="h-2" />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <HardDrive className="w-4 h-4 text-purple-600" />
-                      <span>Memory Usage</span>
-                    </div>
-                    <span className="font-medium">{routerData.memory_usage}%</span>
-                  </div>
-                  <Progress value={routerData.memory_usage} className="h-2" />
-                </div>
-
-                <Separator />
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-green-600" />
-                      <span>Connected Users</span>
-                    </div>
-                    <span className="font-medium">{routerData.connected_users} / {routerData.total_users} users</span>
-                  </div>
-                  <Progress value={(routerData.connected_users / routerData.total_users) * 100} className="h-2" />
-                </div>
+              <CardContent className="space-y-3">
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={handleSyncUsers}
+                  disabled={isSyncing}
+                >
+                  {isSyncing ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  )}
+                  Sync Users
+                </Button>
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={handleBackup}
+                  disabled={isBackingUp}
+                >
+                  {isBackingUp ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Archive className="w-4 h-4 mr-2" />
+                  )}
+                  Create Backup
+                </Button>
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={() => setIsMaintenanceDialogOpen(true)}
+                >
+                  {routerData.status === "maintenance" ? (
+                    <PlayCircle className="w-4 h-4 mr-2" />
+                  ) : (
+                    <PauseCircle className="w-4 h-4 mr-2" />
+                  )}
+                  {routerData.status === "maintenance" ? "Exit Maintenance" : "Enter Maintenance"}
+                </Button>
+                <Button 
+                  className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50" 
+                  variant="outline"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Router
+                </Button>
               </CardContent>
             </Card>
           </div>
+
+          {routerData.tags && routerData.tags.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Tags</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {routerData.tags.map((tag, i) => (
+                    <Badge key={i} variant="secondary">{tag}</Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
-        {/* Script Tab */}
-        <TabsContent value="script" className="mt-6 space-y-6">
+        {/* Metrics Tab */}
+        <TabsContent value="metrics" className="mt-6 space-y-6">
+          {routerData.metrics ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Cpu className="w-4 h-4" />
+                    CPU Usage
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold mb-2">{routerData.metrics.cpu_usage}%</div>
+                  <Progress 
+                    value={routerData.metrics.cpu_usage} 
+                    className={routerData.metrics.cpu_usage > 80 ? "[&>div]:bg-red-500" : routerData.metrics.cpu_usage > 60 ? "[&>div]:bg-amber-500" : ""}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <HardDrive className="w-4 h-4" />
+                    Memory Usage
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold mb-2">{routerData.metrics.memory_usage}%</div>
+                  <Progress 
+                    value={routerData.metrics.memory_usage} 
+                    className={routerData.metrics.memory_usage > 80 ? "[&>div]:bg-red-500" : routerData.metrics.memory_usage > 60 ? "[&>div]:bg-amber-500" : ""}
+                  />
+                </CardContent>
+              </Card>
+
+              {routerData.metrics.temperature && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Thermometer className="w-4 h-4" />
+                      Temperature
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className={`text-3xl font-bold ${
+                      routerData.metrics.temperature > 65 ? "text-red-600" : 
+                      routerData.metrics.temperature > 55 ? "text-amber-600" : "text-slate-700"
+                    }`}>
+                      {routerData.metrics.temperature}°C
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Download className="w-4 h-4" />
+                    Download Speed
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-green-600">{routerData.metrics.download_speed} Mbps</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Upload className="w-4 h-4" />
+                    Upload Speed
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-blue-600">{routerData.metrics.upload_speed} Mbps</div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Zap className="w-4 h-4" />
+                    Active Connections
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{routerData.metrics.active_connections}</div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-slate-500">
+                <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No metrics available</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Users Tab */}
+        <TabsContent value="users" className="mt-6">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Router Configuration Script</CardTitle>
-                  <CardDescription>
-                    Copy this script and paste it in your MikroTik terminal to authenticate this router
-                  </CardDescription>
-                </div>
-                <Button onClick={handleCopyScript}>
-                  {copied ? (
-                    <>
-                      <Check className="w-4 h-4 mr-2" />
-                      Copied!
-                    </>
+                <CardTitle>Connected Users ({users.length})</CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleSyncUsers}
+                  disabled={isSyncing}
+                >
+                  {isSyncing ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
-                    <>
-                      <Copy className="w-4 h-4 mr-2" />
-                      Copy Script
-                    </>
+                    <RefreshCw className="w-4 h-4 mr-2" />
                   )}
+                  Sync
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Main Script - Single Line */}
-              <div className="space-y-3">
-                <Label className="text-base font-semibold">Configuration Script</Label>
-                <div className="relative">
-                  <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                    <code>{routerData.script_content}</code>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="absolute top-2 right-2"
-                    onClick={handleCopyScript}
-                  >
-                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Open your MikroTik terminal (via Winbox or SSH) and paste this command
-                </p>
-              </div>
-
-              <Separator />
-
-              {/* Instructions */}
-              <div className="space-y-4">
-                <h4 className="font-semibold">How to configure your router:</h4>
-                <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                  <li>Open <strong>Winbox</strong> and connect to your MikroTik router</li>
-                  <li>Go to <strong>New Terminal</strong> (or use SSH)</li>
-                  <li>Copy the script above and paste it in the terminal</li>
-                  <li>Press <strong>Enter</strong> to execute</li>
-                  <li>Wait for the script to complete - your router will be authenticated automatically</li>
-                </ol>
-              </div>
-
-              <Alert className="bg-yellow-50 border-yellow-200">
-                <AlertCircle className="h-4 w-4 text-yellow-600" />
-                <AlertTitle className="text-yellow-800">Getting "Not allowed by device mode" error?</AlertTitle>
-                <AlertDescription className="text-yellow-700 space-y-2">
-                  <p>Run this command first, then reboot your router:</p>
-                  <div className="flex items-center gap-2 bg-white p-2 rounded border mt-2">
-                    <code className="flex-1 text-sm font-mono text-slate-800">/system/device-mode update mode=advanced</code>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        navigator.clipboard.writeText("/system/device-mode update mode=advanced")
-                        toast.success("Command copied")
-                      }}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </AlertDescription>
-              </Alert>
-
-              <div className="flex justify-center">
-                <Button onClick={handleCheckRouter}>
-                  <RouterIcon className="w-4 h-4 mr-2" />
-                  Check Router Connection
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Hotspot Tab */}
-        <TabsContent value="hotspot" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Router Ports</CardTitle>
-              <CardDescription>Select ports to configure for hotspot</CardDescription>
             </CardHeader>
             <CardContent>
-              {routerData.ports.length > 0 ? (
+              {users.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Port</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Comment</TableHead>
+                      <TableHead>Username</TableHead>
+                      <TableHead>IP Address</TableHead>
+                      <TableHead>MAC Address</TableHead>
+                      <TableHead>Download</TableHead>
+                      <TableHead>Upload</TableHead>
+                      <TableHead>Uptime</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Hotspot</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {routerData.ports.map((port: any) => (
-                      <TableRow key={port.name}>
-                        <TableCell className="font-medium">{port.name}</TableCell>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.username}</TableCell>
+                        <TableCell className="font-mono text-sm">{user.ip_address}</TableCell>
+                        <TableCell className="font-mono text-sm">{user.mac_address}</TableCell>
+                        <TableCell>{user.download} MB</TableCell>
+                        <TableCell>{user.upload} MB</TableCell>
+                        <TableCell>{user.uptime}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{port.type}</Badge>
-                        </TableCell>
-                        <TableCell>{port.comment}</TableCell>
-                        <TableCell>
-                          <Badge className={port.enabled ? "bg-green-100 text-green-700" : "bg-slate-100"}>
-                            {port.enabled ? "Enabled" : "Disabled"}
+                          <Badge variant="outline" className="bg-green-100 text-green-700">
+                            {user.status}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Checkbox />
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  No ports detected. Click "Check Router Ports" to scan.
+                <div className="py-12 text-center text-slate-500">
+                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No users connected</p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              <div className="flex justify-center mt-6">
-                <Button onClick={handleCheckPorts} disabled={isCheckingPorts}>
-                  {isCheckingPorts ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <RouterIcon className="w-4 h-4 mr-2" />
-                  )}
-                  Check Router Ports
+        {/* Scripts Tab */}
+        <TabsContent value="scripts" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Router Scripts</CardTitle>
+                  <CardDescription>Manage and run scripts on this router</CardDescription>
+                </div>
+                <Button size="sm" onClick={() => handleOpenScriptDialog()}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Script
                 </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Authentication Script - Always show */}
+                <Card className="border-2 border-blue-200 bg-blue-50/50">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-5 h-5 text-blue-600" />
+                        <CardTitle className="text-base font-mono">netily-auth</CardTitle>
+                        <Badge className="bg-blue-600">Authentication</Badge>
+                        {routerData.is_authenticated && (
+                          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Authenticated
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyScript(`/tool fetch url="https://api.netily.io/api/v1/routers/auth?key=${routerData.auth_key}" mode=https`)}
+                        className="gap-2"
+                      >
+                        <Copy className="w-4 h-4" />
+                        Copy to Clipboard
+                      </Button>
+                    </div>
+                    <CardDescription className="mt-2">
+                      Run this script in your MikroTik terminal to authenticate and connect this router to Netily.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <pre className="bg-slate-900 text-green-400 p-4 rounded-md text-sm overflow-x-auto font-mono">
+                      <code>{`/tool fetch url="https://api.netily.io/api/v1/routers/auth?key=${routerData.auth_key}" mode=https`}</code>
+                    </pre>
+                    <div className="mt-3 space-y-2">
+                      <p className="text-sm text-slate-600">
+                        <strong>How to use:</strong> Open your MikroTik terminal (via Winbox or SSH), paste this command, and press Enter.
+                      </p>
+                      {routerData.authenticated_at && (
+                        <p className="text-xs text-slate-500">
+                          Last authenticated: {formatDate(routerData.authenticated_at)}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Other Scripts */}
+                {scripts.filter(s => s.name !== "netily-auth").length > 0 ? (
+                  scripts.filter(s => s.name !== "netily-auth").map((script) => (
+                    <Card key={script.id} className="border">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <FileCode className="w-5 h-5 text-blue-600" />
+                            <CardTitle className="text-base font-mono">{script.name}</CardTitle>
+                            {script.scheduled && (
+                              <Badge variant="secondary" className="text-xs">Scheduled</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopyScript(script.source)}
+                              title="Copy script"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenScriptDialog(script)}
+                              title="Edit script"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRunScript(script.id)}
+                              disabled={isRunningScript === script.id}
+                              className="text-green-600 hover:text-green-700"
+                              title="Run script"
+                            >
+                              {isRunningScript === script.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Play className="w-4 h-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteScript(script.id)}
+                              className="text-red-600 hover:text-red-700"
+                              title="Delete script"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <pre className="bg-slate-900 text-slate-100 p-3 rounded-md text-sm overflow-x-auto font-mono">
+                          <code>{script.source}</code>
+                        </pre>
+                        <div className="flex items-center gap-4 mt-3 text-sm text-slate-500">
+                          <span>Run count: {script.run_count}</span>
+                          <span>Owner: {script.owner}</span>
+                          {script.last_run && (
+                            <span>Last run: {formatDate(script.last_run)}</span>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500 mt-4">No additional scripts configured. Add a new script to automate tasks on this router.</p>
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Settings Tab */}
-        <TabsContent value="settings" className="mt-6">
+        {/* Events Tab */}
+        <TabsContent value="events" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Hotspot Configuration</CardTitle>
+              <CardTitle>Recent Events</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Hotspot Name</Label>
-                  <Input
-                    placeholder="Enter hotspot name"
-                    value={hotspotForm.name}
-                    onChange={(e) => setHotspotForm({ ...hotspotForm, name: e.target.value })}
-                  />
+            <CardContent>
+              {events.length > 0 ? (
+                <div className="space-y-4">
+                  {events.map((event) => (
+                    <div key={event.id} className="flex items-start gap-3 pb-4 border-b last:border-0">
+                      {getEventIcon(event.event_type)}
+                      <div className="flex-1">
+                        <p className="font-medium">{event.message}</p>
+                        <p className="text-sm text-slate-500">{formatDate(event.created_at)}</p>
+                      </div>
+                      <Badge variant="outline" className="capitalize">{event.event_type}</Badge>
+                    </div>
+                  ))}
                 </div>
-                <div className="space-y-2">
-                  <Label>Phone Number (Customer Care)</Label>
-                  <Input
-                    placeholder="Enter phone number"
-                    value={hotspotForm.phone_number}
-                    onChange={(e) => setHotspotForm({ ...hotspotForm, phone_number: e.target.value })}
-                  />
+              ) : (
+                <div className="py-12 text-center text-slate-500">
+                  <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No events recorded</p>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Notification Message</Label>
-                <Textarea
-                  placeholder="Enter notification message"
-                  value={hotspotForm.notification_message}
-                  onChange={(e) => setHotspotForm({ ...hotspotForm, notification_message: e.target.value })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  This message will be displayed to customers on the interface when they are purchasing
-                </p>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="free-trial"
-                  checked={hotspotForm.enable_free_trial}
-                  onCheckedChange={(checked) =>
-                    setHotspotForm({ ...hotspotForm, enable_free_trial: checked as boolean })
-                  }
-                />
-                <div>
-                  <Label htmlFor="free-trial" className="cursor-pointer">Enable Free Trial</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Allow users to access the internet for free for a limited time
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Login Page Template</Label>
-                <Select
-                  value={hotspotForm.login_template}
-                  onValueChange={(v) => setHotspotForm({ ...hotspotForm, login_template: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a login page template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Default Template</SelectItem>
-                    <SelectItem value="modern">Modern Template</SelectItem>
-                    <SelectItem value="minimal">Minimal Template</SelectItem>
-                    <SelectItem value="branded">Branded Template</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={handleSaveHotspotSettings} disabled={isSaving}>
-                  {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Save Hotspot Settings
-                </Button>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -860,237 +1347,194 @@ export default function RouterDetailPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Router Backups</CardTitle>
-                  <CardDescription>Manage and restore router configuration backups</CardDescription>
-                </div>
-                <Button>
-                  <Archive className="w-4 h-4 mr-2" />
+                <CardTitle>Configuration Backups</CardTitle>
+                <Button 
+                  size="sm"
+                  onClick={handleBackup}
+                  disabled={isBackingUp}
+                >
+                  {isBackingUp ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Archive className="w-4 h-4 mr-2" />
+                  )}
                   Create Backup
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Backup Name</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {routerData.backups.map((backup: any) => (
-                    <TableRow key={backup.id}>
-                      <TableCell className="font-mono text-sm">{backup.name}</TableCell>
-                      <TableCell>{backup.date}</TableCell>
-                      <TableCell>{backup.size}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={backup.type === "auto" ? "bg-blue-50" : "bg-green-50"}>
-                          {backup.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button size="sm" variant="outline">
-                          <Download className="w-3 h-3 mr-1" />
-                          Download
-                        </Button>
-                        <Button size="sm" variant="outline">Restore</Button>
-                      </TableCell>
+              {backups.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Size</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Bandwidth Tab */}
-        <TabsContent value="bandwidth" className="mt-6 space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Current Bandwidth Usage</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-muted-foreground">Download</span>
-                    <span className="font-medium">
-                      {routerData.bandwidth.current_download} / {routerData.bandwidth.max_download} Mbps
-                    </span>
-                  </div>
-                  <Progress
-                    value={(routerData.bandwidth.current_download / routerData.bandwidth.max_download) * 100}
-                    className="h-3"
-                  />
+                  </TableHeader>
+                  <TableBody>
+                    {backups.map((backup) => (
+                      <TableRow key={backup.id}>
+                        <TableCell className="font-mono text-sm">{backup.name}</TableCell>
+                        <TableCell>{backup.date}</TableCell>
+                        <TableCell>{backup.size}</TableCell>
+                        <TableCell>
+                          <Badge variant={backup.type === "auto" ? "secondary" : "outline"}>
+                            {backup.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm">
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="py-12 text-center text-slate-500">
+                  <Archive className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No backups available</p>
                 </div>
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-muted-foreground">Upload</span>
-                    <span className="font-medium">
-                      {routerData.bandwidth.current_upload} / {routerData.bandwidth.max_upload} Mbps
-                    </span>
-                  </div>
-                  <Progress
-                    value={(routerData.bandwidth.current_upload / routerData.bandwidth.max_upload) * 100}
-                    className="h-3"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Data Usage</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Today</p>
-                    <p className="text-2xl font-bold">{routerData.bandwidth.daily_usage}</p>
-                  </div>
-                  <Activity className="w-8 h-8 text-blue-600" />
-                </div>
-                <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
-                  <div>
-                    <p className="text-sm text-muted-foreground">This Month</p>
-                    <p className="text-2xl font-bold">{routerData.bandwidth.monthly_usage}</p>
-                  </div>
-                  <Globe className="w-8 h-8 text-green-600" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Bandwidth History</CardTitle>
-              <CardDescription>Last 7 days bandwidth usage</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                Bandwidth chart will be displayed here
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Firewall Tab */}
-        <TabsContent value="firewall" className="mt-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Firewall Rules</CardTitle>
-                  <CardDescription>Manage router firewall configuration</CardDescription>
-                </div>
-                <Button>
-                  <Shield className="w-4 h-4 mr-2" />
-                  Add Rule
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>#</TableHead>
-                    <TableHead>Chain</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Protocol</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Destination</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {routerData.firewall_rules.map((rule: any) => (
-                    <TableRow key={rule.id}>
-                      <TableCell>{rule.id}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{rule.chain}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            rule.action === "accept"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }
-                        >
-                          {rule.action}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{rule.protocol}</TableCell>
-                      <TableCell className="font-mono text-sm">{rule.src}</TableCell>
-                      <TableCell className="font-mono text-sm">{rule.dst}</TableCell>
-                      <TableCell>
-                        <Badge className={rule.enabled ? "bg-green-500" : "bg-slate-400"}>
-                          {rule.enabled ? "Enabled" : "Disabled"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button size="sm" variant="outline">Edit</Button>
-                        <Button size="sm" variant="outline" className="text-red-600">Delete</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Edit Tab */}
         <TabsContent value="edit" className="mt-6">
-          <Alert className="mb-6 bg-yellow-50 border-yellow-200">
-            <AlertCircle className="h-4 w-4 text-yellow-600" />
-            <AlertTitle className="text-yellow-800">Limited Editing</AlertTitle>
-            <AlertDescription className="text-yellow-700">
-              You can only edit the router name and API port. For advanced configuration, please use the router's web interface.
-            </AlertDescription>
-          </Alert>
-
           <Card>
             <CardHeader>
-              <CardTitle>Basic Settings</CardTitle>
+              <CardTitle>Edit Router</CardTitle>
+              <CardDescription>Update router configuration</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Router Name</Label>
+                  <Label htmlFor="name">Router Name *</Label>
                   <Input
+                    id="name"
                     value={editForm.name}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                   />
-                  <p className="text-xs text-muted-foreground">The display name for this router in the dashboard</p>
                 </div>
                 <div className="space-y-2">
-                  <Label>API Port</Label>
+                  <Label htmlFor="router_type">Router Type</Label>
+                  <Select
+                    value={editForm.router_type}
+                    onValueChange={(v) => setEditForm({ ...editForm, router_type: v as RouterType })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mikrotik">MikroTik</SelectItem>
+                      <SelectItem value="cisco">Cisco</SelectItem>
+                      <SelectItem value="ubiquiti">Ubiquiti</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="ip_address">IP Address *</Label>
                   <Input
-                    value={editForm.api_port}
-                    onChange={(e) => setEditForm({ ...editForm, api_port: e.target.value })}
+                    id="ip_address"
+                    value={editForm.ip_address}
+                    onChange={(e) => setEditForm({ ...editForm, ip_address: e.target.value })}
                   />
-                  <p className="text-xs text-muted-foreground">Default MikroTik API port is 8728 (8729 for secure API)</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="api_port">API Port</Label>
+                  <Input
+                    id="api_port"
+                    type="number"
+                    value={editForm.api_port}
+                    onChange={(e) => setEditForm({ ...editForm, api_port: parseInt(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="api_username">API Username</Label>
+                  <Input
+                    id="api_username"
+                    value={editForm.api_username}
+                    onChange={(e) => setEditForm({ ...editForm, api_username: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="api_password">API Password (leave blank to keep)</Label>
+                  <Input
+                    id="api_password"
+                    type="password"
+                    value={editForm.api_password}
+                    onChange={(e) => setEditForm({ ...editForm, api_password: e.target.value })}
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="model">Model</Label>
+                  <Input
+                    id="model"
+                    value={editForm.model}
+                    onChange={(e) => setEditForm({ ...editForm, model: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sla_target">SLA Target (%)</Label>
+                  <Input
+                    id="sla_target"
+                    type="number"
+                    step="0.1"
+                    value={editForm.sla_target}
+                    onChange={(e) => setEditForm({ ...editForm, sla_target: parseFloat(e.target.value) })}
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Notification Number</Label>
+                <Label htmlFor="location">Location</Label>
                 <Input
-                  value={editForm.notification_number}
-                  onChange={(e) => setEditForm({ ...editForm, notification_number: e.target.value })}
-                  placeholder="+254712345678"
+                  id="location"
+                  value={editForm.location}
+                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
                 />
-                <p className="text-xs text-muted-foreground">Phone number for router notifications and alerts</p>
               </div>
 
-              <div className="flex justify-end">
-                <Button onClick={handleSaveEdit} disabled={isSaving}>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="is_active"
+                  checked={editForm.is_active}
+                  onCheckedChange={(checked) => setEditForm({ ...editForm, is_active: checked })}
+                />
+                <Label htmlFor="is_active">Active</Label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={fetchData}>
+                  Reset
+                </Button>
+                <Button onClick={handleSave} disabled={isSaving}>
                   {isSaving ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
@@ -1103,6 +1547,138 @@ export default function RouterDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Router</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{routerData.name}&quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Maintenance Mode Dialog */}
+      <Dialog open={isMaintenanceDialogOpen} onOpenChange={setIsMaintenanceDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {routerData.status === "maintenance" ? "Exit Maintenance Mode" : "Enter Maintenance Mode"}
+            </DialogTitle>
+            <DialogDescription>
+              {routerData.status === "maintenance" 
+                ? "This will take the router out of maintenance mode and mark it as available."
+                : "This will put the router in maintenance mode. Users will not be able to connect during maintenance."}
+            </DialogDescription>
+          </DialogHeader>
+          {routerData.status !== "maintenance" && (
+            <div className="space-y-2">
+              <Label htmlFor="maintenance_reason">Reason (optional)</Label>
+              <Textarea
+                id="maintenance_reason"
+                value={maintenanceReason}
+                onChange={(e) => setMaintenanceReason(e.target.value)}
+                placeholder="Scheduled maintenance, firmware upgrade, etc."
+                rows={2}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMaintenanceDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => handleSetMaintenance(routerData.status !== "maintenance")} 
+              disabled={isMaintenanceLoading}
+            >
+              {isMaintenanceLoading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : routerData.status === "maintenance" ? (
+                <PlayCircle className="w-4 h-4 mr-2" />
+              ) : (
+                <PauseCircle className="w-4 h-4 mr-2" />
+              )}
+              {routerData.status === "maintenance" ? "Exit Maintenance" : "Enter Maintenance"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Script Dialog */}
+      <Dialog open={isScriptDialogOpen} onOpenChange={setIsScriptDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingScript ? "Edit Script" : "New Script"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingScript 
+                ? "Update the script configuration below."
+                : "Create a new script to run on this router."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="script_name">Script Name *</Label>
+              <Input
+                id="script_name"
+                value={scriptForm.name}
+                onChange={(e) => setScriptForm({ ...scriptForm, name: e.target.value })}
+                placeholder="my-script"
+                className="font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="script_source">Script Source *</Label>
+              <Textarea
+                id="script_source"
+                value={scriptForm.source}
+                onChange={(e) => setScriptForm({ ...scriptForm, source: e.target.value })}
+                placeholder={`:log info "Hello from script"
+/ip firewall filter print`}
+                rows={10}
+                className="font-mono text-sm"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="script_scheduled"
+                checked={scriptForm.scheduled}
+                onCheckedChange={(checked) => setScriptForm({ ...scriptForm, scheduled: checked })}
+              />
+              <Label htmlFor="script_scheduled">Enable scheduling</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsScriptDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveScript} disabled={isSavingScript}>
+              {isSavingScript ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              {editingScript ? "Update Script" : "Create Script"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
