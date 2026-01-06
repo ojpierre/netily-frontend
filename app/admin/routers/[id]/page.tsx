@@ -827,7 +827,7 @@ export default function RouterDetailPage() {
                 <Shield className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{routerData.uptime_percentage?.toFixed(2) || 0}%</p>
+                <p className="text-2xl font-bold">{Number(routerData.uptime_percentage || 0).toFixed(2)}%</p>
                 <p className="text-xs text-slate-500">SLA ({routerData.sla_target}%)</p>
               </div>
             </div>

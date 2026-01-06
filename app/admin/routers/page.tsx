@@ -776,7 +776,7 @@ export default function RoutersPage() {
                 <Activity className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-emerald-600">{localStats.average_uptime.toFixed(1)}%</p>
+                <p className="text-2xl font-bold text-emerald-600">{Number(localStats.average_uptime || 0).toFixed(1)}%</p>
                 <p className="text-xs text-slate-500">Avg Uptime</p>
               </div>
             </div>
@@ -949,7 +949,7 @@ export default function RoutersPage() {
                       <div className="flex justify-between text-xs mb-1">
                         <span>SLA: {r.sla_target || 99}%</span>
                         <span className={(r.uptime_percentage || 0) >= (r.sla_target || 99) ? "text-green-600" : "text-red-600"}>
-                          {r.uptime_percentage?.toFixed(2)}%
+                          {Number(r.uptime_percentage || 0).toFixed(2)}%
                         </span>
                       </div>
                       <Progress 
@@ -1049,7 +1049,7 @@ export default function RoutersPage() {
                       <TableCell>{r.uptime || "-"}</TableCell>
                       <TableCell>
                         <span className={(r.uptime_percentage || 0) >= (r.sla_target || 99) ? "text-green-600" : "text-red-600"}>
-                          {r.uptime_percentage?.toFixed(1) || 0}%
+                          {Number(r.uptime_percentage || 0).toFixed(1)}%
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
