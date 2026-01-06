@@ -142,7 +142,11 @@ class AdminApiService {
         body: JSON.stringify({ refresh }),
       })
       
-      if (!response.ok) return false
+      if (!response.ok) {
+        // Token refresh failed - clear tokens and redirect to login
+        this.clearTokensAndRedirect()
+        return false
+      }
       
       const data = await response.json()
       const storage = localStorage.getItem('adminRefreshToken') ? localStorage : sessionStorage
@@ -151,7 +155,26 @@ class AdminApiService {
       
       return true
     } catch {
+      // Network error or server error (500) - clear tokens and redirect
+      this.clearTokensAndRedirect()
       return false
+    }
+  }
+
+  private clearTokensAndRedirect(): void {
+    if (typeof window !== 'undefined') {
+      // Clear all auth tokens
+      localStorage.removeItem('adminToken')
+      localStorage.removeItem('adminRefreshToken')
+      sessionStorage.removeItem('adminToken')
+      sessionStorage.removeItem('adminRefreshToken')
+      
+      // Clear cookies
+      document.cookie = 'adminToken=; path=/; max-age=0'
+      document.cookie = 'adminRefreshToken=; path=/; max-age=0'
+      
+      // Redirect to login page
+      window.location.href = '/admin/login'
     }
   }
 
