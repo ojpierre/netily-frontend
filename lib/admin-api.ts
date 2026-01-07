@@ -261,6 +261,28 @@ class AdminApiService {
     return this.request<AdminUser>('/core/users/me/')
   }
 
+  // Alias for compatibility
+  async getCurrentUser(): Promise<AdminUser> {
+    return this.getCurrentAdmin()
+  }
+
+  async updateProfile(data: { first_name?: string; last_name?: string; email?: string; phone_number?: string }): Promise<AdminUser> {
+    return this.request<AdminUser>('/core/users/me/', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>('/core/auth/change-password/', {
+      method: 'POST',
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    })
+  }
+
   // ------------------------------------------
   // DASHBOARD - /core/dashboard/
   // ------------------------------------------

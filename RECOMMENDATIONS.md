@@ -254,6 +254,203 @@ Once implemented, the frontend will:
 | Router auth endpoint (public) | 🔴 Not Started | New feature |
 | Auth key generation | 🔴 Not Started | New feature |
 | Heartbeat endpoint | ⚪ Optional | Nice to have |
+| User profile update | 🔴 Not Started | PATCH /core/users/me/ |
+| Change password endpoint | 🔴 Not Started | POST /core/auth/change-password/ |
+| System settings endpoint | 🔴 Not Started | GET/PATCH /core/settings/ |
+
+---
+
+### Priority 6: User Account Management (NEW)
+
+The frontend Settings page now has an Account tab for users to manage their profile and password.
+
+#### Required Endpoints:
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/core/users/me/` | Admin | Get current user profile ✅ (exists) |
+| PATCH | `/api/v1/core/users/me/` | Admin | Update profile (first_name, last_name, email, phone_number) |
+| POST | `/api/v1/core/auth/change-password/` | Admin | Change password |
+
+#### Update Profile Request:
+```json
+PATCH /api/v1/core/users/me/
+{
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john@example.com",
+  "phone_number": "+254712345678"
+}
+```
+
+#### Change Password Request:
+```json
+POST /api/v1/core/auth/change-password/
+{
+  "current_password": "old_password",
+  "new_password": "new_secure_password"
+}
+```
+
+#### Change Password Response:
+```json
+{
+  "message": "Password changed successfully"
+}
+```
+
+#### Implementation:
+```python
+# views.py
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+        
+        if not user.check_password(current_password):
+            return Response(
+                {'error': 'Current password is incorrect'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if len(new_password) < 8:
+            return Response(
+                {'error': 'Password must be at least 8 characters'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user.set_password(new_password)
+        user.save()
+        
+        return Response({'message': 'Password changed successfully'})
+```
+
+#### URL Pattern:
+```python
+path('core/auth/change-password/', ChangePasswordView.as_view(), name='change-password'),
+```
+
+---
+
+### Priority 7: System Settings Endpoint (NEW)
+
+The Settings page loads and saves various system configurations.
+
+#### Required Endpoints:
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/core/settings/` | Admin | Get all system settings |
+| PATCH | `/api/v1/core/settings/` | Admin | Update system settings |
+
+#### Settings Model:
+```python
+class SystemSettings(models.Model):
+    # RADIUS Settings
+    primary_server = models.CharField(max_length=255, blank=True)
+    primary_port = models.IntegerField(default=1812)
+    primary_secret = models.CharField(max_length=255, blank=True)
+    secondary_server = models.CharField(max_length=255, blank=True)
+    secondary_port = models.IntegerField(default=1812)
+    secondary_secret = models.CharField(max_length=255, blank=True)
+    accounting_port = models.IntegerField(default=1813)
+    timeout = models.IntegerField(default=5)
+    retries = models.IntegerField(default=3)
+    
+    # Automation Settings
+    auto_renew = models.BooleanField(default=True)
+    auto_expiry = models.BooleanField(default=True)
+    auto_notifications = models.BooleanField(default=True)
+    auto_backup = models.BooleanField(default=False)
+    auto_reports = models.BooleanField(default=True)
+    grace_period = models.IntegerField(default=3)
+    backup_frequency = models.CharField(max_length=20, default='daily')
+    report_frequency = models.CharField(max_length=20, default='weekly')
+    
+    # Notification Settings
+    email_enabled = models.BooleanField(default=True)
+    sms_enabled = models.BooleanField(default=True)
+    payment_notifications = models.BooleanField(default=True)
+    expiry_notifications = models.BooleanField(default=True)
+    system_alerts = models.BooleanField(default=True)
+    marketing_emails = models.BooleanField(default=False)
+    admin_email = models.EmailField(blank=True)
+    sms_gateway = models.CharField(max_length=50, default='africastalking')
+    
+    class Meta:
+        verbose_name = 'System Settings'
+        verbose_name_plural = 'System Settings'
+```
+
+#### Note:
+Use a singleton pattern - there should only be one SystemSettings record. Create it on first access if it doesn't exist:
+
+```python
+# views.py
+class SystemSettingsView(APIView):
+    permission_classes = [IsAdminUser]
+    
+    def get_settings(self):
+        settings, _ = SystemSettings.objects.get_or_create(pk=1)
+        return settings
+    
+    def get(self, request):
+        settings = self.get_settings()
+        serializer = SystemSettingsSerializer(settings)
+        return Response(serializer.data)
+    
+    def patch(self, request):
+        settings = self.get_settings()
+        serializer = SystemSettingsSerializer(settings, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+```
+
+---
+
+### Priority 8: Token Refresh Error Handling (BUG FIX)
+
+When token refresh fails because the user no longer exists, the backend returns 500 instead of 401.
+
+#### Current Behavior:
+```
+ERROR Internal Server Error: /api/v1/core/auth/token/refresh/
+apps.core.models.User.DoesNotExist: User matching query does not exist.
+```
+
+#### Fix:
+Override the TokenRefreshSerializer to handle missing users gracefully:
+
+```python
+# serializers.py
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.exceptions import InvalidToken
+
+class CustomTokenRefreshSerializer(TokenRefreshSerializer):
+    def validate(self, attrs):
+        try:
+            return super().validate(attrs)
+        except User.DoesNotExist:
+            raise InvalidToken('User no longer exists')
+```
+
+```python
+# views.py
+from rest_framework_simplejwt.views import TokenRefreshView
+
+class CustomTokenRefreshView(TokenRefreshView):
+    serializer_class = CustomTokenRefreshSerializer
+```
+
+```python
+# urls.py
+path('core/auth/token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
+```
 
 ---
 

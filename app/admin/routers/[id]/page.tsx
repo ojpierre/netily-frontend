@@ -1206,7 +1206,12 @@ export default function RouterDetailPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleCopyScript(`/tool fetch url="https://api.netily.io/api/v1/routers/auth?key=${routerData.auth_key}" mode=https`)}
+                        onClick={() => {
+                          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+                          const isHttps = apiBase.startsWith('https')
+                          const script = `/tool fetch url="${apiBase}/routers/auth?key=${routerData.auth_key || 'NOT_GENERATED'}" mode=${isHttps ? 'https' : 'http'}`
+                          handleCopyScript(script)
+                        }}
                         className="gap-2"
                       >
                         <Copy className="w-4 h-4" />
@@ -1218,13 +1223,31 @@ export default function RouterDetailPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <pre className="bg-slate-900 text-green-400 p-4 rounded-md text-sm overflow-x-auto font-mono">
-                      <code>{`/tool fetch url="https://api.netily.io/api/v1/routers/auth?key=${routerData.auth_key}" mode=https`}</code>
-                    </pre>
+                    {/* Production Script */}
+                    <div className="mb-4">
+                      <p className="text-xs text-slate-500 mb-2 font-medium">Production (HTTPS):</p>
+                      <pre className="bg-slate-900 text-green-400 p-4 rounded-md text-sm overflow-x-auto font-mono">
+                        <code>{`/tool fetch url="https://api.netily.io/api/v1/routers/auth?key=${routerData.auth_key || 'NOT_GENERATED'}" mode=https`}</code>
+                      </pre>
+                    </div>
+                    
+                    {/* Development Script - HTTP for local testing */}
+                    <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                      <p className="text-xs text-amber-700 mb-2 font-medium">⚠️ Development/Testing (HTTP - use your server IP):</p>
+                      <pre className="bg-slate-800 text-yellow-400 p-3 rounded-md text-xs overflow-x-auto font-mono">
+                        <code>{`/tool fetch url="http://YOUR_SERVER_IP:8000/api/v1/routers/auth?key=${routerData.auth_key || 'NOT_GENERATED'}" mode=http`}</code>
+                      </pre>
+                    </div>
+
                     <div className="mt-3 space-y-2">
                       <p className="text-sm text-slate-600">
                         <strong>How to use:</strong> Open your MikroTik terminal (via Winbox or SSH), paste this command, and press Enter.
                       </p>
+                      {!routerData.auth_key && (
+                        <p className="text-xs text-red-500">
+                          ⚠️ Auth key not generated yet. Backend needs to implement auth_key generation.
+                        </p>
+                      )}
                       {routerData.authenticated_at && (
                         <p className="text-xs text-slate-500">
                           Last authenticated: {formatDate(routerData.authenticated_at)}
