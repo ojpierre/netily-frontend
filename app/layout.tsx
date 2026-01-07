@@ -1,8 +1,10 @@
 import type React from "react"
 import type { Metadata } from "next"
+import { Suspense } from "react"
 import { Geist, Geist_Mono } from "next/font/google"
 import { AuthProvider } from "./auth-context"
 import { AuthGuard } from "@/components/auth-guard"
+import { NavigationProgress } from "@/components/navigation-progress"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
@@ -41,6 +43,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geist.className} ${geistMono.className}`} suppressHydrationWarning>
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         <AuthProvider>
           <AuthGuard>
             {children}
