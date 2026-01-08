@@ -715,6 +715,478 @@ urlpatterns = [
 
 ---
 
+### Priority 10: Analytics Dashboard Module (READ-ONLY)
+
+The frontend Analytics Dashboard is complete and ready to consume API data. The page displays KPIs, revenue trends, user growth, plan performance, location analytics, router metrics, and payment method breakdowns.
+
+#### Required Endpoints:
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/analytics/dashboard/` | Admin | Get complete dashboard data (recommended) |
+| GET | `/api/v1/analytics/kpis/` | Admin | Get key performance indicators |
+| GET | `/api/v1/analytics/revenue/` | Admin | Get revenue trend data |
+| GET | `/api/v1/analytics/user-growth/` | Admin | Get user growth/churn data |
+| GET | `/api/v1/analytics/plans/` | Admin | Get plan performance analytics |
+| GET | `/api/v1/analytics/locations/` | Admin | Get location-based analytics |
+| GET | `/api/v1/analytics/routers/` | Admin | Get router performance analytics |
+| GET | `/api/v1/analytics/payment-methods/` | Admin | Get payment method breakdown |
+| GET | `/api/v1/analytics/payment-stats/` | Admin | Get payment statistics |
+| GET | `/api/v1/analytics/user-distribution/` | Admin | Get user type distribution |
+| GET | `/api/v1/analytics/revenue-by-type/` | Admin | Get revenue by connection type |
+| GET | `/api/v1/analytics/revenue-forecast/` | Admin | Get 3-month revenue forecast |
+| GET | `/api/v1/analytics/revenue-target/` | Admin | Get revenue target progress |
+| GET | `/api/v1/analytics/network-stats/` | Admin | Get network statistics summary |
+| GET | `/api/v1/analytics/export/` | Admin | Export analytics report (CSV/PDF) |
+
+All endpoints accept `?time_range=` parameter: `7d`, `30d`, `90d`, `12m`, `ytd`
+
+#### Option 1: Single Dashboard Endpoint (Recommended)
+
+Return all analytics data in one request for efficiency:
+
+```python
+# views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAdminUser
+from django.db.models import Sum, Count, Avg
+from django.db.models.functions import TruncMonth
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
+
+class AnalyticsDashboardView(APIView):
+    permission_classes = [IsAdminUser]
+    
+    def get_date_range(self, time_range):
+        now = datetime.now()
+        ranges = {
+            '7d': now - timedelta(days=7),
+            '30d': now - timedelta(days=30),
+            '90d': now - timedelta(days=90),
+            '12m': now - relativedelta(months=12),
+            'ytd': datetime(now.year, 1, 1),
+        }
+        return ranges.get(time_range, ranges['30d'])
+    
+    def get(self, request):
+        time_range = request.query_params.get('time_range', '30d')
+        start_date = self.get_date_range(time_range)
+        
+        # Build comprehensive analytics response
+        return Response({
+            'kpis': self.get_kpis(start_date),
+            'revenue_data': self.get_revenue_data(start_date),
+            'user_growth_data': self.get_user_growth_data(start_date),
+            'plan_performance': self.get_plan_performance(start_date),
+            'location_analytics': self.get_location_analytics(start_date),
+            'router_analytics': self.get_router_analytics(),
+            'payment_methods': self.get_payment_methods(start_date),
+            'payment_stats': self.get_payment_stats(start_date),
+            'user_distribution': self.get_user_distribution(),
+            'revenue_by_type': self.get_revenue_by_type(start_date),
+            'revenue_forecast': self.get_revenue_forecast(),
+            'revenue_target': self.get_revenue_target(),
+            'network_stats': self.get_network_stats(),
+            'time_range': time_range,
+        })
+    
+    def get_kpis(self, start_date):
+        payments = Payment.objects.filter(created_at__gte=start_date, status='COMPLETED')
+        customers = Customer.objects.filter(is_active=True)
+        new_customers = Customer.objects.filter(created_at__gte=start_date)
+        churned = Customer.objects.filter(
+            is_active=False, 
+            updated_at__gte=start_date
+        )
+        
+        total_revenue = payments.aggregate(Sum('amount'))['amount__sum'] or 0
+        total_users = customers.count()
+        
+        return {
+            'total_revenue': float(total_revenue),
+            'total_users': total_users,
+            'new_users': new_customers.count(),
+            'arpu': float(total_revenue / total_users) if total_users else 0,
+            'churn_rate': round((churned.count() / total_users) * 100, 2) if total_users else 0,
+            'conversion_rate': 23.5,  # Calculate from leads if available
+            'revenue_change': 12.5,   # Compare with previous period
+            'users_change': 8.3,
+            'new_users_change': 15.0,
+            'churn_change': -2.1,
+        }
+    
+    def get_revenue_data(self, start_date):
+        payments = Payment.objects.filter(
+            created_at__gte=start_date, 
+            status='COMPLETED'
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            revenue=Sum('amount'),
+            users=Count('customer', distinct=True)
+        ).order_by('month')
+        
+        # Add target (can be from settings or calculated)
+        return [{
+            'month': p['month'].strftime('%b'),
+            'revenue': float(p['revenue']),
+            'target': float(p['revenue']) * 0.95,  # Example target calculation
+            'users': p['users'],
+        } for p in payments]
+    
+    def get_user_growth_data(self, start_date):
+        # Monthly new users and churn
+        from django.db.models.functions import TruncMonth
+        
+        months = []
+        current = start_date.replace(day=1)
+        while current <= datetime.now():
+            month_end = (current + relativedelta(months=1)) - timedelta(days=1)
+            new_users = Customer.objects.filter(
+                created_at__gte=current, 
+                created_at__lte=month_end
+            ).count()
+            churned = Customer.objects.filter(
+                is_active=False,
+                updated_at__gte=current,
+                updated_at__lte=month_end
+            ).count()
+            
+            months.append({
+                'month': current.strftime('%b'),
+                'new_users': new_users,
+                'churn': churned,
+                'net_growth': new_users - churned,
+            })
+            current += relativedelta(months=1)
+        
+        return months
+    
+    def get_plan_performance(self, start_date):
+        plans = Plan.objects.filter(is_active=True).annotate(
+            user_count=Count('subscriptions', filter=Q(subscriptions__status='ACTIVE')),
+            total_revenue=Sum(
+                'subscriptions__payments__amount',
+                filter=Q(subscriptions__payments__status='COMPLETED')
+            )
+        )
+        
+        total_users = sum(p.user_count for p in plans)
+        
+        return [{
+            'id': p.id,
+            'name': p.name,
+            'type': p.plan_type.lower(),
+            'users': p.user_count,
+            'revenue': float(p.total_revenue or 0),
+            'arpu': float(p.total_revenue / p.user_count) if p.user_count else 0,
+            'share': round((p.user_count / total_users) * 100, 1) if total_users else 0,
+        } for p in plans]
+    
+    def get_location_analytics(self, start_date):
+        # Group by customer location
+        locations = Customer.objects.filter(
+            is_active=True
+        ).values('location').annotate(
+            users=Count('id'),
+            revenue=Sum('payments__amount', filter=Q(payments__status='COMPLETED'))
+        ).order_by('-revenue')[:10]
+        
+        total_revenue = sum(l['revenue'] or 0 for l in locations)
+        
+        return [{
+            'id': idx,
+            'name': loc['location'] or 'Unknown',
+            'users': loc['users'],
+            'revenue': float(loc['revenue'] or 0),
+            'growth': 10.0,  # Calculate from historical data
+            'share': round((loc['revenue'] / total_revenue) * 100, 1) if total_revenue else 0,
+        } for idx, loc in enumerate(locations, 1)]
+    
+    def get_router_analytics(self):
+        routers = Router.objects.filter(is_active=True)
+        return [{
+            'id': r.id,
+            'name': r.name,
+            'users': r.active_users,
+            'uptime': float(r.uptime_percentage),
+            'bandwidth': 70,  # Calculate from metrics
+            'status': 'healthy' if r.uptime_percentage >= 99 else 'warning',
+        } for r in routers]
+    
+    def get_payment_methods(self, start_date):
+        methods = Payment.objects.filter(
+            created_at__gte=start_date,
+            status='COMPLETED'
+        ).values('payment_method').annotate(
+            transactions=Count('id'),
+            amount=Sum('amount')
+        ).order_by('-amount')
+        
+        total = sum(m['amount'] for m in methods)
+        
+        return [{
+            'method': m['payment_method'] or 'Other',
+            'transactions': m['transactions'],
+            'amount': float(m['amount']),
+            'percentage': round((m['amount'] / total) * 100) if total else 0,
+        } for m in methods]
+    
+    def get_payment_stats(self, start_date):
+        payments = Payment.objects.filter(created_at__gte=start_date)
+        successful = payments.filter(status='COMPLETED')
+        failed = payments.filter(status='FAILED')
+        
+        total = payments.count()
+        return {
+            'success_rate': round((successful.count() / total) * 100, 1) if total else 0,
+            'failure_rate': round((failed.count() / total) * 100, 1) if total else 0,
+            'total_transactions': total,
+            'average_transaction': float(
+                successful.aggregate(Avg('amount'))['amount__avg'] or 0
+            ),
+            'highest_transaction': float(
+                successful.aggregate(Max('amount'))['amount__max'] or 0
+            ),
+            'collection_rate': 94.2,  # Calculate based on invoices paid
+        }
+    
+    def get_user_distribution(self):
+        customers = Customer.objects.filter(is_active=True)
+        total = customers.count()
+        
+        hotspot = customers.filter(connection_type='HOTSPOT').count()
+        pppoe = customers.filter(connection_type='PPPOE').count()
+        static = customers.filter(connection_type='STATIC').count()
+        
+        return {
+            'hotspot_users': hotspot,
+            'pppoe_users': pppoe,
+            'static_users': static,
+            'hotspot_percentage': round((hotspot / total) * 100) if total else 0,
+            'pppoe_percentage': round((pppoe / total) * 100) if total else 0,
+            'static_percentage': round((static / total) * 100) if total else 0,
+        }
+    
+    def get_revenue_by_type(self, start_date):
+        # Revenue grouped by connection type
+        payments = Payment.objects.filter(
+            created_at__gte=start_date,
+            status='COMPLETED'
+        )
+        
+        hotspot = payments.filter(
+            customer__connection_type='HOTSPOT'
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        pppoe = payments.filter(
+            customer__connection_type='PPPOE'
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        static = payments.filter(
+            customer__connection_type='STATIC'
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        total = hotspot + pppoe + static
+        
+        return {
+            'hotspot_revenue': float(hotspot),
+            'pppoe_revenue': float(pppoe),
+            'static_revenue': float(static),
+            'hotspot_percentage': round((hotspot / total) * 100) if total else 0,
+            'pppoe_percentage': round((pppoe / total) * 100) if total else 0,
+            'static_percentage': round((static / total) * 100) if total else 0,
+        }
+    
+    def get_revenue_forecast(self):
+        # Simple projection based on recent trends
+        now = datetime.now()
+        return [
+            {
+                'month': (now + relativedelta(months=i)).strftime('%B %Y'),
+                'projected_revenue': 1900000 + (i * 150000),
+                'growth_rate': 6.5 + (i * 0.5),
+            }
+            for i in range(1, 4)
+        ]
+    
+    def get_revenue_target(self):
+        # Get from settings or calculate
+        return {
+            'current_revenue': 9000000,
+            'target_revenue': 10000000,
+            'progress_percentage': 90,
+            'monthly_average': 1500000,
+            'best_month_revenue': 1780000,
+            'projected_annual': 18000000,
+        }
+    
+    def get_network_stats(self):
+        routers = Router.objects.filter(is_active=True)
+        return {
+            'avg_uptime': float(
+                routers.aggregate(Avg('uptime_percentage'))['uptime_percentage__avg'] or 0
+            ),
+            'active_routers': routers.filter(status='online').count(),
+            'avg_bandwidth': 72,  # Calculate from metrics
+            'warning_count': routers.filter(uptime_percentage__lt=99).count(),
+        }
+```
+
+#### Response Format (Dashboard Endpoint):
+```json
+GET /api/v1/analytics/dashboard/?time_range=30d
+{
+  "kpis": {
+    "total_revenue": 9000000,
+    "total_users": 2237,
+    "new_users": 717,
+    "arpu": 4023.24,
+    "churn_rate": 4.5,
+    "conversion_rate": 23.5,
+    "revenue_change": 12.5,
+    "users_change": 8.3,
+    "new_users_change": 15.0,
+    "churn_change": -2.1
+  },
+  "revenue_data": [
+    {"month": "Jan", "revenue": 1250000, "target": 1200000, "users": 890},
+    {"month": "Feb", "revenue": 1380000, "target": 1300000, "users": 920}
+  ],
+  "user_growth_data": [
+    {"month": "Jan", "new_users": 85, "churn": 12, "net_growth": 73},
+    {"month": "Feb", "new_users": 92, "churn": 15, "net_growth": 77}
+  ],
+  "plan_performance": [
+    {"id": 1, "name": "Home Basic", "type": "pppoe", "users": 345, "revenue": 517500, "arpu": 1500, "share": 15.4}
+  ],
+  "location_analytics": [
+    {"id": 1, "name": "Nairobi CBD", "users": 450, "revenue": 675000, "growth": 12.5, "share": 25.6}
+  ],
+  "router_analytics": [
+    {"id": 1, "name": "Router-Nairobi-01", "users": 320, "uptime": 99.9, "bandwidth": 85, "status": "healthy"}
+  ],
+  "payment_methods": [
+    {"method": "M-Pesa", "transactions": 4520, "amount": 1350000, "percentage": 68}
+  ],
+  "payment_stats": {
+    "success_rate": 98.5,
+    "failure_rate": 1.5,
+    "total_transactions": 6180,
+    "average_transaction": 1250,
+    "highest_transaction": 8000,
+    "collection_rate": 94.2
+  },
+  "user_distribution": {
+    "hotspot_users": 1479,
+    "pppoe_users": 635,
+    "static_users": 123,
+    "hotspot_percentage": 62,
+    "pppoe_percentage": 27,
+    "static_percentage": 11
+  },
+  "revenue_by_type": {
+    "hotspot_revenue": 1118100,
+    "pppoe_revenue": 1550500,
+    "static_revenue": 566500,
+    "hotspot_percentage": 35,
+    "pppoe_percentage": 49,
+    "static_percentage": 16
+  },
+  "revenue_forecast": [
+    {"month": "July 2024", "projected_revenue": 1900000, "growth_rate": 6.7}
+  ],
+  "revenue_target": {
+    "current_revenue": 9000000,
+    "target_revenue": 10000000,
+    "progress_percentage": 90,
+    "monthly_average": 1500000,
+    "best_month_revenue": 1780000,
+    "projected_annual": 18000000
+  },
+  "network_stats": {
+    "avg_uptime": 99.5,
+    "active_routers": 12,
+    "avg_bandwidth": 72,
+    "warning_count": 2
+  },
+  "time_range": "30d"
+}
+```
+
+#### Export Endpoint:
+```python
+from django.http import HttpResponse
+import csv
+from io import StringIO
+
+class AnalyticsExportView(APIView):
+    permission_classes = [IsAdminUser]
+    
+    def get(self, request):
+        time_range = request.query_params.get('time_range', '30d')
+        format_type = request.query_params.get('format', 'csv')
+        
+        # Get analytics data
+        dashboard_view = AnalyticsDashboardView()
+        data = dashboard_view.get(request).data
+        
+        if format_type == 'csv':
+            return self.export_csv(data, time_range)
+        elif format_type == 'pdf':
+            return self.export_pdf(data, time_range)
+        else:
+            return Response({'error': 'Unsupported format'}, status=400)
+    
+    def export_csv(self, data, time_range):
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Write KPIs
+        writer.writerow(['Analytics Report', time_range])
+        writer.writerow([])
+        writer.writerow(['KPIs'])
+        for key, value in data['kpis'].items():
+            writer.writerow([key, value])
+        
+        # Write revenue data
+        writer.writerow([])
+        writer.writerow(['Revenue Data'])
+        writer.writerow(['Month', 'Revenue', 'Target', 'Users'])
+        for item in data['revenue_data']:
+            writer.writerow([item['month'], item['revenue'], item['target'], item['users']])
+        
+        output.seek(0)
+        response = HttpResponse(output, content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename=analytics_{time_range}.csv'
+        return response
+```
+
+#### URL Configuration:
+```python
+urlpatterns = [
+    # Analytics endpoints
+    path('api/v1/analytics/dashboard/', AnalyticsDashboardView.as_view(), name='analytics-dashboard'),
+    path('api/v1/analytics/kpis/', AnalyticsKPIsView.as_view(), name='analytics-kpis'),
+    path('api/v1/analytics/revenue/', AnalyticsRevenueView.as_view(), name='analytics-revenue'),
+    path('api/v1/analytics/user-growth/', AnalyticsUserGrowthView.as_view(), name='analytics-user-growth'),
+    path('api/v1/analytics/plans/', AnalyticsPlanPerformanceView.as_view(), name='analytics-plans'),
+    path('api/v1/analytics/locations/', AnalyticsLocationsView.as_view(), name='analytics-locations'),
+    path('api/v1/analytics/routers/', AnalyticsRoutersView.as_view(), name='analytics-routers'),
+    path('api/v1/analytics/payment-methods/', AnalyticsPaymentMethodsView.as_view(), name='analytics-payment-methods'),
+    path('api/v1/analytics/payment-stats/', AnalyticsPaymentStatsView.as_view(), name='analytics-payment-stats'),
+    path('api/v1/analytics/user-distribution/', AnalyticsUserDistributionView.as_view(), name='analytics-user-distribution'),
+    path('api/v1/analytics/revenue-by-type/', AnalyticsRevenueByTypeView.as_view(), name='analytics-revenue-by-type'),
+    path('api/v1/analytics/revenue-forecast/', AnalyticsRevenueForecastView.as_view(), name='analytics-revenue-forecast'),
+    path('api/v1/analytics/revenue-target/', AnalyticsRevenueTargetView.as_view(), name='analytics-revenue-target'),
+    path('api/v1/analytics/network-stats/', AnalyticsNetworkStatsView.as_view(), name='analytics-network-stats'),
+    path('api/v1/analytics/export/', AnalyticsExportView.as_view(), name='analytics-export'),
+]
+```
+
+---
+
 See `BACKEND_API_REQUIREMENTS.md` for complete API documentation including request/response formats.
 
 ---

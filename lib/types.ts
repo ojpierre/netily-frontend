@@ -1062,6 +1062,138 @@ export interface PlanDashboardStats {
   popular_plans: number
 }
 
+// ==========================================
+// ANALYTICS MODULE TYPES
+// ==========================================
+
+export interface AnalyticsKPIs {
+  total_revenue: number
+  total_users: number
+  new_users: number
+  arpu: number                    // Average Revenue Per User
+  churn_rate: number              // Percentage
+  conversion_rate: number         // Lead to customer conversion %
+  revenue_change: number          // % change from previous period
+  users_change: number            // % change from previous period
+  new_users_change: number        // % change from previous period
+  churn_change: number            // % change from previous period
+}
+
+export interface RevenueData {
+  month: string
+  revenue: number
+  target: number
+  users: number
+}
+
+export interface UserGrowthData {
+  month: string
+  new_users: number
+  churn: number
+  net_growth: number
+}
+
+export interface PlanPerformance {
+  id: number
+  name: string
+  type: 'hotspot' | 'pppoe' | 'static'
+  users: number
+  revenue: number
+  arpu: number
+  share: number                   // % of total users
+}
+
+export interface LocationAnalytics {
+  id: number
+  name: string
+  users: number
+  revenue: number
+  growth: number                  // % growth
+  share: number                   // % of total revenue
+}
+
+export interface RouterAnalytics {
+  id: number
+  name: string
+  users: number
+  uptime: number                  // Percentage
+  bandwidth: number               // Percentage utilization
+  status: 'healthy' | 'warning' | 'critical'
+}
+
+export interface PaymentMethodAnalytics {
+  method: string
+  transactions: number
+  amount: number
+  percentage: number
+}
+
+export interface PaymentStats {
+  success_rate: number
+  failure_rate: number
+  total_transactions: number
+  average_transaction: number
+  highest_transaction: number
+  collection_rate: number
+}
+
+export interface UserTypeDistribution {
+  hotspot_users: number
+  pppoe_users: number
+  static_users: number
+  hotspot_percentage: number
+  pppoe_percentage: number
+  static_percentage: number
+}
+
+export interface RevenueByType {
+  hotspot_revenue: number
+  pppoe_revenue: number
+  static_revenue: number
+  hotspot_percentage: number
+  pppoe_percentage: number
+  static_percentage: number
+}
+
+export interface RevenueForecast {
+  month: string
+  projected_revenue: number
+  growth_rate: number
+}
+
+export interface RevenueTargetProgress {
+  current_revenue: number
+  target_revenue: number
+  progress_percentage: number
+  monthly_average: number
+  best_month_revenue: number
+  projected_annual: number
+}
+
+export interface NetworkStats {
+  avg_uptime: number
+  active_routers: number
+  avg_bandwidth: number
+  warning_count: number
+}
+
+export interface AnalyticsDashboard {
+  kpis: AnalyticsKPIs
+  revenue_data: RevenueData[]
+  user_growth_data: UserGrowthData[]
+  plan_performance: PlanPerformance[]
+  location_analytics: LocationAnalytics[]
+  router_analytics: RouterAnalytics[]
+  payment_methods: PaymentMethodAnalytics[]
+  payment_stats: PaymentStats
+  user_distribution: UserTypeDistribution
+  revenue_by_type: RevenueByType
+  revenue_forecast: RevenueForecast[]
+  revenue_target: RevenueTargetProgress
+  network_stats: NetworkStats
+  time_range: string
+}
+
 export type BillingCycleStatus = 'OPEN' | 'CLOSED' | 'PROCESSING'
 
 export interface BillingCycle {

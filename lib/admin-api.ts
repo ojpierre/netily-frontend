@@ -51,6 +51,21 @@ import type {
   RouterMetrics,
   RouterEvent,
   RouterDashboardStats,
+  // Analytics types
+  AnalyticsDashboard,
+  AnalyticsKPIs,
+  RevenueData,
+  UserGrowthData,
+  PlanPerformance,
+  LocationAnalytics,
+  RouterAnalytics,
+  PaymentMethodAnalytics,
+  PaymentStats,
+  UserTypeDistribution,
+  RevenueByType,
+  RevenueForecast,
+  RevenueTargetProgress,
+  NetworkStats,
 } from './types'
 
 // Re-export for backward compatibility
@@ -1628,6 +1643,123 @@ class AdminApiService {
 
   async getCustomerVoucherHistory(customerId: number): Promise<VoucherUsage[]> {
     return this.request<VoucherUsage[]>(`/billing/voucher-usages/customer_history/?customer_id=${customerId}`)
+  }
+
+  // ------------------------------------------
+  // ANALYTICS - /analytics/
+  // ------------------------------------------
+
+  /**
+   * Get complete analytics dashboard data
+   * @param timeRange - Time range filter: 7d, 30d, 90d, 12m, ytd
+   */
+  async getAnalyticsDashboard(timeRange: string = '30d'): Promise<AnalyticsDashboard> {
+    return this.request<AnalyticsDashboard>(`/analytics/dashboard/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get key performance indicators
+   */
+  async getAnalyticsKPIs(timeRange: string = '30d'): Promise<AnalyticsKPIs> {
+    return this.request<AnalyticsKPIs>(`/analytics/kpis/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get revenue trend data
+   */
+  async getRevenueData(timeRange: string = '30d'): Promise<RevenueData[]> {
+    return this.request<RevenueData[]>(`/analytics/revenue/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get user growth data
+   */
+  async getUserGrowthData(timeRange: string = '30d'): Promise<UserGrowthData[]> {
+    return this.request<UserGrowthData[]>(`/analytics/user-growth/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get plan performance analytics
+   */
+  async getPlanPerformance(timeRange: string = '30d'): Promise<PlanPerformance[]> {
+    return this.request<PlanPerformance[]>(`/analytics/plans/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get location/area based analytics
+   */
+  async getLocationAnalytics(timeRange: string = '30d'): Promise<LocationAnalytics[]> {
+    return this.request<LocationAnalytics[]>(`/analytics/locations/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get router performance analytics
+   */
+  async getRouterAnalytics(timeRange: string = '30d'): Promise<RouterAnalytics[]> {
+    return this.request<RouterAnalytics[]>(`/analytics/routers/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get payment method breakdown
+   */
+  async getPaymentMethodAnalytics(timeRange: string = '30d'): Promise<PaymentMethodAnalytics[]> {
+    return this.request<PaymentMethodAnalytics[]>(`/analytics/payment-methods/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get payment statistics
+   */
+  async getPaymentStats(timeRange: string = '30d'): Promise<PaymentStats> {
+    return this.request<PaymentStats>(`/analytics/payment-stats/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get user type distribution (hotspot, pppoe, static)
+   */
+  async getUserTypeDistribution(timeRange: string = '30d'): Promise<UserTypeDistribution> {
+    return this.request<UserTypeDistribution>(`/analytics/user-distribution/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get revenue breakdown by connection type
+   */
+  async getRevenueByType(timeRange: string = '30d'): Promise<RevenueByType> {
+    return this.request<RevenueByType>(`/analytics/revenue-by-type/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get revenue forecast for upcoming months
+   */
+  async getRevenueForecast(): Promise<RevenueForecast[]> {
+    return this.request<RevenueForecast[]>('/analytics/revenue-forecast/')
+  }
+
+  /**
+   * Get revenue target progress
+   */
+  async getRevenueTargetProgress(timeRange: string = '30d'): Promise<RevenueTargetProgress> {
+    return this.request<RevenueTargetProgress>(`/analytics/revenue-target/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get network statistics summary
+   */
+  async getNetworkStats(): Promise<NetworkStats> {
+    return this.request<NetworkStats>('/analytics/network-stats/')
+  }
+
+  /**
+   * Export analytics report
+   * @param format - Export format: csv, pdf, xlsx
+   */
+  async exportAnalyticsReport(timeRange: string = '30d', format: 'csv' | 'pdf' | 'xlsx' = 'csv'): Promise<Blob> {
+    const response = await fetch(`${this.baseUrl}/analytics/export/?time_range=${timeRange}&format=${format}`, {
+      headers: this.getAuthHeaders(),
+    })
+    if (!response.ok) {
+      throw new Error('Failed to export analytics report')
+    }
+    return response.blob()
   }
 }
 

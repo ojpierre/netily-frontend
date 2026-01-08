@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import {
   TrendingUp,
   TrendingDown,
@@ -53,9 +53,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { adminApi } from "@/lib/admin-api"
+import type {
+  AnalyticsDashboard,
+  RevenueData,
+  UserGrowthData,
+  PlanPerformance,
+  LocationAnalytics,
+  RouterAnalytics,
+  PaymentMethodAnalytics,
+  PaymentStats,
+  UserTypeDistribution,
+  RevenueByType,
+  RevenueForecast,
+  RevenueTargetProgress,
+  NetworkStats,
+} from "@/lib/types"
+
+// ==========================================
+// MOCK DATA (Fallback when API unavailable)
+// ==========================================
 
 // Revenue data by month
-const revenueData = [
+const mockRevenueData: RevenueData[] = [
   { month: "Jan", revenue: 1250000, target: 1200000, users: 890 },
   { month: "Feb", revenue: 1380000, target: 1300000, users: 920 },
   { month: "Mar", revenue: 1420000, target: 1400000, users: 985 },
@@ -65,68 +85,275 @@ const revenueData = [
 ]
 
 // User growth data
-const userGrowthData = [
-  { month: "Jan", newUsers: 85, churn: 12, netGrowth: 73 },
-  { month: "Feb", newUsers: 92, churn: 15, netGrowth: 77 },
-  { month: "Mar", newUsers: 110, churn: 18, netGrowth: 92 },
-  { month: "Apr", newUsers: 125, churn: 20, netGrowth: 105 },
-  { month: "May", newUsers: 145, churn: 22, netGrowth: 123 },
-  { month: "Jun", newUsers: 160, churn: 25, netGrowth: 135 },
+const mockUserGrowthData: UserGrowthData[] = [
+  { month: "Jan", new_users: 85, churn: 12, net_growth: 73 },
+  { month: "Feb", new_users: 92, churn: 15, net_growth: 77 },
+  { month: "Mar", new_users: 110, churn: 18, net_growth: 92 },
+  { month: "Apr", new_users: 125, churn: 20, net_growth: 105 },
+  { month: "May", new_users: 145, churn: 22, net_growth: 123 },
+  { month: "Jun", new_users: 160, churn: 25, net_growth: 135 },
 ]
 
 // Plan distribution
-const planDistribution = [
-  { name: "Daily Surf", type: "hotspot", users: 234, revenue: 11700, color: "bg-blue-500" },
-  { name: "Weekly Unlimited", type: "hotspot", users: 456, revenue: 159600, color: "bg-blue-400" },
-  { name: "Monthly Value", type: "hotspot", users: 789, revenue: 946800, color: "bg-blue-300" },
-  { name: "Home Basic", type: "pppoe", users: 345, revenue: 517500, color: "bg-purple-500" },
-  { name: "Home Premium", type: "pppoe", users: 234, revenue: 585000, color: "bg-purple-400" },
-  { name: "Business Pro", type: "pppoe", users: 56, revenue: 448000, color: "bg-purple-300" },
-  { name: "Static Basic", type: "static", users: 89, revenue: 311500, color: "bg-orange-500" },
-  { name: "Static Premium", type: "static", users: 34, revenue: 255000, color: "bg-orange-400" },
+const mockPlanDistribution: (PlanPerformance & { color: string })[] = [
+  { id: 1, name: "Daily Surf", type: "hotspot", users: 234, revenue: 11700, arpu: 50, share: 10.5, color: "bg-blue-500" },
+  { id: 2, name: "Weekly Unlimited", type: "hotspot", users: 456, revenue: 159600, arpu: 350, share: 20.4, color: "bg-blue-400" },
+  { id: 3, name: "Monthly Value", type: "hotspot", users: 789, revenue: 946800, arpu: 1200, share: 35.3, color: "bg-blue-300" },
+  { id: 4, name: "Home Basic", type: "pppoe", users: 345, revenue: 517500, arpu: 1500, share: 15.4, color: "bg-purple-500" },
+  { id: 5, name: "Home Premium", type: "pppoe", users: 234, revenue: 585000, arpu: 2500, share: 10.5, color: "bg-purple-400" },
+  { id: 6, name: "Business Pro", type: "pppoe", users: 56, revenue: 448000, arpu: 8000, share: 2.5, color: "bg-purple-300" },
+  { id: 7, name: "Static Basic", type: "static", users: 89, revenue: 311500, arpu: 3500, share: 4.0, color: "bg-orange-500" },
+  { id: 8, name: "Static Premium", type: "static", users: 34, revenue: 255000, arpu: 7500, share: 1.5, color: "bg-orange-400" },
 ]
 
 // Top locations
-const topLocations = [
-  { name: "Nairobi CBD", users: 450, revenue: 675000, growth: 12.5 },
-  { name: "Westlands", users: 380, revenue: 570000, growth: 8.3 },
-  { name: "Kilimani", users: 320, revenue: 480000, growth: 15.2 },
-  { name: "Lavington", users: 280, revenue: 420000, growth: 6.7 },
-  { name: "South B", users: 240, revenue: 360000, growth: 9.1 },
+const mockTopLocations: LocationAnalytics[] = [
+  { id: 1, name: "Nairobi CBD", users: 450, revenue: 675000, growth: 12.5, share: 25.6 },
+  { id: 2, name: "Westlands", users: 380, revenue: 570000, growth: 8.3, share: 21.6 },
+  { id: 3, name: "Kilimani", users: 320, revenue: 480000, growth: 15.2, share: 18.2 },
+  { id: 4, name: "Lavington", users: 280, revenue: 420000, growth: 6.7, share: 15.9 },
+  { id: 5, name: "South B", users: 240, revenue: 360000, growth: 9.1, share: 13.6 },
 ]
 
 // Router performance
-const routerPerformance = [
-  { name: "Router-Nairobi-01", users: 320, uptime: 99.9, bandwidth: 85, status: "healthy" },
-  { name: "Router-Westlands-02", users: 280, uptime: 99.5, bandwidth: 72, status: "healthy" },
-  { name: "Router-Kilimani-03", users: 245, uptime: 98.8, bandwidth: 90, status: "warning" },
-  { name: "Router-Mombasa-04", users: 180, uptime: 99.7, bandwidth: 65, status: "healthy" },
-  { name: "Router-Kisumu-05", users: 150, uptime: 97.5, bandwidth: 45, status: "warning" },
+const mockRouterPerformance: RouterAnalytics[] = [
+  { id: 1, name: "Router-Nairobi-01", users: 320, uptime: 99.9, bandwidth: 85, status: "healthy" },
+  { id: 2, name: "Router-Westlands-02", users: 280, uptime: 99.5, bandwidth: 72, status: "healthy" },
+  { id: 3, name: "Router-Kilimani-03", users: 245, uptime: 98.8, bandwidth: 90, status: "warning" },
+  { id: 4, name: "Router-Mombasa-04", users: 180, uptime: 99.7, bandwidth: 65, status: "healthy" },
+  { id: 5, name: "Router-Kisumu-05", users: 150, uptime: 97.5, bandwidth: 45, status: "warning" },
 ]
 
 // Payment methods
-const paymentMethods = [
+const mockPaymentMethods: PaymentMethodAnalytics[] = [
   { method: "M-Pesa", transactions: 4520, amount: 1350000, percentage: 68 },
   { method: "Airtel Money", transactions: 890, amount: 267000, percentage: 13 },
   { method: "Card", transactions: 450, amount: 225000, percentage: 11 },
   { method: "Bank Transfer", transactions: 320, amount: 156000, percentage: 8 },
 ]
 
+// Mock payment stats
+const mockPaymentStats: PaymentStats = {
+  success_rate: 98.5,
+  failure_rate: 1.5,
+  total_transactions: 6180,
+  average_transaction: 1250,
+  highest_transaction: 8000,
+  collection_rate: 94.2,
+}
+
+// Mock user distribution
+const mockUserDistribution: UserTypeDistribution = {
+  hotspot_users: 1479,
+  pppoe_users: 635,
+  static_users: 123,
+  hotspot_percentage: 62,
+  pppoe_percentage: 27,
+  static_percentage: 11,
+}
+
+// Mock revenue by type
+const mockRevenueByType: RevenueByType = {
+  hotspot_revenue: 1118100,
+  pppoe_revenue: 1550500,
+  static_revenue: 566500,
+  hotspot_percentage: 35,
+  pppoe_percentage: 49,
+  static_percentage: 16,
+}
+
+// Mock revenue forecast
+const mockRevenueForecast: RevenueForecast[] = [
+  { month: "July 2024", projected_revenue: 1900000, growth_rate: 6.7 },
+  { month: "August 2024", projected_revenue: 2050000, growth_rate: 7.9 },
+  { month: "September 2024", projected_revenue: 2200000, growth_rate: 7.3 },
+]
+
+// Mock network stats
+const mockNetworkStats: NetworkStats = {
+  avg_uptime: 99.5,
+  active_routers: 12,
+  avg_bandwidth: 72,
+  warning_count: 2,
+}
+
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState("30d")
   const [refreshing, setRefreshing] = useState(false)
+  const [loading, setLoading] = useState(true)
+  
+  // Data states with fallback to mock data
+  const [revenueData, setRevenueData] = useState<RevenueData[]>(mockRevenueData)
+  const [userGrowthData, setUserGrowthData] = useState<UserGrowthData[]>(mockUserGrowthData)
+  const [planDistribution, setPlanDistribution] = useState<(PlanPerformance & { color?: string })[]>(mockPlanDistribution)
+  const [topLocations, setTopLocations] = useState<LocationAnalytics[]>(mockTopLocations)
+  const [routerPerformance, setRouterPerformance] = useState<RouterAnalytics[]>(mockRouterPerformance)
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodAnalytics[]>(mockPaymentMethods)
+  const [paymentStats, setPaymentStats] = useState<PaymentStats>(mockPaymentStats)
+  const [userDistribution, setUserDistribution] = useState<UserTypeDistribution>(mockUserDistribution)
+  const [revenueByType, setRevenueByType] = useState<RevenueByType>(mockRevenueByType)
+  const [revenueForecast, setRevenueForecast] = useState<RevenueForecast[]>(mockRevenueForecast)
+  const [networkStats, setNetworkStats] = useState<NetworkStats>(mockNetworkStats)
+  
+  const fetchedRef = useRef(false)
+
+  // Plan color mapping for API data
+  const getPlanColor = (type: string, index: number) => {
+    const colors: Record<string, string[]> = {
+      hotspot: ["bg-blue-500", "bg-blue-400", "bg-blue-300"],
+      pppoe: ["bg-purple-500", "bg-purple-400", "bg-purple-300"],
+      static: ["bg-orange-500", "bg-orange-400", "bg-orange-300"],
+    }
+    return colors[type]?.[index % 3] || "bg-gray-500"
+  }
+
+  const fetchAnalytics = useCallback(async () => {
+    if (!adminApi.getAdminToken()) {
+      setLoading(false)
+      return
+    }
+
+    try {
+      // Try to fetch complete dashboard data first
+      try {
+        const dashboard = await adminApi.getAnalyticsDashboard(timeRange)
+        if (dashboard) {
+          setRevenueData(dashboard.revenue_data || mockRevenueData)
+          setUserGrowthData(dashboard.user_growth_data || mockUserGrowthData)
+          setPlanDistribution(
+            dashboard.plan_performance?.map((p, idx) => ({
+              ...p,
+              color: getPlanColor(p.type, idx),
+            })) || mockPlanDistribution
+          )
+          setTopLocations(dashboard.location_analytics || mockTopLocations)
+          setRouterPerformance(dashboard.router_analytics || mockRouterPerformance)
+          setPaymentMethods(dashboard.payment_methods || mockPaymentMethods)
+          setPaymentStats(dashboard.payment_stats || mockPaymentStats)
+          setUserDistribution(dashboard.user_distribution || mockUserDistribution)
+          setRevenueByType(dashboard.revenue_by_type || mockRevenueByType)
+          setRevenueForecast(dashboard.revenue_forecast || mockRevenueForecast)
+          setNetworkStats(dashboard.network_stats || mockNetworkStats)
+          return
+        }
+      } catch {
+        // If dashboard endpoint fails, try individual endpoints
+        console.log("Dashboard endpoint unavailable, trying individual endpoints...")
+      }
+
+      // Fetch individual endpoints with fallbacks
+      const [
+        revenueRes,
+        userGrowthRes,
+        planPerfRes,
+        locationRes,
+        routerRes,
+        paymentMethodsRes,
+        paymentStatsRes,
+        userDistRes,
+        revTypeRes,
+        forecastRes,
+        networkRes,
+      ] = await Promise.allSettled([
+        adminApi.getRevenueData(timeRange),
+        adminApi.getUserGrowthData(timeRange),
+        adminApi.getPlanPerformance(timeRange),
+        adminApi.getLocationAnalytics(timeRange),
+        adminApi.getRouterAnalytics(timeRange),
+        adminApi.getPaymentMethodAnalytics(timeRange),
+        adminApi.getPaymentStats(timeRange),
+        adminApi.getUserTypeDistribution(timeRange),
+        adminApi.getRevenueByType(timeRange),
+        adminApi.getRevenueForecast(),
+        adminApi.getNetworkStats(),
+      ])
+
+      if (revenueRes.status === "fulfilled") setRevenueData(revenueRes.value)
+      if (userGrowthRes.status === "fulfilled") setUserGrowthData(userGrowthRes.value)
+      if (planPerfRes.status === "fulfilled") {
+        setPlanDistribution(
+          planPerfRes.value.map((p, idx) => ({
+            ...p,
+            color: getPlanColor(p.type, idx),
+          }))
+        )
+      }
+      if (locationRes.status === "fulfilled") setTopLocations(locationRes.value)
+      if (routerRes.status === "fulfilled") setRouterPerformance(routerRes.value)
+      if (paymentMethodsRes.status === "fulfilled") setPaymentMethods(paymentMethodsRes.value)
+      if (paymentStatsRes.status === "fulfilled") setPaymentStats(paymentStatsRes.value)
+      if (userDistRes.status === "fulfilled") setUserDistribution(userDistRes.value)
+      if (revTypeRes.status === "fulfilled") setRevenueByType(revTypeRes.value)
+      if (forecastRes.status === "fulfilled") setRevenueForecast(forecastRes.value)
+      if (networkRes.status === "fulfilled") setNetworkStats(networkRes.value)
+    } catch (error) {
+      console.error("Failed to fetch analytics:", error)
+      // Keep mock data on error
+    } finally {
+      setLoading(false)
+    }
+  }, [timeRange])
+
+  useEffect(() => {
+    if (!fetchedRef.current) {
+      fetchedRef.current = true
+      fetchAnalytics()
+    }
+  }, [fetchAnalytics])
+
+  // Refetch when time range changes
+  useEffect(() => {
+    if (fetchedRef.current) {
+      fetchAnalytics()
+    }
+  }, [timeRange, fetchAnalytics])
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await fetchAnalytics()
     setRefreshing(false)
   }
 
-  // Calculate totals
+  const handleExport = async () => {
+    try {
+      const blob = await adminApi.exportAnalyticsReport(timeRange, 'csv')
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `analytics-report-${timeRange}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error("Export failed:", error)
+      // Fallback: export current data as JSON
+      const exportData = {
+        timeRange,
+        revenueData,
+        userGrowthData,
+        planDistribution,
+        topLocations,
+        routerPerformance,
+        paymentMethods,
+      }
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `analytics-report-${timeRange}.json`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    }
+  }
+
+  // Calculate totals from current data
   const totalRevenue = revenueData.reduce((acc, d) => acc + d.revenue, 0)
   const totalTarget = revenueData.reduce((acc, d) => acc + d.target, 0)
   const totalUsers = planDistribution.reduce((acc, p) => acc + p.users, 0)
-  const totalNewUsers = userGrowthData.reduce((acc, d) => acc + d.newUsers, 0)
+  const totalNewUsers = userGrowthData.reduce((acc, d) => acc + d.new_users, 0)
   const totalChurn = userGrowthData.reduce((acc, d) => acc + d.churn, 0)
   const churnRate = ((totalChurn / totalUsers) * 100).toFixed(1)
   const avgRevenuePerUser = Math.round(totalRevenue / totalUsers)
@@ -164,7 +391,7 @@ export default function AnalyticsPage() {
             <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
@@ -431,8 +658,8 @@ export default function AnalyticsPage() {
                       <div className="w-full flex gap-1 items-end justify-center h-48">
                         <div 
                           className="w-5 bg-green-500 rounded-t"
-                          style={{ height: `${(data.newUsers / 200) * 100}%` }}
-                          title={`New: ${data.newUsers}`}
+                          style={{ height: `${(data.new_users / 200) * 100}%` }}
+                          title={`New: ${data.new_users}`}
                         />
                         <div 
                           className="w-5 bg-red-400 rounded-t"
