@@ -1,6 +1,5 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Suspense } from "react"
 import { Geist, Geist_Mono } from "next/font/google"
 import { AuthProvider } from "./auth-context"
 import { AuthGuard } from "@/components/auth-guard"
@@ -43,9 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geist.className} ${geistMono.className}`} suppressHydrationWarning>
-        <Suspense fallback={null}>
-          <NavigationProgress />
-        </Suspense>
+        <NavigationProgress />
         <AuthProvider>
           <AuthGuard>
             {children}

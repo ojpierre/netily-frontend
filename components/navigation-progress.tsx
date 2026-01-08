@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 
-export function NavigationProgress() {
+function NavigationProgressBar() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
@@ -60,5 +60,14 @@ export function NavigationProgress() {
         }}
       />
     </div>
+  )
+}
+
+// Wrapper with Suspense for use in Server Components
+export function NavigationProgress() {
+  return (
+    <Suspense fallback={null}>
+      <NavigationProgressBar />
+    </Suspense>
   )
 }

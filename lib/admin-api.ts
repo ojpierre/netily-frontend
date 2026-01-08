@@ -35,6 +35,7 @@ import type {
   Alert,
   AlertRule,
   Plan,
+  PlanDashboardStats,
   BillingCycle,
   BillingCycleSummary,
   PaymentMethod,
@@ -1186,6 +1187,10 @@ class AdminApiService {
 
   async getPublicPlans(): Promise<Plan[]> {
     return this.request<Plan[]>('/billing/plans/public/')
+  }
+
+  async getPlanDashboardStats(): Promise<PlanDashboardStats> {
+    return this.request<PlanDashboardStats>('/billing/plans/dashboard_stats/')
   }
 
   // ------------------------------------------

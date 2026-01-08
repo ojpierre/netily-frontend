@@ -1051,6 +1051,17 @@ export interface Plan {
   updated_at: string
 }
 
+export interface PlanDashboardStats {
+  total_plans: number
+  active_plans: number
+  inactive_plans: number
+  hotspot_plans: number
+  pppoe_plans: number
+  static_plans: number
+  total_subscribers: number
+  popular_plans: number
+}
+
 export type BillingCycleStatus = 'OPEN' | 'CLOSED' | 'PROCESSING'
 
 export interface BillingCycle {

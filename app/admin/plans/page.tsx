@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo } from "react"
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {
   Package,
   Plus,
@@ -69,7 +69,7 @@ import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
-import type { Plan, PlanType } from "@/lib/types"
+import type { Plan, PlanType, PlanDashboardStats } from "@/lib/types"
 
 const formatCurrency = (amount: string | number) => {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount
@@ -106,8 +106,12 @@ const formatDuration = (days: number) => {
 }
 
 export default function PlansPage() {
+  // Refs to prevent duplicate fetches
+  const hasFetchedRef = useRef(false)
+
   // Data states
   const [plans, setPlans] = useState<Plan[]>([])
+  const [dashboardStats, setDashboardStats] = useState<PlanDashboardStats | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
 
   // Loading states
@@ -141,6 +145,17 @@ export default function PlansPage() {
     features: '',
   })
 
+  // Fetch dashboard stats
+  const fetchDashboardStats = useCallback(async () => {
+    try {
+      const stats = await adminApi.getPlanDashboardStats()
+      setDashboardStats(stats)
+    } catch (error) {
+      // Stats endpoint might not exist yet, use calculated stats
+      console.log('Dashboard stats endpoint not available, using calculated stats')
+    }
+  }, [])
+
   // Fetch data
   const fetchPlans = useCallback(async () => {
     try {
@@ -160,13 +175,24 @@ export default function PlansPage() {
   }, [activeTab])
 
   useEffect(() => {
-    fetchPlans()
-  }, [fetchPlans])
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true
+      fetchPlans()
+      fetchDashboardStats()
+    }
+  }, [fetchPlans, fetchDashboardStats])
+
+  // Re-fetch when tab changes
+  useEffect(() => {
+    if (hasFetchedRef.current) {
+      fetchPlans()
+    }
+  }, [activeTab, fetchPlans])
 
   // Refresh
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    await fetchPlans()
+    await Promise.all([fetchPlans(), fetchDashboardStats()])
     setIsRefreshing(false)
     toast.success('Data refreshed')
   }
@@ -179,15 +205,28 @@ export default function PlansPage() {
     )
   }, [plans, searchQuery])
 
-  // Stats
-  const stats = useMemo(() => ({
-    total: plans.length,
-    active: plans.filter(p => p.is_active).length,
-    hotspot: plans.filter(p => p.plan_type === 'HOTSPOT').length,
-    pppoe: plans.filter(p => p.plan_type === 'PPPOE').length,
-    static: plans.filter(p => p.plan_type === 'STATIC').length,
-    subscribers: plans.reduce((sum, p) => sum + (p.subscriber_count || 0), 0),
-  }), [plans])
+  // Stats - use dashboard stats if available, otherwise calculate from plans
+  const stats = useMemo(() => {
+    if (dashboardStats) {
+      return {
+        total: dashboardStats.total_plans,
+        active: dashboardStats.active_plans,
+        hotspot: dashboardStats.hotspot_plans,
+        pppoe: dashboardStats.pppoe_plans,
+        static: dashboardStats.static_plans,
+        subscribers: dashboardStats.total_subscribers,
+      }
+    }
+    // Fallback to calculated stats
+    return {
+      total: plans.length,
+      active: plans.filter(p => p.is_active).length,
+      hotspot: plans.filter(p => p.plan_type === 'HOTSPOT').length,
+      pppoe: plans.filter(p => p.plan_type === 'PPPOE').length,
+      static: plans.filter(p => p.plan_type === 'STATIC').length,
+      subscribers: plans.reduce((sum, p) => sum + (p.subscriber_count || 0), 0),
+    }
+  }, [dashboardStats, plans])
 
   // Reset form
   const resetForm = () => {
@@ -234,6 +273,7 @@ export default function PlansPage() {
       setIsCreateOpen(false)
       resetForm()
       fetchPlans()
+      fetchDashboardStats()
     } catch (error: any) {
       console.error('Failed to create plan:', error)
       toast.error(error.message || 'Failed to create plan')
@@ -285,6 +325,7 @@ export default function PlansPage() {
       setIsEditOpen(false)
       resetForm()
       fetchPlans()
+      fetchDashboardStats()
     } catch (error: any) {
       console.error('Failed to update plan:', error)
       toast.error(error.message || 'Failed to update plan')
@@ -300,6 +341,7 @@ export default function PlansPage() {
       await adminApi.togglePlanActive(plan.id)
       toast.success(`Plan ${plan.is_active ? 'deactivated' : 'activated'}`)
       fetchPlans()
+      fetchDashboardStats()
     } catch (error: any) {
       console.error('Failed to toggle plan:', error)
       toast.error(error.message || 'Failed to toggle plan status')

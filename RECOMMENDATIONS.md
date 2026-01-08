@@ -257,6 +257,10 @@ Once implemented, the frontend will:
 | User profile update | 🔴 Not Started | PATCH /core/users/me/ |
 | Change password endpoint | 🔴 Not Started | POST /core/auth/change-password/ |
 | System settings endpoint | 🔴 Not Started | GET/PATCH /core/settings/ |
+| Plans CRUD endpoints | 🟡 Verify | /billing/plans/ - may already exist |
+| Plans dashboard_stats | 🔴 Not Started | GET /billing/plans/dashboard_stats/ |
+| Plans toggle_active | 🔴 Not Started | POST /billing/plans/{id}/toggle_active/ |
+| Plans public endpoint | 🔴 Not Started | GET /billing/plans/public/ |
 
 ---
 
@@ -450,6 +454,263 @@ class CustomTokenRefreshView(TokenRefreshView):
 ```python
 # urls.py
 path('core/auth/token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
+```
+
+---
+
+### Priority 9: Plans Management Module (BILLING)
+
+The frontend Plans Management page is complete and connected to the API. Please ensure the following endpoints are working:
+
+#### Required Endpoints:
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/billing/plans/` | Admin | List all plans with pagination |
+| POST | `/api/v1/billing/plans/` | Admin | Create new plan |
+| GET | `/api/v1/billing/plans/{id}/` | Admin | Get plan details |
+| PATCH | `/api/v1/billing/plans/{id}/` | Admin | Update plan |
+| DELETE | `/api/v1/billing/plans/{id}/` | Admin | Delete plan |
+| POST | `/api/v1/billing/plans/{id}/toggle_active/` | Admin | Toggle plan active status |
+| GET | `/api/v1/billing/plans/public/` | Public | Get public plans (for customer portal) |
+| GET | `/api/v1/billing/plans/dashboard_stats/` | Admin | Get plans statistics |
+
+#### Plan Model:
+```python
+class Plan(models.Model):
+    PLAN_TYPE_CHOICES = [
+        ('INTERNET', 'Internet'),
+        ('ADDON', 'Add-on'),
+        ('BUNDLE', 'Bundle'),
+        ('TOPUP', 'Top-up'),
+        ('PPPOE', 'PPPoE'),
+        ('HOTSPOT', 'Hotspot'),
+        ('STATIC', 'Static IP'),
+    ]
+    
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=50, unique=True, blank=True)  # Auto-generate if empty
+    plan_type = models.CharField(max_length=20, choices=PLAN_TYPE_CHOICES, default='PPPOE')
+    description = models.TextField(blank=True, null=True)
+    
+    # Pricing
+    base_price = models.DecimalField(max_digits=10, decimal_places=2)  # In KES
+    setup_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    
+    # Speed & Data
+    download_speed = models.IntegerField(null=True, blank=True)  # Mbps
+    upload_speed = models.IntegerField(null=True, blank=True)    # Mbps
+    data_limit = models.IntegerField(null=True, blank=True)       # GB, null = unlimited
+    
+    # Validity
+    duration_days = models.IntegerField(default=30)  # Plan validity
+    validity_hours = models.IntegerField(null=True, blank=True)  # For hourly plans
+    
+    # Fair Usage Policy
+    fup_limit = models.IntegerField(null=True, blank=True)  # GB before throttle
+    fup_speed = models.IntegerField(null=True, blank=True)  # Reduced speed in Mbps
+    
+    # Visibility & Status
+    is_active = models.BooleanField(default=True)
+    is_public = models.BooleanField(default=True)  # Visible in customer portal
+    is_popular = models.BooleanField(default=False)  # Featured plan
+    
+    # Features (stored as JSON array of strings)
+    features = models.JSONField(default=list, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.code:
+            # Auto-generate code from name
+            self.code = slugify(self.name).upper().replace('-', '_')
+        super().save(*args, **kwargs)
+    
+    @property
+    def price(self):
+        """Alias for base_price for frontend compatibility"""
+        return self.base_price
+    
+    @property
+    def validity_days(self):
+        """Alias for duration_days for frontend compatibility"""
+        return self.duration_days
+    
+    @property
+    def subscriber_count(self):
+        """Count of active subscribers on this plan"""
+        return self.subscriptions.filter(status='ACTIVE').count()
+```
+
+#### Create Plan Request:
+```json
+POST /api/v1/billing/plans/
+{
+  "name": "Home Basic 10Mbps",
+  "plan_type": "PPPOE",
+  "description": "Perfect for small households",
+  "base_price": "2500.00",
+  "setup_fee": "500.00",
+  "download_speed": 10,
+  "upload_speed": 5,
+  "data_limit": null,
+  "duration_days": 30,
+  "is_active": true,
+  "is_public": true,
+  "is_popular": false,
+  "features": [
+    "Unlimited Data",
+    "24/7 Support",
+    "Free Installation"
+  ]
+}
+```
+
+#### Plan Response:
+```json
+{
+  "id": 1,
+  "name": "Home Basic 10Mbps",
+  "code": "HOME_BASIC_10MBPS",
+  "plan_type": "PPPOE",
+  "description": "Perfect for small households",
+  "base_price": "2500.00",
+  "price": "2500.00",
+  "setup_fee": "500.00",
+  "download_speed": 10,
+  "upload_speed": 5,
+  "data_limit": null,
+  "duration_days": 30,
+  "validity_days": 30,
+  "validity_hours": null,
+  "fup_limit": null,
+  "fup_speed": null,
+  "is_active": true,
+  "is_public": true,
+  "is_popular": false,
+  "features": [
+    "Unlimited Data",
+    "24/7 Support",
+    "Free Installation"
+  ],
+  "subscriber_count": 42,
+  "subscribers_count": 42,
+  "created_at": "2026-01-08T10:00:00Z",
+  "updated_at": "2026-01-08T10:00:00Z"
+}
+```
+
+#### Dashboard Stats Response:
+```json
+GET /api/v1/billing/plans/dashboard_stats/
+{
+  "total_plans": 15,
+  "active_plans": 12,
+  "inactive_plans": 3,
+  "hotspot_plans": 5,
+  "pppoe_plans": 6,
+  "static_plans": 4,
+  "total_subscribers": 1250,
+  "popular_plans": 3
+}
+```
+
+#### Toggle Active Response:
+```json
+POST /api/v1/billing/plans/{id}/toggle_active/
+{
+  "id": 1,
+  "is_active": false,
+  "message": "Plan deactivated successfully"
+}
+```
+
+#### Filter Parameters:
+```
+GET /api/v1/billing/plans/?plan_type=PPPOE&is_active=true&ordering=-created_at
+```
+
+#### Serializer:
+```python
+class PlanSerializer(serializers.ModelSerializer):
+    price = serializers.DecimalField(source='base_price', max_digits=10, decimal_places=2, read_only=True)
+    validity_days = serializers.IntegerField(source='duration_days', read_only=True)
+    subscriber_count = serializers.IntegerField(read_only=True)
+    subscribers_count = serializers.IntegerField(source='subscriber_count', read_only=True)
+    
+    class Meta:
+        model = Plan
+        fields = [
+            'id', 'name', 'code', 'plan_type', 'description',
+            'base_price', 'price', 'setup_fee',
+            'download_speed', 'upload_speed', 'data_limit',
+            'duration_days', 'validity_days', 'validity_hours',
+            'fup_limit', 'fup_speed',
+            'is_active', 'is_public', 'is_popular',
+            'features', 'subscriber_count', 'subscribers_count',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'code', 'subscriber_count', 'created_at', 'updated_at']
+```
+
+#### ViewSet:
+```python
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+class PlanViewSet(viewsets.ModelViewSet):
+    queryset = Plan.objects.all()
+    serializer_class = PlanSerializer
+    filterset_fields = ['plan_type', 'is_active', 'is_public', 'is_popular']
+    search_fields = ['name', 'description']
+    ordering_fields = ['name', 'base_price', 'created_at', 'subscriber_count']
+    ordering = ['-created_at']
+    
+    @action(detail=False, methods=['get'])
+    def dashboard_stats(self, request):
+        plans = Plan.objects.all()
+        return Response({
+            'total_plans': plans.count(),
+            'active_plans': plans.filter(is_active=True).count(),
+            'inactive_plans': plans.filter(is_active=False).count(),
+            'hotspot_plans': plans.filter(plan_type='HOTSPOT').count(),
+            'pppoe_plans': plans.filter(plan_type='PPPOE').count(),
+            'static_plans': plans.filter(plan_type='STATIC').count(),
+            'total_subscribers': sum(p.subscriber_count for p in plans),
+            'popular_plans': plans.filter(is_popular=True).count(),
+        })
+    
+    @action(detail=False, methods=['get'], permission_classes=[])
+    def public(self, request):
+        """Public endpoint for customer-facing plan listing"""
+        plans = Plan.objects.filter(is_active=True, is_public=True)
+        serializer = self.get_serializer(plans, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        plan = self.get_object()
+        plan.is_active = not plan.is_active
+        plan.save()
+        return Response({
+            'id': plan.id,
+            'is_active': plan.is_active,
+            'message': f'Plan {"activated" if plan.is_active else "deactivated"} successfully'
+        })
+```
+
+#### URL Configuration:
+```python
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r'billing/plans', PlanViewSet, basename='plan')
+
+urlpatterns = [
+    path('api/v1/', include(router.urls)),
+]
 ```
 
 ---
