@@ -263,7 +263,7 @@ export default function PlansPage() {
         upload_speed: planForm.upload_speed ? parseInt(planForm.upload_speed) : undefined,
         data_limit: planForm.data_limit ? parseInt(planForm.data_limit) : undefined,
         validity_days: parseInt(planForm.validity_days),
-        price: planForm.price,
+        base_price: planForm.price,  // Backend expects base_price, not price
         setup_fee: planForm.setup_fee || undefined,
         is_active: planForm.is_active,
         is_popular: planForm.is_popular,
@@ -315,7 +315,7 @@ export default function PlansPage() {
         upload_speed: planForm.upload_speed ? parseInt(planForm.upload_speed) : undefined,
         data_limit: planForm.data_limit ? parseInt(planForm.data_limit) : undefined,
         validity_days: parseInt(planForm.validity_days),
-        price: planForm.price,
+        base_price: planForm.price,  // Backend expects base_price, not price
         setup_fee: planForm.setup_fee || undefined,
         is_active: planForm.is_active,
         is_popular: planForm.is_popular,
