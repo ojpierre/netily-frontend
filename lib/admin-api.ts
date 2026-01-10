@@ -66,6 +66,20 @@ import type {
   RevenueForecast,
   RevenueTargetProgress,
   NetworkStats,
+  // Support Ticket types
+  SupportTicket,
+  SupportTicketMessage,
+  SupportTicketStats,
+  CreateTicketRequest,
+  TicketReplyRequest,
+  // SMS types
+  SMSMessage,
+  SMSTemplate,
+  SMSCampaign,
+  SMSStats,
+  SendSMSRequest,
+  SendBulkSMSRequest,
+  SMSBalance,
 } from './types'
 
 // Re-export for backward compatibility
@@ -1760,6 +1774,193 @@ class AdminApiService {
       throw new Error('Failed to export analytics report')
     }
     return response.blob()
+  }
+
+  // ------------------------------------------
+  // SUPPORT TICKETS - /support/tickets/
+  // ------------------------------------------
+
+  async getTickets(params?: Record<string, string>): Promise<PaginatedResponse<SupportTicket>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<SupportTicket>>(`/support/tickets/${queryString}`)
+  }
+
+  async getTicket(id: number): Promise<SupportTicket> {
+    return this.request<SupportTicket>(`/support/tickets/${id}/`)
+  }
+
+  async createTicket(data: CreateTicketRequest): Promise<SupportTicket> {
+    return this.request<SupportTicket>('/support/tickets/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateTicket(id: number, data: Partial<SupportTicket>): Promise<SupportTicket> {
+    return this.request<SupportTicket>(`/support/tickets/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteTicket(id: number): Promise<void> {
+    await this.request(`/support/tickets/${id}/`, { method: 'DELETE' })
+  }
+
+  async assignTicket(id: number, userId: number): Promise<SupportTicket> {
+    return this.request<SupportTicket>(`/support/tickets/${id}/assign/`, {
+      method: 'POST',
+      body: JSON.stringify({ assigned_to: userId }),
+    })
+  }
+
+  async updateTicketStatus(id: number, status: string, resolution?: string): Promise<SupportTicket> {
+    return this.request<SupportTicket>(`/support/tickets/${id}/update_status/`, {
+      method: 'POST',
+      body: JSON.stringify({ status, resolution }),
+    })
+  }
+
+  async replyToTicket(id: number, data: TicketReplyRequest): Promise<SupportTicketMessage> {
+    return this.request<SupportTicketMessage>(`/support/tickets/${id}/reply/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async getTicketMessages(id: number): Promise<SupportTicketMessage[]> {
+    return this.request<SupportTicketMessage[]>(`/support/tickets/${id}/messages/`)
+  }
+
+  async getTicketStats(): Promise<SupportTicketStats> {
+    return this.request<SupportTicketStats>('/support/tickets/stats/')
+  }
+
+  async getMyTickets(params?: Record<string, string>): Promise<PaginatedResponse<SupportTicket>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<SupportTicket>>(`/support/tickets/my_tickets/${queryString}`)
+  }
+
+  async escalateTicket(id: number, reason?: string): Promise<SupportTicket> {
+    return this.request<SupportTicket>(`/support/tickets/${id}/escalate/`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    })
+  }
+
+  // ------------------------------------------
+  // SMS MESSAGING - /messaging/sms/
+  // ------------------------------------------
+
+  async getSMSMessages(params?: Record<string, string>): Promise<PaginatedResponse<SMSMessage>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<SMSMessage>>(`/messaging/sms/${queryString}`)
+  }
+
+  async getSMSMessage(id: number): Promise<SMSMessage> {
+    return this.request<SMSMessage>(`/messaging/sms/${id}/`)
+  }
+
+  async sendSMS(data: SendSMSRequest): Promise<SMSMessage | SMSMessage[]> {
+    return this.request<SMSMessage | SMSMessage[]>('/messaging/sms/send/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async sendBulkSMS(data: SendBulkSMSRequest): Promise<SMSCampaign> {
+    return this.request<SMSCampaign>('/messaging/sms/send_bulk/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async retrySMS(id: number): Promise<SMSMessage> {
+    return this.request<SMSMessage>(`/messaging/sms/${id}/retry/`, {
+      method: 'POST',
+    })
+  }
+
+  async getSMSStats(): Promise<SMSStats> {
+    return this.request<SMSStats>('/messaging/sms/stats/')
+  }
+
+  async getSMSBalance(): Promise<SMSBalance> {
+    return this.request<SMSBalance>('/messaging/sms/balance/')
+  }
+
+  // ------------------------------------------
+  // SMS TEMPLATES - /messaging/templates/
+  // ------------------------------------------
+
+  async getSMSTemplates(params?: Record<string, string>): Promise<PaginatedResponse<SMSTemplate>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<SMSTemplate>>(`/messaging/templates/${queryString}`)
+  }
+
+  async getSMSTemplate(id: number): Promise<SMSTemplate> {
+    return this.request<SMSTemplate>(`/messaging/templates/${id}/`)
+  }
+
+  async createSMSTemplate(data: Partial<SMSTemplate>): Promise<SMSTemplate> {
+    return this.request<SMSTemplate>('/messaging/templates/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateSMSTemplate(id: number, data: Partial<SMSTemplate>): Promise<SMSTemplate> {
+    return this.request<SMSTemplate>(`/messaging/templates/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteSMSTemplate(id: number): Promise<void> {
+    await this.request(`/messaging/templates/${id}/`, { method: 'DELETE' })
+  }
+
+  // ------------------------------------------
+  // SMS CAMPAIGNS - /messaging/campaigns/
+  // ------------------------------------------
+
+  async getSMSCampaigns(params?: Record<string, string>): Promise<PaginatedResponse<SMSCampaign>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<SMSCampaign>>(`/messaging/campaigns/${queryString}`)
+  }
+
+  async getSMSCampaign(id: number): Promise<SMSCampaign> {
+    return this.request<SMSCampaign>(`/messaging/campaigns/${id}/`)
+  }
+
+  async createSMSCampaign(data: Partial<SMSCampaign>): Promise<SMSCampaign> {
+    return this.request<SMSCampaign>('/messaging/campaigns/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateSMSCampaign(id: number, data: Partial<SMSCampaign>): Promise<SMSCampaign> {
+    return this.request<SMSCampaign>(`/messaging/campaigns/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteSMSCampaign(id: number): Promise<void> {
+    await this.request(`/messaging/campaigns/${id}/`, { method: 'DELETE' })
+  }
+
+  async startSMSCampaign(id: number): Promise<SMSCampaign> {
+    return this.request<SMSCampaign>(`/messaging/campaigns/${id}/start/`, {
+      method: 'POST',
+    })
+  }
+
+  async cancelSMSCampaign(id: number): Promise<SMSCampaign> {
+    return this.request<SMSCampaign>(`/messaging/campaigns/${id}/cancel/`, {
+      method: 'POST',
+    })
   }
 }
 

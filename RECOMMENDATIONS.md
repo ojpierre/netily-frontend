@@ -1190,6 +1190,465 @@ urlpatterns = [
 See `BACKEND_API_REQUIREMENTS.md` for complete API documentation including request/response formats.
 
 ---
+
+### Priority 11: Voucher Management Module (VERIFY)
+
+The frontend Voucher Management is complete and uses the API. Verify these endpoints exist and work correctly.
+
+#### Required Endpoints:
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/billing/voucher-batches/` | Admin | List all voucher batches |
+| POST | `/api/v1/billing/voucher-batches/` | Admin | Create voucher batch |
+| GET | `/api/v1/billing/voucher-batches/{id}/` | Admin | Get batch details with vouchers |
+| PATCH | `/api/v1/billing/voucher-batches/{id}/` | Admin | Update batch |
+| DELETE | `/api/v1/billing/voucher-batches/{id}/` | Admin | Delete batch |
+| POST | `/api/v1/billing/voucher-batches/{id}/generate/` | Admin | Generate vouchers for batch |
+| GET | `/api/v1/billing/voucher-batches/{id}/stats/` | Admin | Get batch statistics |
+| GET | `/api/v1/billing/voucher-batches/stats/` | Admin | Get overall voucher stats |
+| GET | `/api/v1/billing/vouchers/` | Admin | List all vouchers (filterable) |
+| POST | `/api/v1/billing/vouchers/{id}/activate/` | Admin | Activate voucher |
+| POST | `/api/v1/billing/vouchers/{id}/deactivate/` | Admin | Deactivate voucher |
+| POST | `/api/v1/billing/vouchers/{id}/sell/` | Admin | Mark voucher as sold |
+| POST | `/api/v1/billing/vouchers/{id}/redeem/` | Admin | Redeem voucher for customer |
+| GET | `/api/v1/billing/vouchers/validate/{code}/` | Public | Validate voucher code |
+
+#### Voucher Batch Model:
+```python
+class VoucherBatch(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(null=True, blank=True)
+    plan = models.ForeignKey('Plan', on_delete=models.SET_NULL, null=True, blank=True)
+    voucher_type = models.CharField(max_length=20, choices=[
+        ('time', 'Time-based'),
+        ('data', 'Data-based'),
+        ('credit', 'Credit/Amount'),
+        ('hybrid', 'Hybrid'),
+    ], default='credit')
+    credit_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    validity_days = models.IntegerField(default=30)
+    prefix = models.CharField(max_length=10, default='VCR')
+    total_vouchers = models.IntegerField(default=0)
+    used_vouchers = models.IntegerField(default=0)
+    active_vouchers = models.IntegerField(default=0)
+    total_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, choices=[
+        ('draft', 'Draft'),
+        ('generating', 'Generating'),
+        ('active', 'Active'),
+        ('depleted', 'Depleted'),
+        ('expired', 'Expired'),
+    ], default='draft')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+```
+
+#### Voucher Model:
+```python
+class Voucher(models.Model):
+    batch = models.ForeignKey('VoucherBatch', on_delete=models.CASCADE, related_name='vouchers')
+    code = models.CharField(max_length=20, unique=True)
+    pin = models.CharField(max_length=6, null=True, blank=True)  # Optional PIN
+    status = models.CharField(max_length=20, choices=[
+        ('available', 'Available'),
+        ('sold', 'Sold'),
+        ('used', 'Used'),
+        ('expired', 'Expired'),
+        ('disabled', 'Disabled'),
+    ], default='available')
+    sold_to = models.CharField(max_length=100, null=True, blank=True)  # Reseller/agent name
+    sold_at = models.DateTimeField(null=True, blank=True)
+    used_by = models.ForeignKey('Customer', on_delete=models.SET_NULL, null=True, blank=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+```
+
+---
+
+### Priority 12: Support Tickets Module (NEW)
+
+The frontend Support Tickets management is complete and ready to consume API data. The page displays ticket lists, stats, messages, and supports creating/replying to tickets.
+
+#### Required Endpoints:
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/support/tickets/` | Admin | List all tickets with filters |
+| POST | `/api/v1/support/tickets/` | Admin/Customer | Create new ticket |
+| GET | `/api/v1/support/tickets/{id}/` | Admin/Owner | Get ticket details with messages |
+| PATCH | `/api/v1/support/tickets/{id}/` | Admin | Update ticket |
+| DELETE | `/api/v1/support/tickets/{id}/` | Admin | Delete ticket |
+| POST | `/api/v1/support/tickets/{id}/assign/` | Admin | Assign ticket to agent |
+| POST | `/api/v1/support/tickets/{id}/status/` | Admin | Update ticket status |
+| POST | `/api/v1/support/tickets/{id}/reply/` | Admin/Owner | Reply to ticket |
+| POST | `/api/v1/support/tickets/{id}/escalate/` | Admin | Escalate ticket |
+| GET | `/api/v1/support/tickets/{id}/messages/` | Admin/Owner | Get ticket messages |
+| GET | `/api/v1/support/tickets/stats/` | Admin | Get ticket statistics |
+| GET | `/api/v1/support/tickets/my/` | Customer | Get customer's tickets |
+
+All list endpoints support query parameters: `?status=`, `?priority=`, `?category=`, `?search=`, `?assigned_to=`
+
+#### Support Ticket Model:
+```python
+class SupportTicket(models.Model):
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('in_progress', 'In Progress'),
+        ('pending', 'Pending'),
+        ('resolved', 'Resolved'),
+        ('closed', 'Closed'),
+    ]
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('urgent', 'Urgent'),
+    ]
+    CATEGORY_CHOICES = [
+        ('technical', 'Technical'),
+        ('billing', 'Billing'),
+        ('account', 'Account'),
+        ('service', 'Service'),
+        ('other', 'Other'),
+    ]
+    
+    ticket_number = models.CharField(max_length=20, unique=True)  # Auto-generated: TKT-1001
+    subject = models.CharField(max_length=255)
+    description = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='technical')
+    customer = models.ForeignKey('Customer', on_delete=models.CASCADE, related_name='tickets')
+    assigned_to = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True)
+    sla_breached = models.BooleanField(default=False)
+    first_response_at = models.DateTimeField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.ticket_number:
+            last = SupportTicket.objects.order_by('-id').first()
+            num = (last.id + 1) if last else 1
+            self.ticket_number = f'TKT-{1000 + num}'
+        super().save(*args, **kwargs)
+```
+
+#### Support Ticket Message Model:
+```python
+class SupportTicketMessage(models.Model):
+    SENDER_TYPE_CHOICES = [
+        ('customer', 'Customer'),
+        ('agent', 'Agent'),
+        ('system', 'System'),
+    ]
+    
+    ticket = models.ForeignKey('SupportTicket', on_delete=models.CASCADE, related_name='messages')
+    sender_type = models.CharField(max_length=20, choices=SENDER_TYPE_CHOICES)
+    sender = models.ForeignKey('User', on_delete=models.SET_NULL, null=True)
+    message = models.TextField()
+    is_internal = models.BooleanField(default=False)  # Internal notes not visible to customer
+    attachments = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
+```
+
+#### Response Formats:
+
+**GET /api/v1/support/tickets/**
+```json
+{
+  "count": 25,
+  "results": [
+    {
+      "id": 1001,
+      "ticket_number": "TKT-1001",
+      "subject": "Internet connection keeps dropping",
+      "description": "Detailed description...",
+      "status": "open",
+      "priority": "high",
+      "category": "technical",
+      "customer_id": 123,
+      "customer_name": "John Doe",
+      "customer_email": "john@example.com",
+      "customer_phone": "+254712345678",
+      "customer_plan": "Premium Weekly",
+      "assigned_to": 5,
+      "assigned_to_name": "Support Agent",
+      "sla_breached": false,
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T14:00:00Z",
+      "messages": [
+        {
+          "id": 1,
+          "ticket_id": 1001,
+          "sender_type": "customer",
+          "sender_id": 123,
+          "sender_name": "John Doe",
+          "message": "Hi, I'm having an issue...",
+          "is_internal": false,
+          "created_at": "2024-01-15T10:30:00Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**GET /api/v1/support/tickets/stats/**
+```json
+{
+  "total": 25,
+  "open": 8,
+  "in_progress": 6,
+  "pending": 4,
+  "resolved": 5,
+  "closed": 2,
+  "avg_response_time": "2.5 hrs",
+  "avg_resolution_time": "18 hrs",
+  "sla_compliance_rate": 94.5,
+  "tickets_today": 3,
+  "tickets_this_week": 12
+}
+```
+
+**POST /api/v1/support/tickets/{id}/reply/**
+```json
+// Request
+{
+  "message": "Thank you for contacting us...",
+  "is_internal": false
+}
+
+// Response
+{
+  "id": 2,
+  "ticket_id": 1001,
+  "sender_type": "agent",
+  "sender_id": 5,
+  "sender_name": "Support Agent",
+  "message": "Thank you for contacting us...",
+  "is_internal": false,
+  "created_at": "2024-01-15T14:30:00Z"
+}
+```
+
+---
+
+### Priority 13: SMS Messaging Module (NEW)
+
+The frontend SMS Management is complete and ready to consume API data. The page supports sending single/bulk SMS, managing templates, and running campaigns.
+
+#### Required Endpoints:
+
+**SMS Messages:**
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/messaging/sms/` | Admin | List all SMS messages |
+| POST | `/api/v1/messaging/sms/` | Admin | Send single SMS |
+| GET | `/api/v1/messaging/sms/{id}/` | Admin | Get message details |
+| POST | `/api/v1/messaging/sms/{id}/retry/` | Admin | Retry failed message |
+| POST | `/api/v1/messaging/sms/bulk/` | Admin | Send bulk SMS |
+| GET | `/api/v1/messaging/sms/stats/` | Admin | Get SMS statistics |
+| GET | `/api/v1/messaging/sms/balance/` | Admin | Get SMS balance/credits |
+
+**SMS Templates:**
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/messaging/templates/` | Admin | List all templates |
+| POST | `/api/v1/messaging/templates/` | Admin | Create template |
+| GET | `/api/v1/messaging/templates/{id}/` | Admin | Get template |
+| PATCH | `/api/v1/messaging/templates/{id}/` | Admin | Update template |
+| DELETE | `/api/v1/messaging/templates/{id}/` | Admin | Delete template |
+
+**SMS Campaigns:**
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/messaging/campaigns/` | Admin | List all campaigns |
+| POST | `/api/v1/messaging/campaigns/` | Admin | Create campaign |
+| GET | `/api/v1/messaging/campaigns/{id}/` | Admin | Get campaign details |
+| PATCH | `/api/v1/messaging/campaigns/{id}/` | Admin | Update campaign |
+| DELETE | `/api/v1/messaging/campaigns/{id}/` | Admin | Delete campaign |
+| POST | `/api/v1/messaging/campaigns/{id}/start/` | Admin | Start campaign |
+| POST | `/api/v1/messaging/campaigns/{id}/cancel/` | Admin | Cancel campaign |
+
+#### SMS Message Model:
+```python
+class SMSMessage(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('sent', 'Sent'),
+        ('delivered', 'Delivered'),
+        ('failed', 'Failed'),
+    ]
+    TYPE_CHOICES = [
+        ('single', 'Single'),
+        ('bulk', 'Bulk'),
+        ('automated', 'Automated'),
+        ('campaign', 'Campaign'),
+    ]
+    
+    recipient = models.CharField(max_length=20)  # Phone number
+    recipient_name = models.CharField(max_length=100, null=True, blank=True)
+    customer = models.ForeignKey('Customer', on_delete=models.SET_NULL, null=True, blank=True)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='single')
+    template = models.ForeignKey('SMSTemplate', on_delete=models.SET_NULL, null=True, blank=True)
+    campaign = models.ForeignKey('SMSCampaign', on_delete=models.SET_NULL, null=True, blank=True)
+    provider = models.CharField(max_length=50, default='africastalking')
+    provider_message_id = models.CharField(max_length=100, null=True, blank=True)
+    cost = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    error_message = models.TextField(null=True, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+```
+
+#### SMS Template Model:
+```python
+class SMSTemplate(models.Model):
+    name = models.CharField(max_length=100)
+    content = models.TextField()  # Use {variable} for placeholders
+    variables = models.JSONField(default=list)  # ['amount', 'expiry_date']
+    usage_count = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+```
+
+#### SMS Campaign Model:
+```python
+class SMSCampaign(models.Model):
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('scheduled', 'Scheduled'),
+        ('running', 'Running'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    name = models.CharField(max_length=100)
+    message = models.TextField()
+    template = models.ForeignKey('SMSTemplate', on_delete=models.SET_NULL, null=True, blank=True)
+    recipient_filter = models.JSONField(default=dict)  # Filter criteria for recipients
+    recipient_count = models.IntegerField(default=0)
+    delivered_count = models.IntegerField(default=0)
+    failed_count = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    scheduled_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+```
+
+#### Response Formats:
+
+**GET /api/v1/messaging/sms/stats/**
+```json
+{
+  "total_sent": 5847,
+  "delivered": 5620,
+  "pending": 127,
+  "failed": 100,
+  "delivery_rate": 96.1,
+  "total_cost": 2923.50,
+  "messages_today": 156,
+  "messages_this_week": 892
+}
+```
+
+**GET /api/v1/messaging/sms/balance/**
+```json
+{
+  "balance": 15000,
+  "currency": "KES",
+  "unit_cost": 0.50,
+  "units_remaining": 30000,
+  "provider": "africastalking",
+  "last_updated": "2024-01-15T12:00:00Z"
+}
+```
+
+**POST /api/v1/messaging/sms/**
+```json
+// Request
+{
+  "recipient": "+254712345678",
+  "message": "Your payment has been received",
+  "template_id": 1  // Optional
+}
+
+// Response
+{
+  "id": 5848,
+  "recipient": "+254712345678",
+  "recipient_name": "John Doe",
+  "message": "Your payment has been received",
+  "status": "pending",
+  "type": "single",
+  "cost": 0.50,
+  "provider": "africastalking",
+  "sent_at": "2024-01-15T14:30:00Z",
+  "created_at": "2024-01-15T14:30:00Z"
+}
+```
+
+**POST /api/v1/messaging/sms/bulk/**
+```json
+// Request
+{
+  "recipients": ["+254712345678", "+254723456789", "+254734567890"],
+  "message": "Network maintenance scheduled for tomorrow",
+  "template_id": 4  // Optional
+}
+
+// Response
+{
+  "queued": 3,
+  "total_cost": 1.50,
+  "messages": [
+    {"id": 5849, "recipient": "+254712345678", "status": "pending"},
+    {"id": 5850, "recipient": "+254723456789", "status": "pending"},
+    {"id": 5851, "recipient": "+254734567890", "status": "pending"}
+  ]
+}
+```
+
+#### SMS Provider Integration (Africa's Talking):
+```python
+import africastalking
+
+class SMSService:
+    def __init__(self):
+        africastalking.initialize(
+            username=settings.AT_USERNAME,
+            api_key=settings.AT_API_KEY
+        )
+        self.sms = africastalking.SMS
+    
+    def send(self, recipient, message):
+        try:
+            response = self.sms.send(message, [recipient])
+            return {
+                'success': True,
+                'message_id': response['SMSMessageData']['Recipients'][0]['messageId'],
+                'cost': response['SMSMessageData']['Recipients'][0]['cost'],
+            }
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
+    def get_balance(self):
+        try:
+            balance = africastalking.Application.fetch_application_data()
+            return float(balance['UserData']['balance'].replace('KES ', ''))
+        except Exception as e:
+            return 0
+```
+
+---
 ---
 
 ## ✅ Completed Pages

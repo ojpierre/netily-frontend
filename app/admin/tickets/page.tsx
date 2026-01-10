@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import {
   Ticket,
   Search,
@@ -82,52 +82,23 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
+import { toast } from "sonner"
+import { adminApi } from "@/lib/admin-api"
+import type { 
+  SupportTicket, 
+  SupportTicketMessage, 
+  SupportTicketStats,
+  SupportTicketStatus,
+  SupportTicketPriority,
+  SupportTicketCategory,
+} from "@/lib/types"
 
-// Types
-type TicketStatus = "open" | "in-progress" | "pending" | "resolved" | "closed"
-type TicketPriority = "low" | "medium" | "high" | "urgent"
-type TicketCategory = "technical" | "billing" | "account" | "service" | "other"
+// Local types for compatibility with UI
+type TicketStatus = SupportTicketStatus
+type TicketPriority = SupportTicketPriority
+type TicketCategory = SupportTicketCategory
 
-interface TicketMessage {
-  id: string
-  sender: "customer" | "agent"
-  senderName: string
-  message: string
-  timestamp: string
-  attachments?: string[]
-}
-
-interface SupportTicket {
-  id: string
-  subject: string
-  description: string
-  status: TicketStatus
-  priority: TicketPriority
-  category: TicketCategory
-  customer: {
-    id: string
-    name: string
-    email: string
-    phone: string
-    plan: string
-  }
-  assignedTo?: string
-  createdAt: string
-  updatedAt: string
-  messages: TicketMessage[]
-}
-
-interface TicketStats {
-  total: number
-  open: number
-  inProgress: number
-  pending: number
-  resolved: number
-  avgResponseTime: string
-  avgResolutionTime: string
-}
-
-// Mock data generator
+// Mock data generator (fallback)
 const generateMockTickets = (): SupportTicket[] => {
   const subjects = [
     "Internet connection keeps dropping",
@@ -144,7 +115,7 @@ const generateMockTickets = (): SupportTicket[] => {
 
   const categories: TicketCategory[] = ["technical", "billing", "account", "service", "other"]
   const priorities: TicketPriority[] = ["low", "medium", "high", "urgent"]
-  const statuses: TicketStatus[] = ["open", "in-progress", "pending", "resolved", "closed"]
+  const statuses: TicketStatus[] = ["open", "in_progress", "pending", "resolved", "closed"]
   const agents = ["John Admin", "Sarah Support", "Mike Tech", "Lisa Billing"]
 
   return Array.from({ length: 25 }, (_, i) => {
@@ -152,46 +123,69 @@ const generateMockTickets = (): SupportTicket[] => {
     const createdDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000)
     
     return {
-      id: `TKT-${1000 + i}`,
+      id: 1000 + i,
+      ticket_number: `TKT-${1000 + i}`,
       subject: subjects[Math.floor(Math.random() * subjects.length)],
       description: "This is a detailed description of the issue the customer is experiencing...",
       status,
       priority: priorities[Math.floor(Math.random() * priorities.length)],
       category: categories[Math.floor(Math.random() * categories.length)],
-      customer: {
-        id: `USR-${2000 + i}`,
-        name: `Customer ${i + 1}`,
-        email: `customer${i + 1}@example.com`,
-        phone: `+254 7${Math.floor(10000000 + Math.random() * 90000000)}`,
-        plan: ["Basic Monthly", "Premium Weekly", "Business Quarterly"][Math.floor(Math.random() * 3)],
-      },
-      assignedTo: status !== "open" ? agents[Math.floor(Math.random() * agents.length)] : undefined,
-      createdAt: createdDate.toISOString(),
-      updatedAt: new Date(createdDate.getTime() + Math.random() * 5 * 24 * 60 * 60 * 1000).toISOString(),
+      customer_id: 2000 + i,
+      customer_name: `Customer ${i + 1}`,
+      customer_email: `customer${i + 1}@example.com`,
+      customer_phone: `+254 7${Math.floor(10000000 + Math.random() * 90000000)}`,
+      customer_plan: ["Basic Monthly", "Premium Weekly", "Business Quarterly"][Math.floor(Math.random() * 3)],
+      assigned_to: status !== "open" ? i % 4 + 1 : undefined,
+      assigned_to_name: status !== "open" ? agents[i % 4] : undefined,
+      sla_breached: false,
+      created_at: createdDate.toISOString(),
+      updated_at: new Date(createdDate.getTime() + Math.random() * 5 * 24 * 60 * 60 * 1000).toISOString(),
       messages: [
         {
-          id: "msg-1",
-          sender: "customer",
-          senderName: `Customer ${i + 1}`,
+          id: 1,
+          ticket_id: 1000 + i,
+          sender_type: "customer" as const,
+          sender_id: 2000 + i,
+          sender_name: `Customer ${i + 1}`,
           message: "Hi, I'm having an issue with my internet connection. It keeps dropping every few hours.",
-          timestamp: createdDate.toISOString(),
+          is_internal: false,
+          created_at: createdDate.toISOString(),
         },
         ...(status !== "open" ? [{
-          id: "msg-2",
-          sender: "agent" as const,
-          senderName: agents[Math.floor(Math.random() * agents.length)],
+          id: 2,
+          ticket_id: 1000 + i,
+          sender_type: "agent" as const,
+          sender_id: i % 4 + 1,
+          sender_name: agents[i % 4],
           message: "Hello! I'm sorry to hear you're experiencing this issue. Let me look into this for you. Can you please share your router model?",
-          timestamp: new Date(createdDate.getTime() + 2 * 60 * 60 * 1000).toISOString(),
+          is_internal: false,
+          created_at: new Date(createdDate.getTime() + 2 * 60 * 60 * 1000).toISOString(),
         }] : []),
       ],
     }
   })
 }
 
+// Mock stats
+const mockStats: SupportTicketStats = {
+  total: 25,
+  open: 8,
+  in_progress: 6,
+  pending: 4,
+  resolved: 5,
+  closed: 2,
+  avg_response_time: "2.5 hrs",
+  avg_resolution_time: "18 hrs",
+  sla_compliance_rate: 94.5,
+  tickets_today: 3,
+  tickets_this_week: 12,
+}
+
 export default function TicketsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tickets, setTickets] = useState<SupportTicket[]>([])
+  const [stats, setStats] = useState<SupportTicketStats>(mockStats)
   const [activeTab, setActiveTab] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [priorityFilter, setPriorityFilter] = useState("all")
@@ -202,60 +196,94 @@ export default function TicketsPage() {
   const [replyMessage, setReplyMessage] = useState("")
   const [refreshing, setRefreshing] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [sendingReply, setSendingReply] = useState(false)
+  const [creatingTicket, setCreatingTicket] = useState(false)
+  const [newTicketData, setNewTicketData] = useState({
+    customer_id: "",
+    subject: "",
+    description: "",
+    category: "technical" as TicketCategory,
+    priority: "medium" as TicketPriority,
+  })
   const itemsPerPage = 10
 
-  useEffect(() => {
-    loadTickets()
-  }, [])
-
-  const loadTickets = async () => {
+  // Fetch tickets and stats from API
+  const fetchTickets = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      await new Promise(resolve => setTimeout(resolve, 600))
-      setTickets(generateMockTickets())
+      
+      // Build filters based on active tab
+      const filters: Record<string, string> = {}
+      if (activeTab !== "all") {
+        filters.status = activeTab
+      }
+      if (priorityFilter !== "all") {
+        filters.priority = priorityFilter
+      }
+      if (categoryFilter !== "all") {
+        filters.category = categoryFilter
+      }
+      if (searchQuery) {
+        filters.search = searchQuery
+      }
+      
+      const [ticketsData, statsData] = await Promise.all([
+        adminApi.getTickets(filters).catch(() => null),
+        adminApi.getTicketStats().catch(() => null),
+      ])
+      
+      if (ticketsData) {
+        // Handle paginated or array response
+        const ticketsList = Array.isArray(ticketsData) ? ticketsData : (ticketsData.results || [])
+        setTickets(ticketsList)
+      } else {
+        // Fallback to mock data
+        console.warn("Using mock ticket data - API not available")
+        setTickets(generateMockTickets())
+      }
+      
+      if (statsData) {
+        setStats(statsData)
+      }
     } catch (err) {
-      setError("Failed to load tickets. Please try again.")
+      console.error("Error loading tickets:", err)
+      setError("Failed to load tickets. Using cached data.")
+      setTickets(generateMockTickets())
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeTab, priorityFilter, categoryFilter, searchQuery])
 
-  const handleRefresh = async () => {
+  useEffect(() => {
+    fetchTickets()
+  }, [fetchTickets])
+
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true)
-    await loadTickets()
+    await fetchTickets()
     setRefreshing(false)
-  }
+    toast.success("Tickets refreshed")
+  }, [fetchTickets])
 
-  // Calculate stats
-  const stats: TicketStats = useMemo(() => {
-    return {
-      total: tickets.length,
-      open: tickets.filter(t => t.status === "open").length,
-      inProgress: tickets.filter(t => t.status === "in-progress").length,
-      pending: tickets.filter(t => t.status === "pending").length,
-      resolved: tickets.filter(t => t.status === "resolved" || t.status === "closed").length,
-      avgResponseTime: "2.5 hrs",
-      avgResolutionTime: "18 hrs",
-    }
-  }, [tickets])
-
-  // Filter tickets
+  // Filter tickets (client-side filtering for additional refinement)
   const filteredTickets = useMemo(() => {
     return tickets.filter(ticket => {
       // Tab filter
       const matchesTab = 
         activeTab === "all" ||
         (activeTab === "open" && ticket.status === "open") ||
-        (activeTab === "in-progress" && ticket.status === "in-progress") ||
+        (activeTab === "in_progress" && ticket.status === "in_progress") ||
         (activeTab === "pending" && ticket.status === "pending") ||
         (activeTab === "resolved" && (ticket.status === "resolved" || ticket.status === "closed"))
 
-      // Search filter
+      // Search filter - using ticket_number and customer_name
+      const searchLower = searchQuery.toLowerCase()
       const matchesSearch = 
-        ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ticket.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ticket.customer.name.toLowerCase().includes(searchQuery.toLowerCase())
+        !searchQuery ||
+        ticket.subject.toLowerCase().includes(searchLower) ||
+        (ticket.ticket_number || "").toLowerCase().includes(searchLower) ||
+        (ticket.customer_name || "").toLowerCase().includes(searchLower)
 
       // Priority filter
       const matchesPriority = priorityFilter === "all" || ticket.priority === priorityFilter
@@ -274,18 +302,19 @@ export default function TicketsPage() {
   const totalPages = Math.ceil(filteredTickets.length / itemsPerPage)
 
   const getStatusBadge = (status: TicketStatus) => {
-    const config = {
+    const config: Record<string, { class: string; icon: any }> = {
       open: { class: "bg-blue-100 text-blue-700 border-blue-200", icon: AlertCircle },
-      "in-progress": { class: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: Clock },
+      in_progress: { class: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: Clock },
       pending: { class: "bg-orange-100 text-orange-700 border-orange-200", icon: Clock },
       resolved: { class: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle2 },
       closed: { class: "bg-slate-100 text-slate-700 border-slate-200", icon: XCircle },
     }
-    const Icon = config[status].icon
+    const statusConfig = config[status] || config.open
+    const Icon = statusConfig.icon
     return (
-      <Badge variant="outline" className={config[status].class}>
+      <Badge variant="outline" className={statusConfig.class}>
         <Icon className="w-3 h-3 mr-1" />
-        {status.replace("-", " ").replace(/\b\w/g, c => c.toUpperCase())}
+        {status.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase())}
       </Badge>
     )
   }
@@ -332,36 +361,167 @@ export default function TicketsPage() {
     return `${diffDays}d ago`
   }
 
-  const handleViewTicket = (ticket: SupportTicket) => {
+  const handleViewTicket = async (ticket: SupportTicket) => {
     setSelectedTicket(ticket)
     setDrawerOpen(true)
+    
+    // Fetch fresh ticket data with messages
+    try {
+      const freshTicket = await adminApi.getTicket(ticket.id)
+      if (freshTicket) {
+        setSelectedTicket(freshTicket)
+        // Update in list too
+        setTickets(prev => prev.map(t => t.id === ticket.id ? freshTicket : t))
+      }
+    } catch (err) {
+      console.error("Error fetching ticket details:", err)
+      // Keep showing the cached ticket data
+    }
   }
 
-  const handleSendReply = () => {
-    if (!replyMessage.trim() || !selectedTicket) return
+  const handleSendReply = async () => {
+    if (!replyMessage.trim() || !selectedTicket || sendingReply) return
     
-    const newMessage: TicketMessage = {
-      id: `msg-${Date.now()}`,
-      sender: "agent",
-      senderName: "Admin",
-      message: replyMessage,
-      timestamp: new Date().toISOString(),
+    try {
+      setSendingReply(true)
+      
+      // Try API first
+      const message = await adminApi.replyToTicket(selectedTicket.id, {
+        message: replyMessage,
+        is_internal: false,
+      }).catch(() => null)
+      
+      if (message) {
+        // API success - add to messages
+        setSelectedTicket({
+          ...selectedTicket,
+          messages: [...(selectedTicket.messages || []), message],
+          status: selectedTicket.status === "open" ? "in_progress" : selectedTicket.status,
+          updated_at: new Date().toISOString(),
+        })
+        toast.success("Reply sent successfully")
+      } else {
+        // Fallback for mock mode
+        const newMessage: SupportTicketMessage = {
+          id: Date.now(),
+          ticket_id: selectedTicket.id,
+          sender_type: "agent",
+          sender_id: 1,
+          sender_name: "Admin",
+          message: replyMessage,
+          is_internal: false,
+          created_at: new Date().toISOString(),
+        }
+        
+        setSelectedTicket({
+          ...selectedTicket,
+          messages: [...(selectedTicket.messages || []), newMessage],
+          status: selectedTicket.status === "open" ? "in_progress" : selectedTicket.status,
+        })
+        toast.success("Reply sent (offline mode)")
+      }
+      
+      setReplyMessage("")
+    } catch (err) {
+      console.error("Error sending reply:", err)
+      toast.error("Failed to send reply")
+    } finally {
+      setSendingReply(false)
+    }
+  }
+
+  const handleUpdateStatus = async (ticketId: number, newStatus: TicketStatus) => {
+    try {
+      await adminApi.updateTicketStatus(ticketId, newStatus).catch(() => null)
+      
+      setTickets(tickets.map(t => 
+        t.id === ticketId ? { ...t, status: newStatus, updated_at: new Date().toISOString() } : t
+      ))
+      if (selectedTicket?.id === ticketId) {
+        setSelectedTicket({ ...selectedTicket, status: newStatus })
+      }
+      toast.success(`Ticket status updated to ${newStatus.replace("_", " ")}`)
+    } catch (err) {
+      console.error("Error updating status:", err)
+      toast.error("Failed to update status")
+    }
+  }
+  
+  const handleAssignTicket = async (ticketId: number, agentId: number | null) => {
+    try {
+      if (agentId) {
+        await adminApi.assignTicket(ticketId, agentId).catch(() => null)
+        toast.success("Ticket assigned successfully")
+      }
+      
+      // Update local state
+      setTickets(tickets.map(t => 
+        t.id === ticketId ? { ...t, assigned_to: agentId || undefined, updated_at: new Date().toISOString() } : t
+      ))
+      if (selectedTicket?.id === ticketId) {
+        setSelectedTicket({ ...selectedTicket, assigned_to: agentId || undefined })
+      }
+    } catch (err) {
+      console.error("Error assigning ticket:", err)
+      toast.error("Failed to assign ticket")
+    }
+  }
+  
+  const handleCreateTicket = async () => {
+    if (!newTicketData.subject || !newTicketData.description) {
+      toast.error("Please fill in all required fields")
+      return
     }
     
-    setSelectedTicket({
-      ...selectedTicket,
-      messages: [...selectedTicket.messages, newMessage],
-      status: selectedTicket.status === "open" ? "in-progress" : selectedTicket.status,
-    })
-    setReplyMessage("")
-  }
-
-  const handleUpdateStatus = (ticketId: string, newStatus: TicketStatus) => {
-    setTickets(tickets.map(t => 
-      t.id === ticketId ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t
-    ))
-    if (selectedTicket?.id === ticketId) {
-      setSelectedTicket({ ...selectedTicket, status: newStatus })
+    try {
+      setCreatingTicket(true)
+      
+      const ticket = await adminApi.createTicket({
+        customer_id: parseInt(newTicketData.customer_id) || undefined,
+        subject: newTicketData.subject,
+        description: newTicketData.description,
+        category: newTicketData.category,
+        priority: newTicketData.priority,
+      }).catch(() => null)
+      
+      if (ticket) {
+        setTickets(prev => [ticket, ...prev])
+        toast.success("Ticket created successfully")
+      } else {
+        // Mock mode
+        const mockTicket: SupportTicket = {
+          id: Date.now(),
+          ticket_number: `TKT-${Date.now()}`,
+          subject: newTicketData.subject,
+          description: newTicketData.description,
+          status: "open",
+          priority: newTicketData.priority,
+          category: newTicketData.category,
+          customer_id: parseInt(newTicketData.customer_id) || 0,
+          customer_name: "Customer",
+          customer_email: "customer@example.com",
+          sla_breached: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          messages: [],
+        }
+        setTickets(prev => [mockTicket, ...prev])
+        toast.success("Ticket created (offline mode)")
+      }
+      
+      setShowNewTicketDialog(false)
+      setNewTicketData({
+        customer_id: "",
+        subject: "",
+        description: "",
+        category: "technical",
+        priority: "medium",
+      })
+    } catch (err) {
+      console.error("Error creating ticket:", err)
+      toast.error("Failed to create ticket")
+    } finally {
+      setCreatingTicket(false)
     }
   }
 
@@ -458,7 +618,9 @@ export default function TicketsPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowNewTicketDialog(false)}>Cancel</Button>
-                <Button>Create Ticket</Button>
+                <Button onClick={handleCreateTicket} disabled={creatingTicket}>
+                  {creatingTicket ? "Creating..." : "Create Ticket"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -495,14 +657,14 @@ export default function TicketsPage() {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-md" onClick={() => setActiveTab("in-progress")}>
+        <Card className="cursor-pointer hover:shadow-md" onClick={() => setActiveTab("in_progress")}>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-yellow-100 rounded-lg">
                 <Clock className="w-5 h-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-yellow-600">{stats.inProgress}</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats.in_progress}</p>
                 <p className="text-xs text-slate-500">In Progress</p>
               </div>
             </div>
@@ -530,7 +692,7 @@ export default function TicketsPage() {
                 <CheckCircle2 className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-green-600">{stats.resolved}</p>
+                <p className="text-2xl font-bold text-green-600">{stats.resolved + (stats.closed || 0)}</p>
                 <p className="text-xs text-slate-500">Resolved</p>
               </div>
             </div>
@@ -544,7 +706,7 @@ export default function TicketsPage() {
                 <Clock className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-lg font-bold text-purple-600">{stats.avgResponseTime}</p>
+                <p className="text-lg font-bold text-purple-600">{stats.avg_response_time}</p>
                 <p className="text-xs text-slate-500">Avg Response</p>
               </div>
             </div>
@@ -558,7 +720,7 @@ export default function TicketsPage() {
                 <BarChart3 className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-lg font-bold text-emerald-600">{stats.avgResolutionTime}</p>
+                <p className="text-lg font-bold text-emerald-600">{stats.avg_resolution_time}</p>
                 <p className="text-xs text-slate-500">Avg Resolution</p>
               </div>
             </div>
@@ -571,7 +733,7 @@ export default function TicketsPage() {
         <TabsList>
           <TabsTrigger value="all">All Tickets</TabsTrigger>
           <TabsTrigger value="open">Open</TabsTrigger>
-          <TabsTrigger value="in-progress">In Progress</TabsTrigger>
+          <TabsTrigger value="in_progress">In Progress</TabsTrigger>
           <TabsTrigger value="pending">Pending</TabsTrigger>
           <TabsTrigger value="resolved">Resolved</TabsTrigger>
         </TabsList>
@@ -665,30 +827,30 @@ export default function TicketsPage() {
                         onClick={() => handleViewTicket(ticket)}
                       >
                         <TableCell className="font-mono text-sm font-medium">
-                          {ticket.id}
+                          {ticket.ticket_number || `TKT-${ticket.id}`}
                         </TableCell>
                         <TableCell>
                           <div className="max-w-xs">
                             <p className="font-medium truncate">{ticket.subject}</p>
                             <p className="text-xs text-slate-500 truncate">
-                              {ticket.messages.length} message(s)
+                              {(ticket.messages || []).length} message(s)
                             </p>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium text-sm">{ticket.customer.name}</p>
-                            <p className="text-xs text-slate-500">{ticket.customer.email}</p>
+                            <p className="font-medium text-sm">{ticket.customer_name || "Unknown"}</p>
+                            <p className="text-xs text-slate-500">{ticket.customer_email || ""}</p>
                           </div>
                         </TableCell>
                         <TableCell>{getCategoryBadge(ticket.category)}</TableCell>
                         <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
                         <TableCell>{getStatusBadge(ticket.status)}</TableCell>
                         <TableCell>
-                          <span className="text-sm">{ticket.assignedTo || "-"}</span>
+                          <span className="text-sm">{ticket.assigned_to_name || "-"}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-slate-500">{formatTimeAgo(ticket.createdAt)}</span>
+                          <span className="text-sm text-slate-500">{formatTimeAgo(ticket.created_at)}</span>
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
@@ -707,7 +869,7 @@ export default function TicketsPage() {
                                 Assign To...
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleUpdateStatus(ticket.id, "in-progress")}>
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(ticket.id, "in_progress")}>
                                 <Clock className="w-4 h-4 mr-2" />
                                 Mark In Progress
                               </DropdownMenuItem>
@@ -764,7 +926,7 @@ export default function TicketsPage() {
         <SheetContent className="w-full sm:max-w-xl p-0 flex flex-col">
           <SheetHeader className="p-6 border-b">
             <SheetTitle className="flex items-center gap-2">
-              <span className="font-mono text-sm text-slate-500">{selectedTicket?.id}</span>
+              <span className="font-mono text-sm text-slate-500">{selectedTicket?.ticket_number || `TKT-${selectedTicket?.id}`}</span>
               <ChevronRight className="w-4 h-4 text-slate-400" />
               <span className="truncate">{selectedTicket?.subject}</span>
             </SheetTitle>
@@ -786,18 +948,18 @@ export default function TicketsPage() {
                 <div className="flex items-center gap-3">
                   <Avatar className="w-10 h-10">
                     <AvatarFallback className="bg-blue-100 text-blue-700">
-                      {selectedTicket.customer.name.split(' ').map(n => n[0]).join('')}
+                      {(selectedTicket.customer_name || "U").split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <p className="font-medium">{selectedTicket.customer.name}</p>
-                    <p className="text-sm text-slate-500">{selectedTicket.customer.plan}</p>
+                    <p className="font-medium">{selectedTicket.customer_name || "Unknown Customer"}</p>
+                    <p className="text-sm text-slate-500">{selectedTicket.customer_plan || "N/A"}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => selectedTicket.customer_email && window.open(`mailto:${selectedTicket.customer_email}`)}>
                       <Mail className="w-4 h-4" />
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => selectedTicket.customer_phone && window.open(`tel:${selectedTicket.customer_phone}`)}>
                       <Phone className="w-4 h-4" />
                     </Button>
                   </div>
@@ -807,28 +969,28 @@ export default function TicketsPage() {
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-4">
-                  {selectedTicket.messages.map(message => (
+                  {(selectedTicket.messages || []).map(message => (
                     <div 
                       key={message.id} 
-                      className={`flex ${message.sender === "agent" ? "justify-end" : "justify-start"}`}
+                      className={`flex ${message.sender_type === "agent" ? "justify-end" : "justify-start"}`}
                     >
                       <div 
                         className={`max-w-[80%] rounded-lg p-3 ${
-                          message.sender === "agent" 
+                          message.sender_type === "agent" 
                             ? "bg-blue-500 text-white" 
                             : "bg-slate-100 text-slate-900"
                         }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`text-xs font-medium ${
-                            message.sender === "agent" ? "text-blue-100" : "text-slate-500"
+                            message.sender_type === "agent" ? "text-blue-100" : "text-slate-500"
                           }`}>
-                            {message.senderName}
+                            {message.sender_name}
                           </span>
                           <span className={`text-xs ${
-                            message.sender === "agent" ? "text-blue-200" : "text-slate-400"
+                            message.sender_type === "agent" ? "text-blue-200" : "text-slate-400"
                           }`}>
-                            {formatTimeAgo(message.timestamp)}
+                            {formatTimeAgo(message.created_at)}
                           </span>
                         </div>
                         <p className="text-sm">{message.message}</p>
@@ -850,20 +1012,20 @@ export default function TicketsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="open">Open</SelectItem>
-                      <SelectItem value="in-progress">In Progress</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="resolved">Resolved</SelectItem>
                       <SelectItem value="closed">Closed</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select>
+                  <Select onValueChange={(v) => handleAssignTicket(selectedTicket.id, parseInt(v) || null)}>
                     <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Assign to..." />
+                      <SelectValue placeholder={selectedTicket.assigned_to_name || "Assign to..."} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="john">John Admin</SelectItem>
-                      <SelectItem value="sarah">Sarah Support</SelectItem>
-                      <SelectItem value="mike">Mike Tech</SelectItem>
+                      <SelectItem value="1">John Admin</SelectItem>
+                      <SelectItem value="2">Sarah Support</SelectItem>
+                      <SelectItem value="3">Mike Tech</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -879,7 +1041,7 @@ export default function TicketsPage() {
                     <Button variant="outline" size="icon">
                       <Paperclip className="w-4 h-4" />
                     </Button>
-                    <Button size="icon" onClick={handleSendReply}>
+                    <Button size="icon" onClick={handleSendReply} disabled={sendingReply || !replyMessage.trim()}>
                       <Send className="w-4 h-4" />
                     </Button>
                   </div>

@@ -1453,6 +1453,169 @@ export interface CustomerOutstanding {
 }
 
 // ==========================================
+// SUPPORT TICKETS (Backend Aligned)
+// ==========================================
+
+export type SupportTicketStatus = 'open' | 'in_progress' | 'pending' | 'resolved' | 'closed'
+export type SupportTicketPriority = 'low' | 'medium' | 'high' | 'urgent'
+export type SupportTicketCategory = 'technical' | 'billing' | 'account' | 'service' | 'other'
+
+export interface SupportTicket {
+  id: number
+  ticket_number: string
+  subject: string
+  description: string
+  status: SupportTicketStatus
+  priority: SupportTicketPriority
+  category: SupportTicketCategory
+  customer_id: number
+  customer_name: string
+  customer_email: string
+  customer_phone: string
+  customer_plan?: string
+  assigned_to?: number
+  assigned_to_name?: string
+  resolution?: string
+  resolved_at?: string
+  first_response_at?: string
+  sla_due_date?: string
+  sla_breached: boolean
+  created_at: string
+  updated_at: string
+  messages?: SupportTicketMessage[]
+}
+
+export interface SupportTicketMessage {
+  id: number
+  ticket_id: number
+  sender_type: 'customer' | 'agent'
+  sender_id: number
+  sender_name: string
+  message: string
+  is_internal: boolean
+  attachments?: string[]
+  created_at: string
+}
+
+export interface SupportTicketStats {
+  total: number
+  open: number
+  in_progress: number
+  pending: number
+  resolved: number
+  closed: number
+  avg_response_time: string    // e.g., "2.5 hrs"
+  avg_resolution_time: string  // e.g., "18 hrs"
+  sla_compliance_rate: number  // Percentage
+  tickets_today: number
+  tickets_this_week: number
+}
+
+export interface CreateTicketRequest {
+  subject: string
+  description: string
+  category: SupportTicketCategory
+  priority: SupportTicketPriority
+  customer_id: number
+}
+
+export interface TicketReplyRequest {
+  message: string
+  is_internal?: boolean
+  attachments?: string[]
+}
+
+// ==========================================
+// SMS MODULE (Backend Aligned)
+// ==========================================
+
+export type SMSStatus = 'pending' | 'sent' | 'delivered' | 'failed'
+export type SMSType = 'single' | 'bulk' | 'automated' | 'campaign'
+
+export interface SMSMessage {
+  id: number
+  recipient: string
+  recipient_name?: string
+  customer_id?: number
+  message: string
+  status: SMSStatus
+  message_type: SMSType
+  provider: string
+  provider_message_id?: string
+  cost?: string
+  segments?: number
+  sent_at: string
+  delivered_at?: string
+  failed_reason?: string
+  created_at: string
+}
+
+export interface SMSTemplate {
+  id: number
+  name: string
+  content: string
+  variables: string[]
+  is_active: boolean
+  usage_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface SMSCampaign {
+  id: number
+  name: string
+  message: string
+  template_id?: number
+  recipient_count: number
+  sent_count: number
+  delivered_count: number
+  failed_count: number
+  status: 'draft' | 'scheduled' | 'running' | 'completed' | 'cancelled'
+  scheduled_at?: string
+  started_at?: string
+  completed_at?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface SMSStats {
+  total_messages: number
+  delivered: number
+  pending: number
+  failed: number
+  delivery_rate: number    // Percentage
+  total_cost: string
+  messages_today: number
+  messages_this_month: number
+}
+
+export interface SendSMSRequest {
+  recipients: string[]          // Array of phone numbers
+  message: string
+  template_id?: number
+  scheduled_at?: string
+}
+
+export interface SendBulkSMSRequest {
+  customer_filter?: {
+    plan_id?: number
+    status?: string
+    expiring_in_days?: number
+  }
+  message: string
+  template_id?: number
+  campaign_name?: string
+  scheduled_at?: string
+}
+
+export interface SMSBalance {
+  provider: string
+  balance: string
+  currency: string
+  credits?: number
+}
+
+// ==========================================
 // HELPER TYPE UTILITIES
 // ==========================================
 

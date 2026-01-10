@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect, useCallback } from "react"
 import {
   MessageSquare,
   Plus,
@@ -84,103 +84,76 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
 import { Switch } from "@/components/ui/switch"
+import { toast } from "sonner"
+import { adminApi } from "@/lib/admin-api"
+import type {
+  SMSMessage,
+  SMSTemplate,
+  SMSCampaign,
+  SMSStats,
+  SMSBalance,
+} from "@/lib/types"
 
-type SMSStatus = "delivered" | "pending" | "failed" | "sent"
+type SMSStatus = "pending" | "sent" | "delivered" | "failed"
 type MessageType = "single" | "bulk" | "automated" | "campaign"
 
-interface SMSMessage {
-  id: string
-  recipient: string
-  recipientName: string
-  message: string
-  status: SMSStatus
-  type: MessageType
-  sentAt: string
-  deliveredAt: string | null
-  cost: number
-  provider: string
-}
-
-interface SMSTemplate {
-  id: string
-  name: string
-  content: string
-  variables: string[]
-  usageCount: number
-  createdAt: string
-}
-
-interface SMSCampaign {
-  id: string
-  name: string
-  message: string
-  recipientCount: number
-  deliveredCount: number
-  failedCount: number
-  status: "draft" | "scheduled" | "running" | "completed" | "cancelled"
-  scheduledAt: string | null
-  createdAt: string
-}
-
-// Mock data
+// Mock data (fallback)
 const mockMessages: SMSMessage[] = [
   {
-    id: "1",
+    id: 1,
     recipient: "+254712345678",
-    recipientName: "John Doe",
+    recipient_name: "John Doe",
     message: "Your internet subscription expires tomorrow. Recharge now to avoid disconnection.",
     status: "delivered",
     type: "automated",
-    sentAt: "2024-01-15 10:30:00",
-    deliveredAt: "2024-01-15 10:30:05",
+    sent_at: "2024-01-15T10:30:00Z",
+    delivered_at: "2024-01-15T10:30:05Z",
     cost: 0.5,
     provider: "Africastalking",
   },
   {
-    id: "2",
+    id: 2,
     recipient: "+254723456789",
-    recipientName: "Jane Smith",
+    recipient_name: "Jane Smith",
     message: "Payment of KSh 2,000 received. Your account is now active until Feb 15, 2024.",
     status: "delivered",
     type: "automated",
-    sentAt: "2024-01-14 14:22:00",
-    deliveredAt: "2024-01-14 14:22:03",
+    sent_at: "2024-01-14T14:22:00Z",
+    delivered_at: "2024-01-14T14:22:03Z",
     cost: 0.5,
     provider: "Africastalking",
   },
   {
-    id: "3",
+    id: 3,
     recipient: "+254734567890",
-    recipientName: "Mike Johnson",
+    recipient_name: "Mike Johnson",
     message: "Network maintenance scheduled for Jan 20, 2024 from 2 AM to 5 AM.",
     status: "pending",
     type: "bulk",
-    sentAt: "2024-01-15 09:00:00",
-    deliveredAt: null,
+    sent_at: "2024-01-15T09:00:00Z",
     cost: 0.5,
     provider: "Africastalking",
   },
   {
-    id: "4",
+    id: 4,
     recipient: "+254745678901",
-    recipientName: "Sarah Williams",
+    recipient_name: "Sarah Williams",
     message: "Your support ticket #1234 has been resolved. Thank you for your patience.",
     status: "failed",
     type: "automated",
-    sentAt: "2024-01-13 16:45:00",
-    deliveredAt: null,
+    sent_at: "2024-01-13T16:45:00Z",
     cost: 0,
     provider: "Africastalking",
   },
   {
-    id: "5",
+    id: 5,
     recipient: "+254756789012",
-    recipientName: "David Brown",
+    recipient_name: "David Brown",
     message: "Earn double loyalty points this week! Recharge KSh 1,000+ and get 200 bonus points.",
     status: "delivered",
     type: "campaign",
-    sentAt: "2024-01-12 11:00:00",
-    deliveredAt: "2024-01-12 11:00:08",
+    sent_at: "2024-01-12T11:00:00Z",
+    delivered_at: "2024-01-12T11:00:08Z",
     cost: 0.5,
     provider: "Africastalking",
   },
@@ -188,74 +161,94 @@ const mockMessages: SMSMessage[] = [
 
 const mockTemplates: SMSTemplate[] = [
   {
-    id: "1",
+    id: 1,
     name: "Payment Confirmation",
     content: "Payment of KSh {amount} received. Your account is now active until {expiry_date}. Thank you!",
     variables: ["amount", "expiry_date"],
-    usageCount: 1250,
-    createdAt: "2023-06-01",
+    usage_count: 1250,
+    is_active: true,
+    created_at: "2023-06-01T00:00:00Z",
+    updated_at: "2023-06-01T00:00:00Z",
   },
   {
-    id: "2",
+    id: 2,
     name: "Expiry Reminder",
     content: "Your internet subscription expires {days_left}. Recharge now to avoid disconnection. Call 0800-NETILY for help.",
     variables: ["days_left"],
-    usageCount: 890,
-    createdAt: "2023-06-01",
+    usage_count: 890,
+    is_active: true,
+    created_at: "2023-06-01T00:00:00Z",
+    updated_at: "2023-06-01T00:00:00Z",
   },
   {
-    id: "3",
+    id: 3,
     name: "Welcome Message",
     content: "Welcome to Netily! Your account {username} is now active. Download our app for easy recharges.",
     variables: ["username"],
-    usageCount: 456,
-    createdAt: "2023-07-15",
+    usage_count: 456,
+    is_active: true,
+    created_at: "2023-07-15T00:00:00Z",
+    updated_at: "2023-07-15T00:00:00Z",
   },
   {
-    id: "4",
+    id: 4,
     name: "Maintenance Notice",
     content: "Scheduled maintenance on {date} from {start_time} to {end_time}. We apologize for any inconvenience.",
     variables: ["date", "start_time", "end_time"],
-    usageCount: 12,
-    createdAt: "2023-08-20",
+    usage_count: 12,
+    is_active: true,
+    created_at: "2023-08-20T00:00:00Z",
+    updated_at: "2023-08-20T00:00:00Z",
   },
 ]
 
 const mockCampaigns: SMSCampaign[] = [
   {
-    id: "1",
+    id: 1,
     name: "New Year Promo 2024",
     message: "🎉 Happy New Year! Get 20% extra data on all recharges above KSh 500. Valid until Jan 15.",
-    recipientCount: 5000,
-    deliveredCount: 4850,
-    failedCount: 150,
+    recipient_count: 5000,
+    delivered_count: 4850,
+    failed_count: 150,
     status: "completed",
-    scheduledAt: null,
-    createdAt: "2024-01-01",
+    scheduled_at: undefined,
+    created_at: "2024-01-01T00:00:00Z",
   },
   {
-    id: "2",
+    id: 2,
     name: "Weekend Special",
     message: "🌟 Weekend Special! Unlimited streaming this Sat-Sun for just KSh 99. Dial *123# to activate.",
-    recipientCount: 3000,
-    deliveredCount: 0,
-    failedCount: 0,
+    recipient_count: 3000,
+    delivered_count: 0,
+    failed_count: 0,
     status: "scheduled",
-    scheduledAt: "2024-01-20 09:00:00",
-    createdAt: "2024-01-15",
+    scheduled_at: "2024-01-20T09:00:00Z",
+    created_at: "2024-01-15T00:00:00Z",
   },
   {
-    id: "3",
+    id: 3,
     name: "Loyalty Bonus Points",
     message: "You've earned bonus loyalty points! Check your dashboard to see your rewards balance.",
-    recipientCount: 1500,
-    deliveredCount: 1420,
-    failedCount: 80,
+    recipient_count: 1500,
+    delivered_count: 1420,
+    failed_count: 80,
     status: "completed",
-    scheduledAt: null,
-    createdAt: "2024-01-10",
+    scheduled_at: undefined,
+    created_at: "2024-01-10T00:00:00Z",
   },
 ]
+
+// Mock stats
+const mockStats: SMSStats = {
+  total_sent: 5,
+  delivered: 3,
+  pending: 1,
+  failed: 1,
+  delivery_rate: 60.0,
+  total_cost: 2.0,
+  messages_today: 2,
+  messages_this_week: 5,
+}
 
 const getStatusBadge = (status: SMSStatus) => {
   switch (status) {
@@ -294,14 +287,17 @@ export default function SMSPage() {
   const [messages, setMessages] = useState<SMSMessage[]>(mockMessages)
   const [templates, setTemplates] = useState<SMSTemplate[]>(mockTemplates)
   const [campaigns, setCampaigns] = useState<SMSCampaign[]>(mockCampaigns)
+  const [stats, setStats] = useState<SMSStats>(mockStats)
+  const [balance, setBalance] = useState<SMSBalance | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [isComposeOpen, setIsComposeOpen] = useState(false)
   const [isBulkOpen, setIsBulkOpen] = useState(false)
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
-  const [selectedMessages, setSelectedMessages] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [selectedMessages, setSelectedMessages] = useState<number[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSending, setIsSending] = useState(false)
 
   // Compose form state
   const [composeForm, setComposeForm] = useState({
@@ -317,30 +313,66 @@ export default function SMSPage() {
     content: "",
   })
 
-  // Stats calculations
-  const stats = useMemo(() => {
-    const total = messages.length
-    const delivered = messages.filter(m => m.status === "delivered").length
-    const pending = messages.filter(m => m.status === "pending").length
-    const failed = messages.filter(m => m.status === "failed").length
-    const totalCost = messages.reduce((acc, m) => acc + m.cost, 0)
-    
-    return {
-      total,
-      delivered,
-      pending,
-      failed,
-      deliveryRate: total > 0 ? ((delivered / total) * 100).toFixed(1) : "0",
-      totalCost: totalCost.toFixed(2),
+  // Fetch all SMS data
+  const fetchSMSData = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      
+      const [messagesData, templatesData, campaignsData, statsData, balanceData] = await Promise.all([
+        adminApi.getSMSMessages().catch(() => null),
+        adminApi.getSMSTemplates().catch(() => null),
+        adminApi.getSMSCampaigns().catch(() => null),
+        adminApi.getSMSStats().catch(() => null),
+        adminApi.getSMSBalance().catch(() => null),
+      ])
+      
+      if (messagesData) {
+        const messagesList = Array.isArray(messagesData) ? messagesData : (messagesData.results || [])
+        setMessages(messagesList)
+      } else {
+        console.warn("Using mock SMS messages - API not available")
+        setMessages(mockMessages)
+      }
+      
+      if (templatesData) {
+        const templatesList = Array.isArray(templatesData) ? templatesData : (templatesData.results || [])
+        setTemplates(templatesList)
+      } else {
+        setTemplates(mockTemplates)
+      }
+      
+      if (campaignsData) {
+        const campaignsList = Array.isArray(campaignsData) ? campaignsData : (campaignsData.results || [])
+        setCampaigns(campaignsList)
+      } else {
+        setCampaigns(mockCampaigns)
+      }
+      
+      if (statsData) {
+        setStats(statsData)
+      }
+      
+      if (balanceData) {
+        setBalance(balanceData)
+      }
+    } catch (err) {
+      console.error("Error fetching SMS data:", err)
+      toast.error("Failed to load SMS data")
+    } finally {
+      setIsLoading(false)
     }
-  }, [messages])
+  }, [])
+
+  useEffect(() => {
+    fetchSMSData()
+  }, [fetchSMSData])
 
   // Filtered messages
   const filteredMessages = useMemo(() => {
     return messages.filter(message => {
       const matchesSearch = 
         message.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        message.recipientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (message.recipient_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         message.message.toLowerCase().includes(searchQuery.toLowerCase())
       
       const matchesStatus = statusFilter === "all" || message.status === statusFilter
@@ -350,36 +382,123 @@ export default function SMSPage() {
     })
   }, [messages, searchQuery, statusFilter, typeFilter])
 
-  const handleRefresh = () => {
-    setIsLoading(true)
-    // Simulate API refresh
-    setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
-  }
+  const handleRefresh = useCallback(async () => {
+    await fetchSMSData()
+    toast.success("SMS data refreshed")
+  }, [fetchSMSData])
 
-  const handleSendMessage = () => {
-    // Simulate sending
-    setIsLoading(true)
-    setTimeout(() => {
+  const handleSendMessage = async () => {
+    if (!composeForm.recipients || !composeForm.message) {
+      toast.error("Please fill in recipient and message")
+      return
+    }
+    
+    try {
+      setIsSending(true)
+      
+      // Try API first
+      const result = await adminApi.sendSMS({
+        recipient: composeForm.recipients,
+        message: composeForm.message,
+        template_id: composeForm.template ? parseInt(composeForm.template) : undefined,
+      }).catch(() => null)
+      
+      if (result) {
+        setMessages(prev => [result, ...prev])
+        toast.success("SMS sent successfully")
+      } else {
+        // Mock mode
+        const mockMsg: SMSMessage = {
+          id: Date.now(),
+          recipient: composeForm.recipients,
+          recipient_name: "Unknown",
+          message: composeForm.message,
+          status: "pending",
+          type: "single",
+          sent_at: new Date().toISOString(),
+          cost: 0.5,
+          provider: "Mock",
+        }
+        setMessages(prev => [mockMsg, ...prev])
+        toast.success("SMS queued (offline mode)")
+      }
+      
       setIsComposeOpen(false)
       setComposeForm({ recipients: "", message: "", template: "", scheduleFor: "" })
-      setIsLoading(false)
-    }, 1500)
+    } catch (err) {
+      console.error("Error sending SMS:", err)
+      toast.error("Failed to send SMS")
+    } finally {
+      setIsSending(false)
+    }
   }
 
-  const handleSaveTemplate = () => {
-    const newTpl: SMSTemplate = {
-      id: Date.now().toString(),
-      name: newTemplate.name,
-      content: newTemplate.content,
-      variables: newTemplate.content.match(/\{(\w+)\}/g)?.map(v => v.slice(1, -1)) || [],
-      usageCount: 0,
-      createdAt: new Date().toISOString().split("T")[0],
+  const handleSaveTemplate = async () => {
+    if (!newTemplate.name || !newTemplate.content) {
+      toast.error("Please fill in template name and content")
+      return
     }
-    setTemplates([...templates, newTpl])
-    setNewTemplate({ name: "", content: "" })
-    setIsTemplateDialogOpen(false)
+    
+    try {
+      const result = await adminApi.createSMSTemplate({
+        name: newTemplate.name,
+        content: newTemplate.content,
+        variables: newTemplate.content.match(/\{(\w+)\}/g)?.map(v => v.slice(1, -1)) || [],
+        is_active: true,
+      }).catch(() => null)
+      
+      if (result) {
+        setTemplates(prev => [...prev, result])
+        toast.success("Template created successfully")
+      } else {
+        // Mock mode
+        const newTpl: SMSTemplate = {
+          id: Date.now(),
+          name: newTemplate.name,
+          content: newTemplate.content,
+          variables: newTemplate.content.match(/\{(\w+)\}/g)?.map(v => v.slice(1, -1)) || [],
+          usage_count: 0,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+        setTemplates(prev => [...prev, newTpl])
+        toast.success("Template created (offline mode)")
+      }
+      
+      setNewTemplate({ name: "", content: "" })
+      setIsTemplateDialogOpen(false)
+    } catch (err) {
+      console.error("Error creating template:", err)
+      toast.error("Failed to create template")
+    }
+  }
+  
+  const handleDeleteTemplate = async (templateId: number) => {
+    try {
+      await adminApi.deleteSMSTemplate(templateId).catch(() => null)
+      setTemplates(prev => prev.filter(t => t.id !== templateId))
+      toast.success("Template deleted")
+    } catch (err) {
+      console.error("Error deleting template:", err)
+      toast.error("Failed to delete template")
+    }
+  }
+  
+  const handleRetrySMS = async (messageId: number) => {
+    try {
+      const result = await adminApi.retrySMS(messageId).catch(() => null)
+      if (result) {
+        setMessages(prev => prev.map(m => m.id === messageId ? result : m))
+        toast.success("SMS retry initiated")
+      } else {
+        setMessages(prev => prev.map(m => m.id === messageId ? { ...m, status: "pending" as const } : m))
+        toast.success("SMS retry initiated (offline mode)")
+      }
+    } catch (err) {
+      console.error("Error retrying SMS:", err)
+      toast.error("Failed to retry SMS")
+    }
   }
 
   const handleSelectAll = (checked: boolean) => {
@@ -390,7 +509,7 @@ export default function SMSPage() {
     }
   }
 
-  const handleSelectMessage = (id: string, checked: boolean) => {
+  const handleSelectMessage = (id: number, checked: boolean) => {
     if (checked) {
       setSelectedMessages([...selectedMessages, id])
     } else {
@@ -402,7 +521,7 @@ export default function SMSPage() {
     setComposeForm({
       ...composeForm,
       message: template.content,
-      template: template.id,
+      template: template.id.toString(),
     })
   }
 
@@ -433,7 +552,7 @@ export default function SMSPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-600">Total Sent</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-2xl font-bold">{stats.total_sent}</p>
               </div>
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <MessageSquare className="w-5 h-5 text-blue-600" />
@@ -489,7 +608,7 @@ export default function SMSPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-600">Delivery Rate</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.deliveryRate}%</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.delivery_rate?.toFixed(1) || 0}%</p>
               </div>
               <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-purple-600" />
@@ -611,7 +730,7 @@ export default function SMSPage() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{message.recipientName}</div>
+                            <div className="font-medium">{message.recipient_name || "Unknown"}</div>
                             <div className="text-sm text-slate-500">{message.recipient}</div>
                           </div>
                         </TableCell>
@@ -623,7 +742,7 @@ export default function SMSPage() {
                           <Badge variant="outline" className="capitalize">{message.type}</Badge>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell text-sm text-slate-500">
-                          {message.sentAt}
+                          {message.sent_at ? new Date(message.sent_at).toLocaleString() : "-"}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -637,6 +756,12 @@ export default function SMSPage() {
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
+                              {message.status === "failed" && (
+                                <DropdownMenuItem onClick={() => handleRetrySMS(message.id)}>
+                                  <RefreshCw className="w-4 h-4 mr-2" />
+                                  Retry
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem>
                                 <Send className="w-4 h-4 mr-2" />
                                 Resend
@@ -687,11 +812,11 @@ export default function SMSPage() {
                           <div className="flex items-center gap-2 mb-2">
                             <h4 className="font-semibold">{template.name}</h4>
                             <Badge variant="outline" className="text-xs">
-                              Used {template.usageCount} times
+                              Used {template.usage_count || 0} times
                             </Badge>
                           </div>
                           <p className="text-sm text-slate-600 mb-3">{template.content}</p>
-                          {template.variables.length > 0 && (
+                          {template.variables && template.variables.length > 0 && (
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-slate-500">Variables:</span>
                               {template.variables.map((v) => (
@@ -788,30 +913,30 @@ export default function SMSPage() {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Users className="w-4 h-4 text-slate-400" />
-                            {campaign.recipientCount.toLocaleString()}
+                            {(campaign.recipient_count || 0).toLocaleString()}
                           </div>
                         </TableCell>
                         <TableCell>
                           <div>
                             <div className="flex items-center gap-2">
                               <Progress 
-                                value={(campaign.deliveredCount / campaign.recipientCount) * 100} 
+                                value={campaign.recipient_count ? ((campaign.delivered_count || 0) / campaign.recipient_count) * 100 : 0} 
                                 className="w-20 h-2"
                               />
                               <span className="text-sm">
-                                {campaign.deliveredCount}/{campaign.recipientCount}
+                                {campaign.delivered_count || 0}/{campaign.recipient_count || 0}
                               </span>
                             </div>
-                            {campaign.failedCount > 0 && (
+                            {(campaign.failed_count || 0) > 0 && (
                               <span className="text-xs text-red-500">
-                                {campaign.failedCount} failed
+                                {campaign.failed_count} failed
                               </span>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>{getCampaignStatusBadge(campaign.status)}</TableCell>
                         <TableCell className="text-sm text-slate-500">
-                          {campaign.createdAt}
+                          {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString() : "-"}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -1038,8 +1163,8 @@ export default function SMSPage() {
             <Button variant="outline" onClick={() => setIsComposeOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSendMessage} disabled={isLoading}>
-              {isLoading ? (
+            <Button onClick={handleSendMessage} disabled={isSending || !composeForm.recipients || !composeForm.message}>
+              {isSending ? (
                 <>Sending...</>
               ) : composeForm.scheduleFor ? (
                 <>
