@@ -254,7 +254,7 @@ export default function RouterDetailPage() {
     // Router Auth Script
     const [authScript, setAuthScript] = useState<string | null>(null)
     const [isScriptLoading, setIsScriptLoading] = useState(false)
-    const [isScriptDialogOpen, setIsScriptDialogOpen] = useState(false)
+    const [isAuthScriptDialogOpen, setIsAuthScriptDialogOpen] = useState(false)
   const params = useParams()
   const router = useRouter()
   const routerId = params.id as string
@@ -744,17 +744,17 @@ export default function RouterDetailPage() {
             {/* Router Auth Script Section */}
             <div className="ml-auto">
               <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setIsScriptDialogOpen(true)}
-              >
-                <FileCode className="w-4 h-4 mr-2" />
-                Get Auth Script
-              </Button>
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsAuthScriptDialogOpen(true)}
+                >
+                  <FileCode className="w-4 h-4 mr-2" />
+                  Get Auth Script
+                </Button>
             </div>
       {/* Auth Script Dialog */}
-      {isScriptDialogOpen && (
-        <Dialog open={isScriptDialogOpen} onOpenChange={setIsScriptDialogOpen}>
+      {isAuthScriptDialogOpen && (
+        <Dialog open={isAuthScriptDialogOpen} onOpenChange={setIsAuthScriptDialogOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Router Authentication Script</DialogTitle>
@@ -775,7 +775,7 @@ export default function RouterDetailPage() {
               <Button onClick={handleCopyAuthScript} disabled={!authScript}>
                 <Copy className="w-4 h-4 mr-2" /> Copy Script
               </Button>
-              <Button variant="outline" onClick={() => setIsScriptDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsAuthScriptDialogOpen(false)}>
                 Close
               </Button>
             </DialogFooter>
