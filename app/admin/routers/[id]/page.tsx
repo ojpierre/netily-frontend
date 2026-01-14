@@ -1,6 +1,16 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from "react"
+// Fetch router authentication script
+async function fetchRouterAuthScript(routerId: string) {
+  try {
+    const res = await fetch(`/api/v1/network/routers/${routerId}/script/`)
+    if (!res.ok) throw new Error('Failed to fetch script')
+    return await res.text()
+  } catch (e) {
+    return null
+  }
+}
 import { useParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
@@ -241,6 +251,10 @@ const generateDemoScripts = (authKey: string): RouterScript[] => [
 ]
 
 export default function RouterDetailPage() {
+    // Router Auth Script
+    const [authScript, setAuthScript] = useState<string | null>(null)
+    const [isScriptLoading, setIsScriptLoading] = useState(false)
+    const [isScriptDialogOpen, setIsScriptDialogOpen] = useState(false)
   const params = useParams()
   const router = useRouter()
   const routerId = params.id as string
@@ -361,7 +375,19 @@ export default function RouterDetailPage() {
     if (hasFetchedRef.current) return
     hasFetchedRef.current = true
     fetchData()
+    // Fetch router authentication script
+    setIsScriptLoading(true)
+    fetchRouterAuthScript(routerId)
+      .then(setAuthScript)
+      .finally(() => setIsScriptLoading(false))
   }, [fetchData])
+  // Handler to copy script
+  const handleCopyAuthScript = () => {
+    if (authScript) {
+      navigator.clipboard.writeText(authScript)
+      toast.success("Script copied to clipboard")
+    }
+  }
 
   const handleRefresh = async () => {
     setIsLoading(true)
@@ -715,6 +741,47 @@ export default function RouterDetailPage() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
+            {/* Router Auth Script Section */}
+            <div className="ml-auto">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsScriptDialogOpen(true)}
+              >
+                <FileCode className="w-4 h-4 mr-2" />
+                Get Auth Script
+              </Button>
+            </div>
+      {/* Auth Script Dialog */}
+      {isScriptDialogOpen && (
+        <Dialog open={isScriptDialogOpen} onOpenChange={setIsScriptDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Router Authentication Script</DialogTitle>
+              <DialogDescription>
+                Run this script on your router to authenticate it with Netily.
+              </DialogDescription>
+            </DialogHeader>
+            {isScriptLoading ? (
+              <div className="p-4 text-center">Loading script...</div>
+            ) : authScript ? (
+              <div className="bg-gray-100 rounded p-4 font-mono text-xs whitespace-pre-wrap mb-4">
+                {authScript}
+              </div>
+            ) : (
+              <div className="p-4 text-red-500">Failed to load script.</div>
+            )}
+            <DialogFooter>
+              <Button onClick={handleCopyAuthScript} disabled={!authScript}>
+                <Copy className="w-4 h-4 mr-2" /> Copy Script
+              </Button>
+              <Button variant="outline" onClick={() => setIsScriptDialogOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
             <div className={`p-3 rounded-lg ${
               routerData.status === "online" ? "bg-green-100" :

@@ -709,3 +709,29 @@ export const api = new ApiService()
 
 // Export class for testing/extension
 export { ApiService }
+
+
+// =============================
+// HOTSPOT (Captive Portal)
+// =============================
+
+/**
+ * Fetch available hotspot plans for a router
+ */
+export async function fetchHotspotPlans(routerId: string) {
+  // TODO: Replace with real API call when backend is ready
+  // return api.request(`/hotspot/plans/?router=${routerId}`)
+  return [
+    { id: 1, name: "1 Hour", price: 50, duration: "1h", speed: "5Mbps" },
+    { id: 2, name: "1 Day", price: 200, duration: "24h", speed: "10Mbps" },
+  ]
+}
+
+/**
+ * Purchase hotspot access (plan) for a router
+ */
+export async function purchaseHotspotAccess({ routerId, planId, phoneNumber }: { routerId: string, planId: number, phoneNumber: string }) {
+  // TODO: Replace with real API call when backend is ready
+  // return api.request(`/hotspot/purchase/`, { method: 'POST', body: JSON.stringify({ router: routerId, plan: planId, phone_number: phoneNumber }) })
+  return { status: 'success', message: 'Payment simulated. Access granted.' }
+}
