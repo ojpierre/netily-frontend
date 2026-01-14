@@ -744,12 +744,12 @@ export default function RouterDetailPage() {
             {/* Router Auth Script Section */}
             <div className="ml-auto">
               <Button
-                  variant="secondary"
+                  variant={routerData.is_authenticated ? "outline" : "secondary"}
                   size="sm"
                   onClick={() => setIsAuthScriptDialogOpen(true)}
                 >
                   <FileCode className="w-4 h-4 mr-2" />
-                  Get Auth Script
+                  {routerData.is_authenticated ? "View Auth Script" : "Authenticate Router"}
                 </Button>
             </div>
       {/* Auth Script Dialog */}
@@ -759,15 +759,36 @@ export default function RouterDetailPage() {
             <DialogHeader>
               <DialogTitle>Router Authentication Script</DialogTitle>
               <DialogDescription>
-                Run this script on your router to authenticate it with Netily.
+                One-time setup for secure router authentication.
               </DialogDescription>
+              <Alert className="mb-4 mt-2">
+                <Shield className="h-4 w-4" />
+                <AlertTitle>One-time setup</AlertTitle>
+                <AlertDescription>
+                  Run this script once on the router. It securely links the router to Netily.
+                </AlertDescription>
+              </Alert>
             </DialogHeader>
             {isScriptLoading ? (
               <div className="p-4 text-center">Loading script...</div>
             ) : authScript ? (
-              <div className="bg-gray-100 rounded p-4 font-mono text-xs whitespace-pre-wrap mb-4">
-                {authScript}
-              </div>
+              <>
+                <div className="bg-gray-100 rounded p-4 font-mono text-xs whitespace-pre-wrap mb-4">
+                  {authScript}
+                </div>
+                {routerData.is_authenticated && (
+                  <div className="flex items-center gap-2 text-green-700 text-sm mb-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Authenticated on {formatDate(routerData.authenticated_at!)}
+                  </div>
+                )}
+                {isUsingDemoData && (
+                  <Badge variant="outline" className="text-amber-600 mb-2">Demo Authentication</Badge>
+                )}
+                <div className="text-xs text-slate-500 mt-2">
+                  After running the script, click Refresh to update status.
+                </div>
+              </>
             ) : (
               <div className="p-4 text-red-500">Failed to load script.</div>
             )}
