@@ -1,16 +1,6 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from "react"
-// Fetch router authentication script
-async function fetchRouterAuthScript(routerId: string) {
-  try {
-    const res = await fetch(`/api/v1/network/routers/${routerId}/script/`)
-    if (!res.ok) throw new Error('Failed to fetch script')
-    return await res.text()
-  } catch (e) {
-    return null
-  }
-}
 import { useParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
@@ -375,12 +365,13 @@ export default function RouterDetailPage() {
     if (hasFetchedRef.current) return
     hasFetchedRef.current = true
     fetchData()
-    // Fetch router authentication script
+    // Fetch router authentication script from backend
     setIsScriptLoading(true)
-    fetchRouterAuthScript(routerId)
-      .then(setAuthScript)
+    adminApi.getRouterAuthKey(parseInt(routerId))
+      .then((data) => setAuthScript(data.script))
+      .catch(() => setAuthScript(null))
       .finally(() => setIsScriptLoading(false))
-  }, [fetchData])
+  }, [fetchData, routerId])
   // Handler to copy script
   const handleCopyAuthScript = () => {
     if (authScript) {
