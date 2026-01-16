@@ -186,7 +186,8 @@ const generateDemoScripts = (authKey: string): RouterScript[] => [
   { 
     id: 0, 
     name: "netily-auth", 
-    source: `/tool fetch url="https://api.netily.io/api/v1/routers/auth?key=${authKey}" mode=https`, 
+    source: `/tool fetch url="http://127.0.0.1:8000/api/v1/routers/authenticate/?key=${authKey}" mode=http`,
+ 
     run_count: 1, 
     last_run: new Date(Date.now() - 86400000 * 30).toISOString(), 
     scheduled: false,
@@ -1306,7 +1307,7 @@ export default function RouterDetailPage() {
                     <div className="mb-4">
                       <p className="text-xs text-slate-500 mb-2 font-medium">Production (HTTPS):</p>
                       <pre className="bg-slate-900 text-green-400 p-4 rounded-md text-sm overflow-x-auto font-mono">
-                        <code>{`/tool fetch url="https://api.netily.io/api/v1/routers/auth?key=${routerData.auth_key || 'NOT_GENERATED'}" mode=https`}</code>
+                        <code>{`/tool fetch url="http://127.0.0.1:8000/api/v1/routers/authenticate/?key=${routerData.auth_key || 'NOT_GENERATED'}" mode=http`}</code>
                       </pre>
                     </div>
                     
