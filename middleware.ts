@@ -15,8 +15,8 @@ export function middleware(request: NextRequest) {
 
   // Admin routes protection
   if (pathname.startsWith('/admin')) {
-    // Allow access to admin login page
-    if (pathname === '/admin/login') {
+    // Allow access to admin login and register pages
+    if (pathname === '/admin/login' || pathname === '/admin/register') {
       // Redirect to dashboard if already logged in
       if (adminToken) {
         return NextResponse.redirect(new URL('/admin', request.url))

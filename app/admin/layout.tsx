@@ -51,6 +51,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { TrialCountdown, TrialCountdownCompact } from "@/components/trial-countdown"
+import { TrialGuard } from "@/components/trial-guard"
 
 // Navigation organized by sections
 const navigationSections = [
@@ -123,8 +125,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
 
-  // Check if we're on a public page (login)
-  const isPublicPage = pathname?.startsWith('/admin/login')
+  // Check if we're on a public page (login or register)
+  const isPublicPage = pathname?.startsWith('/admin/login') || pathname?.startsWith('/admin/register')
 
   // Handle hydration
   useEffect(() => {
@@ -250,7 +252,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Sidebar footer */}
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-slate-800 space-y-3">
+          {/* Trial countdown for sidebar (compact) */}
+          {!sidebarCollapsed && (
+            <div className="lg:hidden">
+              <TrialCountdownCompact />
+            </div>
+          )}
           <Button
             variant="ghost"
             size={sidebarCollapsed ? "icon" : "default"}
@@ -295,6 +303,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
           {/* Right side controls */}
           <div className="flex items-center gap-2">
+            {/* Trial Countdown */}
+            <div className="hidden md:block">
+              <TrialCountdown />
+            </div>
+
             {/* Notifications */}
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-5 h-5" />
@@ -342,7 +355,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="p-4 lg:p-6">{children}</main>
+        <main className="p-4 lg:p-6">
+          <TrialGuard>{children}</TrialGuard>
+        </main>
       </div>
     </div>
   )
