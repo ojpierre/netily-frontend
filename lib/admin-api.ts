@@ -80,6 +80,10 @@ import type {
   SendSMSRequest,
   SendBulkSMSRequest,
   SMSBalance,
+  // Staff types
+  CreateStaffUserRequest,
+  CreateStaffUserResponse,
+  StaffRole,
 } from './types'
 
 // Re-export for backward compatibility
@@ -338,8 +342,8 @@ class AdminApiService {
     return this.request<User>(`/core/users/${id}/`)
   }
 
-  async createStaffUser(data: Partial<User>): Promise<User> {
-    return this.request<User>('/core/users/', {
+  async createStaffUser(data: CreateStaffUserRequest): Promise<CreateStaffUserResponse> {
+    return this.request<CreateStaffUserResponse>('/core/users/', {
       method: 'POST',
       body: JSON.stringify(data),
     })

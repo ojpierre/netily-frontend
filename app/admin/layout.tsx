@@ -36,6 +36,7 @@ import {
   Calendar,
   Banknote,
   QrCode,
+  UserCog,
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -61,6 +62,7 @@ const navigationSections = [
     items: [
       { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
       { name: "Users", href: "/admin/users", icon: Users },
+      { name: "Staff", href: "/admin/staff", icon: UserCog },
       { name: "Plans", href: "/admin/plans", icon: Package },
     ],
   },

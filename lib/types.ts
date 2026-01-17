@@ -8,17 +8,60 @@
 // CORE MODULE TYPES
 // ==========================================
 
+// Staff role types supported by backend
+export type StaffRole = 'staff' | 'technician' | 'accountant' | 'support'
+export type UserRole = 'admin' | 'customer' | StaffRole
+
+export type Gender = 'male' | 'female' | 'other'
+
+export interface Company {
+  id: number
+  name: string
+  email: string
+}
+
 export interface User {
   id: number
-  username: string
+  username?: string
   email: string
   first_name?: string
   last_name?: string
+  role?: UserRole
+  phone_number?: string
+  id_number?: string
+  gender?: Gender
+  date_of_birth?: string
   is_staff: boolean
   is_superuser: boolean
   is_active: boolean
+  is_verified?: boolean
   date_joined?: string
   last_login?: string
+  company?: Company
+}
+
+// Request payload for creating staff users
+export interface CreateStaffUserRequest {
+  email: string
+  password: string
+  first_name: string
+  last_name: string
+  role: StaffRole
+  phone_number?: string
+  id_number?: string
+  gender?: Gender
+  date_of_birth?: string
+  is_active?: boolean
+  is_verified?: boolean
+  is_staff?: boolean
+}
+
+// Response from creating staff user
+export interface CreateStaffUserResponse {
+  user: User
+  refresh: string
+  access: string
+  message: string
 }
 
 export interface UserProfile {
