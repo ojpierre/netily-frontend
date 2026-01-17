@@ -226,7 +226,6 @@ Once implemented, the frontend will:
 
 1. **Routers List Page** (`/admin/routers`)
    - Display all routers from API
-   - Allow adding new router (name only)
    - Navigate to router details
 
 2. **Router Details Page** (`/admin/routers/{id}`)
@@ -240,6 +239,185 @@ Once implemented, the frontend will:
    - Admin copies script: `/tool fetch url="https://api.netily.io/api/v1/routers/auth?key=RTR_XXX" mode=https`
    - Runs on router
    - Router appears as "Authenticated" in dashboard
+
+---
+
+## 🔵 STAFF MANAGEMENT MODULE (NEW)
+
+> **Status:** Frontend created at `/admin/staff`. Backend clarifications needed.
+
+### Implemented Frontend Features
+
+- **Staff List Page** - Table with search, role filtering, pagination
+- **Create Staff Dialog** - Role selection cards, form validation, password strength indicator
+- **Staff Roles Supported:** `staff`, `technician`, `accountant`, `support`
+- **Navigation** - Added "Staff" link in admin sidebar
+
+### Backend Clarifications Needed
+
+Please confirm the following with the backend team:
+
+#### 1. List Staff Endpoint
+
+```
+GET /api/v1/core/users/
+```
+
+**Questions:**
+- Does it support query params for filtering? e.g., `?role=technician&is_active=true`
+- What is the pagination format? (`page`, `page_size` or `limit`, `offset`?)
+- Does it return ALL users or only the logged-in company's users?
+
+**Expected Response:**
+```json
+{
+  "count": 25,
+  "next": "http://api.example.com/api/v1/core/users/?page=2",
+  "previous": null,
+  "results": [
+    {
+      "id": 7,
+      "email": "staff@example.com",
+      "first_name": "Jane",
+      "last_name": "Doe",
+      "role": "technician",
+      "phone_number": "+254712345678",
+      "id_number": "12345678",
+      "gender": "female",
+      "date_of_birth": "1990-01-01",
+      "is_active": true,
+      "is_verified": false,
+      "is_staff": true,
+      "date_joined": "2026-01-18T10:00:00Z",
+      "last_login": "2026-01-18T12:30:00Z",
+      "company": {
+        "id": 2,
+        "name": "Your ISP Name",
+        "email": "info@yourisp.com"
+      }
+    }
+  ]
+}
+```
+
+---
+
+#### 2. Update Staff Endpoint
+
+```
+PATCH /api/v1/core/users/{id}/
+```
+
+**Questions:**
+- Which fields can be updated? (role, phone_number, is_active, etc.)
+- Can password be changed via PATCH, or is there a separate endpoint?
+- Can an admin change another staff member's role?
+
+**Expected Request:**
+```json
+{
+  "first_name": "Jane",
+  "last_name": "Smith",
+  "role": "accountant",
+  "phone_number": "+254712345678",
+  "is_active": false
+}
+```
+
+**Expected Response:**
+```json
+{
+  "id": 7,
+  "email": "staff@example.com",
+  "first_name": "Jane",
+  "last_name": "Smith",
+  "role": "accountant",
+  "phone_number": "+254712345678",
+  "is_active": false,
+  ...
+}
+```
+
+---
+
+#### 3. Delete vs Deactivate Staff
+
+```
+DELETE /api/v1/core/users/{id}/
+```
+
+**Questions:**
+- Is this a **hard delete** (permanently removes from database)?
+- Or is it a **soft delete** (sets `is_deleted=true` but keeps record)?
+- Should frontend use `PATCH` with `is_active: false` for deactivation instead?
+
+**Recommendation:** 
+Prefer soft delete/deactivation for audit trail and data integrity.
+
+---
+
+#### 4. Password Reset for Staff
+
+**Questions:**
+- Is there an admin-initiated password reset endpoint?
+  ```
+  POST /api/v1/core/users/{id}/reset-password/
+  ```
+- Or should staff use the standard "Forgot Password" email flow?
+- Can admin set a temporary password for a staff member?
+
+**Suggested Endpoint:**
+```
+POST /api/v1/core/users/{id}/reset-password/
+Authorization: Bearer <admin-token>
+
+Response (Option A - Email sent):
+{
+  "message": "Password reset email sent to staff@example.com"
+}
+
+Response (Option B - Temporary password):
+{
+  "temporary_password": "TempPass123!",
+  "message": "Staff must change password on next login"
+}
+```
+
+---
+
+#### 5. Role-Based Permissions (Future Enhancement)
+
+**Questions:**
+- Do different roles have different dashboard access?
+- Should `technician` only see Dispatch/ONU/Router sections?
+- Should `accountant` only see Finance sections?
+- Is this enforced on backend or frontend?
+
+**Suggested Permission Matrix:**
+
+| Role | Dashboard | Users | Network | Finance | Dispatch | Settings |
+|------|-----------|-------|---------|---------|----------|----------|
+| admin | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| staff | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
+| technician | ✅ | ❌ | ✅ | ❌ | ✅ | ❌ |
+| accountant | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| support | ✅ | ✅ (read) | ❌ | ❌ | ❌ | ❌ |
+
+---
+
+### Frontend Implementation Status
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Staff list page | ✅ Done | `/admin/staff` |
+| Create staff dialog | ✅ Done | With role selection, validation |
+| Staff types defined | ✅ Done | In `lib/types.ts` |
+| API methods | ✅ Done | `getStaffUsers`, `createStaffUser`, etc. |
+| Navigation link | ✅ Done | Added to admin sidebar |
+| Edit staff page | ⚪ Pending | Waiting for PATCH endpoint confirmation |
+| View staff details | ⚪ Pending | `/admin/staff/{id}` |
+| Password reset | ⚪ Pending | Waiting for endpoint |
+| Role permissions | ⚪ Future | Backend-driven |
 
 ---
 
