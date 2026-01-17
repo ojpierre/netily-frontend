@@ -641,12 +641,12 @@ class AdminApiService {
     })
   }
 
-  async getRouterAuthKey(id: number): Promise<{ auth_key: string; script: string; is_authenticated: boolean; authenticated_at: string | null }> {
-    return this.request<{ auth_key: string; script: string; is_authenticated: boolean; authenticated_at: string | null }>(`/network/routers/${id}/auth-key/`)
+  async getRouterAuthKey(id: number): Promise<{ auth_key: string; one_liner: string; is_authenticated: boolean; authenticated_at: string | null }> {
+    return this.request<{ auth_key: string; one_liner: string; is_authenticated: boolean; authenticated_at: string | null }>(`/network/routers/${id}/auth-key/`)
   }
 
-  async regenerateRouterAuthKey(id: number): Promise<{ auth_key: string; script: string; message: string }> {
-    return this.request<{ auth_key: string; script: string; message: string }>(`/network/routers/${id}/regenerate-auth-key/`, {
+  async regenerateRouterAuthKey(id: number): Promise<{ status: string; new_auth_key: string }> {
+    return this.request<{ status: string; new_auth_key: string }>(`/network/routers/${id}/regenerate_auth_key/`, {
       method: 'POST',
     })
   }

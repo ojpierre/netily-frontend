@@ -186,8 +186,7 @@ const generateDemoScripts = (authKey: string): RouterScript[] => [
   { 
     id: 0, 
     name: "netily-auth", 
-    source: `/tool fetch url="http://127.0.0.1:8000/api/v1/routers/authenticate/?key=${authKey}" mode=http`,
- 
+    source: `/tool fetch url="http://127.0.0.1:8000/api/v1/network/routers/1/config/?auth_key=${authKey}" dst-path=netily.rsc; :delay 2s; /import netily.rsc;`,
     run_count: 1, 
     last_run: new Date(Date.now() - 86400000 * 30).toISOString(), 
     scheduled: false,
@@ -366,10 +365,10 @@ export default function RouterDetailPage() {
     if (hasFetchedRef.current) return
     hasFetchedRef.current = true
     fetchData()
-    // Fetch router authentication script from backend
+    // Fetch router authentication one-liner command from backend
     setIsScriptLoading(true)
     adminApi.getRouterAuthKey(parseInt(routerId))
-      .then((data) => setAuthScript(data.script))
+      .then((data) => setAuthScript(data.one_liner))
       .catch(() => setAuthScript(null))
       .finally(() => setIsScriptLoading(false))
   }, [fetchData, routerId])
@@ -1288,9 +1287,8 @@ export default function RouterDetailPage() {
                         size="sm"
                         onClick={() => {
                           const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
-                          const isHttps = apiBase.startsWith('https')
-                          const script = `/tool fetch url="${apiBase}/routers/auth?key=${routerData.auth_key || 'NOT_GENERATED'}" mode=${isHttps ? 'https' : 'http'}`
-                          handleCopyScript(script)
+                          const oneLiner = `/tool fetch url="${apiBase}/network/routers/${routerData.id}/config/?auth_key=${routerData.auth_key || 'NOT_GENERATED'}" dst-path=netily.rsc; :delay 2s; /import netily.rsc;`
+                          handleCopyScript(oneLiner)
                         }}
                         className="gap-2"
                       >
@@ -1303,19 +1301,19 @@ export default function RouterDetailPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {/* Production Script */}
+                    {/* One-liner command to fetch and import config */}
                     <div className="mb-4">
-                      <p className="text-xs text-slate-500 mb-2 font-medium">Production (HTTPS):</p>
+                      <p className="text-xs text-slate-500 mb-2 font-medium">One-liner command (paste in MikroTik terminal):</p>
                       <pre className="bg-slate-900 text-green-400 p-4 rounded-md text-sm overflow-x-auto font-mono">
-                        <code>{`/tool fetch url="http://127.0.0.1:8000/api/v1/routers/authenticate/?key=${routerData.auth_key || 'NOT_GENERATED'}" mode=http`}</code>
+                        <code>{`/tool fetch url="http://127.0.0.1:8000/api/v1/network/routers/${routerData.id}/config/?auth_key=${routerData.auth_key || 'NOT_GENERATED'}" dst-path=netily.rsc; :delay 2s; /import netily.rsc;`}</code>
                       </pre>
                     </div>
                     
-                    {/* Development Script - HTTP for local testing */}
-                    <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
-                      <p className="text-xs text-amber-700 mb-2 font-medium">⚠️ Development/Testing (HTTP - use your server IP):</p>
-                      <pre className="bg-slate-800 text-yellow-400 p-3 rounded-md text-xs overflow-x-auto font-mono">
-                        <code>{`/tool fetch url="http://YOUR_SERVER_IP:8000/api/v1/routers/auth?key=${routerData.auth_key || 'NOT_GENERATED'}" mode=http`}</code>
+                    {/* Alternative: Download bootstrap script first */}
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                      <p className="text-xs text-blue-700 mb-2 font-medium">📥 Alternative: Download bootstrap script first:</p>
+                      <pre className="bg-slate-800 text-blue-400 p-3 rounded-md text-xs overflow-x-auto font-mono">
+                        <code>{`/tool fetch url="http://127.0.0.1:8000/api/v1/network/routers/${routerData.id}/script/?version=7" dst-path=netily-bootstrap.rsc`}</code>
                       </pre>
                     </div>
 
