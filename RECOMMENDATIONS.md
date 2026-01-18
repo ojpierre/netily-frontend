@@ -421,7 +421,429 @@ Response (Option B - Temporary password):
 
 ---
 
-## 📋 Summary Checklist
+## � ISP SUBSCRIPTION & BILLING MODULE (NEW)
+
+> **Status:** Frontend created at `/admin/settings/billing`. Backend implementation required.
+
+### Overview
+
+This module handles **Netily's own billing** - i.e., how ISP companies pay for their Netily subscription. This is separate from the billing module that ISPs use to bill their customers.
+
+### Frontend Implementation
+
+**Location:** `/admin/settings/billing`
+
+**Features:**
+- Three pricing tiers (Starter, Professional, Enterprise)
+- PayHero integration for payments (M-Pesa STK, Paybill, Bank Transfer)
+- Trial countdown integration
+- Usage tracking (subscribers, routers, staff limits)
+- Payment history
+
+### Required Backend Endpoints
+
+#### 1. Subscription Plans (Netily's Plans)
+
+```
+GET /api/v1/subscriptions/plans/
+```
+
+**Description:** Fetch available Netily subscription plans (not customer plans)
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "id": "starter",
+      "name": "Starter",
+      "price": 2999,
+      "currency": "KES",
+      "period": "monthly",
+      "description": "Perfect for small ISPs getting started",
+      "features": [
+        "Up to 100 subscribers",
+        "3 Routers",
+        "2 Staff accounts",
+        "Basic billing & invoicing",
+        "Email support",
+        "M-Pesa integration"
+      ],
+      "limits": {
+        "max_subscribers": 100,
+        "max_routers": 3,
+        "max_staff": 2
+      },
+      "is_popular": false
+    },
+    {
+      "id": "professional",
+      "name": "Professional",
+      "price": 7999,
+      "currency": "KES",
+      "period": "monthly",
+      "description": "For growing ISP businesses",
+      "features": ["..."],
+      "limits": {
+        "max_subscribers": 500,
+        "max_routers": 10,
+        "max_staff": 10
+      },
+      "is_popular": true
+    },
+    {
+      "id": "enterprise",
+      "name": "Enterprise",
+      "price": 19999,
+      "currency": "KES",
+      "period": "monthly",
+      "description": "For large-scale operations",
+      "features": ["..."],
+      "limits": {
+        "max_subscribers": null,  // unlimited
+        "max_routers": null,
+        "max_staff": null
+      },
+      "is_popular": false
+    }
+  ]
+}
+```
+
+---
+
+#### 2. Company Subscription Status
+
+```
+GET /api/v1/subscriptions/current/
+```
+
+**Description:** Get the logged-in company's current subscription
+
+**Response:**
+```json
+{
+  "id": 1,
+  "company": {
+    "id": 2,
+    "name": "Acme ISP"
+  },
+  "plan": {
+    "id": "professional",
+    "name": "Professional",
+    "price": 7999
+  },
+  "status": "trial",  // "trial" | "active" | "expired" | "cancelled" | "past_due"
+  "current_period_start": "2026-01-18T00:00:00Z",
+  "current_period_end": "2026-02-01T00:00:00Z",
+  "trial_end": "2026-02-01T00:00:00Z",
+  "cancel_at_period_end": false,
+  "created_at": "2026-01-18T00:00:00Z"
+}
+```
+
+**Status Values:**
+- `trial` - 14-day free trial period
+- `active` - Paid and active subscription
+- `expired` - Subscription ended, no payment
+- `cancelled` - User cancelled, will expire at period end
+- `past_due` - Payment failed, grace period
+
+---
+
+#### 3. Usage Statistics
+
+```
+GET /api/v1/subscriptions/usage/
+```
+
+**Description:** Get current usage against plan limits
+
+**Response:**
+```json
+{
+  "subscribers": {
+    "used": 45,
+    "limit": 500,  // null if unlimited
+    "percentage": 9
+  },
+  "routers": {
+    "used": 3,
+    "limit": 10,
+    "percentage": 30
+  },
+  "staff": {
+    "used": 2,
+    "limit": 10,
+    "percentage": 20
+  }
+}
+```
+
+---
+
+#### 4. Initiate Subscription Payment (PayHero)
+
+```
+POST /api/v1/subscriptions/pay/
+```
+
+**Description:** Initiate payment for a subscription plan using PayHero
+
+**Request:**
+```json
+{
+  "plan_id": "professional",
+  "payment_method": "mpesa_stk",  // "mpesa_stk" | "mpesa_paybill" | "bank_transfer"
+  "phone_number": "0712345678",   // Required for mpesa_stk
+  "billing_period": "monthly"     // "monthly" | "yearly"
+}
+```
+
+**Response (STK Push):**
+```json
+{
+  "status": "pending",
+  "payment_id": 123,
+  "message": "STK Push sent. Check your phone.",
+  "checkout_request_id": "ws_CO_123456789"
+}
+```
+
+**Response (Paybill):**
+```json
+{
+  "status": "awaiting_payment",
+  "payment_id": 123,
+  "paybill_number": "247247",
+  "account_number": "NETILY-PRO-123456",
+  "amount": 7999,
+  "message": "Use the details below to pay via M-Pesa Paybill"
+}
+```
+
+**Response (Bank Transfer):**
+```json
+{
+  "status": "awaiting_payment",
+  "payment_id": 123,
+  "bank_details": {
+    "bank_name": "Equity Bank",
+    "account_name": "Netily Technologies Ltd",
+    "account_number": "0123456789012",
+    "branch": "Westlands"
+  },
+  "amount": 7999,
+  "reference": "NETILY-PRO-123456",
+  "message": "Use the bank details below to make your payment"
+}
+```
+
+---
+
+#### 5. Payment History
+
+```
+GET /api/v1/subscriptions/payments/
+```
+
+**Description:** Get company's subscription payment history
+
+**Response:**
+```json
+{
+  "count": 5,
+  "results": [
+    {
+      "id": 1,
+      "date": "2026-01-18T10:30:00Z",
+      "amount": 7999,
+      "currency": "KES",
+      "status": "completed",  // "completed" | "pending" | "failed" | "refunded"
+      "payment_method": "M-Pesa STK",
+      "reference": "PAY-123456789",
+      "plan": "Professional",
+      "invoice_url": "https://api.netily.io/invoices/INV-001.pdf"
+    }
+  ]
+}
+```
+
+---
+
+#### 6. Poll Payment Status
+
+```
+GET /api/v1/subscriptions/payments/{id}/
+```
+
+**Description:** Check status of a pending payment (for polling after STK Push)
+
+**Response:**
+```json
+{
+  "id": 123,
+  "status": "completed",  // "pending" | "completed" | "failed"
+  "message": "Payment received successfully",
+  "completed_at": "2026-01-18T10:35:00Z"
+}
+```
+
+---
+
+#### 7. Cancel Subscription
+
+```
+POST /api/v1/subscriptions/cancel/
+```
+
+**Description:** Cancel subscription at end of billing period
+
+**Request:**
+```json
+{
+  "reason": "Too expensive",  // Optional feedback
+  "cancel_immediately": false  // true = cancel now, false = at period end
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Subscription will be cancelled on 2026-02-01",
+  "cancel_at_period_end": true,
+  "current_period_end": "2026-02-01T00:00:00Z"
+}
+```
+
+---
+
+### PayHero Integration Notes
+
+The backend should use PayHero's API to process payments:
+
+1. **STK Push Flow:**
+   - Backend calls PayHero STK Push API
+   - PayHero sends push to customer phone
+   - Customer enters PIN
+   - PayHero sends callback to backend webhook
+   - Backend updates payment status
+   - Frontend polls for completion
+
+2. **Paybill/Bank Transfer Flow:**
+   - Backend generates unique account number
+   - Customer pays manually
+   - PayHero sends payment confirmation callback
+   - Backend matches payment to pending subscription
+   - Subscription activated
+
+3. **Webhook Endpoint:**
+   ```
+   POST /api/v1/webhooks/payhero/subscription/
+   ```
+   - Receives payment confirmations from PayHero
+   - Updates subscription status
+   - Sends confirmation SMS/email to company
+
+---
+
+### Subscription Model (Django)
+
+```python
+class SubscriptionPlan(models.Model):
+    id = models.CharField(max_length=50, primary_key=True)  # 'starter', 'professional', 'enterprise'
+    name = models.CharField(max_length=100)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, default='KES')
+    period = models.CharField(max_length=20, choices=[('monthly', 'Monthly'), ('yearly', 'Yearly')])
+    description = models.TextField()
+    features = models.JSONField(default=list)
+    max_subscribers = models.IntegerField(null=True, blank=True)  # null = unlimited
+    max_routers = models.IntegerField(null=True, blank=True)
+    max_staff = models.IntegerField(null=True, blank=True)
+    is_popular = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    
+
+class CompanySubscription(models.Model):
+    company = models.OneToOneField('Company', on_delete=models.CASCADE)
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT)
+    status = models.CharField(max_length=20, choices=[
+        ('trial', 'Trial'),
+        ('active', 'Active'),
+        ('expired', 'Expired'),
+        ('cancelled', 'Cancelled'),
+        ('past_due', 'Past Due'),
+    ], default='trial')
+    current_period_start = models.DateTimeField()
+    current_period_end = models.DateTimeField()
+    trial_end = models.DateTimeField(null=True, blank=True)
+    cancel_at_period_end = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+
+class SubscriptionPayment(models.Model):
+    subscription = models.ForeignKey(CompanySubscription, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, default='KES')
+    payment_method = models.CharField(max_length=50)
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded'),
+    ])
+    reference = models.CharField(max_length=100, unique=True)
+    payhero_checkout_id = models.CharField(max_length=100, null=True, blank=True)
+    invoice_url = models.URLField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+```
+
+---
+
+### Trial to Paid Flow
+
+1. **New Company Registers:**
+   - Create Company with `status='trial'`
+   - Set `trial_end` to 14 days from now
+   - Create CompanySubscription with Professional plan (trial)
+
+2. **Trial Expiry Handling:**
+   - Cron job checks for expired trials daily
+   - If `trial_end < now` and no payment: `status='expired'`
+   - Frontend shows lockout screen
+
+3. **Payment Received:**
+   - PayHero callback confirms payment
+   - Update `status='active'`
+   - Set `current_period_end` to 30 days from now
+   - Clear trial flags
+
+4. **Renewal:**
+   - Cron job sends reminder 3 days before expiry
+   - If no payment by expiry: `status='expired'`
+   - If payment received: extend `current_period_end`
+
+---
+
+### Frontend Implementation Status
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Billing page | ✅ Done | `/admin/settings/billing` |
+| Pricing cards | ✅ Done | 3 tiers with features |
+| Payment dialog | ✅ Done | STK Push, Paybill, Bank Transfer |
+| Trial countdown | ✅ Done | In navbar |
+| Account lockout | ✅ Done | Shows upgrade page |
+| Payment history tab | ✅ Done | Table with download |
+| Usage tracking tab | ✅ Done | Progress bars |
+| API integration | ⚪ Pending | Using mock data, waiting for endpoints |
+
+---
+
+## �📋 Summary Checklist
 
 | Task | Status | Notes |
 |------|--------|-------|
