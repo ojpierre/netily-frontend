@@ -41,6 +41,7 @@ export default function RechargePage() {
   const [mpesaDialogOpen, setMpesaDialogOpen] = useState(false)
   const [mpesaStatus, setMpesaStatus] = useState<MpesaStatus>('idle')
   const [mpesaCheckoutId, setMpesaCheckoutId] = useState<string | null>(null)
+  const [mpesaPaymentId, setMpesaPaymentId] = useState<number | null>(null)
   const [mpesaProgress, setMpesaProgress] = useState(0)
   const [mpesaCountdown, setMpesaCountdown] = useState(60)
 
@@ -74,14 +75,15 @@ export default function RechargePage() {
     return /^254[17]\d{8}$/.test(formatted)
   }
 
-  // Simulate M-Pesa STK Push process
+  // Poll payment status when waiting
   useEffect(() => {
-    let interval: NodeJS.Timeout
+    let progressInterval: NodeJS.Timeout
     let countdownInterval: NodeJS.Timeout
+    let pollInterval: NodeJS.Timeout
 
     if (mpesaStatus === 'waiting') {
-      // Progress bar simulation
-      interval = setInterval(() => {
+      // Progress bar animation (visual only)
+      progressInterval = setInterval(() => {
         setMpesaProgress(prev => {
           if (prev >= 95) return prev
           return prev + (100 - prev) * 0.1
@@ -99,30 +101,41 @@ export default function RechargePage() {
         })
       }, 1000)
 
-      // Simulate success after random time (demo)
-      const successTimeout = setTimeout(() => {
-        if (mpesaStatus === 'waiting') {
-          setMpesaStatus('success')
-          setMpesaProgress(100)
-          toast.success('Payment successful!')
-          if (user) {
-            refreshUser()
+      // Poll backend for payment status every 3 seconds
+      if (mpesaPaymentId) {
+        pollInterval = setInterval(async () => {
+          try {
+            const payment = await api.pollPaymentStatus(mpesaPaymentId)
+            if (payment.status === 'completed') {
+              setMpesaStatus('success')
+              setMpesaProgress(100)
+              toast.success('Payment successful!')
+              if (user) {
+                refreshUser()
+              }
+            } else if (payment.status === 'failed') {
+              setMpesaStatus('failed')
+              toast.error('Payment failed or was cancelled')
+            }
+          } catch (error) {
+            console.error('Failed to poll payment status:', error)
           }
-        }
-      }, 5000 + Math.random() * 5000)
+        }, 3000)
+      }
 
       return () => {
-        clearInterval(interval)
+        clearInterval(progressInterval)
         clearInterval(countdownInterval)
-        clearTimeout(successTimeout)
+        if (pollInterval) clearInterval(pollInterval)
       }
     }
 
     return () => {
-      if (interval) clearInterval(interval)
+      if (progressInterval) clearInterval(progressInterval)
       if (countdownInterval) clearInterval(countdownInterval)
+      if (pollInterval) clearInterval(pollInterval)
     }
-  }, [mpesaStatus, user, refreshUser])
+  }, [mpesaStatus, mpesaPaymentId, user, refreshUser])
 
   const handleQuickAmount = (value: number) => {
     setAmount(value.toString())
@@ -144,14 +157,26 @@ export default function RechargePage() {
     setMpesaCountdown(60)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Call PayHero unified payment API
+      const response = await api.initiatePayment({
+        amount: parseFloat(amount),
+        phone_number: formatPhoneNumber(phoneNumber),
+      })
       
-      // In real implementation:
-      // const response = await api.initiateMpesaSTKPush(formatPhoneNumber(phoneNumber), amount)
-      // setMpesaCheckoutId(response.checkout_request_id)
+      if (response.status === 'error' || response.status === 'failed') {
+        throw new Error(response.error || response.message || 'Payment initiation failed')
+      }
       
-      setMpesaCheckoutId('ws_CO_' + Date.now())
+      // Store payment_id for status polling
+      if (response.payment_id) {
+        setMpesaPaymentId(response.payment_id)
+      }
+      
+      // Store checkout ID for reference
+      if (response.payhero_response?.checkout_request_id) {
+        setMpesaCheckoutId(response.payhero_response.checkout_request_id)
+      }
+      
       setMpesaStatus('waiting')
     } catch (error: any) {
       setMpesaStatus('failed')

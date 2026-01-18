@@ -220,6 +220,683 @@ class RouterHeartbeatView(APIView):
 
 ---
 
+## 💳 PAYHERO PAYMENT INTEGRATION (CRITICAL)
+
+> **Status:** Frontend is fully ready. Backend needs to implement PayHero endpoints for three payment use cases.
+
+### Overview
+
+The Netily platform requires PayHero integration for **three distinct payment scenarios**:
+
+| Use Case | Who Pays | What For | Frontend Location |
+|----------|----------|----------|-------------------|
+| 1. ISP Subscription Billing | ISP Admin | Netily platform subscription | `/admin/settings/billing` |
+| 2. Hotspot Access Payments | End-User (WiFi Customer) | WiFi access time/data | `/hotspot/[router_id]` (Captive Portal) |
+| 3. User Account Recharge | ISP Subscriber | Their ISP service invoice | `/dashboard/recharge` |
+
+---
+
+### 🔴 Priority 6: ISP Subscription Billing (Netily Platform)
+
+ISP admins pay Netily for their platform subscription (Starter, Professional, Enterprise).
+
+#### Required Endpoints:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/subscriptions/plans/` | List available subscription plans |
+| GET | `/api/v1/subscriptions/current/` | Get company's current subscription |
+| GET | `/api/v1/subscriptions/usage/` | Get usage stats (subscribers, routers, staff) |
+| POST | `/api/v1/subscriptions/pay/` | **Initiate payment via PayHero** |
+| GET | `/api/v1/subscriptions/payments/` | Payment history |
+| GET | `/api/v1/subscriptions/payments/{id}/` | Poll payment status |
+| POST | `/api/v1/subscriptions/cancel/` | Cancel subscription |
+| POST | `/api/v1/webhooks/payhero/subscription/` | **PayHero callback (PUBLIC)** |
+
+#### Payment Initiation Request:
+```json
+POST /api/v1/subscriptions/pay/
+{
+  "plan_id": "professional",
+  "payment_method": "mpesa_stk",  // "mpesa_stk" | "mpesa_paybill" | "bank_transfer"
+  "phone_number": "254712345678", // Required for mpesa_stk
+  "billing_period": "monthly"     // "monthly" | "yearly"
+}
+```
+
+#### Response - STK Push:
+```json
+{
+  "status": "pending",
+  "payment_id": 123,
+  "checkout_request_id": "ws_CO_123456789",
+  "message": "STK Push sent. Check your phone and enter your M-Pesa PIN."
+}
+```
+
+#### Response - Paybill:
+```json
+{
+  "status": "awaiting_payment",
+  "payment_id": 123,
+  "paybill_number": "247247",
+  "account_number": "NETILY-PRO-123456",
+  "amount": 7999,
+  "message": "Use the Paybill details to complete payment"
+}
+```
+
+#### Response - Bank Transfer:
+```json
+{
+  "status": "awaiting_payment",
+  "payment_id": 123,
+  "bank_details": {
+    "bank_name": "Equity Bank",
+    "account_name": "Netily Technologies Ltd",
+    "account_number": "0123456789012",
+    "branch": "Westlands"
+  },
+  "amount": 7999,
+  "reference": "NETILY-PRO-123456"
+}
+```
+
+#### PayHero Webhook Handler:
+```python
+# views.py - MUST BE PUBLIC (no authentication)
+class PayHeroSubscriptionWebhookView(APIView):
+    permission_classes = []  # PUBLIC
+    
+    def post(self, request):
+        # Verify PayHero signature (implement according to PayHero docs)
+        signature = request.headers.get('X-PayHero-Signature')
+        
+        checkout_request_id = request.data.get('CheckoutRequestID')
+        result_code = request.data.get('ResultCode')
+        amount = request.data.get('Amount')
+        mpesa_receipt = request.data.get('MpesaReceiptNumber')
+        
+        try:
+            payment = SubscriptionPayment.objects.get(
+                payhero_checkout_id=checkout_request_id
+            )
+        except SubscriptionPayment.DoesNotExist:
+            return Response({'error': 'Payment not found'}, status=404)
+        
+        if result_code == 0:  # Success
+            payment.status = 'completed'
+            payment.mpesa_receipt = mpesa_receipt
+            payment.completed_at = timezone.now()
+            payment.save()
+            
+            # Activate/extend subscription
+            subscription = payment.subscription
+            subscription.status = 'active'
+            subscription.extend_by_period()
+            subscription.save()
+            
+            # Send confirmation SMS/email
+            send_subscription_confirmation(subscription)
+        else:
+            payment.status = 'failed'
+            payment.failure_reason = request.data.get('ResultDesc')
+            payment.save()
+        
+        return Response({'status': 'received'})
+```
+
+---
+
+### 🔴 Priority 7: Hotspot Access Payments (Captive Portal)
+
+End-users pay for WiFi access via the captive portal (no authentication required).
+
+#### Required Endpoints (ALL PUBLIC - NO AUTH):
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/hotspot/routers/{router_id}/plans/` | **PUBLIC** | Get hotspot plans for router |
+| POST | `/api/v1/hotspot/purchase/` | **PUBLIC** | Initiate hotspot purchase via PayHero |
+| GET | `/api/v1/hotspot/purchase/{session_id}/status/` | **PUBLIC** | Poll purchase/payment status |
+| POST | `/api/v1/webhooks/payhero/hotspot/` | **PUBLIC** | PayHero callback for hotspot |
+
+#### Get Hotspot Plans:
+```json
+GET /api/v1/hotspot/routers/5/plans/
+
+Response:
+{
+  "router": {
+    "id": 5,
+    "name": "Coffee Shop Hotspot",
+    "location": "Westlands Mall"
+  },
+  "plans": [
+    {
+      "id": 1,
+      "name": "1 Hour",
+      "price": 50,
+      "duration_minutes": 60,
+      "data_limit_mb": null,
+      "speed_limit": "5Mbps",
+      "description": "Quick browsing session"
+    },
+    {
+      "id": 2,
+      "name": "Daily Pass",
+      "price": 200,
+      "duration_minutes": 1440,
+      "data_limit_mb": 2000,
+      "speed_limit": "10Mbps",
+      "description": "Full day access with 2GB data"
+    },
+    {
+      "id": 3,
+      "name": "Weekly Pass",
+      "price": 500,
+      "duration_minutes": 10080,
+      "data_limit_mb": 10000,
+      "speed_limit": "15Mbps",
+      "description": "7 days unlimited browsing"
+    }
+  ],
+  "branding": {
+    "logo_url": "https://...",
+    "primary_color": "#3B82F6",
+    "company_name": "FastNet ISP"
+  }
+}
+```
+
+#### Initiate Hotspot Purchase:
+```json
+POST /api/v1/hotspot/purchase/
+{
+  "router_id": 5,
+  "plan_id": 2,
+  "phone_number": "254712345678",
+  "mac_address": "AA:BB:CC:DD:EE:FF",  // User's device MAC
+  "payment_method": "mpesa_stk"  // Only STK for hotspot (instant)
+}
+```
+
+#### Response:
+```json
+{
+  "status": "pending",
+  "session_id": "HS_1737200000_ABCD",
+  "checkout_request_id": "ws_CO_123456789",
+  "message": "STK Push sent to 0712345678. Enter your M-Pesa PIN.",
+  "expires_in": 120  // Seconds before STK expires
+}
+```
+
+#### Poll Purchase Status:
+```json
+GET /api/v1/hotspot/purchase/HS_1737200000_ABCD/status/
+
+Response (Pending):
+{
+  "status": "pending",
+  "message": "Waiting for payment confirmation..."
+}
+
+Response (Success):
+{
+  "status": "success",
+  "message": "Payment received! You are now connected.",
+  "access_code": "WIFI-1234",  // Optional: display access code
+  "expires_at": "2026-01-19T10:30:00Z",
+  "data_remaining_mb": 2000,
+  "speed": "10Mbps"
+}
+
+Response (Failed):
+{
+  "status": "failed",
+  "message": "Payment was cancelled or failed. Please try again."
+}
+```
+
+#### Backend Implementation Flow:
+```python
+# models.py
+class HotspotSession(models.Model):
+    session_id = models.CharField(max_length=50, unique=True)
+    router = models.ForeignKey(Router, on_delete=models.CASCADE)
+    plan = models.ForeignKey(HotspotPlan, on_delete=models.CASCADE)
+    phone_number = models.CharField(max_length=15)
+    mac_address = models.CharField(max_length=17)
+    payhero_checkout_id = models.CharField(max_length=100, null=True)
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending Payment'),
+        ('paid', 'Paid - Activating'),
+        ('active', 'Active'),
+        ('expired', 'Expired'),
+        ('failed', 'Payment Failed'),
+    ], default='pending')
+    access_code = models.CharField(max_length=20, null=True)
+    expires_at = models.DateTimeField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+# views.py
+class HotspotPurchaseView(APIView):
+    permission_classes = []  # PUBLIC - no auth
+    
+    def post(self, request):
+        router_id = request.data.get('router_id')
+        plan_id = request.data.get('plan_id')
+        phone = request.data.get('phone_number')
+        mac = request.data.get('mac_address')
+        
+        router = Router.objects.get(id=router_id)
+        plan = HotspotPlan.objects.get(id=plan_id, router=router)
+        
+        # Generate unique session ID
+        session_id = f"HS_{int(timezone.now().timestamp())}_{secrets.token_hex(2).upper()}"
+        
+        # Create pending session
+        session = HotspotSession.objects.create(
+            session_id=session_id,
+            router=router,
+            plan=plan,
+            phone_number=phone,
+            mac_address=mac,
+            status='pending'
+        )
+        
+        # Call PayHero STK Push
+        payhero_response = payhero_client.stk_push(
+            phone_number=phone,
+            amount=plan.price,
+            reference=session_id,
+            callback_url='https://api.netily.io/api/v1/webhooks/payhero/hotspot/'
+        )
+        
+        session.payhero_checkout_id = payhero_response['checkout_request_id']
+        session.save()
+        
+        return Response({
+            'status': 'pending',
+            'session_id': session_id,
+            'checkout_request_id': payhero_response['checkout_request_id'],
+            'message': f'STK Push sent to {phone[-4:].rjust(10, "*")}',
+            'expires_in': 120
+        })
+
+class PayHeroHotspotWebhookView(APIView):
+    permission_classes = []  # PUBLIC
+    
+    def post(self, request):
+        checkout_id = request.data.get('CheckoutRequestID')
+        result_code = request.data.get('ResultCode')
+        
+        session = HotspotSession.objects.filter(
+            payhero_checkout_id=checkout_id
+        ).first()
+        
+        if not session:
+            return Response({'error': 'Session not found'}, status=404)
+        
+        if result_code == 0:  # Success
+            session.status = 'paid'
+            session.save()
+            
+            # Activate on MikroTik router
+            access_code = activate_hotspot_user(session)
+            
+            session.access_code = access_code
+            session.status = 'active'
+            session.expires_at = timezone.now() + timedelta(
+                minutes=session.plan.duration_minutes
+            )
+            session.save()
+        else:
+            session.status = 'failed'
+            session.save()
+        
+        return Response({'status': 'received'})
+
+def activate_hotspot_user(session):
+    """Connect to MikroTik router and create hotspot user"""
+    router = session.router
+    
+    # Generate random access code
+    access_code = f"WIFI-{secrets.token_hex(2).upper()}"
+    
+    # Connect to MikroTik API
+    mikrotik = RouterOSAPI(
+        host=router.ip_address,
+        port=router.api_port,
+        username=router.api_username,
+        password=router.api_password
+    )
+    
+    # Create hotspot user
+    mikrotik.execute('/ip/hotspot/user/add', {
+        'name': access_code,
+        'password': access_code,
+        'profile': session.plan.mikrotik_profile,
+        'limit-uptime': f"{session.plan.duration_minutes}m",
+        'mac-address': session.mac_address,
+    })
+    
+    return access_code
+```
+
+---
+
+### 🔴 Priority 8: User Account Recharge (Customer Payments)
+
+ISP subscribers pay their invoices via the customer dashboard.
+
+#### Required Endpoints:
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/billing/invoices/` | User JWT | Get user's invoices |
+| GET | `/api/v1/billing/payment-methods/` | User JWT | Get available payment methods |
+| POST | `/api/v1/billing/payments/initiate/` | User JWT | **Initiate payment via PayHero** |
+| GET | `/api/v1/billing/payments/{id}/` | User JWT | Poll payment status |
+| POST | `/api/v1/webhooks/payhero/billing/` | **PUBLIC** | PayHero callback for billing |
+
+#### Initiate Customer Payment:
+```json
+POST /api/v1/billing/payments/initiate/
+Authorization: Bearer {user_token}
+{
+  "amount": 2000,
+  "phone_number": "254712345678",
+  "invoice_id": 456,  // Optional: pay specific invoice
+  "channel_id": 1     // Optional: force specific payment method
+}
+```
+
+#### Response - STK Push:
+```json
+{
+  "status": "pending",
+  "payment_id": 789,
+  "payhero_response": {
+    "status": "pending",
+    "checkout_request_id": "ws_CO_123456789",
+    "message": "STK Push sent to your phone"
+  }
+}
+```
+
+#### Response - Paybill:
+```json
+{
+  "status": "awaiting_payment",
+  "payment_id": 789,
+  "payhero_response": {
+    "paybill_number": "123456",
+    "account_number": "INV-456",
+    "amount": 2000
+  }
+}
+```
+
+#### Frontend Integration (Already Implemented):
+The frontend at `/dashboard/recharge` calls:
+```typescript
+// lib/api.ts - Already implemented
+api.initiatePayment({
+  amount: 2000,
+  phone_number: "254712345678",
+  invoice_id: 456
+})
+```
+
+#### PayHero Billing Webhook:
+```python
+class PayHeroBillingWebhookView(APIView):
+    permission_classes = []  # PUBLIC
+    
+    def post(self, request):
+        checkout_id = request.data.get('CheckoutRequestID')
+        result_code = request.data.get('ResultCode')
+        amount = request.data.get('Amount')
+        mpesa_receipt = request.data.get('MpesaReceiptNumber')
+        
+        payment = Payment.objects.filter(
+            payhero_checkout_id=checkout_id
+        ).first()
+        
+        if not payment:
+            return Response({'error': 'Payment not found'}, status=404)
+        
+        if result_code == 0:  # Success
+            payment.status = 'completed'
+            payment.mpesa_receipt = mpesa_receipt
+            payment.paid_at = timezone.now()
+            payment.save()
+            
+            # Apply to customer balance/invoice
+            customer = payment.customer
+            if payment.invoice:
+                payment.invoice.mark_as_paid(payment)
+            else:
+                customer.balance += payment.amount
+                customer.save()
+            
+            # Check and restore service if suspended
+            if customer.status == 'suspended':
+                restore_customer_service(customer)
+            
+            # Send confirmation SMS
+            send_payment_confirmation_sms(payment)
+        else:
+            payment.status = 'failed'
+            payment.failure_reason = request.data.get('ResultDesc')
+            payment.save()
+        
+        return Response({'status': 'received'})
+```
+
+---
+
+### 🔧 PayHero Configuration Requirements
+
+The backend needs to store PayHero credentials:
+
+```python
+# settings.py or environment variables
+PAYHERO_API_KEY = 'your_payhero_api_key'
+PAYHERO_API_SECRET = 'your_payhero_secret'
+PAYHERO_MERCHANT_ID = 'your_merchant_id'
+PAYHERO_CALLBACK_BASE_URL = 'https://api.netily.io/api/v1/webhooks/payhero'
+
+# Per-ISP PayHero (for multi-tenant)
+# Each ISP company can configure their own PayHero account
+class CompanyPaymentConfig(models.Model):
+    company = models.OneToOneField(Company, on_delete=models.CASCADE)
+    payhero_api_key = models.CharField(max_length=255)
+    payhero_secret = models.CharField(max_length=255)
+    payhero_merchant_id = models.CharField(max_length=100)
+    default_payment_method = models.CharField(max_length=50, default='mpesa_stk')
+    is_active = models.BooleanField(default=True)
+```
+
+### PayHero API Client:
+```python
+# services/payhero.py
+import requests
+import hashlib
+import hmac
+
+class PayHeroClient:
+    BASE_URL = 'https://api.payhero.co.ke/api/v1'
+    
+    def __init__(self, api_key, secret, merchant_id):
+        self.api_key = api_key
+        self.secret = secret
+        self.merchant_id = merchant_id
+    
+    def stk_push(self, phone_number, amount, reference, callback_url):
+        """Initiate M-Pesa STK Push"""
+        payload = {
+            'merchant_id': self.merchant_id,
+            'phone_number': phone_number,
+            'amount': amount,
+            'reference': reference,
+            'callback_url': callback_url,
+        }
+        
+        headers = {
+            'Authorization': f'Bearer {self.api_key}',
+            'Content-Type': 'application/json',
+        }
+        
+        response = requests.post(
+            f'{self.BASE_URL}/stk/push',
+            json=payload,
+            headers=headers
+        )
+        
+        return response.json()
+    
+    def verify_webhook_signature(self, payload, signature):
+        """Verify PayHero webhook signature"""
+        expected = hmac.new(
+            self.secret.encode(),
+            payload.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        return hmac.compare_digest(expected, signature)
+```
+
+---
+
+### 📋 Summary: Frontend Ready, Backend Required
+
+| Component | Frontend Status | Backend Required |
+|-----------|----------------|------------------|
+| ISP Subscription Billing | ✅ Complete (`/admin/settings/billing`) | ❌ `/api/v1/subscriptions/` endpoints |
+| Hotspot Captive Portal | ✅ Complete (`/hotspot/[router_id]`) | ❌ `/api/v1/hotspot/` endpoints |
+| User Account Recharge | ✅ Complete (`/dashboard/recharge`) | ❌ `/api/v1/billing/payments/initiate/` |
+| PayHero Webhooks | N/A | ❌ `/api/v1/webhooks/payhero/*` |
+| ISP PayHero Config | ✅ Complete (`/admin/settings` → M-Pesa tab) | ❌ `/api/v1/core/payment-config/` |
+
+---
+
+### 🔴 Priority 9: ISP PayHero Configuration Endpoints
+
+Each ISP needs to configure their own PayHero account to receive payments from their customers.
+
+#### Where PayHero Credentials Are Stored:
+
+| Payment Type | Whose PayHero Account | Where Stored |
+|--------------|----------------------|--------------|
+| ISP pays Netily (subscription) | **Netily's** PayHero account | Backend `.env` file |
+| Users pay ISP (hotspot/recharge) | **Each ISP's** PayHero account | Database via Admin Settings |
+
+#### Required Endpoints:
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/v1/core/payment-config/` | Admin | Get ISP's PayHero configuration |
+| PATCH | `/api/v1/core/payment-config/` | Admin | Update PayHero configuration |
+| POST | `/api/v1/core/payment-config/test/` | Admin | Test PayHero connection |
+
+#### Get/Update PayHero Config:
+```json
+GET /api/v1/core/payment-config/
+Authorization: Bearer {admin_token}
+
+Response:
+{
+  "id": 1,
+  "payhero_enabled": true,
+  "payhero_environment": "sandbox",  // "sandbox" | "production"
+  "payhero_api_key": "ph_xxx...xxx",  // Partially masked
+  "payhero_api_key_set": true,  // Boolean flag (don't return full key)
+  "payhero_merchant_id": "MERCHANT123",
+  "payhero_callback_url": "https://api.netily.io/api/v1/webhooks/payhero/billing/",
+  "default_payment_method": "mpesa_stk",
+  "updated_at": "2026-01-18T10:00:00Z"
+}
+```
+
+#### Update Config:
+```json
+PATCH /api/v1/core/payment-config/
+Authorization: Bearer {admin_token}
+{
+  "payhero_enabled": true,
+  "payhero_environment": "production",
+  "payhero_api_key": "new_api_key_here",
+  "payhero_api_secret": "new_secret_here",
+  "payhero_merchant_id": "MERCHANT123"
+}
+```
+
+#### Test Connection:
+```json
+POST /api/v1/core/payment-config/test/
+Authorization: Bearer {admin_token}
+{}
+
+Response (Success):
+{
+  "status": "success",
+  "message": "PayHero connection successful",
+  "account_name": "FastNet ISP",
+  "environment": "production"
+}
+
+Response (Failed):
+{
+  "status": "error",
+  "message": "Invalid API credentials"
+}
+```
+
+#### Backend Model:
+```python
+class CompanyPaymentConfig(models.Model):
+    company = models.OneToOneField('Company', on_delete=models.CASCADE)
+    
+    # PayHero Settings
+    payhero_enabled = models.BooleanField(default=False)
+    payhero_environment = models.CharField(max_length=20, default='sandbox')
+    payhero_api_key = models.CharField(max_length=255, blank=True)  # Encrypted
+    payhero_api_secret = models.CharField(max_length=255, blank=True)  # Encrypted
+    payhero_merchant_id = models.CharField(max_length=100, blank=True)
+    default_payment_method = models.CharField(max_length=50, default='mpesa_stk')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Payment Configuration"
+```
+
+#### How It Works After Backend Implementation:
+
+1. **ISP Admin goes to Settings → M-Pesa/PayHero tab**
+2. **Enters their PayHero API credentials** (from their PayHero dashboard)
+3. **Clicks "Test Connection"** → Frontend calls `/api/v1/core/payment-config/test/`
+4. **Saves configuration** → Frontend calls `PATCH /api/v1/core/payment-config/`
+5. **Backend stores encrypted credentials** in `CompanyPaymentConfig` table
+6. **When customer pays:**
+   - Hotspot/Recharge frontend initiates payment
+   - Backend looks up ISP's PayHero config from database
+   - Backend calls PayHero API with ISP's credentials
+   - Payment goes to ISP's M-Pesa account
+
+#### Security Notes:
+- **NEVER return full API keys/secrets** to frontend - use masked values
+- **Store secrets encrypted** in database (use Django's `Fernet` or similar)
+- **Use `payhero_api_key_set: true/false`** to indicate if key is configured
+- **Validate credentials** on save with a test API call
+
+**All three PayHero use cases are fully implemented on the frontend. The backend team needs to implement the endpoints above to enable payments.**
+
+---
+
 ## Testing the Integration
 
 Once implemented, the frontend will:
