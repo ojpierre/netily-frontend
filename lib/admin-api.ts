@@ -157,9 +157,18 @@ class AdminApiService {
         throw new Error('Session expired. Please login again.')
       }
       
+      // Parse error response - preserve field-specific errors for 400 responses
       const error = await response.json().catch(() => ({ 
         detail: `Server error: ${response.status}` 
       }))
+      
+      // For 400 Bad Request, throw the full error object so field errors can be displayed
+      if (response.status === 400) {
+        console.error('API 400 Error:', error)
+        const errorWithStatus = { ...error, _status: 400 }
+        throw errorWithStatus
+      }
+      
       throw new Error(error.detail || error.message || `Request failed with status ${response.status}`)
     }
     return response.json()

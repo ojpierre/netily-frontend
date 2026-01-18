@@ -268,12 +268,16 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
     } else if (!passwordValidation.valid) {
       newErrors.password = "Password does not meet requirements"
     }
-    if (formData.password !== formData.confirmPassword) {
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Please confirm password"
+    } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match"
     }
 
-    // Optional field validation
-    if (formData.phone_number && !validatePhone(formData.phone_number)) {
+    // Phone number is required
+    if (!formData.phone_number?.trim()) {
+      newErrors.phone_number = "Phone number is required"
+    } else if (!validatePhone(formData.phone_number)) {
       newErrors.phone_number = "Invalid phone format (use +254...)"
     }
 
@@ -331,25 +335,62 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
       onOpenChange(false)
       onSuccess()
     } catch (error: unknown) {
-      console.error("Failed to create staff user:", error)
+      console.error("Failed to create staff user - Full error:", error)
 
-      // Handle API errors
-      if (error && typeof error === "object" && "message" in error) {
+      // Handle API errors - check if it's a 400 error with field-specific messages
+      if (error && typeof error === "object") {
         const errorObj = error as Record<string, unknown>
-
-        // Check for field-specific errors from backend
+        
+        // Build a user-friendly error message
+        const errorMessages: string[] = []
+        
+        // Check for field-specific errors from backend (DRF format)
         if (errorObj.email) {
-          setErrors((prev) => ({ ...prev, email: String(errorObj.email) }))
+          const emailError = Array.isArray(errorObj.email) ? errorObj.email[0] : String(errorObj.email)
+          setErrors((prev) => ({ ...prev, email: emailError }))
+          errorMessages.push(`Email: ${emailError}`)
         }
         if (errorObj.password) {
-          setErrors((prev) => ({ ...prev, password: String(errorObj.password) }))
+          const pwError = Array.isArray(errorObj.password) ? errorObj.password[0] : String(errorObj.password)
+          setErrors((prev) => ({ ...prev, password: pwError }))
+          errorMessages.push(`Password: ${pwError}`)
         }
         if (errorObj.role) {
-          setErrors((prev) => ({ ...prev, role: String(errorObj.role) }))
+          const roleError = Array.isArray(errorObj.role) ? errorObj.role[0] : String(errorObj.role)
+          setErrors((prev) => ({ ...prev, role: roleError }))
+          errorMessages.push(`Role: ${roleError}`)
+        }
+        if (errorObj.first_name) {
+          const fnError = Array.isArray(errorObj.first_name) ? errorObj.first_name[0] : String(errorObj.first_name)
+          setErrors((prev) => ({ ...prev, first_name: fnError }))
+          errorMessages.push(`First name: ${fnError}`)
+        }
+        if (errorObj.last_name) {
+          const lnError = Array.isArray(errorObj.last_name) ? errorObj.last_name[0] : String(errorObj.last_name)
+          setErrors((prev) => ({ ...prev, last_name: lnError }))
+          errorMessages.push(`Last name: ${lnError}`)
+        }
+        if (errorObj.phone_number) {
+          const phoneError = Array.isArray(errorObj.phone_number) ? errorObj.phone_number[0] : String(errorObj.phone_number)
+          setErrors((prev) => ({ ...prev, phone_number: phoneError }))
+          errorMessages.push(`Phone: ${phoneError}`)
+        }
+        if (errorObj.non_field_errors) {
+          const nfError = Array.isArray(errorObj.non_field_errors) ? errorObj.non_field_errors[0] : String(errorObj.non_field_errors)
+          errorMessages.push(nfError)
+        }
+        if (errorObj.detail) {
+          errorMessages.push(String(errorObj.detail))
         }
 
+        const description = errorMessages.length > 0 
+          ? errorMessages.join(". ") 
+          : (errorObj.message ? String(errorObj.message) : "Please check the form for errors")
+
+        toast.error("Failed to create staff account", { description })
+      } else if (error instanceof Error) {
         toast.error("Failed to create staff account", {
-          description: String(errorObj.message || "Please check the form for errors"),
+          description: error.message,
         })
       } else {
         toast.error("Failed to create staff account", {
@@ -458,22 +499,42 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">
-                Email Address <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="staff@example.com"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  className={`pl-10 ${errors.email ? "border-red-500" : ""}`}
-                />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="email">
+                  Email Address <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="staff@example.com"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className={`pl-10 ${errors.email ? "border-red-500" : ""}`}
+                  />
+                </div>
+                {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
               </div>
-              {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+
+              <div className="space-y-2">
+                <Label htmlFor="phone_number">
+                  Phone Number <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    id="phone_number"
+                    type="tel"
+                    placeholder="+254712345678"
+                    value={formData.phone_number}
+                    onChange={(e) => handleInputChange("phone_number", e.target.value)}
+                    className={`pl-10 ${errors.phone_number ? "border-red-500" : ""}`}
+                  />
+                </div>
+                {errors.phone_number && <p className="text-sm text-red-500">{errors.phone_number}</p>}
+              </div>
             </div>
           </div>
 
@@ -552,24 +613,6 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
             <CollapsibleContent className="space-y-4 pt-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="phone_number">Phone Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input
-                      id="phone_number"
-                      type="tel"
-                      placeholder="+254712345678"
-                      value={formData.phone_number}
-                      onChange={(e) => handleInputChange("phone_number", e.target.value)}
-                      className={`pl-10 ${errors.phone_number ? "border-red-500" : ""}`}
-                    />
-                  </div>
-                  {errors.phone_number && (
-                    <p className="text-sm text-red-500">{errors.phone_number}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="id_number">ID Number</Label>
                   <Input
                     id="id_number"
@@ -578,9 +621,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                     onChange={(e) => handleInputChange("id_number", e.target.value)}
                   />
                 </div>
-              </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="gender">Gender</Label>
                   <Select
@@ -599,17 +640,17 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="date_of_birth">Date of Birth</Label>
-                  <Input
-                    id="date_of_birth"
-                    type="date"
-                    value={formData.date_of_birth}
-                    onChange={(e) => handleInputChange("date_of_birth", e.target.value)}
-                    max={new Date().toISOString().split("T")[0]}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="date_of_birth">Date of Birth</Label>
+                <Input
+                  id="date_of_birth"
+                  type="date"
+                  value={formData.date_of_birth}
+                  onChange={(e) => handleInputChange("date_of_birth", e.target.value)}
+                  max={new Date().toISOString().split("T")[0]}
+                />
               </div>
             </CollapsibleContent>
           </Collapsible>
