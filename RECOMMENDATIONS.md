@@ -242,9 +242,9 @@ Once implemented, the frontend will:
 
 ---
 
-## 🔵 STAFF MANAGEMENT MODULE (NEW)
+## � STAFF MANAGEMENT MODULE (CONFIRMED)
 
-> **Status:** Frontend created at `/admin/staff`. Backend clarifications needed.
+> **Status:** Frontend created at `/admin/staff`. Backend endpoints confirmed and working.
 
 ### Implemented Frontend Features
 
@@ -253,135 +253,67 @@ Once implemented, the frontend will:
 - **Staff Roles Supported:** `staff`, `technician`, `accountant`, `support`
 - **Navigation** - Added "Staff" link in admin sidebar
 
-### Backend Clarifications Needed
+### Backend Endpoint Confirmation (2026-01-18)
 
-Please confirm the following with the backend team:
-
-#### 1. List Staff Endpoint
+#### 1. List Staff Endpoint ✅ CONFIRMED
 
 ```
 GET /api/v1/core/users/
 ```
 
-**Questions:**
-- Does it support query params for filtering? e.g., `?role=technician&is_active=true`
-- What is the pagination format? (`page`, `page_size` or `limit`, `offset`?)
-- Does it return ALL users or only the logged-in company's users?
+**Supported Query Parameters:**
+- `?role=technician` → Filter by role
+- `?is_active=true` → Filter by active status
+- `?role__in=staff,technician` → Multiple roles
+- `?search=jane` → Search first_name, last_name, email, phone
+- `?page=2&page_size=50` → Pagination (default 20, max 100)
 
-**Expected Response:**
-```json
-{
-  "count": 25,
-  "next": "http://api.example.com/api/v1/core/users/?page=2",
-  "previous": null,
-  "results": [
-    {
-      "id": 7,
-      "email": "staff@example.com",
-      "first_name": "Jane",
-      "last_name": "Doe",
-      "role": "technician",
-      "phone_number": "+254712345678",
-      "id_number": "12345678",
-      "gender": "female",
-      "date_of_birth": "1990-01-01",
-      "is_active": true,
-      "is_verified": false,
-      "is_staff": true,
-      "date_joined": "2026-01-18T10:00:00Z",
-      "last_login": "2026-01-18T12:30:00Z",
-      "company": {
-        "id": 2,
-        "name": "Your ISP Name",
-        "email": "info@yourisp.com"
-      }
-    }
-  ]
-}
-```
+**Scoping:** Returns only the logged-in company's users (superusers see all).
+
+**Response Format:** Standard DRF PageNumberPagination - ✅ Frontend compatible.
 
 ---
 
-#### 2. Update Staff Endpoint
+#### 2. Update Staff Endpoint ✅ CONFIRMED
 
 ```
 PATCH /api/v1/core/users/{id}/
 ```
 
-**Questions:**
-- Which fields can be updated? (role, phone_number, is_active, etc.)
-- Can password be changed via PATCH, or is there a separate endpoint?
-- Can an admin change another staff member's role?
+**Editable Fields:** `first_name`, `last_name`, `phone_number`, `id_number`, `gender`, `date_of_birth`, `role`, `is_active`, `is_verified`, `is_staff`
 
-**Expected Request:**
-```json
-{
-  "first_name": "Jane",
-  "last_name": "Smith",
-  "role": "accountant",
-  "phone_number": "+254712345678",
-  "is_active": false
-}
-```
+**Password:** Cannot be changed via PATCH (security best practice) - use separate endpoint.
 
-**Expected Response:**
-```json
-{
-  "id": 7,
-  "email": "staff@example.com",
-  "first_name": "Jane",
-  "last_name": "Smith",
-  "role": "accountant",
-  "phone_number": "+254712345678",
-  "is_active": false,
-  ...
-}
-```
+**Permissions:** Only ISP admins (role='admin') can change staff roles. Others get 403.
 
 ---
 
-#### 3. Delete vs Deactivate Staff
+#### 3. Delete vs Deactivate ✅ CONFIRMED
 
 ```
 DELETE /api/v1/core/users/{id}/
 ```
 
-**Questions:**
-- Is this a **hard delete** (permanently removes from database)?
-- Or is it a **soft delete** (sets `is_deleted=true` but keeps record)?
-- Should frontend use `PATCH` with `is_active: false` for deactivation instead?
+**Current Behavior:** Hard delete (permanently removes user).
 
-**Recommendation:** 
-Prefer soft delete/deactivation for audit trail and data integrity.
+**Frontend Approach:** Use `PATCH` with `"is_active": false` for deactivation (safer, reversible).
 
 ---
 
-#### 4. Password Reset for Staff
+#### 4. Password Reset 🔴 PENDING
 
-**Questions:**
-- Is there an admin-initiated password reset endpoint?
-  ```
-  POST /api/v1/core/users/{id}/reset-password/
-  ```
-- Or should staff use the standard "Forgot Password" email flow?
-- Can admin set a temporary password for a staff member?
+**Current Status:** No admin-initiated reset endpoint yet.
 
-**Suggested Endpoint:**
+**Backend to Implement:**
 ```
 POST /api/v1/core/users/{id}/reset-password/
 Authorization: Bearer <admin-token>
-
-Response (Option A - Email sent):
-{
-  "message": "Password reset email sent to staff@example.com"
-}
-
-Response (Option B - Temporary password):
-{
-  "temporary_password": "TempPass123!",
-  "message": "Staff must change password on next login"
-}
+Body: {}
 ```
+
+**Options:**
+- Option A (Recommended): Send password reset email to staff
+- Option B: Return temporary password (for dev/testing)
 
 ---
 

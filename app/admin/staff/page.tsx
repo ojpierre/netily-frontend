@@ -10,13 +10,11 @@ import {
   MoreHorizontal,
   Mail,
   Phone,
-  Shield,
   Wrench,
   Calculator,
   HeadphonesIcon,
   Eye,
   Pencil,
-  Trash2,
   CheckCircle,
   XCircle,
   Loader2,
@@ -294,21 +292,22 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
     setIsSubmitting(true)
 
     try {
+      // Build payload - DO NOT include confirmPassword (backend doesn't accept it)
       const payload: CreateStaffUserRequest = {
-        email: formData.email,
+        email: formData.email.trim(),
         password: formData.password,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        role: formData.role as StaffRole,
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
+        role: formData.role as StaffRole, // Already lowercase from STAFF_ROLES
         is_staff: true,
       }
 
       // Add optional fields if provided
-      if (formData.phone_number) {
-        payload.phone_number = formData.phone_number
+      if (formData.phone_number?.trim()) {
+        payload.phone_number = formData.phone_number.trim()
       }
-      if (formData.id_number) {
-        payload.id_number = formData.id_number
+      if (formData.id_number?.trim()) {
+        payload.id_number = formData.id_number.trim()
       }
       if (formData.gender) {
         payload.gender = formData.gender as Gender
@@ -316,6 +315,9 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
       if (formData.date_of_birth) {
         payload.date_of_birth = formData.date_of_birth
       }
+
+      // Debug log for troubleshooting
+      console.log("Sending staff creation payload:", JSON.stringify(payload, null, 2))
 
       const response = await adminApi.createStaffUser(payload)
 
@@ -695,21 +697,36 @@ export default function StaffManagementPage() {
     )
   }, [staffUsers, searchQuery])
 
-  // Handle delete
-  const handleDelete = async () => {
+  // Handle deactivate (preferred over delete per backend recommendation)
+  const handleDeactivate = async () => {
     if (!deleteUser) return
 
     setIsDeleting(true)
     try {
-      await adminApi.deleteStaffUser(deleteUser.id)
-      toast.success(`Staff member ${deleteUser.first_name} ${deleteUser.last_name} deleted`)
+      // Use PATCH to deactivate instead of DELETE (safer, reversible)
+      await adminApi.updateStaffUser(deleteUser.id, { is_active: false })
+      toast.success(`Staff member ${deleteUser.first_name} ${deleteUser.last_name} deactivated`, {
+        description: "They can no longer log in. You can reactivate them later.",
+      })
       setDeleteUser(null)
       fetchStaffUsers()
     } catch (error) {
-      console.error("Failed to delete staff user:", error)
-      toast.error("Failed to delete staff member")
+      console.error("Failed to deactivate staff user:", error)
+      toast.error("Failed to deactivate staff member")
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  // Handle reactivate
+  const handleReactivate = async (user: User) => {
+    try {
+      await adminApi.updateStaffUser(user.id, { is_active: true })
+      toast.success(`Staff member ${user.first_name} ${user.last_name} reactivated`)
+      fetchStaffUsers()
+    } catch (error) {
+      console.error("Failed to reactivate staff user:", error)
+      toast.error("Failed to reactivate staff member")
     }
   }
 
@@ -959,13 +976,23 @@ export default function StaffManagementPage() {
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() => setDeleteUser(user)}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
+                            {user.is_active ? (
+                              <DropdownMenuItem
+                                className="text-amber-600"
+                                onClick={() => setDeleteUser(user)}
+                              >
+                                <XCircle className="w-4 h-4 mr-2" />
+                                Deactivate
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                className="text-green-600"
+                                onClick={() => handleReactivate(user)}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Reactivate
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -985,33 +1012,33 @@ export default function StaffManagementPage() {
         onSuccess={fetchStaffUsers}
       />
 
-      {/* Delete Confirmation Dialog */}
+      {/* Deactivate Confirmation Dialog */}
       <AlertDialog open={!!deleteUser} onOpenChange={() => setDeleteUser(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Staff Member?</AlertDialogTitle>
+            <AlertDialogTitle>Deactivate Staff Member?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete{" "}
+              Are you sure you want to deactivate{" "}
               <strong>
                 {deleteUser?.first_name} {deleteUser?.last_name}
               </strong>
-              ? This action cannot be undone and will remove their access to the system.
+              ? They will no longer be able to log in. You can reactivate them later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={handleDeactivate}
               disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-amber-600 hover:bg-amber-700"
             >
               {isDeleting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Deleting...
+                  Deactivating...
                 </>
               ) : (
-                "Delete"
+                "Deactivate"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
