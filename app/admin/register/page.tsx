@@ -19,6 +19,13 @@ import {
   Globe,
   MapPin,
   FileText,
+  Rocket,
+  Sparkles,
+  Shield,
+  Wifi,
+  Server,
+  Users,
+  Zap,
 } from "lucide-react"
 import {
   Card,
@@ -39,6 +46,55 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { toast } from "sonner"
+
+// ==========================================
+// LOADING STEPS - Fun messages during account creation
+// ==========================================
+
+const SETUP_STEPS = [
+  {
+    icon: Building2,
+    title: "Creating your company",
+    subtitle: "Setting up your ISP headquarters...",
+    funFact: "Fun fact: The first ISP was launched in 1989!",
+  },
+  {
+    icon: Server,
+    title: "Provisioning your database",
+    subtitle: "Building a home for all your data...",
+    funFact: "We're creating tables faster than you can say \"bandwidth\"",
+  },
+  {
+    icon: Shield,
+    title: "Securing your account",
+    subtitle: "Adding military-grade encryption...",
+    funFact: "Your password is now safer than a Swiss bank vault 🏦",
+  },
+  {
+    icon: Wifi,
+    title: "Configuring network modules",
+    subtitle: "Getting your router management ready...",
+    funFact: "Soon you'll manage routers like a pro!",
+  },
+  {
+    icon: Users,
+    title: "Preparing customer tools",
+    subtitle: "Setting up subscriber management...",
+    funFact: "Your future customers will thank you 🙏",
+  },
+  {
+    icon: Zap,
+    title: "Activating your 14-day trial",
+    subtitle: "Almost there! Unlocking all premium features...",
+    funFact: "No credit card needed. We trust you! 💙",
+  },
+  {
+    icon: Rocket,
+    title: "Launching your dashboard",
+    subtitle: "Preparing for takeoff in 3... 2... 1...",
+    funFact: "Houston, we have liftoff! 🚀",
+  },
+]
 
 // ==========================================
 // TYPES
@@ -119,12 +175,118 @@ async function registerCompany(data: Omit<RegisterFormData, "admin_password_conf
 }
 
 // ==========================================
+// LOADING OVERLAY COMPONENT
+// ==========================================
+
+function CreatingAccountOverlay({ 
+  currentStep, 
+  isComplete,
+  companyName 
+}: { 
+  currentStep: number
+  isComplete: boolean
+  companyName: string
+}) {
+  const step = SETUP_STEPS[currentStep] || SETUP_STEPS[0]
+  const StepIcon = step.icon
+  const progress = ((currentStep + 1) / SETUP_STEPS.length) * 100
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-300/10 rounded-full blur-3xl animate-pulse delay-500" />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-md px-6 text-center">
+        {/* Logo */}
+        <div className="mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl mb-4">
+            {isComplete ? (
+              <Sparkles className="w-10 h-10 text-white animate-pulse" />
+            ) : (
+              <StepIcon className="w-10 h-10 text-white animate-bounce" />
+            )}
+          </div>
+        </div>
+
+        {/* Main message */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">
+            {isComplete ? "All Done! 🎉" : step.title}
+          </h1>
+          <p className="text-blue-100 text-lg">
+            {isComplete ? `Welcome to Netily, ${companyName}!` : step.subtitle}
+          </p>
+        </div>
+
+        {/* Progress bar */}
+        <div className="mb-6">
+          <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-white rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${isComplete ? 100 : progress}%` }}
+            />
+          </div>
+          <div className="mt-2 flex justify-between text-xs text-blue-200">
+            <span>Step {currentStep + 1} of {SETUP_STEPS.length}</span>
+            <span>{Math.round(isComplete ? 100 : progress)}%</span>
+          </div>
+        </div>
+
+        {/* Steps indicators */}
+        <div className="flex justify-center gap-2 mb-8">
+          {SETUP_STEPS.map((s, index) => (
+            <div
+              key={index}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                index < currentStep
+                  ? "bg-green-400"
+                  : index === currentStep
+                  ? "bg-white scale-125"
+                  : "bg-white/30"
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Fun fact */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+          <p className="text-blue-100 text-sm italic">
+            {isComplete ? "Redirecting to your dashboard..." : step.funFact}
+          </p>
+        </div>
+
+        {/* Completed steps list */}
+        {currentStep > 0 && !isComplete && (
+          <div className="mt-6 text-left">
+            <div className="space-y-2">
+              {SETUP_STEPS.slice(0, currentStep).map((s, index) => (
+                <div key={index} className="flex items-center gap-2 text-green-300 text-sm">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>{s.title}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ==========================================
 // MAIN COMPONENT
 // ==========================================
 
 export default function AdminRegisterPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [currentStep, setCurrentStep] = useState(0)
+  const [isSetupComplete, setIsSetupComplete] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [generalError, setGeneralError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -154,6 +316,27 @@ export default function AdminRegisterPage() {
     admin_password: "",
     admin_password_confirm: "",
   })
+
+  // Step animation during loading
+  useEffect(() => {
+    if (!loading) {
+      setCurrentStep(0)
+      setIsSetupComplete(false)
+      return
+    }
+
+    // Cycle through steps while loading
+    const stepInterval = setInterval(() => {
+      setCurrentStep((prev) => {
+        if (prev < SETUP_STEPS.length - 1) {
+          return prev + 1
+        }
+        return prev
+      })
+    }, 2400) // Change step every 2.4 seconds
+
+    return () => clearInterval(stepInterval)
+  }, [loading])
 
   // Update password strength indicator
   useEffect(() => {
@@ -257,11 +440,16 @@ export default function AdminRegisterPage() {
       const trialStartDate = new Date().toISOString()
       localStorage.setItem("trialStartDate", trialStartDate)
 
-      toast.success("Welcome! Your ISP company has been created.")
+      // Show completion state
+      setIsSetupComplete(true)
+
+      // Wait a moment to show the success animation
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // Redirect to dashboard
       window.location.href = "/admin"
     } catch (error: any) {
+      setLoading(false)
       if (error.status === 400 && error.errors) {
         // Map backend validation errors to form fields
         setErrors(error.errors)
@@ -274,8 +462,6 @@ export default function AdminRegisterPage() {
         setGeneralError("Registration failed. Please try again.")
         toast.error("Registration failed. Please try again.")
       }
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -284,17 +470,27 @@ export default function AdminRegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4 py-8">
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-            <Building2 className="w-9 h-9 text-white" />
-          </div>
-          <CardTitle className="text-2xl font-bold">Create Your ISP Account</CardTitle>
-          <CardDescription>
-            Start your 14-day free trial. No credit card required.
-          </CardDescription>
-        </CardHeader>
+    <>
+      {/* Loading overlay */}
+      {loading && (
+        <CreatingAccountOverlay
+          currentStep={currentStep}
+          isComplete={isSetupComplete}
+          companyName={formData.company_name || "your company"}
+        />
+      )}
+
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4 py-8">
+        <Card className="w-full max-w-2xl">
+          <CardHeader className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+              <Building2 className="w-9 h-9 text-white" />
+            </div>
+            <CardTitle className="text-2xl font-bold">Create Your ISP Account</CardTitle>
+            <CardDescription>
+              Start your 14-day free trial. No credit card required.
+            </CardDescription>
+          </CardHeader>
 
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
@@ -687,5 +883,6 @@ export default function AdminRegisterPage() {
         </form>
       </Card>
     </div>
+    </>
   )
 }
