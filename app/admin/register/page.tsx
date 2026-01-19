@@ -455,8 +455,16 @@ export default function AdminRegisterPage() {
       const trialStartDate = new Date().toISOString()
       localStorage.setItem("trialStartDate", trialStartDate)
 
-      // Generate tenant subdomain from company name
-      const tenantSubdomain = slugifyCompanyName(formData.company_name)
+      // Get tenant subdomain from backend response (source of truth)
+      // Backend returns: response.user.company.slug or response.subdomain
+      const tenantSubdomain = 
+        response.user?.company?.slug || 
+        response.user?.company?.subdomain ||
+        (response as any).subdomain ||
+        slugifyCompanyName(formData.company_name) // Fallback to generated slug
+      
+      console.log('Registration success, tenant subdomain:', tenantSubdomain)
+      
       const tenantAdminUrl = getTenantFrontendUrl(tenantSubdomain, "/admin")
       
       // Set the tenant URL and show completion state
