@@ -1,7 +1,7 @@
 /**
  * Admin API Service for ISP Management System
  * Aligned with Django Backend Swagger API
- * Base URL: http://127.0.0.1:8000/api/v1
+ * Supports multi-tenant subdomains
  */
 
 import type {
@@ -86,6 +86,8 @@ import type {
   StaffRole,
 } from './types'
 
+import { getApiBaseUrl } from './subdomain'
+
 // Re-export for backward compatibility
 export type { Customer }
 
@@ -101,17 +103,21 @@ export interface AdminStats extends DashboardStats {}
 // CONFIGURATION
 // ==========================================
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+// Dynamic API URL based on subdomain (with fallback for SSR)
+const getBaseUrl = (): string => {
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+  }
+  return getApiBaseUrl()
+}
 
 // ==========================================
 // ADMIN API SERVICE CLASS
 // ==========================================
 
 class AdminApiService {
-  private baseUrl: string
-
-  constructor() {
-    this.baseUrl = API_BASE
+  private get baseUrl(): string {
+    return getBaseUrl()
   }
 
   // ------------------------------------------
@@ -260,7 +266,10 @@ class AdminApiService {
   // ------------------------------------------
 
   async login(email: string, password: string): Promise<AdminLoginResponse> {
-    const response = await fetch(`${this.baseUrl}/core/auth/login/`, {
+    const loginUrl = `${this.baseUrl}/core/auth/login/`
+    console.log('AdminAPI login: Attempting to fetch:', loginUrl)
+    
+    const response = await fetch(loginUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),

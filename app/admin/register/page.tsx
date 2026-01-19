@@ -46,6 +46,13 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { toast } from "sonner"
+import { 
+  getApiBaseUrl, 
+  getSubdomainInfo, 
+  getTenantFrontendUrl, 
+  slugifyCompanyName,
+  isTenantDomain 
+} from "@/lib/subdomain"
 
 // ==========================================
 // LOADING STEPS - Fun messages during account creation
@@ -181,11 +188,13 @@ async function registerCompany(data: Omit<RegisterFormData, "admin_password_conf
 function CreatingAccountOverlay({ 
   currentStep, 
   isComplete,
-  companyName 
+  companyName,
+  tenantUrl
 }: { 
   currentStep: number
   isComplete: boolean
   companyName: string
+  tenantUrl?: string
 }) {
   const step = SETUP_STEPS[currentStep] || SETUP_STEPS[0]
   const StepIcon = step.icon
@@ -256,7 +265,11 @@ function CreatingAccountOverlay({
         {/* Fun fact */}
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
           <p className="text-blue-100 text-sm italic">
-            {isComplete ? "Redirecting to your dashboard..." : step.funFact}
+            {isComplete 
+              ? tenantUrl 
+                ? `Redirecting you to ${tenantUrl}...` 
+                : "Redirecting to your dashboard..." 
+              : step.funFact}
           </p>
         </div>
 
@@ -287,6 +300,7 @@ export default function AdminRegisterPage() {
   const [loading, setLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [isSetupComplete, setIsSetupComplete] = useState(false)
+  const [tenantUrl, setTenantUrl] = useState<string | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
   const [generalError, setGeneralError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -322,6 +336,7 @@ export default function AdminRegisterPage() {
     if (!loading) {
       setCurrentStep(0)
       setIsSetupComplete(false)
+      setTenantUrl(null)
       return
     }
 
@@ -440,14 +455,19 @@ export default function AdminRegisterPage() {
       const trialStartDate = new Date().toISOString()
       localStorage.setItem("trialStartDate", trialStartDate)
 
-      // Show completion state
+      // Generate tenant subdomain from company name
+      const tenantSubdomain = slugifyCompanyName(formData.company_name)
+      const tenantAdminUrl = getTenantFrontendUrl(tenantSubdomain, "/admin")
+      
+      // Set the tenant URL and show completion state
+      setTenantUrl(tenantAdminUrl)
       setIsSetupComplete(true)
 
       // Wait a moment to show the success animation
       await new Promise((resolve) => setTimeout(resolve, 2000))
 
-      // Redirect to dashboard
-      window.location.href = "/admin"
+      // Redirect to the tenant's admin dashboard
+      window.location.href = tenantAdminUrl
     } catch (error: any) {
       setLoading(false)
       if (error.status === 400 && error.errors) {
@@ -477,6 +497,7 @@ export default function AdminRegisterPage() {
           currentStep={currentStep}
           isComplete={isSetupComplete}
           companyName={formData.company_name || "your company"}
+          tenantUrl={tenantUrl || undefined}
         />
       )}
 

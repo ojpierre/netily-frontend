@@ -1,7 +1,7 @@
 /**
  * API Service for ISP Management System
  * Aligned with Django Backend Swagger API
- * Base URL: http://127.0.0.1:8000/api/v1
+ * Supports multi-tenant subdomains
  */
 
 import type {
@@ -25,6 +25,8 @@ import type {
   SystemSetting,
 } from './types'
 
+import { getApiBaseUrl, getSubdomainInfo } from './subdomain'
+
 // Re-export types for backward compatibility
 export type { LoginResponse, Customer, Invoice, Payment }
 
@@ -32,7 +34,15 @@ export type { LoginResponse, Customer, Invoice, Payment }
 // CONFIGURATION
 // ==========================================
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+// Dynamic API URL based on subdomain (with fallback for SSR)
+const getBaseUrl = (): string => {
+  // During SSR, use environment variable or default
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+  }
+  // On client, detect subdomain dynamically
+  return getApiBaseUrl()
+}
 
 // Flag to use mock data when backend is unavailable
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK === 'true' || true
@@ -42,10 +52,8 @@ const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK === 'true' || true
 // ==========================================
 
 class ApiService {
-  private baseUrl: string
-
-  constructor() {
-    this.baseUrl = API_BASE
+  private get baseUrl(): string {
+    return getBaseUrl()
   }
 
   // ------------------------------------------
