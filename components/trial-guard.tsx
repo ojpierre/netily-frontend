@@ -17,6 +17,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { adminApi } from "@/lib/admin-api"
+import type { CompanySubscription } from "@/lib/types"
 
 // ==========================================
 // TYPES
@@ -300,23 +302,72 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
     "/admin/register",
     "/admin/settings/billing",
     "/admin/settings/account",
+    "/admin/settings/payouts",
   ]
 
   useEffect(() => {
-    // Check trial status
-    const checkTrial = () => {
+    // Check trial status from API first, then fallback to localStorage
+    const checkTrial = async () => {
       if (typeof window === "undefined") return
 
+      try {
+        // First, try to get subscription status from API
+        const subscription = await adminApi.getCurrentSubscription()
+        
+        if (subscription) {
+          // Store trial start date locally for countdown component
+          if (subscription.trial_ends_at) {
+            // Calculate trial start date from trial end (14 days before)
+            const trialEndDate = new Date(subscription.trial_ends_at)
+            const trialStartDate = new Date(trialEndDate.getTime() - (trialDays * 24 * 60 * 60 * 1000))
+            localStorage.setItem("trialStartDate", trialStartDate.toISOString())
+          } else if (subscription.current_period_start) {
+            localStorage.setItem("trialStartDate", subscription.current_period_start)
+          }
+          
+          // Check subscription status
+          if (subscription.status === "active") {
+            localStorage.setItem("subscriptionStatus", "active")
+            setIsExpired(false)
+            setIsChecking(false)
+            return
+          }
+          
+          if (subscription.status === "trial") {
+            localStorage.setItem("subscriptionStatus", "trial")
+            // Check if trial has expired
+            if (subscription.trial_ends_at) {
+              const trialEndDate = new Date(subscription.trial_ends_at)
+              const expired = trialEndDate <= new Date()
+              setIsExpired(expired)
+            } else {
+              setIsExpired(false)
+            }
+            setIsChecking(false)
+            return
+          }
+          
+          if (subscription.status === "expired" || subscription.status === "cancelled") {
+            setIsExpired(true)
+            setIsChecking(false)
+            return
+          }
+        }
+      } catch (error) {
+        // API call failed - fallback to localStorage
+        console.log("Failed to fetch subscription, falling back to localStorage:", error)
+      }
+
+      // Fallback: Check localStorage
       const storedDate = localStorage.getItem("trialStartDate")
 
       if (!storedDate) {
-        // No trial start date means either not registered or paid user
-        // Check if user has active subscription
+        // No trial start date - check subscription status
         const hasSubscription = localStorage.getItem("subscriptionStatus")
         if (hasSubscription === "active") {
           setIsExpired(false)
         }
-        // If no subscription info, don't block (might be legacy user)
+        // If no subscription info, don't block (new user or legacy user)
         setIsChecking(false)
         return
       }
@@ -338,6 +389,25 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
     const interval = setInterval(checkTrial, 60000)
     return () => clearInterval(interval)
   }, [trialDays])
+
+  // Show loading state while checking
+  if (isChecking) {
+    return null // Or a loading spinner
+  }
+
+  // Allow access to billing and certain pages
+  if (allowedPaths.some((path) => pathname?.startsWith(path))) {
+    return <>{children}</>
+  }
+
+  // Show expired page if trial is over
+  if (isExpired) {
+    return <ExpiredTrialPage />
+  }
+
+  // Trial still active
+  return <>{children}</>
+}
 
   // Show loading state while checking
   if (isChecking) {

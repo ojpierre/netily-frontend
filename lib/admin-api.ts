@@ -2227,12 +2227,21 @@ class AdminApiService {
     return this.request<NetilyPlan[]>('/subscriptions/plans/')
   }
 
-  async getCurrentSubscription(): Promise<CompanySubscription> {
-    return this.request<CompanySubscription>('/subscriptions/current/')
+  async getCurrentSubscription(): Promise<CompanySubscription | null> {
+    try {
+      return await this.request<CompanySubscription>('/subscriptions/current/')
+    } catch {
+      // No subscription exists yet for this company
+      return null
+    }
   }
 
-  async getUsageStats(): Promise<UsageStats> {
-    return this.request<UsageStats>('/subscriptions/usage/')
+  async getUsageStats(): Promise<UsageStats | null> {
+    try {
+      return await this.request<UsageStats>('/subscriptions/usage/')
+    } catch {
+      return null
+    }
   }
 
   async initiateSubscriptionPayment(planId: number): Promise<{ 

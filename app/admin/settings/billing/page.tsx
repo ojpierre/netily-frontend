@@ -707,8 +707,8 @@ export default function BillingPage() {
         // Load data from API
         const [plansData, subData, usageData] = await Promise.all([
           adminApi.getNetilyPlans(),
-          adminApi.getCurrentSubscription().catch(() => null),
-          adminApi.getUsageStats().catch(() => null),
+          adminApi.getCurrentSubscription(),
+          adminApi.getUsageStats(),
         ])
 
         // Set plans from API

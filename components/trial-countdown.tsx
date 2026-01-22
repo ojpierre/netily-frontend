@@ -19,6 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { adminApi } from "@/lib/admin-api"
 
 // ==========================================
 // TYPES
@@ -129,24 +130,63 @@ export function TrialCountdown({
   const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(null)
   const [showExpiredDialog, setShowExpiredDialog] = useState(false)
   const [trialStartDate, setTrialStartDate] = useState<Date | null>(null)
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null)
 
-  // Initialize trial start date from props or localStorage
+  // Initialize trial start date from API, props, or localStorage
   useEffect(() => {
-    let startDate: Date | null = null
+    const initTrialDate = async () => {
+      let startDate: Date | null = null
 
-    if (initialTrialStartDate) {
-      startDate = new Date(initialTrialStartDate)
-    } else if (typeof window !== "undefined") {
-      const storedDate = localStorage.getItem("trialStartDate")
-      if (storedDate) {
-        startDate = new Date(storedDate)
+      // First, try props
+      if (initialTrialStartDate) {
+        startDate = new Date(initialTrialStartDate)
+      }
+      
+      // Then try API if no props provided
+      if (!startDate && typeof window !== "undefined") {
+        try {
+          const subscription = await adminApi.getCurrentSubscription()
+          
+          if (subscription) {
+            setSubscriptionStatus(subscription.status)
+            
+            // If active subscription, don't show trial countdown
+            if (subscription.status === "active") {
+              return
+            }
+            
+            // For trial status, calculate start date from trial_ends_at
+            if (subscription.status === "trial" && subscription.trial_ends_at) {
+              const trialEndDate = new Date(subscription.trial_ends_at)
+              startDate = new Date(trialEndDate.getTime() - (trialDays * 24 * 60 * 60 * 1000))
+              // Also store in localStorage for future use
+              localStorage.setItem("trialStartDate", startDate.toISOString())
+            } else if (subscription.current_period_start) {
+              startDate = new Date(subscription.current_period_start)
+              localStorage.setItem("trialStartDate", startDate.toISOString())
+            }
+          }
+        } catch (error) {
+          // API failed, fall back to localStorage
+          console.log("Failed to fetch subscription for trial countdown:", error)
+        }
+      }
+      
+      // Fallback to localStorage
+      if (!startDate && typeof window !== "undefined") {
+        const storedDate = localStorage.getItem("trialStartDate")
+        if (storedDate) {
+          startDate = new Date(storedDate)
+        }
+      }
+
+      if (startDate && !isNaN(startDate.getTime())) {
+        setTrialStartDate(startDate)
+        setTimeRemaining(calculateTimeRemaining(startDate, trialDays))
       }
     }
-
-    if (startDate && !isNaN(startDate.getTime())) {
-      setTrialStartDate(startDate)
-      setTimeRemaining(calculateTimeRemaining(startDate, trialDays))
-    }
+    
+    initTrialDate()
   }, [initialTrialStartDate, trialDays])
 
   // Update countdown every second
@@ -171,6 +211,11 @@ export function TrialCountdown({
     if (!timeRemaining) return null
     return getTrialStatus(timeRemaining)
   }, [timeRemaining])
+
+  // Don't render if subscription is active (paid user)
+  if (subscriptionStatus === "active") {
+    return null
+  }
 
   // Don't render if no trial date is set
   if (!trialStartDate || !timeRemaining || !status) {
@@ -329,23 +374,59 @@ export function TrialCountdownCompact({
 }: Omit<TrialCountdownProps, "onUpgrade">) {
   const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(null)
   const [trialStartDate, setTrialStartDate] = useState<Date | null>(null)
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null)
 
   useEffect(() => {
-    let startDate: Date | null = null
+    const initTrialDate = async () => {
+      let startDate: Date | null = null
 
-    if (initialTrialStartDate) {
-      startDate = new Date(initialTrialStartDate)
-    } else if (typeof window !== "undefined") {
-      const storedDate = localStorage.getItem("trialStartDate")
-      if (storedDate) {
-        startDate = new Date(storedDate)
+      if (initialTrialStartDate) {
+        startDate = new Date(initialTrialStartDate)
+      }
+      
+      // Try API first
+      if (!startDate && typeof window !== "undefined") {
+        try {
+          const subscription = await adminApi.getCurrentSubscription()
+          
+          if (subscription) {
+            setSubscriptionStatus(subscription.status)
+            
+            // If active subscription, don't show trial countdown
+            if (subscription.status === "active") {
+              return
+            }
+            
+            // For trial status, calculate start date from trial_ends_at
+            if (subscription.status === "trial" && subscription.trial_ends_at) {
+              const trialEndDate = new Date(subscription.trial_ends_at)
+              startDate = new Date(trialEndDate.getTime() - (trialDays * 24 * 60 * 60 * 1000))
+              localStorage.setItem("trialStartDate", startDate.toISOString())
+            } else if (subscription.current_period_start) {
+              startDate = new Date(subscription.current_period_start)
+              localStorage.setItem("trialStartDate", startDate.toISOString())
+            }
+          }
+        } catch (error) {
+          console.log("Failed to fetch subscription for compact countdown:", error)
+        }
+      }
+      
+      // Fallback to localStorage
+      if (!startDate && typeof window !== "undefined") {
+        const storedDate = localStorage.getItem("trialStartDate")
+        if (storedDate) {
+          startDate = new Date(storedDate)
+        }
+      }
+
+      if (startDate && !isNaN(startDate.getTime())) {
+        setTrialStartDate(startDate)
+        setTimeRemaining(calculateTimeRemaining(startDate, trialDays))
       }
     }
-
-    if (startDate && !isNaN(startDate.getTime())) {
-      setTrialStartDate(startDate)
-      setTimeRemaining(calculateTimeRemaining(startDate, trialDays))
-    }
+    
+    initTrialDate()
   }, [initialTrialStartDate, trialDays])
 
   useEffect(() => {
@@ -357,6 +438,11 @@ export function TrialCountdownCompact({
 
     return () => clearInterval(interval)
   }, [trialStartDate, trialDays])
+
+  // Don't render if subscription is active
+  if (subscriptionStatus === "active") {
+    return null
+  }
 
   if (!trialStartDate || !timeRemaining) {
     return null
