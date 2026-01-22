@@ -37,6 +37,8 @@ import {
   Banknote,
   QrCode,
   UserCog,
+  DollarSign,
+  ArrowRightLeft,
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -88,6 +90,14 @@ const navigationSections = [
       { name: "Vouchers", href: "/admin/vouchers", icon: QrCode },
       { name: "Payment Methods", href: "/admin/payment-methods", icon: Banknote },
       { name: "Analytics", href: "/admin/analytics", icon: TrendingUp },
+    ],
+  },
+  {
+    title: "Billing & Payouts",
+    items: [
+      { name: "Subscription", href: "/admin/settings/billing", icon: CreditCard },
+      { name: "Payout Settings", href: "/admin/settings/payouts", icon: DollarSign },
+      { name: "Settlements", href: "/admin/settings/settlements", icon: ArrowRightLeft },
     ],
   },
   {

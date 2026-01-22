@@ -68,6 +68,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
+import { adminApi } from "@/lib/admin-api"
+import type { NetilyPlan, CompanySubscription, UsageStats as ApiUsageStats } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -320,30 +322,27 @@ function PaymentDialog({ open, onOpenChange, selectedPlan, onSuccess }: PaymentD
     setStep("processing")
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await adminApi.initiateSubscriptionPayment({
-      //   plan_id: selectedPlan.id,
-      //   payment_method: paymentMethod,
-      //   phone_number: paymentMethod === "mpesa_stk" ? phoneNumber : undefined,
-      // })
-
-      // Simulate API response for now
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
       if (paymentMethod === "mpesa_stk") {
+        // Use real API for STK push
+        const response = await adminApi.initiateSubscriptionPayment(
+          typeof selectedPlan.id === 'string' ? parseInt(selectedPlan.id) : selectedPlan.id as number
+        )
+        
         setPaymentResult({
           success: true,
-          message: "STK Push sent! Check your phone and enter your M-Pesa PIN to complete payment.",
-          reference: `PAY-${Date.now()}`,
+          message: response.message || "STK Push sent! Check your phone and enter your M-Pesa PIN to complete payment.",
+          reference: response.checkout_request_id,
         })
       } else if (paymentMethod === "mpesa_paybill") {
+        // For Paybill, we just show the payment details
         setPaymentResult({
           success: true,
           message: "Use the details below to make your payment via M-Pesa Paybill.",
           paybillNumber: "247247",
-          accountNumber: `NETILY-${selectedPlan.id.toUpperCase()}-${Date.now().toString().slice(-6)}`,
+          accountNumber: `NETILY-${String(selectedPlan.id).toUpperCase()}-${Date.now().toString().slice(-6)}`,
         })
       } else {
+        // Bank transfer details
         setPaymentResult({
           success: true,
           message: "Use the bank details below to make your payment.",
@@ -664,48 +663,114 @@ export default function BillingPage() {
 
   const [isLoading, setIsLoading] = useState(true)
   const [subscription, setSubscription] = useState<Subscription | null>(null)
+  const [apiPlans, setApiPlans] = useState<NetilyPlan[]>([])
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([])
   const [usage, setUsage] = useState<UsageStats | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null)
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
+
+  // Convert API plan to display format
+  const convertApiPlan = (plan: NetilyPlan): PricingPlan => ({
+    id: plan.code,
+    name: plan.name,
+    price: parseFloat(plan.price),
+    period: "monthly",
+    description: plan.description,
+    features: [
+      `Up to ${plan.max_subscribers ?? 'Unlimited'} subscribers`,
+      `${plan.max_routers ?? 'Unlimited'} Routers`,
+      `${plan.max_staff_users ?? 'Unlimited'} Staff accounts`,
+      ...(plan.features.sms_notifications ? ['SMS notifications'] : []),
+      ...(plan.features.email_notifications ? ['Email notifications'] : []),
+      ...(plan.features.api_access ? ['API access'] : []),
+      ...(plan.features.custom_branding ? ['Custom branding'] : []),
+      ...(plan.features.white_label ? ['White-label solution'] : []),
+      ...(plan.features.priority_support ? ['Priority support'] : []),
+      ...(plan.features.hotspot_portal ? ['Hotspot portal'] : []),
+      ...(plan.features.analytics_dashboard ? ['Analytics dashboard'] : []),
+      ...(plan.features.multi_location ? ['Multi-location support'] : []),
+    ],
+    limits: {
+      subscribers: plan.max_subscribers ?? "unlimited",
+      routers: plan.max_routers ?? "unlimited",
+      staff: plan.max_staff_users ?? "unlimited",
+    },
+    popular: plan.code === 'professional',
+    badge: plan.code === 'professional' ? 'Most Popular' : plan.code === 'enterprise' ? 'Best Value' : undefined,
+  })
 
   // Load billing data
   useEffect(() => {
     const loadBillingData = async () => {
       setIsLoading(true)
       try {
-        // TODO: Replace with actual API calls
-        // const [sub, history, usageData] = await Promise.all([
-        //   adminApi.getSubscription(),
-        //   adminApi.getPaymentHistory(),
-        //   adminApi.getUsageStats(),
-        // ])
-
-        // Simulate trial user for now
-        const trialStartDate = localStorage.getItem("trialStartDate")
-        const trialEnd = trialStartDate
-          ? new Date(new Date(trialStartDate).getTime() + 14 * 24 * 60 * 60 * 1000).toISOString()
-          : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
-
-        setSubscription({
-          id: 1,
-          plan: PRICING_PLANS[1], // Professional plan as example
-          status: trialStartDate ? "trial" : "active",
-          current_period_start: trialStartDate || new Date().toISOString(),
-          current_period_end: trialEnd,
-          trial_end: trialEnd,
-          cancel_at_period_end: false,
-        })
-
-        setPaymentHistory([
-          // Empty for trial users
+        // Load data from API
+        const [plansData, subData, usageData] = await Promise.all([
+          adminApi.getNetilyPlans(),
+          adminApi.getCurrentSubscription().catch(() => null),
+          adminApi.getUsageStats().catch(() => null),
         ])
 
-        setUsage({
-          subscribers: { used: 45, limit: 500 },
-          routers: { used: 3, limit: 10 },
-          staff: { used: 2, limit: 10 },
-        })
+        // Set plans from API
+        if (plansData && plansData.length > 0) {
+          setApiPlans(plansData)
+        }
+
+        // Convert API subscription to local format
+        if (subData) {
+          const planData = convertApiPlan(subData.plan)
+          setSubscription({
+            id: subData.id,
+            plan: planData,
+            status: subData.status,
+            current_period_start: subData.current_period_start,
+            current_period_end: subData.current_period_end,
+            trial_end: subData.trial_ends_at ?? undefined,
+            cancel_at_period_end: false,
+          })
+        } else {
+          // Fallback for trial users without subscription record
+          const trialStartDate = localStorage.getItem("trialStartDate")
+          const trialEnd = trialStartDate
+            ? new Date(new Date(trialStartDate).getTime() + 14 * 24 * 60 * 60 * 1000).toISOString()
+            : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+
+          setSubscription({
+            id: 0,
+            plan: PRICING_PLANS[1],
+            status: "trial",
+            current_period_start: trialStartDate || new Date().toISOString(),
+            current_period_end: trialEnd,
+            trial_end: trialEnd,
+            cancel_at_period_end: false,
+          })
+        }
+
+        // Convert API usage to local format
+        if (usageData) {
+          setUsage({
+            subscribers: { 
+              used: usageData.subscribers.current, 
+              limit: usageData.subscribers.limit ?? "unlimited" 
+            },
+            routers: { 
+              used: usageData.routers.current, 
+              limit: usageData.routers.limit ?? "unlimited" 
+            },
+            staff: { 
+              used: usageData.staff.current, 
+              limit: usageData.staff.limit ?? "unlimited" 
+            },
+          })
+        } else {
+          setUsage({
+            subscribers: { used: 0, limit: 500 },
+            routers: { used: 0, limit: 10 },
+            staff: { used: 0, limit: 10 },
+          })
+        }
+
+        setPaymentHistory([])
       } catch (error) {
         console.error("Failed to load billing data:", error)
         toast.error("Failed to load billing information")
@@ -717,16 +782,21 @@ export default function BillingPage() {
     loadBillingData()
   }, [])
 
+  // Get display plans (from API or fallback)
+  const displayPlans = apiPlans.length > 0 
+    ? apiPlans.map(convertApiPlan) 
+    : PRICING_PLANS
+
   // Handle preselected plan from URL
   useEffect(() => {
-    if (preselectedPlan) {
-      const plan = PRICING_PLANS.find((p) => p.id === preselectedPlan)
+    if (preselectedPlan && displayPlans.length > 0) {
+      const plan = displayPlans.find((p) => p.id === preselectedPlan)
       if (plan) {
         setSelectedPlan(plan)
         setIsPaymentDialogOpen(true)
       }
     }
-  }, [preselectedPlan])
+  }, [preselectedPlan, displayPlans])
 
   const daysRemaining = useMemo(() => {
     if (!subscription) return 0
@@ -808,7 +878,7 @@ export default function BillingPage() {
         {/* Plans Tab */}
         <TabsContent value="plans" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-3">
-            {PRICING_PLANS.map((plan) => {
+            {displayPlans.map((plan) => {
               const isCurrentPlan = subscription?.plan.id === plan.id
               const isTrial = subscription?.status === "trial"
 

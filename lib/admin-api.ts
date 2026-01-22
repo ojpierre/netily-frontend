@@ -107,6 +107,18 @@ import type {
   CreateStaffUserRequest,
   CreateStaffUserResponse,
   StaffRole,
+  // Subscription & Payout types
+  NetilyPlan,
+  CompanySubscription,
+  SubscriptionPayment,
+  ISPPayoutConfig,
+  ISPSettlement,
+  UsageStats,
+  SettlementSummary,
+  // Hotspot types
+  HotspotPlan,
+  HotspotSession,
+  HotspotBranding,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -2204,6 +2216,123 @@ class AdminApiService {
   async cancelSMSCampaign(id: number): Promise<SMSCampaign> {
     return this.request<SMSCampaign>(`/messaging/campaigns/${id}/cancel/`, {
       method: 'POST',
+    })
+  }
+
+  // ------------------------------------------
+  // NETILY SUBSCRIPTIONS - /subscriptions/
+  // ------------------------------------------
+
+  async getNetilyPlans(): Promise<NetilyPlan[]> {
+    return this.request<NetilyPlan[]>('/subscriptions/plans/')
+  }
+
+  async getCurrentSubscription(): Promise<CompanySubscription> {
+    return this.request<CompanySubscription>('/subscriptions/current/')
+  }
+
+  async getUsageStats(): Promise<UsageStats> {
+    return this.request<UsageStats>('/subscriptions/usage/')
+  }
+
+  async initiateSubscriptionPayment(planId: number): Promise<{ 
+    checkout_request_id: string
+    merchant_request_id: string
+    message: string 
+  }> {
+    return this.request('/subscriptions/pay/', {
+      method: 'POST',
+      body: JSON.stringify({ plan_id: planId }),
+    })
+  }
+
+  // ------------------------------------------
+  // ISP PAYOUT CONFIG - /subscriptions/payout-config/
+  // ------------------------------------------
+
+  async getPayoutConfig(): Promise<ISPPayoutConfig | null> {
+    try {
+      return await this.request<ISPPayoutConfig>('/subscriptions/payout-config/')
+    } catch {
+      return null
+    }
+  }
+
+  async updatePayoutConfig(data: Partial<ISPPayoutConfig>): Promise<ISPPayoutConfig> {
+    return this.request<ISPPayoutConfig>('/subscriptions/payout-config/', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async verifyPayoutConfig(): Promise<{ verified: boolean; message: string }> {
+    return this.request('/subscriptions/payout-config/verify/', {
+      method: 'POST',
+    })
+  }
+
+  // ------------------------------------------
+  // ISP SETTLEMENTS - /subscriptions/settlements/
+  // ------------------------------------------
+
+  async getSettlements(params?: Record<string, string>): Promise<PaginatedResponse<ISPSettlement>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<ISPSettlement>>(`/subscriptions/settlements/${queryString}`)
+  }
+
+  async getSettlementSummary(): Promise<SettlementSummary> {
+    return this.request<SettlementSummary>('/subscriptions/settlements/summary/')
+  }
+
+  async requestManualPayout(): Promise<{ message: string; settlement_id?: number }> {
+    return this.request('/subscriptions/settlements/request-payout/', {
+      method: 'POST',
+    })
+  }
+
+  // ------------------------------------------
+  // HOTSPOT MANAGEMENT - /hotspot/
+  // ------------------------------------------
+
+  async getHotspotPlans(routerId: number): Promise<HotspotPlan[]> {
+    return this.request<HotspotPlan[]>(`/hotspot/routers/${routerId}/plans/`)
+  }
+
+  async createHotspotPlan(routerId: number, data: Partial<HotspotPlan>): Promise<HotspotPlan> {
+    return this.request<HotspotPlan>(`/hotspot/routers/${routerId}/plans/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateHotspotPlan(routerId: number, planId: number, data: Partial<HotspotPlan>): Promise<HotspotPlan> {
+    return this.request<HotspotPlan>(`/hotspot/routers/${routerId}/plans/${planId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteHotspotPlan(routerId: number, planId: number): Promise<void> {
+    await this.request(`/hotspot/routers/${routerId}/plans/${planId}/`, { method: 'DELETE' })
+  }
+
+  async getHotspotSessions(routerId: number, params?: Record<string, string>): Promise<PaginatedResponse<HotspotSession>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<HotspotSession>>(`/hotspot/routers/${routerId}/sessions/${queryString}`)
+  }
+
+  async getHotspotBranding(routerId: number): Promise<HotspotBranding | null> {
+    try {
+      return await this.request<HotspotBranding>(`/hotspot/routers/${routerId}/branding/`)
+    } catch {
+      return null
+    }
+  }
+
+  async updateHotspotBranding(routerId: number, data: Partial<HotspotBranding>): Promise<HotspotBranding> {
+    return this.request<HotspotBranding>(`/hotspot/routers/${routerId}/branding/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     })
   }
 }

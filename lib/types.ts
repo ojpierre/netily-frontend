@@ -1873,6 +1873,188 @@ export interface TicketReplyRequest {
 }
 
 // ==========================================
+// NETILY SUBSCRIPTIONS & PAYOUTS
+// ==========================================
+
+export type NetilyPlanCode = 'starter' | 'professional' | 'enterprise'
+export type SubscriptionStatus = 'trial' | 'active' | 'past_due' | 'cancelled' | 'expired'
+export type SettlementStatus = 'pending' | 'processing' | 'completed' | 'failed'
+export type PayoutMethod = 'mpesa' | 'bank'
+
+export interface NetilyPlan {
+  id: number
+  name: string
+  code: NetilyPlanCode
+  price: string
+  description: string
+  max_subscribers: number | null  // null = unlimited
+  max_routers: number | null
+  max_staff_users: number | null
+  features: {
+    sms_notifications: boolean
+    email_notifications: boolean
+    api_access: boolean
+    custom_branding: boolean
+    white_label: boolean
+    priority_support: boolean
+    hotspot_portal: boolean
+    analytics_dashboard: boolean
+    multi_location: boolean
+  }
+  is_active: boolean
+  sort_order: number
+}
+
+export interface CompanySubscription {
+  id: number
+  company_id: number
+  plan: NetilyPlan
+  status: SubscriptionStatus
+  trial_ends_at: string | null
+  current_period_start: string
+  current_period_end: string
+  cancelled_at: string | null
+  subscriber_count: number
+  router_count: number
+  staff_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface SubscriptionPayment {
+  id: number
+  subscription_id: number
+  amount: string
+  currency: string
+  payhero_reference: string | null
+  mpesa_reference: string | null
+  status: 'pending' | 'completed' | 'failed'
+  paid_at: string | null
+  created_at: string
+}
+
+export interface ISPPayoutConfig {
+  id: number
+  company_id: number
+  payout_method: PayoutMethod
+  mpesa_phone: string | null
+  mpesa_name: string | null
+  bank_name: string | null
+  bank_account_number: string | null
+  bank_account_name: string | null
+  bank_branch: string | null
+  bank_swift_code: string | null
+  is_verified: boolean
+  verified_at: string | null
+  min_payout_amount: string
+  auto_payout_enabled: boolean
+  auto_payout_day: number  // 1-28
+  created_at: string
+  updated_at: string
+}
+
+export interface ISPSettlement {
+  id: number
+  company_id: number
+  period_start: string
+  period_end: string
+  gross_amount: string
+  commission_amount: string
+  net_amount: string
+  status: SettlementStatus
+  payhero_reference: string | null
+  processed_at: string | null
+  failure_reason: string | null
+  created_at: string
+}
+
+export interface CommissionLedger {
+  id: number
+  settlement_id: number | null
+  payment_type: 'hotspot' | 'subscription' | 'recharge'
+  source_id: number
+  gross_amount: string
+  commission_rate: string
+  commission_amount: string
+  isp_amount: string
+  created_at: string
+}
+
+export interface UsageStats {
+  subscribers: { current: number; limit: number | null; percentage: number | null }
+  routers: { current: number; limit: number | null; percentage: number | null }
+  staff: { current: number; limit: number | null; percentage: number | null }
+  is_over_limit: boolean
+  warnings: string[]
+}
+
+export interface SettlementSummary {
+  pending_balance: string
+  total_commission: string
+  total_gross: string
+  next_payout_date: string | null
+  last_payout: {
+    amount: string
+    date: string
+    status: SettlementStatus
+  } | null
+  pending_settlements_count: number
+}
+
+// ==========================================
+// HOTSPOT PORTAL
+// ==========================================
+
+export type HotspotPlanType = 'time' | 'data' | 'unlimited'
+export type HotspotSessionStatus = 'pending_payment' | 'active' | 'expired' | 'terminated'
+
+export interface HotspotPlan {
+  id: number
+  router_id: number
+  name: string
+  plan_type: HotspotPlanType
+  price: string
+  duration_minutes: number | null  // For time-based plans
+  data_limit_mb: number | null     // For data-based plans
+  speed_limit_kbps: number | null
+  is_active: boolean
+  sort_order: number
+}
+
+export interface HotspotSession {
+  id: number
+  router_id: number
+  plan_id: number
+  plan_name: string
+  customer_phone: string
+  customer_name: string | null
+  mac_address: string | null
+  ip_address: string | null
+  voucher_code: string
+  payment_reference: string
+  amount_paid: string
+  status: HotspotSessionStatus
+  started_at: string | null
+  expires_at: string | null
+  data_used_mb: number
+  created_at: string
+}
+
+export interface HotspotBranding {
+  id: number
+  router_id: number
+  logo_url: string | null
+  background_image_url: string | null
+  primary_color: string
+  secondary_color: string
+  company_name: string
+  tagline: string | null
+  terms_url: string | null
+  support_phone: string | null
+  support_email: string | null
+}
+
+// ==========================================
 // SMS MODULE (Backend Aligned)
 // ==========================================
 
