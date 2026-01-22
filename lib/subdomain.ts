@@ -26,6 +26,8 @@ const KNOWN_DOMAINS = [
   'localhost',
   'netily.io',
   'netily.com',
+  'ngrok-free.app',
+  'ngrok.io',
   // Add more as needed
 ]
 
@@ -188,12 +190,15 @@ export function getApiBaseUrl(config: ApiUrlConfig = {}): string {
     ENABLE_SUBDOMAIN_API_ROUTING,
   })
   
-  // Determine protocol
-  const protocol = config.protocol || (info.isDevelopment ? 'http' : 'https')
+  // Check if using ngrok (always uses HTTPS, no port)
+  const isNgrok = info.hostname.includes('ngrok-free.app') || info.hostname.includes('ngrok.io')
   
-  // Determine port
+  // Determine protocol
+  const protocol = config.protocol || (isNgrok ? 'https' : (info.isDevelopment ? 'http' : 'https'))
+  
+  // Determine port (ngrok doesn't need port)
   let port = ''
-  if (info.isDevelopment) {
+  if (info.isDevelopment && !isNgrok) {
     port = `:${config.apiPort || '8000'}`
   }
   

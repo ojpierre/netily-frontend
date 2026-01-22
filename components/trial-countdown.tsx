@@ -165,10 +165,27 @@ export function TrialCountdown({
               startDate = new Date(subscription.current_period_start)
               localStorage.setItem("trialStartDate", startDate.toISOString())
             }
+          } else {
+            // API returned null - no subscription exists, user is on implicit trial
+            // Check if we need to create a trial start date
+            const storedDate = localStorage.getItem("trialStartDate")
+            if (!storedDate) {
+              // First time user - create trial start date now
+              startDate = new Date()
+              localStorage.setItem("trialStartDate", startDate.toISOString())
+              setSubscriptionStatus("trial")
+            }
           }
         } catch (error) {
-          // API failed, fall back to localStorage
-          console.log("Failed to fetch subscription for trial countdown:", error)
+          // API failed (400/404 means no subscription) - treat as new trial user
+          console.log("No subscription found, treating as trial user:", error)
+          const storedDate = localStorage.getItem("trialStartDate")
+          if (!storedDate) {
+            // First time user - create trial start date now
+            startDate = new Date()
+            localStorage.setItem("trialStartDate", startDate.toISOString())
+            setSubscriptionStatus("trial")
+          }
         }
       }
       
@@ -177,6 +194,10 @@ export function TrialCountdown({
         const storedDate = localStorage.getItem("trialStartDate")
         if (storedDate) {
           startDate = new Date(storedDate)
+          // If we have a stored date but no subscription status, assume trial
+          if (!subscriptionStatus) {
+            setSubscriptionStatus("trial")
+          }
         }
       }
 
@@ -412,11 +433,16 @@ export function TrialCountdownCompact({
         }
       }
       
-      // Fallback to localStorage
+      // Fallback to localStorage or create new trial for new users
       if (!startDate && typeof window !== "undefined") {
         const storedDate = localStorage.getItem("trialStartDate")
         if (storedDate) {
           startDate = new Date(storedDate)
+        } else {
+          // New user with no subscription and no stored date - start trial now
+          startDate = new Date()
+          localStorage.setItem("trialStartDate", startDate.toISOString())
+          setSubscriptionStatus("trial")
         }
       }
 

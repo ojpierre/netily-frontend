@@ -138,12 +138,34 @@ export interface AdminStats extends DashboardStats {}
 // CONFIGURATION
 // ==========================================
 
+// Default API URL fallback
+const DEFAULT_API_URL = 'http://127.0.0.1:8000/api/v1'
+
+// Get environment variable (inlined at build time for client)
+const ENV_API_URL = process.env.NEXT_PUBLIC_API_URL
+
+// Log for debugging
+if (typeof window !== 'undefined') {
+  console.log('[AdminAPI] ENV_API_URL:', ENV_API_URL)
+}
+
 // Dynamic API URL based on subdomain (with fallback for SSR)
 const getBaseUrl = (): string => {
-  if (typeof window === 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+  // Always prefer the environment variable if set and not empty
+  if (ENV_API_URL && ENV_API_URL.trim() !== '') {
+    console.log('[AdminAPI] Using ENV_API_URL:', ENV_API_URL)
+    return ENV_API_URL
   }
-  return getApiBaseUrl()
+  
+  // During SSR, use default
+  if (typeof window === 'undefined') {
+    return DEFAULT_API_URL
+  }
+  
+  // On client, detect subdomain dynamically
+  const dynamicUrl = getApiBaseUrl()
+  console.log('[AdminAPI] Using dynamic URL:', dynamicUrl)
+  return dynamicUrl
 }
 
 // ==========================================
@@ -2244,14 +2266,19 @@ class AdminApiService {
     }
   }
 
-  async initiateSubscriptionPayment(planId: number): Promise<{ 
+  async initiateSubscriptionPayment(data: {
+    plan_id: string  // 'starter' | 'professional' | 'enterprise'
+    payment_method: 'mpesa_stk' | 'mpesa_paybill' | 'bank_transfer'
+    phone_number?: string
+    billing_period: 'monthly' | 'yearly'
+  }): Promise<{ 
     checkout_request_id: string
     merchant_request_id: string
     message: string 
   }> {
     return this.request('/subscriptions/pay/', {
       method: 'POST',
-      body: JSON.stringify({ plan_id: planId }),
+      body: JSON.stringify(data),
     })
   }
 

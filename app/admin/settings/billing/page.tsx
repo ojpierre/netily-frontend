@@ -131,11 +131,31 @@ type PaymentMethod = "mpesa_stk" | "mpesa_paybill" | "bank_transfer"
 
 const PRICING_PLANS: PricingPlan[] = [
   {
+    id: "test",
+    name: "Test",
+    price: 1,
+    period: "monthly",
+    description: "For testing payments only",
+    badge: "Test Mode",
+    features: [
+      "1 subscriber",
+      "1 Router",
+      "1 Staff account",
+      "Test payments",
+    ],
+    limits: {
+      subscribers: 1,
+      routers: 1,
+      staff: 1,
+    },
+  },
+  {
     id: "starter",
     name: "Starter",
     price: 2999,
     period: "monthly",
     description: "Perfect for small ISPs getting started",
+    badge: "Free for 2 weeks",
     features: [
       "Up to 100 subscribers",
       "3 Routers",
@@ -324,9 +344,13 @@ function PaymentDialog({ open, onOpenChange, selectedPlan, onSuccess }: PaymentD
     try {
       if (paymentMethod === "mpesa_stk") {
         // Use real API for STK push
-        const response = await adminApi.initiateSubscriptionPayment(
-          typeof selectedPlan.id === 'string' ? parseInt(selectedPlan.id) : selectedPlan.id as number
-        )
+        const planCode = String(selectedPlan.id).toLowerCase() as 'starter' | 'professional' | 'enterprise'
+        const response = await adminApi.initiateSubscriptionPayment({
+          plan_id: planCode,
+          payment_method: "mpesa_stk",
+          phone_number: phoneNumber.startsWith('254') ? phoneNumber : `254${phoneNumber.replace(/^0/, '')}`,
+          billing_period: selectedPlan.period,
+        })
         
         setPaymentResult({
           success: true,
@@ -747,18 +771,18 @@ export default function BillingPage() {
         }
 
         // Convert API usage to local format
-        if (usageData) {
+        if (usageData && usageData.subscribers && usageData.routers && usageData.staff) {
           setUsage({
             subscribers: { 
-              used: usageData.subscribers.current, 
+              used: usageData.subscribers.current ?? 0, 
               limit: usageData.subscribers.limit ?? "unlimited" 
             },
             routers: { 
-              used: usageData.routers.current, 
+              used: usageData.routers.current ?? 0, 
               limit: usageData.routers.limit ?? "unlimited" 
             },
             staff: { 
-              used: usageData.staff.current, 
+              used: usageData.staff.current ?? 0, 
               limit: usageData.staff.limit ?? "unlimited" 
             },
           })
@@ -913,8 +937,20 @@ export default function BillingPage() {
                     </CardTitle>
                     <CardDescription>{plan.description}</CardDescription>
                     <div className="pt-4">
-                      <span className="text-4xl font-bold">{formatCurrency(plan.price)}</span>
-                      <span className="text-slate-500">/month</span>
+                      {plan.id === "starter" && isTrial ? (
+                        <>
+                          <span className="text-4xl font-bold text-green-600">Free</span>
+                          <span className="text-slate-500 ml-2">for 14 days</span>
+                          <div className="text-sm text-slate-500 mt-1">
+                            Then {formatCurrency(plan.price)}/month
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-4xl font-bold">{formatCurrency(plan.price)}</span>
+                          <span className="text-slate-500">/month</span>
+                        </>
+                      )}
                     </div>
                   </CardHeader>
 
@@ -962,22 +998,30 @@ export default function BillingPage() {
                   <CardFooter>
                     <Button
                       className={`w-full ${
-                        plan.popular && !isCurrentPlan ? "bg-blue-600 hover:bg-blue-700" : ""
+                        plan.popular ? "bg-blue-600 hover:bg-blue-700" : ""
                       }`}
                       variant={isCurrentPlan && !isTrial ? "outline" : "default"}
                       onClick={() => handleSelectPlan(plan)}
-                      disabled={isCurrentPlan && !isTrial}
+                      disabled={isCurrentPlan && !isTrial && subscription?.status === "active"}
                     >
-                      {isCurrentPlan && !isTrial ? (
+                      {isCurrentPlan && !isTrial && subscription?.status === "active" ? (
                         "Current Plan"
                       ) : isTrial ? (
                         <>
-                          Subscribe Now
+                          {plan.id === "starter" ? "Start Free Trial" : "Subscribe Now"}
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </>
+                      ) : isCurrentPlan ? (
+                        <>
+                          Renew Plan
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </>
                       ) : (
                         <>
-                          Upgrade
+                          {subscription?.plan && 
+                           PRICING_PLANS.findIndex(p => p.id === plan.id) < 
+                           PRICING_PLANS.findIndex(p => p.id === subscription.plan.id)
+                            ? "Downgrade" : "Upgrade"}
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </>
                       )}

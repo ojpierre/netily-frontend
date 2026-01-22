@@ -34,18 +34,32 @@ export type { LoginResponse, Customer, Invoice, Payment }
 // CONFIGURATION
 // ==========================================
 
+// Default API URL fallback
+const DEFAULT_API_URL = 'http://127.0.0.1:8000/api/v1'
+
+// Get environment variable (inlined at build time for client)
+const ENV_API_URL = process.env.NEXT_PUBLIC_API_URL
+
 // Dynamic API URL based on subdomain (with fallback for SSR)
 const getBaseUrl = (): string => {
-  // During SSR, use environment variable or default
-  if (typeof window === 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+  // Always prefer the environment variable if set
+  if (ENV_API_URL) {
+    return ENV_API_URL
   }
+  
+  // During SSR, use default
+  if (typeof window === 'undefined') {
+    return DEFAULT_API_URL
+  }
+  
   // On client, detect subdomain dynamically
-  return getApiBaseUrl()
+  const dynamicUrl = getApiBaseUrl()
+  console.log('[API] Using dynamic URL:', dynamicUrl)
+  return dynamicUrl
 }
 
 // Flag to use mock data when backend is unavailable
-const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK === 'true' || true
+const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
 
 // ==========================================
 // API SERVICE CLASS

@@ -366,8 +366,14 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
         const hasSubscription = localStorage.getItem("subscriptionStatus")
         if (hasSubscription === "active") {
           setIsExpired(false)
+          setIsChecking(false)
+          return
         }
-        // If no subscription info, don't block (new user or legacy user)
+        // New user with no subscription info - create a trial start date now
+        const newTrialStart = new Date()
+        localStorage.setItem("trialStartDate", newTrialStart.toISOString())
+        localStorage.setItem("subscriptionStatus", "trial")
+        setIsExpired(false)
         setIsChecking(false)
         return
       }
@@ -389,25 +395,6 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
     const interval = setInterval(checkTrial, 60000)
     return () => clearInterval(interval)
   }, [trialDays])
-
-  // Show loading state while checking
-  if (isChecking) {
-    return null // Or a loading spinner
-  }
-
-  // Allow access to billing and certain pages
-  if (allowedPaths.some((path) => pathname?.startsWith(path))) {
-    return <>{children}</>
-  }
-
-  // Show expired page if trial is over
-  if (isExpired) {
-    return <ExpiredTrialPage />
-  }
-
-  // Trial still active
-  return <>{children}</>
-}
 
   // Show loading state while checking
   if (isChecking) {
