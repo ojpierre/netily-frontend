@@ -1,0 +1,7 @@
+export { RouterOverviewTab } from './router-overview-tab'
+export { RouterUsersTab } from './router-users-tab'
+export { RouterFirewallTab } from './router-firewall-tab'
+export { RouterQueuesTab } from './router-queues-tab'
+export { RouterInterfacesTab } from './router-interfaces-tab'
+export { RouterLogsTab } from './router-logs-tab'
+export { RouterWirelessTab } from './router-wireless-tab'

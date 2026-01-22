@@ -406,6 +406,310 @@ export interface RouterDashboardStats {
 }
 
 // ==========================================
+// ROUTER LIVE STATUS & MONITORING TYPES
+// ==========================================
+
+export interface RouterLiveStatus {
+  online: boolean
+  identity: string
+  model: string
+  serial: string
+  firmware: string
+  uptime: string
+  cpu_load: string
+  free_memory: string
+  total_memory: string
+  free_hdd: string
+  architecture: string
+}
+
+export interface RouterSystemHealth {
+  online: boolean
+  identity?: string
+  model?: string
+  cpu_load: string
+  free_memory: string
+  total_memory: string
+  free_hdd?: string
+  uptime?: string
+}
+
+// ==========================================
+// ROUTER HOTSPOT TYPES
+// ==========================================
+
+export interface HotspotUser {
+  '.id'?: string
+  name: string
+  password?: string
+  profile: string
+  disabled?: string | boolean
+  'limit-uptime'?: string
+  'limit-bytes-total'?: string
+  'limit-bytes-in'?: string
+  'limit-bytes-out'?: string
+  comment?: string
+  server?: string
+}
+
+export interface ActiveHotspotUser {
+  '.id'?: string
+  user: string
+  address: string
+  'mac-address'?: string
+  'bytes-in': number | string
+  'bytes-out'?: number | string
+  uptime: string
+  'idle-time'?: string
+  server?: string
+  'session-time-left'?: string
+}
+
+export interface HotspotUserStats {
+  address: string
+  mac_address: string
+  bytes_in: number
+  bytes_out: number
+  session_time: string
+  idle_time: string
+  server: string
+}
+
+export interface CreateHotspotUserRequest {
+  username: string
+  password: string
+  profile?: string
+  limit_uptime?: string
+  limit_bytes?: string
+}
+
+// ==========================================
+// ROUTER PPPOE TYPES
+// ==========================================
+
+export interface PPPoEUser {
+  '.id'?: string
+  name: string
+  password?: string
+  profile: string
+  'local-address'?: string
+  'remote-address'?: string
+  disabled?: string | boolean
+  service?: string
+  comment?: string
+}
+
+export interface ActivePPPoESession {
+  '.id'?: string
+  name: string
+  service: string
+  'caller-id'?: string
+  address: string
+  uptime: string
+  'encoding'?: string
+  'session-id'?: string
+  'limit-bytes-in'?: string
+  'limit-bytes-out'?: string
+}
+
+export interface PPPoEUserStats {
+  address: string
+  mac_address?: string
+  bytes_in: number
+  bytes_out: number
+  session_time: string
+  uptime: string
+}
+
+export interface CreatePPPoEUserRequest {
+  username: string
+  password: string
+  profile?: string
+  local_address?: string
+  remote_address?: string
+}
+
+// ==========================================
+// ROUTER FIREWALL TYPES
+// ==========================================
+
+export interface FirewallRule {
+  '.id'?: string
+  chain: string
+  action: string
+  'src-address'?: string
+  'dst-address'?: string
+  'src-port'?: string
+  'dst-port'?: string
+  protocol?: string
+  'in-interface'?: string
+  'out-interface'?: string
+  comment?: string
+  disabled?: string | boolean
+  bytes?: string
+  packets?: string
+}
+
+export interface CreateFirewallRuleRequest {
+  chain: string
+  action: string
+  src_address?: string
+  dst_address?: string
+  protocol?: string
+  dst_port?: string
+  comment?: string
+}
+
+// ==========================================
+// ROUTER QUEUE TYPES
+// ==========================================
+
+export interface SimpleQueue {
+  '.id'?: string
+  name: string
+  target: string
+  'max-limit'?: string
+  'burst-limit'?: string
+  'burst-threshold'?: string
+  'burst-time'?: string
+  priority?: string
+  disabled?: string | boolean
+  bytes?: string
+  packets?: string
+  'queues'?: string
+  parent?: string
+  comment?: string
+}
+
+export interface CreateQueueRequest {
+  name: string
+  target: string
+  max_limit: string
+  burst_limit?: string
+  priority?: string
+}
+
+// ==========================================
+// ROUTER INTERFACE TYPES
+// ==========================================
+
+export interface RouterInterface {
+  '.id'?: string
+  name: string
+  type: string
+  'mac-address'?: string
+  mtu?: string
+  'actual-mtu'?: string
+  'l2mtu'?: string
+  running?: string | boolean
+  disabled?: string | boolean
+  comment?: string
+  'default-name'?: string
+}
+
+export interface InterfaceTraffic {
+  name: string
+  'rx-byte': string | number
+  'tx-byte': string | number
+  'rx-packet': string | number
+  'tx-packet': string | number
+  'rx-drop'?: string | number
+  'tx-drop'?: string | number
+  'rx-error'?: string | number
+  'tx-error'?: string | number
+}
+
+// ==========================================
+// ROUTER DHCP TYPES
+// ==========================================
+
+export interface DHCPLease {
+  '.id'?: string
+  address: string
+  'mac-address': string
+  'client-id'?: string
+  'host-name'?: string
+  server?: string
+  status?: string
+  'active-address'?: string
+  'active-mac-address'?: string
+  'last-seen'?: string
+  expires?: string
+  dynamic?: string | boolean
+  disabled?: string | boolean
+  comment?: string
+}
+
+// ==========================================
+// ROUTER LOG TYPES
+// ==========================================
+
+export interface RouterLogEntry {
+  '.id'?: string
+  time: string
+  topics: string
+  message: string
+}
+
+// ==========================================
+// ROUTER WIRELESS TYPES
+// ==========================================
+
+export interface WirelessInterface {
+  '.id'?: string
+  name: string
+  'mac-address': string
+  ssid?: string
+  mode?: string
+  band?: string
+  frequency?: string
+  'channel-width'?: string
+  disabled?: string | boolean
+  running?: string | boolean
+  'noise-floor'?: string
+  'overall-tx-ccq'?: string
+  'registered-clients'?: number
+}
+
+export interface WirelessRegistration {
+  '.id'?: string
+  interface: string
+  'mac-address': string
+  'signal-strength'?: string
+  'signal-to-noise'?: string
+  'tx-rate'?: string
+  'rx-rate'?: string
+  uptime?: string
+  'last-activity'?: string
+  bytes?: string
+  packets?: string
+}
+
+// ==========================================
+// ROUTER ACTION RESPONSE TYPES
+// ==========================================
+
+export interface RouterActionResponse {
+  status: 'success' | 'error'
+  message: string
+  error?: string
+}
+
+export interface PingResult {
+  status: 'success' | 'error'
+  message?: string
+  results?: {
+    target: string
+    sent: number
+    received: number
+    'packet-loss': string
+    'min-rtt': string
+    'avg-rtt': string
+    'max-rtt': string
+  }
+}
+
+// ==========================================
 // BILLING MODULE TYPES (Future endpoints)
 // ==========================================
 

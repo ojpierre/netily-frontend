@@ -51,6 +51,29 @@ import type {
   RouterMetrics,
   RouterEvent,
   RouterDashboardStats,
+  // Router Live Management types
+  RouterLiveStatus,
+  RouterSystemHealth,
+  HotspotUser,
+  ActiveHotspotUser,
+  HotspotUserStats,
+  CreateHotspotUserRequest,
+  PPPoEUser,
+  ActivePPPoESession,
+  PPPoEUserStats,
+  CreatePPPoEUserRequest,
+  FirewallRule,
+  CreateFirewallRuleRequest,
+  SimpleQueue,
+  CreateQueueRequest,
+  RouterInterface,
+  InterfaceTraffic,
+  DHCPLease,
+  RouterLogEntry,
+  WirelessInterface,
+  WirelessRegistration,
+  RouterActionResponse,
+  PingResult,
   // Analytics types
   AnalyticsDashboard,
   AnalyticsKPIs,
@@ -670,6 +693,205 @@ class AdminApiService {
   async regenerateRouterAuthKey(id: number): Promise<{ status: string; new_auth_key: string }> {
     return this.request<{ status: string; new_auth_key: string }>(`/network/routers/${id}/regenerate_auth_key/`, {
       method: 'POST',
+    })
+  }
+
+  // ------------------------------------------
+  // ROUTER LIVE MONITORING - /routers/{id}/
+  // ------------------------------------------
+
+  async getRouterLiveStatus(id: number): Promise<RouterLiveStatus> {
+    return this.request<RouterLiveStatus>(`/routers/${id}/live_status/`)
+  }
+
+  async getRouterSystemHealth(id: number): Promise<RouterSystemHealth> {
+    return this.request<RouterSystemHealth>(`/routers/${id}/system_health/`)
+  }
+
+  async syncRouterDeviceInfo(id: number): Promise<RouterLiveStatus> {
+    return this.request<RouterLiveStatus>(`/routers/${id}/sync_device_info/`)
+  }
+
+  // ------------------------------------------
+  // ROUTER HOTSPOT MANAGEMENT
+  // ------------------------------------------
+
+  async getActiveHotspotUsers(id: number): Promise<ActiveHotspotUser[]> {
+    return this.request<ActiveHotspotUser[]>(`/routers/${id}/active_hotspot_users/`)
+  }
+
+  async getHotspotUsers(id: number): Promise<HotspotUser[]> {
+    return this.request<HotspotUser[]>(`/routers/${id}/hotspot_users/`)
+  }
+
+  async getHotspotUserStats(id: number, username: string): Promise<HotspotUserStats | null> {
+    return this.request<HotspotUserStats | null>(`/routers/${id}/hotspot_user_stats/?username=${encodeURIComponent(username)}`)
+  }
+
+  async createHotspotUser(id: number, data: CreateHotspotUserRequest): Promise<RouterActionResponse> {
+    return this.request<RouterActionResponse>(`/routers/${id}/create_hotspot_user/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async enableHotspotUser(id: number, username: string): Promise<RouterActionResponse> {
+    return this.request<RouterActionResponse>(`/routers/${id}/enable_hotspot_user/`, {
+      method: 'POST',
+      body: JSON.stringify({ username }),
+    })
+  }
+
+  async disableHotspotUser(id: number, username: string): Promise<RouterActionResponse> {
+    return this.request<RouterActionResponse>(`/routers/${id}/disable_hotspot_user/`, {
+      method: 'POST',
+      body: JSON.stringify({ username }),
+    })
+  }
+
+  // ------------------------------------------
+  // ROUTER PPPOE MANAGEMENT
+  // ------------------------------------------
+
+  async getActivePPPoESessions(id: number): Promise<ActivePPPoESession[]> {
+    return this.request<ActivePPPoESession[]>(`/routers/${id}/active_pppoe_sessions/`)
+  }
+
+  async getPPPoEUsers(id: number): Promise<PPPoEUser[]> {
+    return this.request<PPPoEUser[]>(`/routers/${id}/pppoe_users/`)
+  }
+
+  async getPPPoEUserStats(id: number, username: string): Promise<PPPoEUserStats | null> {
+    return this.request<PPPoEUserStats | null>(`/routers/${id}/pppoe_user_stats/?username=${encodeURIComponent(username)}`)
+  }
+
+  async createPPPoEUser(id: number, data: CreatePPPoEUserRequest): Promise<RouterActionResponse> {
+    return this.request<RouterActionResponse>(`/routers/${id}/create_pppoe_user/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // ------------------------------------------
+  // ROUTER FIREWALL MANAGEMENT
+  // ------------------------------------------
+
+  async getFirewallRules(id: number): Promise<FirewallRule[]> {
+    return this.request<FirewallRule[]>(`/routers/${id}/firewall_filter_rules/`)
+  }
+
+  async addFirewallRule(id: number, data: CreateFirewallRuleRequest): Promise<RouterActionResponse> {
+    return this.request<RouterActionResponse>(`/routers/${id}/add_firewall_rule/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // ------------------------------------------
+  // ROUTER QUEUE MANAGEMENT
+  // ------------------------------------------
+
+  async getQueues(id: number): Promise<SimpleQueue[]> {
+    return this.request<SimpleQueue[]>(`/routers/${id}/queues/`)
+  }
+
+  async addSimpleQueue(id: number, data: { name: string; target: string; max_limit: string }): Promise<RouterActionResponse> {
+    return this.request<RouterActionResponse>(`/routers/${id}/add_simple_queue/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async createQueue(id: number, data: CreateQueueRequest): Promise<RouterActionResponse> {
+    return this.request<RouterActionResponse>(`/routers/${id}/create_queue/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async enableQueue(id: number, queueName: string): Promise<RouterActionResponse> {
+    return this.request<RouterActionResponse>(`/routers/${id}/enable_queue/`, {
+      method: 'POST',
+      body: JSON.stringify({ queue_name: queueName }),
+    })
+  }
+
+  async disableQueue(id: number, queueName: string): Promise<RouterActionResponse> {
+    return this.request<RouterActionResponse>(`/routers/${id}/disable_queue/`, {
+      method: 'POST',
+      body: JSON.stringify({ queue_name: queueName }),
+    })
+  }
+
+  // ------------------------------------------
+  // ROUTER INTERFACE MANAGEMENT
+  // ------------------------------------------
+
+  async getRouterInterfaces(id: number): Promise<RouterInterface[]> {
+    return this.request<RouterInterface[]>(`/routers/${id}/interfaces/`)
+  }
+
+  async getInterfaceTraffic(id: number, interfaceName: string): Promise<InterfaceTraffic> {
+    return this.request<InterfaceTraffic>(`/routers/${id}/interface_traffic/?interface_name=${encodeURIComponent(interfaceName)}`)
+  }
+
+  async enableInterface(id: number, interfaceName: string): Promise<RouterActionResponse> {
+    return this.request<RouterActionResponse>(`/routers/${id}/enable_interface/`, {
+      method: 'POST',
+      body: JSON.stringify({ interface_name: interfaceName }),
+    })
+  }
+
+  async disableInterface(id: number, interfaceName: string): Promise<RouterActionResponse> {
+    return this.request<RouterActionResponse>(`/routers/${id}/disable_interface/`, {
+      method: 'POST',
+      body: JSON.stringify({ interface_name: interfaceName }),
+    })
+  }
+
+  // ------------------------------------------
+  // ROUTER DHCP MANAGEMENT
+  // ------------------------------------------
+
+  async getDHCPLeases(id: number): Promise<DHCPLease[]> {
+    return this.request<DHCPLease[]>(`/routers/${id}/dhcp_leases/`)
+  }
+
+  // ------------------------------------------
+  // ROUTER LOGS
+  // ------------------------------------------
+
+  async getRouterLogs(id: number, lines: number = 50): Promise<RouterLogEntry[]> {
+    return this.request<RouterLogEntry[]>(`/routers/${id}/system_logs/?lines=${lines}`)
+  }
+
+  // ------------------------------------------
+  // ROUTER WIRELESS MANAGEMENT
+  // ------------------------------------------
+
+  async getWirelessInterfaces(id: number): Promise<WirelessInterface[]> {
+    return this.request<WirelessInterface[]>(`/routers/${id}/wireless_interfaces/`)
+  }
+
+  async getWirelessRegistrations(id: number): Promise<WirelessRegistration[]> {
+    return this.request<WirelessRegistration[]>(`/routers/${id}/wireless_registrations/`)
+  }
+
+  // ------------------------------------------
+  // ROUTER ACTIONS
+  // ------------------------------------------
+
+  async pingFromRouter(id: number, target: string, count: number = 5): Promise<PingResult> {
+    return this.request<PingResult>(`/routers/${id}/ping/`, {
+      method: 'POST',
+      body: JSON.stringify({ target, count }),
+    })
+  }
+
+  async rebootRouterConfirm(id: number, confirm: boolean = true): Promise<RouterActionResponse> {
+    return this.request<RouterActionResponse>(`/routers/${id}/reboot/`, {
+      method: 'POST',
+      body: JSON.stringify({ confirm }),
     })
   }
 

@@ -39,7 +39,22 @@ import {
   Plus,
   FileCode,
   Copy,
+  Flame,
+  Gauge,
+  Network,
+  FileText,
+  Wifi,
+  MonitorSpeaker,
 } from "lucide-react"
+import {
+  RouterOverviewTab,
+  RouterUsersTab,
+  RouterFirewallTab,
+  RouterQueuesTab,
+  RouterInterfacesTab,
+  RouterLogsTab,
+  RouterWirelessTab,
+} from "./components"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -929,8 +944,12 @@ export default function RouterDetailPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="info" className="w-full">
-        <TabsList className="grid grid-cols-7 w-full">
+      <Tabs defaultValue="live" className="w-full">
+        <TabsList className="flex flex-wrap gap-1 h-auto p-1">
+          <TabsTrigger value="live" className="gap-2">
+            <MonitorSpeaker className="w-4 h-4" />
+            <span className="hidden sm:inline">Live Status</span>
+          </TabsTrigger>
           <TabsTrigger value="info" className="gap-2">
             <Info className="w-4 h-4" />
             <span className="hidden sm:inline">Overview</span>
@@ -942,6 +961,26 @@ export default function RouterDetailPage() {
           <TabsTrigger value="users" className="gap-2">
             <Users className="w-4 h-4" />
             <span className="hidden sm:inline">Users</span>
+          </TabsTrigger>
+          <TabsTrigger value="firewall" className="gap-2">
+            <Flame className="w-4 h-4" />
+            <span className="hidden sm:inline">Firewall</span>
+          </TabsTrigger>
+          <TabsTrigger value="queues" className="gap-2">
+            <Gauge className="w-4 h-4" />
+            <span className="hidden sm:inline">Queues</span>
+          </TabsTrigger>
+          <TabsTrigger value="interfaces" className="gap-2">
+            <Network className="w-4 h-4" />
+            <span className="hidden sm:inline">Interfaces</span>
+          </TabsTrigger>
+          <TabsTrigger value="wireless" className="gap-2">
+            <Wifi className="w-4 h-4" />
+            <span className="hidden sm:inline">Wireless</span>
+          </TabsTrigger>
+          <TabsTrigger value="logs" className="gap-2">
+            <FileText className="w-4 h-4" />
+            <span className="hidden sm:inline">Logs</span>
           </TabsTrigger>
           <TabsTrigger value="scripts" className="gap-2">
             <Code className="w-4 h-4" />
@@ -960,6 +999,11 @@ export default function RouterDetailPage() {
             <span className="hidden sm:inline">Edit</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Live Status Tab */}
+        <TabsContent value="live" className="mt-6">
+          <RouterOverviewTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
+        </TabsContent>
 
         {/* Overview Tab */}
         <TabsContent value="info" className="mt-6 space-y-6">
@@ -1248,6 +1292,31 @@ export default function RouterDetailPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Firewall Tab */}
+        <TabsContent value="firewall" className="mt-6">
+          <RouterFirewallTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
+        </TabsContent>
+
+        {/* Queues Tab */}
+        <TabsContent value="queues" className="mt-6">
+          <RouterQueuesTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
+        </TabsContent>
+
+        {/* Interfaces Tab */}
+        <TabsContent value="interfaces" className="mt-6">
+          <RouterInterfacesTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
+        </TabsContent>
+
+        {/* Wireless Tab */}
+        <TabsContent value="wireless" className="mt-6">
+          <RouterWirelessTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
+        </TabsContent>
+
+        {/* Logs Tab */}
+        <TabsContent value="logs" className="mt-6">
+          <RouterLogsTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
         </TabsContent>
 
         {/* Scripts Tab */}
