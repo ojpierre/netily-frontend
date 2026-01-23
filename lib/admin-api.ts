@@ -138,33 +138,60 @@ export interface AdminStats extends DashboardStats {}
 // CONFIGURATION
 // ==========================================
 
-// Default API URL fallback
-const DEFAULT_API_URL = 'http://127.0.0.1:8000/api/v1'
-
 // Get environment variable (inlined at build time for client)
 const ENV_API_URL = process.env.NEXT_PUBLIC_API_URL
+const ENV_API_PORT = process.env.NEXT_PUBLIC_API_PORT || '8000'
 
-// Log for debugging
-if (typeof window !== 'undefined') {
-  console.log('[AdminAPI] ENV_API_URL:', ENV_API_URL)
-}
-
-// Dynamic API URL based on subdomain (with fallback for SSR)
+// Smart API URL detection
 const getBaseUrl = (): string => {
-  // Always prefer the environment variable if set and not empty
+  // During SSR, use environment variable or default
+  if (typeof window === 'undefined') {
+    return ENV_API_URL || 'http://127.0.0.1:8000/api/v1'
+  }
+  
+  const hostname = window.location.hostname
+  const protocol = window.location.protocol
+  
+  console.log('[AdminAPI] Detecting URL for hostname:', hostname)
+  
+  // Case 1: Local development with subdomains (e.g., yellow2.localhost)
+  // Use same hostname with different port for API
+  if (hostname.endsWith('.localhost') || hostname === 'localhost') {
+    const url = `${protocol}//${hostname}:${ENV_API_PORT}/api/v1`
+    console.log('[AdminAPI] Local subdomain mode:', url)
+    return url
+  }
+  
+  // Case 2: IP-based local development (127.0.0.1, 192.168.x.x)
+  if (hostname.startsWith('127.') || hostname.startsWith('192.168.')) {
+    const url = `${protocol}//${hostname}:${ENV_API_PORT}/api/v1`
+    console.log('[AdminAPI] IP-based local mode:', url)
+    return url
+  }
+  
+  // Case 3: ngrok/pinggy/tunnels - MUST use ENV_API_URL
+  // These are public URLs that can't reach localhost
+  if (hostname.includes('ngrok') || hostname.includes('pinggy') || 
+      hostname.includes('loca.lt') || hostname.includes('localhost.run')) {
+    if (ENV_API_URL && ENV_API_URL.trim() !== '') {
+      console.log('[AdminAPI] Tunnel mode, using ENV_API_URL:', ENV_API_URL)
+      return ENV_API_URL
+    }
+    console.warn('[AdminAPI] WARNING: Using tunnel but NEXT_PUBLIC_API_URL not set!')
+    // Fallback to dynamic detection (may not work)
+    return getApiBaseUrl()
+  }
+  
+  // Case 4: Production or other domains
+  // Use environment variable or dynamic subdomain detection
   if (ENV_API_URL && ENV_API_URL.trim() !== '') {
-    console.log('[AdminAPI] Using ENV_API_URL:', ENV_API_URL)
+    console.log('[AdminAPI] Production mode, using ENV_API_URL:', ENV_API_URL)
     return ENV_API_URL
   }
   
-  // During SSR, use default
-  if (typeof window === 'undefined') {
-    return DEFAULT_API_URL
-  }
-  
-  // On client, detect subdomain dynamically
+  // Fallback: Use subdomain detection from subdomain.ts
   const dynamicUrl = getApiBaseUrl()
-  console.log('[AdminAPI] Using dynamic URL:', dynamicUrl)
+  console.log('[AdminAPI] Fallback to dynamic URL:', dynamicUrl)
   return dynamicUrl
 }
 
@@ -228,8 +255,28 @@ class AdminApiService {
       // For 400 Bad Request, throw the full error object so field errors can be displayed
       if (response.status === 400) {
         console.error('API 400 Error:', error)
-        const errorWithStatus = { ...error, _status: 400 }
-        throw errorWithStatus
+        // Extract meaningful error message
+        let errorMessage = 'Invalid request'
+        if (error.detail) {
+          if (Array.isArray(error.detail)) {
+            errorMessage = error.detail.join(', ')
+          } else if (typeof error.detail === 'string') {
+            errorMessage = error.detail
+          } else if (typeof error.detail === 'object') {
+            errorMessage = JSON.stringify(error.detail)
+          }
+        } else if (error.non_field_errors) {
+          errorMessage = Array.isArray(error.non_field_errors) 
+            ? error.non_field_errors.join(', ') 
+            : error.non_field_errors
+        } else if (error.email || error.password) {
+          const errors = []
+          if (error.email) errors.push(`Email: ${error.email}`)
+          if (error.password) errors.push(`Password: ${error.password}`)
+          errorMessage = errors.join(', ')
+        }
+        console.error('API 400 Error Message:', errorMessage)
+        throw new Error(errorMessage)
       }
       
       throw new Error(error.detail || error.message || `Request failed with status ${response.status}`)
