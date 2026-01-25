@@ -96,7 +96,8 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
   }
 
   // Parse CPU load
-  const parseCpuLoad = (load: string) => {
+  const parseCpuLoad = (load: string | undefined | null) => {
+    if (!load) return 0
     return parseInt(load.replace('%', '')) || 0
   }
 
