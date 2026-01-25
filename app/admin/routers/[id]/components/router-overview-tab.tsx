@@ -95,10 +95,12 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
     return { usedPercent, freeMB, totalMB }
   }
 
-  // Parse CPU load
-  const parseCpuLoad = (load: string | undefined | null) => {
-    if (!load) return 0
-    return parseInt(load.replace('%', '')) || 0
+  // Parse CPU load - handles string, number, or undefined
+  const parseCpuLoad = (load: string | number | undefined | null) => {
+    if (load === undefined || load === null) return 0
+    if (typeof load === 'number') return Math.round(load)
+    if (typeof load === 'string') return parseInt(load.replace('%', '')) || 0
+    return 0
   }
 
   if (isLoading) {
