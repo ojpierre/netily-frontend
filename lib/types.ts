@@ -2150,3 +2150,193 @@ export interface SMSBalance {
 
 export type CreateData<T> = Omit<T, 'id' | 'created_at' | 'updated_at'>
 export type UpdateData<T> = Partial<CreateData<T>>
+
+// ==========================================
+// SELF-SERVICE (Customer Portal)
+// ==========================================
+
+export interface CustomerSelfRegisterRequest {
+  email: string
+  phone_number: string
+  first_name: string
+  last_name: string
+  password: string
+  password_confirm: string
+  id_number?: string
+}
+
+export interface CustomerSelfRegisterResponse {
+  status: 'success' | 'error'
+  user: {
+    id: number
+    email: string
+    first_name: string
+    last_name: string
+    phone_number: string
+  }
+  customer: {
+    id: number
+    customer_code: string
+    status: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'INACTIVE'
+  }
+  access: string
+  refresh: string
+  message: string
+  requires_verification?: boolean
+}
+
+export interface PhoneVerificationRequest {
+  phone_number: string
+  otp_code: string
+}
+
+export interface PhoneVerificationResponse {
+  status: 'success' | 'error'
+  message: string
+  verified: boolean
+}
+
+export interface ResendOTPRequest {
+  phone_number: string
+}
+
+export interface ResendOTPResponse {
+  status: 'success' | 'error'
+  message: string
+}
+
+export interface CustomerDashboardData {
+  customer: {
+    id: number
+    customer_code: string
+    full_name: string
+    email: string
+    phone_number: string
+    status: string
+    balance: string
+    created_at: string
+  }
+  current_plan: {
+    id: number
+    name: string
+    price: string
+    speed_down: string
+    speed_up: string
+    expiry_date: string | null
+    days_remaining: number | null
+  } | null
+  usage: {
+    data_used: string
+    data_limit: string | null
+    percentage: number
+  }
+  recent_payments: Array<{
+    id: number
+    amount: string
+    method: string
+    status: string
+    created_at: string
+  }>
+  pending_invoices: Array<{
+    id: number
+    invoice_number: string
+    amount: string
+    due_date: string
+    status: string
+  }>
+}
+
+export interface CustomerPaymentInitiateRequest {
+  amount: number
+  phone_number: string
+  payment_type: 'recharge' | 'invoice'
+  invoice_id?: number
+  plan_id?: number
+}
+
+export interface CustomerPaymentInitiateResponse {
+  status: 'success' | 'error'
+  payment_id: number
+  checkout_request_id: string
+  merchant_request_id: string
+  message: string
+}
+
+export interface CustomerPaymentStatus {
+  payment_id: number
+  status: 'pending' | 'completed' | 'failed' | 'cancelled'
+  amount: string
+  reference?: string
+  completed_at?: string
+  error_message?: string
+}
+
+export interface CustomerPlan {
+  id: number
+  name: string
+  description: string
+  price: string
+  speed_down: string
+  speed_up: string
+  data_limit: string | null
+  validity_days: number
+  is_active: boolean
+}
+
+// ==========================================
+// HOTSPOT PORTAL (Public)
+// ==========================================
+
+export interface HotspotRouterInfo {
+  id: number
+  name: string
+  location: string
+  branding: HotspotBranding
+  plans: HotspotPlanPublic[]
+}
+
+export interface HotspotBranding {
+  logo_url: string | null
+  primary_color: string
+  secondary_color: string
+  welcome_title: string
+  welcome_message: string
+  terms_url: string | null
+  support_phone: string | null
+  support_email: string | null
+}
+
+export interface HotspotPlanPublic {
+  id: number
+  name: string
+  description: string
+  price: string
+  duration_minutes: number
+  duration_display: string
+  data_limit_mb: number | null
+  data_limit_display: string
+  speed_limit: string | null
+}
+
+export interface HotspotPurchaseRequest {
+  router_id: number
+  plan_id: number
+  phone_number: string
+  mac_address?: string
+}
+
+export interface HotspotPurchaseResponse {
+  status: 'success' | 'error'
+  session_id: string
+  checkout_request_id: string
+  message: string
+}
+
+export interface HotspotPurchaseStatus {
+  session_id: string
+  status: 'pending_payment' | 'active' | 'expired' | 'failed'
+  username?: string
+  password?: string
+  expires_at?: string
+  error_message?: string
+}
