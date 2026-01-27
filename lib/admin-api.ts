@@ -959,6 +959,53 @@ class AdminApiService {
   }
 
   // ------------------------------------------
+  // ROUTER HOTSPOT CONFIGURATION
+  // ------------------------------------------
+
+  async getRouterPorts(id: number): Promise<{ ports: any[] }> {
+    return this.request<{ ports: any[] }>(`/routers/${id}/ports/`)
+  }
+
+  async getRouterHotspotConfig(id: number): Promise<any> {
+    return this.request<any>(`/routers/${id}/hotspot/config/`)
+  }
+
+  async configureRouterHotspot(id: number, config: {
+    interface: string
+    network: {
+      network_address: string
+      network_mask: string
+      pool_name: string
+      pool_range: string
+      dns_server: string
+    }
+    server: {
+      name: string
+      idle_timeout: string
+      keepalive_timeout: string
+      login_by: string[]
+    }
+    branding: {
+      company_name: string
+      logo_url: string
+      primary_color: string
+      welcome_message: string
+      terms_url: string
+    }
+  }): Promise<any> {
+    return this.request<any>(`/routers/${id}/hotspot/configure/`, {
+      method: 'POST',
+      body: JSON.stringify(config),
+    })
+  }
+
+  async disableRouterHotspot(id: number): Promise<any> {
+    return this.request<any>(`/routers/${id}/hotspot/disable/`, {
+      method: 'POST',
+    })
+  }
+
+  // ------------------------------------------
   // ROUTER ACTIONS
   // ------------------------------------------
 

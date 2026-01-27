@@ -54,6 +54,7 @@ import {
   RouterInterfacesTab,
   RouterLogsTab,
   RouterWirelessTab,
+  RouterHotspotTab,
 } from "./components"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -978,6 +979,10 @@ export default function RouterDetailPage() {
             <Wifi className="w-4 h-4" />
             <span className="hidden sm:inline">Wireless</span>
           </TabsTrigger>
+          <TabsTrigger value="hotspot" className="gap-2">
+            <Wifi className="w-4 h-4" />
+            <span className="hidden sm:inline">Hotspot</span>
+          </TabsTrigger>
           <TabsTrigger value="logs" className="gap-2">
             <FileText className="w-4 h-4" />
             <span className="hidden sm:inline">Logs</span>
@@ -1312,6 +1317,11 @@ export default function RouterDetailPage() {
         {/* Wireless Tab */}
         <TabsContent value="wireless" className="mt-6">
           <RouterWirelessTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
+        </TabsContent>
+
+        {/* Hotspot Tab */}
+        <TabsContent value="hotspot" className="mt-6">
+          <RouterHotspotTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
         </TabsContent>
 
         {/* Logs Tab */}
