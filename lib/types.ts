@@ -2145,6 +2145,227 @@ export interface SMSBalance {
 }
 
 // ==========================================
+// VPN MODULE TYPES
+// ==========================================
+
+export type VPNCertificateStatus = 'active' | 'revoked' | 'expired'
+
+export interface VPNServer {
+  id: number
+  name: string
+  hostname: string
+  port: number
+  protocol: 'udp' | 'tcp'
+  network: string
+  netmask: string
+  dns_servers: string[]
+  status: 'running' | 'stopped' | 'error'
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface VPNCertificate {
+  id: number
+  customer: number
+  customer_name?: string
+  customer_email?: string
+  common_name: string
+  status: VPNCertificateStatus
+  issued_at: string
+  expires_at: string
+  revoked_at?: string
+  revocation_reason?: string
+  serial_number: string
+  created_at: string
+  updated_at: string
+}
+
+export interface VPNConnection {
+  id: number
+  certificate: number
+  common_name: string
+  customer_name?: string
+  real_address: string
+  virtual_address: string
+  bytes_received: number
+  bytes_sent: number
+  connected_since: string
+  last_ref: string
+  username?: string
+}
+
+export interface VPNDashboardStats {
+  total_certificates: number
+  active_certificates: number
+  revoked_certificates: number
+  expired_certificates: number
+  active_connections: number
+  server_status: 'running' | 'stopped' | 'error'
+  total_bytes_in: number
+  total_bytes_out: number
+}
+
+export interface CreateVPNCertificateRequest {
+  customer_id: number
+  validity_days?: number
+}
+
+export interface VPNCertificateWithConfig extends VPNCertificate {
+  config_content?: string
+}
+
+// ==========================================
+// RADIUS MODULE TYPES
+// ==========================================
+
+export type RADIUSUserStatus = 'enabled' | 'disabled'
+export type RADIUSAttributeOp = ':=' | '=' | '+=' | '-=' | '==' | '!=' | '>' | '>=' | '<' | '<='
+
+export interface RADIUSUser {
+  id: number
+  username: string
+  customer?: number
+  customer_name?: string
+  customer_email?: string
+  service_connection?: number
+  status: RADIUSUserStatus
+  download_speed: number  // kbps
+  upload_speed: number    // kbps
+  simultaneous_use?: number
+  data_limit?: number     // bytes
+  data_used?: number      // bytes
+  session_timeout?: number
+  idle_timeout?: number
+  valid_from?: string
+  valid_until?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface RADIUSUserAttribute {
+  id: number
+  user: number
+  attribute: string
+  op: RADIUSAttributeOp
+  value: string
+  table: 'check' | 'reply'
+}
+
+export interface RADIUSProfile {
+  id: number
+  name: string
+  description?: string
+  download_speed: number
+  upload_speed: number
+  simultaneous_use: number
+  session_timeout?: number
+  idle_timeout?: number
+  data_limit?: number
+  is_default: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface RADIUSNAS {
+  id: number
+  router?: number
+  router_name?: string
+  nasname: string
+  shortname: string
+  secret: string
+  type: string
+  ports?: number
+  description?: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface RADIUSAccountingSession {
+  id: number
+  username: string
+  customer_name?: string
+  nasipaddress: string
+  nas_name?: string
+  acctsessionid: string
+  acctuniqueid: string
+  framedipaddress?: string
+  acctstarttime: string
+  acctstoptime?: string
+  acctinputoctets: number
+  acctoutputoctets: number
+  acctterminatecause?: string
+  callingstationid?: string
+  session_duration?: number
+  is_active: boolean
+}
+
+export interface RADIUSDashboardStats {
+  total_users: number
+  active_users: number
+  disabled_users: number
+  active_sessions: number
+  total_nas: number
+  online_nas: number
+  total_profiles: number
+  total_data_in: number
+  total_data_out: number
+}
+
+export interface CreateRADIUSUserRequest {
+  username: string
+  password: string
+  customer_id?: number
+  service_connection_id?: number
+  profile_id?: number
+  download_speed?: number
+  upload_speed?: number
+  simultaneous_use?: number
+  session_timeout?: number
+  idle_timeout?: number
+  data_limit?: number
+  valid_from?: string
+  valid_until?: string
+}
+
+export interface UpdateRADIUSUserRequest {
+  password?: string
+  status?: RADIUSUserStatus
+  download_speed?: number
+  upload_speed?: number
+  simultaneous_use?: number
+  session_timeout?: number
+  idle_timeout?: number
+  data_limit?: number
+  valid_from?: string
+  valid_until?: string
+}
+
+export interface CreateRADIUSProfileRequest {
+  name: string
+  description?: string
+  download_speed: number
+  upload_speed: number
+  simultaneous_use?: number
+  session_timeout?: number
+  idle_timeout?: number
+  data_limit?: number
+  is_default?: boolean
+}
+
+export interface CreateRADIUSNASRequest {
+  router_id?: number
+  nasname: string
+  shortname: string
+  secret: string
+  type?: string
+  ports?: number
+  description?: string
+}
+
+// ==========================================
 // HELPER TYPE UTILITIES
 // ==========================================
 

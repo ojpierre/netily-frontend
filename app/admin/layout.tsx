@@ -39,6 +39,8 @@ import {
   UserCog,
   DollarSign,
   ArrowRightLeft,
+  Shield,
+  Key,
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -76,6 +78,8 @@ const navigationSections = [
       { name: "IPAM", href: "/admin/ipam", icon: Globe },
       { name: "Routers", href: "/admin/routers", icon: Wifi },
       { name: "IPv4 Networks", href: "/admin/networks", icon: Network },
+      { name: "VPN", href: "/admin/vpn", icon: Shield },
+      { name: "RADIUS", href: "/admin/radius", icon: Key },
       { name: "FUP", href: "/admin/fup", icon: Gauge },
       { name: "Usage", href: "/admin/usage", icon: BarChart3 },
     ],

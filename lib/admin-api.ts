@@ -119,6 +119,23 @@ import type {
   HotspotPlan,
   HotspotSession,
   HotspotBranding,
+  // VPN types
+  VPNServer,
+  VPNCertificate,
+  VPNConnection,
+  VPNDashboardStats,
+  CreateVPNCertificateRequest,
+  VPNCertificateWithConfig,
+  // RADIUS types
+  RADIUSUser,
+  RADIUSProfile,
+  RADIUSNAS,
+  RADIUSAccountingSession,
+  RADIUSDashboardStats,
+  CreateRADIUSUserRequest,
+  UpdateRADIUSUserRequest,
+  CreateRADIUSProfileRequest,
+  CreateRADIUSNASRequest,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -2418,6 +2435,205 @@ class AdminApiService {
     return this.request('/subscriptions/settlements/request-payout/', {
       method: 'POST',
     })
+  }
+
+  // ------------------------------------------
+  // VPN MANAGEMENT - /vpn/
+  // ------------------------------------------
+
+  async getVPNDashboard(): Promise<VPNDashboardStats> {
+    return this.request<VPNDashboardStats>('/vpn/dashboard/')
+  }
+
+  async getVPNServer(): Promise<VPNServer | null> {
+    try {
+      return await this.request<VPNServer>('/vpn/server/')
+    } catch {
+      return null
+    }
+  }
+
+  async updateVPNServer(data: Partial<VPNServer>): Promise<VPNServer> {
+    return this.request<VPNServer>('/vpn/server/', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async startVPNServer(): Promise<{ message: string }> {
+    return this.request<{ message: string }>('/vpn/server/start/', {
+      method: 'POST',
+    })
+  }
+
+  async stopVPNServer(): Promise<{ message: string }> {
+    return this.request<{ message: string }>('/vpn/server/stop/', {
+      method: 'POST',
+    })
+  }
+
+  async getVPNCertificates(params?: Record<string, string>): Promise<PaginatedResponse<VPNCertificate>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<VPNCertificate>>(`/vpn/certificates/${queryString}`)
+  }
+
+  async getVPNCertificate(id: number): Promise<VPNCertificate> {
+    return this.request<VPNCertificate>(`/vpn/certificates/${id}/`)
+  }
+
+  async createVPNCertificate(data: CreateVPNCertificateRequest): Promise<VPNCertificateWithConfig> {
+    return this.request<VPNCertificateWithConfig>('/vpn/certificates/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async revokeVPNCertificate(id: number, reason?: string): Promise<VPNCertificate> {
+    return this.request<VPNCertificate>(`/vpn/certificates/${id}/revoke/`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    })
+  }
+
+  async downloadVPNConfig(id: number): Promise<Blob> {
+    const response = await fetch(`${this.baseUrl}/vpn/certificates/${id}/download/`, {
+      headers: this.getAuthHeaders(),
+    })
+    if (!response.ok) throw new Error('Failed to download config')
+    return response.blob()
+  }
+
+  async regenerateVPNCertificate(id: number): Promise<VPNCertificateWithConfig> {
+    return this.request<VPNCertificateWithConfig>(`/vpn/certificates/${id}/regenerate/`, {
+      method: 'POST',
+    })
+  }
+
+  async getVPNConnections(): Promise<VPNConnection[]> {
+    return this.request<VPNConnection[]>('/vpn/connections/')
+  }
+
+  async disconnectVPNUser(commonName: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>('/vpn/connections/disconnect/', {
+      method: 'POST',
+      body: JSON.stringify({ common_name: commonName }),
+    })
+  }
+
+  // ------------------------------------------
+  // RADIUS MANAGEMENT - /radius/
+  // ------------------------------------------
+
+  async getRADIUSDashboard(): Promise<RADIUSDashboardStats> {
+    return this.request<RADIUSDashboardStats>('/radius/dashboard/')
+  }
+
+  async getRADIUSUsers(params?: Record<string, string>): Promise<PaginatedResponse<RADIUSUser>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<RADIUSUser>>(`/radius/users/${queryString}`)
+  }
+
+  async getRADIUSUser(id: number): Promise<RADIUSUser> {
+    return this.request<RADIUSUser>(`/radius/users/${id}/`)
+  }
+
+  async createRADIUSUser(data: CreateRADIUSUserRequest): Promise<RADIUSUser> {
+    return this.request<RADIUSUser>('/radius/users/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateRADIUSUser(id: number, data: UpdateRADIUSUserRequest): Promise<RADIUSUser> {
+    return this.request<RADIUSUser>(`/radius/users/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteRADIUSUser(id: number): Promise<void> {
+    await this.request(`/radius/users/${id}/`, { method: 'DELETE' })
+  }
+
+  async enableRADIUSUser(id: number): Promise<RADIUSUser> {
+    return this.request<RADIUSUser>(`/radius/users/${id}/enable/`, {
+      method: 'POST',
+    })
+  }
+
+  async disableRADIUSUser(id: number): Promise<RADIUSUser> {
+    return this.request<RADIUSUser>(`/radius/users/${id}/disable/`, {
+      method: 'POST',
+    })
+  }
+
+  async disconnectRADIUSUser(id: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/radius/users/${id}/disconnect/`, {
+      method: 'POST',
+    })
+  }
+
+  async getRADIUSProfiles(params?: Record<string, string>): Promise<PaginatedResponse<RADIUSProfile>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<RADIUSProfile>>(`/radius/profiles/${queryString}`)
+  }
+
+  async getRADIUSProfile(id: number): Promise<RADIUSProfile> {
+    return this.request<RADIUSProfile>(`/radius/profiles/${id}/`)
+  }
+
+  async createRADIUSProfile(data: CreateRADIUSProfileRequest): Promise<RADIUSProfile> {
+    return this.request<RADIUSProfile>('/radius/profiles/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateRADIUSProfile(id: number, data: Partial<CreateRADIUSProfileRequest>): Promise<RADIUSProfile> {
+    return this.request<RADIUSProfile>(`/radius/profiles/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteRADIUSProfile(id: number): Promise<void> {
+    await this.request(`/radius/profiles/${id}/`, { method: 'DELETE' })
+  }
+
+  async getRADIUSNASList(params?: Record<string, string>): Promise<PaginatedResponse<RADIUSNAS>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<RADIUSNAS>>(`/radius/nas/${queryString}`)
+  }
+
+  async getRADIUSNAS(id: number): Promise<RADIUSNAS> {
+    return this.request<RADIUSNAS>(`/radius/nas/${id}/`)
+  }
+
+  async createRADIUSNAS(data: CreateRADIUSNASRequest): Promise<RADIUSNAS> {
+    return this.request<RADIUSNAS>('/radius/nas/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateRADIUSNAS(id: number, data: Partial<CreateRADIUSNASRequest>): Promise<RADIUSNAS> {
+    return this.request<RADIUSNAS>(`/radius/nas/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteRADIUSNAS(id: number): Promise<void> {
+    await this.request(`/radius/nas/${id}/`, { method: 'DELETE' })
+  }
+
+  async getRADIUSSessions(params?: Record<string, string>): Promise<PaginatedResponse<RADIUSAccountingSession>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<RADIUSAccountingSession>>(`/radius/accounting/${queryString}`)
+  }
+
+  async getRADIUSActiveSessions(): Promise<RADIUSAccountingSession[]> {
+    return this.request<RADIUSAccountingSession[]>('/radius/accounting/active/')
   }
 
   // ------------------------------------------
