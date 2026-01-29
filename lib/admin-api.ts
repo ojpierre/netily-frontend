@@ -2445,29 +2445,43 @@ class AdminApiService {
     return this.request<VPNDashboardStats>('/vpn/dashboard/')
   }
 
-  async getVPNServer(): Promise<VPNServer | null> {
+  async getVPNServers(): Promise<VPNServer[]> {
     try {
-      return await this.request<VPNServer>('/vpn/server/')
+      const response = await this.request<PaginatedResponse<VPNServer>>('/vpn/servers/')
+      return response.results || []
+    } catch {
+      return []
+    }
+  }
+
+  async getVPNServer(id?: number): Promise<VPNServer | null> {
+    try {
+      if (id) {
+        return await this.request<VPNServer>(`/vpn/servers/${id}/`)
+      }
+      // Get first server if no ID provided
+      const servers = await this.getVPNServers()
+      return servers.length > 0 ? servers[0] : null
     } catch {
       return null
     }
   }
 
-  async updateVPNServer(data: Partial<VPNServer>): Promise<VPNServer> {
-    return this.request<VPNServer>('/vpn/server/', {
+  async updateVPNServer(id: number, data: Partial<VPNServer>): Promise<VPNServer> {
+    return this.request<VPNServer>(`/vpn/servers/${id}/`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
   }
 
-  async startVPNServer(): Promise<{ message: string }> {
-    return this.request<{ message: string }>('/vpn/server/start/', {
+  async startVPNServer(id: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/vpn/servers/${id}/start/`, {
       method: 'POST',
     })
   }
 
-  async stopVPNServer(): Promise<{ message: string }> {
-    return this.request<{ message: string }>('/vpn/server/stop/', {
+  async stopVPNServer(id: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/vpn/servers/${id}/stop/`, {
       method: 'POST',
     })
   }
@@ -2633,7 +2647,12 @@ class AdminApiService {
   }
 
   async getRADIUSActiveSessions(): Promise<RADIUSAccountingSession[]> {
-    return this.request<RADIUSAccountingSession[]>('/radius/accounting/active/')
+    try {
+      const response = await this.request<{ count: number; sessions: RADIUSAccountingSession[] }>('/radius/sessions/active/')
+      return response.sessions || []
+    } catch {
+      return []
+    }
   }
 
   // ------------------------------------------
