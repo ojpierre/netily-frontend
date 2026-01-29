@@ -861,18 +861,22 @@ export default function RADIUSPage() {
               <Label htmlFor="customer">Customer (optional)</Label>
               <Select
                 value={userForm.customer_id}
-                onValueChange={(v) => setUserForm({ ...userForm, customer_id: v })}
+                onValueChange={(v) => setUserForm({ ...userForm, customer_id: v === "none" ? "" : v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select customer" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id.toString()}>
-                      {c.full_name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="none">None</SelectItem>
+                  {customers.length === 0 ? (
+                    <SelectItem value="no-customers" disabled>No customers available</SelectItem>
+                  ) : (
+                    customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id.toString()}>
+                        {c.full_name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -880,18 +884,22 @@ export default function RADIUSPage() {
               <Label htmlFor="profile">Profile (optional)</Label>
               <Select
                 value={userForm.profile_id}
-                onValueChange={(v) => setUserForm({ ...userForm, profile_id: v })}
+                onValueChange={(v) => setUserForm({ ...userForm, profile_id: v === "none" ? "" : v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select profile" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {profiles.map((p) => (
-                    <SelectItem key={p.id} value={p.id.toString()}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="none">None</SelectItem>
+                  {profiles.length === 0 ? (
+                    <SelectItem value="no-profiles" disabled>No profiles available</SelectItem>
+                  ) : (
+                    profiles.map((p) => (
+                      <SelectItem key={p.id} value={p.id.toString()}>
+                        {p.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

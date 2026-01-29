@@ -596,11 +596,15 @@ export default function VPNPage() {
                   <SelectValue placeholder="Select a customer" />
                 </SelectTrigger>
                 <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id.toString()}>
-                      {customer.full_name} ({customer.email})
-                    </SelectItem>
-                  ))}
+                  {customers.length === 0 ? (
+                    <SelectItem value="no-customers" disabled>No customers available</SelectItem>
+                  ) : (
+                    customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id.toString()}>
+                        {customer.full_name} ({customer.email})
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
