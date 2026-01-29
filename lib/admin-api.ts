@@ -2524,7 +2524,9 @@ class AdminApiService {
   }
 
   async getVPNConnections(): Promise<VPNConnection[]> {
-    return this.request<VPNConnection[]>('/vpn/connections/')
+    // Backend returns { count, connections } for active connections
+    const response = await this.request<{ count: number; connections: VPNConnection[] }>('/vpn/connections/active/')
+    return response.connections || []
   }
 
   async disconnectVPNUser(commonName: string): Promise<{ message: string }> {

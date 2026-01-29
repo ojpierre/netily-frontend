@@ -169,8 +169,12 @@ export default function VPNPage() {
 
   // Server actions
   const handleStartServer = async () => {
+    if (!server) {
+      toast.error("No VPN server configured")
+      return
+    }
     try {
-      await adminApi.startVPNServer()
+      await adminApi.startVPNServer(server.id)
       toast.success("VPN server started")
       fetchData()
     } catch (error: any) {
@@ -179,8 +183,12 @@ export default function VPNPage() {
   }
 
   const handleStopServer = async () => {
+    if (!server) {
+      toast.error("No VPN server configured")
+      return
+    }
     try {
-      await adminApi.stopVPNServer()
+      await adminApi.stopVPNServer(server.id)
       toast.success("VPN server stopped")
       fetchData()
     } catch (error: any) {
