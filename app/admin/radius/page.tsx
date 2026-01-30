@@ -237,10 +237,10 @@ export default function RADIUSPage() {
   const handleToggleUserStatus = async (user: RADIUSUser) => {
     try {
       if (user.status === "enabled") {
-        await adminApi.disableRADIUSUser(user.id)
+        await adminApi.disableRADIUSUser(user.username)
         toast.success("User disabled")
       } else {
-        await adminApi.enableRADIUSUser(user.id)
+        await adminApi.enableRADIUSUser(user.username)
         toast.success("User enabled")
       }
       fetchData()
@@ -249,9 +249,9 @@ export default function RADIUSPage() {
     }
   }
 
-  const handleDisconnectUser = async (userId: number) => {
+  const handleDisconnectUser = async (username: string) => {
     try {
-      await adminApi.disconnectRADIUSUser(userId)
+      await adminApi.disconnectRADIUSUser(username)
       toast.success("User disconnected")
       fetchData()
     } catch (error: any) {
@@ -321,7 +321,7 @@ export default function RADIUSPage() {
     try {
       setFormLoading(true)
       if (deleteType === "user") {
-        await adminApi.deleteRADIUSUser(selectedItem.id)
+        await adminApi.deleteRADIUSUser(selectedItem.username)
         toast.success("User deleted")
       } else if (deleteType === "profile") {
         await adminApi.deleteRADIUSProfile(selectedItem.id)
@@ -593,7 +593,7 @@ export default function RADIUSPage() {
                                 </>
                               )}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDisconnectUser(user.id)}>
+                            <DropdownMenuItem onClick={() => handleDisconnectUser(user.username)}>
                               <WifiOff className="h-4 w-4 mr-2" /> Disconnect
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />

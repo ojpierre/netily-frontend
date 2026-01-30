@@ -136,6 +136,9 @@ import type {
   UpdateRADIUSUserRequest,
   CreateRADIUSProfileRequest,
   CreateRADIUSNASRequest,
+  // NEW: RADIUS Multi-Tenant types
+  RADIUSTenantConfig,
+  CustomerRADIUSCredentials,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -2549,8 +2552,8 @@ class AdminApiService {
     return this.request<PaginatedResponse<RADIUSUser>>(`/radius/users/${queryString}`)
   }
 
-  async getRADIUSUser(id: number): Promise<RADIUSUser> {
-    return this.request<RADIUSUser>(`/radius/users/${id}/`)
+  async getRADIUSUser(username: string): Promise<RADIUSUser> {
+    return this.request<RADIUSUser>(`/radius/users/${username}/`)
   }
 
   async createRADIUSUser(data: CreateRADIUSUserRequest): Promise<RADIUSUser> {
@@ -2560,31 +2563,31 @@ class AdminApiService {
     })
   }
 
-  async updateRADIUSUser(id: number, data: UpdateRADIUSUserRequest): Promise<RADIUSUser> {
-    return this.request<RADIUSUser>(`/radius/users/${id}/`, {
+  async updateRADIUSUser(username: string, data: UpdateRADIUSUserRequest): Promise<RADIUSUser> {
+    return this.request<RADIUSUser>(`/radius/users/${username}/`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
   }
 
-  async deleteRADIUSUser(id: number): Promise<void> {
-    await this.request(`/radius/users/${id}/`, { method: 'DELETE' })
+  async deleteRADIUSUser(username: string): Promise<void> {
+    await this.request(`/radius/users/${username}/`, { method: 'DELETE' })
   }
 
-  async enableRADIUSUser(id: number): Promise<RADIUSUser> {
-    return this.request<RADIUSUser>(`/radius/users/${id}/enable/`, {
+  async enableRADIUSUser(username: string): Promise<RADIUSUser> {
+    return this.request<RADIUSUser>(`/radius/users/${username}/enable/`, {
       method: 'POST',
     })
   }
 
-  async disableRADIUSUser(id: number): Promise<RADIUSUser> {
-    return this.request<RADIUSUser>(`/radius/users/${id}/disable/`, {
+  async disableRADIUSUser(username: string): Promise<RADIUSUser> {
+    return this.request<RADIUSUser>(`/radius/users/${username}/disable/`, {
       method: 'POST',
     })
   }
 
-  async disconnectRADIUSUser(id: number): Promise<{ message: string }> {
-    return this.request<{ message: string }>(`/radius/users/${id}/disconnect/`, {
+  async disconnectRADIUSUser(username: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/radius/users/${username}/disconnect/`, {
       method: 'POST',
     })
   }
@@ -2655,6 +2658,118 @@ class AdminApiService {
     } catch {
       return []
     }
+  }
+
+  // ------------------------------------------
+  // RADIUS CUSTOMER CREDENTIALS - /radius/credentials/
+  // NEW: Auto-sync customer RADIUS credentials
+  // ------------------------------------------
+
+  async getRADIUSCredentials(params?: Record<string, string>): Promise<PaginatedResponse<CustomerRADIUSCredentials>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<CustomerRADIUSCredentials>>(`/radius/credentials/${queryString}`)
+  }
+
+  async getRADIUSCredential(id: string): Promise<CustomerRADIUSCredentials> {
+    return this.request<CustomerRADIUSCredentials>(`/radius/credentials/${id}/`)
+  }
+
+  async createRADIUSCredential(data: {
+    customer: string
+    username: string
+    password: string
+    bandwidth_profile?: string
+    connection_type?: 'PPPOE' | 'HOTSPOT' | 'BOTH'
+    static_ip?: string
+    simultaneous_use?: number
+  }): Promise<CustomerRADIUSCredentials> {
+    return this.request<CustomerRADIUSCredentials>('/radius/credentials/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateRADIUSCredential(id: string, data: Partial<CustomerRADIUSCredentials>): Promise<CustomerRADIUSCredentials> {
+    return this.request<CustomerRADIUSCredentials>(`/radius/credentials/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteRADIUSCredential(id: string): Promise<void> {
+    await this.request(`/radius/credentials/${id}/`, { method: 'DELETE' })
+  }
+
+  async syncRADIUSCredential(id: string): Promise<{ status: string; message: string; synced_at: string }> {
+    return this.request(`/radius/credentials/${id}/sync/`, { method: 'POST' })
+  }
+
+  async enableRADIUSCredential(id: string): Promise<{ status: string; message: string }> {
+    return this.request(`/radius/credentials/${id}/enable/`, { method: 'POST' })
+  }
+
+  async disableRADIUSCredential(id: string, reason?: string): Promise<{ status: string; message: string }> {
+    return this.request(`/radius/credentials/${id}/disable/`, {
+      method: 'POST',
+      body: JSON.stringify({ reason: reason || 'Manually disabled' }),
+    })
+  }
+
+  // ------------------------------------------
+  // RADIUS TENANT CONFIGURATION - /radius/tenant-config/
+  // NEW: Multi-tenant RADIUS management
+  // ------------------------------------------
+
+  async getRADIUSTenantConfigs(params?: Record<string, string>): Promise<PaginatedResponse<RADIUSTenantConfig>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<RADIUSTenantConfig>>(`/radius/tenant-config/${queryString}`)
+  }
+
+  async getRADIUSTenantConfig(id: number): Promise<RADIUSTenantConfig> {
+    return this.request<RADIUSTenantConfig>(`/radius/tenant-config/${id}/`)
+  }
+
+  async createRADIUSTenantConfig(data: {
+    schema_name: string
+    tenant_name: string
+    deployment_mode?: 'SHARED' | 'ISOLATED'
+    radius_port_auth?: number
+    radius_port_acct?: number
+  }): Promise<RADIUSTenantConfig> {
+    return this.request<RADIUSTenantConfig>('/radius/tenant-config/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateRADIUSTenantConfig(id: number, data: Partial<RADIUSTenantConfig>): Promise<RADIUSTenantConfig> {
+    return this.request<RADIUSTenantConfig>(`/radius/tenant-config/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteRADIUSTenantConfig(id: number): Promise<void> {
+    await this.request(`/radius/tenant-config/${id}/`, { method: 'DELETE' })
+  }
+
+  async configureRADIUSTenant(id: number): Promise<{ status: string; message: string; result: any }> {
+    return this.request(`/radius/tenant-config/${id}/configure/`, { method: 'POST' })
+  }
+
+  async regenerateRADIUSTenantConfig(id: number, radius_secret?: string): Promise<{ status: string; message: string; result: any }> {
+    return this.request(`/radius/tenant-config/${id}/regenerate/`, {
+      method: 'POST',
+      body: JSON.stringify({ radius_secret }),
+    })
+  }
+
+  // ------------------------------------------
+  // RADIUS SYNC - /radius/sync/
+  // ------------------------------------------
+
+  async syncRADIUS(syncType: 'customers' | 'routers' | 'profiles' | 'all'): Promise<{ status: string; result?: any; results?: any }> {
+    return this.request(`/radius/sync/${syncType}/`, { method: 'POST' })
   }
 
   // ------------------------------------------

@@ -2366,6 +2366,53 @@ export interface CreateRADIUSNASRequest {
 }
 
 // ==========================================
+// RADIUS MULTI-TENANT CONFIGURATION (NEW)
+// ==========================================
+
+export type RADIUSDeploymentMode = 'SHARED' | 'ISOLATED'
+
+export interface RADIUSTenantConfig {
+  id: number
+  schema_name: string
+  tenant_name: string
+  radius_secret?: string  // Write-only in non-detail views
+  radius_port_auth: number
+  radius_port_acct: number
+  deployment_mode: RADIUSDeploymentMode
+  container_name: string
+  container_status: string
+  is_active: boolean
+  config_generated: boolean
+  last_config_update: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type RADIUSConnectionType = 'PPPOE' | 'HOTSPOT' | 'BOTH'
+
+export interface CustomerRADIUSCredentials {
+  id: string
+  customer: string
+  customer_name: string
+  customer_code: string
+  username: string
+  password?: string  // Write-only in non-detail views
+  bandwidth_profile: string | null
+  profile_name: string | null
+  connection_type: RADIUSConnectionType
+  is_enabled: boolean
+  disabled_reason: string
+  static_ip: string | null
+  ip_pool: string
+  simultaneous_use: number
+  expiration_date: string | null
+  synced_to_radius: boolean
+  last_sync: string | null
+  created_at: string
+  updated_at: string
+}
+
+// ==========================================
 // HELPER TYPE UTILITIES
 // ==========================================
 
