@@ -79,8 +79,9 @@ class CustomerApiService {
   }
 
   private getAuthHeaders(): HeadersInit {
+    // Use access_token which is set by auth-context during login
     const token = typeof window !== 'undefined' 
-      ? localStorage.getItem('customerToken') 
+      ? localStorage.getItem('access_token') 
       : null
     
     const headers: HeadersInit = {
@@ -266,7 +267,7 @@ class CustomerApiService {
    * Initiate M-Pesa STK Push payment
    */
   async initiatePayment(data: CustomerPaymentInitiateRequest): Promise<CustomerPaymentInitiateResponse> {
-    return this.request<CustomerPaymentInitiateResponse>('/self-service/payments/', {
+    return this.request<CustomerPaymentInitiateResponse>('/self-service/payments/initiate/', {
       method: 'POST',
       body: JSON.stringify(data),
     })

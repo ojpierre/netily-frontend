@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api } from "@/lib/api"
+import { customerApi } from "@/lib/customer-api"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -112,7 +112,7 @@ export default function InvoicesPage() {
 
   const loadInvoices = async () => {
     try {
-      const response = await api.getInvoices()
+      const response = await customerApi.getInvoices()
       setInvoices(response.results || [])
       setUseMockData(false)
     } catch (error) {

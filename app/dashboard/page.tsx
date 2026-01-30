@@ -43,8 +43,8 @@ export default function DashboardPage() {
       }
     }
 
-    // Only fetch if we have a customer token
-    const token = localStorage.getItem("customerToken")
+    // Only fetch if we have an access token
+    const token = localStorage.getItem("access_token")
     if (token) {
       fetchDashboard()
     } else {

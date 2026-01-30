@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/app/auth-context"
-import { api } from "@/lib/api"
+import { customerApi } from "@/lib/customer-api"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -105,7 +105,7 @@ export default function RechargePage() {
       if (mpesaPaymentId) {
         pollInterval = setInterval(async () => {
           try {
-            const payment = await api.pollPaymentStatus(mpesaPaymentId)
+            const payment = await customerApi.getPaymentStatus(mpesaPaymentId)
             if (payment.status === 'completed') {
               setMpesaStatus('success')
               setMpesaProgress(100)
@@ -157,8 +157,8 @@ export default function RechargePage() {
     setMpesaCountdown(60)
 
     try {
-      // Call PayHero unified payment API
-      const response = await api.initiatePayment({
+      // Call PayHero unified payment API via self-service
+      const response = await customerApi.initiatePayment({
         amount: parseFloat(amount),
         phone_number: formatPhoneNumber(phoneNumber),
       })
@@ -206,9 +206,11 @@ export default function RechargePage() {
     setLoading(true)
     try {
       if (user) {
-        await api.createPayment(amount, method)
-        toast.success("Payment initiated successfully!")
-        await refreshUser()
+        // For non-M-Pesa methods, use the same API but with different method type
+        // Currently only M-Pesa is fully supported via PayHero
+        toast.error("Only M-Pesa payments are currently supported")
+        setLoading(false)
+        return
       } else {
         // Mock success for demo
         await new Promise(resolve => setTimeout(resolve, 2000))
@@ -417,14 +419,24 @@ export default function RechargePage() {
                   </p>
                 </div>
 
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-green-800">Amount</span>
-                    <span className="font-bold text-green-900">KSh {amount}</span>
-                  </div>
+                <div className="bg-green-50 p-4 rounded-lg space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-green-800">Paybill</span>
-                    <span className="font-mono text-green-900">888880</span>
+                    <span className="text-green-800">Amount to Pay</span>
+                    <span className="font-bold text-green-900 text-lg">KSh {parseFloat(amount || "0").toLocaleString()}</span>
+                  </div>
+                  <div className="border-t border-green-200 pt-3">
+                    <div className="flex items-start gap-2 text-xs text-green-700">
+                      <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>You will receive an M-Pesa prompt on your phone</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-xs text-green-700 mt-1">
+                      <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>Enter your M-Pesa PIN to complete payment</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-xs text-green-700 mt-1">
+                      <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>Your account will be credited instantly</span>
+                    </div>
                   </div>
                 </div>
 
