@@ -34,6 +34,8 @@ import {
 import { adminApi } from "@/lib/admin-api"
 import type { Customer, CustomerService, CustomerStatus } from "@/lib/types"
 
+import { toast } from "sonner"
+
 // Mock mode toggle - set to false when backend is ready
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
 import { Button } from "@/components/ui/button"
@@ -240,7 +242,20 @@ export default function UsersPage() {
   const [showSmsDialog, setShowSmsDialog] = useState(false)
   const [smsMessage, setSmsMessage] = useState("")
   const [refreshing, setRefreshing] = useState(false)
+  const [creating, setCreating] = useState(false)
   const itemsPerPage = 10
+
+  // New customer form state
+  const [newCustomerForm, setNewCustomerForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    password: "",
+    connection_type: "pppoe" as "hotspot" | "pppoe" | "static",
+    plan_id: "",
+    router_id: "",
+  })
 
   useEffect(() => {
     loadUsers()
@@ -282,6 +297,82 @@ export default function UsersPage() {
     setRefreshing(false)
   }
 
+  // Create customer function
+  const handleCreateCustomer = async () => {
+    // Validate required fields
+    if (!newCustomerForm.first_name || !newCustomerForm.last_name) {
+      toast.error("First name and last name are required")
+      return
+    }
+    if (!newCustomerForm.email) {
+      toast.error("Email is required")
+      return
+    }
+    if (!newCustomerForm.phone) {
+      toast.error("Phone number is required")
+      return
+    }
+    if (!newCustomerForm.password) {
+      toast.error("Password is required")
+      return
+    }
+
+    try {
+      setCreating(true)
+      
+      // Create the customer - the backend auto-sync will create RADIUS credentials
+      // if the connection_type is PPPoE or Hotspot
+      const customerData = {
+        first_name: newCustomerForm.first_name,
+        last_name: newCustomerForm.last_name,
+        email: newCustomerForm.email,
+        phone_number: newCustomerForm.phone,  // Backend expects phone_number
+        password: newCustomerForm.password,
+        status: 'active' as const,
+      }
+
+      const newCustomer = await adminApi.createCustomer(customerData)
+      
+      // If a plan/router is selected, create a service connection
+      // This triggers auto-sync to create RADIUS credentials
+      if (newCustomerForm.connection_type && newCustomerForm.connection_type !== 'none') {
+        try {
+          await adminApi.createCustomerService(newCustomer.id, {
+            service_type: 'INTERNET',
+            auth_connection_type: newCustomerForm.connection_type.toUpperCase(),  // PPPOE or HOTSPOT triggers RADIUS
+            status: 'ACTIVE',
+          })
+        } catch (serviceError) {
+          console.warn('Service creation optional error:', serviceError)
+        }
+      }
+
+      toast.success(`Customer ${newCustomer.full_name} created successfully!`)
+      
+      // Reset form and close dialog
+      setNewCustomerForm({
+        first_name: "",
+        last_name: "",
+        email: "",
+        phone: "",
+        password: "",
+        connection_type: "pppoe",
+        plan_id: "",
+        router_id: "",
+      })
+      setShowAddUserDialog(false)
+      
+      // Refresh the list
+      await loadUsers()
+      
+    } catch (err: any) {
+      console.error('Failed to create customer:', err)
+      toast.error(err.message || "Failed to create customer. Please try again.")
+    } finally {
+      setCreating(false)
+    }
+  }
+
   // Calculate stats
   const stats: UserStats = useMemo(() => {
     return {
@@ -306,12 +397,13 @@ export default function UsersPage() {
         (activeTab === "static" && user.type === "static") ||
         (activeTab === "online" && user.connectionStatus === "online")
 
-      // Search filter
-      const matchesSearch =
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.phone.includes(searchQuery) ||
-        user.id.toLowerCase().includes(searchQuery.toLowerCase())
+      // Search filter - add null checks for safety
+      const matchesSearch = !searchQuery || (
+        (user.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (user.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (user.phone || '').includes(searchQuery) ||
+        (user.id?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+      )
 
       // Status filter
       const matchesStatus = statusFilter === "all" || user.status === statusFilter
@@ -490,42 +582,79 @@ export default function UsersPage() {
               <DialogHeader>
                 <DialogTitle>Add New User</DialogTitle>
                 <DialogDescription>
-                  Create a new customer account
+                  Create a new customer account. For PPPoE/Hotspot users, RADIUS credentials will be created automatically.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Full Name</Label>
-                  <Input placeholder="John Doe" />
+                  <Label>First Name *</Label>
+                  <Input 
+                    placeholder="John" 
+                    value={newCustomerForm.first_name}
+                    onChange={(e) => setNewCustomerForm({...newCustomerForm, first_name: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" placeholder="john@example.com" />
+                  <Label>Last Name *</Label>
+                  <Input 
+                    placeholder="Doe" 
+                    value={newCustomerForm.last_name}
+                    onChange={(e) => setNewCustomerForm({...newCustomerForm, last_name: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Phone Number</Label>
-                  <Input placeholder="+254 7XX XXX XXX" />
+                  <Label>Email *</Label>
+                  <Input 
+                    type="email" 
+                    placeholder="john@example.com" 
+                    value={newCustomerForm.email}
+                    onChange={(e) => setNewCustomerForm({...newCustomerForm, email: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Phone Number *</Label>
+                  <Input 
+                    placeholder="+254 7XX XXX XXX" 
+                    value={newCustomerForm.phone}
+                    onChange={(e) => setNewCustomerForm({...newCustomerForm, phone: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Password *</Label>
+                  <Input 
+                    type="password"
+                    placeholder="Enter password" 
+                    value={newCustomerForm.password}
+                    onChange={(e) => setNewCustomerForm({...newCustomerForm, password: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Connection Type</Label>
-                  <Select>
+                  <Select 
+                    value={newCustomerForm.connection_type}
+                    onValueChange={(value: "hotspot" | "pppoe" | "static") => setNewCustomerForm({...newCustomerForm, connection_type: value})}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="hotspot">Hotspot</SelectItem>
-                      <SelectItem value="pppoe">PPPoE</SelectItem>
+                      <SelectItem value="pppoe">PPPoE (Auto-creates RADIUS)</SelectItem>
+                      <SelectItem value="hotspot">Hotspot (Auto-creates RADIUS)</SelectItem>
                       <SelectItem value="static">Static IP</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Plan</Label>
-                  <Select>
+                  <Label>Plan (Optional)</Label>
+                  <Select
+                    value={newCustomerForm.plan_id || "none"}
+                    onValueChange={(value) => setNewCustomerForm({...newCustomerForm, plan_id: value === "none" ? "" : value})}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select plan" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">No Plan</SelectItem>
                       <SelectItem value="basic">Basic Daily - KES 50</SelectItem>
                       <SelectItem value="weekly">Weekly 8Mbps - KES 500</SelectItem>
                       <SelectItem value="monthly">Monthly 10Mbps - KES 1500</SelectItem>
@@ -533,25 +662,24 @@ export default function UsersPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Router</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Assign router" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="r1">Router-Nairobi-01</SelectItem>
-                      <SelectItem value="r2">Router-Mombasa-02</SelectItem>
-                      <SelectItem value="r3">Router-Kisumu-03</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                * Required fields. PPPoE and Hotspot users will automatically get RADIUS credentials created.
+              </p>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowAddUserDialog(false)}>
+                <Button variant="outline" onClick={() => setShowAddUserDialog(false)} disabled={creating}>
                   Cancel
                 </Button>
-                <Button>Create User</Button>
+                <Button onClick={handleCreateCustomer} disabled={creating}>
+                  {creating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create User"
+                  )}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

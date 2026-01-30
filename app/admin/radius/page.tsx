@@ -79,6 +79,7 @@ import type {
   RADIUSAccountingSession,
   RADIUSDashboardStats,
   Customer,
+  CustomerRADIUSCredentials,
 } from "@/lib/types"
 
 // Helper function to format bytes
@@ -127,6 +128,7 @@ export default function RADIUSPage() {
   const [nasList, setNasList] = useState<RADIUSNAS[]>([])
   const [sessions, setSessions] = useState<RADIUSAccountingSession[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [credentials, setCredentials] = useState<CustomerRADIUSCredentials[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [activeTab, setActiveTab] = useState("users")
@@ -169,13 +171,14 @@ export default function RADIUSPage() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      const [statsRes, usersRes, profilesRes, nasRes, sessionsRes, customersRes] = await Promise.all([
+      const [statsRes, usersRes, profilesRes, nasRes, sessionsRes, customersRes, credentialsRes] = await Promise.all([
         adminApi.getRADIUSDashboard().catch(() => null),
         adminApi.getRADIUSUsers().catch(() => ({ results: [] })),
         adminApi.getRADIUSProfiles().catch(() => ({ results: [] })),
         adminApi.getRADIUSNASList().catch(() => ({ results: [] })),
         adminApi.getRADIUSActiveSessions().catch(() => []),
         adminApi.getCustomers({ page_size: "100" }).catch(() => ({ results: [] })),
+        adminApi.getRADIUSCredentials().catch(() => ({ results: [] })),
       ])
 
       setStats(statsRes)
@@ -184,6 +187,7 @@ export default function RADIUSPage() {
       setNasList(nasRes.results || [])
       setSessions(sessionsRes || [])
       setCustomers(customersRes.results || [])
+      setCredentials(credentialsRes.results || [])
     } catch (error) {
       console.error("Failed to fetch RADIUS data:", error)
       toast.error("Failed to load RADIUS data")
@@ -487,6 +491,10 @@ export default function RADIUSPage() {
           <TabsTrigger value="users">
             <Users className="h-4 w-4 mr-2" />
             Users ({users.length})
+          </TabsTrigger>
+          <TabsTrigger value="credentials">
+            <Key className="h-4 w-4 mr-2" />
+            Credentials ({credentials.length})
           </TabsTrigger>
           <TabsTrigger value="profiles">
             <Shield className="h-4 w-4 mr-2" />
@@ -821,6 +829,133 @@ export default function RADIUSPage() {
                             {formatBytes(session.acctoutputoctets)}
                           </div>
                         </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        {/* Credentials Tab - Auto-generated customer RADIUS credentials */}
+        <TabsContent value="credentials" className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-medium">Customer RADIUS Credentials</h3>
+              <p className="text-sm text-muted-foreground">
+                Auto-generated credentials for customers with PPPoE/Hotspot services
+              </p>
+            </div>
+          </div>
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Username</TableHead>
+                  <TableHead>Connection Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Synced</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {credentials.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      No credentials found. Create customers with PPPoE or Hotspot services to auto-generate credentials.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  credentials.map((cred) => (
+                    <TableRow key={cred.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{cred.customer_name}</div>
+                          <div className="text-xs text-muted-foreground">{cred.customer_code}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono">{cred.username}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {cred.connection_type === 'PPPOE' ? 'PPPoE' : cred.connection_type === 'HOTSPOT' ? 'Hotspot' : 'Both'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {cred.is_enabled ? (
+                          <Badge className="bg-green-100 text-green-700">Active</Badge>
+                        ) : (
+                          <Badge variant="destructive">Disabled</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {cred.synced_to_radius ? (
+                          <div className="flex items-center gap-1 text-green-600">
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="text-xs">{cred.last_sync ? formatDateTime(cred.last_sync) : 'Synced'}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-yellow-600">
+                            <Clock className="h-4 w-4" />
+                            <span className="text-xs">Not synced</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm">{formatDateTime(cred.created_at)}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => {
+                              // Copy password to clipboard
+                              navigator.clipboard.writeText(cred.password || '')
+                              toast.success('Password copied to clipboard')
+                            }}>
+                              <Key className="h-4 w-4 mr-2" /> Copy Password
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={async () => {
+                              try {
+                                await adminApi.syncRADIUSCredential(cred.id)
+                                toast.success('Credential synced to RADIUS')
+                                fetchData()
+                              } catch (e: any) {
+                                toast.error(e.message || 'Failed to sync')
+                              }
+                            }}>
+                              <RefreshCw className="h-4 w-4 mr-2" /> Sync to RADIUS
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className={cred.is_enabled ? "text-red-600" : "text-green-600"}
+                              onClick={async () => {
+                                try {
+                                  if (cred.is_enabled) {
+                                    await adminApi.disableRADIUSCredential(cred.id)
+                                    toast.success('Credential disabled')
+                                  } else {
+                                    await adminApi.enableRADIUSCredential(cred.id)
+                                    toast.success('Credential enabled')
+                                  }
+                                  fetchData()
+                                } catch (e: any) {
+                                  toast.error(e.message || 'Failed to update')
+                                }
+                              }}
+                            >
+                              {cred.is_enabled ? (
+                                <><UserX className="h-4 w-4 mr-2" /> Disable</>
+                              ) : (
+                                <><UserCheck className="h-4 w-4 mr-2" /> Enable</>
+                              )}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
