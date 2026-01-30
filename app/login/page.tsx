@@ -45,7 +45,11 @@ export default function LoginPage() {
     try {
       await login(formData.email, formData.password)
       toast.success("Welcome back!")
-      router.push("/dashboard")
+      // Small delay to ensure cookie is set before redirect
+      setTimeout(() => {
+        router.push("/dashboard")
+        router.refresh()
+      }, 100)
     } catch (error: any) {
       toast.error(error.message || "Login failed. Please check your credentials.")
     }

@@ -10,7 +10,8 @@ import type { User, Customer, CustomerService } from "@/lib/types"
 // ==========================================
 
 // Toggle this to switch between mock and real backend
-const USE_MOCK_AUTH = process.env.NEXT_PUBLIC_USE_MOCK === 'true' || true
+// Set to false to use real Django backend authentication
+const USE_MOCK_AUTH = process.env.NEXT_PUBLIC_USE_MOCK === 'true' || false
 
 // ==========================================
 // TYPES
@@ -131,15 +132,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const login = async (username: string, password: string) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true)
     
     if (USE_MOCK_AUTH) {
       // Mock mode - accept any credentials
       await new Promise(r => setTimeout(r, 500))
+      // Set cookie for middleware to allow dashboard access
+      document.cookie = `access_token=mock_token; path=/; max-age=86400; SameSite=Lax`
       setUser({
         ...MOCK_USER,
-        email: username || MOCK_USER.email,
+        email: email || MOCK_USER.email,
       })
       setIsLoading(false)
       return
@@ -147,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       // Call /core/auth/login/
-      const { access, refresh, user: responseUser } = await api.login(username, password)
+      const { access, refresh, user: responseUser } = await api.login(email, password)
       
       // Store tokens
       localStorage.setItem("access_token", access)

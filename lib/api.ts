@@ -133,11 +133,11 @@ class ApiService {
   // AUTHENTICATION - /core/auth/
   // ------------------------------------------
 
-  async login(username: string, password: string): Promise<LoginResponse> {
+  async login(email: string, password: string): Promise<LoginResponse> {
     const response = await fetch(`${this.baseUrl}/core/auth/login/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ email, password }),
     })
     return this.handleResponse<LoginResponse>(response)
   }
