@@ -25,6 +25,10 @@ import {
   Download,
   Upload,
   Radio,
+  Eye,
+  EyeOff,
+  Building2,
+  Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -140,6 +144,17 @@ export default function RADIUSPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [deleteType, setDeleteType] = useState<"user" | "profile" | "nas">("user")
+  const [showPassword, setShowPassword] = useState(false)
+
+  // Password generator function
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%'
+    let password = ''
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return password
+  }
 
   // Form state
   const [formLoading, setFormLoading] = useState(false)
@@ -545,8 +560,10 @@ export default function RADIUSPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Username</TableHead>
+                  <TableHead>Tenant</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Sync</TableHead>
                   <TableHead>Speed (Down/Up)</TableHead>
                   <TableHead>Sessions</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -555,7 +572,7 @@ export default function RADIUSPage() {
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       No users found
                     </TableCell>
                   </TableRow>
@@ -563,6 +580,12 @@ export default function RADIUSPage() {
                   filteredUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium font-mono">{user.username}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                          <Building2 className="h-3 w-3" />
+                          {user.tenant_schema?.replace('tenant_', '') || 'default'}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         {user.customer_name ? (
                           <div>
@@ -574,6 +597,24 @@ export default function RADIUSPage() {
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(user.status)}</TableCell>
+                      <TableCell>
+                        {user.public_sync_status === 'synced' ? (
+                          <Badge className="bg-green-100 text-green-700 flex items-center gap-1 w-fit">
+                            <CheckCircle className="h-3 w-3" />
+                            Synced
+                          </Badge>
+                        ) : user.public_sync_status === 'pending' ? (
+                          <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                            <Clock className="h-3 w-3" />
+                            Pending
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="flex items-center gap-1 w-fit">
+                            <CheckCircle className="h-3 w-3" />
+                            OK
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <span className="text-sm">
                           {formatSpeed(user.download_speed)} / {formatSpeed(user.upload_speed)}
@@ -980,17 +1021,49 @@ export default function RADIUSPage() {
                 id="username"
                 value={userForm.username}
                 onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
-                placeholder="user@example.com"
+                placeholder="e.g., 254712345678"
               />
+              {userForm.username && (
+                <p className="text-xs text-muted-foreground">
+                  Full RADIUS username: <code className="bg-muted px-1 rounded">tenant_{userForm.username}</code>
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                type="password"
-                value={userForm.password}
-                onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-              />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={userForm.password}
+                    onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    const newPass = generatePassword()
+                    setUserForm({ ...userForm, password: newPass })
+                    setShowPassword(true)
+                    toast.success('Password generated!')
+                  }}
+                  title="Generate strong password"
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="customer">Customer (optional)</Label>

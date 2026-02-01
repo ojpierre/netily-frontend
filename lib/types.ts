@@ -2241,6 +2241,10 @@ export interface RADIUSUser {
   valid_until?: string
   created_at: string
   updated_at: string
+  // Multi-tenant fields
+  tenant_schema?: string  // e.g., "tenant_yellow1"
+  public_sync_status?: 'synced' | 'pending' | 'failed'
+  last_sync_at?: string
 }
 
 export interface RADIUSUserAttribute {
