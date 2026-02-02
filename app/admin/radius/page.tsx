@@ -163,6 +163,7 @@ export default function RADIUSPage() {
     password: "",
     customer_id: "",
     profile_id: "",
+    plan_id: "",
     download_speed: "10000",
     upload_speed: "5000",
     simultaneous_use: "1",
@@ -186,7 +187,7 @@ export default function RADIUSPage() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      const [statsRes, usersRes, profilesRes, nasRes, sessionsRes, customersRes, credentialsRes] = await Promise.all([
+      const [statsRes, usersRes, profilesRes, nasRes, sessionsRes, customersRes, credentialsRes, plansRes] = await Promise.all([
         adminApi.getRADIUSDashboard().catch(() => null),
         adminApi.getRADIUSUsers().catch(() => ({ results: [] })),
         adminApi.getRADIUSProfiles().catch(() => ({ results: [] })),
@@ -194,6 +195,7 @@ export default function RADIUSPage() {
         adminApi.getRADIUSActiveSessions().catch(() => []),
         adminApi.getCustomers({ page_size: "100" }).catch(() => ({ results: [] })),
         adminApi.getRADIUSCredentials().catch(() => ({ results: [] })),
+        adminApi.getPlans().catch(() => ({ results: [] })),
       ])
 
       setStats(statsRes)
@@ -203,6 +205,7 @@ export default function RADIUSPage() {
       setSessions(sessionsRes || [])
       setCustomers(customersRes.results || [])
       setCredentials(credentialsRes.results || [])
+      setPlans(plansRes.results || [])
     } catch (error) {
       console.error("Failed to fetch RADIUS data:", error)
       toast.error("Failed to load RADIUS data")
@@ -1089,7 +1092,46 @@ export default function RADIUSPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="profile">Profile (optional)</Label>
+              <Label htmlFor="plan">Plan</Label>
+              <Select
+                value={userForm.plan_id}
+                onValueChange={(v) => {
+                  if (v === "none") {
+                    setUserForm({ ...userForm, plan_id: "" })
+                  } else {
+                    const selectedPlan = plans.find(p => p.id.toString() === v)
+                    setUserForm({
+                      ...userForm,
+                      plan_id: v,
+                      // Auto-fill speeds from plan (convert Mbps to Kbps)
+                      download_speed: selectedPlan?.download_speed ? String(selectedPlan.download_speed * 1000) : userForm.download_speed,
+                      upload_speed: selectedPlan?.upload_speed ? String(selectedPlan.upload_speed * 1000) : userForm.upload_speed,
+                    })
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None (Manual speeds)</SelectItem>
+                  {plans.length === 0 ? (
+                    <SelectItem value="no-plans" disabled>No plans available</SelectItem>
+                  ) : (
+                    plans.filter(p => p.is_active).map((p) => (
+                      <SelectItem key={p.id} value={p.id.toString()}>
+                        {p.name} - {p.download_speed}M/{p.upload_speed}M (KES {p.base_price})
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Select a plan to auto-fill speed settings
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profile">RADIUS Profile (optional)</Label>
               <Select
                 value={userForm.profile_id}
                 onValueChange={(v) => setUserForm({ ...userForm, profile_id: v === "none" ? "" : v })}
