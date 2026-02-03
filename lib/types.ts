@@ -1380,14 +1380,31 @@ export interface Plan {
   base_price: string
   price?: string  // Alias for base_price
   setup_fee?: string
-  download_speed?: number  // Mbps
-  upload_speed?: number    // Mbps
+  download_speed?: number  // Speed value
+  upload_speed?: number    // Speed value
+  speed_unit?: 'MBPS' | 'KBPS'  // Speed unit
   data_limit?: number      // GB, null = unlimited
+  // Validity - flexible time-based options
+  validity_type?: 'DAYS' | 'HOURS' | 'MINUTES' | 'UNLIMITED'
   duration_days?: number
   validity_days?: number   // Alias for duration_days
   validity_hours?: number  // For hourly plans
+  validity_minutes?: number  // For minute-based plans (hotspot)
+  validity_display?: string  // Human-readable validity string
+  speed_display?: string  // Human-readable speed string
+  total_validity_minutes?: number  // Total validity in minutes for RADIUS
+  // Session/Connection limits
+  max_sessions?: number  // Concurrent devices allowed
+  session_timeout?: number  // Idle timeout in minutes
+  // Burst Speed (for MikroTik)
+  burst_download?: number
+  burst_upload?: number
+  burst_threshold?: number  // KB
+  burst_time?: number  // seconds
+  // Fair Usage Policy
   fup_limit?: number       // Fair Usage Policy limit in GB
   fup_speed?: number       // Reduced speed after FUP
+  // Status
   is_active: boolean
   is_public: boolean       // Visible to customers
   is_popular?: boolean
