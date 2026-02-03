@@ -2722,6 +2722,33 @@ class AdminApiService {
     })
   }
 
+  /**
+   * Update RADIUS credentials for a customer by customer ID
+   * This is a convenience method that first fetches the credential ID
+   */
+  async updateRADIUSCredentials(customerId: number, data: { password?: string; username?: string }): Promise<CustomerRADIUSCredentials> {
+    // First, find the credential for this customer
+    const credentials = await this.getRADIUSCredentials({ customer: String(customerId) })
+    if (credentials.results.length === 0) {
+      throw new Error('No RADIUS credentials found for this customer')
+    }
+    const credentialId = credentials.results[0].id
+    return this.updateRADIUSCredential(String(credentialId), data)
+  }
+
+  /**
+   * Regenerate RADIUS username based on phone number
+   */
+  async regenerateRADIUSUsername(customerId: number): Promise<{ old_username: string; new_username: string; message: string }> {
+    // First, find the credential for this customer
+    const credentials = await this.getRADIUSCredentials({ customer: String(customerId) })
+    if (credentials.results.length === 0) {
+      throw new Error('No RADIUS credentials found for this customer')
+    }
+    const credentialId = credentials.results[0].id
+    return this.request(`/radius/credentials/${credentialId}/regenerate_username/`, { method: 'POST' })
+  }
+
   // ------------------------------------------
   // RADIUS TENANT CONFIGURATION - /radius/tenant-config/
   // NEW: Multi-tenant RADIUS management

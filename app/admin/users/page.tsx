@@ -99,6 +99,14 @@ import { Textarea } from "@/components/ui/textarea"
 type UserType = "pppoe" | "static" | "fiber" | "wireless"
 type UserStatus = "active" | "inactive" | "expired" | "suspended" | "pending" | "online" | "offline"
 
+// RADIUS credentials for PPPoE/Hotspot authentication
+interface RADIUSCredentials {
+  username: string
+  password: string
+  is_enabled: boolean
+  connection_type: string
+}
+
 // Display user interface - mapped from Customer API response
 interface User {
   id: string
@@ -123,6 +131,8 @@ interface User {
   uploadSpeed: number
   loyaltyPoints: number
   balance: number
+  // RADIUS credentials for network authentication
+  radiusCredentials?: RADIUSCredentials
 }
 
 // Stats cards data interface
@@ -167,6 +177,15 @@ const mapCustomerToUser = (customer: Customer): User => {
   const mappedType = ['pppoe', 'static', 'fiber', 'wireless'].includes(serviceType) 
     ? serviceType as UserType 
     : 'pppoe'
+  
+  // Map RADIUS credentials if available
+  const radiusCreds = (customer as any).radius_credentials
+  const radiusCredentials: RADIUSCredentials | undefined = radiusCreds ? {
+    username: radiusCreds.username || '',
+    password: radiusCreds.password || '',
+    is_enabled: radiusCreds.is_enabled ?? true,
+    connection_type: radiusCreds.connection_type || 'PPPOE',
+  } : undefined
 
   return {
     id: customer.customer_number || `USR-${customer.id}`,
@@ -191,6 +210,7 @@ const mapCustomerToUser = (customer: Customer): User => {
     uploadSpeed: primaryService?.upload_speed || 0,
     loyaltyPoints: 0, // Will come from loyalty module
     balance: parseFloat(customer.balance) || 0,
+    radiusCredentials,
   }
 }
 
@@ -240,6 +260,16 @@ const generateMockUsers = (): User[] => {
   })
 }
 
+// Generate a simple password for easy testing
+const generateSimplePassword = (length: number = 8): string => {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789'
+  let password = ''
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return password
+}
+
 export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -254,12 +284,26 @@ export default function UsersPage() {
   const [showAddUserDialog, setShowAddUserDialog] = useState(false)
   const [showBulkImportDialog, setShowBulkImportDialog] = useState(false)
   const [showSmsDialog, setShowSmsDialog] = useState(false)
+  const [showEditUserDialog, setShowEditUserDialog] = useState(false)
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [smsMessage, setSmsMessage] = useState("")
   const [refreshing, setRefreshing] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [updating, setUpdating] = useState(false)
   const [plans, setPlans] = useState<Plan[]>([])
   const [plansLoading, setPlansLoading] = useState(false)
   const itemsPerPage = 10
+
+  // Edit user form state
+  const [editForm, setEditForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    radius_username: "",
+    radius_password: "",
+  })
 
   // New customer form state
   const [newCustomerForm, setNewCustomerForm] = useState({
@@ -373,6 +417,9 @@ export default function UsersPage() {
             service_type: 'INTERNET',
             auth_connection_type: newCustomerForm.connection_type.toUpperCase(),  // PPPOE or HOTSPOT triggers RADIUS
             status: 'ACTIVE',
+            // Pass the same password for RADIUS authentication
+            // This makes testing easier as login and network passwords match
+            radius_password: newCustomerForm.password,
           }
           
           // Add plan if selected - backend expects 'plan' not 'plan_id'
@@ -552,6 +599,94 @@ export default function UsersPage() {
   const handleExtendSubscription = (user: User) => {
     // TODO: Implement extend subscription
     console.log("Extending subscription for:", user.id)
+  }
+
+  const handleEditUser = (user: User) => {
+    setEditForm({
+      first_name: user.name.split(' ')[0] || '',
+      last_name: user.name.split(' ').slice(1).join(' ') || '',
+      email: user.email,
+      phone: user.phone,
+      radius_username: user.radiusCredentials?.username || '',
+      radius_password: user.radiusCredentials?.password || '',
+    })
+    setSelectedUser(user)
+    setShowEditUserDialog(true)
+  }
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return
+    
+    try {
+      setUpdating(true)
+      
+      // Update customer details
+      await adminApi.updateCustomer(selectedUser.customerId, {
+        first_name: editForm.first_name,
+        last_name: editForm.last_name,
+        email: editForm.email,
+        phone_number: editForm.phone,
+      })
+      
+      // Update RADIUS credentials if changed
+      const radiusUpdate: { password?: string; username?: string } = {}
+      
+      // Check if username changed
+      if (editForm.radius_username && editForm.radius_username !== selectedUser.radiusCredentials?.username) {
+        radiusUpdate.username = editForm.radius_username
+      }
+      
+      // Check if password changed
+      if (editForm.radius_password) {
+        radiusUpdate.password = editForm.radius_password
+      }
+      
+      // Send update if anything changed
+      if (Object.keys(radiusUpdate).length > 0 && selectedUser.radiusCredentials) {
+        try {
+          await adminApi.updateRADIUSCredentials(selectedUser.customerId, radiusUpdate)
+        } catch (radiusError) {
+          console.warn('RADIUS update optional error:', radiusError)
+          toast.error('Failed to update RADIUS credentials')
+        }
+      }
+      
+      toast.success('User updated successfully!')
+      setShowEditUserDialog(false)
+      await loadUsers()
+      
+    } catch (err: any) {
+      console.error('Failed to update user:', err)
+      toast.error(err.message || 'Failed to update user')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const handleGeneratePassword = () => {
+    const newPassword = generateSimplePassword(8)
+    setEditForm(prev => ({ ...prev, radius_password: newPassword }))
+  }
+
+  const handleRegenerateUsername = async () => {
+    if (!selectedUser) return
+    
+    try {
+      setUpdating(true)
+      const result = await adminApi.regenerateRADIUSUsername(selectedUser.customerId)
+      setEditForm(prev => ({ ...prev, radius_username: result.new_username }))
+      toast.success(`Username updated: ${result.new_username}`)
+    } catch (err: any) {
+      console.error('Failed to regenerate username:', err)
+      toast.error(err.message || 'Failed to regenerate username')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text)
+    toast.success(`${label} copied to clipboard`)
   }
 
   if (error) {
@@ -1087,7 +1222,7 @@ export default function UsersPage() {
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditUser(user)}>
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit User
                               </DropdownMenuItem>
@@ -1260,6 +1395,63 @@ export default function UsersPage() {
                 </div>
               </div>
 
+              {/* RADIUS Network Credentials - Easy to copy for testing */}
+              {selectedUser.radiusCredentials && (
+                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <Wifi className="w-4 h-4 text-purple-600" />
+                    Network Login (PPPoE/Hotspot)
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-slate-500">Username</label>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-sm font-mono bg-white px-2 py-1 rounded border">
+                          {selectedUser.radiusCredentials.username}
+                        </code>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => copyToClipboard(selectedUser.radiusCredentials!.username, 'Username')}
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-slate-500">Password</label>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-sm font-mono bg-white px-2 py-1 rounded border">
+                          {showPassword ? selectedUser.radiusCredentials.password : '••••••••'}
+                        </code>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <XCircle className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => copyToClipboard(selectedUser.radiusCredentials!.password, 'Password')}
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <Badge variant={selectedUser.radiusCredentials.is_enabled ? "default" : "secondary"}>
+                        {selectedUser.radiusCredentials.is_enabled ? 'Enabled' : 'Disabled'}
+                      </Badge>
+                      <span className="text-slate-500">
+                        {selectedUser.radiusCredentials.connection_type}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Usage Stats */}
               <div className="p-4 bg-slate-50 rounded-lg border">
                 <h3 className="font-semibold text-slate-900 mb-3">Usage & Balance</h3>
@@ -1290,7 +1482,7 @@ export default function UsersPage() {
               {/* Actions */}
               <div className="space-y-2 pt-4">
                 <div className="flex gap-2">
-                  <Button className="flex-1">
+                  <Button className="flex-1" onClick={() => handleEditUser(selectedUser)}>
                     <Edit className="w-4 h-4 mr-2" />
                     Edit User
                   </Button>
@@ -1320,6 +1512,115 @@ export default function UsersPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Edit User Dialog */}
+      <Dialog open={showEditUserDialog} onOpenChange={setShowEditUserDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update user details and network credentials
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="edit_first_name">First Name</Label>
+                <Input
+                  id="edit_first_name"
+                  value={editForm.first_name}
+                  onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit_last_name">Last Name</Label>
+                <Input
+                  id="edit_last_name"
+                  value={editForm.last_name}
+                  onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="edit_email">Email</Label>
+              <Input
+                id="edit_email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit_phone">Phone</Label>
+              <Input
+                id="edit_phone"
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+              />
+            </div>
+            
+            {/* RADIUS Credentials Section */}
+            <div className="border-t pt-4">
+              <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+                <Wifi className="w-4 h-4" />
+                Network Login Credentials
+              </h4>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="edit_radius_username">RADIUS Username</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="edit_radius_username"
+                      value={editForm.radius_username}
+                      onChange={(e) => setEditForm({ ...editForm, radius_username: e.target.value })}
+                      placeholder="e.g., 712345678"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleRegenerateUsername}
+                      disabled={updating}
+                      title="Regenerate from phone number"
+                    >
+                      {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">Click refresh to use phone number (last 9 digits)</p>
+                </div>
+                <div>
+                  <Label htmlFor="edit_radius_password">RADIUS Password</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="edit_radius_password"
+                      value={editForm.radius_password}
+                      onChange={(e) => setEditForm({ ...editForm, radius_password: e.target.value })}
+                      placeholder="Enter new password or generate"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleGeneratePassword}
+                      title="Generate simple password"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">Leave empty to keep current password</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditUserDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateUser} disabled={updating}>
+              {updating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
