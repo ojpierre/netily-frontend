@@ -41,6 +41,7 @@ import {
   ArrowRightLeft,
   Shield,
   Key,
+  Radio,
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -77,6 +78,7 @@ const navigationSections = [
       { name: "ONU Devices", href: "/admin/onu", icon: Box },
       { name: "IPAM", href: "/admin/ipam", icon: Globe },
       { name: "Routers", href: "/admin/routers", icon: Wifi },
+      { name: "Hotspot", href: "/admin/hotspot", icon: Radio },
       { name: "IPv4 Networks", href: "/admin/networks", icon: Network },
       { name: "VPN", href: "/admin/vpn", icon: Shield },
       { name: "RADIUS", href: "/admin/radius", icon: Key },

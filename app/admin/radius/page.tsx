@@ -86,6 +86,16 @@ import type {
   CustomerRADIUSCredentials,
 } from "@/lib/types"
 
+// BillingPlan interface for plans dropdown
+interface BillingPlan {
+  id: number
+  name: string
+  download_speed: number
+  upload_speed: number
+  price: string
+  is_active: boolean
+}
+
 // Helper function to format bytes
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B"
@@ -133,6 +143,7 @@ export default function RADIUSPage() {
   const [sessions, setSessions] = useState<RADIUSAccountingSession[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [credentials, setCredentials] = useState<CustomerRADIUSCredentials[]>([])
+  const [plans, setPlans] = useState<BillingPlan[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [activeTab, setActiveTab] = useState("users")

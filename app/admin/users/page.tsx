@@ -32,7 +32,7 @@ import {
   Power,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
-import type { Customer, CustomerService, CustomerStatus } from "@/lib/types"
+import type { Customer, CustomerService, CustomerStatus, Plan } from "@/lib/types"
 
 import { toast } from "sonner"
 
@@ -95,7 +95,8 @@ import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 
 // User types for different connection methods (maps to backend ConnectionType)
-type UserType = "hotspot" | "pppoe" | "static" | "fiber" | "wireless"
+// Note: Hotspot users are managed separately via captive portal
+type UserType = "pppoe" | "static" | "fiber" | "wireless"
 type UserStatus = "active" | "inactive" | "expired" | "suspended" | "pending" | "online" | "offline"
 
 // Display user interface - mapped from Customer API response
@@ -130,9 +131,9 @@ interface UserStats {
   active: number
   expired: number
   online: number
-  hotspot: number
   pppoe: number
   static: number
+  fiber: number
 }
 
 // Helper: Map backend Customer to frontend User display type
@@ -153,26 +154,39 @@ const mapCustomerToUser = (customer: Customer): User => {
       default: return 'active'
     }
   }
+  
+  // Helper to safely format dates
+  const safeDate = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return new Date().toISOString()
+    const date = new Date(dateStr)
+    return isNaN(date.getTime()) ? new Date().toISOString() : dateStr
+  }
+  
+  // Map service type, defaulting to pppoe for managed users
+  const serviceType = primaryService?.service_type?.toLowerCase() || 'pppoe'
+  const mappedType = ['pppoe', 'static', 'fiber', 'wireless'].includes(serviceType) 
+    ? serviceType as UserType 
+    : 'pppoe'
 
   return {
     id: customer.customer_number || `USR-${customer.id}`,
     customerId: customer.id,
-    name: customer.full_name || `${customer.first_name} ${customer.last_name}`,
-    email: customer.email,
-    phone: customer.phone,
+    name: customer.full_name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
+    email: customer.email || 'No email',
+    phone: customer.phone || 'No phone',
     status: mapStatus(customer.status),
     connectionStatus: isOnline ? "online" : "offline",
-    type: (primaryService?.service_type || "hotspot") as UserType,
+    type: mappedType,
     plan: primaryService?.plan?.name || "No Plan",
     planPrice: primaryService?.plan?.price ? parseFloat(String(primaryService.plan.price)) : 0,
-    joinedDate: customer.created_at,
-    expiryDate: primaryService?.expiry_date || new Date().toISOString(),
-    lastOnline: isOnline ? "Now" : (primaryService?.last_seen || "Unknown"),
+    joinedDate: safeDate(customer.created_at),
+    expiryDate: safeDate(primaryService?.expiry_date),
+    lastOnline: isOnline ? "Now" : (primaryService?.last_seen ? new Date(primaryService.last_seen).toLocaleString() : "Never"),
     dataUsed: primaryService?.data_used || 0,
     dataLimit: primaryService?.data_limit || null,
     macAddress: primaryService?.mac_address,
     ipAddress: primaryService?.ip_address,
-    router: primaryService?.device?.name || "Unassigned",
+    router: primaryService?.device?.name || "Not assigned",
     downloadSpeed: primaryService?.download_speed || 0,
     uploadSpeed: primaryService?.upload_speed || 0,
     loyaltyPoints: 0, // Will come from loyalty module
@@ -182,7 +196,7 @@ const mapCustomerToUser = (customer: Customer): User => {
 
 // Mock data generator (fallback when API is unavailable)
 const generateMockUsers = (): User[] => {
-  const types: UserType[] = ["hotspot", "pppoe", "static"]
+  const types: UserType[] = ["pppoe", "static", "fiber"]
   const plans = [
     { name: "Basic Daily", price: 50 },
     { name: "Weekly 8Mbps", price: 500 },
@@ -243,6 +257,8 @@ export default function UsersPage() {
   const [smsMessage, setSmsMessage] = useState("")
   const [refreshing, setRefreshing] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [plansLoading, setPlansLoading] = useState(false)
   const itemsPerPage = 10
 
   // New customer form state
@@ -252,14 +268,29 @@ export default function UsersPage() {
     email: "",
     phone: "",
     password: "",
-    connection_type: "pppoe" as "hotspot" | "pppoe" | "static",
+    connection_type: "pppoe" as "pppoe" | "static",
     plan_id: "",
     router_id: "",
   })
 
   useEffect(() => {
     loadUsers()
+    loadPlans()
   }, [])
+
+  // Load billing plans from API
+  const loadPlans = async () => {
+    try {
+      setPlansLoading(true)
+      const response = await adminApi.getPlans({ is_active: "true" })
+      setPlans(response.results || [])
+    } catch (err) {
+      console.error('Failed to load plans:', err)
+      // Don't show error toast for plans - just use empty array
+    } finally {
+      setPlansLoading(false)
+    }
+  }
 
   const loadUsers = async () => {
     try {
@@ -337,11 +368,28 @@ export default function UsersPage() {
       // This triggers auto-sync to create RADIUS credentials
       if (newCustomerForm.connection_type && newCustomerForm.connection_type !== 'none') {
         try {
-          await adminApi.createCustomerService(newCustomer.id, {
+          // Build service data with optional plan
+          const serviceData: Record<string, any> = {
             service_type: 'INTERNET',
             auth_connection_type: newCustomerForm.connection_type.toUpperCase(),  // PPPOE or HOTSPOT triggers RADIUS
             status: 'ACTIVE',
-          })
+          }
+          
+          // Add plan if selected - backend expects 'plan' not 'plan_id'
+          if (newCustomerForm.plan_id) {
+            const planId = parseInt(newCustomerForm.plan_id, 10)
+            serviceData.plan = planId
+            
+            // Get selected plan details to set speeds
+            const selectedPlan = plans.find(p => p.id === planId)
+            if (selectedPlan) {
+              serviceData.download_speed = selectedPlan.download_speed
+              serviceData.upload_speed = selectedPlan.upload_speed
+              serviceData.monthly_price = selectedPlan.price
+            }
+          }
+          
+          await adminApi.createCustomerService(newCustomer.id, serviceData)
         } catch (serviceError) {
           console.warn('Service creation optional error:', serviceError)
         }
@@ -380,9 +428,9 @@ export default function UsersPage() {
       active: users.filter(u => u.status === "active").length,
       expired: users.filter(u => u.status === "expired").length,
       online: users.filter(u => u.connectionStatus === "online").length,
-      hotspot: users.filter(u => u.type === "hotspot").length,
       pppoe: users.filter(u => u.type === "pppoe").length,
       static: users.filter(u => u.type === "static").length,
+      fiber: users.filter(u => u.type === "fiber").length,
     }
   }, [users])
 
@@ -392,9 +440,9 @@ export default function UsersPage() {
       // Tab filter
       const matchesTab = 
         activeTab === "all" ||
-        (activeTab === "hotspot" && user.type === "hotspot") ||
         (activeTab === "pppoe" && user.type === "pppoe") ||
         (activeTab === "static" && user.type === "static") ||
+        (activeTab === "fiber" && user.type === "fiber") ||
         (activeTab === "online" && user.connectionStatus === "online")
 
       // Search filter - add null checks for safety
@@ -476,13 +524,12 @@ export default function UsersPage() {
 
   const getTypeBadge = (type: UserType) => {
     const config: Record<UserType, { icon: typeof Wifi; class: string; label: string }> = {
-      hotspot: { icon: Wifi, class: "bg-blue-100 text-blue-700 border-blue-200", label: "Hotspot" },
       pppoe: { icon: Globe, class: "bg-purple-100 text-purple-700 border-purple-200", label: "PPPoE" },
       static: { icon: Server, class: "bg-orange-100 text-orange-700 border-orange-200", label: "Static IP" },
       fiber: { icon: Signal, class: "bg-teal-100 text-teal-700 border-teal-200", label: "Fiber" },
       wireless: { icon: Wifi, class: "bg-cyan-100 text-cyan-700 border-cyan-200", label: "Wireless" },
     }
-    const typeConfig = config[type] || config.hotspot
+    const typeConfig = config[type] || config.pppoe
     const Icon = typeConfig.icon
     return (
       <Badge variant="outline" className={typeConfig.class}>
@@ -571,7 +618,13 @@ export default function UsersPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          <Dialog open={showAddUserDialog} onOpenChange={setShowAddUserDialog}>
+          <Dialog open={showAddUserDialog} onOpenChange={(open) => {
+            setShowAddUserDialog(open)
+            // Refresh plans when dialog opens to get latest
+            if (open) {
+              loadPlans()
+            }
+          }}>
             <DialogTrigger asChild>
               <Button>
                 <UserPlus className="w-4 h-4 mr-2" />
@@ -632,35 +685,50 @@ export default function UsersPage() {
                   <Label>Connection Type</Label>
                   <Select 
                     value={newCustomerForm.connection_type}
-                    onValueChange={(value: "hotspot" | "pppoe" | "static") => setNewCustomerForm({...newCustomerForm, connection_type: value})}
+                    onValueChange={(value: "pppoe" | "static") => setNewCustomerForm({...newCustomerForm, connection_type: value})}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pppoe">PPPoE (Auto-creates RADIUS)</SelectItem>
-                      <SelectItem value="hotspot">Hotspot (Auto-creates RADIUS)</SelectItem>
-                      <SelectItem value="static">Static IP</SelectItem>
+                      <SelectItem value="pppoe">PPPoE (Auto-creates RADIUS credentials)</SelectItem>
+                      <SelectItem value="static">Static IP (Manual configuration)</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Hotspot users connect via captive portal and are managed separately.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label>Plan (Optional)</Label>
                   <Select
                     value={newCustomerForm.plan_id || "none"}
                     onValueChange={(value) => setNewCustomerForm({...newCustomerForm, plan_id: value === "none" ? "" : value})}
+                    disabled={plansLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select plan" />
+                      <SelectValue placeholder={plansLoading ? "Loading plans..." : "Select plan"} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">No Plan</SelectItem>
-                      <SelectItem value="basic">Basic Daily - KES 50</SelectItem>
-                      <SelectItem value="weekly">Weekly 8Mbps - KES 500</SelectItem>
-                      <SelectItem value="monthly">Monthly 10Mbps - KES 1500</SelectItem>
-                      <SelectItem value="premium">Premium Monthly - KES 3000</SelectItem>
+                      {plans.length === 0 && !plansLoading && (
+                        <SelectItem value="no-plans" disabled>
+                          No plans available - create plans first
+                        </SelectItem>
+                      )}
+                      {plans.map((plan) => (
+                        <SelectItem key={plan.id} value={String(plan.id)}>
+                          {plan.name} - KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
+                          {plan.download_speed && ` (${plan.download_speed}/${plan.upload_speed || plan.download_speed} Mbps)`}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  {plans.length === 0 && !plansLoading && (
+                    <p className="text-xs text-amber-600">
+                      No plans found. <a href="/admin/plans" className="underline hover:text-amber-700">Create plans</a> first.
+                    </p>
+                  )}
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
@@ -687,7 +755,7 @@ export default function UsersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("all")}>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -744,20 +812,6 @@ export default function UsersPage() {
           </CardContent>
         </Card>
         
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("hotspot")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Wifi className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-blue-600">{stats.hotspot}</p>
-                <p className="text-xs text-slate-500">Hotspot</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("pppoe")}>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -785,6 +839,20 @@ export default function UsersPage() {
             </div>
           </CardContent>
         </Card>
+        
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("fiber")}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-teal-100 rounded-lg">
+                <Signal className="w-5 h-5 text-teal-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-teal-600">{stats.fiber}</p>
+                <p className="text-xs text-slate-500">Fiber</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tabs */}
@@ -794,10 +862,6 @@ export default function UsersPage() {
             <Users className="w-4 h-4" />
             <span className="hidden sm:inline">All Users</span>
           </TabsTrigger>
-          <TabsTrigger value="hotspot" className="flex items-center gap-2">
-            <Wifi className="w-4 h-4" />
-            <span className="hidden sm:inline">Hotspot</span>
-          </TabsTrigger>
           <TabsTrigger value="pppoe" className="flex items-center gap-2">
             <Globe className="w-4 h-4" />
             <span className="hidden sm:inline">PPPoE</span>
@@ -805,6 +869,10 @@ export default function UsersPage() {
           <TabsTrigger value="static" className="flex items-center gap-2">
             <Server className="w-4 h-4" />
             <span className="hidden sm:inline">Static IP</span>
+          </TabsTrigger>
+          <TabsTrigger value="fiber" className="flex items-center gap-2">
+            <Signal className="w-4 h-4" />
+            <span className="hidden sm:inline">Fiber</span>
           </TabsTrigger>
           <TabsTrigger value="online" className="flex items-center gap-2">
             <Activity className="w-4 h-4" />

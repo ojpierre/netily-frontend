@@ -2006,52 +2006,76 @@ export interface SettlementSummary {
 // ==========================================
 
 export type HotspotPlanType = 'time' | 'data' | 'unlimited'
-export type HotspotSessionStatus = 'pending_payment' | 'active' | 'expired' | 'terminated'
+export type HotspotSessionStatus = 'pending' | 'paid' | 'active' | 'expired' | 'failed' | 'cancelled'
 
 export interface HotspotPlan {
-  id: number
+  id: string  // UUID
   router_id: number
   name: string
-  plan_type: HotspotPlanType
+  description?: string
   price: string
-  duration_minutes: number | null  // For time-based plans
-  data_limit_mb: number | null     // For data-based plans
-  speed_limit_kbps: number | null
+  currency: string
+  duration_minutes: number
+  duration_display?: string
+  data_limit_mb: number | null     // null for unlimited
+  data_limit_display?: string
+  speed_limit_mbps: string
+  mikrotik_profile?: string
   is_active: boolean
+  is_popular: boolean
   sort_order: number
+  created_at?: string
+  updated_at?: string
 }
 
 export interface HotspotSession {
-  id: number
+  id: string  // UUID
+  session_id: string
   router_id: number
-  plan_id: number
+  plan_id: string  // UUID
   plan_name: string
-  customer_phone: string
-  customer_name: string | null
-  mac_address: string | null
-  ip_address: string | null
-  voucher_code: string
-  payment_reference: string
-  amount_paid: string
+  plan_price?: number
+  phone_number: string
+  mac_address: string
+  amount: string
+  mpesa_receipt?: string | null
+  access_code: string | null
   status: HotspotSessionStatus
-  started_at: string | null
+  activated_at: string | null
   expires_at: string | null
   data_used_mb: number
+  time_remaining_minutes?: number
+  data_remaining_mb?: number | null
+  is_active?: boolean
+  failure_reason?: string | null
   created_at: string
+  updated_at?: string
 }
 
 export interface HotspotBranding {
-  id: number
+  id: string  // UUID
   router_id: number
+  company_name: string
+  logo?: string | null
   logo_url: string | null
+  background_image?: string | null
   background_image_url: string | null
   primary_color: string
   secondary_color: string
-  company_name: string
-  tagline: string | null
-  terms_url: string | null
+  text_color?: string
+  background_color?: string
+  welcome_title: string
+  welcome_message?: string
+  terms_and_conditions?: string
   support_phone: string | null
   support_email: string | null
+  facebook_url?: string
+  twitter_url?: string
+  instagram_url?: string
+  website_url?: string
+  is_default?: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 // ==========================================

@@ -2794,14 +2794,14 @@ class AdminApiService {
     })
   }
 
-  async updateHotspotPlan(routerId: number, planId: number, data: Partial<HotspotPlan>): Promise<HotspotPlan> {
+  async updateHotspotPlan(routerId: number, planId: string, data: Partial<HotspotPlan>): Promise<HotspotPlan> {
     return this.request<HotspotPlan>(`/hotspot/routers/${routerId}/plans/${planId}/`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
   }
 
-  async deleteHotspotPlan(routerId: number, planId: number): Promise<void> {
+  async deleteHotspotPlan(routerId: number, planId: string): Promise<void> {
     await this.request(`/hotspot/routers/${routerId}/plans/${planId}/`, { method: 'DELETE' })
   }
 
