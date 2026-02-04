@@ -2024,6 +2024,10 @@ export interface SettlementSummary {
 
 export type HotspotPlanType = 'time' | 'data' | 'unlimited'
 export type HotspotSessionStatus = 'pending' | 'paid' | 'active' | 'expired' | 'failed' | 'cancelled'
+export type HotspotValidityType = 'MINUTES' | 'HOURS' | 'DAYS' | 'UNLIMITED'
+export type HotspotLimitationType = 'UNLIMITED' | 'DATA'
+export type HotspotSpeedUnit = 'MBPS' | 'KBPS'
+export type HotspotDataUnit = 'MB' | 'GB'
 
 export interface HotspotPlan {
   id: string  // UUID
@@ -2032,15 +2036,57 @@ export interface HotspotPlan {
   description?: string
   price: string
   currency: string
+  
+  // Validity (new fields)
+  validity_type: HotspotValidityType
+  validity_value: number
+  
+  // Legacy field for backward compatibility
   duration_minutes: number
   duration_display?: string
+  
+  // Data Limits (new fields)
+  limitation_type: HotspotLimitationType
+  data_limit_value: number | null
+  data_limit_unit: HotspotDataUnit
+  
+  // Legacy field for backward compatibility
   data_limit_mb: number | null     // null for unlimited
   data_limit_display?: string
+  
+  // Speed (new fields)
+  download_speed: number
+  upload_speed: number
+  speed_unit: HotspotSpeedUnit
+  speed_display?: string
+  
+  // Legacy field for backward compatibility
   speed_limit_mbps: string
+  
+  // Session limits
+  simultaneous_devices: number
+  
+  // Valid days
+  valid_monday: boolean
+  valid_tuesday: boolean
+  valid_wednesday: boolean
+  valid_thursday: boolean
+  valid_friday: boolean
+  valid_saturday: boolean
+  valid_sunday: boolean
+  valid_days_list?: string[]
+  
+  // MikroTik
   mikrotik_profile?: string
+  
+  // Display settings
   is_active: boolean
   is_popular: boolean
   sort_order: number
+  
+  // Computed
+  total_validity_minutes?: number
+  
   created_at?: string
   updated_at?: string
 }

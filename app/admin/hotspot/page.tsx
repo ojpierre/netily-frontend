@@ -171,13 +171,32 @@ export default function HotspotManagementPage() {
   const [editingPlan, setEditingPlan] = useState<HotspotPlan | null>(null)
   const [formLoading, setFormLoading] = useState(false)
 
-  // Plan Form
+  // Plan Form - Enhanced with all new fields
   const [planForm, setPlanForm] = useState({
     name: "",
     price: "",
-    duration_minutes: "60",
-    data_limit_mb: "",
-    speed_limit_mbps: "5", // Speed choice: 1, 2, 5, 10, 15, 20, 50, 100
+    // Validity
+    validity_type: "HOURS" as "MINUTES" | "HOURS" | "DAYS" | "UNLIMITED",
+    validity_value: 1,
+    // Data Limits
+    limitation_type: "UNLIMITED" as "UNLIMITED" | "DATA",
+    data_limit_value: "",
+    data_limit_unit: "MB" as "MB" | "GB",
+    // Speed
+    download_speed: 5,
+    upload_speed: 5,
+    speed_unit: "MBPS" as "MBPS" | "KBPS",
+    // Session limits
+    simultaneous_devices: 1,
+    // Valid days
+    valid_monday: true,
+    valid_tuesday: true,
+    valid_wednesday: true,
+    valid_thursday: true,
+    valid_friday: true,
+    valid_saturday: true,
+    valid_sunday: true,
+    // Display settings
     is_active: true,
     is_popular: false,
     sort_order: 0,
@@ -283,9 +302,28 @@ export default function HotspotManagementPage() {
       setPlanForm({
         name: plan.name,
         price: String(plan.price),
-        duration_minutes: String(plan.duration_minutes || 60),
-        data_limit_mb: plan.data_limit_mb ? String(plan.data_limit_mb) : "",
-        speed_limit_mbps: plan.speed_limit_mbps || "5",
+        // Validity
+        validity_type: plan.validity_type || "HOURS",
+        validity_value: plan.validity_value || 1,
+        // Data Limits
+        limitation_type: plan.limitation_type || "UNLIMITED",
+        data_limit_value: plan.data_limit_value ? String(plan.data_limit_value) : "",
+        data_limit_unit: plan.data_limit_unit || "MB",
+        // Speed
+        download_speed: plan.download_speed || 5,
+        upload_speed: plan.upload_speed || 5,
+        speed_unit: plan.speed_unit || "MBPS",
+        // Session limits
+        simultaneous_devices: plan.simultaneous_devices || 1,
+        // Valid days
+        valid_monday: plan.valid_monday ?? true,
+        valid_tuesday: plan.valid_tuesday ?? true,
+        valid_wednesday: plan.valid_wednesday ?? true,
+        valid_thursday: plan.valid_thursday ?? true,
+        valid_friday: plan.valid_friday ?? true,
+        valid_saturday: plan.valid_saturday ?? true,
+        valid_sunday: plan.valid_sunday ?? true,
+        // Display settings
         is_active: plan.is_active,
         is_popular: plan.is_popular || false,
         sort_order: plan.sort_order || 0,
@@ -295,9 +333,22 @@ export default function HotspotManagementPage() {
       setPlanForm({
         name: "",
         price: "",
-        duration_minutes: "60",
-        data_limit_mb: "",
-        speed_limit_mbps: "5",
+        validity_type: "HOURS",
+        validity_value: 1,
+        limitation_type: "UNLIMITED",
+        data_limit_value: "",
+        data_limit_unit: "MB",
+        download_speed: 5,
+        upload_speed: 5,
+        speed_unit: "MBPS",
+        simultaneous_devices: 1,
+        valid_monday: true,
+        valid_tuesday: true,
+        valid_wednesday: true,
+        valid_thursday: true,
+        valid_friday: true,
+        valid_saturday: true,
+        valid_sunday: true,
         is_active: true,
         is_popular: false,
         sort_order: 0,
@@ -312,8 +363,8 @@ export default function HotspotManagementPage() {
       return
     }
     
-    if (!planForm.name || !planForm.price || !planForm.duration_minutes) {
-      toast.error("Please fill in all required fields")
+    if (!planForm.name || !planForm.price) {
+      toast.error("Please fill in plan name and price")
       return
     }
 
@@ -323,9 +374,28 @@ export default function HotspotManagementPage() {
       const planData: Partial<HotspotPlan> = {
         name: planForm.name,
         price: planForm.price,
-        duration_minutes: parseInt(planForm.duration_minutes),
-        data_limit_mb: planForm.data_limit_mb ? parseInt(planForm.data_limit_mb) : null,
-        speed_limit_mbps: planForm.speed_limit_mbps,
+        // Validity
+        validity_type: planForm.validity_type,
+        validity_value: planForm.validity_value,
+        // Data Limits
+        limitation_type: planForm.limitation_type,
+        data_limit_value: planForm.data_limit_value ? parseInt(planForm.data_limit_value) : null,
+        data_limit_unit: planForm.data_limit_unit,
+        // Speed
+        download_speed: planForm.download_speed,
+        upload_speed: planForm.upload_speed,
+        speed_unit: planForm.speed_unit,
+        // Session limits
+        simultaneous_devices: planForm.simultaneous_devices,
+        // Valid days
+        valid_monday: planForm.valid_monday,
+        valid_tuesday: planForm.valid_tuesday,
+        valid_wednesday: planForm.valid_wednesday,
+        valid_thursday: planForm.valid_thursday,
+        valid_friday: planForm.valid_friday,
+        valid_saturday: planForm.valid_saturday,
+        valid_sunday: planForm.valid_sunday,
+        // Display settings
         is_active: planForm.is_active,
         is_popular: planForm.is_popular,
         sort_order: planForm.sort_order,
@@ -1045,16 +1115,143 @@ add address=10.10.0.1/24 interface=bridge-hotspot
         </div>
       </div>
 
-      {/* Plan Dialog */}
+      {/* Plan Dialog - Enhanced */}
       <Dialog open={showPlanDialog} onOpenChange={setShowPlanDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingPlan ? "Edit Plan" : "Create Hotspot Plan"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Wifi className="w-5 h-5 text-primary" />
+              {editingPlan ? "Edit Hotspot Plan" : "Add New Hotspot Plan"}
+            </DialogTitle>
             <DialogDescription>
-              Configure pricing and limits for this hotspot plan
+              Configure pricing, validity, and limits for this hotspot plan
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          
+          <div className="space-y-6">
+            {/* Quick Create Presets */}
+            {!editingPlan && (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-yellow-500" />
+                  Quick Create
+                </Label>
+                <div className="grid grid-cols-5 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
+                    onClick={() => setPlanForm({
+                      ...planForm,
+                      name: "1 Hour",
+                      price: "50",
+                      validity_type: "HOURS",
+                      validity_value: 1,
+                      limitation_type: "DATA",
+                      data_limit_value: "500",
+                      data_limit_unit: "MB",
+                      download_speed: 5,
+                      upload_speed: 5,
+                    })}
+                  >
+                    <Timer className="w-4 h-4 mb-1 text-blue-500" />
+                    <span className="text-xs font-semibold">1 Hour</span>
+                    <span className="text-[10px] text-muted-foreground">50 KES</span>
+                    <span className="text-[10px] text-muted-foreground">500MB</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
+                    onClick={() => setPlanForm({
+                      ...planForm,
+                      name: "Daily",
+                      price: "100",
+                      validity_type: "DAYS",
+                      validity_value: 1,
+                      limitation_type: "DATA",
+                      data_limit_value: "2",
+                      data_limit_unit: "GB",
+                      download_speed: 10,
+                      upload_speed: 10,
+                    })}
+                  >
+                    <Timer className="w-4 h-4 mb-1 text-green-500" />
+                    <span className="text-xs font-semibold">Daily</span>
+                    <span className="text-[10px] text-muted-foreground">100 KES</span>
+                    <span className="text-[10px] text-muted-foreground">2GB</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
+                    onClick={() => setPlanForm({
+                      ...planForm,
+                      name: "Weekly",
+                      price: "500",
+                      validity_type: "DAYS",
+                      validity_value: 7,
+                      limitation_type: "DATA",
+                      data_limit_value: "10",
+                      data_limit_unit: "GB",
+                      download_speed: 15,
+                      upload_speed: 10,
+                    })}
+                  >
+                    <Timer className="w-4 h-4 mb-1 text-purple-500" />
+                    <span className="text-xs font-semibold">Weekly</span>
+                    <span className="text-[10px] text-muted-foreground">500 KES</span>
+                    <span className="text-[10px] text-muted-foreground">10GB</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
+                    onClick={() => setPlanForm({
+                      ...planForm,
+                      name: "Monthly",
+                      price: "1500",
+                      validity_type: "DAYS",
+                      validity_value: 30,
+                      limitation_type: "DATA",
+                      data_limit_value: "50",
+                      data_limit_unit: "GB",
+                      download_speed: 20,
+                      upload_speed: 15,
+                    })}
+                  >
+                    <Timer className="w-4 h-4 mb-1 text-orange-500" />
+                    <span className="text-xs font-semibold">Monthly</span>
+                    <span className="text-[10px] text-muted-foreground">1500 KES</span>
+                    <span className="text-[10px] text-muted-foreground">50GB</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
+                    onClick={() => setPlanForm({
+                      ...planForm,
+                      name: "Unlimited",
+                      price: "3000",
+                      validity_type: "UNLIMITED",
+                      validity_value: 30,
+                      limitation_type: "UNLIMITED",
+                      data_limit_value: "",
+                      data_limit_unit: "GB",
+                      download_speed: 50,
+                      upload_speed: 20,
+                    })}
+                  >
+                    <Globe className="w-4 h-4 mb-1 text-red-500" />
+                    <span className="text-xs font-semibold">Unlimited</span>
+                    <span className="text-[10px] text-muted-foreground">3000 KES</span>
+                    <span className="text-[10px] text-muted-foreground">∞ Data</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Basic Info */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Plan Name *</Label>
@@ -1074,85 +1271,209 @@ add address=10.10.0.1/24 interface=bridge-hotspot
                 />
               </div>
             </div>
+
+            {/* Limitation Type */}
+            <div className="space-y-2">
+              <Label>Limitation Type</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="limitation_type"
+                    checked={planForm.limitation_type === "UNLIMITED"}
+                    onChange={() => setPlanForm({ ...planForm, limitation_type: "UNLIMITED", data_limit_value: "" })}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <span className="text-sm">Unlimited</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="limitation_type"
+                    checked={planForm.limitation_type === "DATA"}
+                    onChange={() => setPlanForm({ ...planForm, limitation_type: "DATA" })}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <span className="text-sm">Data Plan</span>
+                </label>
+              </div>
+            </div>
             
+            {/* Validity */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Duration (minutes) *</Label>
-                <Select
-                  value={planForm.duration_minutes}
-                  onValueChange={(v) => setPlanForm({ ...planForm, duration_minutes: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="30">30 minutes</SelectItem>
-                    <SelectItem value="60">1 hour</SelectItem>
-                    <SelectItem value="120">2 hours</SelectItem>
-                    <SelectItem value="180">3 hours</SelectItem>
-                    <SelectItem value="360">6 hours</SelectItem>
-                    <SelectItem value="720">12 hours</SelectItem>
-                    <SelectItem value="1440">24 hours (1 day)</SelectItem>
-                    <SelectItem value="4320">3 days</SelectItem>
-                    <SelectItem value="10080">7 days</SelectItem>
-                    <SelectItem value="43200">30 days</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Validity *</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="1"
+                    value={planForm.validity_value}
+                    onChange={(e) => setPlanForm({ ...planForm, validity_value: parseInt(e.target.value) || 1 })}
+                    className="flex-1"
+                    disabled={planForm.validity_type === "UNLIMITED"}
+                  />
+                  <Select
+                    value={planForm.validity_type}
+                    onValueChange={(v) => setPlanForm({ ...planForm, validity_type: v as any })}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MINUTES">Minutes</SelectItem>
+                      <SelectItem value="HOURS">Hours</SelectItem>
+                      <SelectItem value="DAYS">Days</SelectItem>
+                      <SelectItem value="UNLIMITED">Unlimited</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Data Limit */}
+              <div className="space-y-2">
+                <Label>Data Limit</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="500"
+                    value={planForm.data_limit_value}
+                    onChange={(e) => setPlanForm({ ...planForm, data_limit_value: e.target.value })}
+                    className="flex-1"
+                    disabled={planForm.limitation_type === "UNLIMITED"}
+                  />
+                  <Select
+                    value={planForm.data_limit_unit}
+                    onValueChange={(v) => setPlanForm({ ...planForm, data_limit_unit: v as any })}
+                    disabled={planForm.limitation_type === "UNLIMITED"}
+                  >
+                    <SelectTrigger className="w-24">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MB">MB</SelectItem>
+                      <SelectItem value="GB">GB</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Speed Settings */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Download Speed</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="5"
+                  value={planForm.download_speed}
+                  onChange={(e) => setPlanForm({ ...planForm, download_speed: parseInt(e.target.value) || 1 })}
+                />
               </div>
               <div className="space-y-2">
-                <Label>Speed Limit (Mbps)</Label>
+                <Label>Upload Speed</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="5"
+                  value={planForm.upload_speed}
+                  onChange={(e) => setPlanForm({ ...planForm, upload_speed: parseInt(e.target.value) || 1 })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Speed Unit</Label>
                 <Select
-                  value={planForm.speed_limit_mbps}
-                  onValueChange={(v) => setPlanForm({ ...planForm, speed_limit_mbps: v })}
+                  value={planForm.speed_unit}
+                  onValueChange={(v) => setPlanForm({ ...planForm, speed_unit: v as any })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1 Mbps</SelectItem>
-                    <SelectItem value="2">2 Mbps</SelectItem>
-                    <SelectItem value="5">5 Mbps</SelectItem>
-                    <SelectItem value="10">10 Mbps</SelectItem>
-                    <SelectItem value="15">15 Mbps</SelectItem>
-                    <SelectItem value="20">20 Mbps</SelectItem>
-                    <SelectItem value="50">50 Mbps</SelectItem>
-                    <SelectItem value="100">100 Mbps</SelectItem>
+                    <SelectItem value="MBPS">Mbps</SelectItem>
+                    <SelectItem value="KBPS">Kbps</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label>Data Limit (MB)</Label>
-              <Input
-                type="number"
-                placeholder="Leave empty for unlimited"
-                value={planForm.data_limit_mb}
-                onChange={(e) => setPlanForm({ ...planForm, data_limit_mb: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground">
-                Leave empty for unlimited data
-              </p>
+
+            {/* Simultaneous Devices */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Simultaneous Devices</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="10"
+                  placeholder="1"
+                  value={planForm.simultaneous_devices}
+                  onChange={(e) => setPlanForm({ ...planForm, simultaneous_devices: parseInt(e.target.value) || 1 })}
+                />
+                <p className="text-xs text-muted-foreground">Max devices that can use this plan at once</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={planForm.is_active ? "active" : "inactive"}
+                  onValueChange={(v) => setPlanForm({ ...planForm, is_active: v === "active" })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={planForm.is_popular}
-                  onCheckedChange={(v) => setPlanForm({ ...planForm, is_popular: v })}
-                />
-                <Label>Mark as Popular</Label>
+
+            {/* Valid Days */}
+            <div className="space-y-2">
+              <Label>Valid Days</Label>
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { key: 'valid_monday', label: 'Mon' },
+                  { key: 'valid_tuesday', label: 'Tue' },
+                  { key: 'valid_wednesday', label: 'Wed' },
+                  { key: 'valid_thursday', label: 'Thu' },
+                  { key: 'valid_friday', label: 'Fri' },
+                  { key: 'valid_saturday', label: 'Sat' },
+                  { key: 'valid_sunday', label: 'Sun' },
+                ].map((day) => (
+                  <label 
+                    key={day.key} 
+                    className="flex items-center gap-1.5 cursor-pointer bg-muted/50 px-3 py-1.5 rounded-md hover:bg-muted transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={planForm[day.key as keyof typeof planForm] as boolean}
+                      onChange={(e) => setPlanForm({ ...planForm, [day.key]: e.target.checked })}
+                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm">{day.label}</span>
+                  </label>
+                ))}
               </div>
+            </div>
+
+            {/* Popular Badge */}
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
               <div className="flex items-center gap-2">
-                <Switch
-                  checked={planForm.is_active}
-                  onCheckedChange={(v) => setPlanForm({ ...planForm, is_active: v })}
-                />
-                <Label>Active</Label>
+                <Zap className="w-4 h-4 text-yellow-500" />
+                <span className="text-sm font-medium">Mark as Popular</span>
+                <span className="text-xs text-muted-foreground">(Shows badge on plan)</span>
               </div>
+              <Switch
+                checked={planForm.is_popular}
+                onCheckedChange={(v) => setPlanForm({ ...planForm, is_popular: v })}
+              />
             </div>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="mt-6">
             <Button variant="outline" onClick={() => setShowPlanDialog(false)} disabled={formLoading}>
               Cancel
             </Button>
@@ -1163,7 +1484,9 @@ add address=10.10.0.1/24 interface=bridge-hotspot
                   Saving...
                 </>
               ) : (
-                <>Save Plan</>
+                <>
+                  {editingPlan ? "Update Plan" : "Create Plan"}
+                </>
               )}
             </Button>
           </DialogFooter>
@@ -1392,37 +1715,37 @@ add address=10.10.0.1/24 interface=bridge-hotspot
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Duration</Label>
-                    <Select
-                      value={planForm.duration_minutes}
-                      onValueChange={(v) => setPlanForm({ ...planForm, duration_minutes: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="60">1 hour</SelectItem>
-                        <SelectItem value="180">3 hours</SelectItem>
-                        <SelectItem value="720">12 hours</SelectItem>
-                        <SelectItem value="1440">24 hours</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>Validity</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        placeholder="1"
+                        value={planForm.validity_value}
+                        onChange={(e) => setPlanForm({ ...planForm, validity_value: parseInt(e.target.value) || 1 })}
+                        className="w-20"
+                      />
+                      <Select
+                        value={planForm.validity_type}
+                        onValueChange={(v) => setPlanForm({ ...planForm, validity_type: v as any })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="HOURS">Hours</SelectItem>
+                          <SelectItem value="DAYS">Days</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Speed (Mbps)</Label>
-                    <Select
-                      value={planForm.speed_limit_mbps}
-                      onValueChange={(v) => setPlanForm({ ...planForm, speed_limit_mbps: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="5">5 Mbps</SelectItem>
-                        <SelectItem value="10">10 Mbps</SelectItem>
-                        <SelectItem value="20">20 Mbps</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      type="number"
+                      placeholder="5"
+                      value={planForm.download_speed}
+                      onChange={(e) => setPlanForm({ ...planForm, download_speed: parseInt(e.target.value) || 5, upload_speed: parseInt(e.target.value) || 5 })}
+                    />
                   </div>
                 </div>
               </div>
