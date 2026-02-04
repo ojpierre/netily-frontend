@@ -20,6 +20,9 @@ import {
   Play,
   Eye,
   CreditCard,
+  Timer,
+  Clock,
+  Calendar,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -755,6 +758,143 @@ export default function PlansPage() {
           </DialogHeader>
           
           <div className="space-y-6 py-4">
+            {/* Quick Create Presets */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Zap className="w-4 h-4 text-yellow-500" />
+                Quick Create Presets
+              </Label>
+              <div className="grid grid-cols-6 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
+                  onClick={() => setPlanForm({
+                    ...planForm,
+                    name: "30 Minutes",
+                    price: "20",
+                    validity_type: "MINUTES",
+                    validity_minutes: "30",
+                    download_speed: "5",
+                    upload_speed: "5",
+                    speed_unit: "MBPS",
+                    unlimited_data: false,
+                    data_limit: "500",
+                  })}
+                >
+                  <Timer className="w-4 h-4 mb-1 text-blue-500" />
+                  <span className="text-xs font-semibold">30 Min</span>
+                  <span className="text-[10px] text-muted-foreground">20 KES</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
+                  onClick={() => setPlanForm({
+                    ...planForm,
+                    name: "1 Hour",
+                    price: "50",
+                    validity_type: "HOURS",
+                    validity_hours: "1",
+                    download_speed: "5",
+                    upload_speed: "5",
+                    speed_unit: "MBPS",
+                    unlimited_data: false,
+                    data_limit: "1",
+                  })}
+                >
+                  <Clock className="w-4 h-4 mb-1 text-green-500" />
+                  <span className="text-xs font-semibold">1 Hour</span>
+                  <span className="text-[10px] text-muted-foreground">50 KES</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
+                  onClick={() => setPlanForm({
+                    ...planForm,
+                    name: "Daily Plan",
+                    price: "100",
+                    validity_type: "DAYS",
+                    duration_days: "1",
+                    download_speed: "10",
+                    upload_speed: "5",
+                    speed_unit: "MBPS",
+                    unlimited_data: false,
+                    data_limit: "3",
+                  })}
+                >
+                  <Calendar className="w-4 h-4 mb-1 text-purple-500" />
+                  <span className="text-xs font-semibold">Daily</span>
+                  <span className="text-[10px] text-muted-foreground">100 KES</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
+                  onClick={() => setPlanForm({
+                    ...planForm,
+                    name: "Weekly Plan",
+                    price: "500",
+                    validity_type: "DAYS",
+                    duration_days: "7",
+                    download_speed: "15",
+                    upload_speed: "10",
+                    speed_unit: "MBPS",
+                    unlimited_data: false,
+                    data_limit: "15",
+                  })}
+                >
+                  <Calendar className="w-4 h-4 mb-1 text-orange-500" />
+                  <span className="text-xs font-semibold">Weekly</span>
+                  <span className="text-[10px] text-muted-foreground">500 KES</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
+                  onClick={() => setPlanForm({
+                    ...planForm,
+                    name: "Home Basic",
+                    price: "2500",
+                    validity_type: "DAYS",
+                    duration_days: "30",
+                    download_speed: "20",
+                    upload_speed: "10",
+                    speed_unit: "MBPS",
+                    unlimited_data: true,
+                    data_limit: "",
+                  })}
+                >
+                  <Wifi className="w-4 h-4 mb-1 text-cyan-500" />
+                  <span className="text-xs font-semibold">Monthly</span>
+                  <span className="text-[10px] text-muted-foreground">2500 KES</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
+                  onClick={() => setPlanForm({
+                    ...planForm,
+                    name: "Unlimited",
+                    price: "5000",
+                    validity_type: "UNLIMITED",
+                    download_speed: "50",
+                    upload_speed: "25",
+                    speed_unit: "MBPS",
+                    unlimited_data: true,
+                    data_limit: "",
+                  })}
+                >
+                  <Zap className="w-4 h-4 mb-1 text-yellow-500" />
+                  <span className="text-xs font-semibold">Unlimited</span>
+                  <span className="text-[10px] text-muted-foreground">5000 KES</span>
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
             {/* Basic Info Section */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Basic Information</h3>
