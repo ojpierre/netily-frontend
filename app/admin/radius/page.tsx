@@ -29,6 +29,10 @@ import {
   EyeOff,
   Building2,
   Sparkles,
+  CalendarClock,
+  Timer,
+  RotateCcw,
+  AlertTriangle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -132,6 +136,66 @@ function formatDateTime(dateString: string): string {
     hour: "2-digit",
     minute: "2-digit",
   })
+}
+
+// Helper function to calculate time remaining and status
+function getExpirationStatus(expirationDate: string | null): {
+  status: 'active' | 'expiring' | 'expired' | 'unlimited'
+  label: string
+  timeRemaining: string | null
+  badgeClass: string
+} {
+  if (!expirationDate) {
+    return {
+      status: 'unlimited',
+      label: 'Unlimited',
+      timeRemaining: null,
+      badgeClass: 'bg-blue-100 text-blue-700'
+    }
+  }
+
+  const now = new Date()
+  const expiry = new Date(expirationDate)
+  const diffMs = expiry.getTime() - now.getTime()
+
+  if (diffMs <= 0) {
+    return {
+      status: 'expired',
+      label: 'Expired',
+      timeRemaining: 'Expired',
+      badgeClass: 'bg-red-100 text-red-700'
+    }
+  }
+
+  const diffMins = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  let timeRemaining: string
+  if (diffDays > 0) {
+    timeRemaining = `${diffDays}d ${diffHours % 24}h`
+  } else if (diffHours > 0) {
+    timeRemaining = `${diffHours}h ${diffMins % 60}m`
+  } else {
+    timeRemaining = `${diffMins}m`
+  }
+
+  // Expiring soon: less than 24 hours
+  if (diffHours < 24) {
+    return {
+      status: 'expiring',
+      label: 'Expiring Soon',
+      timeRemaining,
+      badgeClass: 'bg-yellow-100 text-yellow-700'
+    }
+  }
+
+  return {
+    status: 'active',
+    label: 'Active',
+    timeRemaining,
+    badgeClass: 'bg-green-100 text-green-700'
+  }
 }
 
 export default function RADIUSPage() {
@@ -911,8 +975,8 @@ export default function RADIUSPage() {
                   <TableHead>Username</TableHead>
                   <TableHead>Connection Type</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Expiration</TableHead>
                   <TableHead>Synced</TableHead>
-                  <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -924,7 +988,9 @@ export default function RADIUSPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  credentials.map((cred) => (
+                  credentials.map((cred) => {
+                    const expStatus = getExpirationStatus(cred.expiration_date)
+                    return (
                     <TableRow key={cred.id}>
                       <TableCell>
                         <div>
@@ -940,10 +1006,34 @@ export default function RADIUSPage() {
                       </TableCell>
                       <TableCell>
                         {cred.is_enabled ? (
-                          <Badge className="bg-green-100 text-green-700">Active</Badge>
+                          expStatus.status === 'expired' ? (
+                            <Badge className="bg-red-100 text-red-700">Expired</Badge>
+                          ) : (
+                            <Badge className="bg-green-100 text-green-700">Active</Badge>
+                          )
                         ) : (
                           <Badge variant="destructive">Disabled</Badge>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <Badge className={expStatus.badgeClass}>
+                            {expStatus.status === 'unlimited' ? (
+                              <><Timer className="h-3 w-3 mr-1" /> Unlimited</>
+                            ) : expStatus.status === 'expired' ? (
+                              <><AlertTriangle className="h-3 w-3 mr-1" /> Expired</>
+                            ) : expStatus.status === 'expiring' ? (
+                              <><Clock className="h-3 w-3 mr-1" /> {expStatus.timeRemaining}</>
+                            ) : (
+                              <><CalendarClock className="h-3 w-3 mr-1" /> {expStatus.timeRemaining}</>
+                            )}
+                          </Badge>
+                          {cred.expiration_date && expStatus.status !== 'expired' && (
+                            <span className="text-xs text-muted-foreground">
+                              {formatDateTime(cred.expiration_date)}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {cred.synced_to_radius ? (
@@ -958,7 +1048,6 @@ export default function RADIUSPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm">{formatDateTime(cred.created_at)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -985,6 +1074,23 @@ export default function RADIUSPage() {
                             }}>
                               <RefreshCw className="h-4 w-4 mr-2" /> Sync to RADIUS
                             </DropdownMenuItem>
+                            {/* Renewal Option */}
+                            {(expStatus.status === 'expired' || expStatus.status === 'expiring') && (
+                              <DropdownMenuItem 
+                                className="text-blue-600"
+                                onClick={async () => {
+                                  try {
+                                    await adminApi.renewRADIUSCredential(cred.id)
+                                    toast.success('Subscription renewed! Expiration extended.')
+                                    fetchData()
+                                  } catch (e: any) {
+                                    toast.error(e.message || 'Failed to renew')
+                                  }
+                                }}
+                              >
+                                <RotateCcw className="h-4 w-4 mr-2" /> Renew Subscription
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className={cred.is_enabled ? "text-red-600" : "text-green-600"}
@@ -1013,7 +1119,7 @@ export default function RADIUSPage() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))
+                  )})
                 )}
               </TableBody>
             </Table>

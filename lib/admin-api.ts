@@ -2723,6 +2723,18 @@ class AdminApiService {
   }
 
   /**
+   * Renew RADIUS credential subscription - extends expiration based on plan
+   */
+  async renewRADIUSCredential(id: string): Promise<{ 
+    status: string
+    message: string
+    new_expiration: string | null
+    username: string 
+  }> {
+    return this.request(`/radius/credentials/${id}/renew/`, { method: 'POST' })
+  }
+
+  /**
    * Update RADIUS credentials for a customer by customer ID
    * This is a convenience method that first fetches the credential ID
    */

@@ -101,10 +101,13 @@ type UserStatus = "active" | "inactive" | "expired" | "suspended" | "pending" | 
 
 // RADIUS credentials for PPPoE/Hotspot authentication
 interface RADIUSCredentials {
+  id?: string
   username: string
   password: string
   is_enabled: boolean
   connection_type: string
+  expiration_date: string | null  // Wall-clock expiration
+  synced_to_radius?: boolean
 }
 
 // Display user interface - mapped from Customer API response
@@ -181,10 +184,13 @@ const mapCustomerToUser = (customer: Customer): User => {
   // Map RADIUS credentials if available
   const radiusCreds = (customer as any).radius_credentials
   const radiusCredentials: RADIUSCredentials | undefined = radiusCreds ? {
+    id: radiusCreds.id || '',
     username: radiusCreds.username || '',
     password: radiusCreds.password || '',
     is_enabled: radiusCreds.is_enabled ?? true,
     connection_type: radiusCreds.connection_type || 'PPPOE',
+    expiration_date: radiusCreds.expiration_date || null,
+    synced_to_radius: radiusCreds.synced_to_radius ?? false,
   } : undefined
 
   return {
@@ -1440,6 +1446,55 @@ export default function UsersPage() {
                         </Button>
                       </div>
                     </div>
+                    {/* Expiration Info */}
+                    <div>
+                      <label className="text-xs font-medium text-slate-500">Subscription Status</label>
+                      <div className="flex items-center gap-2 mt-1">
+                        {selectedUser.radiusCredentials.expiration_date ? (
+                          (() => {
+                            const now = new Date()
+                            const expiry = new Date(selectedUser.radiusCredentials.expiration_date!)
+                            const isExpired = expiry <= now
+                            const diffMs = expiry.getTime() - now.getTime()
+                            const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+                            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+                            
+                            if (isExpired) {
+                              return (
+                                <Badge variant="destructive" className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  Expired
+                                </Badge>
+                              )
+                            } else if (diffHours < 24) {
+                              return (
+                                <Badge className="bg-yellow-100 text-yellow-700 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {diffHours}h remaining
+                                </Badge>
+                              )
+                            } else {
+                              return (
+                                <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {diffDays}d remaining
+                                </Badge>
+                              )
+                            }
+                          })()
+                        ) : (
+                          <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            Unlimited
+                          </Badge>
+                        )}
+                        {selectedUser.radiusCredentials.expiration_date && (
+                          <span className="text-xs text-slate-500">
+                            Expires: {new Date(selectedUser.radiusCredentials.expiration_date).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     <div className="flex items-center gap-2 text-xs">
                       <Badge variant={selectedUser.radiusCredentials.is_enabled ? "default" : "secondary"}>
                         {selectedUser.radiusCredentials.is_enabled ? 'Enabled' : 'Disabled'}
@@ -1447,6 +1502,11 @@ export default function UsersPage() {
                       <span className="text-slate-500">
                         {selectedUser.radiusCredentials.connection_type}
                       </span>
+                      {selectedUser.radiusCredentials.synced_to_radius && (
+                        <Badge variant="outline" className="text-green-600 border-green-300">
+                          ✓ Synced
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
