@@ -99,13 +99,40 @@ const getTypeBadge = (type: PlanType) => {
   )
 }
 
-const formatDuration = (days: number) => {
+const formatDuration = (plan: Plan) => {
+  // Use backend-computed validity_display if available
+  if (plan.validity_display) return plan.validity_display
+  // Fallback: compute from validity fields
+  const vt = plan.validity_type || 'DAYS'
+  if (vt === 'UNLIMITED') return 'Unlimited'
+  if (vt === 'MINUTES' && plan.validity_minutes) {
+    if (plan.validity_minutes < 60) return `${plan.validity_minutes} min`
+    const h = Math.floor(plan.validity_minutes / 60)
+    const m = plan.validity_minutes % 60
+    return m > 0 ? `${h}h ${m}m` : `${h} hour${h > 1 ? 's' : ''}`
+  }
+  if (vt === 'HOURS' && plan.validity_hours) {
+    if (plan.validity_hours < 24) return `${plan.validity_hours} hour${plan.validity_hours > 1 ? 's' : ''}`
+    const d = Math.floor(plan.validity_hours / 24)
+    const h = plan.validity_hours % 24
+    return h > 0 ? `${d}d ${h}h` : `${d} day${d > 1 ? 's' : ''}`
+  }
+  // DAYS fallback
+  const days = plan.duration_days ?? plan.validity_days ?? 30
   if (days === 1) return "Daily"
   if (days === 7) return "Weekly"
   if (days === 30) return "Monthly"
   if (days === 90) return "Quarterly"
   if (days === 365) return "Yearly"
   return `${days} Days`
+}
+
+const getValidityIcon = (plan: Plan) => {
+  const vt = plan.validity_type || 'DAYS'
+  if (vt === 'MINUTES') return Timer
+  if (vt === 'HOURS') return Clock
+  if (vt === 'UNLIMITED') return Zap
+  return Calendar
 }
 
 export default function PlansPage() {
@@ -688,8 +715,12 @@ export default function PlansPage() {
                   <p className="text-3xl font-bold">
                     {formatCurrency(plan.price ?? plan.base_price)}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDuration(plan.validity_days ?? plan.duration_days ?? 30)}
+                  <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                    {(() => {
+                      const Icon = getValidityIcon(plan)
+                      return <Icon className="w-3.5 h-3.5" />
+                    })()}
+                    {formatDuration(plan)}
                   </p>
                 </div>
 
@@ -1597,7 +1628,13 @@ export default function PlansPage() {
 
               <div className="text-center py-6 bg-muted rounded-lg">
                 <p className="text-4xl font-bold">{formatCurrency(selectedPlan.price ?? selectedPlan.base_price)}</p>
-                <p className="text-muted-foreground">{formatDuration(selectedPlan.validity_days ?? selectedPlan.duration_days ?? 30)}</p>
+                <p className="text-muted-foreground flex items-center justify-center gap-1">
+                  {(() => {
+                    const Icon = getValidityIcon(selectedPlan)
+                    return <Icon className="w-4 h-4" />
+                  })()}
+                  {formatDuration(selectedPlan)}
+                </p>
               </div>
 
               <Separator />

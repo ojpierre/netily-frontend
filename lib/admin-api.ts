@@ -588,8 +588,8 @@ class AdminApiService {
     })
   }
 
-  async activateService(customerId: number, serviceId: number): Promise<void> {
-    await this.request(`/customers/${customerId}/services/${serviceId}/activate/`, {
+  async activateService(customerId: number, serviceId: number): Promise<any> {
+    return this.request(`/customers/${customerId}/services/${serviceId}/activate/`, {
       method: 'POST',
     })
   }
@@ -604,6 +604,34 @@ class AdminApiService {
   async terminateService(customerId: number, serviceId: number): Promise<void> {
     await this.request(`/customers/${customerId}/services/${serviceId}/terminate/`, {
       method: 'POST',
+    })
+  }
+
+  /** P3: Extend a service subscription by adding time */
+  async extendService(
+    customerId: number,
+    serviceId: number,
+    durationAmount: number,
+    durationUnit: 'MINUTES' | 'HOURS' | 'DAYS'
+  ): Promise<any> {
+    return this.request(`/customers/${customerId}/services/${serviceId}/extend/`, {
+      method: 'POST',
+      body: JSON.stringify({
+        duration_amount: durationAmount,
+        duration_unit: durationUnit,
+      }),
+    })
+  }
+
+  /** P5: Toggle RADIUS access (disable/enable) without deleting the customer */
+  async toggleRadius(
+    customerId: number,
+    enabled: boolean,
+    reason?: string
+  ): Promise<any> {
+    return this.request(`/customers/${customerId}/toggle_radius/`, {
+      method: 'POST',
+      body: JSON.stringify({ enabled, reason }),
     })
   }
 

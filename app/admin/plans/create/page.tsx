@@ -51,7 +51,28 @@ import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 
 // Industry-standard plan presets
-const PLAN_PRESETS = {
+interface PlanPreset {
+  id: string
+  name: string
+  icon: React.ComponentType<any>
+  color: string
+  description: string
+  config: {
+    name: string
+    plan_type: string
+    base_price: number
+    validity_type: string
+    duration_days?: number
+    validity_hours?: number
+    validity_minutes?: number
+    download_speed?: number
+    upload_speed?: number
+    max_sessions?: number
+    features?: string[]
+  }
+}
+
+const PLAN_PRESETS: { hotspot: PlanPreset[]; pppoe: PlanPreset[] } = {
   hotspot: [
     {
       id: 'hotspot-30min',
@@ -163,6 +184,98 @@ const PLAN_PRESETS = {
     },
   ],
   pppoe: [
+    // --- Short Duration PPPoE (Hourly/Daily) ---
+    {
+      id: 'pppoe-1hr',
+      name: '1 Hour',
+      icon: Timer,
+      color: 'bg-cyan-500',
+      description: 'Quick PPPoE session',
+      config: {
+        name: 'PPPoE 1 Hour',
+        plan_type: 'PPPOE',
+        base_price: 50,
+        validity_type: 'HOURS',
+        validity_hours: 1,
+        download_speed: 10,
+        upload_speed: 5,
+        max_sessions: 1,
+        features: ['10 Mbps Download', '5 Mbps Upload', '1 Hour Access', 'Pay-As-You-Go'],
+      }
+    },
+    {
+      id: 'pppoe-6hr',
+      name: '6 Hours',
+      icon: Clock,
+      color: 'bg-teal-500',
+      description: 'Half-day PPPoE access',
+      config: {
+        name: 'PPPoE 6 Hours',
+        plan_type: 'PPPOE',
+        base_price: 150,
+        validity_type: 'HOURS',
+        validity_hours: 6,
+        download_speed: 10,
+        upload_speed: 5,
+        max_sessions: 1,
+        features: ['10 Mbps Download', '5 Mbps Upload', '6 Hours Access', 'Budget Friendly'],
+      }
+    },
+    {
+      id: 'pppoe-daily',
+      name: '24 Hours',
+      icon: Coffee,
+      color: 'bg-indigo-500',
+      description: 'Full day PPPoE access',
+      config: {
+        name: 'PPPoE Daily',
+        plan_type: 'PPPOE',
+        base_price: 200,
+        validity_type: 'DAYS',
+        duration_days: 1,
+        download_speed: 10,
+        upload_speed: 5,
+        max_sessions: 1,
+        features: ['10 Mbps Download', '5 Mbps Upload', '1 Day Access', 'Affordable Daily Rate'],
+      }
+    },
+    {
+      id: 'pppoe-3day',
+      name: '3 Days',
+      icon: Zap,
+      color: 'bg-violet-500',
+      description: '3-day PPPoE bundle',
+      config: {
+        name: 'PPPoE 3 Days',
+        plan_type: 'PPPOE',
+        base_price: 500,
+        validity_type: 'DAYS',
+        duration_days: 3,
+        download_speed: 10,
+        upload_speed: 5,
+        max_sessions: 1,
+        features: ['10 Mbps Download', '5 Mbps Upload', '3 Days Access', 'Value Bundle'],
+      }
+    },
+    {
+      id: 'pppoe-weekly',
+      name: '7 Days',
+      icon: Globe,
+      color: 'bg-sky-500',
+      description: 'Weekly PPPoE plan',
+      config: {
+        name: 'PPPoE Weekly',
+        plan_type: 'PPPOE',
+        base_price: 800,
+        validity_type: 'DAYS',
+        duration_days: 7,
+        download_speed: 10,
+        upload_speed: 5,
+        max_sessions: 1,
+        features: ['10 Mbps Download', '5 Mbps Upload', '7 Days Access', 'Best Weekly Value'],
+      }
+    },
+    // --- Monthly PPPoE (Home & Business) ---
     {
       id: 'pppoe-basic',
       name: 'Basic Home',
@@ -177,6 +290,7 @@ const PLAN_PRESETS = {
         duration_days: 30,
         download_speed: 5,
         upload_speed: 2,
+        max_sessions: 1,
         features: ['5 Mbps Download', '2 Mbps Upload', 'Unlimited Data', 'Email & Browsing'],
       }
     },
@@ -194,6 +308,7 @@ const PLAN_PRESETS = {
         duration_days: 30,
         download_speed: 15,
         upload_speed: 5,
+        max_sessions: 1,
         features: ['15 Mbps Download', '5 Mbps Upload', 'Unlimited Data', 'HD Streaming', '24/7 Support'],
       }
     },
@@ -211,6 +326,7 @@ const PLAN_PRESETS = {
         duration_days: 30,
         download_speed: 30,
         upload_speed: 15,
+        max_sessions: 1,
         features: ['30 Mbps Download', '15 Mbps Upload', 'Unlimited Data', '4K Streaming', 'Online Gaming', 'Priority Support'],
       }
     },
@@ -228,6 +344,7 @@ const PLAN_PRESETS = {
         duration_days: 30,
         download_speed: 50,
         upload_speed: 25,
+        max_sessions: 1,
         features: ['50 Mbps Download', '25 Mbps Upload', 'Low Latency', 'Gaming Optimized', 'Priority Traffic', '24/7 Support'],
       }
     },
@@ -318,7 +435,7 @@ export default function CreatePlanPage() {
     setSelectedPreset(null) // Clear preset selection on manual change
   }
 
-  const applyPreset = (preset: typeof PLAN_PRESETS.hotspot[0]) => {
+  const applyPreset = (preset: PlanPreset) => {
     setSelectedPreset(preset.id)
     setFormData(prev => ({
       ...prev,

@@ -114,6 +114,7 @@ interface RADIUSCredentials {
 interface User {
   id: string
   customerId: number
+  serviceId: number | null
   name: string
   email: string
   phone: string
@@ -196,6 +197,7 @@ const mapCustomerToUser = (customer: Customer): User => {
   return {
     id: customer.customer_number || `USR-${customer.id}`,
     customerId: customer.id,
+    serviceId: primaryService?.id ?? null,
     name: customer.full_name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
     email: customer.email || 'No email',
     phone: customer.phone || 'No phone',
@@ -293,6 +295,15 @@ export default function UsersPage() {
   const [showEditUserDialog, setShowEditUserDialog] = useState(false)
   const [showPasswordDialog, setShowPasswordDialog] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [showExtendDialog, setShowExtendDialog] = useState(false)
+  const [userToExtend, setUserToExtend] = useState<User | null>(null)
+  const [extending, setExtending] = useState(false)
+  const [extendForm, setExtendForm] = useState({ duration_amount: 1, duration_unit: 'DAYS' as 'MINUTES' | 'HOURS' | 'DAYS' })
+  const [activating, setActivating] = useState(false)
+  const [togglingRadius, setTogglingRadius] = useState(false)
   const [smsMessage, setSmsMessage] = useState("")
   const [refreshing, setRefreshing] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -321,6 +332,7 @@ export default function UsersPage() {
     connection_type: "pppoe" as "pppoe" | "static",
     plan_id: "",
     router_id: "",
+    activate_now: true,
   })
 
   useEffect(() => {
@@ -385,10 +397,6 @@ export default function UsersPage() {
       toast.error("First name and last name are required")
       return
     }
-    if (!newCustomerForm.email) {
-      toast.error("Email is required")
-      return
-    }
     if (!newCustomerForm.phone) {
       toast.error("Phone number is required")
       return
@@ -406,7 +414,7 @@ export default function UsersPage() {
       const customerData = {
         first_name: newCustomerForm.first_name,
         last_name: newCustomerForm.last_name,
-        email: newCustomerForm.email,
+        email: newCustomerForm.email || undefined,
         phone_number: newCustomerForm.phone,  // Backend expects phone_number
         password: newCustomerForm.password,
         status: 'active' as const,
@@ -422,7 +430,8 @@ export default function UsersPage() {
           const serviceData: Record<string, any> = {
             service_type: 'INTERNET',
             auth_connection_type: newCustomerForm.connection_type.toUpperCase(),  // PPPOE or HOTSPOT triggers RADIUS
-            status: 'ACTIVE',
+            status: newCustomerForm.activate_now ? 'ACTIVE' : 'PENDING',
+            activate_now: newCustomerForm.activate_now,
             // Pass the same password for RADIUS authentication
             // This makes testing easier as login and network passwords match
             radius_password: newCustomerForm.password,
@@ -460,6 +469,7 @@ export default function UsersPage() {
         connection_type: "pppoe",
         plan_id: "",
         router_id: "",
+        activate_now: true,
       })
       setShowAddUserDialog(false)
       
@@ -597,14 +607,123 @@ export default function UsersPage() {
     setDrawerOpen(true)
   }
 
-  const handleDisconnectUser = (user: User) => {
-    // TODO: Implement disconnect via API
-    console.log("Disconnecting user:", user.id)
+  const handleDisconnectUser = async (user: User) => {
+    if (!user.serviceId) {
+      toast.error("No active service to disconnect")
+      return
+    }
+    try {
+      await adminApi.suspendService(user.customerId, user.serviceId, 'Manual disconnect')
+      toast.success(`${user.name} disconnected`)
+      await loadUsers()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to disconnect user')
+    }
   }
 
   const handleExtendSubscription = (user: User) => {
-    // TODO: Implement extend subscription
-    console.log("Extending subscription for:", user.id)
+    setUserToExtend(user)
+    setExtendForm({ duration_amount: 1, duration_unit: 'DAYS' })
+    setShowExtendDialog(true)
+  }
+
+  const confirmExtendSubscription = async () => {
+    if (!userToExtend || !userToExtend.serviceId) {
+      toast.error("No active service to extend")
+      return
+    }
+    try {
+      setExtending(true)
+      await adminApi.extendService(
+        userToExtend.customerId,
+        userToExtend.serviceId,
+        extendForm.duration_amount,
+        extendForm.duration_unit
+      )
+      toast.success(`Subscription extended by ${extendForm.duration_amount} ${extendForm.duration_unit.toLowerCase()}`)
+      setShowExtendDialog(false)
+      setUserToExtend(null)
+      await loadUsers()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to extend subscription')
+    } finally {
+      setExtending(false)
+    }
+  }
+
+  const handleDeleteUser = (user: User) => {
+    setUserToDelete(user)
+    setShowDeleteConfirmDialog(true)
+  }
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return
+    try {
+      setDeleting(true)
+      await adminApi.deleteCustomer(userToDelete.customerId)
+      toast.success(`${userToDelete.name} deleted successfully. RADIUS credentials cleaned up.`)
+      setShowDeleteConfirmDialog(false)
+      setUserToDelete(null)
+      setDrawerOpen(false)
+      await loadUsers()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete user')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedUsers.length === 0) return
+    const usersToDelete = users.filter(u => selectedUsers.includes(u.id))
+    try {
+      setDeleting(true)
+      for (const user of usersToDelete) {
+        await adminApi.deleteCustomer(user.customerId)
+      }
+      toast.success(`${usersToDelete.length} user(s) deleted successfully`)
+      setSelectedUsers([])
+      await loadUsers()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete some users')
+      await loadUsers()
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleActivateUser = async (user: User) => {
+    if (!user.serviceId) {
+      toast.error("No service to activate")
+      return
+    }
+    try {
+      setActivating(true)
+      await adminApi.activateService(user.customerId, user.serviceId)
+      toast.success(`${user.name} activated! Expiration timer starts now.`)
+      await loadUsers()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to activate user')
+    } finally {
+      setActivating(false)
+    }
+  }
+
+  const handleToggleRadius = async (user: User, enable: boolean) => {
+    try {
+      setTogglingRadius(true)
+      await adminApi.toggleRadius(
+        user.customerId,
+        enable,
+        enable ? 'Enabled via admin panel' : 'Disabled via admin panel'
+      )
+      toast.success(`RADIUS ${enable ? 'enabled' : 'disabled'} for ${user.name}`)
+      await loadUsers()
+    } catch (err: any) {
+      toast.error(err.message || `Failed to ${enable ? 'enable' : 'disable'} RADIUS`)
+    } finally {
+      setTogglingRadius(false)
+    }
   }
 
   const handleEditUser = (user: User) => {
@@ -797,7 +916,7 @@ export default function UsersPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Email *</Label>
+                  <Label>Email (Optional)</Label>
                   <Input 
                     type="email" 
                     placeholder="john@example.com" 
@@ -875,6 +994,21 @@ export default function UsersPage() {
               <p className="text-xs text-muted-foreground mt-2">
                 * Required fields. PPPoE and Hotspot users will automatically get RADIUS credentials created.
               </p>
+              <div className="flex items-center gap-3 mt-3 p-3 bg-slate-50 rounded-lg border">
+                <Checkbox
+                  id="activate_now"
+                  checked={newCustomerForm.activate_now}
+                  onCheckedChange={(checked) => setNewCustomerForm({...newCustomerForm, activate_now: checked as boolean})}
+                />
+                <div>
+                  <Label htmlFor="activate_now" className="font-medium cursor-pointer">Activate Now</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {newCustomerForm.activate_now 
+                      ? "Service will be activated immediately and expiration timer starts now."
+                      : "Service will be saved as PENDING. Activate later to start the expiration timer."}
+                  </p>
+                </div>
+              </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowAddUserDialog(false)} disabled={creating}>
                   Cancel
@@ -1045,6 +1179,7 @@ export default function UsersPage() {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="expired">Expired</SelectItem>
                 <SelectItem value="suspended">Suspended</SelectItem>
               </SelectContent>
@@ -1099,8 +1234,8 @@ export default function UsersPage() {
                 <Mail className="w-4 h-4 mr-2" />
                 Send Email
               </Button>
-              <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
-                <Trash2 className="w-4 h-4 mr-2" />
+              <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" onClick={handleBulkDelete} disabled={deleting}>
+                {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
                 Delete
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setSelectedUsers([])}>
@@ -1236,7 +1371,25 @@ export default function UsersPage() {
                                 <Calendar className="w-4 h-4 mr-2" />
                                 Extend Subscription
                               </DropdownMenuItem>
+                              {user.status === "pending" && (
+                                <DropdownMenuItem 
+                                  onClick={() => handleActivateUser(user)}
+                                  className="text-green-600"
+                                >
+                                  <UserCheck className="w-4 h-4 mr-2" />
+                                  Activate Now
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
+                              {user.radiusCredentials && (
+                                <DropdownMenuItem 
+                                  onClick={() => handleToggleRadius(user, !user.radiusCredentials!.is_enabled)}
+                                  className={user.radiusCredentials.is_enabled ? "text-yellow-600" : "text-green-600"}
+                                >
+                                  <Power className="w-4 h-4 mr-2" />
+                                  {user.radiusCredentials.is_enabled ? 'Disable RADIUS' : 'Enable RADIUS'}
+                                </DropdownMenuItem>
+                              )}
                               {user.connectionStatus === "online" && (
                                 <DropdownMenuItem 
                                   onClick={() => handleDisconnectUser(user)}
@@ -1251,7 +1404,10 @@ export default function UsersPage() {
                                 Send SMS
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem 
+                                onClick={() => handleDeleteUser(user)}
+                                className="text-red-600"
+                              >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Delete User
                               </DropdownMenuItem>
@@ -1546,11 +1702,32 @@ export default function UsersPage() {
                     <Edit className="w-4 h-4 mr-2" />
                     Edit User
                   </Button>
-                  <Button variant="outline" className="flex-1">
+                  <Button variant="outline" className="flex-1" onClick={() => handleExtendSubscription(selectedUser)}>
                     <Calendar className="w-4 h-4 mr-2" />
                     Extend
                   </Button>
                 </div>
+                {selectedUser.status === "pending" && (
+                  <Button 
+                    className="w-full bg-green-600 hover:bg-green-700" 
+                    onClick={() => handleActivateUser(selectedUser)}
+                    disabled={activating}
+                  >
+                    {activating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UserCheck className="w-4 h-4 mr-2" />}
+                    Activate Now
+                  </Button>
+                )}
+                {selectedUser.radiusCredentials && (
+                  <Button 
+                    variant="outline" 
+                    className={`w-full ${selectedUser.radiusCredentials.is_enabled ? 'text-yellow-600 hover:text-yellow-700' : 'text-green-600 hover:text-green-700'}`}
+                    onClick={() => handleToggleRadius(selectedUser, !selectedUser.radiusCredentials!.is_enabled)}
+                    disabled={togglingRadius}
+                  >
+                    {togglingRadius ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Power className="w-4 h-4 mr-2" />}
+                    {selectedUser.radiusCredentials.is_enabled ? 'Disable RADIUS Access' : 'Enable RADIUS Access'}
+                  </Button>
+                )}
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1">
                     <Send className="w-4 h-4 mr-2" />
@@ -1562,11 +1739,23 @@ export default function UsersPage() {
                   </Button>
                 </div>
                 {selectedUser.connectionStatus === "online" && (
-                  <Button variant="outline" className="w-full text-yellow-600 hover:text-yellow-700">
+                  <Button 
+                    variant="outline" 
+                    className="w-full text-yellow-600 hover:text-yellow-700"
+                    onClick={() => handleDisconnectUser(selectedUser)}
+                  >
                     <Power className="w-4 h-4 mr-2" />
                     Disconnect User
                   </Button>
                 )}
+                <Button 
+                  variant="outline" 
+                  className="w-full text-red-600 hover:text-red-700 border-red-200"
+                  onClick={() => handleDeleteUser(selectedUser)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete User
+                </Button>
               </div>
             </div>
           )}
@@ -1677,6 +1866,111 @@ export default function UsersPage() {
             <Button onClick={handleUpdateUser} disabled={updating}>
               {updating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Delete User</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete the customer account,
+              all service connections, RADIUS credentials, and the associated login user.
+            </DialogDescription>
+          </DialogHeader>
+          {userToDelete && (
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+              <p className="font-medium text-slate-900">{userToDelete.name}</p>
+              <p className="text-sm text-slate-600">{userToDelete.email} &bull; {userToDelete.phone}</p>
+              <p className="text-sm text-slate-600">Plan: {userToDelete.plan}</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirmDialog(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteUser} disabled={deleting}>
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Permanently
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Extend Subscription Dialog */}
+      <Dialog open={showExtendDialog} onOpenChange={setShowExtendDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Extend Subscription</DialogTitle>
+            <DialogDescription>
+              Add time to {userToExtend?.name}&apos;s subscription.
+              {userToExtend?.expiryDate && new Date(userToExtend.expiryDate) < new Date()
+                ? " The subscription has expired — new time will start from now."
+                : " Time will be added to the current expiration date."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Duration Amount</Label>
+              <Input
+                type="number"
+                min={1}
+                value={extendForm.duration_amount}
+                onChange={(e) => setExtendForm({ ...extendForm, duration_amount: parseInt(e.target.value) || 1 })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Duration Unit</Label>
+              <Select
+                value={extendForm.duration_unit}
+                onValueChange={(value: 'MINUTES' | 'HOURS' | 'DAYS') => setExtendForm({ ...extendForm, duration_unit: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MINUTES">Minutes</SelectItem>
+                  <SelectItem value="HOURS">Hours</SelectItem>
+                  <SelectItem value="DAYS">Days</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Quick presets */}
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => setExtendForm({ duration_amount: 1, duration_unit: 'HOURS' })}>+1 Hour</Button>
+              <Button size="sm" variant="outline" onClick={() => setExtendForm({ duration_amount: 1, duration_unit: 'DAYS' })}>+1 Day</Button>
+              <Button size="sm" variant="outline" onClick={() => setExtendForm({ duration_amount: 7, duration_unit: 'DAYS' })}>+7 Days</Button>
+              <Button size="sm" variant="outline" onClick={() => setExtendForm({ duration_amount: 30, duration_unit: 'DAYS' })}>+30 Days</Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowExtendDialog(false)} disabled={extending}>
+              Cancel
+            </Button>
+            <Button onClick={confirmExtendSubscription} disabled={extending}>
+              {extending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Extending...
+                </>
+              ) : (
+                <>
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Extend Subscription
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
