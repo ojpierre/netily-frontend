@@ -119,6 +119,7 @@ interface User {
   email: string
   phone: string
   status: UserStatus
+  serviceStatus: string | null  // Raw service status (ACTIVE, PENDING, SUSPENDED, etc.)
   connectionStatus: "online" | "offline"
   type: UserType
   plan: string
@@ -159,7 +160,11 @@ const mapCustomerToUser = (customer: Customer): User => {
   const isOnline = primaryService?.is_online ?? false
   
   // Map backend status to frontend status (handle 'inactive' as 'expired' for display)
+  // If the service is PENDING, show the user as pending regardless of customer status
+  const serviceStatus = (primaryService?.status || '').toUpperCase()
   const mapStatus = (status: CustomerStatus): UserStatus => {
+    // Service PENDING overrides customer status — user needs activation
+    if (serviceStatus === 'PENDING') return 'pending'
     switch (status) {
       case 'active': return 'active'
       case 'inactive': return 'expired'
@@ -202,6 +207,7 @@ const mapCustomerToUser = (customer: Customer): User => {
     email: customer.email || 'No email',
     phone: customer.phone || 'No phone',
     status: mapStatus(customer.status),
+    serviceStatus: serviceStatus || null,
     connectionStatus: isOnline ? "online" : "offline",
     type: mappedType,
     plan: primaryService?.plan?.name || "No Plan",
@@ -244,10 +250,12 @@ const generateMockUsers = (): User[] => {
     return {
       id: `USR-${1000 + i}`,
       customerId: 1000 + i,
+      serviceId: null,
       name: `User ${i + 1}`,
       email: `user${i + 1}@example.com`,
       phone: `+254 7${Math.floor(10000000 + Math.random() * 90000000)}`,
       status,
+      serviceStatus: status === 'active' ? 'ACTIVE' : 'SUSPENDED',
       connectionStatus: isOnline && status === "active" ? "online" : "offline",
       type,
       plan: plan.name,
@@ -1558,6 +1566,18 @@ export default function UsersPage() {
               </div>
 
               {/* RADIUS Network Credentials - Easy to copy for testing */}
+              {selectedUser.serviceStatus === 'PENDING' && !selectedUser.radiusCredentials && (
+                <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                  <h3 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                    <Wifi className="w-4 h-4 text-orange-600" />
+                    Network Login (PPPoE/Hotspot)
+                  </h3>
+                  <p className="text-sm text-orange-700">
+                    RADIUS credentials will be created when the service is activated.
+                    Click <strong>"Activate Now"</strong> below to start the connection.
+                  </p>
+                </div>
+              )}
               {selectedUser.radiusCredentials && (
                 <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                   <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
