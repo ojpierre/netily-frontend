@@ -607,19 +607,24 @@ class AdminApiService {
     })
   }
 
-  /** P3: Extend a service subscription by adding time */
+  /** P3: Extend a service subscription by adding time, optionally changing plan */
   async extendService(
     customerId: number,
     serviceId: number,
     durationAmount: number,
-    durationUnit: 'MINUTES' | 'HOURS' | 'DAYS'
+    durationUnit: 'MINUTES' | 'HOURS' | 'DAYS',
+    planId?: number
   ): Promise<any> {
+    const body: Record<string, any> = {
+      duration_amount: durationAmount,
+      duration_unit: durationUnit,
+    }
+    if (planId) {
+      body.plan_id = planId
+    }
     return this.request(`/customers/${customerId}/services/${serviceId}/extend/`, {
       method: 'POST',
-      body: JSON.stringify({
-        duration_amount: durationAmount,
-        duration_unit: durationUnit,
-      }),
+      body: JSON.stringify(body),
     })
   }
 
@@ -2394,17 +2399,37 @@ class AdminApiService {
   // NETILY SUBSCRIPTIONS - /subscriptions/
   // ------------------------------------------
 
+  // Simple dedup cache: prevents 3+ components from hitting the API simultaneously
+  private _subscriptionCache: { data: CompanySubscription | null; ts: number } | null = null
+  private _subscriptionInflight: Promise<CompanySubscription | null> | null = null
+  private static readonly SUB_CACHE_TTL = 30_000 // 30 seconds
+
   async getNetilyPlans(): Promise<NetilyPlan[]> {
     return this.request<NetilyPlan[]>('/subscriptions/plans/')
   }
 
   async getCurrentSubscription(): Promise<CompanySubscription | null> {
-    try {
-      return await this.request<CompanySubscription>('/subscriptions/current/')
-    } catch {
-      // No subscription exists yet for this company
-      return null
+    // Return cached result if fresh (< 30s old)
+    if (this._subscriptionCache && Date.now() - this._subscriptionCache.ts < AdminApiService.SUB_CACHE_TTL) {
+      return this._subscriptionCache.data
     }
+    // Deduplicate: if a request is already in-flight, piggy-back on it
+    if (this._subscriptionInflight) {
+      return this._subscriptionInflight
+    }
+    this._subscriptionInflight = (async () => {
+      try {
+        const data = await this.request<CompanySubscription>('/subscriptions/current/')
+        this._subscriptionCache = { data, ts: Date.now() }
+        return data
+      } catch {
+        this._subscriptionCache = { data: null, ts: Date.now() }
+        return null
+      } finally {
+        this._subscriptionInflight = null
+      }
+    })()
+    return this._subscriptionInflight
   }
 
   async getUsageStats(): Promise<UsageStats | null> {

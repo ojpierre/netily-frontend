@@ -289,7 +289,11 @@ export default function RADIUSPage() {
     }
   }, [])
 
+  // Guard against React Strict Mode double-mount
+  const hasFetched = React.useRef(false)
   useEffect(() => {
+    if (hasFetched.current) return
+    hasFetched.current = true
     fetchData()
   }, [fetchData])
 

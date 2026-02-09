@@ -306,9 +306,13 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
   ]
 
   useEffect(() => {
+    let isCheckingNow = false // Prevent concurrent checks
+
     // Check trial status from API first, then fallback to localStorage
     const checkTrial = async () => {
       if (typeof window === "undefined") return
+      if (isCheckingNow) return // Skip if a check is already in flight
+      isCheckingNow = true
 
       try {
         // First, try to get subscription status from API
@@ -330,6 +334,7 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
             localStorage.setItem("subscriptionStatus", "active")
             setIsExpired(false)
             setIsChecking(false)
+            isCheckingNow = false
             return
           }
           
@@ -344,12 +349,14 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
               setIsExpired(false)
             }
             setIsChecking(false)
+            isCheckingNow = false
             return
           }
           
           if (subscription.status === "expired" || subscription.status === "cancelled") {
             setIsExpired(true)
             setIsChecking(false)
+            isCheckingNow = false
             return
           }
         }
@@ -367,6 +374,7 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
         if (hasSubscription === "active") {
           setIsExpired(false)
           setIsChecking(false)
+          isCheckingNow = false
           return
         }
         // New user with no subscription info - create a trial start date now
@@ -375,24 +383,27 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
         localStorage.setItem("subscriptionStatus", "trial")
         setIsExpired(false)
         setIsChecking(false)
+        isCheckingNow = false
         return
       }
 
       const trialStartDate = new Date(storedDate)
       if (isNaN(trialStartDate.getTime())) {
         setIsChecking(false)
+        isCheckingNow = false
         return
       }
 
       const expired = isTrialExpired(trialStartDate, trialDays)
       setIsExpired(expired)
       setIsChecking(false)
+      isCheckingNow = false
     }
 
     checkTrial()
 
-    // Re-check every minute
-    const interval = setInterval(checkTrial, 60000)
+    // Re-check every 5 minutes (was 60s — caused excessive polling)
+    const interval = setInterval(checkTrial, 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [trialDays])
 

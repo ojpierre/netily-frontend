@@ -144,6 +144,8 @@ interface User {
 interface UserStats {
   total: number
   active: number
+  pending: number
+  suspended: number
   expired: number
   online: number
   pppoe: number
@@ -309,7 +311,7 @@ export default function UsersPage() {
   const [showExtendDialog, setShowExtendDialog] = useState(false)
   const [userToExtend, setUserToExtend] = useState<User | null>(null)
   const [extending, setExtending] = useState(false)
-  const [extendForm, setExtendForm] = useState({ duration_amount: 1, duration_unit: 'DAYS' as 'MINUTES' | 'HOURS' | 'DAYS' })
+  const [extendForm, setExtendForm] = useState({ duration_amount: 1, duration_unit: 'DAYS' as 'MINUTES' | 'HOURS' | 'DAYS', plan_id: '' })
   const [activating, setActivating] = useState(false)
   const [togglingRadius, setTogglingRadius] = useState(false)
   const [smsMessage, setSmsMessage] = useState("")
@@ -343,7 +345,11 @@ export default function UsersPage() {
     activate_now: true,
   })
 
+  // Guard against React Strict Mode double-mount
+  const hasFetched = React.useRef(false)
   useEffect(() => {
+    if (hasFetched.current) return
+    hasFetched.current = true
     loadUsers()
     loadPlans()
   }, [])
@@ -497,6 +503,8 @@ export default function UsersPage() {
     return {
       total: users.length,
       active: users.filter(u => u.status === "active").length,
+      pending: users.filter(u => u.status === "pending").length,
+      suspended: users.filter(u => u.status === "suspended").length,
       expired: users.filter(u => u.status === "expired").length,
       online: users.filter(u => u.connectionStatus === "online").length,
       pppoe: users.filter(u => u.type === "pppoe").length,
@@ -631,7 +639,8 @@ export default function UsersPage() {
 
   const handleExtendSubscription = (user: User) => {
     setUserToExtend(user)
-    setExtendForm({ duration_amount: 1, duration_unit: 'DAYS' })
+    setExtendForm({ duration_amount: 1, duration_unit: 'DAYS', plan_id: '' })
+    loadPlans() // Ensure plans are fresh for the plan change dropdown
     setShowExtendDialog(true)
   }
 
@@ -646,9 +655,11 @@ export default function UsersPage() {
         userToExtend.customerId,
         userToExtend.serviceId,
         extendForm.duration_amount,
-        extendForm.duration_unit
+        extendForm.duration_unit,
+        extendForm.plan_id ? parseInt(extendForm.plan_id, 10) : undefined
       )
-      toast.success(`Subscription extended by ${extendForm.duration_amount} ${extendForm.duration_unit.toLowerCase()}`)
+      const planNote = extendForm.plan_id ? ' (plan changed)' : ''
+      toast.success(`Subscription extended by ${extendForm.duration_amount} ${extendForm.duration_unit.toLowerCase()}${planNote}`)
       setShowExtendDialog(false)
       setUserToExtend(null)
       await loadUsers()
@@ -926,7 +937,7 @@ export default function UsersPage() {
                 <div className="space-y-2">
                   <Label>Email (Optional)</Label>
                   <Input 
-                    type="email" 
+                    type="text" 
                     placeholder="john@example.com" 
                     value={newCustomerForm.email}
                     onChange={(e) => setNewCustomerForm({...newCustomerForm, email: e.target.value})}
@@ -935,7 +946,7 @@ export default function UsersPage() {
                 <div className="space-y-2">
                   <Label>Phone Number *</Label>
                   <Input 
-                    placeholder="+254 7XX XXX XXX" 
+                    placeholder="07XXXXXXXX or 01XXXXXXXX" 
                     value={newCustomerForm.phone}
                     onChange={(e) => setNewCustomerForm({...newCustomerForm, phone: e.target.value})}
                   />
@@ -1038,131 +1049,176 @@ export default function UsersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("all")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-slate-100 rounded-lg">
-                <Users className="w-5 h-5 text-slate-600" />
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'all' && activeTab === 'all' ? 'ring-2 ring-slate-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("all"); }}>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-slate-100 rounded-lg">
+                <Users className="w-4 h-4 text-slate-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-slate-500">Total Users</p>
+                <p className="text-xl font-bold">{stats.total}</p>
+                <p className="text-xs text-slate-500">Total</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("online")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-100 rounded-lg">
-                <Activity className="w-5 h-5 text-emerald-600" />
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${activeTab === 'online' ? 'ring-2 ring-emerald-400' : ''}`} onClick={() => { setActiveTab("online"); setStatusFilter("all"); }}>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-emerald-100 rounded-lg">
+                <Activity className="w-4 h-4 text-emerald-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-emerald-600">{stats.online}</p>
-                <p className="text-xs text-slate-500">Online Now</p>
+                <p className="text-xl font-bold text-emerald-600">{stats.online}</p>
+                <p className="text-xs text-slate-500">Online</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab("all"); setStatusFilter("active"); }}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'active' ? 'ring-2 ring-green-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("active"); }}>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-green-100 rounded-lg">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+                <p className="text-xl font-bold text-green-600">{stats.active}</p>
                 <p className="text-xs text-slate-500">Active</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setActiveTab("all"); setStatusFilter("expired"); }}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <XCircle className="w-5 h-5 text-red-600" />
+
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'pending' ? 'ring-2 ring-orange-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("pending"); }}>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-orange-100 rounded-lg">
+                <Clock className="w-4 h-4 text-orange-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-red-600">{stats.expired}</p>
+                <p className="text-xl font-bold text-orange-600">{stats.pending}</p>
+                <p className="text-xs text-slate-500">Pending</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'suspended' ? 'ring-2 ring-yellow-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("suspended"); }}>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-yellow-100 rounded-lg">
+                <XCircle className="w-4 h-4 text-yellow-600" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-yellow-600">{stats.suspended}</p>
+                <p className="text-xs text-slate-500">Suspended</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'expired' ? 'ring-2 ring-red-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("expired"); }}>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-red-100 rounded-lg">
+                <XCircle className="w-4 h-4 text-red-600" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-red-600">{stats.expired}</p>
                 <p className="text-xs text-slate-500">Expired</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("pppoe")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Globe className="w-5 h-5 text-purple-600" />
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${activeTab === 'pppoe' ? 'ring-2 ring-purple-400' : ''}`} onClick={() => { setActiveTab("pppoe"); setStatusFilter("all"); }}>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-purple-100 rounded-lg">
+                <Globe className="w-4 h-4 text-purple-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-purple-600">{stats.pppoe}</p>
+                <p className="text-xl font-bold text-purple-600">{stats.pppoe}</p>
                 <p className="text-xs text-slate-500">PPPoE</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("static")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Server className="w-5 h-5 text-orange-600" />
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${activeTab === 'static' ? 'ring-2 ring-orange-400' : ''}`} onClick={() => { setActiveTab("static"); setStatusFilter("all"); }}>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-orange-100 rounded-lg">
+                <Server className="w-4 h-4 text-orange-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-orange-600">{stats.static}</p>
+                <p className="text-xl font-bold text-orange-600">{stats.static}</p>
                 <p className="text-xs text-slate-500">Static IP</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveTab("fiber")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-teal-100 rounded-lg">
-                <Signal className="w-5 h-5 text-teal-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-teal-600">{stats.fiber}</p>
-                <p className="text-xs text-slate-500">Fiber</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="all" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            <span className="hidden sm:inline">All Users</span>
-          </TabsTrigger>
-          <TabsTrigger value="pppoe" className="flex items-center gap-2">
-            <Globe className="w-4 h-4" />
-            <span className="hidden sm:inline">PPPoE</span>
-          </TabsTrigger>
-          <TabsTrigger value="static" className="flex items-center gap-2">
-            <Server className="w-4 h-4" />
-            <span className="hidden sm:inline">Static IP</span>
-          </TabsTrigger>
-          <TabsTrigger value="fiber" className="flex items-center gap-2">
-            <Signal className="w-4 h-4" />
-            <span className="hidden sm:inline">Fiber</span>
-          </TabsTrigger>
-          <TabsTrigger value="online" className="flex items-center gap-2">
-            <Activity className="w-4 h-4" />
-            <span className="hidden sm:inline">Online</span>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Connection Type Tabs */}
+      <div className="flex flex-col gap-3">
+        <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); if (val !== 'all') setStatusFilter('all'); }} className="w-full">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+            <TabsTrigger value="all" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">All Users</span>
+            </TabsTrigger>
+            <TabsTrigger value="pppoe" className="flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              <span className="hidden sm:inline">PPPoE</span>
+            </TabsTrigger>
+            <TabsTrigger value="static" className="flex items-center gap-2">
+              <Server className="w-4 h-4" />
+              <span className="hidden sm:inline">Static IP</span>
+            </TabsTrigger>
+            <TabsTrigger value="fiber" className="flex items-center gap-2">
+              <Signal className="w-4 h-4" />
+              <span className="hidden sm:inline">Fiber</span>
+            </TabsTrigger>
+            <TabsTrigger value="online" className="flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              <span className="hidden sm:inline">Online</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {/* Status Filter Chips */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-medium text-slate-500 mr-1">Status:</span>
+          {[
+            { value: 'all', label: 'All', count: stats.total, activeClasses: 'bg-slate-100 text-slate-700 ring-2 ring-slate-300 ring-offset-1', badgeActive: 'bg-slate-200 text-slate-800' },
+            { value: 'active', label: 'Active', count: stats.active, activeClasses: 'bg-green-100 text-green-700 ring-2 ring-green-300 ring-offset-1', badgeActive: 'bg-green-200 text-green-800' },
+            { value: 'pending', label: 'Pending', count: stats.pending, activeClasses: 'bg-orange-100 text-orange-700 ring-2 ring-orange-300 ring-offset-1', badgeActive: 'bg-orange-200 text-orange-800' },
+            { value: 'suspended', label: 'Suspended', count: stats.suspended, activeClasses: 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-300 ring-offset-1', badgeActive: 'bg-yellow-200 text-yellow-800' },
+            { value: 'expired', label: 'Expired', count: stats.expired, activeClasses: 'bg-red-100 text-red-700 ring-2 ring-red-300 ring-offset-1', badgeActive: 'bg-red-200 text-red-800' },
+          ].map(({ value, label, count, activeClasses, badgeActive }) => (
+            <button
+              key={value}
+              onClick={() => setStatusFilter(value)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                statusFilter === value
+                  ? activeClasses
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {label}
+              <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                statusFilter === value ? badgeActive : 'bg-slate-200 text-slate-500'
+              }`}>
+                {count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Filters & Search */}
       <Card>
@@ -1179,19 +1235,6 @@ export default function UsersPage() {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-              </SelectContent>
-            </Select>
             <Button variant="outline">
               <Download className="w-4 h-4 mr-2" />
               Export
@@ -1262,11 +1305,14 @@ export default function UsersPage() {
             {activeTab === "hotspot" && "Hotspot Users"}
             {activeTab === "pppoe" && "PPPoE Users"}
             {activeTab === "static" && "Static IP Users"}
+            {activeTab === "fiber" && "Fiber Users"}
             {activeTab === "online" && "Online Users"}
+            {statusFilter !== "all" && ` — ${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`}
             {" "}({filteredUsers.length})
           </CardTitle>
           <CardDescription>
             Showing {paginatedUsers.length} of {filteredUsers.length} users
+            {statusFilter !== "all" && ` • Filtered by status: ${statusFilter}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -1967,12 +2013,34 @@ export default function UsersPage() {
                 </SelectContent>
               </Select>
             </div>
+            {/* Optional plan change */}
+            <div className="space-y-2">
+              <Label>Change Plan (Optional)</Label>
+              <Select
+                value={extendForm.plan_id || "keep"}
+                onValueChange={(value) => setExtendForm({ ...extendForm, plan_id: value === "keep" ? "" : value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Keep current plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="keep">Keep current plan</SelectItem>
+                  {plans.map((plan) => (
+                    <SelectItem key={plan.id} value={String(plan.id)}>
+                      {plan.name} - KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
+                      {plan.download_speed && ` (${plan.download_speed}/${plan.upload_speed || plan.download_speed} Mbps)`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Optionally switch to a different plan while extending.</p>
+            </div>
             {/* Quick presets */}
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => setExtendForm({ duration_amount: 1, duration_unit: 'HOURS' })}>+1 Hour</Button>
-              <Button size="sm" variant="outline" onClick={() => setExtendForm({ duration_amount: 1, duration_unit: 'DAYS' })}>+1 Day</Button>
-              <Button size="sm" variant="outline" onClick={() => setExtendForm({ duration_amount: 7, duration_unit: 'DAYS' })}>+7 Days</Button>
-              <Button size="sm" variant="outline" onClick={() => setExtendForm({ duration_amount: 30, duration_unit: 'DAYS' })}>+30 Days</Button>
+              <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 1, duration_unit: 'HOURS' })}>+1 Hour</Button>
+              <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 1, duration_unit: 'DAYS' })}>+1 Day</Button>
+              <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 7, duration_unit: 'DAYS' })}>+7 Days</Button>
+              <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 30, duration_unit: 'DAYS' })}>+30 Days</Button>
             </div>
           </div>
           <DialogFooter>
