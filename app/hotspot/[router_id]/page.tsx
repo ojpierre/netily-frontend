@@ -36,7 +36,7 @@ interface HotspotPlansResponse {
 }
 
 interface PurchaseResponse {
-  status: "pending" | "success" | "failed"
+  status: "pending" | "success" | "failed" | "activating"
   session_id: string
   checkout_request_id?: string
   message: string
@@ -45,6 +45,20 @@ interface PurchaseResponse {
   expires_at?: string
   data_remaining_mb?: number
   speed?: string
+  login_url?: string
+}
+
+interface AutoLoginResponse {
+  has_session: boolean
+  session_id?: string
+  access_code?: string
+  plan_name?: string
+  expires_at?: string
+  remaining_minutes?: number
+  credentials?: {
+    username: string
+    password: string
+  }
 }
 
 type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "timeout"
@@ -85,14 +99,54 @@ async function initiatePurchase(data: {
   return response.json()
 }
 
-async function pollPurchaseStatus(sessionId: string): Promise<PurchaseResponse> {
-  const response = await fetch(`${API_BASE}/hotspot/purchase/${sessionId}/status/`)
+async function pollPurchaseStatus(sessionId: string, loginUrl?: string): Promise<PurchaseResponse> {
+  const params = loginUrl ? `?login_url=${encodeURIComponent(loginUrl)}` : ""
+  const response = await fetch(`${API_BASE}/hotspot/purchase/${sessionId}/status/${params}`)
   
   if (!response.ok) {
     throw new Error("Failed to check payment status")
   }
   
   return response.json()
+}
+
+async function checkAutoLogin(routerId: string, macAddress: string): Promise<AutoLoginResponse> {
+  const response = await fetch(`${API_BASE}/hotspot/auto-login/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ router_id: routerId, mac_address: macAddress }),
+  })
+  if (!response.ok) throw new Error("Auto-login check failed")
+  return response.json()
+}
+
+/**
+ * "Return Trip" — submits RADIUS credentials back to MikroTik's login URL.
+ * This completes the Cloud Controller authentication loop:
+ *   MikroTik → Cloud Portal → Payment → RADIUS created → Return Trip → Internet
+ */
+function returnTripToMikrotik(loginUrl: string, username: string, password: string) {
+  // Create a hidden form that POSTs credentials to the MikroTik login URL
+  const form = document.createElement("form")
+  form.method = "POST"
+  form.action = loginUrl
+  form.style.display = "none"
+
+  const addField = (name: string, value: string) => {
+    const input = document.createElement("input")
+    input.type = "hidden"
+    input.name = name
+    input.value = value
+    form.appendChild(input)
+  }
+
+  addField("username", username)
+  addField("password", password)
+  addField("dst", "")  // MikroTik will use original destination
+  addField("popup", "true")
+
+  document.body.appendChild(form)
+  form.submit()
 }
 
 // ==========================================
@@ -129,15 +183,32 @@ function isValidKenyanPhone(phone: string): boolean {
 }
 
 function getMacAddress(): string {
-  // In a real captive portal, this would be passed from the router
-  // For now, generate a placeholder or get from URL params
   if (typeof window !== "undefined") {
     const params = new URLSearchParams(window.location.search)
     const mac = params.get("mac")
     if (mac) return mac
   }
-  // Return placeholder - router would provide the real MAC
   return "00:00:00:00:00:00"
+}
+
+/** Get the MikroTik login URL from query params (for Return Trip) */
+function getLoginUrl(): string {
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search)
+    return params.get("login_url") || ""
+  }
+  return ""
+}
+
+/** Check if the connecting device is a Smart TV */
+function isSmartTV(): boolean {
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("smart_tv") === "1") return true
+    const ua = navigator.userAgent.toLowerCase()
+    return /smart-?tv|webos|tizen|vidaa|hbbtv|roku|firetv|apple\s?tv/i.test(ua)
+  }
+  return false
 }
 
 // ==========================================
@@ -163,6 +234,41 @@ export default function HotspotPage({ params }: { params: { router_id: string } 
   const [accessCode, setAccessCode] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [phoneError, setPhoneError] = useState<string | null>(null)
+  
+  // Cloud Controller state
+  const [loginUrl, setLoginUrl] = useState<string>("")
+  const [autoLoginChecked, setAutoLoginChecked] = useState(false)
+  const [returningToRouter, setReturningToRouter] = useState(false)
+
+  // Capture MikroTik query params on mount
+  useEffect(() => {
+    const mikrotikLoginUrl = getLoginUrl()
+    if (mikrotikLoginUrl) setLoginUrl(mikrotikLoginUrl)
+
+    // Redirect Smart TVs to the device-auth page
+    if (isSmartTV()) {
+      const mac = getMacAddress()
+      window.location.href = `/hotspot/${routerId}/add-device?mac=${encodeURIComponent(mac)}&router_id=${routerId}`
+      return
+    }
+  }, [routerId])
+
+  // Auto-login check: if MAC has an active session, skip payment
+  useEffect(() => {
+    const mac = getMacAddress()
+    if (mac === "00:00:00:00:00:00" || autoLoginChecked) return
+
+    checkAutoLogin(routerId, mac)
+      .then((result) => {
+        if (result.has_session && result.credentials && loginUrl) {
+          // User already has an active session — Return Trip immediately
+          setReturningToRouter(true)
+          returnTripToMikrotik(loginUrl, result.credentials.username, result.credentials.password)
+        }
+        setAutoLoginChecked(true)
+      })
+      .catch(() => setAutoLoginChecked(true))
+  }, [routerId, loginUrl, autoLoginChecked])
 
   // Load hotspot plans
   useEffect(() => {
@@ -185,13 +291,21 @@ export default function HotspotPage({ params }: { params: { router_id: string } 
 
     const pollInterval = setInterval(async () => {
       try {
-        const result = await pollPurchaseStatus(sessionId)
+        const result = await pollPurchaseStatus(sessionId, loginUrl)
         
         if (result.status === "success") {
           setPaymentStatus("success")
           setAccessCode(result.access_code || null)
           setExpiresAt(result.expires_at || null)
           clearInterval(pollInterval)
+          
+          // ── RETURN TRIP: Auto-submit credentials back to MikroTik ──
+          if (loginUrl && result.access_code) {
+            setReturningToRouter(true)
+            setTimeout(() => {
+              returnTripToMikrotik(loginUrl, result.access_code!, result.access_code!)
+            }, 2000) // Show success briefly, then redirect
+          }
         } else if (result.status === "failed") {
           setPaymentStatus("failed")
           setError(result.message || "Payment failed")
@@ -325,6 +439,13 @@ export default function HotspotPage({ params }: { params: { router_id: string } 
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">You're Connected!</h1>
           <p className="text-gray-600 mb-6">Payment successful. Enjoy your internet access.</p>
+          
+          {returningToRouter && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <Loader2 className="w-5 h-5 animate-spin text-blue-600 inline mr-2" />
+              <span className="text-sm text-blue-700">Connecting you to the internet...</span>
+            </div>
+          )}
           
           {accessCode && (
             <div className="bg-gray-50 rounded-xl p-4 mb-6">

@@ -51,6 +51,7 @@ import type {
   RouterMetrics,
   RouterEvent,
   RouterDashboardStats,
+  RouterVPNStatus,
   // Router Live Management types
   RouterLiveStatus,
   RouterSystemHealth,
@@ -833,6 +834,30 @@ class AdminApiService {
 
   async regenerateRouterAuthKey(id: number): Promise<{ status: string; new_auth_key: string }> {
     return this.request<{ status: string; new_auth_key: string }>(`/network/routers/${id}/regenerate_auth_key/`, {
+      method: 'POST',
+    })
+  }
+
+  // ------------------------------------------
+  // ROUTER VPN / CLOUD CONTROLLER
+  // ------------------------------------------
+
+  async getRouterVPNStatus(id: number): Promise<RouterVPNStatus> {
+    return this.request<RouterVPNStatus>(`/network/routers/${id}/vpn_status/`)
+  }
+
+  async reprovisionRouterVPN(id: number): Promise<{ status: string; vpn_ip: string }> {
+    return this.request<{ status: string; vpn_ip: string }>(`/network/routers/${id}/reprovision_vpn/`, {
+      method: 'POST',
+    })
+  }
+
+  async downloadRouterScript(id: number, version: number = 7): Promise<string> {
+    return this.request<string>(`/network/routers/${id}/script/?version=${version}`)
+  }
+
+  async revokeRouterVPN(id: number): Promise<{ status: string }> {
+    return this.request<{ status: string }>(`/network/routers/${id}/revoke_vpn/`, {
       method: 'POST',
     })
   }

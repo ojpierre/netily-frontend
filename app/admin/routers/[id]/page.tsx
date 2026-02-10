@@ -45,6 +45,10 @@ import {
   FileText,
   Wifi,
   MonitorSpeaker,
+  CloudCog,
+  ShieldCheck,
+  Link2,
+  Unlink,
 } from "lucide-react"
 import {
   RouterOverviewTab,
@@ -98,7 +102,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
-import type { Router as RouterData, RouterType, RouterStatus, RouterEvent } from "@/lib/types"
+import type { Router as RouterData, RouterType, RouterStatus, RouterEvent, RouterVPNStatus } from "@/lib/types"
 
 // Demo data generator
 const generateDemoRouterData = (id: string): RouterData => {
@@ -285,6 +289,13 @@ export default function RouterDetailPage() {
   const [isMaintenanceLoading, setIsMaintenanceLoading] = useState(false)
   const [isRunningScript, setIsRunningScript] = useState<number | null>(null)
   const [isSavingScript, setIsSavingScript] = useState(false)
+  
+  // VPN / Cloud Controller state
+  const [vpnStatus, setVpnStatus] = useState<RouterVPNStatus | null>(null)
+  const [isVpnLoading, setIsVpnLoading] = useState(false)
+  const [isReprovisioning, setIsReprovisioning] = useState(false)
+  const [cloudScript, setCloudScript] = useState<string | null>(null)
+  const [isScriptDownloading, setIsScriptDownloading] = useState(false)
   
   // Dialog states
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -987,6 +998,10 @@ export default function RouterDetailPage() {
             <FileText className="w-4 h-4" />
             <span className="hidden sm:inline">Logs</span>
           </TabsTrigger>
+          <TabsTrigger value="cloud" className="gap-2">
+            <CloudCog className="w-4 h-4" />
+            <span className="hidden sm:inline">Cloud Controller</span>
+          </TabsTrigger>
           <TabsTrigger value="scripts" className="gap-2">
             <Code className="w-4 h-4" />
             <span className="hidden sm:inline">Scripts</span>
@@ -1327,6 +1342,237 @@ export default function RouterDetailPage() {
         {/* Logs Tab */}
         <TabsContent value="logs" className="mt-6">
           <RouterLogsTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
+        </TabsContent>
+
+        {/* Cloud Controller Tab */}
+        <TabsContent value="cloud" className="mt-6">
+          <div className="space-y-6">
+            {/* VPN Status Card */}
+            <Card className={`border-2 ${
+              routerData.vpn_provisioned
+                ? vpnStatus?.tunnel_status === 'connected'
+                  ? 'border-green-200 bg-green-50/50'
+                  : 'border-yellow-200 bg-yellow-50/50'
+                : 'border-slate-200 bg-slate-50/50'
+            }`}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <CloudCog className="w-6 h-6 text-blue-600" />
+                    <div>
+                      <CardTitle>Cloud Controller VPN</CardTitle>
+                      <CardDescription>OpenVPN tunnel between this router and Netily cloud</CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {routerData.vpn_provisioned ? (
+                      <Badge className="bg-green-600 gap-1"><ShieldCheck className="w-3 h-3" /> Provisioned</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="gap-1"><Unlink className="w-3 h-3" /> Not Provisioned</Badge>
+                    )}
+                    {vpnStatus && (
+                      <Badge variant={vpnStatus.tunnel_status === 'connected' ? 'default' : 'destructive'} className="gap-1">
+                        <Link2 className="w-3 h-3" />
+                        {vpnStatus.tunnel_status === 'connected' ? 'Tunnel Up' : 'Tunnel Down'}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-500 font-medium">VPN IP Address</p>
+                    <p className="text-sm font-mono">{routerData.vpn_ip_address || '—'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-500 font-medium">Provisioned At</p>
+                    <p className="text-sm">{routerData.vpn_provisioned_at ? formatDate(routerData.vpn_provisioned_at) : '—'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-500 font-medium">Last Seen via VPN</p>
+                    <p className="text-sm">{routerData.vpn_last_seen ? formatDate(routerData.vpn_last_seen) : '—'}</p>
+                  </div>
+                  {vpnStatus && (
+                    <>
+                      <div className="space-y-1">
+                        <p className="text-xs text-slate-500 font-medium">Connected Since</p>
+                        <p className="text-sm">{vpnStatus.connected_since ? formatDate(vpnStatus.connected_since) : '—'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-slate-500 font-medium">Traffic (RX / TX)</p>
+                        <p className="text-sm font-mono">
+                          {(vpnStatus.bytes_received / 1024 / 1024).toFixed(1)} MB / {(vpnStatus.bytes_sent / 1024 / 1024).toFixed(1)} MB
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-slate-500 font-medium">Certificate Expires</p>
+                        <p className="text-sm">{vpnStatus.certificate_expires_at ? formatDate(vpnStatus.certificate_expires_at) : '—'}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isVpnLoading}
+                    onClick={async () => {
+                      setIsVpnLoading(true)
+                      try {
+                        const status = await adminApi.getRouterVPNStatus(routerData.id)
+                        setVpnStatus(status)
+                        toast.success('VPN status refreshed')
+                      } catch {
+                        toast.error('Failed to fetch VPN status')
+                      } finally {
+                        setIsVpnLoading(false)
+                      }
+                    }}
+                    className="gap-2"
+                  >
+                    {isVpnLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                    Refresh Status
+                  </Button>
+                  <Button
+                    variant={routerData.vpn_provisioned ? 'secondary' : 'default'}
+                    size="sm"
+                    disabled={isReprovisioning}
+                    onClick={async () => {
+                      setIsReprovisioning(true)
+                      try {
+                        const result = await adminApi.reprovisionRouterVPN(routerData.id)
+                        toast.success(`VPN ${routerData.vpn_provisioned ? 're-' : ''}provisioned — IP: ${result.vpn_ip}`)
+                        // Refresh router data
+                        const updated = await adminApi.getRouter(routerData.id)
+                        setRouterData(updated)
+                        const status = await adminApi.getRouterVPNStatus(routerData.id)
+                        setVpnStatus(status)
+                      } catch {
+                        toast.error('VPN provisioning failed')
+                      } finally {
+                        setIsReprovisioning(false)
+                      }
+                    }}
+                    className="gap-2"
+                  >
+                    {isReprovisioning ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                    {routerData.vpn_provisioned ? 'Re-provision VPN' : 'Provision VPN'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Cloud Provision Script Card */}
+            <Card className="border-2 border-blue-200 bg-blue-50/50">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Code className="w-5 h-5 text-blue-600" />
+                    <CardTitle className="text-base">MikroTik Provisioning Script</CardTitle>
+                    <Badge className="bg-blue-600">Cloud Controller v3</Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isScriptDownloading}
+                      onClick={async () => {
+                        setIsScriptDownloading(true)
+                        try {
+                          const script = await adminApi.downloadRouterScript(routerData.id, 7)
+                          setCloudScript(typeof script === 'string' ? script : JSON.stringify(script))
+                          toast.success('Script loaded')
+                        } catch {
+                          toast.error('Failed to load script')
+                        } finally {
+                          setIsScriptDownloading(false)
+                        }
+                      }}
+                      className="gap-2"
+                    >
+                      {isScriptDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                      Load Script
+                    </Button>
+                    {cloudScript && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyScript(cloudScript)}
+                        className="gap-2"
+                      >
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <CardDescription className="mt-2">
+                  Full provisioning script including OpenVPN tunnel, RADIUS, Hotspot, certificates, and cloud redirector.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* One-liner fetch command */}
+                <div className="mb-4">
+                  <p className="text-xs text-slate-500 mb-2 font-medium">One-liner command (paste in MikroTik terminal):</p>
+                  <pre className="bg-slate-900 text-green-400 p-4 rounded-md text-sm overflow-x-auto font-mono">
+                    <code>{`/tool fetch url="${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'}/network/routers/${routerData.id}/script/?version=7&auth_key=${routerData.auth_key || 'NOT_GENERATED'}" dst-path=netily-cloud.rsc; :delay 2s; /import netily-cloud.rsc;`}</code>
+                  </pre>
+                </div>
+
+                {/* Script preview */}
+                {cloudScript ? (
+                  <div>
+                    <p className="text-xs text-slate-500 mb-2 font-medium">Script preview ({cloudScript.split('\n').length} lines):</p>
+                    <pre className="bg-slate-900 text-slate-100 p-4 rounded-md text-xs overflow-x-auto font-mono max-h-96 overflow-y-auto">
+                      <code>{cloudScript}</code>
+                    </pre>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">Click "Load Script" to preview the generated .rsc provisioning script.</p>
+                )}
+
+                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                  <p className="text-xs text-amber-700">
+                    ⚠️ This script will <strong>reset the router configuration</strong> including identity, IP pool, DHCP, hotspot, RADIUS, and OpenVPN settings. Only run on routers you intend to manage via Netily Cloud Controller.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Architecture Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Cloud Controller Architecture</CardTitle>
+                <CardDescription>How Netily manages this router remotely</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Data Flow</h4>
+                    <ul className="space-y-1 text-slate-600">
+                      <li>• Customer connects to MikroTik hotspot</li>
+                      <li>• Captive portal redirects to Netily cloud</li>
+                      <li>• Payment processed via M-Pesa / PayHero</li>
+                      <li>• RADIUS credentials sent over VPN tunnel</li>
+                      <li>• MikroTik authenticates user via FreeRADIUS</li>
+                    </ul>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Enforcement Point</h4>
+                    <ul className="space-y-1 text-slate-600">
+                      <li>• MikroTik handles all traffic enforcement</li>
+                      <li>• Rate limiting via RADIUS attributes</li>
+                      <li>• Session timeout managed by FreeRADIUS</li>
+                      <li>• CoA (Change of Authorization) for real-time control</li>
+                      <li>• All billing logic lives in Django backend</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Scripts Tab */}

@@ -390,8 +390,30 @@ export interface Router {
   auth_key?: string
   is_authenticated?: boolean
   authenticated_at?: string
+  // Cloud Controller / VPN
+  vpn_provisioned?: boolean
+  vpn_provisioned_at?: string
+  vpn_ip_address?: string
+  vpn_last_seen?: string
+  ca_certificate?: string
+  client_certificate?: string
+  client_key?: string
   created_at: string
   updated_at?: string
+}
+
+export type VPNTunnelStatus = 'connected' | 'disconnected' | 'unknown'
+
+export interface RouterVPNStatus {
+  vpn_provisioned: boolean
+  vpn_ip_address: string | null
+  vpn_provisioned_at: string | null
+  tunnel_status: VPNTunnelStatus
+  last_seen: string | null
+  bytes_received: number
+  bytes_sent: number
+  connected_since: string | null
+  certificate_expires_at: string | null
 }
 
 export interface RouterDashboardStats {
