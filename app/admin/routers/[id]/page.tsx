@@ -1471,7 +1471,7 @@ export default function RouterDetailPage() {
                   <div className="flex items-center gap-2">
                     <Code className="w-5 h-5 text-blue-600" />
                     <CardTitle className="text-base">MikroTik Provisioning Script</CardTitle>
-                    <Badge className="bg-blue-600">Cloud Controller v3</Badge>
+                    <Badge className="bg-blue-600">Cloud Controller v4</Badge>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -1509,16 +1509,31 @@ export default function RouterDetailPage() {
                   </div>
                 </div>
                 <CardDescription className="mt-2">
-                  Full provisioning script including OpenVPN tunnel, RADIUS, Hotspot, certificates, and cloud redirector.
+                  Two-stage provisioning: detects RouterOS version, downloads version-specific config, sets up VPN (username/password), RADIUS, Hotspot, PPPoE, and cloud redirector.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* One-liner fetch command */}
+                {/* Magic Link — the one-liner */}
                 <div className="mb-4">
-                  <p className="text-xs text-slate-500 mb-2 font-medium">One-liner command (paste in MikroTik terminal):</p>
-                  <pre className="bg-slate-900 text-green-400 p-4 rounded-md text-sm overflow-x-auto font-mono">
-                    <code>{`/tool fetch url="${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'}/network/routers/${routerData.id}/script/?version=7&auth_key=${routerData.auth_key || 'NOT_GENERATED'}" dst-path=netily-cloud.rsc; :delay 2s; /import netily-cloud.rsc;`}</code>
-                  </pre>
+                  <p className="text-xs text-slate-500 mb-2 font-medium">Magic Link — paste into MikroTik terminal:</p>
+                  <div className="relative">
+                    <pre className="bg-slate-900 text-green-400 p-4 pr-12 rounded-md text-sm overflow-x-auto font-mono">
+                      <code>{routerData.magic_link || `/tool fetch url="${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'}/network/provision/${routerData.auth_key || 'NOT_GENERATED'}/${routerData.provision_slug || 'pending'}/script.rsc" dst-path="netily.rsc" mode=http; :delay 2s; /import netily.rsc`}</code>
+                    </pre>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute top-2 right-2 text-slate-400 hover:text-white"
+                      onClick={() => {
+                        const link = routerData.magic_link || 'Magic link not generated yet'
+                        navigator.clipboard.writeText(link)
+                        toast.success('Magic link copied!')
+                      }}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">Stage 1 detects RouterOS v6/v7 → Stage 2 downloads version-specific config</p>
                 </div>
 
                 {/* Script preview */}
@@ -1611,9 +1626,8 @@ export default function RouterDetailPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
-                          const oneLiner = `/tool fetch url="${apiBase}/network/routers/${routerData.id}/config/?auth_key=${routerData.auth_key || 'NOT_GENERATED'}" dst-path=netily.rsc; :delay 2s; /import netily.rsc;`
-                          handleCopyScript(oneLiner)
+                          const link = routerData.magic_link || 'Magic link not generated yet'
+                          handleCopyScript(link)
                         }}
                         className="gap-2"
                       >

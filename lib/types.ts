@@ -398,6 +398,23 @@ export interface Router {
   ca_certificate?: string
   client_certificate?: string
   client_key?: string
+  // Provisioning (v4)
+  provision_slug?: string
+  last_provisioned_at?: string
+  routeros_version?: string
+  magic_link?: string
+  enable_openvpn?: boolean
+  openvpn_server?: string
+  openvpn_port?: number
+  enable_hotspot?: boolean
+  enable_pppoe?: boolean
+  gateway_cidr?: string
+  dns_name?: string
+  wan_interface?: string
+  hotspot_interfaces?: string[]
+  pppoe_pool?: string
+  pppoe_local_address?: string
+  config_type?: string
   created_at: string
   updated_at?: string
 }
