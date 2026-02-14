@@ -331,6 +331,20 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
     }
   }
 
+  const handleEnableHotspot = async () => {
+    try {
+      setIsConfiguring(true)
+      const serverName = hotspotConfig?.server?.name || 'netily-hotspot'
+      await adminApi.enableRouterHotspot(routerId, serverName)
+      toast.success("Hotspot enabled")
+      fetchHotspotConfig()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to enable hotspot")
+    } finally {
+      setIsConfiguring(false)
+    }
+  }
+
   // ==========================================
   // RENDER: Loading
   // ==========================================
@@ -978,9 +992,16 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
-            <Button variant="destructive" onClick={handleDisableHotspot} disabled={isConfiguring}>
-              Disable Hotspot
-            </Button>
+            {hotspotConfig?.server?.disabled ? (
+              <Button onClick={handleEnableHotspot} disabled={isConfiguring} className="bg-green-600 hover:bg-green-700">
+                <Wifi className="w-4 h-4 mr-2" />
+                Enable Hotspot
+              </Button>
+            ) : (
+              <Button variant="destructive" onClick={handleDisableHotspot} disabled={isConfiguring}>
+                Disable Hotspot
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -988,7 +1009,12 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
             <div className="grid md:grid-cols-3 gap-4">
               <div className="p-4 bg-slate-50 rounded-lg">
                 <p className="text-sm text-slate-500">Server Name</p>
-                <p className="font-mono font-medium">{hotspotConfig.server.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-mono font-medium">{hotspotConfig.server.name}</p>
+                  <Badge variant={hotspotConfig.server.disabled ? "secondary" : "default"}>
+                    {hotspotConfig.server.disabled ? "Disabled" : "Active"}
+                  </Badge>
+                </div>
               </div>
               <div className="p-4 bg-slate-50 rounded-lg">
                 <p className="text-sm text-slate-500">Address Pool</p>

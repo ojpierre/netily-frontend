@@ -1090,6 +1090,41 @@ class AdminApiService {
     })
   }
 
+  async enableRouterHotspot(id: number, serverName?: string): Promise<any> {
+    return this.request<any>(`/routers/${id}/hotspot/enable/`, {
+      method: 'POST',
+      body: JSON.stringify({ server_name: serverName || 'netily-hotspot' }),
+    })
+  }
+
+  async updateRouterHotspot(id: number, config: { dns_name?: string; pool_range?: string }): Promise<any> {
+    return this.request<any>(`/routers/${id}/hotspot/update/`, {
+      method: 'PATCH',
+      body: JSON.stringify(config),
+    })
+  }
+
+  async addPortToBridge(id: number, interfaceName: string, bridgeName?: string): Promise<any> {
+    return this.request<any>(`/routers/${id}/bridge/port/`, {
+      method: 'POST',
+      body: JSON.stringify({
+        interface: interfaceName,
+        action: 'add',
+        bridge: bridgeName || 'netily-bridge',
+      }),
+    })
+  }
+
+  async removePortFromBridge(id: number, interfaceName: string): Promise<any> {
+    return this.request<any>(`/routers/${id}/bridge/port/`, {
+      method: 'POST',
+      body: JSON.stringify({
+        interface: interfaceName,
+        action: 'remove',
+      }),
+    })
+  }
+
   // ------------------------------------------
   // ROUTER ACTIONS
   // ------------------------------------------

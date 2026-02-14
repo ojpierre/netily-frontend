@@ -12,6 +12,8 @@ import {
   ArrowDown,
   ArrowUp,
   AlertTriangle,
+  Link,
+  Unlink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -194,6 +196,51 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
     setDisableConfirmInterface(interfaceName)
   }
 
+  // Bridge port management
+  const [bridgeConfirmInterface, setBridgeConfirmInterface] = useState<{ name: string; action: 'add' | 'remove' } | null>(null)
+
+  const handleAddToBridge = async (interfaceName: string) => {
+    setBridgeConfirmInterface(null)
+    setActionLoading(interfaceName)
+    try {
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 500))
+        toast.success(`${interfaceName} added to hotspot bridge (Demo)`)
+      } else {
+        await adminApi.addPortToBridge(routerId, interfaceName)
+        toast.success(`${interfaceName} added to hotspot bridge`)
+        fetchData()
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add port to bridge")
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleRemoveFromBridge = async (interfaceName: string) => {
+    setBridgeConfirmInterface(null)
+    setActionLoading(interfaceName)
+    try {
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 500))
+        toast.success(`${interfaceName} removed from bridge (Demo)`)
+      } else {
+        await adminApi.removePortFromBridge(routerId, interfaceName)
+        toast.success(`${interfaceName} removed from hotspot bridge`)
+        fetchData()
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to remove port from bridge")
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const isEthernetOrWireless = (type: string) => {
+    return ['ether', 'wlan', 'wireless'].includes(type?.toLowerCase())
+  }
+
   const getTypeBadge = (type: string) => {
     const colors: Record<string, string> = {
       ether: "bg-blue-100 text-blue-700",
@@ -298,6 +345,24 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
                             Disable
                           </DropdownMenuItem>
                         )}
+                        {/* Bridge port management — only for ethernet/wireless interfaces */}
+                        {isEthernetOrWireless(iface.type) && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => setBridgeConfirmInterface({ name: iface.name, action: 'add' })}
+                            >
+                              <Link className="w-4 h-4 mr-2" />
+                              Add to Hotspot Bridge
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setBridgeConfirmInterface({ name: iface.name, action: 'remove' })}
+                              className="text-orange-600"
+                            >
+                              <Unlink className="w-4 h-4 mr-2" />
+                              Remove from Bridge
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -386,6 +451,51 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
               className="bg-red-600 hover:bg-red-700"
             >
               Disable Interface
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bridge Port Confirmation Dialog */}
+      <AlertDialog open={!!bridgeConfirmInterface} onOpenChange={() => setBridgeConfirmInterface(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              {bridgeConfirmInterface?.action === 'add' ? (
+                <Link className="w-5 h-5 text-blue-500" />
+              ) : (
+                <Unlink className="w-5 h-5 text-orange-500" />
+              )}
+              {bridgeConfirmInterface?.action === 'add' ? 'Add to Hotspot Bridge' : 'Remove from Bridge'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bridgeConfirmInterface?.action === 'add' ? (
+                <>
+                  Add <span className="font-semibold">{bridgeConfirmInterface?.name}</span> to the
+                  hotspot bridge? Devices connected to this port will be routed through the hotspot captive portal.
+                </>
+              ) : (
+                <>
+                  Remove <span className="font-semibold">{bridgeConfirmInterface?.name}</span> from the
+                  hotspot bridge? Devices on this port will lose hotspot connectivity.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!bridgeConfirmInterface) return
+                if (bridgeConfirmInterface.action === 'add') {
+                  handleAddToBridge(bridgeConfirmInterface.name)
+                } else {
+                  handleRemoveFromBridge(bridgeConfirmInterface.name)
+                }
+              }}
+              className={bridgeConfirmInterface?.action === 'add' ? "bg-blue-600 hover:bg-blue-700" : "bg-orange-600 hover:bg-orange-700"}
+            >
+              {bridgeConfirmInterface?.action === 'add' ? 'Add to Bridge' : 'Remove from Bridge'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
