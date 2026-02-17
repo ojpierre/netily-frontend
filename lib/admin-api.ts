@@ -867,15 +867,15 @@ class AdminApiService {
   // ------------------------------------------
 
   async getRouterLiveStatus(id: number): Promise<RouterLiveStatus> {
-    return this.request<RouterLiveStatus>(`/routers/${id}/live_status/`)
+    return this.request<RouterLiveStatus>(`/network/routers/${id}/live_status/`)
   }
 
   async getRouterSystemHealth(id: number): Promise<RouterSystemHealth> {
-    return this.request<RouterSystemHealth>(`/routers/${id}/system_health/`)
+    return this.request<RouterSystemHealth>(`/network/routers/${id}/system_health/`)
   }
 
   async syncRouterDeviceInfo(id: number): Promise<RouterLiveStatus> {
-    return this.request<RouterLiveStatus>(`/routers/${id}/sync_device_info/`)
+    return this.request<RouterLiveStatus>(`/network/routers/${id}/sync_device_info/`)
   }
 
   // ------------------------------------------
@@ -883,33 +883,33 @@ class AdminApiService {
   // ------------------------------------------
 
   async getActiveHotspotUsers(id: number): Promise<ActiveHotspotUser[]> {
-    return this.request<ActiveHotspotUser[]>(`/routers/${id}/active_hotspot_users/`)
+    return this.request<ActiveHotspotUser[]>(`/network/routers/${id}/active_hotspot_users/`)
   }
 
   async getHotspotUsers(id: number): Promise<HotspotUser[]> {
-    return this.request<HotspotUser[]>(`/routers/${id}/hotspot_users/`)
+    return this.request<HotspotUser[]>(`/network/routers/${id}/hotspot_users/`)
   }
 
   async getHotspotUserStats(id: number, username: string): Promise<HotspotUserStats | null> {
-    return this.request<HotspotUserStats | null>(`/routers/${id}/hotspot_user_stats/?username=${encodeURIComponent(username)}`)
+    return this.request<HotspotUserStats | null>(`/network/routers/${id}/hotspot_user_stats/?username=${encodeURIComponent(username)}`)
   }
 
   async createHotspotUser(id: number, data: CreateHotspotUserRequest): Promise<RouterActionResponse> {
-    return this.request<RouterActionResponse>(`/routers/${id}/create_hotspot_user/`, {
+    return this.request<RouterActionResponse>(`/network/routers/${id}/create_hotspot_user/`, {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
   async enableHotspotUser(id: number, username: string): Promise<RouterActionResponse> {
-    return this.request<RouterActionResponse>(`/routers/${id}/enable_hotspot_user/`, {
+    return this.request<RouterActionResponse>(`/network/routers/${id}/enable_hotspot_user/`, {
       method: 'POST',
       body: JSON.stringify({ username }),
     })
   }
 
   async disableHotspotUser(id: number, username: string): Promise<RouterActionResponse> {
-    return this.request<RouterActionResponse>(`/routers/${id}/disable_hotspot_user/`, {
+    return this.request<RouterActionResponse>(`/network/routers/${id}/disable_hotspot_user/`, {
       method: 'POST',
       body: JSON.stringify({ username }),
     })
@@ -920,19 +920,19 @@ class AdminApiService {
   // ------------------------------------------
 
   async getActivePPPoESessions(id: number): Promise<ActivePPPoESession[]> {
-    return this.request<ActivePPPoESession[]>(`/routers/${id}/active_pppoe_sessions/`)
+    return this.request<ActivePPPoESession[]>(`/network/routers/${id}/active_pppoe_sessions/`)
   }
 
   async getPPPoEUsers(id: number): Promise<PPPoEUser[]> {
-    return this.request<PPPoEUser[]>(`/routers/${id}/pppoe_users/`)
+    return this.request<PPPoEUser[]>(`/network/routers/${id}/pppoe_users/`)
   }
 
   async getPPPoEUserStats(id: number, username: string): Promise<PPPoEUserStats | null> {
-    return this.request<PPPoEUserStats | null>(`/routers/${id}/pppoe_user_stats/?username=${encodeURIComponent(username)}`)
+    return this.request<PPPoEUserStats | null>(`/network/routers/${id}/pppoe_user_stats/?username=${encodeURIComponent(username)}`)
   }
 
   async createPPPoEUser(id: number, data: CreatePPPoEUserRequest): Promise<RouterActionResponse> {
-    return this.request<RouterActionResponse>(`/routers/${id}/create_pppoe_user/`, {
+    return this.request<RouterActionResponse>(`/network/routers/${id}/create_pppoe_user/`, {
       method: 'POST',
       body: JSON.stringify(data),
     })
@@ -943,11 +943,11 @@ class AdminApiService {
   // ------------------------------------------
 
   async getFirewallRules(id: number): Promise<FirewallRule[]> {
-    return this.request<FirewallRule[]>(`/routers/${id}/firewall_filter_rules/`)
+    return this.request<FirewallRule[]>(`/network/routers/${id}/firewall_filter_rules/`)
   }
 
   async addFirewallRule(id: number, data: CreateFirewallRuleRequest): Promise<RouterActionResponse> {
-    return this.request<RouterActionResponse>(`/routers/${id}/add_firewall_rule/`, {
+    return this.request<RouterActionResponse>(`/network/routers/${id}/add_firewall_rule/`, {
       method: 'POST',
       body: JSON.stringify(data),
     })
@@ -958,32 +958,32 @@ class AdminApiService {
   // ------------------------------------------
 
   async getQueues(id: number): Promise<SimpleQueue[]> {
-    return this.request<SimpleQueue[]>(`/routers/${id}/queues/`)
+    return this.request<SimpleQueue[]>(`/network/routers/${id}/queues/`)
   }
 
   async addSimpleQueue(id: number, data: { name: string; target: string; max_limit: string }): Promise<RouterActionResponse> {
-    return this.request<RouterActionResponse>(`/routers/${id}/add_simple_queue/`, {
+    return this.request<RouterActionResponse>(`/network/routers/${id}/add_simple_queue/`, {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
   async createQueue(id: number, data: CreateQueueRequest): Promise<RouterActionResponse> {
-    return this.request<RouterActionResponse>(`/routers/${id}/create_queue/`, {
+    return this.request<RouterActionResponse>(`/network/routers/${id}/create_queue/`, {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
   async enableQueue(id: number, queueName: string): Promise<RouterActionResponse> {
-    return this.request<RouterActionResponse>(`/routers/${id}/enable_queue/`, {
+    return this.request<RouterActionResponse>(`/network/routers/${id}/enable_queue/`, {
       method: 'POST',
       body: JSON.stringify({ queue_name: queueName }),
     })
   }
 
   async disableQueue(id: number, queueName: string): Promise<RouterActionResponse> {
-    return this.request<RouterActionResponse>(`/routers/${id}/disable_queue/`, {
+    return this.request<RouterActionResponse>(`/network/routers/${id}/disable_queue/`, {
       method: 'POST',
       body: JSON.stringify({ queue_name: queueName }),
     })
@@ -994,22 +994,22 @@ class AdminApiService {
   // ------------------------------------------
 
   async getRouterInterfaces(id: number): Promise<RouterInterface[]> {
-    return this.request<RouterInterface[]>(`/routers/${id}/interfaces/`)
+    return this.request<RouterInterface[]>(`/network/routers/${id}/interfaces/`)
   }
 
   async getInterfaceTraffic(id: number, interfaceName: string): Promise<InterfaceTraffic> {
-    return this.request<InterfaceTraffic>(`/routers/${id}/interface_traffic/?interface_name=${encodeURIComponent(interfaceName)}`)
+    return this.request<InterfaceTraffic>(`/network/routers/${id}/interface_traffic/?interface_name=${encodeURIComponent(interfaceName)}`)
   }
 
   async enableInterface(id: number, interfaceName: string): Promise<RouterActionResponse> {
-    return this.request<RouterActionResponse>(`/routers/${id}/enable_interface/`, {
+    return this.request<RouterActionResponse>(`/network/routers/${id}/enable_interface/`, {
       method: 'POST',
       body: JSON.stringify({ interface_name: interfaceName }),
     })
   }
 
   async disableInterface(id: number, interfaceName: string): Promise<RouterActionResponse> {
-    return this.request<RouterActionResponse>(`/routers/${id}/disable_interface/`, {
+    return this.request<RouterActionResponse>(`/network/routers/${id}/disable_interface/`, {
       method: 'POST',
       body: JSON.stringify({ interface_name: interfaceName }),
     })
@@ -1020,7 +1020,7 @@ class AdminApiService {
   // ------------------------------------------
 
   async getDHCPLeases(id: number): Promise<DHCPLease[]> {
-    return this.request<DHCPLease[]>(`/routers/${id}/dhcp_leases/`)
+    return this.request<DHCPLease[]>(`/network/routers/${id}/dhcp_leases/`)
   }
 
   // ------------------------------------------
@@ -1028,7 +1028,7 @@ class AdminApiService {
   // ------------------------------------------
 
   async getRouterLogs(id: number, lines: number = 50): Promise<RouterLogEntry[]> {
-    return this.request<RouterLogEntry[]>(`/routers/${id}/system_logs/?lines=${lines}`)
+    return this.request<RouterLogEntry[]>(`/network/routers/${id}/system_logs/?lines=${lines}`)
   }
 
   // ------------------------------------------
@@ -1036,11 +1036,11 @@ class AdminApiService {
   // ------------------------------------------
 
   async getWirelessInterfaces(id: number): Promise<WirelessInterface[]> {
-    return this.request<WirelessInterface[]>(`/routers/${id}/wireless_interfaces/`)
+    return this.request<WirelessInterface[]>(`/network/routers/${id}/wireless_interfaces/`)
   }
 
   async getWirelessRegistrations(id: number): Promise<WirelessRegistration[]> {
-    return this.request<WirelessRegistration[]>(`/routers/${id}/wireless_registrations/`)
+    return this.request<WirelessRegistration[]>(`/network/routers/${id}/wireless_registrations/`)
   }
 
   // ------------------------------------------
@@ -1048,11 +1048,11 @@ class AdminApiService {
   // ------------------------------------------
 
   async getRouterPorts(id: number): Promise<{ ports: any[] }> {
-    return this.request<{ ports: any[] }>(`/routers/${id}/ports/`)
+    return this.request<{ ports: any[] }>(`/network/routers/${id}/ports/`)
   }
 
   async getRouterHotspotConfig(id: number): Promise<any> {
-    return this.request<any>(`/routers/${id}/hotspot/config/`)
+    return this.request<any>(`/network/routers/${id}/hotspot/config/`)
   }
 
   async configureRouterHotspot(id: number, config: {
@@ -1078,34 +1078,34 @@ class AdminApiService {
       terms_url: string
     }
   }): Promise<any> {
-    return this.request<any>(`/routers/${id}/hotspot/configure/`, {
+    return this.request<any>(`/network/routers/${id}/hotspot/configure/`, {
       method: 'POST',
       body: JSON.stringify(config),
     })
   }
 
   async disableRouterHotspot(id: number): Promise<any> {
-    return this.request<any>(`/routers/${id}/hotspot/disable/`, {
+    return this.request<any>(`/network/routers/${id}/hotspot/disable/`, {
       method: 'POST',
     })
   }
 
   async enableRouterHotspot(id: number, serverName?: string): Promise<any> {
-    return this.request<any>(`/routers/${id}/hotspot/enable/`, {
+    return this.request<any>(`/network/routers/${id}/hotspot/enable/`, {
       method: 'POST',
       body: JSON.stringify({ server_name: serverName || 'netily-hotspot' }),
     })
   }
 
   async updateRouterHotspot(id: number, config: { dns_name?: string; pool_range?: string }): Promise<any> {
-    return this.request<any>(`/routers/${id}/hotspot/update/`, {
+    return this.request<any>(`/network/routers/${id}/hotspot/update/`, {
       method: 'PATCH',
       body: JSON.stringify(config),
     })
   }
 
   async addPortToBridge(id: number, interfaceName: string, bridgeName?: string): Promise<any> {
-    return this.request<any>(`/routers/${id}/bridge/port/`, {
+    return this.request<any>(`/network/routers/${id}/bridge/port/`, {
       method: 'POST',
       body: JSON.stringify({
         interface: interfaceName,
@@ -1116,7 +1116,7 @@ class AdminApiService {
   }
 
   async removePortFromBridge(id: number, interfaceName: string): Promise<any> {
-    return this.request<any>(`/routers/${id}/bridge/port/`, {
+    return this.request<any>(`/network/routers/${id}/bridge/port/`, {
       method: 'POST',
       body: JSON.stringify({
         interface: interfaceName,
@@ -1130,14 +1130,14 @@ class AdminApiService {
   // ------------------------------------------
 
   async pingFromRouter(id: number, target: string, count: number = 5): Promise<PingResult> {
-    return this.request<PingResult>(`/routers/${id}/ping/`, {
+    return this.request<PingResult>(`/network/routers/${id}/ping/`, {
       method: 'POST',
       body: JSON.stringify({ target, count }),
     })
   }
 
   async rebootRouterConfirm(id: number, confirm: boolean = true): Promise<RouterActionResponse> {
-    return this.request<RouterActionResponse>(`/routers/${id}/reboot/`, {
+    return this.request<RouterActionResponse>(`/network/routers/${id}/reboot/`, {
       method: 'POST',
       body: JSON.stringify({ confirm }),
     })
