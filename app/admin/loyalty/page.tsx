@@ -142,224 +142,13 @@ interface PointsTransaction {
   date: string
 }
 
-// Mock data
-const tiers: LoyaltyTier[] = [
-  {
-    id: "t1",
-    name: "Bronze",
-    level: "bronze",
-    minPoints: 0,
-    maxPoints: 999,
-    pointsMultiplier: 1,
-    benefits: ["1 point per KES 100 spent", "Birthday bonus (50 points)", "Monthly newsletter"],
-    color: "bg-amber-700",
-    icon: <Star className="w-5 h-5" />,
-    membersCount: 1250,
-  },
-  {
-    id: "t2",
-    name: "Silver",
-    level: "silver",
-    minPoints: 1000,
-    maxPoints: 4999,
-    pointsMultiplier: 1.5,
-    benefits: ["1.5x points multiplier", "Priority support", "Quarterly bonus (100 points)", "Exclusive offers"],
-    color: "bg-slate-400",
-    icon: <Award className="w-5 h-5" />,
-    membersCount: 680,
-  },
-  {
-    id: "t3",
-    name: "Gold",
-    level: "gold",
-    minPoints: 5000,
-    maxPoints: 14999,
-    pointsMultiplier: 2,
-    benefits: ["2x points multiplier", "Free monthly upgrade", "Priority support", "Birthday bonus (200 points)"],
-    color: "bg-yellow-500",
-    icon: <Trophy className="w-5 h-5" />,
-    membersCount: 320,
-  },
-  {
-    id: "t4",
-    name: "Platinum",
-    level: "platinum",
-    minPoints: 15000,
-    maxPoints: 49999,
-    pointsMultiplier: 2.5,
-    benefits: ["2.5x points multiplier", "Dedicated account manager", "Exclusive events", "Free speed upgrade"],
-    color: "bg-slate-600",
-    icon: <Crown className="w-5 h-5" />,
-    membersCount: 95,
-  },
-  {
-    id: "t5",
-    name: "Diamond",
-    level: "diamond",
-    minPoints: 50000,
-    maxPoints: null,
-    pointsMultiplier: 3,
-    benefits: ["3x points multiplier", "VIP support", "All perks included", "Annual bonus (1000 points)", "Custom plans"],
-    color: "bg-cyan-400",
-    icon: <Gem className="w-5 h-5" />,
-    membersCount: 23,
-  },
-]
-
-const rewards: Reward[] = [
-  {
-    id: "r1",
-    name: "1 Day Free Internet",
-    description: "Get a free day of internet on your current plan",
-    pointsCost: 100,
-    category: "Internet",
-    status: "active",
-    stockQuantity: null,
-    redemptionCount: 1250,
-    validUntil: null,
-  },
-  {
-    id: "r2",
-    name: "Speed Boost (24h)",
-    description: "Double your speed for 24 hours",
-    pointsCost: 150,
-    category: "Internet",
-    status: "active",
-    stockQuantity: null,
-    redemptionCount: 890,
-    validUntil: null,
-  },
-  {
-    id: "r3",
-    name: "KES 500 Credit",
-    description: "Add KES 500 to your account balance",
-    pointsCost: 500,
-    category: "Credit",
-    status: "active",
-    stockQuantity: null,
-    redemptionCount: 456,
-    validUntil: null,
-  },
-  {
-    id: "r4",
-    name: "Router (TP-Link Archer)",
-    description: "Free TP-Link Archer C6 Router",
-    pointsCost: 5000,
-    category: "Hardware",
-    status: "active",
-    stockQuantity: 25,
-    redemptionCount: 45,
-    validUntil: "2024-12-31",
-  },
-  {
-    id: "r5",
-    name: "1 Month Free",
-    description: "One month free on your current plan",
-    pointsCost: 2000,
-    category: "Internet",
-    status: "active",
-    stockQuantity: null,
-    redemptionCount: 234,
-    validUntil: null,
-  },
-  {
-    id: "r6",
-    name: "Streaming Bundle",
-    description: "Netflix + Spotify for 1 month",
-    pointsCost: 1500,
-    category: "Entertainment",
-    status: "active",
-    stockQuantity: 100,
-    redemptionCount: 178,
-    validUntil: "2024-06-30",
-  },
-  {
-    id: "r7",
-    name: "Movie Tickets (2)",
-    description: "Two cinema tickets at any IMAX",
-    pointsCost: 800,
-    category: "Entertainment",
-    status: "inactive",
-    stockQuantity: 0,
-    redemptionCount: 89,
-    validUntil: "2024-03-31",
-  },
-]
-
-const members: LoyaltyMember[] = [
-  {
-    id: "m1",
-    name: "John Kamau",
-    email: "john.kamau@email.com",
-    phone: "+254 712 345 678",
-    tier: "platinum",
-    currentPoints: 18500,
-    lifetimePoints: 45000,
-    joinedDate: "2022-03-15",
-    lastActivity: "2024-01-14",
-    redemptions: 12,
-  },
-  {
-    id: "m2",
-    name: "Mary Wanjiku",
-    email: "mary.w@email.com",
-    phone: "+254 722 456 789",
-    tier: "gold",
-    currentPoints: 8200,
-    lifetimePoints: 22000,
-    joinedDate: "2022-08-20",
-    lastActivity: "2024-01-15",
-    redemptions: 8,
-  },
-  {
-    id: "m3",
-    name: "Peter Ochieng",
-    email: "peter.o@email.com",
-    phone: "+254 733 567 890",
-    tier: "diamond",
-    currentPoints: 52000,
-    lifetimePoints: 125000,
-    joinedDate: "2021-01-10",
-    lastActivity: "2024-01-15",
-    redemptions: 28,
-  },
-  {
-    id: "m4",
-    name: "Grace Muthoni",
-    email: "grace.m@email.com",
-    phone: "+254 745 678 901",
-    tier: "silver",
-    currentPoints: 2800,
-    lifetimePoints: 6500,
-    joinedDate: "2023-05-01",
-    lastActivity: "2024-01-10",
-    redemptions: 3,
-  },
-  {
-    id: "m5",
-    name: "David Kiprono",
-    email: "david.k@email.com",
-    phone: "+254 756 789 012",
-    tier: "bronze",
-    currentPoints: 450,
-    lifetimePoints: 1200,
-    joinedDate: "2023-10-15",
-    lastActivity: "2024-01-08",
-    redemptions: 1,
-  },
-]
-
-const transactions: PointsTransaction[] = [
-  { id: "pt1", memberId: "m1", memberName: "John Kamau", type: "earned", points: 250, description: "Monthly subscription payment", date: "2024-01-15 10:30" },
-  { id: "pt2", memberId: "m2", memberName: "Mary Wanjiku", type: "redeemed", points: -500, description: "Redeemed: KES 500 Credit", date: "2024-01-15 09:45" },
-  { id: "pt3", memberId: "m3", memberName: "Peter Ochieng", type: "bonus", points: 1000, description: "Annual Diamond tier bonus", date: "2024-01-14 16:20" },
-  { id: "pt4", memberId: "m4", memberName: "Grace Muthoni", type: "earned", points: 100, description: "Referral bonus", date: "2024-01-14 14:15" },
-  { id: "pt5", memberId: "m5", memberName: "David Kiprono", type: "redeemed", points: -100, description: "Redeemed: 1 Day Free Internet", date: "2024-01-13 11:00" },
-  { id: "pt6", memberId: "m1", memberName: "John Kamau", type: "earned", points: 500, description: "Plan upgrade bonus", date: "2024-01-12 09:30" },
-  { id: "pt7", memberId: "m2", memberName: "Mary Wanjiku", type: "expired", points: -200, description: "Points expired (unused)", date: "2024-01-10 00:00" },
-]
+// TODO: Wire to backend loyalty/rewards API when available
 
 export default function LoyaltyPage() {
+  const [tiers] = useState<LoyaltyTier[]>([])
+  const [rewards] = useState<Reward[]>([])
+  const [members] = useState<LoyaltyMember[]>([])
+  const [transactions] = useState<PointsTransaction[]>([])
   const [selectedMember, setSelectedMember] = useState<LoyaltyMember | null>(null)
   const [isMemberDetailOpen, setIsMemberDetailOpen] = useState(false)
   const [isAddRewardOpen, setIsAddRewardOpen] = useState(false)
@@ -372,11 +161,11 @@ export default function LoyaltyPage() {
     const totalMembers = tiers.reduce((acc, t) => acc + t.membersCount, 0)
     const totalPointsIssued = members.reduce((acc, m) => acc + m.lifetimePoints, 0)
     const totalRedemptions = rewards.reduce((acc, r) => acc + r.redemptionCount, 0)
-    const avgPointsPerMember = Math.round(members.reduce((acc, m) => acc + m.currentPoints, 0) / members.length)
+    const avgPointsPerMember = members.length > 0 ? Math.round(members.reduce((acc, m) => acc + m.currentPoints, 0) / members.length) : 0
     const activeRewards = rewards.filter(r => r.status === "active").length
 
     return { totalMembers, totalPointsIssued, totalRedemptions, avgPointsPerMember, activeRewards }
-  }, [])
+  }, [tiers, members, rewards])
 
   // Filter members
   const filteredMembers = useMemo(() => {
@@ -388,7 +177,7 @@ export default function LoyaltyPage() {
       const matchesTier = tierFilter === "all" || member.tier === tierFilter
       return matchesSearch && matchesTier
     })
-  }, [searchQuery, tierFilter])
+  }, [members, searchQuery, tierFilter])
 
   const getTierBadge = (tier: TierLevel) => {
     const tierData = tiers.find(t => t.level === tier)

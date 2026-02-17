@@ -120,141 +120,8 @@ interface IPAllocation {
   networkId: string
 }
 
-// Mock data
-const mockNetworks: IPv4Network[] = [
-  {
-    id: "1",
-    name: "Public Pool 1",
-    network: "41.89.162.0/24",
-    gateway: "41.89.162.1",
-    subnet: "255.255.255.0",
-    type: "public",
-    status: "active",
-    totalIPs: 254,
-    usedIPs: 187,
-    availableIPs: 67,
-    router: "Router-001",
-    vlan: 100,
-    description: "Main public IP pool for premium customers",
-    createdAt: "2023-01-15",
-  },
-  {
-    id: "2",
-    name: "CGNAT Pool",
-    network: "100.64.0.0/10",
-    gateway: "100.64.0.1",
-    subnet: "255.192.0.0",
-    type: "cgnat",
-    status: "active",
-    totalIPs: 4194302,
-    usedIPs: 2500000,
-    availableIPs: 1694302,
-    router: "Router-001",
-    vlan: 200,
-    description: "Carrier-grade NAT pool for shared users",
-    createdAt: "2023-01-15",
-  },
-  {
-    id: "3",
-    name: "Static IP Pool",
-    network: "41.89.163.0/26",
-    gateway: "41.89.163.1",
-    subnet: "255.255.255.192",
-    type: "static-pool",
-    status: "active",
-    totalIPs: 62,
-    usedIPs: 45,
-    availableIPs: 17,
-    router: "Router-002",
-    vlan: 110,
-    description: "Reserved for static IP customers",
-    createdAt: "2023-02-20",
-  },
-  {
-    id: "4",
-    name: "Private LAN",
-    network: "192.168.1.0/24",
-    gateway: "192.168.1.1",
-    subnet: "255.255.255.0",
-    type: "private",
-    status: "active",
-    totalIPs: 254,
-    usedIPs: 89,
-    availableIPs: 165,
-    router: "Router-001",
-    vlan: null,
-    description: "Internal management network",
-    createdAt: "2023-01-10",
-  },
-  {
-    id: "5",
-    name: "Hotspot Pool",
-    network: "10.10.0.0/16",
-    gateway: "10.10.0.1",
-    subnet: "255.255.0.0",
-    type: "private",
-    status: "active",
-    totalIPs: 65534,
-    usedIPs: 12450,
-    availableIPs: 53084,
-    router: "Router-003",
-    vlan: 300,
-    description: "DHCP pool for hotspot users",
-    createdAt: "2023-03-05",
-  },
-  {
-    id: "6",
-    name: "Reserved Block",
-    network: "41.89.164.0/28",
-    gateway: "41.89.164.1",
-    subnet: "255.255.255.240",
-    type: "public",
-    status: "reserved",
-    totalIPs: 14,
-    usedIPs: 0,
-    availableIPs: 14,
-    router: "Router-001",
-    vlan: 120,
-    description: "Reserved for future expansion",
-    createdAt: "2023-06-15",
-  },
-]
-
-const mockAllocations: IPAllocation[] = [
-  {
-    id: "1",
-    ipAddress: "41.89.162.10",
-    macAddress: "AA:BB:CC:DD:EE:01",
-    username: "john.doe",
-    hostname: "johns-pc",
-    status: "active",
-    assignedAt: "2024-01-10 09:30:00",
-    expiresAt: null,
-    networkId: "1",
-  },
-  {
-    id: "2",
-    ipAddress: "41.89.162.11",
-    macAddress: "AA:BB:CC:DD:EE:02",
-    username: "jane.smith",
-    hostname: "janes-laptop",
-    status: "active",
-    assignedAt: "2024-01-12 14:22:00",
-    expiresAt: null,
-    networkId: "1",
-  },
-  {
-    id: "3",
-    ipAddress: "41.89.163.5",
-    macAddress: "AA:BB:CC:DD:EE:03",
-    username: "acme-corp",
-    hostname: "mail-server",
-    status: "reserved",
-    assignedAt: "2023-06-01 08:00:00",
-    expiresAt: "2024-06-01",
-    networkId: "3",
-  },
-]
+// TODO: Add dedicated networks API endpoint when backend supports it
+// Networks page uses local types distinct from IPAM Subnets—no direct API match yet
 
 const getStatusBadge = (status: NetworkStatus) => {
   switch (status) {
@@ -301,8 +168,8 @@ const getAllocationStatusBadge = (status: IPAllocation["status"]) => {
 
 export default function IPv4NetworksPage() {
   const [activeTab, setActiveTab] = useState("networks")
-  const [networks, setNetworks] = useState<IPv4Network[]>(mockNetworks)
-  const [allocations, setAllocations] = useState<IPAllocation[]>(mockAllocations)
+  const [networks, setNetworks] = useState<IPv4Network[]>([])
+  const [allocations, setAllocations] = useState<IPAllocation[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -343,9 +210,10 @@ export default function IPv4NetworksPage() {
     })
   }, [networks, searchQuery, typeFilter, statusFilter])
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsLoading(true)
-    setTimeout(() => setIsLoading(false), 1000)
+    // TODO: Replace with real API call when backend networks endpoint is available
+    setIsLoading(false)
   }
 
   const toggleNetworkExpand = (id: string) => {

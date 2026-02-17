@@ -97,157 +97,15 @@ import type {
 type SMSStatus = "pending" | "sent" | "delivered" | "failed"
 type MessageType = "single" | "bulk" | "automated" | "campaign"
 
-// Mock data (fallback)
-const mockMessages: SMSMessage[] = [
-  {
-    id: 1,
-    recipient: "+254712345678",
-    recipient_name: "John Doe",
-    message: "Your internet subscription expires tomorrow. Recharge now to avoid disconnection.",
-    status: "delivered",
-    type: "automated",
-    sent_at: "2024-01-15T10:30:00Z",
-    delivered_at: "2024-01-15T10:30:05Z",
-    cost: 0.5,
-    provider: "Africastalking",
-  },
-  {
-    id: 2,
-    recipient: "+254723456789",
-    recipient_name: "Jane Smith",
-    message: "Payment of KSh 2,000 received. Your account is now active until Feb 15, 2024.",
-    status: "delivered",
-    type: "automated",
-    sent_at: "2024-01-14T14:22:00Z",
-    delivered_at: "2024-01-14T14:22:03Z",
-    cost: 0.5,
-    provider: "Africastalking",
-  },
-  {
-    id: 3,
-    recipient: "+254734567890",
-    recipient_name: "Mike Johnson",
-    message: "Network maintenance scheduled for Jan 20, 2024 from 2 AM to 5 AM.",
-    status: "pending",
-    type: "bulk",
-    sent_at: "2024-01-15T09:00:00Z",
-    cost: 0.5,
-    provider: "Africastalking",
-  },
-  {
-    id: 4,
-    recipient: "+254745678901",
-    recipient_name: "Sarah Williams",
-    message: "Your support ticket #1234 has been resolved. Thank you for your patience.",
-    status: "failed",
-    type: "automated",
-    sent_at: "2024-01-13T16:45:00Z",
-    cost: 0,
-    provider: "Africastalking",
-  },
-  {
-    id: 5,
-    recipient: "+254756789012",
-    recipient_name: "David Brown",
-    message: "Earn double loyalty points this week! Recharge KSh 1,000+ and get 200 bonus points.",
-    status: "delivered",
-    type: "campaign",
-    sent_at: "2024-01-12T11:00:00Z",
-    delivered_at: "2024-01-12T11:00:08Z",
-    cost: 0.5,
-    provider: "Africastalking",
-  },
-]
-
-const mockTemplates: SMSTemplate[] = [
-  {
-    id: 1,
-    name: "Payment Confirmation",
-    content: "Payment of KSh {amount} received. Your account is now active until {expiry_date}. Thank you!",
-    variables: ["amount", "expiry_date"],
-    usage_count: 1250,
-    is_active: true,
-    created_at: "2023-06-01T00:00:00Z",
-    updated_at: "2023-06-01T00:00:00Z",
-  },
-  {
-    id: 2,
-    name: "Expiry Reminder",
-    content: "Your internet subscription expires {days_left}. Recharge now to avoid disconnection. Call 0800-NETILY for help.",
-    variables: ["days_left"],
-    usage_count: 890,
-    is_active: true,
-    created_at: "2023-06-01T00:00:00Z",
-    updated_at: "2023-06-01T00:00:00Z",
-  },
-  {
-    id: 3,
-    name: "Welcome Message",
-    content: "Welcome to Netily! Your account {username} is now active. Download our app for easy recharges.",
-    variables: ["username"],
-    usage_count: 456,
-    is_active: true,
-    created_at: "2023-07-15T00:00:00Z",
-    updated_at: "2023-07-15T00:00:00Z",
-  },
-  {
-    id: 4,
-    name: "Maintenance Notice",
-    content: "Scheduled maintenance on {date} from {start_time} to {end_time}. We apologize for any inconvenience.",
-    variables: ["date", "start_time", "end_time"],
-    usage_count: 12,
-    is_active: true,
-    created_at: "2023-08-20T00:00:00Z",
-    updated_at: "2023-08-20T00:00:00Z",
-  },
-]
-
-const mockCampaigns: SMSCampaign[] = [
-  {
-    id: 1,
-    name: "New Year Promo 2024",
-    message: "🎉 Happy New Year! Get 20% extra data on all recharges above KSh 500. Valid until Jan 15.",
-    recipient_count: 5000,
-    delivered_count: 4850,
-    failed_count: 150,
-    status: "completed",
-    scheduled_at: undefined,
-    created_at: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: 2,
-    name: "Weekend Special",
-    message: "🌟 Weekend Special! Unlimited streaming this Sat-Sun for just KSh 99. Dial *123# to activate.",
-    recipient_count: 3000,
-    delivered_count: 0,
-    failed_count: 0,
-    status: "scheduled",
-    scheduled_at: "2024-01-20T09:00:00Z",
-    created_at: "2024-01-15T00:00:00Z",
-  },
-  {
-    id: 3,
-    name: "Loyalty Bonus Points",
-    message: "You've earned bonus loyalty points! Check your dashboard to see your rewards balance.",
-    recipient_count: 1500,
-    delivered_count: 1420,
-    failed_count: 80,
-    status: "completed",
-    scheduled_at: undefined,
-    created_at: "2024-01-10T00:00:00Z",
-  },
-]
-
-// Mock stats
-const mockStats: SMSStats = {
-  total_sent: 5,
-  delivered: 3,
-  pending: 1,
-  failed: 1,
-  delivery_rate: 60.0,
-  total_cost: 2.0,
-  messages_today: 2,
-  messages_this_week: 5,
+const emptyStats: SMSStats = {
+  total_sent: 0,
+  delivered: 0,
+  pending: 0,
+  failed: 0,
+  delivery_rate: 0,
+  total_cost: 0,
+  messages_today: 0,
+  messages_this_week: 0,
 }
 
 const getStatusBadge = (status: SMSStatus) => {
@@ -284,10 +142,10 @@ const getCampaignStatusBadge = (status: SMSCampaign["status"]) => {
 
 export default function SMSPage() {
   const [activeTab, setActiveTab] = useState("history")
-  const [messages, setMessages] = useState<SMSMessage[]>(mockMessages)
-  const [templates, setTemplates] = useState<SMSTemplate[]>(mockTemplates)
-  const [campaigns, setCampaigns] = useState<SMSCampaign[]>(mockCampaigns)
-  const [stats, setStats] = useState<SMSStats>(mockStats)
+  const [messages, setMessages] = useState<SMSMessage[]>([])
+  const [templates, setTemplates] = useState<SMSTemplate[]>([])
+  const [campaigns, setCampaigns] = useState<SMSCampaign[]>([])
+  const [stats, setStats] = useState<SMSStats>(emptyStats)
   const [balance, setBalance] = useState<SMSBalance | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -329,23 +187,16 @@ export default function SMSPage() {
       if (messagesData) {
         const messagesList = Array.isArray(messagesData) ? messagesData : (messagesData.results || [])
         setMessages(messagesList)
-      } else {
-        console.warn("Using mock SMS messages - API not available")
-        setMessages(mockMessages)
       }
       
       if (templatesData) {
         const templatesList = Array.isArray(templatesData) ? templatesData : (templatesData.results || [])
         setTemplates(templatesList)
-      } else {
-        setTemplates(mockTemplates)
       }
       
       if (campaignsData) {
         const campaignsList = Array.isArray(campaignsData) ? campaignsData : (campaignsData.results || [])
         setCampaigns(campaignsList)
-      } else {
-        setCampaigns(mockCampaigns)
       }
       
       if (statsData) {
@@ -407,20 +258,7 @@ export default function SMSPage() {
         setMessages(prev => [result, ...prev])
         toast.success("SMS sent successfully")
       } else {
-        // Mock mode
-        const mockMsg: SMSMessage = {
-          id: Date.now(),
-          recipient: composeForm.recipients,
-          recipient_name: "Unknown",
-          message: composeForm.message,
-          status: "pending",
-          type: "single",
-          sent_at: new Date().toISOString(),
-          cost: 0.5,
-          provider: "Mock",
-        }
-        setMessages(prev => [mockMsg, ...prev])
-        toast.success("SMS queued (offline mode)")
+        toast.error("Failed to send SMS")
       }
       
       setIsComposeOpen(false)
@@ -451,19 +289,7 @@ export default function SMSPage() {
         setTemplates(prev => [...prev, result])
         toast.success("Template created successfully")
       } else {
-        // Mock mode
-        const newTpl: SMSTemplate = {
-          id: Date.now(),
-          name: newTemplate.name,
-          content: newTemplate.content,
-          variables: newTemplate.content.match(/\{(\w+)\}/g)?.map(v => v.slice(1, -1)) || [],
-          usage_count: 0,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }
-        setTemplates(prev => [...prev, newTpl])
-        toast.success("Template created (offline mode)")
+        toast.error("Failed to create template")
       }
       
       setNewTemplate({ name: "", content: "" })
@@ -492,8 +318,7 @@ export default function SMSPage() {
         setMessages(prev => prev.map(m => m.id === messageId ? result : m))
         toast.success("SMS retry initiated")
       } else {
-        setMessages(prev => prev.map(m => m.id === messageId ? { ...m, status: "pending" as const } : m))
-        toast.success("SMS retry initiated (offline mode)")
+        toast.error("Failed to retry SMS")
       }
     } catch (err) {
       console.error("Error retrying SMS:", err)

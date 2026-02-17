@@ -136,63 +136,8 @@ interface LeadStats {
   totalValue: number
 }
 
-// Mock data generator
-const generateMockLeads = (): Lead[] => {
-  const sources: LeadSource[] = ["website", "referral", "walk-in", "social-media", "advertisement", "hotspot"]
-  const statuses: LeadStatus[] = ["new", "contacted", "qualified", "negotiating", "converted", "lost"]
-  const priorities: LeadPriority[] = ["low", "medium", "high"]
-  const plans = ["Home Basic", "Home Premium", "Business Pro", "Enterprise"]
-  const locations = ["Nairobi CBD", "Westlands", "Kilimani", "Lavington", "Kileleshwa", "South B", "South C"]
-  const agents = ["John Sales", "Mary Agent", "Peter Rep", "Sarah Team"]
-
-  return Array.from({ length: 30 }, (_, i) => {
-    const status = statuses[Math.floor(Math.random() * statuses.length)]
-    const createdDate = new Date(Date.now() - Math.random() * 60 * 24 * 60 * 60 * 1000)
-    
-    return {
-      id: `LEAD-${1000 + i}`,
-      name: `Lead ${i + 1}`,
-      email: `lead${i + 1}@example.com`,
-      phone: `+254 7${Math.floor(10000000 + Math.random() * 90000000)}`,
-      location: locations[Math.floor(Math.random() * locations.length)],
-      source: sources[Math.floor(Math.random() * sources.length)],
-      status,
-      priority: priorities[Math.floor(Math.random() * priorities.length)],
-      interestedPlan: plans[Math.floor(Math.random() * plans.length)],
-      estimatedValue: [1500, 2500, 5000, 8000][Math.floor(Math.random() * 4)],
-      notes: "Interested in high-speed internet for home office",
-      isStarred: Math.random() > 0.7,
-      assignedTo: agents[Math.floor(Math.random() * agents.length)],
-      createdAt: createdDate.toISOString(),
-      lastContact: new Date(createdDate.getTime() + Math.random() * 10 * 24 * 60 * 60 * 1000).toISOString(),
-      nextFollowUp: status !== "converted" && status !== "lost" 
-        ? new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString() 
-        : undefined,
-      activities: [
-        {
-          id: "act-1",
-          type: "note",
-          description: "Lead captured via website inquiry form",
-          timestamp: createdDate.toISOString(),
-          by: "System",
-        },
-        ...(status !== "new" ? [{
-          id: "act-2",
-          type: "call" as const,
-          description: "Initial call made to understand requirements",
-          timestamp: new Date(createdDate.getTime() + 2 * 60 * 60 * 1000).toISOString(),
-          by: agents[Math.floor(Math.random() * agents.length)],
-        }] : []),
-      ],
-      conversionProbability: status === "new" ? 20 
-        : status === "contacted" ? 35 
-        : status === "qualified" ? 55 
-        : status === "negotiating" ? 75 
-        : status === "converted" ? 100 
-        : 0,
-    }
-  })
-}
+// TODO: Add leads API endpoint when backend supports it
+// import { adminApi } from "@/lib/admin-api"
 
 export default function LeadsPage() {
   const [loading, setLoading] = useState(true)
@@ -218,8 +163,9 @@ export default function LeadsPage() {
     try {
       setLoading(true)
       setError(null)
-      await new Promise(resolve => setTimeout(resolve, 600))
-      setLeads(generateMockLeads())
+      // TODO: Replace with adminApi.getLeads() when backend endpoint is available
+      // For now, show empty state — no mock data
+      setLeads([])
     } catch (err) {
       setError("Failed to load leads. Please try again.")
     } finally {

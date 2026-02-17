@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useCallback } from "react"
 import Link from "next/link"
 import {
   Truck,
@@ -85,117 +85,15 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Skeleton } from "@/components/ui/skeleton"
+import { adminApi } from "@/lib/admin-api"
 import type { Technician, DispatchJob } from "@/lib/types"
 
 type JobStatus = 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
 type JobPriority = 'low' | 'medium' | 'high' | 'urgent'
 type JobType = 'installation' | 'repair' | 'maintenance' | 'relocation' | 'survey'
 
-// Mock technicians
-const generateMockTechnicians = (): (Technician & { active_jobs: number; completed_today: number })[] => [
-  {
-    id: 1,
-    name: "Peter Omondi",
-    phone: "+254 722 111 222",
-    email: "peter.omondi@netily.co.ke",
-    status: "available",
-    skills: ["fiber installation", "ONU configuration", "splicing"],
-    current_location: { lat: -1.2864, lng: 36.8172 },
-    created_at: "2023-01-01T00:00:00Z",
-    active_jobs: 0,
-    completed_today: 3,
-  },
-  {
-    id: 2,
-    name: "James Mwangi",
-    phone: "+254 733 222 333",
-    email: "james.mwangi@netily.co.ke",
-    status: "on_job",
-    skills: ["fiber installation", "wireless", "router configuration"],
-    current_location: { lat: -1.2921, lng: 36.8219 },
-    created_at: "2023-02-15T00:00:00Z",
-    active_jobs: 1,
-    completed_today: 2,
-  },
-  {
-    id: 3,
-    name: "David Kipchoge",
-    phone: "+254 744 333 444",
-    email: "david.kipchoge@netily.co.ke",
-    status: "available",
-    skills: ["fiber installation", "troubleshooting", "OTDR testing"],
-    current_location: { lat: -1.2800, lng: 36.8100 },
-    created_at: "2023-03-10T00:00:00Z",
-    active_jobs: 0,
-    completed_today: 4,
-  },
-  {
-    id: 4,
-    name: "Michael Otieno",
-    phone: "+254 755 444 555",
-    email: "michael.otieno@netily.co.ke",
-    status: "on_job",
-    skills: ["wireless installation", "network troubleshooting"],
-    current_location: { lat: -1.3000, lng: 36.8300 },
-    created_at: "2023-04-20T00:00:00Z",
-    active_jobs: 2,
-    completed_today: 1,
-  },
-  {
-    id: 5,
-    name: "Samuel Wanjiku",
-    phone: "+254 766 555 666",
-    email: "samuel.wanjiku@netily.co.ke",
-    status: "off_duty",
-    skills: ["fiber splicing", "ONU provisioning"],
-    current_location: { lat: -1.2750, lng: 36.8050 },
-    created_at: "2023-05-05T00:00:00Z",
-    active_jobs: 0,
-    completed_today: 0,
-  },
-]
 
-// Mock dispatch jobs
-const generateMockJobs = (): DispatchJob[] => {
-  const statuses: JobStatus[] = ['pending', 'pending', 'assigned', 'in_progress', 'completed', 'completed']
-  const priorities: JobPriority[] = ['low', 'medium', 'medium', 'high', 'urgent']
-  const types: JobType[] = ['installation', 'installation', 'repair', 'maintenance', 'relocation']
-  
-  const jobs: DispatchJob[] = []
-  for (let i = 1; i <= 25; i++) {
-    const status = statuses[Math.floor(Math.random() * statuses.length)]
-    const type = types[Math.floor(Math.random() * types.length)]
-    const priority = priorities[Math.floor(Math.random() * priorities.length)]
-    const scheduledTime = new Date(Date.now() + (Math.random() - 0.5) * 7 * 24 * 60 * 60 * 1000)
-    
-    jobs.push({
-      id: i,
-      customer: 1000 + i,
-      customer_name: `Customer ${i}`,
-      customer_phone: `+254 7${Math.floor(10000000 + Math.random() * 90000000)}`,
-      customer_address: `${100 + i} Street Name, ${['Nairobi', 'Westlands', 'Kilimani', 'Karen'][Math.floor(Math.random() * 4)]}`,
-      job_type: type,
-      priority,
-      status,
-      description: type === 'installation' ? 'New fiber installation - Home Fiber 50Mbps' :
-                   type === 'repair' ? 'Customer reporting intermittent connection' :
-                   type === 'maintenance' ? 'Scheduled maintenance check' :
-                   'Equipment relocation to new premises',
-      technician: status !== 'pending' ? (Math.floor(Math.random() * 5) + 1) : undefined,
-      technician_name: status !== 'pending' ? generateMockTechnicians()[Math.floor(Math.random() * 5)].name : undefined,
-      scheduled_date: scheduledTime.toISOString().split('T')[0],
-      scheduled_time: `${9 + Math.floor(Math.random() * 8)}:00`,
-      estimated_duration: type === 'installation' ? 120 : type === 'repair' ? 60 : 45,
-      notes: undefined,
-      created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-      completed_at: status === 'completed' ? new Date(scheduledTime.getTime() + 2 * 60 * 60 * 1000).toISOString() : undefined,
-    })
-  }
-  return jobs.sort((a, b) => {
-    const statusOrder = { pending: 0, assigned: 1, in_progress: 2, completed: 3, cancelled: 4 }
-    return statusOrder[a.status] - statusOrder[b.status]
-  })
-}
 
 const getStatusBadge = (status: JobStatus) => {
   const config: Record<JobStatus, { variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode }> = {
@@ -247,8 +145,9 @@ const getTypeBadge = (type: JobType) => {
 }
 
 export default function DispatchPage() {
-  const [technicians] = useState(generateMockTechnicians())
-  const [jobs, setJobs] = useState<DispatchJob[]>(generateMockJobs())
+  const [loading, setLoading] = useState(true)
+  const [technicians, setTechnicians] = useState<(Technician & { active_jobs: number; completed_today: number })[]>([])
+  const [jobs, setJobs] = useState<DispatchJob[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
@@ -261,6 +160,36 @@ export default function DispatchPage() {
   const [jobToAssign, setJobToAssign] = useState<DispatchJob | null>(null)
   const [selectedTechnician, setSelectedTechnician] = useState<string>("")
   const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true)
+      const [jobsRes, techsRes] = await Promise.allSettled([
+        adminApi.getDispatchJobs({ page_size: "100" }),
+        adminApi.getTechnicians({ page_size: "50" }),
+      ])
+      if (jobsRes.status === "fulfilled") {
+        setJobs(jobsRes.value.results || [])
+      }
+      if (techsRes.status === "fulfilled") {
+        setTechnicians(
+          (techsRes.value.results || []).map(t => ({
+            ...t,
+            active_jobs: 0,
+            completed_today: 0,
+          }))
+        )
+      }
+    } catch (err) {
+      console.error("Failed to load dispatch data:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   // Create job form state
   const [jobForm, setJobForm] = useState({
@@ -323,7 +252,7 @@ export default function DispatchPage() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await fetchData()
     setIsRefreshing(false)
   }
 
@@ -332,17 +261,35 @@ export default function DispatchPage() {
     setIsDetailOpen(true)
   }
 
-  const handleAssignJob = () => {
+  const handleAssignJob = async () => {
     if (jobToAssign && selectedTechnician) {
-      console.log("Assigning job:", jobToAssign.id, "to technician:", selectedTechnician)
+      try {
+        await adminApi.assignDispatchJob(jobToAssign.id, Number(selectedTechnician))
+        await fetchData()
+      } catch (err) {
+        console.error("Failed to assign job:", err)
+      }
       setIsAssignDialogOpen(false)
       setJobToAssign(null)
       setSelectedTechnician("")
     }
   }
 
-  const handleCreateJob = () => {
-    console.log("Creating job:", jobForm)
+  const handleCreateJob = async () => {
+    try {
+      await adminApi.createDispatchJob({
+        customer: Number(jobForm.customer) || 0,
+        job_type: jobForm.job_type,
+        priority: jobForm.priority,
+        scheduled_date: jobForm.scheduled_date,
+        scheduled_time: jobForm.scheduled_time,
+        description: jobForm.description,
+        notes: jobForm.notes,
+      } as any)
+      await fetchData()
+    } catch (err) {
+      console.error("Failed to create job:", err)
+    }
     setIsCreateJobOpen(false)
     setJobForm({
       customer: "",

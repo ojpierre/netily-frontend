@@ -117,143 +117,8 @@ interface FUPViolation {
   resolvedAt: string | null
 }
 
-// Mock data
-const mockPolicies: FUPPolicy[] = [
-  {
-    id: "1",
-    name: "Basic FUP",
-    description: "Standard fair usage policy for basic plans",
-    status: "active",
-    dataLimit: 100,
-    dataLimitType: "monthly",
-    thresholdPercentage: 80,
-    throttleSpeed: 2,
-    throttleAction: "reduce_speed",
-    appliedPlans: ["Basic 10Mbps", "Basic 20Mbps"],
-    usersAffected: 450,
-    createdAt: "2023-06-01",
-    updatedAt: "2024-01-10",
-  },
-  {
-    id: "2",
-    name: "Premium FUP",
-    description: "Higher limits for premium subscribers",
-    status: "active",
-    dataLimit: 500,
-    dataLimitType: "monthly",
-    thresholdPercentage: 90,
-    throttleSpeed: 10,
-    throttleAction: "notify",
-    appliedPlans: ["Premium 50Mbps", "Premium 100Mbps"],
-    usersAffected: 280,
-    createdAt: "2023-06-01",
-    updatedAt: "2024-01-08",
-  },
-  {
-    id: "3",
-    name: "Daily Limit Policy",
-    description: "Daily usage limits for hotspot users",
-    status: "active",
-    dataLimit: 5,
-    dataLimitType: "daily",
-    thresholdPercentage: 100,
-    throttleSpeed: 0,
-    throttleAction: "disconnect",
-    appliedPlans: ["Hotspot Daily", "Hotspot Weekly"],
-    usersAffected: 1200,
-    createdAt: "2023-08-15",
-    updatedAt: "2024-01-12",
-  },
-  {
-    id: "4",
-    name: "Business Unlimited",
-    description: "No throttling for business customers",
-    status: "active",
-    dataLimit: 0, // unlimited
-    dataLimitType: "monthly",
-    thresholdPercentage: 0,
-    throttleSpeed: 0,
-    throttleAction: "notify",
-    appliedPlans: ["Business 100Mbps", "Business Fiber"],
-    usersAffected: 85,
-    createdAt: "2023-09-01",
-    updatedAt: "2023-12-20",
-  },
-  {
-    id: "5",
-    name: "Night Owl Special",
-    description: "Reduced limits during peak hours only",
-    status: "inactive",
-    dataLimit: 50,
-    dataLimitType: "daily",
-    thresholdPercentage: 70,
-    throttleSpeed: 5,
-    throttleAction: "reduce_speed",
-    appliedPlans: [],
-    usersAffected: 0,
-    createdAt: "2023-11-01",
-    updatedAt: "2023-11-01",
-  },
-]
-
-const mockViolations: FUPViolation[] = [
-  {
-    id: "1",
-    userId: "user-001",
-    username: "john.doe",
-    policyId: "1",
-    policyName: "Basic FUP",
-    dataUsed: 95,
-    dataLimit: 100,
-    usagePercentage: 95,
-    action: "reduce_speed",
-    status: "throttled",
-    occurredAt: "2024-01-15 08:30:00",
-    resolvedAt: null,
-  },
-  {
-    id: "2",
-    userId: "user-002",
-    username: "jane.smith",
-    policyId: "3",
-    policyName: "Daily Limit Policy",
-    dataUsed: 5.2,
-    dataLimit: 5,
-    usagePercentage: 104,
-    action: "disconnect",
-    status: "throttled",
-    occurredAt: "2024-01-15 14:22:00",
-    resolvedAt: null,
-  },
-  {
-    id: "3",
-    userId: "user-003",
-    username: "mike.johnson",
-    policyId: "2",
-    policyName: "Premium FUP",
-    dataUsed: 480,
-    dataLimit: 500,
-    usagePercentage: 96,
-    action: "notify",
-    status: "warned",
-    occurredAt: "2024-01-14 16:45:00",
-    resolvedAt: null,
-  },
-  {
-    id: "4",
-    userId: "user-004",
-    username: "sarah.williams",
-    policyId: "1",
-    policyName: "Basic FUP",
-    dataUsed: 100,
-    dataLimit: 100,
-    usagePercentage: 100,
-    action: "reduce_speed",
-    status: "resolved",
-    occurredAt: "2024-01-10 09:15:00",
-    resolvedAt: "2024-01-11 00:00:00",
-  },
-]
+// TODO: Add FUP policy API endpoint when backend supports it
+// import { adminApi } from "@/lib/admin-api"
 
 const getStatusBadge = (status: FUPStatus) => {
   switch (status) {
@@ -300,8 +165,8 @@ const getActionBadge = (action: ThrottleAction) => {
 
 export default function FUPPage() {
   const [activeTab, setActiveTab] = useState("policies")
-  const [policies, setPolicies] = useState<FUPPolicy[]>(mockPolicies)
-  const [violations, setViolations] = useState<FUPViolation[]>(mockViolations)
+  const [policies, setPolicies] = useState<FUPPolicy[]>([])
+  const [violations, setViolations] = useState<FUPViolation[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -344,9 +209,10 @@ export default function FUPPage() {
     })
   }, [policies, searchQuery, statusFilter])
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsLoading(true)
-    setTimeout(() => setIsLoading(false), 1000)
+    // TODO: Replace with real API call when backend FUP endpoint is available
+    setIsLoading(false)
   }
 
   const handleToggleStatus = (policy: FUPPolicy) => {

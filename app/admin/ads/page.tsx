@@ -120,111 +120,7 @@ interface AdStats {
   scheduledAds: number
 }
 
-// Mock data
-const mockAds: Ad[] = [
-  {
-    id: "1",
-    name: "MTN Mobile Money Promo",
-    type: "banner",
-    placement: ["login", "welcome"],
-    status: "active",
-    imageUrl: "/ads/mtn-promo.jpg",
-    targetUrl: "https://mtn.co.ke/promo",
-    impressions: 45000,
-    clicks: 1350,
-    ctr: 3.0,
-    startDate: "2024-01-01",
-    endDate: "2024-01-31",
-    createdAt: "2023-12-28",
-    priority: 1,
-    routers: ["Router-001", "Router-002", "Router-003"],
-  },
-  {
-    id: "2",
-    name: "Safaricom Fiber Upgrade",
-    type: "popup",
-    placement: ["login"],
-    status: "active",
-    imageUrl: "/ads/safaricom-fiber.jpg",
-    targetUrl: "https://safaricom.co.ke/fiber",
-    impressions: 32000,
-    clicks: 640,
-    ctr: 2.0,
-    startDate: "2024-01-05",
-    endDate: "2024-02-05",
-    createdAt: "2024-01-04",
-    priority: 2,
-    routers: ["All Routers"],
-  },
-  {
-    id: "3",
-    name: "Netflix Holiday Special",
-    type: "interstitial",
-    placement: ["welcome", "voucher"],
-    status: "scheduled",
-    imageUrl: "/ads/netflix-holiday.jpg",
-    targetUrl: "https://netflix.com/holiday",
-    impressions: 0,
-    clicks: 0,
-    ctr: 0,
-    startDate: "2024-01-20",
-    endDate: "2024-02-20",
-    createdAt: "2024-01-15",
-    priority: 3,
-    routers: ["Router-002"],
-  },
-  {
-    id: "4",
-    name: "Showmax Sports Package",
-    type: "video",
-    placement: ["login"],
-    status: "active",
-    imageUrl: "/ads/showmax-sports.jpg",
-    targetUrl: "https://showmax.com/sports",
-    impressions: 18500,
-    clicks: 925,
-    ctr: 5.0,
-    startDate: "2024-01-10",
-    endDate: "2024-02-10",
-    createdAt: "2024-01-08",
-    priority: 1,
-    routers: ["All Routers"],
-  },
-  {
-    id: "5",
-    name: "Local Restaurant Promo",
-    type: "banner",
-    placement: ["disconnect"],
-    status: "inactive",
-    imageUrl: "/ads/restaurant.jpg",
-    targetUrl: "https://localfood.co.ke",
-    impressions: 8200,
-    clicks: 164,
-    ctr: 2.0,
-    startDate: "2023-12-01",
-    endDate: "2023-12-31",
-    createdAt: "2023-11-28",
-    priority: 5,
-    routers: ["Router-001"],
-  },
-  {
-    id: "6",
-    name: "New Year Flash Sale",
-    type: "popup",
-    placement: ["login", "welcome"],
-    status: "expired",
-    imageUrl: "/ads/new-year-sale.jpg",
-    targetUrl: "https://shop.co.ke/sale",
-    impressions: 65000,
-    clicks: 3250,
-    ctr: 5.0,
-    startDate: "2023-12-26",
-    endDate: "2024-01-05",
-    createdAt: "2023-12-20",
-    priority: 1,
-    routers: ["All Routers"],
-  },
-]
+// TODO: Wire to backend ads/captive-portal API when available
 
 const getStatusBadge = (status: AdStatus) => {
   switch (status) {
@@ -273,7 +169,7 @@ const getPlacementLabel = (placement: AdPlacement) => {
 
 export default function AdsPage() {
   const [activeTab, setActiveTab] = useState("all")
-  const [ads, setAds] = useState<Ad[]>(mockAds)
+  const [ads, setAds] = useState<Ad[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
@@ -895,7 +791,7 @@ export default function AdsPage() {
           </DialogHeader>
           {selectedAd && (
             <div className="space-y-4">
-              {/* Mock Preview */}
+              {/* Ad Preview */}
               <div className="border rounded-lg overflow-hidden">
                 <div className="bg-slate-100 p-4">
                   <div className="flex items-center justify-between mb-4">

@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect, useCallback } from "react"
+import { adminApi } from "@/lib/admin-api"
 import Link from "next/link"
 import {
   Radio,
@@ -95,154 +96,6 @@ import type { OLT, PONPort } from "@/lib/types"
 
 type OLTStatus = 'online' | 'offline' | 'warning' | 'maintenance'
 
-// Mock data for OLTs
-const generateMockOLTs = (): OLT[] => {
-  return [
-    {
-      id: 1,
-      name: "OLT-Nairobi-CBD-01",
-      ip_address: "10.0.1.1",
-      model: "MA5800-X17",
-      manufacturer: "huawei",
-      serial_number: "HW2024001234",
-      firmware_version: "V800R021C00",
-      total_pon_ports: 16,
-      active_pon_ports: 14,
-      total_onus: 448,
-      online_onus: 421,
-      location: "Nairobi CBD - Main POP",
-      latitude: -1.2921,
-      longitude: 36.8219,
-      status: "online",
-      uptime: "125d 14h 32m",
-      cpu_usage: 35,
-      memory_usage: 48,
-      temperature: 42,
-      last_seen: "Just now",
-      created_at: "2024-01-15T10:00:00Z",
-      updated_at: "2024-12-30T08:00:00Z",
-    },
-    {
-      id: 2,
-      name: "OLT-Westlands-01",
-      ip_address: "10.0.2.1",
-      model: "MA5800-X7",
-      manufacturer: "huawei",
-      serial_number: "HW2024001235",
-      firmware_version: "V800R021C00",
-      total_pon_ports: 8,
-      active_pon_ports: 8,
-      total_onus: 256,
-      online_onus: 248,
-      location: "Westlands - Sarit Centre",
-      latitude: -1.2634,
-      longitude: 36.8033,
-      status: "online",
-      uptime: "89d 6h 15m",
-      cpu_usage: 28,
-      memory_usage: 42,
-      temperature: 38,
-      last_seen: "Just now",
-      created_at: "2024-03-20T10:00:00Z",
-      updated_at: "2024-12-30T08:00:00Z",
-    },
-    {
-      id: 3,
-      name: "OLT-Kilimani-01",
-      ip_address: "10.0.3.1",
-      model: "C320",
-      manufacturer: "zte",
-      serial_number: "ZTE2024005678",
-      firmware_version: "V2.1.0P3",
-      total_pon_ports: 8,
-      active_pon_ports: 6,
-      total_onus: 192,
-      online_onus: 178,
-      location: "Kilimani - Yaya Centre",
-      latitude: -1.2890,
-      longitude: 36.7851,
-      status: "warning",
-      uptime: "45d 2h 10m",
-      cpu_usage: 72,
-      memory_usage: 68,
-      temperature: 55,
-      last_seen: "2 min ago",
-      created_at: "2024-06-10T10:00:00Z",
-      updated_at: "2024-12-30T07:58:00Z",
-    },
-    {
-      id: 4,
-      name: "OLT-Mombasa-01",
-      ip_address: "10.0.4.1",
-      model: "AN5516-01",
-      manufacturer: "fiberhome",
-      serial_number: "FH2024009012",
-      firmware_version: "RP0700",
-      total_pon_ports: 16,
-      active_pon_ports: 10,
-      total_onus: 320,
-      online_onus: 0,
-      location: "Mombasa - Nyali",
-      latitude: -4.0435,
-      longitude: 39.6682,
-      status: "offline",
-      uptime: "0d 0h 0m",
-      cpu_usage: 0,
-      memory_usage: 0,
-      temperature: 0,
-      last_seen: "4 hours ago",
-      created_at: "2024-02-28T10:00:00Z",
-      updated_at: "2024-12-30T04:00:00Z",
-    },
-    {
-      id: 5,
-      name: "OLT-Kisumu-01",
-      ip_address: "10.0.5.1",
-      model: "MA5800-X2",
-      manufacturer: "huawei",
-      serial_number: "HW2024003456",
-      firmware_version: "V800R020C10",
-      total_pon_ports: 4,
-      active_pon_ports: 4,
-      total_onus: 128,
-      online_onus: 124,
-      location: "Kisumu - CBD",
-      latitude: -0.1022,
-      longitude: 34.7617,
-      status: "maintenance",
-      uptime: "2d 5h 30m",
-      cpu_usage: 15,
-      memory_usage: 25,
-      temperature: 36,
-      last_seen: "Just now",
-      created_at: "2024-08-15T10:00:00Z",
-      updated_at: "2024-12-30T08:00:00Z",
-    },
-  ]
-}
-
-// Mock PON ports for an OLT
-const generateMockPONPorts = (oltId: number): PONPort[] => {
-  const ports: PONPort[] = []
-  const numPorts = oltId === 1 || oltId === 4 ? 16 : oltId === 5 ? 4 : 8
-  
-  for (let i = 1; i <= numPorts; i++) {
-    ports.push({
-      id: oltId * 100 + i,
-      olt: oltId,
-      port_number: `0/0/${i}`,
-      name: `PON ${i}`,
-      status: Math.random() > 0.1 ? 'active' : Math.random() > 0.5 ? 'inactive' : 'fault',
-      total_onus: Math.floor(Math.random() * 32) + 8,
-      online_onus: Math.floor(Math.random() * 28) + 5,
-      rx_power: -(Math.random() * 8 + 18),
-      tx_power: Math.random() * 2 + 2,
-      description: `PON Port ${i} - Zone ${String.fromCharCode(64 + i)}`,
-    })
-  }
-  return ports
-}
-
 const getStatusIcon = (status: OLTStatus) => {
   switch (status) {
     case "online":
@@ -287,7 +140,7 @@ const getManufacturerBadge = (manufacturer: string) => {
 }
 
 export default function OLTManagementPage() {
-  const [olts] = useState<OLT[]>(generateMockOLTs())
+  const [olts, setOlts] = useState<OLT[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [manufacturerFilter, setManufacturerFilter] = useState<string>("all")
@@ -298,6 +151,22 @@ export default function OLTManagementPage() {
   const [oltToDelete, setOltToDelete] = useState<OLT | null>(null)
   const [ponPorts, setPonPorts] = useState<PONPort[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  const fetchOLTs = useCallback(async () => {
+    try {
+      const response = await adminApi.getOLTs({ page_size: '100' })
+      setOlts(response.results || [])
+    } catch (error) {
+      console.error('Failed to fetch OLTs:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchOLTs()
+  }, [fetchOLTs])
 
   // Form state for new OLT
   const [formData, setFormData] = useState({
@@ -339,46 +208,63 @@ export default function OLTManagementPage() {
     return { online, offline, warning, totalONUs, onlineONUs, totalPorts, activePorts }
   }, [olts])
 
-  const handleViewDetails = (olt: OLT) => {
+  const handleViewDetails = async (olt: OLT) => {
     setSelectedOLT(olt)
-    setPonPorts(generateMockPONPorts(olt.id))
     setIsDetailOpen(true)
+    try {
+      const ports = await adminApi.getOLTPONPorts(olt.id)
+      setPonPorts(ports || [])
+    } catch (error) {
+      console.error('Failed to fetch PON ports:', error)
+      setPonPorts([])
+    }
   }
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await fetchOLTs()
     setIsRefreshing(false)
   }
 
   const handleReboot = async (olt: OLT) => {
-    // TODO: Call API to reboot OLT
-    console.log("Rebooting OLT:", olt.name)
+    try {
+      await adminApi.rebootOLT(olt.id)
+      await fetchOLTs()
+    } catch (error) {
+      console.error('Failed to reboot OLT:', error)
+    }
   }
 
   const handleDelete = async () => {
     if (oltToDelete) {
-      // TODO: Call API to delete OLT
-      console.log("Deleting OLT:", oltToDelete.name)
+      try {
+        await adminApi.deleteOLT(oltToDelete.id)
+        await fetchOLTs()
+      } catch (error) {
+        console.error('Failed to delete OLT:', error)
+      }
       setIsDeleteDialogOpen(false)
       setOltToDelete(null)
     }
   }
 
   const handleAddOLT = async () => {
-    // TODO: Call API to create OLT
-    console.log("Creating OLT:", formData)
-    setIsAddDialogOpen(false)
-    setFormData({
-      name: "",
-      ip_address: "",
-      model: "",
-      manufacturer: "huawei",
-      serial_number: "",
-      location: "",
-      total_pon_ports: 8,
-    })
+    try {
+      await adminApi.createOLT(formData)
+      await fetchOLTs()
+      setIsAddDialogOpen(false)
+      setFormData({
+        name: "",
+        ip_address: "",
+        model: "",
+        manufacturer: "huawei",
+        serial_number: "",
+        location: "",
+        total_pon_ports: 8,
+      })
+    } catch (error) {
+      console.error('Failed to create OLT:', error)
+    }
   }
 
   return (

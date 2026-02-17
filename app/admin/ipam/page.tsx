@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useCallback } from "react"
 import {
   Network,
   Plus,
@@ -81,171 +81,14 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { Skeleton } from "@/components/ui/skeleton"
+import { adminApi } from "@/lib/admin-api"
 import type { Subnet, IPAddress, DHCPLease } from "@/lib/types"
 
 type SubnetStatus = 'active' | 'inactive' | 'full'
 type IPStatus = 'available' | 'assigned' | 'reserved' | 'dhcp'
 
-// Mock data for subnets
-const generateMockSubnets = (): (Subnet & { usage_percent: number; available: number; total: number })[] => {
-  return [
-    {
-      id: 1,
-      network: "10.0.0.0/24",
-      vlan: 100,
-      name: "Customer Pool - Nairobi Central",
-      description: "Main customer IP pool for Nairobi Central area",
-      gateway: "10.0.0.1",
-      dns_primary: "8.8.8.8",
-      dns_secondary: "8.8.4.4",
-      dhcp_enabled: true,
-      dhcp_start: "10.0.0.10",
-      dhcp_end: "10.0.0.250",
-      lease_time: 86400,
-      is_active: true,
-      created_at: "2024-01-01T00:00:00Z",
-      usage_percent: 78,
-      available: 56,
-      total: 254,
-    },
-    {
-      id: 2,
-      network: "10.0.1.0/24",
-      vlan: 101,
-      name: "Customer Pool - Westlands",
-      description: "Customer IP pool for Westlands area",
-      gateway: "10.0.1.1",
-      dns_primary: "8.8.8.8",
-      dns_secondary: "8.8.4.4",
-      dhcp_enabled: true,
-      dhcp_start: "10.0.1.10",
-      dhcp_end: "10.0.1.250",
-      lease_time: 86400,
-      is_active: true,
-      created_at: "2024-01-01T00:00:00Z",
-      usage_percent: 45,
-      available: 140,
-      total: 254,
-    },
-    {
-      id: 3,
-      network: "10.0.2.0/24",
-      vlan: 102,
-      name: "Customer Pool - Mombasa",
-      description: "Customer IP pool for Mombasa area",
-      gateway: "10.0.2.1",
-      dns_primary: "8.8.8.8",
-      dns_secondary: "1.1.1.1",
-      dhcp_enabled: true,
-      dhcp_start: "10.0.2.10",
-      dhcp_end: "10.0.2.250",
-      lease_time: 86400,
-      is_active: true,
-      created_at: "2024-01-15T00:00:00Z",
-      usage_percent: 32,
-      available: 173,
-      total: 254,
-    },
-    {
-      id: 4,
-      network: "10.10.0.0/24",
-      vlan: 10,
-      name: "Management Network",
-      description: "Internal management network for infrastructure",
-      gateway: "10.10.0.1",
-      dns_primary: "8.8.8.8",
-      dns_secondary: "8.8.4.4",
-      dhcp_enabled: false,
-      is_active: true,
-      created_at: "2024-01-01T00:00:00Z",
-      usage_percent: 15,
-      available: 216,
-      total: 254,
-    },
-    {
-      id: 5,
-      network: "192.168.100.0/24",
-      vlan: 200,
-      name: "Business Pool",
-      description: "Static IP pool for business customers",
-      gateway: "192.168.100.1",
-      dns_primary: "8.8.8.8",
-      dns_secondary: "8.8.4.4",
-      dhcp_enabled: false,
-      is_active: true,
-      created_at: "2024-02-01T00:00:00Z",
-      usage_percent: 65,
-      available: 89,
-      total: 254,
-    },
-    {
-      id: 6,
-      network: "10.0.10.0/24",
-      vlan: 110,
-      name: "Customer Pool - Kisumu",
-      description: "Customer IP pool for Kisumu region",
-      gateway: "10.0.10.1",
-      dns_primary: "8.8.8.8",
-      dns_secondary: "8.8.4.4",
-      dhcp_enabled: true,
-      dhcp_start: "10.0.10.10",
-      dhcp_end: "10.0.10.250",
-      lease_time: 86400,
-      is_active: false,
-      created_at: "2024-03-01T00:00:00Z",
-      usage_percent: 0,
-      available: 254,
-      total: 254,
-    },
-  ]
-}
 
-// Mock IP addresses
-const generateMockIPAddresses = (subnetId: number): IPAddress[] => {
-  const addresses: IPAddress[] = []
-  const baseIP = subnetId === 1 ? "10.0.0" : subnetId === 2 ? "10.0.1" : "10.0.2"
-  
-  for (let i = 1; i <= 50; i++) {
-    const statuses: IPStatus[] = ['assigned', 'assigned', 'assigned', 'available', 'reserved', 'dhcp']
-    const status = statuses[Math.floor(Math.random() * statuses.length)]
-    
-    addresses.push({
-      id: i,
-      subnet: subnetId,
-      address: `${baseIP}.${i}`,
-      status,
-      customer: status === 'assigned' ? 1000 + i : undefined,
-      customer_name: status === 'assigned' ? `Customer ${i}` : undefined,
-      mac_address: status !== 'available' ? `AA:BB:CC:DD:${String(i).padStart(2, '0')}:${String(Math.floor(Math.random() * 99)).padStart(2, '0')}` : undefined,
-      hostname: status === 'assigned' ? `cpe-${1000 + i}` : undefined,
-      notes: status === 'reserved' ? 'Reserved for infrastructure' : undefined,
-      last_seen: status !== 'available' ? new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString() : undefined,
-      created_at: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString(),
-    })
-  }
-  return addresses
-}
-
-// Mock DHCP leases
-const generateMockDHCPLeases = (): DHCPLease[] => {
-  const leases: DHCPLease[] = []
-  for (let i = 1; i <= 30; i++) {
-    const startTime = new Date(Date.now() - Math.random() * 12 * 60 * 60 * 1000)
-    const expiryTime = new Date(startTime.getTime() + 24 * 60 * 60 * 1000)
-    
-    leases.push({
-      id: i,
-      ip_address: `10.0.0.${10 + i}`,
-      mac_address: `AA:BB:CC:DD:EE:${String(i).padStart(2, '0')}`,
-      hostname: `device-${i}`,
-      lease_start: startTime.toISOString(),
-      lease_expiry: expiryTime.toISOString(),
-      is_active: Math.random() > 0.1,
-      customer: Math.random() > 0.3 ? 1000 + i : undefined,
-    })
-  }
-  return leases
-}
 
 const getStatusBadge = (status: IPStatus) => {
   const config: Record<IPStatus, { variant: "default" | "secondary" | "destructive" | "outline"; color: string }> = {
@@ -275,7 +118,8 @@ const getProgressColor = (percent: number) => {
 }
 
 export default function IPAMPage() {
-  const [subnets] = useState(generateMockSubnets())
+  const [loading, setLoading] = useState(true)
+  const [subnets, setSubnets] = useState<(Subnet & { usage_percent: number; available: number; total: number })[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("subnets")
   const [selectedSubnet, setSelectedSubnet] = useState<typeof subnets[0] | null>(null)
@@ -283,7 +127,38 @@ export default function IPAMPage() {
   const [isCreateSubnetOpen, setIsCreateSubnetOpen] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [ipAddresses, setIPAddresses] = useState<IPAddress[]>([])
-  const [dhcpLeases] = useState(generateMockDHCPLeases())
+  const [dhcpLeases, setDhcpLeases] = useState<DHCPLease[]>([])
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true)
+      const [subnetsRes, dhcpRes] = await Promise.allSettled([
+        adminApi.getSubnets({ page_size: "100" }),
+        adminApi.getDHCPLeases({ page_size: "100" }),
+      ])
+      if (subnetsRes.status === "fulfilled") {
+        setSubnets(
+          (subnetsRes.value.results || []).map(s => ({
+            ...s,
+            usage_percent: 0,
+            available: 0,
+            total: 0,
+          }))
+        )
+      }
+      if (dhcpRes.status === "fulfilled") {
+        setDhcpLeases(dhcpRes.value.results || [])
+      }
+    } catch (err) {
+      console.error("Failed to load IPAM data:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   // Subnet form state
   const [subnetForm, setSubnetForm] = useState({
@@ -326,15 +201,21 @@ export default function IPAMPage() {
     )
   }, [subnets, searchQuery])
 
-  const handleViewSubnet = (subnet: typeof subnets[0]) => {
+  const handleViewSubnet = async (subnet: typeof subnets[0]) => {
     setSelectedSubnet(subnet)
-    setIPAddresses(generateMockIPAddresses(subnet.id))
+    try {
+      const res = await adminApi.getIPAddresses({ subnet: String(subnet.id), page_size: "100" })
+      setIPAddresses(res.results || [])
+    } catch (err) {
+      console.error("Failed to load IP addresses:", err)
+      setIPAddresses([])
+    }
     setIsDetailOpen(true)
   }
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await fetchData()
     setIsRefreshing(false)
   }
 

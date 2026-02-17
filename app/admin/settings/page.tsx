@@ -476,12 +476,11 @@ export default function SettingsPage() {
     setTestingConnection(service)
     setConnectionStatus((prev) => ({ ...prev, [service]: null }))
     
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    // TODO: Replace with real connection test API call
+    await new Promise((resolve) => setTimeout(resolve, 1500))
     
-    // Mock success/failure (in production, this would be a real API call)
-    const success = Math.random() > 0.3
-    setConnectionStatus((prev) => ({ ...prev, [service]: success ? "success" : "error" }))
+    // Connection testing not yet implemented — show as pending
+    setConnectionStatus((prev) => ({ ...prev, [service]: "error" }))
     setTestingConnection(null)
   }
 

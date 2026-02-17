@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useCallback } from "react"
 import {
   Bell,
   AlertTriangle,
@@ -87,14 +87,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
+import { Skeleton } from "@/components/ui/skeleton"
+import { adminApi } from "@/lib/admin-api"
+import type { Alert as BackendAlert, AlertRule as BackendAlertRule } from "@/lib/types"
 
-// Types
+// Types — local display models mapped from backend
 interface Alert {
   id: string
   title: string
   message: string
   severity: "critical" | "warning" | "info"
-  category: "network" | "billing" | "system" | "customer" | "security"
+  category: string
   source: string
   status: "active" | "acknowledged" | "resolved"
   createdAt: string
@@ -102,190 +105,56 @@ interface Alert {
   acknowledgedBy?: string
   resolvedAt?: string
   resolvedBy?: string
-  relatedEntity?: {
-    type: "customer" | "device" | "olt" | "router"
-    id: string
-    name: string
-  }
 }
 
 interface AlertRule {
   id: string
   name: string
   description: string
-  category: "network" | "billing" | "system" | "customer" | "security"
+  category: string
   condition: string
   threshold?: number
   thresholdUnit?: string
   severity: "critical" | "warning" | "info"
   enabled: boolean
-  channels: ("email" | "sms" | "push" | "inapp")[]
+  channels: string[]
   recipients: string[]
   cooldownMinutes: number
   lastTriggered?: string
   triggerCount: number
 }
 
-interface NotificationChannel {
-  id: string
-  type: "email" | "sms" | "push" | "webhook"
-  name: string
-  enabled: boolean
-  config: Record<string, string>
-}
+/** Map backend Alert to local display model */
+const mapAlert = (a: BackendAlert): Alert => ({
+  id: String(a.id),
+  title: a.title,
+  message: a.message,
+  severity: a.severity === "error" ? "critical" : a.severity as Alert["severity"],
+  category: a.source || "system",
+  source: a.related_object_type || a.source || "system",
+  status: a.status,
+  createdAt: a.created_at,
+  acknowledgedAt: a.acknowledged_at,
+  acknowledgedBy: a.acknowledged_by?.username,
+  resolvedAt: a.resolved_at,
+})
 
-// Mock data generators
-const generateMockAlerts = (): Alert[] => {
-  const alerts: Partial<Alert>[] = [
-    { title: "OLT Port Down", message: "PON Port 3 on OLT-001 is not responding", severity: "critical", category: "network", source: "OLT-001" },
-    { title: "High Bandwidth Usage", message: "Customer CUST-1234 exceeded 90% of daily quota", severity: "warning", category: "customer", source: "FUP System" },
-    { title: "Payment Overdue", message: "15 customers have payments overdue by more than 7 days", severity: "warning", category: "billing", source: "Billing System" },
-    { title: "Router Unreachable", message: "Router RTR-005 has not responded for 10 minutes", severity: "critical", category: "network", source: "Monitoring" },
-    { title: "Disk Space Low", message: "Server disk usage at 85%", severity: "warning", category: "system", source: "System Monitor" },
-    { title: "New Customer Registration", message: "5 new customers registered today", severity: "info", category: "customer", source: "Registration" },
-    { title: "Firmware Update Available", message: "New firmware available for Huawei OLTs", severity: "info", category: "system", source: "Update Service" },
-    { title: "Login Attempt Failed", message: "Multiple failed login attempts detected from IP 41.89.x.x", severity: "warning", category: "security", source: "Auth Service" },
-    { title: "ONU Offline", message: "12 ONUs went offline in the last hour", severity: "critical", category: "network", source: "ONU Monitor" },
-    { title: "Backup Completed", message: "Daily backup completed successfully", severity: "info", category: "system", source: "Backup Service" },
-  ]
+/** Map backend AlertRule to local display model */
+const mapRule = (r: BackendAlertRule): AlertRule => ({
+  id: String(r.id),
+  name: r.name,
+  description: r.description || "",
+  category: r.condition_type,
+  condition: JSON.stringify(r.condition_value),
+  severity: r.severity === "error" ? "critical" : r.severity as AlertRule["severity"],
+  enabled: r.is_active,
+  channels: r.notification_channels || [],
+  recipients: [],
+  cooldownMinutes: 0,
+  triggerCount: 0,
+})
 
-  return alerts.map((alert, i) => ({
-    ...alert,
-    id: `alert-${i + 1}`,
-    status: i < 3 ? "active" : (i < 6 ? "acknowledged" : "resolved"),
-    createdAt: new Date(Date.now() - Math.floor(Math.random() * 86400000 * 3)).toISOString(),
-    acknowledgedAt: i >= 3 ? new Date(Date.now() - Math.floor(Math.random() * 86400000)).toISOString() : undefined,
-    acknowledgedBy: i >= 3 ? "Admin" : undefined,
-    resolvedAt: i >= 6 ? new Date(Date.now() - Math.floor(Math.random() * 3600000)).toISOString() : undefined,
-    resolvedBy: i >= 6 ? "System" : undefined,
-  })) as Alert[]
-}
 
-const generateMockRules = (): AlertRule[] => {
-  return [
-    {
-      id: "rule-1",
-      name: "OLT Port Down",
-      description: "Alert when an OLT PON port becomes unresponsive",
-      category: "network",
-      condition: "PON port status = DOWN",
-      severity: "critical",
-      enabled: true,
-      channels: ["email", "sms", "push"],
-      recipients: ["network-team@company.com", "+254700000000"],
-      cooldownMinutes: 5,
-      lastTriggered: new Date(Date.now() - 3600000).toISOString(),
-      triggerCount: 23,
-    },
-    {
-      id: "rule-2",
-      name: "High Bandwidth Usage",
-      description: "Alert when customer exceeds bandwidth threshold",
-      category: "customer",
-      condition: "Bandwidth usage > threshold",
-      threshold: 90,
-      thresholdUnit: "%",
-      severity: "warning",
-      enabled: true,
-      channels: ["inapp"],
-      recipients: [],
-      cooldownMinutes: 60,
-      lastTriggered: new Date(Date.now() - 7200000).toISOString(),
-      triggerCount: 156,
-    },
-    {
-      id: "rule-3",
-      name: "Payment Overdue",
-      description: "Alert when customer payment is overdue",
-      category: "billing",
-      condition: "Payment overdue days > threshold",
-      threshold: 7,
-      thresholdUnit: "days",
-      severity: "warning",
-      enabled: true,
-      channels: ["email"],
-      recipients: ["billing@company.com"],
-      cooldownMinutes: 1440,
-      lastTriggered: new Date(Date.now() - 86400000).toISOString(),
-      triggerCount: 89,
-    },
-    {
-      id: "rule-4",
-      name: "Router Unreachable",
-      description: "Alert when router does not respond to health checks",
-      category: "network",
-      condition: "Router ping timeout > threshold",
-      threshold: 5,
-      thresholdUnit: "minutes",
-      severity: "critical",
-      enabled: true,
-      channels: ["email", "sms", "push"],
-      recipients: ["network-team@company.com"],
-      cooldownMinutes: 10,
-      lastTriggered: new Date(Date.now() - 172800000).toISOString(),
-      triggerCount: 12,
-    },
-    {
-      id: "rule-5",
-      name: "Disk Space Low",
-      description: "Alert when server disk usage exceeds threshold",
-      category: "system",
-      condition: "Disk usage > threshold",
-      threshold: 80,
-      thresholdUnit: "%",
-      severity: "warning",
-      enabled: true,
-      channels: ["email"],
-      recipients: ["sysadmin@company.com"],
-      cooldownMinutes: 360,
-      triggerCount: 5,
-    },
-    {
-      id: "rule-6",
-      name: "Failed Login Attempts",
-      description: "Alert on multiple failed login attempts",
-      category: "security",
-      condition: "Failed logins from IP > threshold",
-      threshold: 5,
-      thresholdUnit: "attempts",
-      severity: "warning",
-      enabled: true,
-      channels: ["email", "push"],
-      recipients: ["security@company.com"],
-      cooldownMinutes: 30,
-      lastTriggered: new Date(Date.now() - 43200000).toISOString(),
-      triggerCount: 34,
-    },
-    {
-      id: "rule-7",
-      name: "ONU Mass Offline",
-      description: "Alert when multiple ONUs go offline simultaneously",
-      category: "network",
-      condition: "ONUs offline in 1 hour > threshold",
-      threshold: 10,
-      thresholdUnit: "devices",
-      severity: "critical",
-      enabled: true,
-      channels: ["email", "sms", "push"],
-      recipients: ["network-team@company.com", "manager@company.com"],
-      cooldownMinutes: 15,
-      triggerCount: 3,
-    },
-    {
-      id: "rule-8",
-      name: "New Customer Signup",
-      description: "Notify on new customer registrations",
-      category: "customer",
-      condition: "New customer registered",
-      severity: "info",
-      enabled: false,
-      channels: ["inapp"],
-      recipients: [],
-      cooldownMinutes: 0,
-      triggerCount: 245,
-    },
-  ]
-}
 
 // Helpers
 const formatTimeAgo = (dateString: string): string => {
@@ -301,13 +170,38 @@ const formatTimeAgo = (dateString: string): string => {
 }
 
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState<Alert[]>(generateMockAlerts())
-  const [rules, setRules] = useState<AlertRule[]>(generateMockRules())
+  const [loading, setLoading] = useState(true)
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [rules, setRules] = useState<AlertRule[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [severityFilter, setSeverityFilter] = useState<string>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null)
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true)
+      const [alertsRes, rulesRes] = await Promise.allSettled([
+        adminApi.getAlerts({ page_size: "100" }),
+        adminApi.getAlertRules(),
+      ])
+      if (alertsRes.status === "fulfilled") {
+        setAlerts((alertsRes.value.results || []).map(mapAlert))
+      }
+      if (rulesRes.status === "fulfilled") {
+        setRules((Array.isArray(rulesRes.value) ? rulesRes.value : []).map(mapRule))
+      }
+    } catch (err) {
+      console.error("Failed to load alerts:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
   const [detailSheetOpen, setDetailSheetOpen] = useState(false)
   const [createRuleDialogOpen, setCreateRuleDialogOpen] = useState(false)
   const [editRuleDialogOpen, setEditRuleDialogOpen] = useState(false)

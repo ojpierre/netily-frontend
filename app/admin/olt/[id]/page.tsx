@@ -1,8 +1,9 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
+import { adminApi } from "@/lib/admin-api"
 import {
   Radio,
   ArrowLeft,
@@ -104,87 +105,6 @@ import {
 } from "@/components/ui/tooltip"
 import type { OLT, PONPort, ONU } from "@/lib/types"
 
-// Mock OLT data
-const getMockOLT = (id: number): OLT => ({
-  id,
-  name: "OLT-Nairobi-CBD-01",
-  ip_address: "10.0.1.1",
-  model: "MA5800-X17",
-  manufacturer: "huawei",
-  serial_number: "HW2024001234",
-  firmware_version: "V800R021C00",
-  total_pon_ports: 16,
-  active_pon_ports: 14,
-  total_onus: 448,
-  online_onus: 421,
-  location: "Nairobi CBD - Main POP",
-  latitude: -1.2921,
-  longitude: 36.8219,
-  status: "online",
-  uptime: "125d 14h 32m",
-  cpu_usage: 35,
-  memory_usage: 48,
-  temperature: 42,
-  last_seen: "Just now",
-  created_at: "2024-01-15T10:00:00Z",
-  updated_at: "2024-12-30T08:00:00Z",
-})
-
-// Mock PON ports
-const getMockPONPorts = (oltId: number): PONPort[] => {
-  const ports: PONPort[] = []
-  for (let i = 1; i <= 16; i++) {
-    const totalOnus = Math.floor(Math.random() * 24) + 8
-    const onlineOnus = Math.floor(totalOnus * (0.85 + Math.random() * 0.15))
-    ports.push({
-      id: oltId * 100 + i,
-      olt: oltId,
-      port_number: `0/0/${i}`,
-      name: `PON Port ${i}`,
-      status: i <= 14 ? 'active' : i === 15 ? 'inactive' : 'fault',
-      total_onus: totalOnus,
-      online_onus: onlineOnus,
-      rx_power: -(Math.random() * 6 + 18),
-      tx_power: Math.random() * 2 + 2,
-      description: `Zone ${String.fromCharCode(64 + (i % 26 + 1))} - Block ${Math.ceil(i / 4)}`,
-    })
-  }
-  return ports
-}
-
-// Mock ONUs for a PON port
-const getMockONUs = (portId: number): ONU[] => {
-  const onus: ONU[] = []
-  const count = Math.floor(Math.random() * 20) + 10
-  for (let i = 1; i <= count; i++) {
-    const status = Math.random() > 0.1 ? 'online' : Math.random() > 0.5 ? 'offline' : 'los'
-    onus.push({
-      id: portId * 100 + i,
-      serial_number: `HWTC${String(portId).padStart(4, '0')}${String(i).padStart(4, '0')}`,
-      pon_port: portId,
-      pon_port_name: `0/0/${portId % 16 + 1}`,
-      olt: Math.floor(portId / 100),
-      olt_name: "OLT-Nairobi-CBD-01",
-      customer: Math.random() > 0.1 ? 1000 + i : undefined,
-      customer_name: Math.random() > 0.1 ? `Customer ${i}` : undefined,
-      model: ["HG8245H", "HG8546M", "HG8145V5", "EG8145V5"][Math.floor(Math.random() * 4)],
-      manufacturer: "Huawei",
-      firmware_version: "V3R019C10S115",
-      status: status as any,
-      registration_status: Math.random() > 0.05 ? 'registered' : 'pending',
-      rx_power: -(Math.random() * 8 + 18),
-      tx_power: Math.random() * 2 + 1,
-      distance: Math.floor(Math.random() * 5000) + 200,
-      mac_address: `AA:BB:CC:${String(portId % 100).padStart(2, '0')}:${String(i).padStart(2, '0')}:01`,
-      ip_address: `192.168.${portId % 256}.${i}`,
-      last_seen: status === 'online' ? 'Just now' : status === 'offline' ? '2 hours ago' : '10 min ago',
-      created_at: "2024-06-15T10:00:00Z",
-      updated_at: "2024-12-30T08:00:00Z",
-    })
-  }
-  return onus
-}
-
 const getPortStatusBadge = (status: string) => {
   const config: Record<string, { variant: "default" | "secondary" | "destructive"; icon: React.ReactNode }> = {
     active: { variant: "default", icon: <CheckCircle className="h-3 w-3" /> },
@@ -228,24 +148,56 @@ export default function OLTDetailPage() {
   const router = useRouter()
   const oltId = parseInt(params.id as string)
   
-  const [olt] = useState<OLT>(getMockOLT(oltId))
-  const [ponPorts] = useState<PONPort[]>(getMockPONPorts(oltId))
+  const [olt, setOlt] = useState<OLT | null>(null)
+  const [ponPorts, setPonPorts] = useState<PONPort[]>([])
   const [selectedPort, setSelectedPort] = useState<PONPort | null>(null)
   const [portONUs, setPortONUs] = useState<ONU[]>([])
   const [isPortDetailOpen, setIsPortDetailOpen] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [loading, setLoading] = useState(true)
+  const [allONUs, setAllONUs] = useState<ONU[]>([])
 
-  const handlePortClick = (port: PONPort) => {
+  const fetchData = useCallback(async () => {
+    try {
+      const [oltData, portsData] = await Promise.all([
+        adminApi.getOLT(oltId),
+        adminApi.getOLTPONPorts(oltId),
+      ])
+      setOlt(oltData)
+      setPonPorts(portsData || [])
+      // Fetch ONUs for this OLT
+      try {
+        const onuResponse = await adminApi.getONUs({ olt: String(oltId), page_size: '200' })
+        setAllONUs(onuResponse.results || [])
+      } catch { setAllONUs([]) }
+    } catch (error) {
+      console.error('Failed to fetch OLT data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [oltId])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  const handlePortClick = async (port: PONPort) => {
     setSelectedPort(port)
-    setPortONUs(getMockONUs(port.id))
     setIsPortDetailOpen(true)
+    try {
+      const onuResponse = await adminApi.getONUs({ pon_port: String(port.id), page_size: '100' })
+      setPortONUs(onuResponse.results || [])
+    } catch (error) {
+      console.error('Failed to fetch ONUs for port:', error)
+      setPortONUs([])
+    }
   }
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await fetchData()
     setIsRefreshing(false)
   }
 
@@ -267,6 +219,14 @@ export default function OLTDetailPage() {
     const avgRxPower = ponPorts.reduce((sum, p) => sum + (p.rx_power || 0), 0) / ponPorts.length
     return { activePorts, faultPorts, totalOnus, onlineOnus, avgRxPower }
   }, [ponPorts])
+
+  if (loading || !olt) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -511,7 +471,7 @@ export default function OLTDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {getMockONUs(ponPorts[0]?.id || 101).slice(0, 10).map((onu) => (
+                  {allONUs.slice(0, 10).map((onu) => (
                     <TableRow key={onu.id}>
                       <TableCell className="font-mono text-sm">{onu.serial_number}</TableCell>
                       <TableCell>{onu.pon_port_name}</TableCell>
@@ -682,25 +642,7 @@ export default function OLTDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  { type: 'info', message: 'OLT synchronized successfully', time: '5 minutes ago' },
-                  { type: 'warning', message: 'High CPU usage detected (75%)', time: '2 hours ago' },
-                  { type: 'success', message: 'ONU HWTC00010015 registered on port 0/0/3', time: '4 hours ago' },
-                  { type: 'error', message: 'ONU HWTC00010022 LOS detected on port 0/0/5', time: '6 hours ago' },
-                  { type: 'info', message: 'Configuration backup completed', time: '1 day ago' },
-                  { type: 'success', message: 'Firmware upgrade completed successfully', time: '3 days ago' },
-                ].map((event, i) => (
-                  <div key={i} className="flex items-start gap-3 pb-3 border-b last:border-0">
-                    {event.type === 'success' && <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />}
-                    {event.type === 'warning' && <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5" />}
-                    {event.type === 'error' && <XCircle className="h-5 w-5 text-red-500 mt-0.5" />}
-                    {event.type === 'info' && <Info className="h-5 w-5 text-blue-500 mt-0.5" />}
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{event.message}</p>
-                      <p className="text-xs text-muted-foreground">{event.time}</p>
-                    </div>
-                  </div>
-                ))}
+                <p className="text-sm text-muted-foreground text-center py-4">No recent events</p>
               </div>
             </CardContent>
           </Card>

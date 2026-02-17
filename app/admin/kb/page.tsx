@@ -128,80 +128,10 @@ interface NetworkStatus {
   lastUpdated: string
 }
 
-// Mock data
-const categories: KBCategory[] = [
-  { id: "1", name: "Getting Started", slug: "getting-started", description: "New customer guides", icon: "book", articleCount: 8, order: 1 },
-  { id: "2", name: "Billing & Payments", slug: "billing", description: "Payment methods and invoices", icon: "credit-card", articleCount: 12, order: 2 },
-  { id: "3", name: "Connectivity Issues", slug: "connectivity", description: "Troubleshooting connection problems", icon: "wifi", articleCount: 15, order: 3 },
-  { id: "4", name: "Router & Equipment", slug: "equipment", description: "Device setup and configuration", icon: "router", articleCount: 10, order: 4 },
-  { id: "5", name: "Account Management", slug: "account", description: "Profile and settings", icon: "users", articleCount: 6, order: 5 },
-  { id: "6", name: "Speed & Performance", slug: "performance", description: "Optimizing your connection", icon: "zap", articleCount: 9, order: 6 },
-]
+// TODO: Add Knowledge Base API endpoint when backend supports it
+// import { adminApi } from "@/lib/admin-api"
 
-const generateMockArticles = (): KBArticle[] => {
-  const articles: Partial<KBArticle>[] = [
-    { title: "How to pay your bill via M-Pesa", summary: "Step-by-step guide for M-Pesa payments", category: "Billing & Payments", tags: ["mpesa", "payment", "billing"], visibility: "public" },
-    { title: "Router not connecting to internet", summary: "Common solutions for internet connectivity issues", category: "Connectivity Issues", tags: ["router", "internet", "troubleshooting"], visibility: "public" },
-    { title: "How to check your data usage", summary: "View your bandwidth consumption in the customer portal", category: "Account Management", tags: ["usage", "data", "bandwidth"], visibility: "public" },
-    { title: "Setting up WiFi on your router", summary: "Configure wireless network settings", category: "Router & Equipment", tags: ["wifi", "wireless", "setup"], visibility: "public" },
-    { title: "Understanding your invoice", summary: "Breakdown of invoice charges and fees", category: "Billing & Payments", tags: ["invoice", "billing", "charges"], visibility: "public" },
-    { title: "Slow internet speed troubleshooting", summary: "Steps to diagnose and fix slow speeds", category: "Speed & Performance", tags: ["speed", "slow", "performance"], visibility: "public" },
-    { title: "How to upgrade your plan", summary: "Request a plan upgrade through the portal", category: "Account Management", tags: ["upgrade", "plan", "change"], visibility: "public" },
-    { title: "ONU/ONT light indicators meaning", summary: "Understanding the lights on your fiber device", category: "Router & Equipment", tags: ["onu", "ont", "fiber", "lights"], visibility: "public" },
-    { title: "Payment failed - what to do", summary: "Troubleshooting failed M-Pesa transactions", category: "Billing & Payments", tags: ["payment", "failed", "mpesa"], visibility: "public" },
-    { title: "How to reset your router", summary: "Factory reset and soft reset procedures", category: "Router & Equipment", tags: ["reset", "router", "factory"], visibility: "public" },
-    { title: "FUP (Fair Usage Policy) explained", summary: "Understanding bandwidth throttling policies", category: "Speed & Performance", tags: ["fup", "throttling", "policy"], visibility: "public" },
-    { title: "Changing your WiFi password", summary: "How to update your wireless network password", category: "Router & Equipment", tags: ["wifi", "password", "security"], visibility: "public" },
-    { title: "Internal: Escalation procedures", summary: "How to escalate customer issues", category: "Internal Docs", tags: ["internal", "escalation", "support"], visibility: "internal" },
-    { title: "Agent: Commission structure", summary: "Agent commission rates and calculations", category: "Internal Docs", tags: ["agent", "commission", "sales"], visibility: "agents" },
-  ]
-
-  return articles.map((article, i) => ({
-    ...article,
-    id: `article-${i + 1}`,
-    slug: article.title?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "") || "",
-    content: `# ${article.title}\n\n${article.summary}\n\n## Overview\n\nThis article provides detailed information about ${article.title?.toLowerCase()}.\n\n## Steps\n\n1. First step...\n2. Second step...\n3. Third step...\n\n## Related Information\n\nFor more help, contact support.`,
-    status: Math.random() > 0.1 ? "published" : "draft",
-    views: Math.floor(Math.random() * 5000) + 100,
-    helpfulVotes: Math.floor(Math.random() * 200) + 10,
-    notHelpfulVotes: Math.floor(Math.random() * 20),
-    createdAt: new Date(Date.now() - Math.floor(Math.random() * 86400000 * 90)).toISOString(),
-    updatedAt: new Date(Date.now() - Math.floor(Math.random() * 86400000 * 30)).toISOString(),
-    author: ["Admin", "Support Team", "Technical Team"][Math.floor(Math.random() * 3)],
-    relatedArticles: [],
-  })) as KBArticle[]
-}
-
-const mockMaintenanceSchedules: MaintenanceSchedule[] = [
-  {
-    id: "1",
-    title: "Scheduled Network Upgrade - Nairobi West",
-    description: "Upgrading network infrastructure to improve speeds and reliability",
-    startTime: new Date(Date.now() + 86400000 * 2).toISOString(),
-    endTime: new Date(Date.now() + 86400000 * 2 + 14400000).toISOString(),
-    affectedAreas: ["Nairobi West", "Lavington", "Kilimani"],
-    status: "scheduled",
-    createdBy: "Network Team",
-  },
-  {
-    id: "2",
-    title: "OLT Firmware Update - Mombasa",
-    description: "Critical firmware update for improved stability",
-    startTime: new Date(Date.now() + 86400000 * 5).toISOString(),
-    endTime: new Date(Date.now() + 86400000 * 5 + 7200000).toISOString(),
-    affectedAreas: ["Mombasa CBD", "Nyali"],
-    status: "scheduled",
-    createdBy: "Network Team",
-  },
-]
-
-const mockNetworkStatus: NetworkStatus[] = [
-  { id: "1", area: "Nairobi CBD", status: "operational", message: "All systems operational", lastUpdated: new Date(Date.now() - 3600000).toISOString() },
-  { id: "2", area: "Westlands", status: "operational", message: "All systems operational", lastUpdated: new Date(Date.now() - 3600000).toISOString() },
-  { id: "3", area: "Mombasa", status: "degraded", message: "Some customers experiencing slow speeds", lastUpdated: new Date(Date.now() - 1800000).toISOString() },
-  { id: "4", area: "Kisumu", status: "operational", message: "All systems operational", lastUpdated: new Date(Date.now() - 7200000).toISOString() },
-  { id: "5", area: "Nakuru", status: "maintenance", message: "Planned maintenance in progress", lastUpdated: new Date(Date.now() - 600000).toISOString() },
-]
+const categories: KBCategory[] = []
 
 // Helpers
 const formatTimeAgo = (dateString: string): string => {
@@ -229,7 +159,7 @@ const getCategoryIcon = (iconName: string) => {
 }
 
 export default function KnowledgeBasePage() {
-  const [articles, setArticles] = useState<KBArticle[]>(generateMockArticles())
+  const [articles, setArticles] = useState<KBArticle[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -239,6 +169,8 @@ export default function KnowledgeBasePage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [maintenanceDialogOpen, setMaintenanceDialogOpen] = useState(false)
   const [expandedCategories, setExpandedCategories] = useState<string[]>(categories.map(c => c.id))
+  const [networkStatus, setNetworkStatus] = useState<NetworkStatus[]>([])
+  const [maintenanceSchedules, setMaintenanceSchedules] = useState<MaintenanceSchedule[]>([])
 
   // Stats
   const stats = useMemo(() => {
@@ -386,7 +318,7 @@ export default function KnowledgeBasePage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {mockNetworkStatus.filter(s => s.status === "operational").length}/{mockNetworkStatus.length}
+              {networkStatus.filter(s => s.status === "operational").length}/{networkStatus.length}
             </div>
             <p className="text-xs text-muted-foreground">Areas operational</p>
           </CardContent>
@@ -596,7 +528,7 @@ export default function KnowledgeBasePage() {
           <Card>
             <CardContent className="p-0">
               <div className="divide-y">
-                {mockNetworkStatus.map(status => (
+                {networkStatus.map(status => (
                   <div key={status.id} className="flex items-center justify-between p-4">
                     <div className="flex items-center gap-4">
                       <div className={`w-3 h-3 rounded-full ${
@@ -635,7 +567,7 @@ export default function KnowledgeBasePage() {
             </Button>
           </div>
           <div className="space-y-4">
-            {mockMaintenanceSchedules.map(maintenance => (
+            {maintenanceSchedules.map(maintenance => (
               <Card key={maintenance.id}>
                 <CardHeader>
                   <div className="flex items-center justify-between">

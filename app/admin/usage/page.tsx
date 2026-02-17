@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import {
   BarChart3,
   Search,
@@ -13,6 +13,8 @@ import {
   Calendar,
   Loader2,
 } from "lucide-react"
+import { adminApi } from "@/lib/admin-api"
+import type { RADIUSAccountingSession } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -65,39 +67,22 @@ type AccountingLog = {
   status: "active" | "completed" | "terminated"
 }
 
-const generateMockLogs = (): AccountingLog[] => {
-  const terminationCauses = [
-    "User-Request",
-    "Session-Timeout",
-    "Idle-Timeout",
-    "Admin-Reset",
-    "Lost-Carrier",
-    "NAS-Reboot",
-  ]
-
-  return Array.from({ length: 40 }, (_, i) => {
-    const startDate = new Date(2025, 10, 15 - Math.floor(i / 5), Math.floor(Math.random() * 24), Math.floor(Math.random() * 60))
-    const duration = Math.floor(Math.random() * 480) + 30 // 30 min to 8 hours
-    const endDate = new Date(startDate.getTime() + duration * 60000)
-    const isActive = i < 3
-
-    return {
-      id: `ACC-${20000 + i}`,
-      userId: `USR-${1000 + Math.floor(Math.random() * 100)}`,
-      userName: `User ${Math.floor(Math.random() * 100) + 1}`,
-      sessionId: `SID${Math.random().toString(36).substr(2, 12).toUpperCase()}`,
-      startTime: startDate.toISOString(),
-      endTime: isActive ? "" : endDate.toISOString(),
-      duration: isActive ? Math.floor((Date.now() - startDate.getTime()) / 60000) : duration,
-      dataUpload: Math.floor(Math.random() * 500) + 50,
-      dataDownload: Math.floor(Math.random() * 5000) + 500,
-      ipAddress: `10.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-      nasId: `NAS-00${Math.floor(Math.random() * 5) + 1}`,
-      terminationCause: isActive ? "Active" : terminationCauses[Math.floor(Math.random() * terminationCauses.length)],
-      status: isActive ? "active" : "completed",
-    }
-  }).sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
-}
+// Map backend RADIUS accounting session to local AccountingLog type
+const mapSessionToLog = (session: RADIUSAccountingSession): AccountingLog => ({
+  id: String(session.id),
+  userId: session.username,
+  userName: session.customer_name || session.username,
+  sessionId: session.acctsessionid,
+  startTime: session.acctstarttime,
+  endTime: session.acctstoptime || "",
+  duration: session.session_duration ? Math.floor(session.session_duration / 60) : 0,
+  dataUpload: Math.round(session.acctinputoctets / (1024 * 1024)), // bytes to MB
+  dataDownload: Math.round(session.acctoutputoctets / (1024 * 1024)), // bytes to MB
+  ipAddress: session.framedipaddress || "",
+  nasId: session.nas_name || session.nasipaddress,
+  terminationCause: session.is_active ? "Active" : (session.acctterminatecause || "Unknown"),
+  status: session.is_active ? "active" : "completed",
+})
 
 export default function UsagePage() {
   const [loading, setLoading] = useState(true)
@@ -110,22 +95,44 @@ export default function UsagePage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 15
 
-  useEffect(() => {
-    const loadLogs = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        await new Promise((resolve) => setTimeout(resolve, 700))
-        setLogs(generateMockLogs())
-      } catch (err) {
-        setError("Failed to load usage logs. Please try again.")
-      } finally {
-        setLoading(false)
-      }
-    }
+  const fetchLogs = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const [sessionsRes, activeRes] = await Promise.allSettled([
+        adminApi.getRADIUSSessions({ page_size: '200' }),
+        adminApi.getRADIUSActiveSessions(),
+      ])
 
-    loadLogs()
+      const sessions: RADIUSAccountingSession[] = []
+      if (sessionsRes.status === 'fulfilled' && sessionsRes.value?.results) {
+        sessions.push(...sessionsRes.value.results)
+      }
+      // Merge active sessions that may not be in accounting yet
+      if (activeRes.status === 'fulfilled' && Array.isArray(activeRes.value)) {
+        const existingIds = new Set(sessions.map(s => s.acctsessionid))
+        for (const s of activeRes.value) {
+          if (!existingIds.has(s.acctsessionid)) {
+            sessions.push(s)
+          }
+        }
+      }
+
+      setLogs(
+        sessions
+          .map(mapSessionToLog)
+          .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+      )
+    } catch (err) {
+      setError("Failed to load usage logs. Please try again.")
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    fetchLogs()
+  }, [fetchLogs])
 
   const filteredLogs = logs.filter((log) => {
     const matchesSearch =

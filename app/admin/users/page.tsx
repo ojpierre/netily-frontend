@@ -35,9 +35,6 @@ import { adminApi } from "@/lib/admin-api"
 import type { Customer, CustomerService, CustomerStatus, Plan } from "@/lib/types"
 
 import { toast } from "sonner"
-
-// Mock mode toggle - set to false when backend is ready
-const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -230,54 +227,6 @@ const mapCustomerToUser = (customer: Customer): User => {
   }
 }
 
-// Mock data generator (fallback when API is unavailable)
-const generateMockUsers = (): User[] => {
-  const types: UserType[] = ["pppoe", "static", "fiber"]
-  const plans = [
-    { name: "Basic Daily", price: 50 },
-    { name: "Weekly 8Mbps", price: 500 },
-    { name: "Monthly 10Mbps", price: 1500 },
-    { name: "Premium Monthly", price: 3000 },
-    { name: "Business Quarterly", price: 8000 },
-  ]
-  const routers = ["Router-Nairobi-01", "Router-Mombasa-02", "Router-Kisumu-03", "Router-Nakuru-04"]
-  
-  return Array.from({ length: 50 }, (_, i) => {
-    const type = types[Math.floor(Math.random() * types.length)]
-    const plan = plans[Math.floor(Math.random() * plans.length)]
-    const isOnline = Math.random() > 0.4
-    const statuses: UserStatus[] = ["active", "expired", "suspended"]
-    const status = statuses[Math.floor(Math.random() * statuses.length)]
-    
-    return {
-      id: `USR-${1000 + i}`,
-      customerId: 1000 + i,
-      serviceId: null,
-      name: `User ${i + 1}`,
-      email: `user${i + 1}@example.com`,
-      phone: `+254 7${Math.floor(10000000 + Math.random() * 90000000)}`,
-      status,
-      serviceStatus: status === 'active' ? 'ACTIVE' : 'SUSPENDED',
-      connectionStatus: isOnline && status === "active" ? "online" : "offline",
-      type,
-      plan: plan.name,
-      planPrice: plan.price,
-      joinedDate: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString(),
-      expiryDate: new Date(2025, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString(),
-      lastOnline: isOnline ? "Now" : `${Math.floor(Math.random() * 24)}h ago`,
-      dataUsed: Math.random() * 100,
-      dataLimit: Math.random() > 0.5 ? 100 + Math.floor(Math.random() * 400) : null,
-      macAddress: type === "hotspot" || type === "static" ? `AA:BB:CC:${Math.floor(Math.random() * 99).toString().padStart(2, '0')}:${Math.floor(Math.random() * 99).toString().padStart(2, '0')}:${Math.floor(Math.random() * 99).toString().padStart(2, '0')}` : undefined,
-      ipAddress: type !== "hotspot" ? `192.168.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 254) + 1}` : undefined,
-      router: routers[Math.floor(Math.random() * routers.length)],
-      downloadSpeed: Math.floor(Math.random() * 20) + 2,
-      uploadSpeed: Math.floor(Math.random() * 10) + 1,
-      loyaltyPoints: Math.floor(Math.random() * 5000),
-      balance: Math.floor(Math.random() * 1000),
-    }
-  })
-}
-
 // Generate a simple password for easy testing
 const generateSimplePassword = (length: number = 8): string => {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789'
@@ -373,23 +322,9 @@ export default function UsersPage() {
       setLoading(true)
       setError(null)
       
-      if (USE_MOCK_DATA) {
-        // Use mock data when backend is not available
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        setUsers(generateMockUsers())
-      } else {
-        // Fetch from real API - /customers/ endpoint
-        try {
-          const response = await adminApi.getCustomers()
-          const mappedUsers = response.results.map(mapCustomerToUser)
-          setUsers(mappedUsers)
-        } catch (apiError) {
-          console.warn('API call failed, falling back to mock data:', apiError)
-          // Fallback to mock data if API fails
-          setUsers(generateMockUsers())
-          setError("Using demo data - backend not available")
-        }
-      }
+      const response = await adminApi.getCustomers()
+      const mappedUsers = response.results.map(mapCustomerToUser)
+      setUsers(mappedUsers)
     } catch (err) {
       console.error('Failed to load users:', err)
       setError("Failed to load users. Please try again.")

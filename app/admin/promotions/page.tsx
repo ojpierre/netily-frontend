@@ -138,150 +138,6 @@ interface ReferralProgram {
   totalRewardsGiven: number
 }
 
-// Mock data
-const generateMockPromotions = (): Promotion[] => {
-  const promotions: Partial<Promotion>[] = [
-    {
-      name: "New Year Special",
-      code: "NEWYEAR2025",
-      description: "Get 20% off on all annual plans",
-      type: "percentage",
-      value: 20,
-      applicablePlans: ["Basic", "Standard", "Premium"],
-      applicableCustomerTypes: ["all"],
-      status: "active",
-      usageLimit: 500,
-      usageCount: 234,
-      conditions: ["Valid for annual subscriptions only", "Cannot be combined with other offers"],
-    },
-    {
-      name: "First Month Free",
-      code: "FIRSTFREE",
-      description: "New customers get their first month free",
-      type: "free_days",
-      value: 30,
-      valueUnit: "days",
-      applicablePlans: ["Basic", "Standard"],
-      applicableCustomerTypes: ["new"],
-      status: "active",
-      usageLimit: 1000,
-      usageCount: 567,
-      conditions: ["New customers only", "Valid for first subscription"],
-    },
-    {
-      name: "Upgrade Bonus",
-      code: "UPGRADE50",
-      description: "KES 500 off when upgrading to Premium",
-      type: "fixed",
-      value: 500,
-      applicablePlans: ["Premium"],
-      applicableCustomerTypes: ["existing"],
-      status: "active",
-      usageCount: 89,
-      conditions: ["Must be upgrading from lower tier", "One-time use only"],
-    },
-    {
-      name: "Valentine's Special",
-      code: "LOVE2025",
-      description: "15% discount for couples (2+ connections)",
-      type: "percentage",
-      value: 15,
-      applicablePlans: ["Standard", "Premium"],
-      applicableCustomerTypes: ["all"],
-      status: "scheduled",
-      usageLimit: 200,
-      usageCount: 0,
-      conditions: ["Minimum 2 connections required", "Same billing address"],
-    },
-    {
-      name: "Student Discount",
-      code: "STUDENT20",
-      description: "20% off for verified students",
-      type: "percentage",
-      value: 20,
-      applicablePlans: ["Basic", "Standard"],
-      applicableCustomerTypes: ["new", "existing"],
-      status: "active",
-      usageCount: 445,
-      conditions: ["Valid student ID required", "Verification needed"],
-    },
-    {
-      name: "Bonus Data Pack",
-      code: "BONUS10GB",
-      description: "Get 10GB bonus data on any recharge",
-      type: "bonus_data",
-      value: 10,
-      valueUnit: "GB",
-      minPurchase: 1000,
-      applicablePlans: ["Basic", "Standard", "Premium"],
-      applicableCustomerTypes: ["all"],
-      status: "active",
-      usageLimit: 2000,
-      usageCount: 1456,
-      conditions: ["Minimum KES 1,000 recharge", "Bonus valid for 7 days"],
-    },
-    {
-      name: "Christmas 2024",
-      code: "XMAS2024",
-      description: "25% off on all plans",
-      type: "percentage",
-      value: 25,
-      applicablePlans: ["Basic", "Standard", "Premium", "Business"],
-      applicableCustomerTypes: ["all"],
-      status: "expired",
-      usageLimit: 1000,
-      usageCount: 892,
-      conditions: ["Valid during December only"],
-    },
-  ]
-
-  return promotions.map((promo, i) => ({
-    ...promo,
-    id: `promo-${i + 1}`,
-    startDate: promo.status === "scheduled" 
-      ? new Date(Date.now() + 86400000 * 30).toISOString()
-      : new Date(Date.now() - 86400000 * Math.floor(Math.random() * 60)).toISOString(),
-    endDate: promo.status === "expired"
-      ? new Date(Date.now() - 86400000 * 7).toISOString()
-      : new Date(Date.now() + 86400000 * Math.floor(Math.random() * 90 + 30)).toISOString(),
-    usagePerCustomer: 1,
-    createdAt: new Date(Date.now() - 86400000 * Math.floor(Math.random() * 90)).toISOString(),
-    createdBy: "Admin",
-  })) as Promotion[]
-}
-
-const generateMockVouchers = (): Voucher[] => {
-  return Array.from({ length: 20 }, (_, i) => ({
-    id: `voucher-${i + 1}`,
-    code: `VCH${String(100000 + i).padStart(8, "0")}`,
-    promotionId: `promo-${(i % 3) + 1}`,
-    promotionName: ["New Year Special", "First Month Free", "Upgrade Bonus"][i % 3],
-    value: [20, 30, 500][i % 3],
-    valueType: i % 3 === 2 ? "fixed" : "percentage",
-    status: i < 10 ? "used" : (i < 15 ? "unused" : "expired"),
-    customerId: i < 10 ? `CUST-${1000 + i}` : undefined,
-    customerName: i < 10 ? `Customer ${i + 1}` : undefined,
-    usedAt: i < 10 ? new Date(Date.now() - 86400000 * Math.floor(Math.random() * 30)).toISOString() : undefined,
-    expiresAt: i < 15 
-      ? new Date(Date.now() + 86400000 * 60).toISOString()
-      : new Date(Date.now() - 86400000 * 7).toISOString(),
-    createdAt: new Date(Date.now() - 86400000 * Math.floor(Math.random() * 60)).toISOString(),
-  }))
-}
-
-const mockReferralProgram: ReferralProgram = {
-  id: "ref-1",
-  name: "Refer a Friend",
-  description: "Get rewarded when you refer friends to Netily",
-  referrerReward: 500,
-  referrerRewardType: "credit",
-  refereeDiscount: 10,
-  refereeDiscountType: "percentage",
-  isActive: true,
-  totalReferrals: 1234,
-  totalRewardsGiven: 617000,
-}
-
 // Helpers
 const formatCurrency = (amount: number): string => {
   return `KES ${amount.toLocaleString()}`
@@ -296,9 +152,21 @@ const formatDate = (dateString: string): string => {
 }
 
 export default function PromotionsPage() {
-  const [promotions, setPromotions] = useState<Promotion[]>(generateMockPromotions())
-  const [vouchers] = useState<Voucher[]>(generateMockVouchers())
-  const [referralProgram] = useState<ReferralProgram>(mockReferralProgram)
+  // TODO: Connect to promotions API when available
+  const [promotions, setPromotions] = useState<Promotion[]>([])
+  const [vouchers] = useState<Voucher[]>([])
+  const [referralProgram] = useState<ReferralProgram>({
+    id: '',
+    name: '',
+    description: '',
+    referrerReward: 0,
+    referrerRewardType: 'credit',
+    refereeDiscount: 0,
+    refereeDiscountType: 'percentage',
+    isActive: false,
+    totalReferrals: 0,
+    totalRewardsGiven: 0,
+  })
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
@@ -750,23 +618,12 @@ export default function PromotionsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {[
-                      { name: "John Kamau", referrals: 23, earned: 11500 },
-                      { name: "Mary Wanjiku", referrals: 18, earned: 9000 },
-                      { name: "Peter Ochieng", referrals: 15, earned: 7500 },
-                      { name: "Jane Akinyi", referrals: 12, earned: 6000 },
-                      { name: "David Mwangi", referrals: 10, earned: 5000 },
-                    ].map((referrer, i) => (
-                      <TableRow key={i}>
-                        <TableCell>
-                          <Badge variant="outline">#{i + 1}</Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">{referrer.name}</TableCell>
-                        <TableCell>{referrer.referrals}</TableCell>
-                        <TableCell>{formatCurrency(referrer.earned)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                      No referral data available
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
                 </Table>
               </div>
             </CardContent>

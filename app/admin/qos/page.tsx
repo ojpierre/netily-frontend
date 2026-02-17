@@ -171,335 +171,7 @@ interface BandwidthSchedule {
   active: boolean
 }
 
-// Mock Data
-const mockPolicies: QoSPolicy[] = [
-  {
-    id: "POL001",
-    name: "Premium Plan QoS",
-    description: "Quality of Service policy for premium tier customers",
-    priority: 1,
-    status: "active",
-    type: "plan",
-    appliedTo: ["Premium 50Mbps", "Premium 100Mbps"],
-    rules: [
-      {
-        id: "R1",
-        name: "Video Streaming Priority",
-        category: "priority",
-        direction: "download",
-        condition: { type: "application", value: "streaming" },
-        action: { type: "prioritize", value: 1, unit: "priority" },
-        enabled: true,
-      },
-      {
-        id: "R2",
-        name: "Gaming Low Latency",
-        category: "priority",
-        direction: "both",
-        condition: { type: "application", value: "gaming" },
-        action: { type: "prioritize", value: 1, unit: "priority" },
-        enabled: true,
-      },
-    ],
-    createdAt: "2024-01-10",
-    updatedAt: "2024-01-15",
-    usageCount: 245,
-  },
-  {
-    id: "POL002",
-    name: "Standard Plan QoS",
-    description: "Fair usage policy for standard tier customers",
-    priority: 2,
-    status: "active",
-    type: "plan",
-    appliedTo: ["Standard 20Mbps", "Standard 30Mbps"],
-    rules: [
-      {
-        id: "R3",
-        name: "P2P Traffic Limit",
-        category: "limit",
-        direction: "both",
-        condition: { type: "application", value: "p2p" },
-        action: { type: "limit", value: 5, unit: "Mbps" },
-        enabled: true,
-      },
-      {
-        id: "R4",
-        name: "Peak Hours Shaping",
-        category: "shape",
-        direction: "download",
-        condition: { type: "time", value: "18:00-22:00" },
-        action: { type: "shape", value: 80, unit: "%" },
-        enabled: true,
-      },
-    ],
-    createdAt: "2024-01-08",
-    updatedAt: "2024-01-12",
-    usageCount: 567,
-  },
-  {
-    id: "POL003",
-    name: "Business Priority",
-    description: "Enterprise-grade QoS for business customers",
-    priority: 1,
-    status: "active",
-    type: "plan",
-    appliedTo: ["Business 100Mbps", "Enterprise 200Mbps"],
-    rules: [
-      {
-        id: "R5",
-        name: "VoIP Maximum Priority",
-        category: "priority",
-        direction: "both",
-        condition: { type: "application", value: "voip" },
-        action: { type: "prioritize", value: 1, unit: "priority" },
-        enabled: true,
-      },
-      {
-        id: "R6",
-        name: "Video Conference Priority",
-        category: "priority",
-        direction: "both",
-        condition: { type: "application", value: "video_conference" },
-        action: { type: "prioritize", value: 1, unit: "priority" },
-        enabled: true,
-      },
-    ],
-    createdAt: "2024-01-05",
-    updatedAt: "2024-01-10",
-    usageCount: 89,
-  },
-  {
-    id: "POL004",
-    name: "FUP Throttle Policy",
-    description: "Applied when customers exceed fair usage limit",
-    priority: 5,
-    status: "active",
-    type: "global",
-    appliedTo: ["All Plans"],
-    rules: [
-      {
-        id: "R7",
-        name: "Throttle Download",
-        category: "limit",
-        direction: "download",
-        condition: { type: "usage", value: "100%", operator: "greater" },
-        action: { type: "limit", value: 2, unit: "Mbps" },
-        enabled: true,
-      },
-      {
-        id: "R8",
-        name: "Throttle Upload",
-        category: "limit",
-        direction: "upload",
-        condition: { type: "usage", value: "100%", operator: "greater" },
-        action: { type: "limit", value: 512, unit: "Kbps" },
-        enabled: true,
-      },
-    ],
-    createdAt: "2024-01-01",
-    updatedAt: "2024-01-01",
-    usageCount: 156,
-  },
-]
-
-const mockTrafficClasses: TrafficClass[] = [
-  {
-    id: "TC1",
-    name: "Real-Time",
-    description: "VoIP, video calls, gaming",
-    priority: 1,
-    dscp: 46,
-    guaranteedBandwidth: 20,
-    maxBandwidth: 40,
-    borrowEnabled: false,
-    applications: ["VoIP", "Zoom", "Teams", "Gaming"],
-    color: "bg-red-500",
-  },
-  {
-    id: "TC2",
-    name: "Interactive",
-    description: "Web browsing, remote desktop",
-    priority: 2,
-    dscp: 34,
-    guaranteedBandwidth: 30,
-    maxBandwidth: 50,
-    borrowEnabled: true,
-    applications: ["Web", "RDP", "SSH", "VPN"],
-    color: "bg-orange-500",
-  },
-  {
-    id: "TC3",
-    name: "Streaming",
-    description: "Video and music streaming",
-    priority: 3,
-    dscp: 26,
-    guaranteedBandwidth: 25,
-    maxBandwidth: 60,
-    borrowEnabled: true,
-    applications: ["Netflix", "YouTube", "Spotify"],
-    color: "bg-yellow-500",
-  },
-  {
-    id: "TC4",
-    name: "Bulk",
-    description: "Downloads, updates, backups",
-    priority: 4,
-    dscp: 10,
-    guaranteedBandwidth: 15,
-    maxBandwidth: 100,
-    borrowEnabled: true,
-    applications: ["Downloads", "Torrents", "Backups"],
-    color: "bg-green-500",
-  },
-  {
-    id: "TC5",
-    name: "Best Effort",
-    description: "Default traffic class",
-    priority: 5,
-    dscp: 0,
-    guaranteedBandwidth: 10,
-    maxBandwidth: 100,
-    borrowEnabled: true,
-    applications: ["Other"],
-    color: "bg-gray-500",
-  },
-]
-
-const mockApplications: ApplicationProfile[] = [
-  {
-    id: "APP1",
-    name: "Netflix",
-    category: "streaming",
-    icon: "Video",
-    defaultPriority: 3,
-    ports: ["443"],
-    protocols: ["HTTPS"],
-    domains: ["netflix.com", "nflxvideo.net"],
-    detected: 1245,
-    blocked: false,
-  },
-  {
-    id: "APP2",
-    name: "YouTube",
-    category: "streaming",
-    icon: "Video",
-    defaultPriority: 3,
-    ports: ["443"],
-    protocols: ["HTTPS", "QUIC"],
-    domains: ["youtube.com", "googlevideo.com"],
-    detected: 2340,
-    blocked: false,
-  },
-  {
-    id: "APP3",
-    name: "WhatsApp",
-    category: "voip",
-    icon: "MessageSquare",
-    defaultPriority: 1,
-    ports: ["5222", "5223", "443"],
-    protocols: ["TLS"],
-    domains: ["whatsapp.net", "whatsapp.com"],
-    detected: 890,
-    blocked: false,
-  },
-  {
-    id: "APP4",
-    name: "Call of Duty",
-    category: "gaming",
-    icon: "Gamepad2",
-    defaultPriority: 1,
-    ports: ["3074", "3478-3480"],
-    protocols: ["UDP"],
-    domains: ["activision.com", "demonware.net"],
-    detected: 234,
-    blocked: false,
-  },
-  {
-    id: "APP5",
-    name: "BitTorrent",
-    category: "download",
-    icon: "FileDown",
-    defaultPriority: 4,
-    ports: ["6881-6889"],
-    protocols: ["TCP", "UDP"],
-    domains: [],
-    detected: 567,
-    blocked: false,
-  },
-  {
-    id: "APP6",
-    name: "Spotify",
-    category: "streaming",
-    icon: "Music",
-    defaultPriority: 3,
-    ports: ["443", "4070"],
-    protocols: ["HTTPS"],
-    domains: ["spotify.com", "scdn.co"],
-    detected: 1023,
-    blocked: false,
-  },
-  {
-    id: "APP7",
-    name: "Zoom",
-    category: "voip",
-    icon: "Video",
-    defaultPriority: 1,
-    ports: ["8801-8810", "443"],
-    protocols: ["UDP", "TLS"],
-    domains: ["zoom.us", "zoomgov.com"],
-    detected: 456,
-    blocked: false,
-  },
-  {
-    id: "APP8",
-    name: "TikTok",
-    category: "social",
-    icon: "Smartphone",
-    defaultPriority: 4,
-    ports: ["443"],
-    protocols: ["HTTPS"],
-    domains: ["tiktok.com", "tiktokcdn.com"],
-    detected: 1567,
-    blocked: false,
-  },
-]
-
-const mockSchedules: BandwidthSchedule[] = [
-  {
-    id: "SCH1",
-    name: "Peak Hours Reduction",
-    policyId: "POL002",
-    dayOfWeek: [1, 2, 3, 4, 5],
-    startTime: "18:00",
-    endTime: "22:00",
-    downloadLimit: 80,
-    uploadLimit: 80,
-    active: true,
-  },
-  {
-    id: "SCH2",
-    name: "Weekend Boost",
-    policyId: "POL001",
-    dayOfWeek: [0, 6],
-    startTime: "00:00",
-    endTime: "23:59",
-    downloadLimit: 120,
-    uploadLimit: 120,
-    active: true,
-  },
-  {
-    id: "SCH3",
-    name: "Night Unlimited",
-    policyId: "POL002",
-    dayOfWeek: [0, 1, 2, 3, 4, 5, 6],
-    startTime: "00:00",
-    endTime: "06:00",
-    downloadLimit: 150,
-    uploadLimit: 150,
-    active: true,
-  },
-]
+// TODO: Connect to QoS API when available
 
 function getAppIcon(category: string) {
   switch (category) {
@@ -535,20 +207,25 @@ export default function QoSPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
+  // TODO: Fetch from QoS API when available
+  const [policies] = useState<QoSPolicy[]>([])
+  const [trafficClasses] = useState<TrafficClass[]>([])
+  const [applications] = useState<ApplicationProfile[]>([])
+  const [schedules] = useState<BandwidthSchedule[]>([])
 
   // Stats calculations
   const stats = useMemo(() => {
-    const activePolicies = mockPolicies.filter((p) => p.status === "active").length
-    const totalRules = mockPolicies.reduce((sum, p) => sum + p.rules.length, 0)
-    const blockedApps = mockApplications.filter((a) => a.blocked).length
-    const activeSchedules = mockSchedules.filter((s) => s.active).length
+    const activePolicies = policies.filter((p) => p.status === "active").length
+    const totalRules = policies.reduce((sum, p) => sum + p.rules.length, 0)
+    const blockedApps = applications.filter((a) => a.blocked).length
+    const activeSchedules = schedules.filter((s) => s.active).length
 
     return { activePolicies, totalRules, blockedApps, activeSchedules }
-  }, [])
+  }, [policies, applications, schedules])
 
   // Filtered policies
   const filteredPolicies = useMemo(() => {
-    return mockPolicies.filter((policy) => {
+    return policies.filter((policy) => {
       const matchesSearch =
         policy.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         policy.description.toLowerCase().includes(searchQuery.toLowerCase())
@@ -556,16 +233,16 @@ export default function QoSPage() {
       const matchesType = typeFilter === "all" || policy.type === typeFilter
       return matchesSearch && matchesStatus && matchesType
     })
-  }, [searchQuery, statusFilter, typeFilter])
+  }, [policies, searchQuery, statusFilter, typeFilter])
 
   // Filtered applications
   const filteredApplications = useMemo(() => {
-    return mockApplications.filter((app) => {
+    return applications.filter((app) => {
       const matchesSearch = app.name.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesCategory = categoryFilter === "all" || app.category === categoryFilter
       return matchesSearch && matchesCategory
     })
-  }, [searchQuery, categoryFilter])
+  }, [applications, searchQuery, categoryFilter])
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -689,7 +366,7 @@ export default function QoSPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.activePolicies}</div>
             <p className="text-xs text-muted-foreground">
-              {mockPolicies.length} total policies
+              {policies.length} total policies
             </p>
           </CardContent>
         </Card>
@@ -711,7 +388,7 @@ export default function QoSPage() {
             <Globe className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockApplications.length}</div>
+            <div className="text-2xl font-bold">{applications.length}</div>
             <p className="text-xs text-muted-foreground">
               {stats.blockedApps} blocked
             </p>
@@ -871,7 +548,7 @@ export default function QoSPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockTrafficClasses.map((tc) => (
+                {trafficClasses.map((tc) => (
                   <Card
                     key={tc.id}
                     className="cursor-pointer hover:shadow-sm transition-shadow"
@@ -1080,8 +757,8 @@ export default function QoSPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockSchedules.map((schedule) => {
-                    const policy = mockPolicies.find(
+                  {schedules.map((schedule) => {
+                    const policy = policies.find(
                       (p) => p.id === schedule.policyId
                     )
                     return (
@@ -1233,7 +910,7 @@ export default function QoSPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockTrafficClasses.map((tc) => {
+                {trafficClasses.map((tc) => {
                   const usage = Math.floor(Math.random() * 60) + 20
                   return (
                     <div key={tc.id} className="space-y-2">
@@ -1276,7 +953,7 @@ export default function QoSPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {mockApplications.slice(0, 5).map((app, idx) => {
+                  {applications.slice(0, 5).map((app, idx) => {
                     const usage = 100 - idx * 18
                     return (
                       <div key={app.id} className="flex items-center gap-3">

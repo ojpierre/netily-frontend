@@ -1,6 +1,8 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect, useCallback } from "react"
+import { adminApi } from "@/lib/admin-api"
+import type { CPEDevice as BackendCPEDevice, CPETask as BackendCPETask } from "@/lib/types"
 import {
   Router,
   Wifi,
@@ -146,84 +148,35 @@ interface DiagnosticsResult {
   }
 }
 
-// Mock data generator
-const generateMockCPEDevices = (): CPEDevice[] => {
-  const manufacturers = ["TP-Link", "Huawei", "ZTE", "Mikrotik", "Ubiquiti"]
-  const models: Record<string, string[]> = {
-    "TP-Link": ["Archer C80", "Archer AX50", "Deco X60"],
-    "Huawei": ["HG8245H", "HG8546M", "EG8145V5"],
-    "ZTE": ["F660", "F680", "ZXHN H168N"],
-    "Mikrotik": ["hAP ac2", "hAP ac3", "RB4011"],
-    "Ubiquiti": ["EdgeRouter X", "UniFi Dream Router", "Amplifi HD"],
-  }
-  const profiles = ["Residential Basic", "Residential Premium", "Business Standard", "Business Premium"]
-  const locations = ["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Eldoret"]
-
-  return Array.from({ length: 50 }, (_, i) => {
-    const manufacturer = manufacturers[Math.floor(Math.random() * manufacturers.length)]
-    const modelList = models[manufacturer]
-    const isOnline = Math.random() > 0.15
-
-    return {
-      id: `cpe-${i + 1}`,
-      serialNumber: `SN${manufacturer.substring(0, 2).toUpperCase()}${String(100000 + i).padStart(8, "0")}`,
-      manufacturer,
-      model: modelList[Math.floor(Math.random() * modelList.length)],
-      firmwareVersion: `v${Math.floor(Math.random() * 3) + 1}.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 20)}`,
-      hardwareVersion: `v${Math.floor(Math.random() * 2) + 1}.0`,
-      customerId: `CUST-${1000 + i}`,
-      customerName: `Customer ${i + 1}`,
-      customerPhone: `+254${700000000 + Math.floor(Math.random() * 99999999)}`,
-      location: locations[Math.floor(Math.random() * locations.length)],
-      ipAddress: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-      macAddress: Array.from({ length: 6 }, () => 
-        Math.floor(Math.random() * 256).toString(16).padStart(2, "0")
-      ).join(":").toUpperCase(),
-      connectionStatus: isOnline ? "online" : (Math.random() > 0.5 ? "offline" : "rebooting"),
-      lastContact: isOnline 
-        ? new Date(Date.now() - Math.floor(Math.random() * 300000)).toISOString()
-        : new Date(Date.now() - Math.floor(Math.random() * 86400000)).toISOString(),
-      lastInform: new Date(Date.now() - Math.floor(Math.random() * 3600000)).toISOString(),
-      uptime: Math.floor(Math.random() * 30 * 24 * 3600),
-      cpuUsage: Math.floor(Math.random() * 80) + 5,
-      memoryUsage: Math.floor(Math.random() * 70) + 20,
-      wifiClients: Math.floor(Math.random() * 15),
-      wifiSSID: `NetilyWiFi_${i + 1}`,
-      wifiChannel: [1, 6, 11, 36, 40, 44, 48][Math.floor(Math.random() * 7)],
-      signalStrength: -(Math.floor(Math.random() * 40) + 30),
-      connectionType: ["fiber", "dsl", "cable", "lte"][Math.floor(Math.random() * 4)] as CPEDevice["connectionType"],
-      provisioningStatus: Math.random() > 0.9 ? "pending" : (Math.random() > 0.95 ? "failed" : "provisioned"),
-      configurationProfile: profiles[Math.floor(Math.random() * profiles.length)],
-      pendingTasks: Math.floor(Math.random() * 3),
-    }
-  })
-}
-
-const generateMockTasks = (): CPETask[] => {
-  const taskTypes: CPETask["type"][] = ["reboot", "firmware_upgrade", "config_push", "diagnostics", "factory_reset"]
-  const statuses: CPETask["status"][] = ["pending", "in_progress", "completed", "failed"]
-
-  return Array.from({ length: 20 }, (_, i) => {
-    const type = taskTypes[Math.floor(Math.random() * taskTypes.length)]
-    const status = statuses[Math.floor(Math.random() * statuses.length)]
-    
-    return {
-      id: `task-${i + 1}`,
-      deviceId: `cpe-${Math.floor(Math.random() * 50) + 1}`,
-      type,
-      status,
-      createdAt: new Date(Date.now() - Math.floor(Math.random() * 86400000 * 7)).toISOString(),
-      completedAt: status === "completed" || status === "failed" 
-        ? new Date(Date.now() - Math.floor(Math.random() * 86400000)).toISOString()
-        : undefined,
-      createdBy: ["Admin", "System", "Technician"][Math.floor(Math.random() * 3)],
-      details: type === "firmware_upgrade" ? "Upgrade to v2.5.10" : 
-               type === "config_push" ? "Apply new QoS settings" :
-               type === "diagnostics" ? "Network connectivity test" : "Standard operation",
-      result: status === "completed" ? "Success" : status === "failed" ? "Connection timeout" : undefined,
-    }
-  })
-}
+// Map backend CPEDevice to local interface
+const mapBackendCPE = (d: BackendCPEDevice): CPEDevice => ({
+  id: String(d.id),
+  serialNumber: d.serial_number,
+  manufacturer: d.manufacturer,
+  model: d.model,
+  firmwareVersion: d.firmware_version || 'Unknown',
+  hardwareVersion: d.hardware_version || 'Unknown',
+  customerId: d.customer ? String(d.customer) : '',
+  customerName: d.customer_name || 'Unassigned',
+  customerPhone: '',
+  location: '',
+  ipAddress: d.ip_address || '',
+  macAddress: d.mac_address || '',
+  connectionStatus: d.status === 'online' ? 'online' : d.status === 'rebooting' ? 'rebooting' : 'offline',
+  lastContact: d.last_inform || d.updated_at,
+  lastInform: d.last_inform || d.updated_at,
+  uptime: d.uptime || 0,
+  cpuUsage: 0,
+  memoryUsage: 0,
+  wifiClients: 0,
+  wifiSSID: '',
+  wifiChannel: 0,
+  signalStrength: 0,
+  connectionType: 'fiber',
+  provisioningStatus: 'provisioned',
+  configurationProfile: '',
+  pendingTasks: 0,
+})
 
 // Helper functions
 const formatUptime = (seconds: number): string => {
@@ -249,8 +202,8 @@ const formatTimeAgo = (dateString: string): string => {
 }
 
 export default function CPEManagementPage() {
-  const [devices] = useState<CPEDevice[]>(generateMockCPEDevices())
-  const [tasks] = useState<CPETask[]>(generateMockTasks())
+  const [devices, setDevices] = useState<CPEDevice[]>([])
+  const [tasks, setTasks] = useState<CPETask[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [manufacturerFilter, setManufacturerFilter] = useState<string>("all")
@@ -261,6 +214,22 @@ export default function CPEManagementPage() {
   const [taskType, setTaskType] = useState<CPETask["type"]>("reboot")
   const [diagnosticsDialogOpen, setDiagnosticsDialogOpen] = useState(false)
   const [configDialogOpen, setConfigDialogOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  const fetchData = useCallback(async () => {
+    try {
+      const response = await adminApi.getCPEDevices({ page_size: '200' })
+      setDevices((response.results || []).map(mapBackendCPE))
+    } catch (error) {
+      console.error('Failed to fetch CPE devices:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   // Stats
   const stats = useMemo(() => {
@@ -673,7 +642,7 @@ export default function CPEManagementPage() {
             </Button>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {["Residential Basic", "Residential Premium", "Business Standard", "Business Premium"].map((profile) => (
+            {[...new Set(devices.map(d => d.configurationProfile).filter(Boolean))].map((profile) => (
               <Card key={profile}>
                 <CardHeader>
                   <CardTitle className="text-base">{profile}</CardTitle>
@@ -731,32 +700,19 @@ export default function CPEManagementPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {[
-                    { manufacturer: "TP-Link", model: "Archer C80", current: "v1.8.2", latest: "v1.9.0", devices: 15 },
-                    { manufacturer: "Huawei", model: "HG8245H", current: "v2.1.5", latest: "v2.2.0", devices: 23 },
-                    { manufacturer: "ZTE", model: "F660", current: "v3.0.1", latest: "v3.0.1", devices: 12 },
-                    { manufacturer: "Mikrotik", model: "hAP ac2", current: "v7.12", latest: "v7.14", devices: 8 },
-                  ].map((fw, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium">{fw.manufacturer}</TableCell>
-                      <TableCell>{fw.model}</TableCell>
-                      <TableCell>
-                        <code className="bg-muted px-2 py-0.5 rounded text-sm">{fw.current}</code>
-                      </TableCell>
-                      <TableCell>
-                        <code className="bg-muted px-2 py-0.5 rounded text-sm">{fw.latest}</code>
-                        {fw.current !== fw.latest && (
-                          <Badge className="ml-2 bg-blue-500/10 text-blue-600 border-blue-500/20">Update</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>{fw.devices}</TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm" disabled={fw.current === fw.latest}>
-                          Schedule Upgrade
-                        </Button>
+                  {devices.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No firmware data available
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        Firmware tracking not yet configured
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>

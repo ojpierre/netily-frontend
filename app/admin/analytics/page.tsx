@@ -71,110 +71,40 @@ import type {
 } from "@/lib/types"
 
 // ==========================================
-// MOCK DATA (Fallback when API unavailable)
+// EMPTY DEFAULTS (used until API loads)
 // ==========================================
-
-// Revenue data by month
-const mockRevenueData: RevenueData[] = [
-  { month: "Jan", revenue: 1250000, target: 1200000, users: 890 },
-  { month: "Feb", revenue: 1380000, target: 1300000, users: 920 },
-  { month: "Mar", revenue: 1420000, target: 1400000, users: 985 },
-  { month: "Apr", revenue: 1550000, target: 1500000, users: 1050 },
-  { month: "May", revenue: 1620000, target: 1600000, users: 1120 },
-  { month: "Jun", revenue: 1780000, target: 1700000, users: 1200 },
-]
-
-// User growth data
-const mockUserGrowthData: UserGrowthData[] = [
-  { month: "Jan", new_users: 85, churn: 12, net_growth: 73 },
-  { month: "Feb", new_users: 92, churn: 15, net_growth: 77 },
-  { month: "Mar", new_users: 110, churn: 18, net_growth: 92 },
-  { month: "Apr", new_users: 125, churn: 20, net_growth: 105 },
-  { month: "May", new_users: 145, churn: 22, net_growth: 123 },
-  { month: "Jun", new_users: 160, churn: 25, net_growth: 135 },
-]
-
-// Plan distribution
-const mockPlanDistribution: (PlanPerformance & { color: string })[] = [
-  { id: 1, name: "Daily Surf", type: "hotspot", users: 234, revenue: 11700, arpu: 50, share: 10.5, color: "bg-blue-500" },
-  { id: 2, name: "Weekly Unlimited", type: "hotspot", users: 456, revenue: 159600, arpu: 350, share: 20.4, color: "bg-blue-400" },
-  { id: 3, name: "Monthly Value", type: "hotspot", users: 789, revenue: 946800, arpu: 1200, share: 35.3, color: "bg-blue-300" },
-  { id: 4, name: "Home Basic", type: "pppoe", users: 345, revenue: 517500, arpu: 1500, share: 15.4, color: "bg-purple-500" },
-  { id: 5, name: "Home Premium", type: "pppoe", users: 234, revenue: 585000, arpu: 2500, share: 10.5, color: "bg-purple-400" },
-  { id: 6, name: "Business Pro", type: "pppoe", users: 56, revenue: 448000, arpu: 8000, share: 2.5, color: "bg-purple-300" },
-  { id: 7, name: "Static Basic", type: "static", users: 89, revenue: 311500, arpu: 3500, share: 4.0, color: "bg-orange-500" },
-  { id: 8, name: "Static Premium", type: "static", users: 34, revenue: 255000, arpu: 7500, share: 1.5, color: "bg-orange-400" },
-]
-
-// Top locations
-const mockTopLocations: LocationAnalytics[] = [
-  { id: 1, name: "Nairobi CBD", users: 450, revenue: 675000, growth: 12.5, share: 25.6 },
-  { id: 2, name: "Westlands", users: 380, revenue: 570000, growth: 8.3, share: 21.6 },
-  { id: 3, name: "Kilimani", users: 320, revenue: 480000, growth: 15.2, share: 18.2 },
-  { id: 4, name: "Lavington", users: 280, revenue: 420000, growth: 6.7, share: 15.9 },
-  { id: 5, name: "South B", users: 240, revenue: 360000, growth: 9.1, share: 13.6 },
-]
-
-// Router performance
-const mockRouterPerformance: RouterAnalytics[] = [
-  { id: 1, name: "Router-Nairobi-01", users: 320, uptime: 99.9, bandwidth: 85, status: "healthy" },
-  { id: 2, name: "Router-Westlands-02", users: 280, uptime: 99.5, bandwidth: 72, status: "healthy" },
-  { id: 3, name: "Router-Kilimani-03", users: 245, uptime: 98.8, bandwidth: 90, status: "warning" },
-  { id: 4, name: "Router-Mombasa-04", users: 180, uptime: 99.7, bandwidth: 65, status: "healthy" },
-  { id: 5, name: "Router-Kisumu-05", users: 150, uptime: 97.5, bandwidth: 45, status: "warning" },
-]
-
-// Payment methods
-const mockPaymentMethods: PaymentMethodAnalytics[] = [
-  { method: "M-Pesa", transactions: 4520, amount: 1350000, percentage: 68 },
-  { method: "Airtel Money", transactions: 890, amount: 267000, percentage: 13 },
-  { method: "Card", transactions: 450, amount: 225000, percentage: 11 },
-  { method: "Bank Transfer", transactions: 320, amount: 156000, percentage: 8 },
-]
-
-// Mock payment stats
-const mockPaymentStats: PaymentStats = {
-  success_rate: 98.5,
-  failure_rate: 1.5,
-  total_transactions: 6180,
-  average_transaction: 1250,
-  highest_transaction: 8000,
-  collection_rate: 94.2,
+const emptyPaymentStats: PaymentStats = {
+  success_rate: 0,
+  failure_rate: 0,
+  total_transactions: 0,
+  average_transaction: 0,
+  highest_transaction: 0,
+  collection_rate: 0,
 }
 
-// Mock user distribution
-const mockUserDistribution: UserTypeDistribution = {
-  hotspot_users: 1479,
-  pppoe_users: 635,
-  static_users: 123,
-  hotspot_percentage: 62,
-  pppoe_percentage: 27,
-  static_percentage: 11,
+const emptyUserDistribution: UserTypeDistribution = {
+  hotspot_users: 0,
+  pppoe_users: 0,
+  static_users: 0,
+  hotspot_percentage: 0,
+  pppoe_percentage: 0,
+  static_percentage: 0,
 }
 
-// Mock revenue by type
-const mockRevenueByType: RevenueByType = {
-  hotspot_revenue: 1118100,
-  pppoe_revenue: 1550500,
-  static_revenue: 566500,
-  hotspot_percentage: 35,
-  pppoe_percentage: 49,
-  static_percentage: 16,
+const emptyRevenueByType: RevenueByType = {
+  hotspot_revenue: 0,
+  pppoe_revenue: 0,
+  static_revenue: 0,
+  hotspot_percentage: 0,
+  pppoe_percentage: 0,
+  static_percentage: 0,
 }
 
-// Mock revenue forecast
-const mockRevenueForecast: RevenueForecast[] = [
-  { month: "July 2024", projected_revenue: 1900000, growth_rate: 6.7 },
-  { month: "August 2024", projected_revenue: 2050000, growth_rate: 7.9 },
-  { month: "September 2024", projected_revenue: 2200000, growth_rate: 7.3 },
-]
-
-// Mock network stats
-const mockNetworkStats: NetworkStats = {
-  avg_uptime: 99.5,
-  active_routers: 12,
-  avg_bandwidth: 72,
-  warning_count: 2,
+const emptyNetworkStats: NetworkStats = {
+  avg_uptime: 0,
+  active_routers: 0,
+  avg_bandwidth: 0,
+  warning_count: 0,
 }
 
 export default function AnalyticsPage() {
@@ -182,18 +112,18 @@ export default function AnalyticsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [loading, setLoading] = useState(true)
   
-  // Data states with fallback to mock data
-  const [revenueData, setRevenueData] = useState<RevenueData[]>(mockRevenueData)
-  const [userGrowthData, setUserGrowthData] = useState<UserGrowthData[]>(mockUserGrowthData)
-  const [planDistribution, setPlanDistribution] = useState<(PlanPerformance & { color?: string })[]>(mockPlanDistribution)
-  const [topLocations, setTopLocations] = useState<LocationAnalytics[]>(mockTopLocations)
-  const [routerPerformance, setRouterPerformance] = useState<RouterAnalytics[]>(mockRouterPerformance)
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodAnalytics[]>(mockPaymentMethods)
-  const [paymentStats, setPaymentStats] = useState<PaymentStats>(mockPaymentStats)
-  const [userDistribution, setUserDistribution] = useState<UserTypeDistribution>(mockUserDistribution)
-  const [revenueByType, setRevenueByType] = useState<RevenueByType>(mockRevenueByType)
-  const [revenueForecast, setRevenueForecast] = useState<RevenueForecast[]>(mockRevenueForecast)
-  const [networkStats, setNetworkStats] = useState<NetworkStats>(mockNetworkStats)
+  // Data states — empty until API loads
+  const [revenueData, setRevenueData] = useState<RevenueData[]>([])
+  const [userGrowthData, setUserGrowthData] = useState<UserGrowthData[]>([])
+  const [planDistribution, setPlanDistribution] = useState<(PlanPerformance & { color?: string })[]>([])
+  const [topLocations, setTopLocations] = useState<LocationAnalytics[]>([])
+  const [routerPerformance, setRouterPerformance] = useState<RouterAnalytics[]>([])
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodAnalytics[]>([])
+  const [paymentStats, setPaymentStats] = useState<PaymentStats>(emptyPaymentStats)
+  const [userDistribution, setUserDistribution] = useState<UserTypeDistribution>(emptyUserDistribution)
+  const [revenueByType, setRevenueByType] = useState<RevenueByType>(emptyRevenueByType)
+  const [revenueForecast, setRevenueForecast] = useState<RevenueForecast[]>([])
+  const [networkStats, setNetworkStats] = useState<NetworkStats>(emptyNetworkStats)
   
   const fetchedRef = useRef(false)
 
@@ -218,22 +148,22 @@ export default function AnalyticsPage() {
       try {
         const dashboard = await adminApi.getAnalyticsDashboard(timeRange)
         if (dashboard) {
-          setRevenueData(dashboard.revenue_data || mockRevenueData)
-          setUserGrowthData(dashboard.user_growth_data || mockUserGrowthData)
+          setRevenueData(dashboard.revenue_data || [])
+          setUserGrowthData(dashboard.user_growth_data || [])
           setPlanDistribution(
             dashboard.plan_performance?.map((p, idx) => ({
               ...p,
               color: getPlanColor(p.type, idx),
-            })) || mockPlanDistribution
+            })) || []
           )
-          setTopLocations(dashboard.location_analytics || mockTopLocations)
-          setRouterPerformance(dashboard.router_analytics || mockRouterPerformance)
-          setPaymentMethods(dashboard.payment_methods || mockPaymentMethods)
-          setPaymentStats(dashboard.payment_stats || mockPaymentStats)
-          setUserDistribution(dashboard.user_distribution || mockUserDistribution)
-          setRevenueByType(dashboard.revenue_by_type || mockRevenueByType)
-          setRevenueForecast(dashboard.revenue_forecast || mockRevenueForecast)
-          setNetworkStats(dashboard.network_stats || mockNetworkStats)
+          setTopLocations(dashboard.location_analytics || [])
+          setRouterPerformance(dashboard.router_analytics || [])
+          setPaymentMethods(dashboard.payment_methods || [])
+          setPaymentStats(dashboard.payment_stats || emptyPaymentStats)
+          setUserDistribution(dashboard.user_distribution || emptyUserDistribution)
+          setRevenueByType(dashboard.revenue_by_type || emptyRevenueByType)
+          setRevenueForecast(dashboard.revenue_forecast || [])
+          setNetworkStats(dashboard.network_stats || emptyNetworkStats)
           return
         }
       } catch {
@@ -288,7 +218,6 @@ export default function AnalyticsPage() {
       if (networkRes.status === "fulfilled") setNetworkStats(networkRes.value)
     } catch (error) {
       console.error("Failed to fetch analytics:", error)
-      // Keep mock data on error
     } finally {
       setLoading(false)
     }

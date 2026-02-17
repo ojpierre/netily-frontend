@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import {
   FileText,
   Search,
@@ -13,6 +13,8 @@ import {
   Activity,
   RefreshCw,
 } from "lucide-react"
+import { adminApi } from "@/lib/admin-api"
+import type { AuditLog } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -43,74 +45,24 @@ type LogEntry = {
   source: string
 }
 
-const logCategories = [
-  "Authentication",
-  "Authorization",
-  "Payment",
-  "Session",
-  "Network",
-  "System",
-  "API",
-  "Database",
-]
-
-const logMessages = {
-  info: [
-    "User logged in successfully",
-    "Session started for user",
-    "Payment initiated",
-    "Database backup completed",
-    "API request received",
-    "Router status check initiated",
-    "Subscription plan activated",
-    "Email notification sent",
-  ],
-  warning: [
-    "High bandwidth usage detected",
-    "Session idle timeout approaching",
-    "Low disk space warning",
-    "API rate limit approaching",
-    "Unusual login pattern detected",
-    "Router latency increased",
-    "Payment retry scheduled",
-  ],
-  error: [
-    "Authentication failed - invalid credentials",
-    "Payment processing failed",
-    "Database connection lost",
-    "Router connection timeout",
-    "API request failed",
-    "Session terminated unexpectedly",
-    "Email delivery failed",
-  ],
-  success: [
-    "Payment completed successfully",
-    "User account created",
-    "Subscription renewed",
-    "System update completed",
-    "Backup restored successfully",
-    "Configuration applied",
-  ],
+/** Map an AuditLog action to a display level */
+const getLogLevel = (action: string): LogEntry["level"] => {
+  const lower = action.toLowerCase()
+  if (lower.includes("delete") || lower.includes("fail") || lower.includes("error")) return "error"
+  if (lower.includes("warn") || lower.includes("suspend") || lower.includes("disable")) return "warning"
+  if (lower.includes("create") || lower.includes("success") || lower.includes("complete") || lower.includes("activate")) return "success"
+  return "info"
 }
 
-const generateMockLog = (id: number): LogEntry => {
-  const level: LogEntry["level"] = ["info", "warning", "error", "success"][
-    Math.floor(Math.random() * 4)
-  ] as LogEntry["level"]
-
-  const category = logCategories[Math.floor(Math.random() * logCategories.length)]
-  const messages = logMessages[level]
-  const message = messages[Math.floor(Math.random() * messages.length)]
-
-  return {
-    id: `LOG-${10000 + id}`,
-    timestamp: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-    level,
-    category,
-    message,
-    source: `service-${Math.floor(Math.random() * 5) + 1}`,
-  }
-}
+/** Convert backend AuditLog to display LogEntry */
+const mapAuditLogToEntry = (log: AuditLog): LogEntry => ({
+  id: `LOG-${log.id}`,
+  timestamp: log.created_at,
+  level: getLogLevel(log.action),
+  category: log.model || "System",
+  message: `${log.action}${log.model ? ` on ${log.model}` : ""}${log.object_id ? ` #${log.object_id}` : ""}`,
+  source: log.user?.username || log.ip_address || "system",
+})
 
 export default function LogsPage() {
   const [loading, setLoading] = useState(true)
@@ -122,35 +74,34 @@ export default function LogsPage() {
   const [autoRefresh, setAutoRefresh] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const loadLogs = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        await new Promise((resolve) => setTimeout(resolve, 600))
-        const initialLogs = Array.from({ length: 50 }, (_, i) => generateMockLog(i))
-        setLogs(initialLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()))
-      } catch (err) {
-        setError("Failed to load system logs. Please try again.")
-      } finally {
-        setLoading(false)
-      }
+  const fetchLogs = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await adminApi.getAuditLogs({ page_size: "200" })
+      const entries = (response.results || []).map(mapAuditLogToEntry)
+      setLogs(entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()))
+    } catch (err) {
+      setError("Failed to load system logs. Please try again.")
+    } finally {
+      setLoading(false)
     }
-
-    loadLogs()
   }, [])
 
-  // Simulate real-time log updates
+  useEffect(() => {
+    fetchLogs()
+  }, [fetchLogs])
+
+  // Auto-refresh logs from API
   useEffect(() => {
     if (!autoRefresh) return
 
     const interval = setInterval(() => {
-      const newLog = generateMockLog(logs.length)
-      setLogs((prevLogs) => [newLog, ...prevLogs].slice(0, 200)) // Keep last 200 logs
-    }, 3000) // New log every 3 seconds
+      fetchLogs()
+    }, 30000) // Refresh every 30 seconds
 
     return () => clearInterval(interval)
-  }, [autoRefresh, logs.length])
+  }, [autoRefresh, fetchLogs])
 
   const filteredLogs = logs.filter((log) => {
     const matchesSearch =
@@ -357,21 +308,13 @@ export default function LogsPage() {
             <div>
               <CardTitle>Event Logs ({filteredLogs.length})</CardTitle>
               <CardDescription>
-                {autoRefresh ? "Automatically refreshing every 3 seconds" : "Updates paused"}
+                {autoRefresh ? "Automatically refreshing every 30 seconds" : "Updates paused"}
               </CardDescription>
             </div>
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => {
-                setLogs([])
-                setLoading(true)
-                setTimeout(() => {
-                  const refreshedLogs = Array.from({ length: 50 }, (_, i) => generateMockLog(i))
-                  setLogs(refreshedLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()))
-                  setLoading(false)
-                }, 500)
-              }}
+              onClick={() => fetchLogs()}
             >
               <RefreshCw className="w-4 h-4" />
             </Button>

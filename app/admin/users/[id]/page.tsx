@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -30,6 +30,7 @@ import {
   Settings,
   Signal,
   HardDrive,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -67,107 +68,146 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { adminApi } from "@/lib/admin-api"
+import type { Customer, CustomerService, Payment, SupportTicket, RADIUSAccountingSession } from "@/lib/types"
+import { Skeleton } from "@/components/ui/skeleton"
 
-// Mock user data
-const mockUser = {
-  id: "1",
-  username: "john.doe",
-  fullName: "John Doe",
-  email: "john.doe@example.com",
-  phone: "+254712345678",
-  address: "123 Main Street, Nairobi",
-  type: "pppoe",
-  status: "active",
-  balance: 2500,
-  loyaltyPoints: 450,
+// Local types for the detail view
+interface UserDetail {
+  id: string
+  username: string
+  fullName: string
+  email: string
+  phone: string
+  address: string
+  type: string
+  status: string
+  balance: number
+  loyaltyPoints: number
   package: {
-    name: "Premium 50Mbps",
-    speedDown: 50,
-    speedUp: 25,
-    price: 3500,
-  },
-  router: "Router-001",
-  expiryDate: "2024-02-15",
-  createdAt: "2023-06-15",
-  lastSeen: "2024-01-15 14:30:00",
-  pppoeUsername: "john.doe@netily",
-  staticIp: null,
-  macAddress: "AA:BB:CC:DD:EE:FF",
-  totalPayments: 42000,
-  totalSessions: 156,
-  avgSessionDuration: "4.5 hours",
-  dataUsedThisMonth: 85.5,
-  dataLimitThisMonth: 500,
+    name: string
+    speedDown: number
+    speedUp: number
+    price: number
+  }
+  router: string
+  expiryDate: string
+  createdAt: string
+  lastSeen: string
+  pppoeUsername: string
+  staticIp: string | null
+  macAddress: string
+  totalPayments: number
+  totalSessions: number
+  avgSessionDuration: string
+  dataUsedThisMonth: number
+  dataLimitThisMonth: number
 }
 
-const mockSessions = [
-  {
-    id: "1",
-    startTime: "2024-01-15 08:00:00",
-    endTime: "2024-01-15 12:30:00",
-    duration: "4h 30m",
-    dataUsed: "2.5 GB",
-    ipAddress: "100.64.1.45",
-  },
-  {
-    id: "2",
-    startTime: "2024-01-14 14:00:00",
-    endTime: "2024-01-14 22:15:00",
-    duration: "8h 15m",
-    dataUsed: "5.2 GB",
-    ipAddress: "100.64.1.45",
-  },
-  {
-    id: "3",
-    startTime: "2024-01-13 09:30:00",
-    endTime: "2024-01-13 18:00:00",
-    duration: "8h 30m",
-    dataUsed: "4.8 GB",
-    ipAddress: "100.64.1.45",
-  },
-]
+interface SessionEntry {
+  id: string
+  startTime: string
+  endTime: string
+  duration: string
+  dataUsed: string
+  ipAddress: string
+}
 
-const mockPayments = [
-  {
-    id: "1",
-    date: "2024-01-10",
-    amount: 3500,
-    method: "M-Pesa",
-    reference: "QRB45TY789",
-    status: "completed",
-  },
-  {
-    id: "2",
-    date: "2023-12-10",
-    amount: 3500,
-    method: "M-Pesa",
-    reference: "PQR12ST456",
-    status: "completed",
-  },
-  {
-    id: "3",
-    date: "2023-11-10",
-    amount: 3500,
-    method: "Card",
-    reference: "TXN789012",
-    status: "completed",
-  },
-]
+interface PaymentEntry {
+  id: string
+  date: string
+  amount: number
+  method: string
+  reference: string
+  status: string
+}
 
-const mockTickets = [
-  {
-    id: "TKT-001",
-    subject: "Slow internet speed",
-    status: "resolved",
-    createdAt: "2024-01-05",
-  },
-  {
-    id: "TKT-002",
-    subject: "Connection dropping",
-    status: "open",
-    createdAt: "2024-01-12",
-  },
-]
+interface TicketEntry {
+  id: string
+  subject: string
+  status: string
+  createdAt: string
+}
+
+// Map backend Customer + CustomerService to local UserDetail
+function mapCustomerToUser(customer: Customer, services: CustomerService[]): UserDetail {
+  const primaryService = services.find(s => s.status === 'active') || services[0]
+  const plan = primaryService?.plan
+
+  return {
+    id: String(customer.id),
+    username: customer.email?.split('@')[0] || customer.customer_number,
+    fullName: customer.full_name || `${customer.first_name} ${customer.last_name}`,
+    email: customer.email || '',
+    phone: customer.phone || '',
+    address: customer.primary_address?.street_address || '',
+    type: primaryService?.service_type || 'pppoe',
+    status: customer.status,
+    balance: Number(customer.balance) || 0,
+    loyaltyPoints: 0,
+    package: {
+      name: plan?.name || 'No plan',
+      speedDown: plan?.speed_down || 0,
+      speedUp: plan?.speed_up || 0,
+      price: Number(plan?.price) || 0,
+    },
+    router: primaryService?.device?.name || '',
+    expiryDate: primaryService?.expiry_date || '',
+    createdAt: customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '',
+    lastSeen: primaryService?.last_seen || '',
+    pppoeUsername: primaryService?.username || '',
+    staticIp: primaryService?.ip_address || null,
+    macAddress: primaryService?.mac_address || '',
+    totalPayments: 0,
+    totalSessions: 0,
+    avgSessionDuration: '—',
+    dataUsedThisMonth: primaryService?.data_used ? Math.round(primaryService.data_used / 1024) : 0,
+    dataLimitThisMonth: primaryService?.data_limit ? Math.round(primaryService.data_limit / 1024) : 0,
+  }
+}
+
+function formatDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`
+  if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} MB`
+  return `${(bytes / 1024).toFixed(1)} KB`
+}
+
+function mapSession(s: RADIUSAccountingSession): SessionEntry {
+  return {
+    id: String(s.id),
+    startTime: s.acctstarttime ? new Date(s.acctstarttime).toLocaleString() : '',
+    endTime: s.acctstoptime ? new Date(s.acctstoptime).toLocaleString() : 'Active',
+    duration: s.session_duration ? formatDuration(s.session_duration) : '—',
+    dataUsed: formatBytes(s.acctinputoctets + s.acctoutputoctets),
+    ipAddress: s.framedipaddress || '',
+  }
+}
+
+function mapPayment(p: Payment): PaymentEntry {
+  return {
+    id: String(p.id),
+    date: p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '',
+    amount: Number(p.amount) || 0,
+    method: p.payment_method === 'mpesa' ? 'M-Pesa' : p.payment_method?.charAt(0).toUpperCase() + p.payment_method?.slice(1),
+    reference: p.reference_number || p.mpesa_receipt || p.transaction_id || '',
+    status: p.status,
+  }
+}
+
+function mapTicket(t: SupportTicket): TicketEntry {
+  return {
+    id: t.ticket_number,
+    subject: t.subject,
+    status: t.status,
+    createdAt: t.created_at ? new Date(t.created_at).toLocaleDateString() : '',
+  }
+}
 
 export default function UserDetailPage() {
   const params = useParams()
@@ -175,8 +215,67 @@ export default function UserDetailPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDisconnectDialogOpen, setIsDisconnectDialogOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<UserDetail | null>(null)
+  const [sessions, setSessions] = useState<SessionEntry[]>([])
+  const [payments, setPayments] = useState<PaymentEntry[]>([])
+  const [tickets, setTickets] = useState<TicketEntry[]>([])
 
-  const user = mockUser
+  const userId = Number(params.id)
+
+  const fetchUserData = useCallback(async () => {
+    try {
+      setLoading(true)
+      const [customerRes, servicesRes, paymentsRes, ticketsRes] = await Promise.allSettled([
+        adminApi.getCustomer(userId),
+        adminApi.getCustomerServices(userId),
+        adminApi.getPayments({ customer: String(userId), page_size: '20' }),
+        adminApi.getTickets({ customer_id: String(userId), page_size: '20' }),
+      ])
+
+      const customer = customerRes.status === 'fulfilled' ? customerRes.value : null
+      const services = servicesRes.status === 'fulfilled' ? servicesRes.value : []
+
+      if (customer) {
+        const mappedUser = mapCustomerToUser(customer, services)
+
+        // Get payment total
+        const paymentsList = paymentsRes.status === 'fulfilled' ? paymentsRes.value.results || [] : []
+        const totalPayments = paymentsList.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+        mappedUser.totalPayments = totalPayments
+
+        setUser(mappedUser)
+        setPayments(paymentsList.map(mapPayment))
+
+        // Map tickets
+        const ticketsList = ticketsRes.status === 'fulfilled' ? ticketsRes.value.results || [] : []
+        setTickets(ticketsList.map(mapTicket))
+
+        // Fetch RADIUS sessions if we have a username
+        const pppoeUser = services.find(s => s.username)?.username
+        if (pppoeUser) {
+          try {
+            const sessionsRes = await adminApi.getRADIUSSessions({ username: pppoeUser, page_size: '20' })
+            if (sessionsRes?.results) {
+              setSessions(sessionsRes.results.map(mapSession))
+              mappedUser.totalSessions = sessionsRes.results.length
+              setUser({ ...mappedUser })
+            }
+          } catch {
+            // RADIUS sessions optional
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load user data:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [userId])
+
+  useEffect(() => {
+    if (userId) fetchUserData()
+  }, [userId, fetchUserData])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -202,6 +301,26 @@ export default function UserDetailPage() {
       default:
         return <Badge variant="outline">{type}</Badge>
     }
+  }
+
+  if (loading || !user) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex-1">
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-64" />
+      </div>
+    )
   }
 
   return (
@@ -486,7 +605,7 @@ export default function UserDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockSessions.map((session) => (
+                  {sessions.map((session) => (
                     <TableRow key={session.id}>
                       <TableCell>{session.startTime}</TableCell>
                       <TableCell>{session.endTime}</TableCell>
@@ -519,7 +638,7 @@ export default function UserDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockPayments.map((payment) => (
+                  {payments.map((payment) => (
                     <TableRow key={payment.id}>
                       <TableCell>{payment.date}</TableCell>
                       <TableCell className="font-medium">KSh {payment.amount.toLocaleString()}</TableCell>
@@ -553,7 +672,7 @@ export default function UserDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockTickets.map((ticket) => (
+                  {tickets.map((ticket) => (
                     <TableRow key={ticket.id}>
                       <TableCell className="font-mono">{ticket.id}</TableCell>
                       <TableCell>{ticket.subject}</TableCell>

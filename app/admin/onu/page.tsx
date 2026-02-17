@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect, useCallback } from "react"
+import { adminApi } from "@/lib/admin-api"
 import Link from "next/link"
 import {
   Radio,
@@ -90,69 +91,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import type { ONU, OLT } from "@/lib/types"
 
-// Mock data for ONUs
-const generateMockONUs = (): ONU[] => {
-  const statuses: Array<'online' | 'offline' | 'los' | 'dying_gasp'> = ['online', 'online', 'online', 'online', 'offline', 'los', 'dying_gasp']
-  const models = ["HG8245H", "HG8546M", "HG8145V5", "EG8145V5", "F660", "F670L"]
-  const manufacturers = ["Huawei", "ZTE", "FiberHome"]
-  
-  const onus: ONU[] = []
-  for (let i = 1; i <= 50; i++) {
-    const status = statuses[Math.floor(Math.random() * statuses.length)]
-    const manufacturer = manufacturers[Math.floor(Math.random() * manufacturers.length)]
-    const oltId = Math.floor(Math.random() * 3) + 1
-    const portNum = Math.floor(Math.random() * 16) + 1
-    
-    onus.push({
-      id: i,
-      serial_number: `${manufacturer.substring(0, 4).toUpperCase()}${String(i).padStart(8, '0')}`,
-      pon_port: oltId * 100 + portNum,
-      pon_port_name: `0/0/${portNum}`,
-      olt: oltId,
-      olt_name: [`OLT-Nairobi-CBD-01`, `OLT-Westlands-01`, `OLT-Kilimani-01`][oltId - 1],
-      customer: Math.random() > 0.15 ? 1000 + i : undefined,
-      customer_name: Math.random() > 0.15 ? `Customer ${i}` : undefined,
-      model: models[Math.floor(Math.random() * models.length)],
-      manufacturer,
-      firmware_version: "V3R019C10S115",
-      status,
-      registration_status: Math.random() > 0.08 ? 'registered' : 'pending',
-      rx_power: -(Math.random() * 10 + 17),
-      tx_power: Math.random() * 2 + 1,
-      distance: Math.floor(Math.random() * 8000) + 100,
-      mac_address: `AA:BB:CC:${String(oltId).padStart(2, '0')}:${String(portNum).padStart(2, '0')}:${String(i).padStart(2, '0')}`,
-      ip_address: `192.168.${oltId}.${i}`,
-      last_seen: status === 'online' ? 'Just now' : status === 'offline' ? `${Math.floor(Math.random() * 24) + 1} hours ago` : `${Math.floor(Math.random() * 30) + 1} min ago`,
-      online_since: status === 'online' ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString() : undefined,
-      created_at: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-  }
-  return onus
-}
-
-// Mock unregistered ONUs
-const generateUnregisteredONUs = (): ONU[] => {
-  return Array.from({ length: 5 }, (_, i) => ({
-    id: 1000 + i,
-    serial_number: `HWTC${String(1000 + i).padStart(8, '0')}`,
-    pon_port: 101 + i,
-    pon_port_name: `0/0/${i + 1}`,
-    olt: 1,
-    olt_name: "OLT-Nairobi-CBD-01",
-    model: "Unknown",
-    manufacturer: "Huawei",
-    status: 'offline' as const,
-    registration_status: 'unregistered' as const,
-    rx_power: -(Math.random() * 6 + 20),
-    tx_power: Math.random() * 2 + 1,
-    distance: Math.floor(Math.random() * 3000) + 200,
-    last_seen: `${Math.floor(Math.random() * 10) + 1} min ago`,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }))
-}
-
 const getStatusBadge = (status: string) => {
   const config: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode; color: string }> = {
     online: { variant: "default", icon: <Wifi className="h-3 w-3" />, color: "text-green-600" },
@@ -196,8 +134,8 @@ const getPowerStatus = (power: number) => {
 }
 
 export default function ONUManagementPage() {
-  const [onus] = useState<ONU[]>(generateMockONUs())
-  const [unregisteredONUs] = useState<ONU[]>(generateUnregisteredONUs())
+  const [onus, setOnus] = useState<ONU[]>([])
+  const [unregisteredONUs, setUnregisteredONUs] = useState<ONU[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [oltFilter, setOltFilter] = useState<string>("all")
@@ -210,6 +148,29 @@ export default function ONUManagementPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [selectedRows, setSelectedRows] = useState<number[]>([])
   const [activeTab, setActiveTab] = useState("registered")
+  const [olts, setOlts] = useState<OLT[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [onuResponse, unregResponse, oltResponse] = await Promise.allSettled([
+        adminApi.getONUs({ page_size: '200' }),
+        adminApi.getUnregisteredONUs(),
+        adminApi.getOLTs({ page_size: '100' }),
+      ])
+      if (onuResponse.status === 'fulfilled') setOnus(onuResponse.value.results || [])
+      if (unregResponse.status === 'fulfilled') setUnregisteredONUs(unregResponse.value || [])
+      if (oltResponse.status === 'fulfilled') setOlts(oltResponse.value.results || [])
+    } catch (error) {
+      console.error('Failed to fetch ONU data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   // Filtered ONUs
   const filteredONUs = useMemo(() => {
@@ -255,14 +216,18 @@ export default function ONUManagementPage() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await fetchData()
     setIsRefreshing(false)
   }
 
   const handleProvision = async () => {
     if (onuToProvision && selectedCustomer) {
-      // TODO: Call API to provision ONU
-      console.log("Provisioning ONU:", onuToProvision.serial_number, "for customer:", selectedCustomer)
+      try {
+        await adminApi.provisionONU(onuToProvision.id, { customer: selectedCustomer })
+        await fetchData()
+      } catch (error) {
+        console.error('Failed to provision ONU:', error)
+      }
       setIsProvisionDialogOpen(false)
       setOnuToProvision(null)
       setSelectedCustomer("")
@@ -270,7 +235,8 @@ export default function ONUManagementPage() {
   }
 
   const handleReboot = async (onu: ONU) => {
-    console.log("Rebooting ONU:", onu.serial_number)
+    // TODO: Add ONU reboot API when available
+    console.error('ONU reboot API not yet available')
   }
 
   const toggleRowSelection = (id: number) => {
@@ -422,9 +388,9 @@ export default function ONUManagementPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All OLTs</SelectItem>
-                  <SelectItem value="1">OLT-Nairobi-CBD-01</SelectItem>
-                  <SelectItem value="2">OLT-Westlands-01</SelectItem>
-                  <SelectItem value="3">OLT-Kilimani-01</SelectItem>
+                  {olts.map(olt => (
+                    <SelectItem key={olt.id} value={String(olt.id)}>{olt.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {activeTab === "registered" && (
@@ -870,9 +836,6 @@ export default function ONUManagementPage() {
                   <SelectValue placeholder="Select a customer" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1001">John Doe - CBD</SelectItem>
-                  <SelectItem value="1002">Jane Smith - Westlands</SelectItem>
-                  <SelectItem value="1003">Bob Wilson - Kilimani</SelectItem>
                   <SelectItem value="new">+ Create New Customer</SelectItem>
                 </SelectContent>
               </Select>

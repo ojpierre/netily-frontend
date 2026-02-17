@@ -98,94 +98,25 @@ type TicketStatus = SupportTicketStatus
 type TicketPriority = SupportTicketPriority
 type TicketCategory = SupportTicketCategory
 
-// Mock data generator (fallback)
-const generateMockTickets = (): SupportTicket[] => {
-  const subjects = [
-    "Internet connection keeps dropping",
-    "Billing inquiry for last month",
-    "Cannot access my account",
-    "Speed is slower than expected",
-    "Request to upgrade my plan",
-    "Router configuration help",
-    "Payment not reflecting",
-    "Network outage in my area",
-    "Password reset not working",
-    "Need invoice for tax purposes",
-  ]
-
-  const categories: TicketCategory[] = ["technical", "billing", "account", "service", "other"]
-  const priorities: TicketPriority[] = ["low", "medium", "high", "urgent"]
-  const statuses: TicketStatus[] = ["open", "in_progress", "pending", "resolved", "closed"]
-  const agents = ["John Admin", "Sarah Support", "Mike Tech", "Lisa Billing"]
-
-  return Array.from({ length: 25 }, (_, i) => {
-    const status = statuses[Math.floor(Math.random() * statuses.length)]
-    const createdDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000)
-    
-    return {
-      id: 1000 + i,
-      ticket_number: `TKT-${1000 + i}`,
-      subject: subjects[Math.floor(Math.random() * subjects.length)],
-      description: "This is a detailed description of the issue the customer is experiencing...",
-      status,
-      priority: priorities[Math.floor(Math.random() * priorities.length)],
-      category: categories[Math.floor(Math.random() * categories.length)],
-      customer_id: 2000 + i,
-      customer_name: `Customer ${i + 1}`,
-      customer_email: `customer${i + 1}@example.com`,
-      customer_phone: `+254 7${Math.floor(10000000 + Math.random() * 90000000)}`,
-      customer_plan: ["Basic Monthly", "Premium Weekly", "Business Quarterly"][Math.floor(Math.random() * 3)],
-      assigned_to: status !== "open" ? i % 4 + 1 : undefined,
-      assigned_to_name: status !== "open" ? agents[i % 4] : undefined,
-      sla_breached: false,
-      created_at: createdDate.toISOString(),
-      updated_at: new Date(createdDate.getTime() + Math.random() * 5 * 24 * 60 * 60 * 1000).toISOString(),
-      messages: [
-        {
-          id: 1,
-          ticket_id: 1000 + i,
-          sender_type: "customer" as const,
-          sender_id: 2000 + i,
-          sender_name: `Customer ${i + 1}`,
-          message: "Hi, I'm having an issue with my internet connection. It keeps dropping every few hours.",
-          is_internal: false,
-          created_at: createdDate.toISOString(),
-        },
-        ...(status !== "open" ? [{
-          id: 2,
-          ticket_id: 1000 + i,
-          sender_type: "agent" as const,
-          sender_id: i % 4 + 1,
-          sender_name: agents[i % 4],
-          message: "Hello! I'm sorry to hear you're experiencing this issue. Let me look into this for you. Can you please share your router model?",
-          is_internal: false,
-          created_at: new Date(createdDate.getTime() + 2 * 60 * 60 * 1000).toISOString(),
-        }] : []),
-      ],
-    }
-  })
-}
-
-// Mock stats
-const mockStats: SupportTicketStats = {
-  total: 25,
-  open: 8,
-  in_progress: 6,
-  pending: 4,
-  resolved: 5,
-  closed: 2,
-  avg_response_time: "2.5 hrs",
-  avg_resolution_time: "18 hrs",
-  sla_compliance_rate: 94.5,
-  tickets_today: 3,
-  tickets_this_week: 12,
+const emptyStats: SupportTicketStats = {
+  total: 0,
+  open: 0,
+  in_progress: 0,
+  pending: 0,
+  resolved: 0,
+  closed: 0,
+  avg_response_time: "—",
+  avg_resolution_time: "—",
+  sla_compliance_rate: 0,
+  tickets_today: 0,
+  tickets_this_week: 0,
 }
 
 export default function TicketsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tickets, setTickets] = useState<SupportTicket[]>([])
-  const [stats, setStats] = useState<SupportTicketStats>(mockStats)
+  const [stats, setStats] = useState<SupportTicketStats>(emptyStats)
   const [activeTab, setActiveTab] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [priorityFilter, setPriorityFilter] = useState("all")
@@ -234,13 +165,8 @@ export default function TicketsPage() {
       ])
       
       if (ticketsData) {
-        // Handle paginated or array response
         const ticketsList = Array.isArray(ticketsData) ? ticketsData : (ticketsData.results || [])
         setTickets(ticketsList)
-      } else {
-        // Fallback to mock data
-        console.warn("Using mock ticket data - API not available")
-        setTickets(generateMockTickets())
       }
       
       if (statsData) {
@@ -248,8 +174,7 @@ export default function TicketsPage() {
       }
     } catch (err) {
       console.error("Error loading tickets:", err)
-      setError("Failed to load tickets. Using cached data.")
-      setTickets(generateMockTickets())
+      setError("Failed to load tickets. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -392,7 +317,6 @@ export default function TicketsPage() {
       }).catch(() => null)
       
       if (message) {
-        // API success - add to messages
         setSelectedTicket({
           ...selectedTicket,
           messages: [...(selectedTicket.messages || []), message],
@@ -401,24 +325,7 @@ export default function TicketsPage() {
         })
         toast.success("Reply sent successfully")
       } else {
-        // Fallback for mock mode
-        const newMessage: SupportTicketMessage = {
-          id: Date.now(),
-          ticket_id: selectedTicket.id,
-          sender_type: "agent",
-          sender_id: 1,
-          sender_name: "Admin",
-          message: replyMessage,
-          is_internal: false,
-          created_at: new Date().toISOString(),
-        }
-        
-        setSelectedTicket({
-          ...selectedTicket,
-          messages: [...(selectedTicket.messages || []), newMessage],
-          status: selectedTicket.status === "open" ? "in_progress" : selectedTicket.status,
-        })
-        toast.success("Reply sent (offline mode)")
+        toast.error("Failed to send reply")
       }
       
       setReplyMessage("")
@@ -488,25 +395,7 @@ export default function TicketsPage() {
         setTickets(prev => [ticket, ...prev])
         toast.success("Ticket created successfully")
       } else {
-        // Mock mode
-        const mockTicket: SupportTicket = {
-          id: Date.now(),
-          ticket_number: `TKT-${Date.now()}`,
-          subject: newTicketData.subject,
-          description: newTicketData.description,
-          status: "open",
-          priority: newTicketData.priority,
-          category: newTicketData.category,
-          customer_id: parseInt(newTicketData.customer_id) || 0,
-          customer_name: "Customer",
-          customer_email: "customer@example.com",
-          sla_breached: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          messages: [],
-        }
-        setTickets(prev => [mockTicket, ...prev])
-        toast.success("Ticket created (offline mode)")
+        toast.error("Failed to create ticket")
       }
       
       setShowNewTicketDialog(false)

@@ -75,195 +75,6 @@ import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import type { Router as RouterType2, RouterType, RouterStatus, RouterDashboardStats } from "@/lib/types"
 
-// Demo data for when API is unavailable
-const generateDemoRouters = (): RouterType2[] => [
-  {
-    id: 1,
-    name: "Main Gateway Router",
-    ip_address: "192.168.1.1",
-    mac_address: "AA:BB:CC:DD:EE:01",
-    api_port: 8728,
-    api_username: "admin",
-    router_type: "mikrotik",
-    model: "CCR1036-12G-4S",
-    firmware_version: "7.12.1",
-    location: "Nairobi CBD - HQ",
-    latitude: -1.2864,
-    longitude: 36.8172,
-    status: "online",
-    total_users: 450,
-    active_users: 320,
-    uptime: "45d 12h 30m",
-    uptime_percentage: 99.98,
-    sla_target: 99.9,
-    last_seen: new Date().toISOString(),
-    metrics: {
-      cpu_usage: 32,
-      memory_usage: 45,
-      temperature: 52,
-      active_connections: 320,
-      download_speed: 850,
-      upload_speed: 420,
-      packets_in: 12500000,
-      packets_out: 8900000,
-    },
-    tags: ["primary", "production"],
-    is_active: true,
-    created_at: "2023-06-15T10:00:00Z",
-  },
-  {
-    id: 2,
-    name: "Westlands Branch Router",
-    ip_address: "192.168.2.1",
-    mac_address: "AA:BB:CC:DD:EE:02",
-    api_port: 8728,
-    api_username: "admin",
-    router_type: "mikrotik",
-    model: "RB4011iGS+RM",
-    firmware_version: "7.11.2",
-    location: "Westlands - Branch Office",
-    status: "online",
-    total_users: 250,
-    active_users: 180,
-    uptime: "23d 8h 15m",
-    uptime_percentage: 99.85,
-    sla_target: 99.5,
-    last_seen: new Date().toISOString(),
-    metrics: {
-      cpu_usage: 28,
-      memory_usage: 38,
-      temperature: 48,
-      active_connections: 180,
-      download_speed: 450,
-      upload_speed: 210,
-    },
-    tags: ["branch", "production"],
-    is_active: true,
-    created_at: "2023-08-20T14:30:00Z",
-  },
-  {
-    id: 3,
-    name: "Kilimani Distribution",
-    ip_address: "192.168.3.1",
-    mac_address: "AA:BB:CC:DD:EE:03",
-    api_port: 22,
-    api_username: "ubnt",
-    router_type: "ubiquiti",
-    model: "EdgeRouter 12P",
-    firmware_version: "2.0.9",
-    location: "Kilimani - Residential",
-    status: "warning",
-    total_users: 120,
-    active_users: 95,
-    uptime: "12d 5h 45m",
-    uptime_percentage: 97.5,
-    sla_target: 99.0,
-    last_seen: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    metrics: {
-      cpu_usage: 78,
-      memory_usage: 82,
-      temperature: 68,
-      active_connections: 95,
-      download_speed: 380,
-      upload_speed: 190,
-    },
-    tags: ["residential", "production"],
-    notes: "High CPU usage detected - needs investigation",
-    is_active: true,
-    created_at: "2023-09-10T09:15:00Z",
-  },
-  {
-    id: 4,
-    name: "Mombasa Gateway",
-    ip_address: "10.0.1.1",
-    mac_address: "AA:BB:CC:DD:EE:04",
-    api_port: 22,
-    api_username: "admin",
-    router_type: "cisco",
-    model: "ISR 4331",
-    firmware_version: "16.12.4",
-    location: "Mombasa - Main Hub",
-    status: "online",
-    total_users: 380,
-    active_users: 245,
-    uptime: "67d 18h 20m",
-    uptime_percentage: 99.95,
-    sla_target: 99.9,
-    last_seen: new Date().toISOString(),
-    metrics: {
-      cpu_usage: 42,
-      memory_usage: 55,
-      temperature: 55,
-      active_connections: 245,
-      download_speed: 920,
-      upload_speed: 480,
-    },
-    tags: ["primary", "production", "coast"],
-    is_active: true,
-    created_at: "2023-05-01T08:00:00Z",
-  },
-  {
-    id: 5,
-    name: "Kisumu Branch",
-    ip_address: "10.0.2.1",
-    mac_address: "AA:BB:CC:DD:EE:05",
-    api_port: 8728,
-    api_username: "admin",
-    router_type: "mikrotik",
-    model: "hEX S",
-    firmware_version: "7.10.2",
-    location: "Kisumu - Branch",
-    status: "offline",
-    total_users: 85,
-    active_users: 0,
-    uptime: "0d 0h 0m",
-    uptime_percentage: 85.2,
-    sla_target: 99.0,
-    last_seen: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    metrics: {
-      cpu_usage: 0,
-      memory_usage: 0,
-      active_connections: 0,
-      download_speed: 0,
-      upload_speed: 0,
-    },
-    tags: ["branch", "production"],
-    notes: "Connection timeout - technician dispatched",
-    is_active: true,
-    created_at: "2023-10-15T11:30:00Z",
-  },
-  {
-    id: 6,
-    name: "Nakuru Distribution",
-    ip_address: "10.0.3.1",
-    mac_address: "AA:BB:CC:DD:EE:06",
-    api_port: 8728,
-    api_username: "admin",
-    router_type: "mikrotik",
-    model: "RB3011UiAS-RM",
-    firmware_version: "7.11.2",
-    location: "Nakuru - Distribution Center",
-    status: "maintenance",
-    total_users: 150,
-    active_users: 0,
-    uptime: "0d 0h 0m",
-    uptime_percentage: 98.5,
-    sla_target: 99.0,
-    last_seen: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-    metrics: {
-      cpu_usage: 0,
-      memory_usage: 0,
-      active_connections: 0,
-      download_speed: 0,
-      upload_speed: 0,
-    },
-    tags: ["distribution", "maintenance"],
-    notes: "Scheduled maintenance - firmware upgrade",
-    is_active: true,
-    created_at: "2023-07-22T16:45:00Z",
-  },
-]
-
 export default function RoutersPage() {
   const router = useRouter()
   const hasFetchedRef = React.useRef(false)
@@ -276,7 +87,6 @@ export default function RoutersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
-  const [isUsingDemoData, setIsUsingDemoData] = useState(false)
   
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -312,34 +122,10 @@ export default function RoutersPage() {
       
       setRouters(routersResponse.results || [])
       setStats(statsResponse)
-      setIsUsingDemoData(false)
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.log('API unavailable, using demo data:', errorMessage)
-      // Use demo data when API is unavailable
-      const demoRouters = generateDemoRouters()
-      setRouters(demoRouters)
-      setIsUsingDemoData(true)
-      
-      // Calculate demo stats
-      const online = demoRouters.filter(r => r.status === "online").length
-      const offline = demoRouters.filter(r => r.status === "offline").length
-      const warning = demoRouters.filter(r => r.status === "warning").length
-      const maintenance = demoRouters.filter(r => r.status === "maintenance").length
-      const totalUsers = demoRouters.reduce((acc, r) => acc + r.active_users, 0)
-      const avgUptime = demoRouters.reduce((acc, r) => acc + (r.uptime_percentage || 0), 0) / demoRouters.length
-      const belowSla = demoRouters.filter(r => (r.uptime_percentage || 0) < (r.sla_target || 99)).length
-      
-      setStats({
-        total_routers: demoRouters.length,
-        online_routers: online,
-        offline_routers: offline,
-        warning_routers: warning,
-        maintenance_routers: maintenance,
-        total_connected_users: totalUsers,
-        average_uptime: avgUptime,
-        below_sla_count: belowSla,
-      })
+      console.error('Failed to load routers:', errorMessage)
+      toast.error('Failed to load routers. Please check your connection.')
     } finally {
       setIsLoading(false)
     }
@@ -407,34 +193,9 @@ export default function RoutersPage() {
 
     setIsSubmitting(true)
     try {
-      if (isUsingDemoData) {
-        // Demo mode - add to local state
-        const newRouter: RouterType2 = {
-          id: Math.max(...routers.map(r => r.id), 0) + 1,
-          name: formData.name!,
-          ip_address: formData.ip_address || "0.0.0.0",
-          api_port: formData.api_port || 8728,
-          api_username: formData.api_username || "admin",
-          router_type: (formData.router_type as RouterType) || "mikrotik",
-          model: formData.model,
-          location: formData.location,
-          status: "offline",
-          total_users: 0,
-          active_users: 0,
-          uptime_percentage: 0,
-          sla_target: formData.sla_target || 99.0,
-          tags: formData.tags || [],
-          notes: formData.notes,
-          is_active: true,
-          created_at: new Date().toISOString(),
-        }
-        setRouters([...routers, newRouter])
-        toast.success("Router added - Now edit it to configure and get the auth script")
-      } else {
-        const newRouter = await adminApi.createRouter(formData)
-        setRouters([...routers, newRouter])
-        toast.success("Router created successfully")
-      }
+      const newRouter = await adminApi.createRouter(formData)
+      setRouters([...routers, newRouter])
+      toast.success("Router created successfully")
       
       setIsAddDialogOpen(false)
       resetForm()
@@ -452,19 +213,9 @@ export default function RoutersPage() {
 
     setIsSubmitting(true)
     try {
-      if (isUsingDemoData) {
-        // Demo mode - update local state
-        setRouters(routers.map(r => 
-          r.id === selectedRouter.id 
-            ? { ...r, ...formData, updated_at: new Date().toISOString() } 
-            : r
-        ))
-        toast.success("Router updated (Demo Mode)")
-      } else {
-        const updatedRouter = await adminApi.updateRouter(selectedRouter.id, formData)
-        setRouters(routers.map(r => r.id === selectedRouter.id ? updatedRouter : r))
-        toast.success("Router updated successfully")
-      }
+      const updatedRouter = await adminApi.updateRouter(selectedRouter.id, formData)
+      setRouters(routers.map(r => r.id === selectedRouter.id ? updatedRouter : r))
+      toast.success("Router updated successfully")
       
       setIsEditDialogOpen(false)
       setSelectedRouter(null)
@@ -483,15 +234,9 @@ export default function RoutersPage() {
 
     setIsSubmitting(true)
     try {
-      if (isUsingDemoData) {
-        // Demo mode - remove from local state
-        setRouters(routers.filter(r => r.id !== selectedRouter.id))
-        toast.success("Router deleted (Demo Mode)")
-      } else {
-        await adminApi.deleteRouter(selectedRouter.id)
-        setRouters(routers.filter(r => r.id !== selectedRouter.id))
-        toast.success("Router deleted successfully")
-      }
+      await adminApi.deleteRouter(selectedRouter.id)
+      setRouters(routers.filter(r => r.id !== selectedRouter.id))
+      toast.success("Router deleted successfully")
       
       setIsDeleteDialogOpen(false)
       setSelectedRouter(null)
@@ -507,22 +252,11 @@ export default function RoutersPage() {
   const handleTestConnection = async (routerId: number) => {
     setIsTesting(routerId)
     try {
-      if (isUsingDemoData) {
-        // Demo mode - simulate test
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        const r = routers.find(r => r.id === routerId)
-        if (r?.status === "offline") {
-          toast.error("Connection failed: Timeout")
-        } else {
-          toast.success(`Connection successful! Latency: ${Math.floor(Math.random() * 50 + 10)}ms`)
-        }
+      const result = await adminApi.testRouterConnection(routerId)
+      if (result.success) {
+        toast.success(`Connection successful! Latency: ${result.latency}ms`)
       } else {
-        const result = await adminApi.testRouterConnection(routerId)
-        if (result.success) {
-          toast.success(`Connection successful! Latency: ${result.latency}ms`)
-        } else {
-          toast.error(result.message || "Connection failed")
-        }
+        toast.error(result.message || "Connection failed")
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -534,27 +268,9 @@ export default function RoutersPage() {
 
   const handleReboot = async (routerId: number) => {
     try {
-      if (isUsingDemoData) {
-        // Demo mode - simulate reboot
-        toast.success("Reboot command sent (Demo Mode)")
-        setRouters(routers.map(r => 
-          r.id === routerId 
-            ? { ...r, status: "maintenance" as RouterStatus, uptime: "0d 0h 0m" } 
-            : r
-        ))
-        // Simulate coming back online
-        setTimeout(() => {
-          setRouters(prev => prev.map(r => 
-            r.id === routerId 
-              ? { ...r, status: "online" as RouterStatus, uptime: "0d 0h 1m" } 
-              : r
-          ))
-        }, 5000)
-      } else {
-        await adminApi.rebootRouter(routerId)
-        toast.success("Reboot command sent successfully")
-        fetchData()
-      }
+      await adminApi.rebootRouter(routerId)
+      toast.success("Reboot command sent successfully")
+      fetchData()
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       toast.error(errorMessage || "Failed to send reboot command")
@@ -678,11 +394,6 @@ export default function RoutersPage() {
           <h1 className="text-3xl font-bold text-slate-900">Router Management</h1>
           <p className="text-slate-500 mt-1">
             Monitor and manage network access servers
-            {isUsingDemoData && (
-              <Badge variant="outline" className="ml-2 text-amber-600 border-amber-300">
-                Demo Mode
-              </Badge>
-            )}
           </p>
         </div>
         <div className="flex gap-2">

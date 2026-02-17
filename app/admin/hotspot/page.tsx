@@ -1056,7 +1056,7 @@ add address=10.10.0.1/24 interface=bridge-hotspot
                       
                       <div className="bg-slate-100 rounded-lg p-4">
                         <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
-                          {/* Mock Phone Frame */}
+                          {/* Phone Frame Preview */}
                           <div 
                             className="p-6 text-center"
                             style={{ backgroundColor: branding?.primary_color || "#3B82F6" }}
