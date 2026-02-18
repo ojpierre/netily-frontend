@@ -83,7 +83,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { adminApi } from "@/lib/admin-api"
-import type { Subnet, IPAddress, DHCPLease } from "@/lib/types"
+import type { Subnet, IPAddress, DHCPLease, IPPool, IPPoolsByRouter, Router as RouterType } from "@/lib/types"
 
 type SubnetStatus = 'active' | 'inactive' | 'full'
 type IPStatus = 'available' | 'assigned' | 'reserved' | 'dhcp'
@@ -128,13 +128,20 @@ export default function IPAMPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [ipAddresses, setIPAddresses] = useState<IPAddress[]>([])
   const [dhcpLeases, setDhcpLeases] = useState<DHCPLease[]>([])
+  const [poolsByRouter, setPoolsByRouter] = useState<IPPoolsByRouter[]>([])
+  const [routers, setRouters] = useState<RouterType[]>([])
+  const [isCreatePoolOpen, setIsCreatePoolOpen] = useState(false)
+  const [creatingPool, setCreatingPool] = useState(false)
+  const [editingPool, setEditingPool] = useState<IPPool | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      const [subnetsRes, dhcpRes] = await Promise.allSettled([
+      const [subnetsRes, dhcpRes, poolsRes, routersRes] = await Promise.allSettled([
         adminApi.getSubnets({ page_size: "100" }),
         adminApi.getDHCPLeases({ page_size: "100" }),
+        adminApi.getIPPoolsByRouter(),
+        adminApi.getRouters({ page_size: "100" }),
       ])
       if (subnetsRes.status === "fulfilled") {
         setSubnets(
@@ -148,6 +155,12 @@ export default function IPAMPage() {
       }
       if (dhcpRes.status === "fulfilled") {
         setDhcpLeases(dhcpRes.value.results || [])
+      }
+      if (poolsRes.status === "fulfilled") {
+        setPoolsByRouter(poolsRes.value || [])
+      }
+      if (routersRes.status === "fulfilled") {
+        setRouters(routersRes.value.results || [])
       }
     } catch (err) {
       console.error("Failed to load IPAM data:", err)
@@ -173,6 +186,34 @@ export default function IPAMPage() {
     dhcp_end: "",
     description: "",
   })
+
+  // IP Pool form state
+  const [poolForm, setPoolForm] = useState({
+    router: "" as string,
+    name: "",
+    pool_type: "PPPOE" as string,
+    start_ip: "",
+    end_ip: "",
+    gateway: "",
+    dns_servers: "8.8.8.8,8.8.4.4",
+    description: "",
+    is_active: true,
+  })
+
+  const resetPoolForm = () => {
+    setPoolForm({
+      router: "",
+      name: "",
+      pool_type: "PPPOE",
+      start_ip: "",
+      end_ip: "",
+      gateway: "",
+      dns_servers: "8.8.8.8,8.8.4.4",
+      description: "",
+      is_active: true,
+    })
+    setEditingPool(null)
+  }
 
   // Stats
   const stats = useMemo(() => {
@@ -234,6 +275,103 @@ export default function IPAMPage() {
       dhcp_end: "",
       description: "",
     })
+  }
+
+  // Pool stats
+  const poolStats = useMemo(() => {
+    const allPools = poolsByRouter.flatMap(r => r.pools)
+    const totalPools = allPools.length
+    const activePools = allPools.filter(p => p.is_active).length
+    const totalPoolIPs = allPools.reduce((sum, p) => sum + (p.total_ips || 0), 0)
+    const usedPoolIPs = allPools.reduce((sum, p) => sum + (p.used_ips || 0), 0)
+    return {
+      totalPools,
+      activePools,
+      totalPoolIPs,
+      usedPoolIPs,
+      availablePoolIPs: totalPoolIPs - usedPoolIPs,
+      routersWithPools: poolsByRouter.length,
+    }
+  }, [poolsByRouter])
+
+  const handleCreatePool = async () => {
+    if (!poolForm.router || !poolForm.name || !poolForm.start_ip || !poolForm.end_ip) {
+      return
+    }
+    try {
+      setCreatingPool(true)
+      const data: Record<string, any> = {
+        router: parseInt(poolForm.router, 10),
+        name: poolForm.name,
+        pool_type: poolForm.pool_type,
+        start_ip: poolForm.start_ip,
+        end_ip: poolForm.end_ip,
+        gateway: poolForm.gateway || undefined,
+        dns_servers: poolForm.dns_servers || undefined,
+        description: poolForm.description || undefined,
+        is_active: poolForm.is_active,
+      }
+
+      if (editingPool) {
+        await adminApi.updateIPPool(editingPool.id, data)
+      } else {
+        await adminApi.createIPPool(data)
+      }
+
+      resetPoolForm()
+      setIsCreatePoolOpen(false)
+      await fetchData()
+    } catch (err) {
+      console.error("Failed to save IP pool:", err)
+    } finally {
+      setCreatingPool(false)
+    }
+  }
+
+  const handleEditPool = (pool: IPPool) => {
+    setEditingPool(pool)
+    setPoolForm({
+      router: pool.router ? String(pool.router) : "",
+      name: pool.name,
+      pool_type: pool.pool_type,
+      start_ip: pool.start_ip,
+      end_ip: pool.end_ip,
+      gateway: pool.gateway || "",
+      dns_servers: pool.dns_servers || "8.8.8.8,8.8.4.4",
+      description: pool.description || "",
+      is_active: pool.is_active,
+    })
+    setIsCreatePoolOpen(true)
+  }
+
+  const handleDeletePool = async (pool: IPPool) => {
+    if (!confirm(`Delete pool "${pool.name}" from ${pool.router_name}?`)) return
+    try {
+      await adminApi.deleteIPPool(pool.id)
+      await fetchData()
+    } catch (err) {
+      console.error("Failed to delete pool:", err)
+    }
+  }
+
+  const getRouterStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'online': return 'text-green-600 bg-green-50 border-green-200'
+      case 'offline': return 'text-red-600 bg-red-50 border-red-200'
+      default: return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+    }
+  }
+
+  const getPoolTypeBadge = (type: string) => {
+    const config: Record<string, { variant: "default" | "secondary" | "outline"; className: string }> = {
+      PPPOE: { variant: "default", className: "bg-purple-500" },
+      DHCP: { variant: "default", className: "bg-blue-500" },
+      STATIC: { variant: "secondary", className: "" },
+      HOTSPOT: { variant: "default", className: "bg-orange-500" },
+      MANAGEMENT: { variant: "outline", className: "" },
+    }
+    const c = config[type] || { variant: "outline" as const, className: "" }
+    return <Badge variant={c.variant} className={c.className}>{type}</Badge>
   }
 
   return (
@@ -319,6 +457,10 @@ export default function IPAMPage() {
           <TabsTrigger value="subnets" className="gap-2">
             <Network className="h-4 w-4" />
             Subnets
+          </TabsTrigger>
+          <TabsTrigger value="pools" className="gap-2">
+            <Layers className="h-4 w-4" />
+            IP Pools
           </TabsTrigger>
           <TabsTrigger value="dhcp" className="gap-2">
             <Server className="h-4 w-4" />
@@ -451,6 +593,133 @@ export default function IPAMPage() {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* IP Pools Tab — grouped by router */}
+        <TabsContent value="pools" className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">IP Pools by Router</h2>
+              <p className="text-sm text-muted-foreground">
+                {poolStats.totalPools} pools across {poolStats.routersWithPools} routers · {poolStats.availablePoolIPs.toLocaleString()} IPs available
+              </p>
+            </div>
+            <Button onClick={() => { resetPoolForm(); setIsCreatePoolOpen(true) }}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add IP Pool
+            </Button>
+          </div>
+
+          {poolsByRouter.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Layers className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold">No IP Pools Yet</h3>
+                <p className="text-sm text-muted-foreground mt-1 mb-4">
+                  Create IP pools on your routers to manage PPPoE address assignment.
+                </p>
+                <Button onClick={() => { resetPoolForm(); setIsCreatePoolOpen(true) }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create First Pool
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            poolsByRouter.map((group) => (
+              <Card key={group.router_id}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Router className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <CardTitle className="text-base">{group.router_name}</CardTitle>
+                        <CardDescription className="font-mono">{group.router_ip}</CardDescription>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className={getRouterStatusColor(group.router_status)}>
+                      {group.router_status}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Pool Name</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>IP Range</TableHead>
+                        <TableHead>Gateway</TableHead>
+                        <TableHead>Utilization</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {group.pools.map((pool) => (
+                        <TableRow key={pool.id}>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{pool.name}</span>
+                              {pool.description && (
+                                <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                                  {pool.description}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>{getPoolTypeBadge(pool.pool_type)}</TableCell>
+                          <TableCell>
+                            <span className="font-mono text-sm">{pool.start_ip} – {pool.end_ip}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-mono text-sm">{pool.gateway || "—"}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Progress value={pool.utilization_percentage} className="h-2 w-20" />
+                              <span className={`text-sm font-medium ${getUsageColor(pool.utilization_percentage)}`}>
+                                {Math.round(pool.utilization_percentage)}%
+                              </span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {pool.available_ips} / {pool.total_ips} free
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {pool.is_active ? (
+                              <Badge variant="default">Active</Badge>
+                            ) : (
+                              <Badge variant="secondary">Inactive</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEditPool(pool)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Pool
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-red-600" onClick={() => handleDeletePool(pool)}>
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete Pool
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </TabsContent>
 
         <TabsContent value="dhcp" className="mt-4">
@@ -775,6 +1044,134 @@ export default function IPAMPage() {
             <Button onClick={handleCreateSubnet}>
               <Plus className="mr-2 h-4 w-4" />
               Create Subnet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create/Edit IP Pool Dialog */}
+      <Dialog open={isCreatePoolOpen} onOpenChange={(open) => { setIsCreatePoolOpen(open); if (!open) resetPoolForm() }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingPool ? "Edit IP Pool" : "Add New IP Pool"}</DialogTitle>
+            <DialogDescription>
+              {editingPool
+                ? "Update the IP pool configuration."
+                : "Create an IP pool on a router for PPPoE/DHCP address assignment."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="pool_router">Router *</Label>
+              <Select
+                value={poolForm.router}
+                onValueChange={(v) => setPoolForm({ ...poolForm, router: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select router" />
+                </SelectTrigger>
+                <SelectContent>
+                  {routers.map((r) => (
+                    <SelectItem key={r.id} value={String(r.id)}>
+                      {r.name} ({r.ip_address}) — {r.status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="pool_name">Pool Name *</Label>
+                <Input
+                  id="pool_name"
+                  placeholder="pppoe-pool-1"
+                  value={poolForm.name}
+                  onChange={(e) => setPoolForm({ ...poolForm, name: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="pool_type">Pool Type</Label>
+                <Select
+                  value={poolForm.pool_type}
+                  onValueChange={(v) => setPoolForm({ ...poolForm, pool_type: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PPPOE">PPPoE</SelectItem>
+                    <SelectItem value="DHCP">DHCP</SelectItem>
+                    <SelectItem value="STATIC">Static</SelectItem>
+                    <SelectItem value="HOTSPOT">Hotspot</SelectItem>
+                    <SelectItem value="MANAGEMENT">Management</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="pool_start">Start IP *</Label>
+                <Input
+                  id="pool_start"
+                  placeholder="10.0.0.2"
+                  value={poolForm.start_ip}
+                  onChange={(e) => setPoolForm({ ...poolForm, start_ip: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="pool_end">End IP *</Label>
+                <Input
+                  id="pool_end"
+                  placeholder="10.0.0.254"
+                  value={poolForm.end_ip}
+                  onChange={(e) => setPoolForm({ ...poolForm, end_ip: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="pool_gateway">Gateway</Label>
+                <Input
+                  id="pool_gateway"
+                  placeholder="10.0.0.1"
+                  value={poolForm.gateway}
+                  onChange={(e) => setPoolForm({ ...poolForm, gateway: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="pool_dns">DNS Servers</Label>
+                <Input
+                  id="pool_dns"
+                  placeholder="8.8.8.8,8.8.4.4"
+                  value={poolForm.dns_servers}
+                  onChange={(e) => setPoolForm({ ...poolForm, dns_servers: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="pool_desc">Description (Optional)</Label>
+              <Textarea
+                id="pool_desc"
+                placeholder="Pool for residential PPPoE customers..."
+                value={poolForm.description}
+                onChange={(e) => setPoolForm({ ...poolForm, description: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="pool_active"
+                checked={poolForm.is_active}
+                onCheckedChange={(checked) => setPoolForm({ ...poolForm, is_active: checked })}
+              />
+              <Label htmlFor="pool_active">Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setIsCreatePoolOpen(false); resetPoolForm() }} disabled={creatingPool}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreatePool} disabled={creatingPool || !poolForm.router || !poolForm.name || !poolForm.start_ip || !poolForm.end_ip}>
+              {creatingPool ? "Saving..." : editingPool ? "Update Pool" : "Create Pool"}
             </Button>
           </DialogFooter>
         </DialogContent>

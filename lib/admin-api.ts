@@ -127,6 +127,11 @@ import type {
   VPNDashboardStats,
   CreateVPNCertificateRequest,
   VPNCertificateWithConfig,
+  // IP Pool types
+  IPPool,
+  IPPoolsByRouter,
+  IPPoolStatistics,
+  IPPoolType,
   // RADIUS types
   RADIUSUser,
   RADIUSProfile,
@@ -1239,59 +1244,100 @@ class AdminApiService {
   }
 
   // ------------------------------------------
-  // IPAM - /network/ipam/
+  // IPAM - /network/ (Subnets, IP Addresses, DHCP, IP Pools)
   // ------------------------------------------
 
   async getSubnets(params?: Record<string, string>): Promise<PaginatedResponse<Subnet>> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<PaginatedResponse<Subnet>>(`/network/ipam/subnets/${queryString}`)
+    return this.request<PaginatedResponse<Subnet>>(`/network/subnets/${queryString}`)
   }
 
   async getSubnet(id: number): Promise<Subnet> {
-    return this.request<Subnet>(`/network/ipam/subnets/${id}/`)
+    return this.request<Subnet>(`/network/subnets/${id}/`)
   }
 
   async createSubnet(data: Partial<Subnet>): Promise<Subnet> {
-    return this.request<Subnet>('/network/ipam/subnets/', {
+    return this.request<Subnet>('/network/subnets/', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
   async updateSubnet(id: number, data: Partial<Subnet>): Promise<Subnet> {
-    return this.request<Subnet>(`/network/ipam/subnets/${id}/`, {
+    return this.request<Subnet>(`/network/subnets/${id}/`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
   }
 
   async deleteSubnet(id: number): Promise<void> {
-    await this.request(`/network/ipam/subnets/${id}/`, {
+    await this.request(`/network/subnets/${id}/`, {
       method: 'DELETE',
     })
   }
 
   async getIPAddresses(params?: Record<string, string>): Promise<PaginatedResponse<IPAddress>> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<PaginatedResponse<IPAddress>>(`/network/ipam/addresses/${queryString}`)
+    return this.request<PaginatedResponse<IPAddress>>(`/network/ip-addresses/${queryString}`)
   }
 
   async assignIPAddress(id: number, customerId: number): Promise<IPAddress> {
-    return this.request<IPAddress>(`/network/ipam/addresses/${id}/assign/`, {
+    return this.request<IPAddress>(`/network/ip-addresses/${id}/assign/`, {
       method: 'POST',
       body: JSON.stringify({ customer_id: customerId }),
     })
   }
 
   async releaseIPAddress(id: number): Promise<IPAddress> {
-    return this.request<IPAddress>(`/network/ipam/addresses/${id}/release/`, {
+    return this.request<IPAddress>(`/network/ip-addresses/${id}/release/`, {
       method: 'POST',
     })
   }
 
   async getDHCPLeases(params?: Record<string, string>): Promise<PaginatedResponse<DHCPLease>> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<PaginatedResponse<DHCPLease>>(`/network/ipam/dhcp/leases/${queryString}`)
+    return this.request<PaginatedResponse<DHCPLease>>(`/network/dhcp-ranges/${queryString}`)
+  }
+
+  // ------------------------------------------
+  // IP Pools - /network/ip-pools/
+  // ------------------------------------------
+
+  async getIPPools(params?: Record<string, string>): Promise<PaginatedResponse<IPPool>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<IPPool>>(`/network/ip-pools/${queryString}`)
+  }
+
+  async getIPPool(id: number): Promise<IPPool> {
+    return this.request<IPPool>(`/network/ip-pools/${id}/`)
+  }
+
+  async createIPPool(data: Partial<IPPool>): Promise<IPPool> {
+    return this.request<IPPool>('/network/ip-pools/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateIPPool(id: number, data: Partial<IPPool>): Promise<IPPool> {
+    return this.request<IPPool>(`/network/ip-pools/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteIPPool(id: number): Promise<void> {
+    await this.request(`/network/ip-pools/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async getIPPoolsByRouter(): Promise<IPPoolsByRouter[]> {
+    return this.request<IPPoolsByRouter[]>('/network/ip-pools/by_router/')
+  }
+
+  async getIPPoolStatistics(id: number): Promise<IPPoolStatistics> {
+    return this.request<IPPoolStatistics>(`/network/ip-pools/${id}/statistics/`)
   }
 
   // ------------------------------------------

@@ -1104,6 +1104,59 @@ export interface DHCPLease {
 }
 
 // ==========================================
+// IP POOL TYPES (Router-linked PPPoE Pools)
+// ==========================================
+
+export type IPPoolType = 'DHCP' | 'STATIC' | 'PPPOE' | 'HOTSPOT' | 'MANAGEMENT'
+
+export interface IPPool {
+  id: number
+  router: number | null
+  router_name: string
+  router_ip: string
+  router_status: string
+  subnet: number | null
+  subnet_cidr: string
+  name: string
+  pool_type: IPPoolType
+  pool_type_display?: string
+  start_ip: string
+  end_ip: string
+  ip_range: string            // "start - end" display string
+  gateway: string
+  dns_servers: string
+  lease_time: number | null
+  description: string
+  is_active: boolean
+  total_ips: number
+  used_ips: number
+  available_ips: number
+  utilization_percentage: number
+  created_at: string
+  updated_at: string
+}
+
+export interface IPPoolsByRouter {
+  router_id: number
+  router_name: string
+  router_ip: string
+  router_status: string
+  pools: IPPool[]
+}
+
+export interface IPPoolStatistics {
+  total_ips: number
+  used_ips: number
+  available_ips: number
+  utilization_percentage: number
+  allocations: Array<{
+    ip: string
+    customer: string
+    assigned_at: string
+  }>
+}
+
+// ==========================================
 // TR-069 / CPE TYPES
 // ==========================================
 
@@ -2527,6 +2580,8 @@ export interface CustomerRADIUSCredentials {
   customer_code: string
   username: string
   password?: string  // Write-only in non-detail views
+  router: number | null
+  router_name?: string
   bandwidth_profile: string | null
   profile_name: string | null
   connection_type: RADIUSConnectionType

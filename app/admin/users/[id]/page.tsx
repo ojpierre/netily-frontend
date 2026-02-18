@@ -69,7 +69,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { adminApi } from "@/lib/admin-api"
-import type { Customer, CustomerService, Payment, SupportTicket, RADIUSAccountingSession } from "@/lib/types"
+import type { Customer, CustomerService, Payment, SupportTicket, RADIUSAccountingSession, CustomerRADIUSCredentials, IPPool } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 
 // Local types for the detail view
@@ -220,7 +220,14 @@ export default function UserDetailPage() {
   const [sessions, setSessions] = useState<SessionEntry[]>([])
   const [payments, setPayments] = useState<PaymentEntry[]>([])
   const [tickets, setTickets] = useState<TicketEntry[]>([])
-
+  const [radiusCreds, setRadiusCreds] = useState<CustomerRADIUSCredentials | null>(null)
+  const [internetCheck, setInternetCheck] = useState<{
+    status: 'green' | 'yellow' | 'red' | 'loading' | 'none'
+    label: string
+    detail: string
+    pool?: string
+    routerName?: string
+  }>({ status: 'loading', label: 'Checking...', detail: '' })
   const userId = Number(params.id)
 
   const fetchUserData = useCallback(async () => {
@@ -264,6 +271,73 @@ export default function UserDetailPage() {
           } catch {
             // RADIUS sessions optional
           }
+        }
+
+        // Internet Check: Fetch RADIUS credentials and validate pool linkage
+        try {
+          const credsRes = await adminApi.getRADIUSCredentials({ customer: String(userId), page_size: '1' })
+          const cred = credsRes?.results?.[0] || null
+          setRadiusCreds(cred)
+
+          if (!cred) {
+            setInternetCheck({
+              status: 'none',
+              label: 'No RADIUS',
+              detail: 'No RADIUS credentials found for this customer.',
+            })
+          } else if (!cred.is_enabled) {
+            setInternetCheck({
+              status: 'red',
+              label: 'Disabled',
+              detail: `RADIUS account disabled: ${cred.disabled_reason || 'No reason given'}`,
+              routerName: cred.router_name,
+            })
+          } else if (!cred.ip_pool) {
+            setInternetCheck({
+              status: 'yellow',
+              label: 'No Pool',
+              detail: 'RADIUS credentials exist but no IP pool (Framed-Pool) is assigned. The router will use its default pool.',
+              routerName: cred.router_name,
+            })
+          } else {
+            // Pool is set — try to verify it exists on the assigned router
+            let poolValid = false
+            if (cred.router) {
+              try {
+                const poolsRes = await adminApi.getIPPools({ router_id: String(cred.router), name: cred.ip_pool })
+                poolValid = (poolsRes?.results?.length || 0) > 0
+              } catch {
+                // If pool check fails, assume valid
+                poolValid = true
+              }
+            } else {
+              poolValid = true // No router assigned, can't verify
+            }
+
+            if (poolValid) {
+              setInternetCheck({
+                status: 'green',
+                label: 'Connected',
+                detail: `Pool "${cred.ip_pool}" is configured${cred.router_name ? ` on ${cred.router_name}` : ''}. RADIUS will assign an IP from this pool.`,
+                pool: cred.ip_pool,
+                routerName: cred.router_name,
+              })
+            } else {
+              setInternetCheck({
+                status: 'red',
+                label: 'Pool Mismatch',
+                detail: `Pool "${cred.ip_pool}" does not exist on router ${cred.router_name || 'Unknown'}. Customer will NOT get an IP address.`,
+                pool: cred.ip_pool,
+                routerName: cred.router_name,
+              })
+            }
+          }
+        } catch {
+          setInternetCheck({
+            status: 'none',
+            label: 'Unknown',
+            detail: 'Could not check RADIUS status.',
+          })
         }
       }
     } catch (err) {
@@ -518,6 +592,70 @@ export default function UserDetailPage() {
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     <span className="text-green-600 font-medium">Online Now</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Internet Check Status */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <Signal className="w-5 h-5" />
+                  Internet Check
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-start gap-4">
+                  {/* Status Indicator */}
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    internetCheck.status === 'green' ? 'bg-green-100' :
+                    internetCheck.status === 'yellow' ? 'bg-yellow-100' :
+                    internetCheck.status === 'red' ? 'bg-red-100' :
+                    internetCheck.status === 'loading' ? 'bg-slate-100' :
+                    'bg-slate-100'
+                  }`}>
+                    {internetCheck.status === 'green' && (
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                    )}
+                    {internetCheck.status === 'yellow' && (
+                      <Activity className="w-6 h-6 text-yellow-600" />
+                    )}
+                    {internetCheck.status === 'red' && (
+                      <XCircle className="w-6 h-6 text-red-600" />
+                    )}
+                    {internetCheck.status === 'loading' && (
+                      <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+                    )}
+                    {internetCheck.status === 'none' && (
+                      <Signal className="w-6 h-6 text-slate-400" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-sm font-semibold ${
+                        internetCheck.status === 'green' ? 'text-green-700' :
+                        internetCheck.status === 'yellow' ? 'text-yellow-700' :
+                        internetCheck.status === 'red' ? 'text-red-700' :
+                        'text-slate-600'
+                      }`}>
+                        {internetCheck.label}
+                      </span>
+                      {internetCheck.status === 'green' && <Badge className="bg-green-100 text-green-700 text-xs">OK</Badge>}
+                      {internetCheck.status === 'yellow' && <Badge className="bg-yellow-100 text-yellow-700 text-xs">Warning</Badge>}
+                      {internetCheck.status === 'red' && <Badge className="bg-red-100 text-red-700 text-xs">Error</Badge>}
+                    </div>
+                    <p className="text-sm text-slate-600">{internetCheck.detail}</p>
+                    {internetCheck.pool && (
+                      <p className="text-xs text-slate-500 mt-1 font-mono">
+                        Framed-Pool: {internetCheck.pool}
+                      </p>
+                    )}
+                    {internetCheck.routerName && (
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Router: {internetCheck.routerName}
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardContent>

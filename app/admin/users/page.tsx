@@ -32,7 +32,7 @@ import {
   Power,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
-import type { Customer, CustomerService, CustomerStatus, Plan } from "@/lib/types"
+import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool } from "@/lib/types"
 
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -269,6 +269,10 @@ export default function UsersPage() {
   const [updating, setUpdating] = useState(false)
   const [plans, setPlans] = useState<Plan[]>([])
   const [plansLoading, setPlansLoading] = useState(false)
+  const [routersList, setRoutersList] = useState<Router[]>([])
+  const [routersLoading, setRoutersLoading] = useState(false)
+  const [poolsList, setPoolsList] = useState<IPPool[]>([])
+  const [poolsLoading, setPoolsLoading] = useState(false)
   const itemsPerPage = 10
 
   // Edit user form state
@@ -291,6 +295,7 @@ export default function UsersPage() {
     connection_type: "pppoe" as "pppoe" | "static",
     plan_id: "",
     router_id: "",
+    ip_pool: "",
     activate_now: true,
   })
 
@@ -314,6 +319,38 @@ export default function UsersPage() {
       // Don't show error toast for plans - just use empty array
     } finally {
       setPlansLoading(false)
+    }
+  }
+
+  // Load routers for the Router dropdown
+  const loadRouters = async () => {
+    if (routersList.length > 0) return // already loaded
+    try {
+      setRoutersLoading(true)
+      const response = await adminApi.getRouters({ page_size: "100" })
+      setRoutersList(response.results || [])
+    } catch (err) {
+      console.error('Failed to load routers:', err)
+    } finally {
+      setRoutersLoading(false)
+    }
+  }
+
+  // Load IP pools filtered by selected router
+  const loadPoolsForRouter = async (routerId: string) => {
+    if (!routerId) {
+      setPoolsList([])
+      return
+    }
+    try {
+      setPoolsLoading(true)
+      const response = await adminApi.getIPPools({ router_id: routerId, is_active: "true", page_size: "100" })
+      setPoolsList(response.results || [])
+    } catch (err) {
+      console.error('Failed to load IP pools:', err)
+      setPoolsList([])
+    } finally {
+      setPoolsLoading(false)
     }
   }
 
@@ -385,6 +422,16 @@ export default function UsersPage() {
             // This makes testing easier as login and network passwords match
             radius_password: newCustomerForm.password,
           }
+
+          // Add router if selected — links RADIUS credentials to this router
+          if (newCustomerForm.router_id) {
+            serviceData.router = parseInt(newCustomerForm.router_id, 10)
+          }
+
+          // Add IP pool name — stored as Framed-Pool RADIUS attribute
+          if (newCustomerForm.ip_pool) {
+            serviceData.ip_pool = newCustomerForm.ip_pool
+          }
           
           // Add plan if selected - backend expects 'plan' not 'plan_id'
           if (newCustomerForm.plan_id) {
@@ -418,8 +465,10 @@ export default function UsersPage() {
         connection_type: "pppoe",
         plan_id: "",
         router_id: "",
+        ip_pool: "",
         activate_now: true,
       })
+      setPoolsList([])
       setShowAddUserDialog(false)
       
       // Refresh the list
@@ -834,9 +883,10 @@ export default function UsersPage() {
           </Dialog>
           <Dialog open={showAddUserDialog} onOpenChange={(open) => {
             setShowAddUserDialog(open)
-            // Refresh plans when dialog opens to get latest
+            // Refresh plans and routers when dialog opens to get latest
             if (open) {
               loadPlans()
+              loadRouters()
             }
           }}>
             <DialogTrigger asChild>
@@ -943,6 +993,65 @@ export default function UsersPage() {
                       No plans found. <a href="/admin/plans" className="underline hover:text-amber-700">Create plans</a> first.
                     </p>
                   )}
+                </div>
+                <div className="space-y-2">
+                  <Label>Router</Label>
+                  <Select
+                    value={newCustomerForm.router_id || "none"}
+                    onValueChange={(value) => {
+                      const routerId = value === "none" ? "" : value
+                      setNewCustomerForm({...newCustomerForm, router_id: routerId, ip_pool: ""})
+                      setPoolsList([])
+                      if (routerId) {
+                        loadPoolsForRouter(routerId)
+                      }
+                    }}
+                    disabled={routersLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={routersLoading ? "Loading routers..." : "Select router"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Router</SelectItem>
+                      {routersList.map((r) => (
+                        <SelectItem key={r.id} value={String(r.id)}>
+                          {r.name} ({r.ip_address}) — {r.status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Assigns this customer to a specific router for RADIUS authentication.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>IP Pool (Framed-Pool)</Label>
+                  <Select
+                    value={newCustomerForm.ip_pool || "none"}
+                    onValueChange={(value) => setNewCustomerForm({...newCustomerForm, ip_pool: value === "none" ? "" : value})}
+                    disabled={!newCustomerForm.router_id || poolsLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={
+                        !newCustomerForm.router_id 
+                          ? "Select a router first" 
+                          : poolsLoading 
+                            ? "Loading pools..." 
+                            : "Select IP pool"
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Pool (Router Default)</SelectItem>
+                      {poolsList.map((pool) => (
+                        <SelectItem key={pool.id} value={pool.name}>
+                          {pool.name} — {pool.start_ip}–{pool.end_ip} ({pool.available_ips} free)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    The pool name is sent as RADIUS Framed-Pool attribute. The router assigns an IP from this pool.
+                  </p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
