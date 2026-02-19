@@ -1120,12 +1120,20 @@ export interface IPPool {
   name: string
   pool_type: IPPoolType
   pool_type_display?: string
+  // Cloud-Led subnet builder fields
+  subnet_prefix?: string       // e.g. "10.50"
+  subnet_octet?: number        // e.g. 3
+  cidr_prefix?: number         // e.g. 24
+  network_address?: string     // e.g. "10.50.3.0"
+  broadcast_address?: string   // e.g. "10.50.3.255"
+  cidr_notation?: string       // e.g. "10.50.3.0/24"
+  // Computed range
   start_ip: string
   end_ip: string
   ip_range: string            // "start - end" display string
   gateway: string
   dns_servers: string
-  lease_time: number | null
+  lease_time: number | string | null
   description: string
   is_active: boolean
   total_ips: number
@@ -1134,6 +1142,37 @@ export interface IPPool {
   utilization_percentage: number
   created_at: string
   updated_at: string
+}
+
+// Available IP for the "Long Dropdown" picker
+export interface AvailableIP {
+  id: number
+  ip_address: string
+}
+
+export interface AvailableIPsResponse {
+  pool_id: number
+  pool_name: string
+  total_available: number
+  results: AvailableIP[]
+}
+
+// Subnet prefix/CIDR options from backend
+export interface SubnetPrefixOption {
+  value: string
+  label: string
+}
+
+export interface CIDROption {
+  value: number
+  label: string
+}
+
+export interface SubnetPrefixOptionsResponse {
+  prefixes: SubnetPrefixOption[]
+  cidr_options: CIDROption[]
+  blocked_prefixes: string[]
+  default_prefix: string
 }
 
 export interface IPPoolsByRouter {
@@ -1475,24 +1514,32 @@ export interface Plan {
   download_speed?: number  // Speed value
   upload_speed?: number    // Speed value
   speed_unit?: 'MBPS' | 'KBPS'  // Speed unit
-  data_limit?: number      // GB, null = unlimited
+  data_limit?: number | null      // GB, null = unlimited
   // Validity - flexible time-based options
-  validity_type?: 'DAYS' | 'HOURS' | 'MINUTES' | 'UNLIMITED'
+  validity_type?: 'DAYS' | 'HOURS' | 'MINUTES' | 'MONTHS' | 'UNLIMITED'
   duration_days?: number
   validity_days?: number   // Alias for duration_days
   validity_hours?: number  // For hourly plans
   validity_minutes?: number  // For minute-based plans (hotspot)
+  validity_months?: number  // For monthly plans (LipaNet parity)
   validity_display?: string  // Human-readable validity string
   speed_display?: string  // Human-readable speed string
   total_validity_minutes?: number  // Total validity in minutes for RADIUS
   // Session/Connection limits
   max_sessions?: number  // Concurrent devices allowed
   session_timeout?: number  // Idle timeout in minutes
+  // MikroTik QoS Priority (1=highest, 8=lowest)
+  priority?: number
   // Burst Speed (for MikroTik)
+  burst_enabled?: boolean
   burst_download?: number
   burst_upload?: number
   burst_threshold?: number  // KB
   burst_time?: number  // seconds
+  // IP Pool linkage
+  ip_pool?: number | null  // FK to IPPool
+  ip_pool_name?: string    // Pool name (read-only)
+  ip_pool_range?: string   // Pool IP range (read-only)
   // Fair Usage Policy
   fup_limit?: number       // Fair Usage Policy limit in GB
   fup_speed?: number       // Reduced speed after FUP

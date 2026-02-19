@@ -32,7 +32,7 @@ import {
   Power,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
-import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool } from "@/lib/types"
+import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP } from "@/lib/types"
 
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -273,6 +273,10 @@ export default function UsersPage() {
   const [routersLoading, setRoutersLoading] = useState(false)
   const [poolsList, setPoolsList] = useState<IPPool[]>([])
   const [poolsLoading, setPoolsLoading] = useState(false)
+  // Cloud-Led: Available IPs for static IP assignment
+  const [availableIPs, setAvailableIPs] = useState<AvailableIP[]>([])
+  const [availableIPsLoading, setAvailableIPsLoading] = useState(false)
+  const [ipSearchQuery, setIpSearchQuery] = useState("")
   const itemsPerPage = 10
 
   // Edit user form state
@@ -296,6 +300,7 @@ export default function UsersPage() {
     plan_id: "",
     router_id: "",
     ip_pool: "",
+    assigned_ip: "" as string,  // Cloud-Led: IPAddress ID for Framed-IP-Address
     activate_now: true,
   })
 
@@ -353,6 +358,41 @@ export default function UsersPage() {
       setPoolsLoading(false)
     }
   }
+
+  // Cloud-Led: Load available IPs for a specific pool
+  const loadAvailableIPs = async (poolId: number, search?: string) => {
+    try {
+      setAvailableIPsLoading(true)
+      const response = await adminApi.getIPPoolAvailableIPs(poolId, search)
+      setAvailableIPs(response.results || [])
+    } catch (err) {
+      console.error('Failed to load available IPs:', err)
+      setAvailableIPs([])
+    } finally {
+      setAvailableIPsLoading(false)
+    }
+  }
+
+  // Auto-load available IPs when a plan with an ip_pool is selected
+  const selectedPlanPool = React.useMemo(() => {
+    if (!newCustomerForm.plan_id) return null
+    const plan = plans.find(p => p.id === parseInt(newCustomerForm.plan_id))
+    if (!plan || !plan.ip_pool) return null
+    // plan.ip_pool is the FK id
+    return typeof plan.ip_pool === 'number' ? plan.ip_pool : null
+  }, [newCustomerForm.plan_id, plans])
+
+  // When the selected plan's pool changes, load available IPs
+  useEffect(() => {
+    if (selectedPlanPool) {
+      loadAvailableIPs(selectedPlanPool)
+    } else {
+      setAvailableIPs([])
+    }
+    // Reset selected IP
+    setNewCustomerForm(prev => ({ ...prev, assigned_ip: "" }))
+    setIpSearchQuery("")
+  }, [selectedPlanPool]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadUsers = async () => {
     try {
@@ -432,6 +472,11 @@ export default function UsersPage() {
           if (newCustomerForm.ip_pool) {
             serviceData.ip_pool = newCustomerForm.ip_pool
           }
+
+          // Cloud-Led: Add assigned IP address for Framed-IP-Address
+          if (newCustomerForm.assigned_ip) {
+            serviceData.assigned_ip = parseInt(newCustomerForm.assigned_ip, 10)
+          }
           
           // Add plan if selected - backend expects 'plan' not 'plan_id'
           if (newCustomerForm.plan_id) {
@@ -466,9 +511,12 @@ export default function UsersPage() {
         plan_id: "",
         router_id: "",
         ip_pool: "",
+        assigned_ip: "",
         activate_now: true,
       })
       setPoolsList([])
+      setAvailableIPs([])
+      setIpSearchQuery("")
       setShowAddUserDialog(false)
       
       // Refresh the list
@@ -1053,6 +1101,56 @@ export default function UsersPage() {
                     The pool name is sent as RADIUS Framed-Pool attribute. The router assigns an IP from this pool.
                   </p>
                 </div>
+
+                {/* Cloud-Led: Static IP Assignment (Long Dropdown) */}
+                {selectedPlanPool && (
+                  <div className="space-y-2 col-span-2">
+                    <Label>Assign Static IP (Cloud-Led)</Label>
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="Search IP address..."
+                        value={ipSearchQuery}
+                        onChange={(e) => {
+                          setIpSearchQuery(e.target.value)
+                          if (selectedPlanPool) {
+                            loadAvailableIPs(selectedPlanPool, e.target.value || undefined)
+                          }
+                        }}
+                        className="h-8 text-sm"
+                      />
+                      <Select
+                        value={newCustomerForm.assigned_ip || "none"}
+                        onValueChange={(value) => setNewCustomerForm({...newCustomerForm, assigned_ip: value === "none" ? "" : value})}
+                        disabled={availableIPsLoading}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={
+                            availableIPsLoading
+                              ? "Loading available IPs..."
+                              : `${availableIPs.length} IPs available — pick one`
+                          } />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          <SelectItem value="none">No Static IP (Pool Default)</SelectItem>
+                          {availableIPs.map((ip) => (
+                            <SelectItem key={ip.id} value={String(ip.id)}>
+                              <span className="font-mono">{ip.ip_address}</span>
+                            </SelectItem>
+                          ))}
+                          {!availableIPsLoading && availableIPs.length === 0 && (
+                            <div className="px-2 py-3 text-sm text-muted-foreground text-center">
+                              No available IPs in this pool
+                            </div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Select a specific IP for the customer. This sends RADIUS Framed-IP-Address instead of Framed-Pool.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 * Required fields. PPPoE and Hotspot users will automatically get RADIUS credentials created.

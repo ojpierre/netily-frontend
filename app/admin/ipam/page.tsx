@@ -647,6 +647,7 @@ export default function IPAMPage() {
                       <TableRow>
                         <TableHead>Pool Name</TableHead>
                         <TableHead>Type</TableHead>
+                        <TableHead>CIDR / Network</TableHead>
                         <TableHead>IP Range</TableHead>
                         <TableHead>Gateway</TableHead>
                         <TableHead>Utilization</TableHead>
@@ -660,7 +661,12 @@ export default function IPAMPage() {
                           <TableCell>
                             <div className="flex flex-col">
                               <span className="font-medium">{pool.name}</span>
-                              {pool.description && (
+                              {pool.subnet_prefix && (
+                                <span className="text-xs text-muted-foreground font-mono">
+                                  {pool.subnet_prefix}.{pool.subnet_octet ?? '?'}.0
+                                </span>
+                              )}
+                              {!pool.subnet_prefix && pool.description && (
                                 <span className="text-xs text-muted-foreground truncate max-w-[180px]">
                                   {pool.description}
                                 </span>
@@ -668,6 +674,9 @@ export default function IPAMPage() {
                             </div>
                           </TableCell>
                           <TableCell>{getPoolTypeBadge(pool.pool_type)}</TableCell>
+                          <TableCell>
+                            <span className="font-mono text-sm">{pool.cidr_notation || "—"}</span>
+                          </TableCell>
                           <TableCell>
                             <span className="font-mono text-sm">{pool.start_ip} – {pool.end_ip}</span>
                           </TableCell>

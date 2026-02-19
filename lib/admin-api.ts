@@ -132,6 +132,8 @@ import type {
   IPPoolsByRouter,
   IPPoolStatistics,
   IPPoolType,
+  AvailableIPsResponse,
+  SubnetPrefixOptionsResponse,
   // RADIUS types
   RADIUSUser,
   RADIUSProfile,
@@ -1338,6 +1340,15 @@ class AdminApiService {
 
   async getIPPoolStatistics(id: number): Promise<IPPoolStatistics> {
     return this.request<IPPoolStatistics>(`/network/ip-pools/${id}/statistics/`)
+  }
+
+  async getIPPoolAvailableIPs(poolId: number, search?: string): Promise<AvailableIPsResponse> {
+    const params = search ? `?search=${encodeURIComponent(search)}` : ''
+    return this.request<AvailableIPsResponse>(`/network/ip-pools/${poolId}/available-ips/${params}`)
+  }
+
+  async getSubnetPrefixOptions(): Promise<SubnetPrefixOptionsResponse> {
+    return this.request<SubnetPrefixOptionsResponse>('/network/ip-pools/subnet-prefix-options/')
   }
 
   // ------------------------------------------

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -25,6 +25,9 @@ import {
   Briefcase,
   Home,
   Building2,
+  Network,
+  Gauge,
+  Layers,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -49,6 +52,7 @@ import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
+import { Router as RouterType, IPPool, SubnetPrefixOption, CIDROption, SubnetPrefixOptionsResponse } from "@/lib/types"
 
 // Industry-standard plan presets
 interface PlanPreset {
@@ -393,6 +397,20 @@ export default function CreatePlanPage() {
   const [features, setFeatures] = useState<string[]>([])
   const [newFeature, setNewFeature] = useState("")
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
+  
+  // Router & IP Pool state for pool picker
+  const [routers, setRouters] = useState<RouterType[]>([])
+  const [routersLoading, setRoutersLoading] = useState(false)
+  const [pools, setPools] = useState<IPPool[]>([])
+  const [poolsLoading, setPoolsLoading] = useState(false)
+
+  // Cloud-Led Subnet Builder state
+  const [poolMode, setPoolMode] = useState<'existing' | 'new'>('new')
+  const [subnetPrefixes, setSubnetPrefixes] = useState<SubnetPrefixOption[]>([])
+  const [cidrOptions, setCidrOptions] = useState<CIDROption[]>([])
+  const [blockedPrefixes, setBlockedPrefixes] = useState<string[]>([])
+  const [defaultPrefix, setDefaultPrefix] = useState('10.50')
+  const [subnetOptionsLoading, setSubnetOptionsLoading] = useState(false)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -409,14 +427,26 @@ export default function CreatePlanPage() {
     duration_days: "30",
     validity_hours: "",
     validity_minutes: "",
+    validity_months: "1",
     // Sessions
     max_sessions: "1",
     session_timeout: "",
+    // MikroTik QoS Priority
+    priority: "8",
     // Burst
+    burst_enabled: false,
     burst_download: "",
     burst_upload: "",
     burst_threshold: "",
     burst_time: "",
+    // IP Pool
+    router_id: "",
+    ip_pool: "",
+    // Cloud-Led Subnet Builder
+    subnet_prefix: "10.50",
+    subnet_octet: "",
+    cidr_prefix: "24",
+    pool_name: "",
     // FUP
     fup_enabled: false,
     fup_limit: "",
@@ -431,9 +461,86 @@ export default function CreatePlanPage() {
   })
 
   const handleChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData(prev => ({ ...prev, [field]: value } as typeof prev))
     setSelectedPreset(null) // Clear preset selection on manual change
+    
+    // Cascade: when router changes, reset pool and load pools for that router
+    if (field === 'router_id') {
+      setFormData(prev => ({ ...prev, [field]: value, ip_pool: "" } as typeof prev))
+      if (value && typeof value === 'string') {
+        loadPoolsForRouter(value)
+      } else {
+        setPools([])
+      }
+    }
   }
+
+  // Load routers for the IP Pool picker
+  const loadRouters = async () => {
+    if (routers.length > 0) return // Cache
+    setRoutersLoading(true)
+    try {
+      const res = await adminApi.getRouters({ page_size: "100" })
+      setRouters(res.results || [])
+    } catch (err) {
+      console.error("Failed to load routers:", err)
+    } finally {
+      setRoutersLoading(false)
+    }
+  }
+
+  // Load IP pools for a specific router
+  const loadPoolsForRouter = async (routerId: string) => {
+    setPoolsLoading(true)
+    try {
+      const res = await adminApi.getIPPools({ router_id: routerId, is_active: "true" })
+      setPools(res.results || [])
+    } catch (err) {
+      console.error("Failed to load pools:", err)
+      setPools([])
+    } finally {
+      setPoolsLoading(false)
+    }
+  }
+
+  // Load subnet prefix options for Cloud-Led subnet builder
+  const loadSubnetPrefixOptions = async () => {
+    if (subnetPrefixes.length > 0) return // Cache
+    setSubnetOptionsLoading(true)
+    try {
+      const res: SubnetPrefixOptionsResponse = await adminApi.getSubnetPrefixOptions()
+      setSubnetPrefixes(res.prefixes || [])
+      setCidrOptions(res.cidr_options || [])
+      setBlockedPrefixes(res.blocked_prefixes || [])
+      setDefaultPrefix(res.default_prefix || '10.50')
+      // Set default in form
+      setFormData(prev => ({ ...prev, subnet_prefix: res.default_prefix || '10.50' } as typeof prev))
+    } catch (err) {
+      console.error("Failed to load subnet prefix options:", err)
+    } finally {
+      setSubnetOptionsLoading(false)
+    }
+  }
+
+  // Compute subnet preview from current form values
+  const subnetPreview = React.useMemo(() => {
+    const { subnet_prefix, subnet_octet, cidr_prefix } = formData
+    if (!subnet_prefix || !subnet_octet) return null
+    const octet = parseInt(subnet_octet)
+    if (isNaN(octet) || octet < 0 || octet > 255) return null
+    const network = `${subnet_prefix}.${octet}.0/${cidr_prefix}`
+    const gateway = `${subnet_prefix}.${octet}.1`
+    const cidrNum = parseInt(cidr_prefix)
+    const totalHosts = Math.pow(2, 32 - cidrNum) - 2 // minus network + broadcast
+    const usableIPs = totalHosts - 1 // minus gateway
+    return { network, gateway, usableIPs, totalHosts }
+  }, [formData.subnet_prefix, formData.subnet_octet, formData.cidr_prefix])
+
+  // Load routers + subnet options on mount for PPPoE plan
+  useEffect(() => {
+    loadRouters()
+    loadSubnetPrefixOptions()
+  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyPreset = (preset: PlanPreset) => {
     setSelectedPreset(preset.id)
@@ -470,6 +577,27 @@ export default function CreatePlanPage() {
     setIsLoading(true)
     
     try {
+      let ipPoolId: number | null = formData.ip_pool ? parseInt(formData.ip_pool) : null
+
+      // Cloud-Led: Create a new IP Pool from subnet builder first
+      if (formData.plan_type === 'PPPOE' && poolMode === 'new' && formData.subnet_prefix && formData.subnet_octet) {
+        const poolName = formData.pool_name.trim()
+          || `Pool ${formData.subnet_prefix}.${formData.subnet_octet}.0/${formData.cidr_prefix}`
+        
+        toast.info("Creating IP Pool from subnet builder...")
+        const newPool = await adminApi.createIPPool({
+          name: poolName,
+          subnet_prefix: formData.subnet_prefix,
+          subnet_octet: parseInt(formData.subnet_octet),
+          cidr_prefix: parseInt(formData.cidr_prefix),
+          router: formData.router_id ? parseInt(formData.router_id) as any : null,
+          pool_type: 'DYNAMIC' as any,
+          is_active: true,
+        })
+        ipPoolId = newPool.id
+        toast.success(`IP Pool "${poolName}" created with ${newPool.total_ips} IPs`)
+      }
+
       const payload: Record<string, any> = {
         name: formData.name,
         description: formData.description,
@@ -483,12 +611,16 @@ export default function CreatePlanPage() {
         duration_days: parseInt(formData.duration_days) || 30,
         validity_hours: parseInt(formData.validity_hours) || null,
         validity_minutes: parseInt(formData.validity_minutes) || null,
+        validity_months: parseInt(formData.validity_months) || null,
         max_sessions: parseInt(formData.max_sessions) || 1,
         session_timeout: parseInt(formData.session_timeout) || null,
-        burst_download: parseInt(formData.burst_download) || null,
-        burst_upload: parseInt(formData.burst_upload) || null,
-        burst_threshold: parseInt(formData.burst_threshold) || null,
-        burst_time: parseInt(formData.burst_time) || null,
+        priority: parseInt(formData.priority) || 8,
+        burst_enabled: formData.burst_enabled,
+        burst_download: formData.burst_enabled ? parseInt(formData.burst_download) || null : null,
+        burst_upload: formData.burst_enabled ? parseInt(formData.burst_upload) || null : null,
+        burst_threshold: formData.burst_enabled ? parseInt(formData.burst_threshold) || null : null,
+        burst_time: formData.burst_enabled ? parseInt(formData.burst_time) || null : null,
+        ip_pool: ipPoolId,
         fup_limit: formData.fup_enabled ? parseInt(formData.fup_limit) || null : null,
         fup_speed: formData.fup_enabled ? parseInt(formData.fup_speed) || null : null,
         is_active: formData.is_active,
@@ -694,6 +826,7 @@ export default function CreatePlanPage() {
                     <SelectItem value="MINUTES">Minutes</SelectItem>
                     <SelectItem value="HOURS">Hours</SelectItem>
                     <SelectItem value="DAYS">Days</SelectItem>
+                    <SelectItem value="MONTHS">Months</SelectItem>
                     <SelectItem value="UNLIMITED">Unlimited</SelectItem>
                   </SelectContent>
                 </Select>
@@ -752,6 +885,34 @@ export default function CreatePlanPage() {
                       <SelectItem value="365">365 Days (Annual)</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {formData.validity_type === 'MONTHS' && (
+                <div className="space-y-2">
+                  <Label htmlFor="validity_months">Duration (Months)</Label>
+                  <Select
+                    value={formData.validity_months}
+                    onValueChange={(value) => handleChange("validity_months", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Month</SelectItem>
+                      <SelectItem value="2">2 Months</SelectItem>
+                      <SelectItem value="3">3 Months (Quarterly)</SelectItem>
+                      <SelectItem value="6">6 Months (Semi-Annual)</SelectItem>
+                      <SelectItem value="12">12 Months (Annual)</SelectItem>
+                      <SelectItem value="24">24 Months (2 Years)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500">
+                    {parseInt(formData.validity_months) > 0 
+                      ? `≈ ${parseInt(formData.validity_months) * 30} days`
+                      : 'Select duration'
+                    }
+                  </p>
                 </div>
               )}
 
@@ -856,15 +1017,245 @@ export default function CreatePlanPage() {
             </CardContent>
           </Card>
 
-          {/* Session & Burst Settings */}
+          {/* IP Pool & Router Assignment — Cloud-Led Subnet Builder */}
+          {formData.plan_type === 'PPPOE' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Network className="w-5 h-5" />
+                  IP Pool Assignment
+                </CardTitle>
+                <CardDescription>
+                  Create a new IP pool from a subnet or pick an existing one
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Mode Toggle */}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={poolMode === 'new' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPoolMode('new')}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    New Subnet Pool
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={poolMode === 'existing' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPoolMode('existing')}
+                  >
+                    <Layers className="w-4 h-4 mr-1" />
+                    Existing Pool
+                  </Button>
+                </div>
+
+                <Separator />
+
+                {/* Router selection (shared by both modes) */}
+                <div className="space-y-2">
+                  <Label>Router</Label>
+                  <Select
+                    value={formData.router_id}
+                    onValueChange={(value) => handleChange("router_id", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={routersLoading ? "Loading routers..." : "Select a router"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {routers.map((router) => (
+                        <SelectItem key={router.id} value={router.id.toString()}>
+                          {router.name} — {router.ip_address}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500">Router that will serve this plan</p>
+                </div>
+
+                {/* ─── NEW SUBNET POOL (Cloud-Led) ─── */}
+                {poolMode === 'new' && (
+                  <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-dashed border-slate-300 dark:border-slate-700">
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <Globe className="w-4 h-4" />
+                      Subnet Builder
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="pool_name">Pool Name (optional)</Label>
+                      <Input
+                        id="pool_name"
+                        value={formData.pool_name}
+                        onChange={(e) => handleChange("pool_name", e.target.value)}
+                        placeholder={`Pool ${formData.subnet_prefix}.${formData.subnet_octet || '0'}.0/${formData.cidr_prefix}`}
+                      />
+                      <p className="text-xs text-slate-500">Leave blank for auto-generated name</p>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      {/* Subnet Prefix */}
+                      <div className="space-y-2">
+                        <Label>Prefix</Label>
+                        <Select
+                          value={formData.subnet_prefix}
+                          onValueChange={(value) => handleChange("subnet_prefix", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={subnetOptionsLoading ? "Loading..." : "Select prefix"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {subnetPrefixes.map((prefix) => {
+                              const isBlocked = blockedPrefixes.includes(prefix.value)
+                              return (
+                                <SelectItem
+                                  key={prefix.value}
+                                  value={prefix.value}
+                                  disabled={isBlocked}
+                                  className={isBlocked ? "opacity-50 line-through" : ""}
+                                >
+                                  {prefix.label}
+                                  {isBlocked && " (blocked)"}
+                                </SelectItem>
+                              )
+                            })}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-slate-500">First two octets</p>
+                      </div>
+
+                      {/* Third Octet */}
+                      <div className="space-y-2">
+                        <Label htmlFor="subnet_octet">3rd Octet</Label>
+                        <Input
+                          id="subnet_octet"
+                          type="number"
+                          min={0}
+                          max={255}
+                          value={formData.subnet_octet}
+                          onChange={(e) => handleChange("subnet_octet", e.target.value)}
+                          placeholder="0"
+                        />
+                        <p className="text-xs text-slate-500">0–255</p>
+                      </div>
+
+                      {/* CIDR Prefix */}
+                      <div className="space-y-2">
+                        <Label>CIDR</Label>
+                        <Select
+                          value={formData.cidr_prefix}
+                          onValueChange={(value) => handleChange("cidr_prefix", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select CIDR" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cidrOptions.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value.toString()}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                            {cidrOptions.length === 0 && (
+                              <>
+                                <SelectItem value="24">/24 — 254 hosts</SelectItem>
+                                <SelectItem value="25">/25 — 126 hosts</SelectItem>
+                                <SelectItem value="26">/26 — 62 hosts</SelectItem>
+                                <SelectItem value="27">/27 — 30 hosts</SelectItem>
+                                <SelectItem value="28">/28 — 14 hosts</SelectItem>
+                                <SelectItem value="29">/29 — 6 hosts</SelectItem>
+                                <SelectItem value="30">/30 — 2 hosts</SelectItem>
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-slate-500">Subnet size</p>
+                      </div>
+                    </div>
+
+                    {/* 192.168 Warning */}
+                    {formData.subnet_prefix.startsWith('192.168') && (
+                      <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md text-sm text-amber-700 dark:text-amber-300">
+                        <Zap className="w-4 h-4 flex-shrink-0" />
+                        <span>192.168.x.x is typically used for local LANs. Consider using 10.x.x.x or 172.x.x.x for subscriber pools.</span>
+                      </div>
+                    )}
+
+                    {/* Subnet Preview */}
+                    {subnetPreview && (
+                      <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
+                        <div>
+                          <p className="text-xs text-slate-500">Network</p>
+                          <p className="text-sm font-mono font-medium">{subnetPreview.network}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Gateway</p>
+                          <p className="text-sm font-mono font-medium">{subnetPreview.gateway}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Usable IPs</p>
+                          <p className="text-sm font-medium">{subnetPreview.usableIPs}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Total Hosts</p>
+                          <p className="text-sm font-medium">{subnetPreview.totalHosts}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ─── EXISTING POOL (Legacy) ─── */}
+                {poolMode === 'existing' && formData.router_id && (
+                  <div className="space-y-2">
+                    <Label>IP Pool</Label>
+                    <Select
+                      value={formData.ip_pool}
+                      onValueChange={(value) => handleChange("ip_pool", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={poolsLoading ? "Loading pools..." : "Select an IP pool"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pools.map((pool) => (
+                          <SelectItem key={pool.id} value={pool.id.toString()}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{pool.name}</span>
+                              <span className="text-xs text-slate-500">
+                                {pool.ip_range} • {pool.available_ips ?? '?'} available
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                        {!poolsLoading && pools.length === 0 && (
+                          <div className="px-2 py-3 text-sm text-slate-500 text-center">
+                            No active pools for this router
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-slate-500">
+                      Subscribers on this plan will receive IPs from the selected pool
+                    </p>
+                  </div>
+                )}
+
+                {poolMode === 'existing' && !formData.router_id && (
+                  <p className="text-sm text-slate-500 italic">Select a router first to see available pools</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Session & QoS Settings */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                Session & Burst Settings
+                Session & QoS Settings
               </CardTitle>
               <CardDescription>
-                Configure concurrent sessions and MikroTik burst speeds
+                Configure concurrent sessions, priority, and MikroTik burst speeds
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -893,57 +1284,107 @@ export default function CreatePlanPage() {
                   <p className="text-xs text-slate-500">Auto-disconnect on idle</p>
                 </div>
               </div>
-              
+
               <Separator />
-              <p className="text-sm font-medium text-slate-700">Burst Speed (Optional)</p>
-              <p className="text-xs text-slate-500">
-                Allow temporary speed boost for MikroTik routers
-              </p>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="burst_download">Burst Download</Label>
-                  <Input
-                    id="burst_download"
-                    type="number"
-                    value={formData.burst_download}
-                    onChange={(e) => handleChange("burst_download", e.target.value)}
-                    placeholder="100"
-                  />
+              {/* MikroTik Queue Priority */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Gauge className="w-4 h-4 text-slate-500" />
+                  <Label>Queue Priority</Label>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="burst_upload">Burst Upload</Label>
-                  <Input
-                    id="burst_upload"
-                    type="number"
-                    value={formData.burst_upload}
-                    onChange={(e) => handleChange("burst_upload", e.target.value)}
-                    placeholder="50"
-                  />
-                </div>
+                <Select
+                  value={formData.priority}
+                  onValueChange={(value) => handleChange("priority", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 — Highest (VoIP / Critical)</SelectItem>
+                    <SelectItem value="2">2 — Very High</SelectItem>
+                    <SelectItem value="3">3 — High (Business)</SelectItem>
+                    <SelectItem value="4">4 — Above Normal</SelectItem>
+                    <SelectItem value="5">5 — Normal (Residential)</SelectItem>
+                    <SelectItem value="6">6 — Below Normal</SelectItem>
+                    <SelectItem value="7">7 — Low</SelectItem>
+                    <SelectItem value="8">8 — Lowest (Best Effort)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500">
+                  MikroTik simple queue priority (1 = highest, 8 = lowest / best effort)
+                </p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="burst_threshold">Threshold (KB)</Label>
-                  <Input
-                    id="burst_threshold"
-                    type="number"
-                    value={formData.burst_threshold}
-                    onChange={(e) => handleChange("burst_threshold", e.target.value)}
-                    placeholder="2048"
-                  />
+
+              <Separator />
+
+              {/* Burst Settings with Enable Toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-slate-500" />
+                    <Label>Burst Speed</Label>
+                  </div>
+                  <p className="text-sm text-slate-500">
+                    Allow temporary speed boost on MikroTik routers
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="burst_time">Duration (sec)</Label>
-                  <Input
-                    id="burst_time"
-                    type="number"
-                    value={formData.burst_time}
-                    onChange={(e) => handleChange("burst_time", e.target.value)}
-                    placeholder="10"
-                  />
-                </div>
+                <Switch
+                  checked={formData.burst_enabled}
+                  onCheckedChange={(checked) => handleChange("burst_enabled", checked)}
+                />
               </div>
+
+              {formData.burst_enabled && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="burst_download">Burst Download ({formData.speed_unit === 'MBPS' ? 'Mbps' : 'Kbps'})</Label>
+                      <Input
+                        id="burst_download"
+                        type="number"
+                        value={formData.burst_download}
+                        onChange={(e) => handleChange("burst_download", e.target.value)}
+                        placeholder="100"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="burst_upload">Burst Upload ({formData.speed_unit === 'MBPS' ? 'Mbps' : 'Kbps'})</Label>
+                      <Input
+                        id="burst_upload"
+                        type="number"
+                        value={formData.burst_upload}
+                        onChange={(e) => handleChange("burst_upload", e.target.value)}
+                        placeholder="50"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="burst_threshold">Threshold (KB)</Label>
+                      <Input
+                        id="burst_threshold"
+                        type="number"
+                        value={formData.burst_threshold}
+                        onChange={(e) => handleChange("burst_threshold", e.target.value)}
+                        placeholder="2048"
+                      />
+                      <p className="text-xs text-slate-500">Burst stops after this many KB transferred</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="burst_time">Duration (sec)</Label>
+                      <Input
+                        id="burst_time"
+                        type="number"
+                        value={formData.burst_time}
+                        onChange={(e) => handleChange("burst_time", e.target.value)}
+                        placeholder="10"
+                      />
+                      <p className="text-xs text-slate-500">How long the burst window lasts</p>
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 

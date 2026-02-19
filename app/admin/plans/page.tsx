@@ -23,6 +23,8 @@ import {
   Timer,
   Clock,
   Calendar,
+  Network,
+  AlertTriangle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -72,7 +74,7 @@ import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
-import type { Plan, PlanType, PlanDashboardStats } from "@/lib/types"
+import type { Plan, PlanType, PlanDashboardStats, SubnetPrefixOption, CIDROption, SubnetPrefixOptionsResponse } from "@/lib/types"
 
 const formatCurrency = (amount: string | number) => {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount
@@ -172,7 +174,7 @@ export default function PlansPage() {
     data_limit: '',
     unlimited_data: true,
     // Validity - flexible time-based
-    validity_type: 'DAYS' as 'DAYS' | 'HOURS' | 'MINUTES' | 'UNLIMITED',
+    validity_type: 'MONTHS' as 'DAYS' | 'HOURS' | 'MINUTES' | 'MONTHS' | 'UNLIMITED',
     duration_days: '30',
     validity_hours: '',
     validity_minutes: '',
@@ -191,12 +193,58 @@ export default function PlansPage() {
     // Pricing
     price: '',
     setup_fee: '',
+    // Subnet Builder (Cloud-Led)
+    subnet_prefix: '172.16',
+    subnet_octet: '',
+    cidr_prefix: '24',
+    // MikroTik QoS
+    priority: '8',
+    burst_enabled: false,
+    // Validity months
+    validity_months: '1',
     // Status
     is_active: true,
     is_popular: false,
     is_public: true,
     features: '',
   })
+
+  // Cloud-Led Subnet Builder state
+  const [subnetPrefixes, setSubnetPrefixes] = useState<SubnetPrefixOption[]>([])
+  const [cidrOptions, setCidrOptions] = useState<CIDROption[]>([])
+  const [blockedPrefixes, setBlockedPrefixes] = useState<string[]>([])
+  const [subnetOptionsLoading, setSubnetOptionsLoading] = useState(false)
+
+  // Load subnet prefix options for Cloud-Led subnet builder
+  const loadSubnetPrefixOptions = useCallback(async () => {
+    if (subnetPrefixes.length > 0) return
+    setSubnetOptionsLoading(true)
+    try {
+      const res: SubnetPrefixOptionsResponse = await adminApi.getSubnetPrefixOptions()
+      setSubnetPrefixes(res.prefixes || [])
+      setCidrOptions(res.cidr_options || [])
+      setBlockedPrefixes(res.blocked_prefixes || [])
+      if (res.default_prefix) {
+        setPlanForm(prev => ({ ...prev, subnet_prefix: res.default_prefix }))
+      }
+    } catch (err) {
+      console.error('Failed to load subnet prefix options:', err)
+    } finally {
+      setSubnetOptionsLoading(false)
+    }
+  }, [subnetPrefixes.length])
+
+  // Compute subnet preview from current form values
+  const subnetPreview = useMemo(() => {
+    const { subnet_prefix, subnet_octet, cidr_prefix } = planForm
+    if (!subnet_prefix || !subnet_octet) return null
+    const octet = parseInt(subnet_octet)
+    if (isNaN(octet) || octet < 0 || octet > 255) return null
+    const gateway = `${subnet_prefix}.${octet}.1`
+    const cidrNum = parseInt(cidr_prefix)
+    const usableIPs = Math.pow(2, 32 - cidrNum) - 3 // minus network, broadcast, gateway
+    return { gateway, cidr: cidrNum, usableIPs }
+  }, [planForm.subnet_prefix, planForm.subnet_octet, planForm.cidr_prefix])
 
   // Fetch dashboard stats
   const fetchDashboardStats = useCallback(async () => {
@@ -232,6 +280,7 @@ export default function PlansPage() {
       hasFetchedRef.current = true
       fetchPlans()
       fetchDashboardStats()
+      loadSubnetPrefixOptions()
     }
   }, [fetchPlans, fetchDashboardStats])
 
@@ -295,7 +344,7 @@ export default function PlansPage() {
       data_limit: '',
       unlimited_data: true,
       // Validity
-      validity_type: 'DAYS',
+      validity_type: 'MONTHS',
       duration_days: '30',
       validity_hours: '',
       validity_minutes: '',
@@ -314,6 +363,15 @@ export default function PlansPage() {
       // Pricing
       price: '',
       setup_fee: '',
+      // Subnet Builder
+      subnet_prefix: '172.16',
+      subnet_octet: '',
+      cidr_prefix: '24',
+      // MikroTik QoS
+      priority: '8',
+      burst_enabled: false,
+      // Validity months
+      validity_months: '1',
       // Status
       is_active: true,
       is_popular: false,
@@ -331,6 +389,24 @@ export default function PlansPage() {
 
     setIsSubmitting(true)
     try {
+      let ipPoolId: number | undefined = undefined
+
+      // Cloud-Led: Create IP Pool from subnet builder if subnet fields are filled
+      if (planForm.subnet_prefix && planForm.subnet_octet) {
+        const poolName = `Pool ${planForm.subnet_prefix}.${planForm.subnet_octet}.0/${planForm.cidr_prefix}`
+        toast.info('Creating IP Pool from subnet builder...')
+        const newPool = await adminApi.createIPPool({
+          name: poolName,
+          subnet_prefix: planForm.subnet_prefix,
+          subnet_octet: parseInt(planForm.subnet_octet),
+          cidr_prefix: parseInt(planForm.cidr_prefix),
+          pool_type: 'DYNAMIC' as any,
+          is_active: true,
+        })
+        ipPoolId = newPool.id
+        toast.success(`IP Pool created with ${newPool.total_ips} IPs`)
+      }
+
       await adminApi.createPlan({
         name: planForm.name,
         plan_type: planForm.plan_type,
@@ -346,11 +422,22 @@ export default function PlansPage() {
         duration_days: planForm.validity_type === 'DAYS' ? parseInt(planForm.duration_days) : undefined,
         validity_hours: planForm.validity_type === 'HOURS' ? parseInt(planForm.validity_hours) : undefined,
         validity_minutes: planForm.validity_type === 'MINUTES' ? parseInt(planForm.validity_minutes) : undefined,
+        validity_months: planForm.validity_type === 'MONTHS' ? parseInt(planForm.validity_months) : undefined,
         // Session/Connection limits
         max_sessions: planForm.max_sessions ? parseInt(planForm.max_sessions) : undefined,
         session_timeout: planForm.session_timeout ? parseInt(planForm.session_timeout) : undefined,
+        // MikroTik QoS
+        priority: parseInt(planForm.priority) || 8,
+        // Burst
+        burst_enabled: planForm.burst_enabled,
+        burst_download: planForm.burst_enabled && planForm.burst_download ? parseInt(planForm.burst_download) : undefined,
+        burst_upload: planForm.burst_enabled && planForm.burst_upload ? parseInt(planForm.burst_upload) : undefined,
+        burst_threshold: planForm.burst_enabled && planForm.burst_threshold ? parseInt(planForm.burst_threshold) : undefined,
+        burst_time: planForm.burst_enabled && planForm.burst_time ? parseInt(planForm.burst_time) : undefined,
+        // IP Pool
+        ip_pool: ipPoolId,
         // Pricing
-        base_price: planForm.price,  // Backend expects base_price, not price
+        base_price: planForm.price,
         setup_fee: planForm.setup_fee || undefined,
         // Status
         is_active: planForm.is_active,
@@ -405,6 +492,15 @@ export default function PlansPage() {
       // Pricing
       price: plan.price?.toString() || plan.base_price?.toString() || '',
       setup_fee: plan.setup_fee?.toString() || '',
+      // Subnet Builder (not editable from edit dialog)
+      subnet_prefix: '172.16',
+      subnet_octet: '',
+      cidr_prefix: '24',
+      // MikroTik QoS
+      priority: plan.priority?.toString() || '8',
+      burst_enabled: plan.burst_enabled || false,
+      // Validity months
+      validity_months: plan.validity_months?.toString() || '1',
       // Status
       is_active: plan.is_active,
       is_popular: plan.is_popular || false,
@@ -775,436 +871,251 @@ export default function PlansPage() {
         </div>
       )}
 
-      {/* Create Plan Dialog - Enhanced */}
+      {/* Create Plan Dialog - PPPoE */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5 text-primary" />
-              Create New Plan
+              <Network className="w-5 h-5 text-primary" />
+              Add New PPPoE Plan
             </DialogTitle>
-            <DialogDescription>
-              Configure a new internet plan with all settings
-            </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6 py-4">
-            {/* Quick Create Presets */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium flex items-center gap-2">
-                <Zap className="w-4 h-4 text-yellow-500" />
-                Quick Create Presets
-              </Label>
-              <div className="grid grid-cols-6 gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
-                  onClick={() => setPlanForm({
-                    ...planForm,
-                    name: "30 Minutes",
-                    price: "20",
-                    validity_type: "MINUTES",
-                    validity_minutes: "30",
-                    download_speed: "5",
-                    upload_speed: "5",
-                    speed_unit: "MBPS",
-                    unlimited_data: false,
-                    data_limit: "500",
-                  })}
-                >
-                  <Timer className="w-4 h-4 mb-1 text-blue-500" />
-                  <span className="text-xs font-semibold">30 Min</span>
-                  <span className="text-[10px] text-muted-foreground">20 KES</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
-                  onClick={() => setPlanForm({
-                    ...planForm,
-                    name: "1 Hour",
-                    price: "50",
-                    validity_type: "HOURS",
-                    validity_hours: "1",
-                    download_speed: "5",
-                    upload_speed: "5",
-                    speed_unit: "MBPS",
-                    unlimited_data: false,
-                    data_limit: "1",
-                  })}
-                >
-                  <Clock className="w-4 h-4 mb-1 text-green-500" />
-                  <span className="text-xs font-semibold">1 Hour</span>
-                  <span className="text-[10px] text-muted-foreground">50 KES</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
-                  onClick={() => setPlanForm({
-                    ...planForm,
-                    name: "Daily Plan",
-                    price: "100",
-                    validity_type: "DAYS",
-                    duration_days: "1",
-                    download_speed: "10",
-                    upload_speed: "5",
-                    speed_unit: "MBPS",
-                    unlimited_data: false,
-                    data_limit: "3",
-                  })}
-                >
-                  <Calendar className="w-4 h-4 mb-1 text-purple-500" />
-                  <span className="text-xs font-semibold">Daily</span>
-                  <span className="text-[10px] text-muted-foreground">100 KES</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
-                  onClick={() => setPlanForm({
-                    ...planForm,
-                    name: "Weekly Plan",
-                    price: "500",
-                    validity_type: "DAYS",
-                    duration_days: "7",
-                    download_speed: "15",
-                    upload_speed: "10",
-                    speed_unit: "MBPS",
-                    unlimited_data: false,
-                    data_limit: "15",
-                  })}
-                >
-                  <Calendar className="w-4 h-4 mb-1 text-orange-500" />
-                  <span className="text-xs font-semibold">Weekly</span>
-                  <span className="text-[10px] text-muted-foreground">500 KES</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
-                  onClick={() => setPlanForm({
-                    ...planForm,
-                    name: "Home Basic",
-                    price: "2500",
-                    validity_type: "DAYS",
-                    duration_days: "30",
-                    download_speed: "20",
-                    upload_speed: "10",
-                    speed_unit: "MBPS",
-                    unlimited_data: true,
-                    data_limit: "",
-                  })}
-                >
-                  <Wifi className="w-4 h-4 mb-1 text-cyan-500" />
-                  <span className="text-xs font-semibold">Monthly</span>
-                  <span className="text-[10px] text-muted-foreground">2500 KES</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
-                  onClick={() => setPlanForm({
-                    ...planForm,
-                    name: "Unlimited",
-                    price: "5000",
-                    validity_type: "UNLIMITED",
-                    download_speed: "50",
-                    upload_speed: "25",
-                    speed_unit: "MBPS",
-                    unlimited_data: true,
-                    data_limit: "",
-                  })}
-                >
-                  <Zap className="w-4 h-4 mb-1 text-yellow-500" />
-                  <span className="text-xs font-semibold">Unlimited</span>
-                  <span className="text-[10px] text-muted-foreground">5000 KES</span>
-                </Button>
-              </div>
+          <div className="space-y-5 py-4">
+            {/* Plan Name */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Plan Name</Label>
+              <Input
+                value={planForm.name}
+                onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
+                placeholder="e.g., Home Basic 20Mbps"
+              />
             </div>
 
-            <Separator />
-
-            {/* Basic Info Section */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Basic Information</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Plan Name *</Label>
-                  <Input
-                    value={planForm.name}
-                    onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
-                    placeholder="e.g., Premium 50Mbps"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Plan Type *</Label>
-                  <Select
-                    value={planForm.plan_type}
-                    onValueChange={(v) => setPlanForm({ ...planForm, plan_type: v as PlanType })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="HOTSPOT">Hotspot</SelectItem>
-                      <SelectItem value="PPPOE">PPPoE</SelectItem>
-                      <SelectItem value="STATIC">Static IP</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Price (KES) *</Label>
-                  <Input
-                    type="number"
-                    value={planForm.price}
-                    onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })}
-                    placeholder="e.g., 2500"
-                  />
-                </div>
+            {/* IP Pool Range - Inline Subnet Builder */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">IP Pool Range</Label>
+              <div className="flex items-center gap-1.5">
+                <Select
+                  value={planForm.subnet_prefix}
+                  onValueChange={(v) => setPlanForm({ ...planForm, subnet_prefix: v })}
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Prefix" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subnetPrefixes.map((p) => (
+                      <SelectItem key={p.value} value={p.value} disabled={blockedPrefixes.includes(p.value)}>
+                        {p.value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-muted-foreground font-mono">.</span>
+                <Input
+                  type="number"
+                  className="w-[70px] text-center font-mono"
+                  min={0}
+                  max={255}
+                  value={planForm.subnet_octet}
+                  onChange={(e) => setPlanForm({ ...planForm, subnet_octet: e.target.value })}
+                  placeholder="x"
+                />
+                <span className="text-muted-foreground font-mono">.1</span>
+                <span className="text-muted-foreground font-mono">/</span>
+                <Select
+                  value={planForm.cidr_prefix}
+                  onValueChange={(v) => setPlanForm({ ...planForm, cidr_prefix: v })}
+                >
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cidrOptions.map((c) => (
+                      <SelectItem key={c.value} value={String(c.value)}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-
-            <Separator />
-
-            {/* Validity Section */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Validity Period</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Validity Type</Label>
-                  <Select
-                    value={planForm.validity_type}
-                    onValueChange={(v) => setPlanForm({ ...planForm, validity_type: v as typeof planForm.validity_type })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MINUTES">Minutes</SelectItem>
-                      <SelectItem value="HOURS">Hours</SelectItem>
-                      <SelectItem value="DAYS">Days</SelectItem>
-                      <SelectItem value="UNLIMITED">Unlimited</SelectItem>
-                    </SelectContent>
-                  </Select>
+              {/* Subnet Preview */}
+              {planForm.subnet_prefix && planForm.subnet_octet && subnetPreview && (
+                <div className="flex items-center gap-3 text-xs mt-1.5">
+                  <span className="text-muted-foreground">
+                    Generated Range: <span className="font-mono font-medium text-foreground">{subnetPreview.gateway}/{planForm.cidr_prefix}</span>
+                  </span>
+                  <Badge variant="secondary" className="text-xs">{subnetPreview.usableIPs} usable IPs</Badge>
                 </div>
-                
-                {planForm.validity_type === 'MINUTES' && (
-                  <div className="space-y-2">
-                    <Label>Duration (Minutes)</Label>
-                    <Input
-                      type="number"
-                      value={planForm.validity_minutes}
-                      onChange={(e) => setPlanForm({ ...planForm, validity_minutes: e.target.value })}
-                      placeholder="e.g., 30, 60, 120"
-                    />
-                  </div>
-                )}
-                
-                {planForm.validity_type === 'HOURS' && (
-                  <div className="space-y-2">
-                    <Label>Duration (Hours)</Label>
-                    <Input
-                      type="number"
-                      value={planForm.validity_hours}
-                      onChange={(e) => setPlanForm({ ...planForm, validity_hours: e.target.value })}
-                      placeholder="e.g., 1, 3, 6, 12, 24"
-                    />
-                  </div>
-                )}
-                
-                {planForm.validity_type === 'DAYS' && (
-                  <div className="space-y-2">
-                    <Label>Duration (Days)</Label>
-                    <Select
-                      value={planForm.duration_days}
-                      onValueChange={(v) => setPlanForm({ ...planForm, duration_days: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 Day</SelectItem>
-                        <SelectItem value="3">3 Days</SelectItem>
-                        <SelectItem value="7">7 Days (Weekly)</SelectItem>
-                        <SelectItem value="14">14 Days</SelectItem>
-                        <SelectItem value="30">30 Days (Monthly)</SelectItem>
-                        <SelectItem value="90">90 Days (Quarterly)</SelectItem>
-                        <SelectItem value="180">180 Days</SelectItem>
-                        <SelectItem value="365">365 Days (Annual)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Speed Configuration */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Speed Configuration</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Download Speed</Label>
-                  <Input
-                    type="number"
-                    value={planForm.download_speed}
-                    onChange={(e) => setPlanForm({ ...planForm, download_speed: e.target.value })}
-                    placeholder="e.g., 50"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Upload Speed</Label>
-                  <Input
-                    type="number"
-                    value={planForm.upload_speed}
-                    onChange={(e) => setPlanForm({ ...planForm, upload_speed: e.target.value })}
-                    placeholder="e.g., 25"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Speed Unit</Label>
-                  <Select
-                    value={planForm.speed_unit}
-                    onValueChange={(v) => setPlanForm({ ...planForm, speed_unit: v as 'MBPS' | 'KBPS' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MBPS">Mbps</SelectItem>
-                      <SelectItem value="KBPS">Kbps</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Data Limit */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Data Limit</h3>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={planForm.unlimited_data}
-                    onCheckedChange={(c) => setPlanForm({ ...planForm, unlimited_data: c, data_limit: c ? '' : planForm.data_limit })}
-                  />
-                  <Label className="text-sm">Unlimited</Label>
-                </div>
-              </div>
-              {!planForm.unlimited_data && (
-                <div className="space-y-2">
-                  <Label>Data Limit (GB)</Label>
-                  <Input
-                    type="number"
-                    value={planForm.data_limit}
-                    onChange={(e) => setPlanForm({ ...planForm, data_limit: e.target.value })}
-                    placeholder="e.g., 100"
-                  />
-                </div>
+              )}
+              {planForm.subnet_prefix === '192.168' && (
+                <p className="text-xs text-amber-600 flex items-center gap-1 mt-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  192.168.x.x is typically used for local LANs — consider 10.x or 172.16-31.x for PPPoE pools
+                </p>
               )}
             </div>
 
             <Separator />
 
-            {/* Session & Burst Settings */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Session & Burst Settings</h3>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label>Max Devices</Label>
+            {/* Validity + Unit */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Validity</Label>
+                {planForm.validity_type !== 'UNLIMITED' && (
                   <Input
                     type="number"
-                    min="1"
-                    value={planForm.max_sessions}
-                    onChange={(e) => setPlanForm({ ...planForm, max_sessions: e.target.value })}
+                    min={1}
+                    value={
+                      planForm.validity_type === 'MONTHS' ? planForm.validity_months :
+                      planForm.validity_type === 'DAYS' ? planForm.duration_days :
+                      planForm.validity_type === 'HOURS' ? planForm.validity_hours :
+                      planForm.validity_type === 'MINUTES' ? planForm.validity_minutes : '1'
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value
+                      if (planForm.validity_type === 'MONTHS') setPlanForm({ ...planForm, validity_months: v })
+                      else if (planForm.validity_type === 'DAYS') setPlanForm({ ...planForm, duration_days: v })
+                      else if (planForm.validity_type === 'HOURS') setPlanForm({ ...planForm, validity_hours: v })
+                      else if (planForm.validity_type === 'MINUTES') setPlanForm({ ...planForm, validity_minutes: v })
+                    }}
                     placeholder="1"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label>Idle Timeout (min)</Label>
-                  <Input
-                    type="number"
-                    value={planForm.session_timeout}
-                    onChange={(e) => setPlanForm({ ...planForm, session_timeout: e.target.value })}
-                    placeholder="30"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Setup Fee (KES)</Label>
-                  <Input
-                    type="number"
-                    value={planForm.setup_fee}
-                    onChange={(e) => setPlanForm({ ...planForm, setup_fee: e.target.value })}
-                    placeholder="500"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select
-                    value={planForm.is_active ? "active" : "inactive"}
-                    onValueChange={(v) => setPlanForm({ ...planForm, is_active: v === "active" })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                )}
+                {planForm.validity_type === 'UNLIMITED' && (
+                  <Input disabled value="∞" className="text-center" />
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Unit</Label>
+                <Select
+                  value={planForm.validity_type}
+                  onValueChange={(v) => setPlanForm({ ...planForm, validity_type: v as typeof planForm.validity_type })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MONTHS">Months</SelectItem>
+                    <SelectItem value="DAYS">Days</SelectItem>
+                    <SelectItem value="HOURS">Hours</SelectItem>
+                    <SelectItem value="MINUTES">Minutes</SelectItem>
+                    <SelectItem value="UNLIMITED">Unlimited</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <Separator />
+            {/* Price */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Price (KES)</Label>
+              <Input
+                type="number"
+                value={planForm.price}
+                onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })}
+                placeholder="e.g., 2500"
+              />
+            </div>
 
-            {/* Description & Features */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Description & Features</h3>
+            {/* Download / Upload Speed */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea
-                  value={planForm.description}
-                  onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })}
-                  placeholder="Describe the plan benefits..."
-                  rows={2}
+                <Label className="text-sm font-medium">Download Speed (Mbps)</Label>
+                <Input
+                  type="number"
+                  value={planForm.download_speed}
+                  onChange={(e) => setPlanForm({ ...planForm, download_speed: e.target.value })}
+                  placeholder="e.g., 20"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Features (one per line)</Label>
-                <Textarea
-                  value={planForm.features}
-                  onChange={(e) => setPlanForm({ ...planForm, features: e.target.value })}
-                  placeholder="e.g., 24/7 Support&#10;Unlimited Data&#10;High Speed"
-                  rows={3}
+                <Label className="text-sm font-medium">Upload Speed (Mbps)</Label>
+                <Input
+                  type="number"
+                  value={planForm.upload_speed}
+                  onChange={(e) => setPlanForm({ ...planForm, upload_speed: e.target.value })}
+                  placeholder="e.g., 10"
                 />
               </div>
             </div>
 
-            {/* Popular & Public Toggles */}
-            <div className="flex items-center gap-6 p-3 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-2">
+            {/* Priority */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Priority (1-8)</Label>
+              <Select
+                value={planForm.priority}
+                onValueChange={(v) => setPlanForm({ ...planForm, priority: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 (Highest)</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                  <SelectItem value="4">4</SelectItem>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="6">6</SelectItem>
+                  <SelectItem value="7">7</SelectItem>
+                  <SelectItem value="8">8 (Lowest)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Lower numbers = higher priority in MikroTik queue tree</p>
+            </div>
+
+            {/* Enable Burst */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Enable Burst</Label>
                 <Switch
-                  checked={planForm.is_popular}
-                  onCheckedChange={(c) => setPlanForm({ ...planForm, is_popular: c })}
+                  checked={planForm.burst_enabled}
+                  onCheckedChange={(c) => setPlanForm({ ...planForm, burst_enabled: c })}
                 />
-                <Label className="text-sm">
-                  <Zap className="w-3 h-3 inline mr-1 text-yellow-500" />
-                  Mark as Popular
-                </Label>
               </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={planForm.is_public}
-                  onCheckedChange={(c) => setPlanForm({ ...planForm, is_public: c })}
-                />
-                <Label className="text-sm">Show in Customer Portal</Label>
-              </div>
+              {planForm.burst_enabled && (
+                <div className="grid grid-cols-2 gap-3 p-3 bg-muted/30 rounded-lg">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Burst Download (Mbps)</Label>
+                    <Input
+                      type="number"
+                      value={planForm.burst_download}
+                      onChange={(e) => setPlanForm({ ...planForm, burst_download: e.target.value })}
+                      placeholder="e.g., 40"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Burst Upload (Mbps)</Label>
+                    <Input
+                      type="number"
+                      value={planForm.burst_upload}
+                      onChange={(e) => setPlanForm({ ...planForm, burst_upload: e.target.value })}
+                      placeholder="e.g., 20"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Burst Threshold (KB)</Label>
+                    <Input
+                      type="number"
+                      value={planForm.burst_threshold}
+                      onChange={(e) => setPlanForm({ ...planForm, burst_threshold: e.target.value })}
+                      placeholder="e.g., 2048"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Burst Time (sec)</Label>
+                    <Input
+                      type="number"
+                      value={planForm.burst_time}
+                      onChange={(e) => setPlanForm({ ...planForm, burst_time: e.target.value })}
+                      placeholder="e.g., 10"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1212,7 +1123,7 @@ export default function PlansPage() {
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={isSubmitting}>
+            <Button onClick={handleCreate} disabled={isSubmitting || !planForm.name || !planForm.price}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Plan
             </Button>
