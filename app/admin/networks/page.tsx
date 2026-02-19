@@ -1,32 +1,30 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import {
   Network,
   Plus,
   Edit,
   Trash2,
   MoreVertical,
-  Search,
-  Filter,
   RefreshCw,
-  Server,
+  Search,
   Globe,
+  Check,
+  Loader2,
   Shield,
   Activity,
-  Layers,
-  Copy,
-  Eye,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  Wifi,
-  Router,
-  Settings,
-  Download,
-  ChevronRight,
+  HardDrive,
   ChevronDown,
-  Zap,
+  ChevronRight,
+  MapPin,
+  LinkIcon,
+  Unlink,
+  Power,
+  AlertTriangle,
+  Package,
+  Wifi,
+  Badge as BadgeIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -46,30 +44,25 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -77,727 +70,1016 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import { Progress } from "@/components/ui/progress"
 import { Switch } from "@/components/ui/switch"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
+import { adminApi } from "@/lib/admin-api"
+import type { Plan, IPPool, SubnetPrefixOption, CIDROption, SubnetPrefixOptionsResponse } from "@/lib/types"
 
-type NetworkType = "public" | "private" | "cgnat" | "static-pool"
-type NetworkStatus = "active" | "inactive" | "exhausted" | "reserved"
-
-interface IPv4Network {
-  id: string
-  name: string
-  network: string
-  gateway: string
-  subnet: string
-  type: NetworkType
-  status: NetworkStatus
-  totalIPs: number
-  usedIPs: number
-  availableIPs: number
-  router: string
-  vlan: number | null
-  description: string
-  createdAt: string
-}
-
-interface IPAllocation {
-  id: string
-  ipAddress: string
-  macAddress: string
-  username: string
-  hostname: string
-  status: "active" | "reserved" | "expired"
-  assignedAt: string
-  expiresAt: string | null
-  networkId: string
-}
-
-// TODO: Add dedicated networks API endpoint when backend supports it
-// Networks page uses local types distinct from IPAM Subnets—no direct API match yet
-
-const getStatusBadge = (status: NetworkStatus) => {
-  switch (status) {
-    case "active":
-      return <Badge className="bg-green-100 text-green-700">Active</Badge>
-    case "inactive":
-      return <Badge className="bg-gray-100 text-gray-700">Inactive</Badge>
-    case "exhausted":
-      return <Badge className="bg-red-100 text-red-700">Exhausted</Badge>
-    case "reserved":
-      return <Badge className="bg-blue-100 text-blue-700">Reserved</Badge>
-    default:
-      return <Badge variant="outline">{status}</Badge>
-  }
-}
-
-const getTypeBadge = (type: NetworkType) => {
-  switch (type) {
-    case "public":
-      return <Badge variant="outline" className="border-green-200 text-green-700">Public</Badge>
-    case "private":
-      return <Badge variant="outline" className="border-blue-200 text-blue-700">Private</Badge>
-    case "cgnat":
-      return <Badge variant="outline" className="border-purple-200 text-purple-700">CGNAT</Badge>
-    case "static-pool":
-      return <Badge variant="outline" className="border-orange-200 text-orange-700">Static Pool</Badge>
-    default:
-      return <Badge variant="outline">{type}</Badge>
-  }
-}
-
-const getAllocationStatusBadge = (status: IPAllocation["status"]) => {
-  switch (status) {
-    case "active":
-      return <Badge className="bg-green-100 text-green-700">Active</Badge>
-    case "reserved":
-      return <Badge className="bg-blue-100 text-blue-700">Reserved</Badge>
-    case "expired":
-      return <Badge className="bg-red-100 text-red-700">Expired</Badge>
-    default:
-      return <Badge variant="outline">{status}</Badge>
-  }
+const formatCurrency = (amount: string | number) => {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount
+  return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(num || 0)
 }
 
 export default function IPv4NetworksPage() {
-  const [activeTab, setActiveTab] = useState("networks")
-  const [networks, setNetworks] = useState<IPv4Network[]>([])
-  const [allocations, setAllocations] = useState<IPAllocation[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [typeFilter, setTypeFilter] = useState<string>("all")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [selectedNetwork, setSelectedNetwork] = useState<IPv4Network | null>(null)
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [expandedNetworks, setExpandedNetworks] = useState<string[]>([])
+  const hasFetchedRef = useRef(false)
 
-  // Stats
-  const stats = useMemo(() => {
-    const totalIPs = networks.reduce((acc, n) => acc + n.totalIPs, 0)
-    const usedIPs = networks.reduce((acc, n) => acc + n.usedIPs, 0)
-    const publicNets = networks.filter(n => n.type === "public").length
-    const activeNets = networks.filter(n => n.status === "active").length
-    
-    return {
-      totalIPs,
-      usedIPs,
-      availableIPs: totalIPs - usedIPs,
-      utilization: totalIPs > 0 ? ((usedIPs / totalIPs) * 100).toFixed(1) : 0,
-      publicNets,
-      activeNets,
-      totalNets: networks.length,
+  // Data
+  const [ipPools, setIPPools] = useState<IPPool[]>([])
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  // Sub-tab & search
+  const [activeSubTab, setActiveSubTab] = useState<'pools' | 'static' | 'mapping'>('pools')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Pool CRUD state
+  const [isPoolCreateOpen, setIsPoolCreateOpen] = useState(false)
+  const [isPoolEditOpen, setIsPoolEditOpen] = useState(false)
+  const [isPoolDeleteOpen, setIsPoolDeleteOpen] = useState(false)
+  const [selectedPool, setSelectedPool] = useState<IPPool | null>(null)
+  const [poolSubmitting, setPoolSubmitting] = useState(false)
+  const [expandedPoolId, setExpandedPoolId] = useState<number | null>(null)
+
+  // Pool form
+  const [poolForm, setPoolForm] = useState({
+    name: '',
+    pool_type: 'PPPOE' as IPPool['pool_type'],
+    subnet_prefix: '10.50',
+    subnet_octet: '',
+    cidr_prefix: '24',
+    gateway: '',
+    dns_servers: '',
+    description: '',
+    is_active: true,
+  })
+
+  // Subnet builder options
+  const [subnetPrefixes, setSubnetPrefixes] = useState<SubnetPrefixOption[]>([])
+  const [cidrOptions, setCidrOptions] = useState<CIDROption[]>([])
+  const [subnetOptionsLoading, setSubnetOptionsLoading] = useState(false)
+
+  // ===== Data Fetching =====
+  const fetchIPPools = useCallback(async () => {
+    try {
+      const res = await adminApi.getIPPools({ page_size: '100', ordering: '-created_at' })
+      setIPPools(res.results || [])
+    } catch (error) {
+      console.error('Failed to fetch IP pools:', error)
     }
-  }, [networks])
+  }, [])
 
-  // Filtered networks
-  const filteredNetworks = useMemo(() => {
-    return networks.filter(network => {
-      const matchesSearch = 
-        network.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        network.network.includes(searchQuery)
-      const matchesType = typeFilter === "all" || network.type === typeFilter
-      const matchesStatus = statusFilter === "all" || network.status === statusFilter
-      
-      return matchesSearch && matchesType && matchesStatus
-    })
-  }, [networks, searchQuery, typeFilter, statusFilter])
+  const fetchPlans = useCallback(async () => {
+    try {
+      const res = await adminApi.getPlans({ ordering: '-created_at' })
+      setPlans(res.results || [])
+    } catch (error) {
+      console.error('Failed to fetch plans:', error)
+    }
+  }, [])
+
+  const loadSubnetPrefixOptions = useCallback(async () => {
+    if (subnetPrefixes.length > 0) return
+    setSubnetOptionsLoading(true)
+    try {
+      const res: SubnetPrefixOptionsResponse = await adminApi.getSubnetPrefixOptions()
+      setSubnetPrefixes(res.prefixes || [])
+      setCidrOptions(res.cidr_options || [])
+      if (res.default_prefix) {
+        setPoolForm(prev => ({ ...prev, subnet_prefix: res.default_prefix }))
+      }
+    } catch (err) {
+      console.error('Failed to load subnet prefix options:', err)
+    } finally {
+      setSubnetOptionsLoading(false)
+    }
+  }, [subnetPrefixes.length])
+
+  useEffect(() => {
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true
+      Promise.all([fetchIPPools(), fetchPlans()]).finally(() => setLoading(false))
+    }
+  }, [fetchIPPools, fetchPlans])
 
   const handleRefresh = async () => {
-    setIsLoading(true)
-    // TODO: Replace with real API call when backend networks endpoint is available
-    setIsLoading(false)
+    setIsRefreshing(true)
+    await Promise.all([fetchIPPools(), fetchPlans()])
+    setIsRefreshing(false)
+    toast.success('Data refreshed')
   }
 
-  const toggleNetworkExpand = (id: string) => {
-    if (expandedNetworks.includes(id)) {
-      setExpandedNetworks(expandedNetworks.filter(n => n !== id))
-    } else {
-      setExpandedNetworks([...expandedNetworks, id])
+  // ===== Pool Form Helpers =====
+  const resetPoolForm = () => {
+    setPoolForm({
+      name: '', pool_type: 'PPPOE', subnet_prefix: '10.50', subnet_octet: '',
+      cidr_prefix: '24', gateway: '', dns_servers: '', description: '', is_active: true,
+    })
+    setSelectedPool(null)
+  }
+
+  const poolSubnetPreview = useMemo(() => {
+    const { subnet_prefix, subnet_octet, cidr_prefix } = poolForm
+    if (!subnet_prefix || !subnet_octet) return null
+    const octet = parseInt(subnet_octet)
+    if (isNaN(octet) || octet < 0 || octet > 255) return null
+    const cidrNum = parseInt(cidr_prefix)
+    const base = `${subnet_prefix}.${octet}`
+    const totalIPs = Math.pow(2, 32 - cidrNum)
+    const usableIPs = totalIPs - 3
+    return {
+      network: `${base}.0`,
+      gateway: `${base}.1`,
+      startIP: `${base}.1`,
+      endIP: `${base}.${totalIPs - 2}`,
+      broadcast: `${base}.${totalIPs - 1}`,
+      cidr: `${base}.0/${cidrNum}`,
+      usableIPs,
+    }
+  }, [poolForm.subnet_prefix, poolForm.subnet_octet, poolForm.cidr_prefix])
+
+  // ===== Pool CRUD =====
+  const handleCreatePool = async () => {
+    if (!poolForm.name.trim()) { toast.error('Pool name is required'); return }
+    if (!poolForm.subnet_octet) { toast.error('Subnet octet is required'); return }
+    setPoolSubmitting(true)
+    try {
+      await adminApi.createIPPool({
+        name: poolForm.name,
+        pool_type: poolForm.pool_type,
+        subnet_prefix: poolForm.subnet_prefix,
+        subnet_octet: parseInt(poolForm.subnet_octet),
+        cidr_prefix: parseInt(poolForm.cidr_prefix),
+        gateway: poolSubnetPreview?.gateway || '',
+        dns_servers: poolForm.dns_servers || '8.8.8.8,8.8.4.4',
+        description: poolForm.description,
+        is_active: poolForm.is_active,
+      })
+      toast.success(`IP Pool "${poolForm.name}" created successfully`)
+      setIsPoolCreateOpen(false)
+      resetPoolForm()
+      fetchIPPools()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create IP pool')
+    } finally {
+      setPoolSubmitting(false)
     }
   }
 
-  const getNetworkAllocations = (networkId: string) => {
-    return allocations.filter(a => a.networkId === networkId)
+  const openPoolEdit = (pool: IPPool) => {
+    setSelectedPool(pool)
+    setPoolForm({
+      name: pool.name,
+      pool_type: pool.pool_type,
+      subnet_prefix: pool.subnet_prefix || '10.50',
+      subnet_octet: pool.subnet_octet?.toString() || '',
+      cidr_prefix: pool.cidr_prefix?.toString() || '24',
+      gateway: pool.gateway || '',
+      dns_servers: pool.dns_servers || '',
+      description: pool.description || '',
+      is_active: pool.is_active,
+    })
+    setIsPoolEditOpen(true)
+  }
+
+  const handleUpdatePool = async () => {
+    if (!selectedPool) return
+    setPoolSubmitting(true)
+    try {
+      await adminApi.updateIPPool(selectedPool.id, {
+        name: poolForm.name,
+        pool_type: poolForm.pool_type,
+        gateway: poolForm.gateway || poolSubnetPreview?.gateway || '',
+        dns_servers: poolForm.dns_servers,
+        description: poolForm.description,
+        is_active: poolForm.is_active,
+      })
+      toast.success(`Pool "${poolForm.name}" updated`)
+      setIsPoolEditOpen(false)
+      resetPoolForm()
+      fetchIPPools()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update pool')
+    } finally {
+      setPoolSubmitting(false)
+    }
+  }
+
+  const handleDeletePool = async () => {
+    if (!selectedPool) return
+    setPoolSubmitting(true)
+    try {
+      await adminApi.deleteIPPool(selectedPool.id)
+      toast.success(`Pool "${selectedPool.name}" deleted`)
+      setIsPoolDeleteOpen(false)
+      setSelectedPool(null)
+      fetchIPPools()
+      fetchPlans()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete pool')
+    } finally {
+      setPoolSubmitting(false)
+    }
+  }
+
+  const handleTogglePoolActive = async (pool: IPPool) => {
+    try {
+      await adminApi.updateIPPool(pool.id, { is_active: !pool.is_active })
+      toast.success(`Pool "${pool.name}" ${pool.is_active ? 'disabled' : 'enabled'}`)
+      fetchIPPools()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to toggle pool')
+    }
+  }
+
+  // ===== Filtered Pools =====
+  const filteredPools = useMemo(() => {
+    if (!searchQuery.trim()) return ipPools
+    const q = searchQuery.toLowerCase()
+    return ipPools.filter(pool => {
+      const linkedPlans = plans.filter(p => p.ip_pool === pool.id)
+      return (
+        pool.name.toLowerCase().includes(q) ||
+        pool.start_ip?.toLowerCase().includes(q) ||
+        pool.end_ip?.toLowerCase().includes(q) ||
+        pool.gateway?.toLowerCase().includes(q) ||
+        pool.cidr_notation?.toLowerCase().includes(q) ||
+        pool.pool_type?.toLowerCase().includes(q) ||
+        linkedPlans.some(p => p.name.toLowerCase().includes(q))
+      )
+    })
+  }, [ipPools, plans, searchQuery])
+
+  // ===== Stats =====
+  const stats = useMemo(() => {
+    const totalPools = ipPools.length
+    const activePools = ipPools.filter(p => p.is_active).length
+    const totalIPs = ipPools.reduce((sum, p) => sum + (p.total_ips || 0), 0)
+    const usedIPs = ipPools.reduce((sum, p) => sum + (p.used_ips || 0), 0)
+    const availIPs = totalIPs - usedIPs
+    const utilization = totalIPs > 0 ? ((usedIPs / totalIPs) * 100).toFixed(1) : '0'
+    const plansWithPool = plans.filter(p => p.ip_pool)
+    return { totalPools, activePools, totalIPs, usedIPs, availIPs, utilization, plansLinked: plansWithPool.length }
+  }, [ipPools, plans])
+
+  // ===== Loading State =====
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-9 w-64" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="h-20" />
+          ))}
+        </div>
+        <Skeleton className="h-10 w-80" />
+        <Skeleton className="h-96" />
+      </div>
+    )
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="flex flex-col gap-6 p-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">IPv4 Networks</h1>
-          <p className="text-slate-600 mt-1">Manage IP address pools and allocations</p>
+          <h1 className="text-3xl font-bold tracking-tight">IPv4 Networks</h1>
+          <p className="text-muted-foreground">
+            Manage IP address pools, static blocks, and plan-to-pool assignments
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Network
+          <Button onClick={() => { resetPoolForm(); loadSubnetPrefixOptions(); setIsPoolCreateOpen(true) }}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add IP Pool
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600">Total Networks</p>
-                <p className="text-2xl font-bold">{stats.totalNets}</p>
-              </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Network className="w-5 h-5 text-blue-600" />
-              </div>
-            </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSubTab('pools')}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg"><Network className="w-5 h-5 text-blue-600" /></div>
+            <div><p className="text-2xl font-bold">{stats.totalPools}</p><p className="text-xs text-muted-foreground">IP Pools</p></div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600">Total IPs</p>
-                <p className="text-2xl font-bold">{stats.totalIPs.toLocaleString()}</p>
-              </div>
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <Globe className="w-5 h-5 text-green-600" />
-              </div>
-            </div>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSubTab('pools')}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg"><Check className="w-5 h-5 text-green-600" /></div>
+            <div><p className="text-2xl font-bold text-green-600">{stats.activePools}</p><p className="text-xs text-muted-foreground">Active Pools</p></div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600">Used IPs</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.usedIPs.toLocaleString()}</p>
-              </div>
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Activity className="w-5 h-5 text-orange-600" />
-              </div>
-            </div>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 bg-purple-100 rounded-lg"><HardDrive className="w-5 h-5 text-purple-600" /></div>
+            <div><p className="text-2xl font-bold">{stats.totalIPs.toLocaleString()}</p><p className="text-xs text-muted-foreground">Total IPs</p></div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600">Available</p>
-                <p className="text-2xl font-bold text-green-600">{stats.availableIPs.toLocaleString()}</p>
-              </div>
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-            </div>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSubTab('static')}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 bg-emerald-100 rounded-lg"><Shield className="w-5 h-5 text-emerald-600" /></div>
+            <div><p className="text-2xl font-bold text-emerald-600">{stats.availIPs.toLocaleString()}</p><p className="text-xs text-muted-foreground">Available IPs</p></div>
           </CardContent>
         </Card>
-
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSubTab('mapping')}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 bg-indigo-100 rounded-lg"><LinkIcon className="w-5 h-5 text-indigo-600" /></div>
+            <div><p className="text-2xl font-bold text-indigo-600">{stats.plansLinked}</p><p className="text-xs text-muted-foreground">Plans Linked</p></div>
+          </CardContent>
+        </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600">Utilization</p>
-                <p className="text-2xl font-bold">{stats.utilization}%</p>
-              </div>
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-purple-600" />
-              </div>
-            </div>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 bg-amber-100 rounded-lg"><Activity className="w-5 h-5 text-amber-600" /></div>
+            <div><p className="text-2xl font-bold text-amber-600">{stats.utilization}%</p><p className="text-xs text-muted-foreground">Utilization</p></div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="networks" className="flex items-center gap-2">
-            <Layers className="w-4 h-4" />
-            Networks
-          </TabsTrigger>
-          <TabsTrigger value="allocations" className="flex items-center gap-2">
-            <Server className="w-4 h-4" />
-            Allocations
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            Settings
-          </TabsTrigger>
-        </TabsList>
+      {/* Sub-tabs + Search */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex border rounded-lg p-1 bg-muted/30 w-fit">
+          <button
+            onClick={() => setActiveSubTab('pools')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeSubTab === 'pools' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Network className="w-4 h-4 inline mr-1.5" />
+            IP Pools
+          </button>
+          <button
+            onClick={() => setActiveSubTab('static')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeSubTab === 'static' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <MapPin className="w-4 h-4 inline mr-1.5" />
+            Static IP Blocks
+          </button>
+          <button
+            onClick={() => setActiveSubTab('mapping')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeSubTab === 'mapping' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <LinkIcon className="w-4 h-4 inline mr-1.5" />
+            Pool-Plan Mapping
+          </button>
+        </div>
 
-        {/* Networks Tab */}
-        <TabsContent value="networks" className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search pools by name, IP, or linked plan..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        {searchQuery && (
+          <Badge variant="secondary" className="w-fit">
+            {filteredPools.length} of {ipPools.length} pools
+          </Badge>
+        )}
+      </div>
+
+      {/* ======= IP POOLS Sub-tab ======= */}
+      {activeSubTab === 'pools' && (
+        <>
+          {filteredPools.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Network className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="font-medium text-lg">{searchQuery ? 'No Pools Match Your Search' : 'No IP Pools Created Yet'}</p>
+                <p className="text-muted-foreground text-sm mt-1 max-w-md mx-auto">
+                  {searchQuery
+                    ? 'Try a different search term or clear the search to see all pools.'
+                    : 'IP pools define the address ranges for your customers. Create one to get started.'
+                  }
+                </p>
+                {!searchQuery && (
+                  <Button size="sm" className="mt-4" onClick={() => { resetPoolForm(); loadSubnetPrefixOptions(); setIsPoolCreateOpen(true) }}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create IP Pool
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Network className="w-5 h-5" />
+                    IP Address Pools
+                  </CardTitle>
+                  <CardDescription>
+                    {filteredPools.length} pool{filteredPools.length !== 1 ? 's' : ''} · {filteredPools.reduce((s, p) => s + (p.total_ips || 0), 0).toLocaleString()} total IPs
+                  </CardDescription>
+                </div>
+                <Button size="sm" onClick={() => { resetPoolForm(); loadSubnetPrefixOptions(); setIsPoolCreateOpen(true) }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Pool
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left p-3 font-medium w-8"></th>
+                        <th className="text-left p-3 font-medium">Pool Name</th>
+                        <th className="text-left p-3 font-medium">Linked Plan</th>
+                        <th className="text-left p-3 font-medium">Start IP</th>
+                        <th className="text-left p-3 font-medium">End IP</th>
+                        <th className="text-center p-3 font-medium">IPs</th>
+                        <th className="text-center p-3 font-medium">Utilization</th>
+                        <th className="text-center p-3 font-medium">Status</th>
+                        <th className="text-right p-3 font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPools.map((pool) => {
+                        const utilPct = pool.total_ips > 0 ? ((pool.used_ips / pool.total_ips) * 100) : 0
+                        const utilColor = utilPct > 90 ? 'text-red-600' : utilPct > 70 ? 'text-amber-600' : 'text-green-600'
+                        const linkedPlans = plans.filter(p => p.ip_pool === pool.id)
+                        const isExpanded = expandedPoolId === pool.id
+                        return (
+                          <React.Fragment key={pool.id}>
+                            <tr className={`border-b hover:bg-muted/30 transition-colors ${isExpanded ? 'bg-muted/20' : ''}`}>
+                              <td className="p-3">
+                                <button
+                                  onClick={() => setExpandedPoolId(isExpanded ? null : pool.id)}
+                                  className="p-1 hover:bg-muted rounded"
+                                >
+                                  {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                </button>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="font-medium">{pool.name}</div>
+                                  <Badge variant="outline" className={
+                                    pool.pool_type === 'PPPOE' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                    pool.pool_type === 'STATIC' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                    pool.pool_type === 'HOTSPOT' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                    'bg-gray-50'
+                                  }>
+                                    {pool.pool_type}
+                                  </Badge>
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-0.5 font-mono">
+                                  {pool.cidr_notation || `${pool.start_ip}/${pool.cidr_prefix || '24'}`}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                {linkedPlans.length > 0 ? (
+                                  <div className="space-y-1">
+                                    {linkedPlans.slice(0, 2).map(p => (
+                                      <Badge key={p.id} variant="secondary" className="text-xs mr-1">
+                                        <LinkIcon className="w-3 h-3 mr-1" />
+                                        {p.name}
+                                      </Badge>
+                                    ))}
+                                    {linkedPlans.length > 2 && (
+                                      <span className="text-xs text-muted-foreground">+{linkedPlans.length - 2} more</span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Unlink className="w-3 h-3" />
+                                    No plans linked
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3 font-mono text-xs">{pool.start_ip}</td>
+                              <td className="p-3 font-mono text-xs">{pool.end_ip}</td>
+                              <td className="p-3 text-center">
+                                <span className="text-green-600 font-medium">{pool.available_ips ?? pool.total_ips - pool.used_ips}</span>
+                                <span className="text-muted-foreground">/{pool.total_ips}</span>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex items-center justify-center gap-2">
+                                  <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full ${utilPct > 90 ? 'bg-red-500' : utilPct > 70 ? 'bg-amber-500' : 'bg-green-500'}`}
+                                      style={{ width: `${Math.min(utilPct, 100)}%` }} />
+                                  </div>
+                                  <span className={`text-xs font-medium ${utilColor}`}>{utilPct.toFixed(0)}%</span>
+                                </div>
+                              </td>
+                              <td className="p-3 text-center">
+                                <Badge variant={pool.is_active ? "default" : "secondary"} className="text-xs">
+                                  {pool.is_active ? "Active" : "Inactive"}
+                                </Badge>
+                              </td>
+                              <td className="p-3 text-right">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                      <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => { loadSubnetPrefixOptions(); openPoolEdit(pool) }}>
+                                      <Edit className="w-4 h-4 mr-2" />
+                                      Edit Pool
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleTogglePoolActive(pool)}>
+                                      <Power className="w-4 h-4 mr-2" />
+                                      {pool.is_active ? 'Disable' : 'Enable'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => { setSelectedPool(pool); setIsPoolDeleteOpen(true) }}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-2" />
+                                      Delete Pool
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </td>
+                            </tr>
+                            {/* Expanded Row Details */}
+                            {isExpanded && (
+                              <tr className="bg-muted/10">
+                                <td colSpan={9} className="p-4">
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                    <div>
+                                      <p className="text-muted-foreground text-xs mb-1">Gateway</p>
+                                      <p className="font-mono">{pool.gateway || '—'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground text-xs mb-1">DNS Servers</p>
+                                      <p className="font-mono text-xs">{pool.dns_servers || '—'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground text-xs mb-1">Description</p>
+                                      <p className="text-xs">{pool.description || 'No description'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground text-xs mb-1">Created</p>
+                                      <p className="text-xs">{pool.created_at ? new Date(pool.created_at).toLocaleDateString() : '—'}</p>
+                                    </div>
+                                  </div>
+                                  {linkedPlans.length > 0 && (
+                                    <div className="mt-4 pt-4 border-t">
+                                      <p className="text-muted-foreground text-xs mb-2 font-medium">Linked Plans ({linkedPlans.length})</p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {linkedPlans.map(p => (
+                                          <Badge key={p.id} variant="outline">
+                                            {p.name} — {p.plan_type} — {formatCurrency(p.price ?? p.base_price)}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* ======= STATIC IP BLOCKS Sub-tab ======= */}
+      {activeSubTab === 'static' && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MapPin className="w-5 h-5" />
+              Static IP Blocks
+            </CardTitle>
+            <CardDescription>
+              Individual IP addresses allocated to customers from your pools
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {ipPools.filter(p => p.pool_type === 'STATIC').length === 0 ? (
+              <div className="text-center py-8">
+                <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="font-medium">No Static IP Pools</p>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Create a pool with type &quot;STATIC&quot; to manage static IP blocks.
+                </p>
+                <Button variant="outline" size="sm" className="mt-4" onClick={() => { resetPoolForm(); setPoolForm(prev => ({ ...prev, pool_type: 'STATIC' })); loadSubnetPrefixOptions(); setIsPoolCreateOpen(true) }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Static Pool
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {ipPools.filter(p => p.pool_type === 'STATIC').map(pool => {
+                  const linkedPlans = plans.filter(p => p.ip_pool === pool.id)
+                  const utilPct = pool.total_ips > 0 ? (pool.used_ips / pool.total_ips * 100) : 0
+                  return (
+                    <div key={pool.id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h4 className="font-medium flex items-center gap-2">
+                            {pool.name}
+                            <Badge variant={pool.is_active ? "default" : "secondary"} className="text-xs">{pool.is_active ? 'Active' : 'Inactive'}</Badge>
+                          </h4>
+                          <p className="text-sm text-muted-foreground font-mono">{pool.cidr_notation || `${pool.start_ip} — ${pool.end_ip}`}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-green-600">{pool.available_ips ?? pool.total_ips - pool.used_ips}</p>
+                          <p className="text-xs text-muted-foreground">of {pool.total_ips} available</p>
+                        </div>
+                      </div>
+                      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-3">
+                        <div
+                          className={`h-full ${utilPct > 90 ? 'bg-red-500' : utilPct > 70 ? 'bg-amber-500' : 'bg-green-500'}`}
+                          style={{ width: `${utilPct}%` }}
+                        />
+                      </div>
+                      {linkedPlans.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          <span className="text-xs text-muted-foreground mr-1">Plans:</span>
+                          {linkedPlans.map(p => (
+                            <Badge key={p.id} variant="outline" className="text-xs">{p.name}</Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ======= POOL-PLAN MAPPING Sub-tab ======= */}
+      {activeSubTab === 'mapping' && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <LinkIcon className="w-5 h-5" />
+              Pool-Plan Mapping
+            </CardTitle>
+            <CardDescription>
+              All plans and their IP pool assignments — plans need an IP pool to assign addresses to subscribers
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {plans.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No plans created yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left p-3 font-medium">Plan Name</th>
+                      <th className="text-left p-3 font-medium">Type</th>
+                      <th className="text-left p-3 font-medium">Speed</th>
+                      <th className="text-left p-3 font-medium">Price</th>
+                      <th className="text-left p-3 font-medium">IP Pool</th>
+                      <th className="text-center p-3 font-medium">Pool IPs</th>
+                      <th className="text-center p-3 font-medium">Subscribers</th>
+                      <th className="text-center p-3 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {plans.map((plan) => {
+                      const linkedPool = ipPools.find(p => p.id === plan.ip_pool)
+                      return (
+                        <tr key={plan.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                          <td className="p-3">
+                            <div className="font-medium">{plan.name}</div>
+                            <div className="text-xs text-muted-foreground">{plan.validity_display || `${plan.duration_days || 30} days`}</div>
+                          </td>
+                          <td className="p-3">
+                            <Badge variant="outline" className={
+                              plan.plan_type === 'PPPOE' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                              plan.plan_type === 'HOTSPOT' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                              plan.plan_type === 'STATIC' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                              'bg-gray-50 text-gray-700'
+                            }>
+                              {plan.plan_type}
+                            </Badge>
+                          </td>
+                          <td className="p-3">
+                            <span className="text-sm">{plan.speed_display || `${plan.download_speed || '—'}/${plan.upload_speed || '—'} ${plan.speed_unit || 'Mbps'}`}</span>
+                          </td>
+                          <td className="p-3 font-medium">{formatCurrency(plan.price ?? plan.base_price)}</td>
+                          <td className="p-3">
+                            {plan.ip_pool ? (
+                              <div>
+                                <span className="text-sm font-medium text-purple-700 flex items-center gap-1">
+                                  <LinkIcon className="w-3 h-3" />
+                                  {plan.ip_pool_name || linkedPool?.name || `Pool #${plan.ip_pool}`}
+                                </span>
+                                {(plan.ip_pool_range || linkedPool?.ip_range) && (
+                                  <div className="text-xs text-muted-foreground font-mono">{plan.ip_pool_range || linkedPool?.ip_range}</div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-amber-600 flex items-center gap-1">
+                                <Unlink className="w-3 h-3" />
+                                No pool assigned
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 text-center">
+                            {linkedPool ? (
+                              <span className="text-sm">{linkedPool.available_ips ?? (linkedPool.total_ips - linkedPool.used_ips)}/{linkedPool.total_ips}</span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className="text-sm font-medium">{plan.subscriber_count ?? plan.subscribers_count ?? 0}</span>
+                          </td>
+                          <td className="p-3 text-center">
+                            <Badge variant={plan.is_active ? "default" : "secondary"} className="text-xs">
+                              {plan.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ====== IP POOL CREATE DIALOG ====== */}
+      <Dialog open={isPoolCreateOpen} onOpenChange={setIsPoolCreateOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Network className="w-5 h-5 text-primary" />
+              Create IP Pool
+            </DialogTitle>
+            <DialogDescription>
+              Define a new IP address range for your network infrastructure
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="pool-name">Pool Name *</Label>
+              <Input
+                id="pool-name"
+                placeholder="e.g., Main PPPoE Pool"
+                value={poolForm.name}
+                onChange={(e) => setPoolForm(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Pool Type *</Label>
+              <Select value={poolForm.pool_type} onValueChange={(v) => setPoolForm(prev => ({ ...prev, pool_type: v as IPPool['pool_type'] }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PPPOE">PPPoE</SelectItem>
+                  <SelectItem value="STATIC">Static IP</SelectItem>
+                  <SelectItem value="HOTSPOT">Hotspot</SelectItem>
+                  <SelectItem value="DHCP">DHCP</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Subnet Configuration *</Label>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Prefix</Label>
+                  <Select value={poolForm.subnet_prefix} onValueChange={(v) => setPoolForm(prev => ({ ...prev, subnet_prefix: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {subnetPrefixes.length > 0 ? subnetPrefixes.map(p => (
+                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                      )) : (
+                        <>
+                          <SelectItem value="10.50">10.50.x.x</SelectItem>
+                          <SelectItem value="10.60">10.60.x.x</SelectItem>
+                          <SelectItem value="172.16">172.16.x.x</SelectItem>
+                          <SelectItem value="192.168">192.168.x.x</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">3rd Octet</Label>
                   <Input
-                    placeholder="Search networks..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    type="number" min="0" max="255" placeholder="0-255"
+                    value={poolForm.subnet_octet}
+                    onChange={(e) => setPoolForm(prev => ({ ...prev, subnet_octet: e.target.value }))}
                   />
                 </div>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="private">Private</SelectItem>
-                    <SelectItem value="cgnat">CGNAT</SelectItem>
-                    <SelectItem value="static-pool">Static Pool</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="exhausted">Exhausted</SelectItem>
-                    <SelectItem value="reserved">Reserved</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {filteredNetworks.map((network) => (
-                  <Collapsible
-                    key={network.id}
-                    open={expandedNetworks.includes(network.id)}
-                    onOpenChange={() => toggleNetworkExpand(network.id)}
-                  >
-                    <div className="border rounded-lg">
-                      <CollapsibleTrigger className="w-full">
-                        <div className="flex items-center justify-between p-4 hover:bg-slate-50">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                              <Network className="w-5 h-5 text-slate-600" />
-                            </div>
-                            <div className="text-left">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">{network.name}</span>
-                                {getTypeBadge(network.type)}
-                                {getStatusBadge(network.status)}
-                              </div>
-                              <div className="text-sm text-slate-500 font-mono">
-                                {network.network} (GW: {network.gateway})
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-6">
-                            <div className="hidden md:block">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm text-slate-500">
-                                  {network.usedIPs.toLocaleString()} / {network.totalIPs.toLocaleString()} IPs
-                                </span>
-                              </div>
-                              <Progress 
-                                value={(network.usedIPs / network.totalIPs) * 100} 
-                                className="w-32 h-2"
-                              />
-                            </div>
-                            
-                            <div className="flex items-center gap-2">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreVertical className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => {
-                                    setSelectedNetwork(network)
-                                    setIsDetailsOpen(true)
-                                  }}>
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <Edit className="w-4 h-4 mr-2" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <Copy className="w-4 h-4 mr-2" />
-                                    Duplicate
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-red-600">
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                              {expandedNetworks.includes(network.id) ? (
-                                <ChevronDown className="w-5 h-5 text-slate-400" />
-                              ) : (
-                                <ChevronRight className="w-5 h-5 text-slate-400" />
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CollapsibleTrigger>
-                      
-                      <CollapsibleContent>
-                        <div className="border-t p-4 bg-slate-50">
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                            <div>
-                              <span className="text-sm text-slate-500">Gateway</span>
-                              <p className="font-mono">{network.gateway}</p>
-                            </div>
-                            <div>
-                              <span className="text-sm text-slate-500">Subnet Mask</span>
-                              <p className="font-mono">{network.subnet}</p>
-                            </div>
-                            <div>
-                              <span className="text-sm text-slate-500">Router</span>
-                              <p className="flex items-center gap-1">
-                                <Router className="w-4 h-4" />
-                                {network.router}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="text-sm text-slate-500">VLAN</span>
-                              <p>{network.vlan || "None"}</p>
-                            </div>
-                          </div>
-                          
-                          {getNetworkAllocations(network.id).length > 0 && (
-                            <div className="mt-4">
-                              <h4 className="text-sm font-semibold mb-2">Recent Allocations</h4>
-                              <div className="bg-white rounded border">
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>IP Address</TableHead>
-                                      <TableHead>MAC Address</TableHead>
-                                      <TableHead>User</TableHead>
-                                      <TableHead>Status</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {getNetworkAllocations(network.id).slice(0, 3).map((alloc) => (
-                                      <TableRow key={alloc.id}>
-                                        <TableCell className="font-mono">{alloc.ipAddress}</TableCell>
-                                        <TableCell className="font-mono text-xs">{alloc.macAddress}</TableCell>
-                                        <TableCell>{alloc.username}</TableCell>
-                                        <TableCell>{getAllocationStatusBadge(alloc.status)}</TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="mt-4 flex gap-2">
-                            <Button variant="outline" size="sm">
-                              <Eye className="w-4 h-4 mr-1" />
-                              View All IPs
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Plus className="w-4 h-4 mr-1" />
-                              Reserve IP
-                            </Button>
-                          </div>
-                        </div>
-                      </CollapsibleContent>
-                    </div>
-                  </Collapsible>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Allocations Tab */}
-        <TabsContent value="allocations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle>IP Allocations</CardTitle>
-                  <CardDescription>View and manage IP address assignments</CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <Download className="w-4 h-4 mr-1" />
-                    Export
-                  </Button>
-                  <Button size="sm">
-                    <Plus className="w-4 h-4 mr-1" />
-                    Assign IP
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="border rounded-lg">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>IP Address</TableHead>
-                      <TableHead>MAC Address</TableHead>
-                      <TableHead>Username</TableHead>
-                      <TableHead>Hostname</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Assigned</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allocations.map((alloc) => (
-                      <TableRow key={alloc.id}>
-                        <TableCell className="font-mono">{alloc.ipAddress}</TableCell>
-                        <TableCell className="font-mono text-xs">{alloc.macAddress}</TableCell>
-                        <TableCell>{alloc.username}</TableCell>
-                        <TableCell>{alloc.hostname}</TableCell>
-                        <TableCell>{getAllocationStatusBadge(alloc.status)}</TableCell>
-                        <TableCell className="text-sm text-slate-500">{alloc.assignedAt}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="w-4 h-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Edit className="w-4 h-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-600">
-                                <XCircle className="w-4 h-4 mr-2" />
-                                Release IP
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Settings Tab */}
-        <TabsContent value="settings" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>DHCP Settings</CardTitle>
-                <CardDescription>Configure DHCP server parameters</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Enable DHCP</Label>
-                    <p className="text-sm text-slate-500">Auto-assign IPs to clients</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <Label>Lease Time</Label>
-                  <Select defaultValue="86400">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Label className="text-xs text-muted-foreground">CIDR</Label>
+                  <Select value={poolForm.cidr_prefix} onValueChange={(v) => setPoolForm(prev => ({ ...prev, cidr_prefix: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="3600">1 Hour</SelectItem>
-                      <SelectItem value="86400">24 Hours</SelectItem>
-                      <SelectItem value="604800">7 Days</SelectItem>
-                      <SelectItem value="2592000">30 Days</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Primary DNS</Label>
-                  <Input placeholder="8.8.8.8" defaultValue="8.8.8.8" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Secondary DNS</Label>
-                  <Input placeholder="8.8.4.4" defaultValue="8.8.4.4" />
-                </div>
-                <Button className="w-full">Save DHCP Settings</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>IP Management</CardTitle>
-                <CardDescription>Global IP management settings</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Auto-release Expired IPs</Label>
-                    <p className="text-sm text-slate-500">Free up IPs when lease expires</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Allow MAC Binding</Label>
-                    <p className="text-sm text-slate-500">Bind IPs to MAC addresses</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Alert on Exhaustion</Label>
-                    <p className="text-sm text-slate-500">Notify when pool is 90% full</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <Label>Exhaustion Threshold</Label>
-                  <Select defaultValue="90">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="75">75%</SelectItem>
-                      <SelectItem value="80">80%</SelectItem>
-                      <SelectItem value="85">85%</SelectItem>
-                      <SelectItem value="90">90%</SelectItem>
-                      <SelectItem value="95">95%</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Create Network Sheet */}
-      <Sheet open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <SheetContent className="w-full sm:max-w-xl">
-          <SheetHeader>
-            <SheetTitle>Add IPv4 Network</SheetTitle>
-            <SheetDescription>
-              Configure a new IP address pool
-            </SheetDescription>
-          </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-200px)] mt-6">
-            <div className="space-y-6 pr-4">
-              <div className="space-y-2">
-                <Label>Network Name</Label>
-                <Input placeholder="e.g., Public Pool 2" />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Network Type</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">Public IPs</SelectItem>
-                    <SelectItem value="private">Private Network</SelectItem>
-                    <SelectItem value="cgnat">CGNAT Pool</SelectItem>
-                    <SelectItem value="static-pool">Static IP Pool</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Network Address</Label>
-                  <Input placeholder="192.168.1.0" />
-                </div>
-                <div className="space-y-2">
-                  <Label>CIDR Prefix</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="/24" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="24">/24 (256 hosts)</SelectItem>
-                      <SelectItem value="25">/25 (128 hosts)</SelectItem>
-                      <SelectItem value="26">/26 (64 hosts)</SelectItem>
-                      <SelectItem value="27">/27 (32 hosts)</SelectItem>
-                      <SelectItem value="28">/28 (16 hosts)</SelectItem>
+                      {cidrOptions.length > 0 ? cidrOptions.map(c => (
+                        <SelectItem key={c.value} value={c.value.toString()}>{c.label}</SelectItem>
+                      )) : (
+                        <>
+                          <SelectItem value="24">/24 (254 hosts)</SelectItem>
+                          <SelectItem value="25">/25 (126 hosts)</SelectItem>
+                          <SelectItem value="26">/26 (62 hosts)</SelectItem>
+                          <SelectItem value="27">/27 (30 hosts)</SelectItem>
+                          <SelectItem value="28">/28 (14 hosts)</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Gateway</Label>
-                <Input placeholder="192.168.1.1" />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Router</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select router" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="router-001">Router-001</SelectItem>
-                    <SelectItem value="router-002">Router-002</SelectItem>
-                    <SelectItem value="router-003">Router-003</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>VLAN (Optional)</Label>
-                <Input type="number" placeholder="100" />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea placeholder="Network description..." />
-              </div>
-
-              <Separator />
-
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setIsCreateOpen(false)}>
-                  Cancel
-                </Button>
-                <Button className="flex-1">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Network
-                </Button>
-              </div>
+              {poolSubnetPreview && (
+                <div className="bg-muted/50 border rounded-lg p-3 text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">CIDR:</span>
+                    <span className="font-mono font-medium">{poolSubnetPreview.cidr}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Gateway:</span>
+                    <span className="font-mono">{poolSubnetPreview.gateway}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Usable IPs:</span>
+                    <span className="font-medium text-green-600">{poolSubnetPreview.usableIPs}</span>
+                  </div>
+                </div>
+              )}
             </div>
-          </ScrollArea>
-        </SheetContent>
-      </Sheet>
+
+            <div className="space-y-2">
+              <Label>DNS Servers</Label>
+              <Input
+                placeholder="8.8.8.8,8.8.4.4"
+                value={poolForm.dns_servers}
+                onChange={(e) => setPoolForm(prev => ({ ...prev, dns_servers: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                placeholder="Optional description..."
+                value={poolForm.description}
+                onChange={(e) => setPoolForm(prev => ({ ...prev, description: e.target.value }))}
+                rows={2}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Active</Label>
+                <p className="text-xs text-muted-foreground">Enable this pool for use</p>
+              </div>
+              <Switch
+                checked={poolForm.is_active}
+                onCheckedChange={(v) => setPoolForm(prev => ({ ...prev, is_active: v }))}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPoolCreateOpen(false)} disabled={poolSubmitting}>Cancel</Button>
+            <Button onClick={handleCreatePool} disabled={poolSubmitting}>
+              {poolSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+              Create Pool
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ====== IP POOL EDIT DIALOG ====== */}
+      <Dialog open={isPoolEditOpen} onOpenChange={setIsPoolEditOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="w-5 h-5 text-primary" />
+              Edit IP Pool
+            </DialogTitle>
+            <DialogDescription>
+              Update pool settings. Note: Subnet range cannot be changed after creation.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-pool-name">Pool Name *</Label>
+              <Input id="edit-pool-name" value={poolForm.name} onChange={(e) => setPoolForm(prev => ({ ...prev, name: e.target.value }))} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Pool Type</Label>
+              <Select value={poolForm.pool_type} onValueChange={(v) => setPoolForm(prev => ({ ...prev, pool_type: v as IPPool['pool_type'] }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PPPOE">PPPoE</SelectItem>
+                  <SelectItem value="STATIC">Static IP</SelectItem>
+                  <SelectItem value="HOTSPOT">Hotspot</SelectItem>
+                  <SelectItem value="DHCP">DHCP</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedPool && (
+              <div className="bg-muted/50 border rounded-lg p-3 text-sm">
+                <p className="text-muted-foreground text-xs mb-1">Current Subnet (cannot be changed)</p>
+                <p className="font-mono font-medium">{selectedPool.cidr_notation || `${selectedPool.start_ip} — ${selectedPool.end_ip}`}</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Gateway</Label>
+              <Input value={poolForm.gateway} onChange={(e) => setPoolForm(prev => ({ ...prev, gateway: e.target.value }))} placeholder="e.g., 10.50.1.1" />
+            </div>
+
+            <div className="space-y-2">
+              <Label>DNS Servers</Label>
+              <Input placeholder="8.8.8.8,8.8.4.4" value={poolForm.dns_servers} onChange={(e) => setPoolForm(prev => ({ ...prev, dns_servers: e.target.value }))} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea placeholder="Optional description..." value={poolForm.description} onChange={(e) => setPoolForm(prev => ({ ...prev, description: e.target.value }))} rows={2} />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Active</Label>
+                <p className="text-xs text-muted-foreground">Enable this pool for use</p>
+              </div>
+              <Switch checked={poolForm.is_active} onCheckedChange={(v) => setPoolForm(prev => ({ ...prev, is_active: v }))} />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPoolEditOpen(false)} disabled={poolSubmitting}>Cancel</Button>
+            <Button onClick={handleUpdatePool} disabled={poolSubmitting}>
+              {poolSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ====== IP POOL DELETE CONFIRMATION ====== */}
+      <AlertDialog open={isPoolDeleteOpen} onOpenChange={setIsPoolDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              Delete IP Pool
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the pool <strong>&quot;{selectedPool?.name}&quot;</strong>?
+              {(() => {
+                const linkedPlans = selectedPool ? plans.filter(p => p.ip_pool === selectedPool.id) : []
+                if (linkedPlans.length > 0) {
+                  return (
+                    <span className="block mt-2 text-amber-600">
+                      <AlertTriangle className="w-4 h-4 inline mr-1" />
+                      Warning: This pool is linked to {linkedPlans.length} plan{linkedPlans.length !== 1 ? 's' : ''}: {linkedPlans.map(p => p.name).join(', ')}.
+                      Deleting it will remove the pool assignment from these plans.
+                    </span>
+                  )
+                }
+                return null
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={poolSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePool}
+              disabled={poolSubmitting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {poolSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

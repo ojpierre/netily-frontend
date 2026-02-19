@@ -76,7 +76,6 @@ const navigationSections = [
     items: [
       { name: "OLT Management", href: "/admin/olt", icon: Server },
       { name: "ONU Devices", href: "/admin/onu", icon: Box },
-      { name: "IPAM", href: "/admin/ipam", icon: Globe },
       { name: "Routers", href: "/admin/routers", icon: Wifi },
       { name: "Hotspot", href: "/admin/hotspot", icon: Radio },
       { name: "IPv4 Networks", href: "/admin/networks", icon: Network },
