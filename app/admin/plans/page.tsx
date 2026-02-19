@@ -400,7 +400,7 @@ export default function PlansPage() {
           subnet_prefix: planForm.subnet_prefix,
           subnet_octet: parseInt(planForm.subnet_octet),
           cidr_prefix: parseInt(planForm.cidr_prefix),
-          pool_type: 'DYNAMIC' as any,
+          pool_type: 'PPPOE',
           is_active: true,
         })
         ipPoolId = newPool.id

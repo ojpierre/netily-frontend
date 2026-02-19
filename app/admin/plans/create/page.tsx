@@ -591,7 +591,7 @@ export default function CreatePlanPage() {
           subnet_octet: parseInt(formData.subnet_octet),
           cidr_prefix: parseInt(formData.cidr_prefix),
           router: formData.router_id ? parseInt(formData.router_id) as any : null,
-          pool_type: 'DYNAMIC' as any,
+          pool_type: 'PPPOE',
           is_active: true,
         })
         ipPoolId = newPool.id
