@@ -943,14 +943,14 @@ export default function UsersPage() {
                 Add User
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New User</DialogTitle>
                 <DialogDescription>
                   Create a new customer account. For PPPoE/Hotspot users, RADIUS credentials will be created automatically.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>First Name *</Label>
                   <Input 
@@ -1104,7 +1104,7 @@ export default function UsersPage() {
 
                 {/* Cloud-Led: Static IP Assignment (Long Dropdown) */}
                 {selectedPlanPool && (
-                  <div className="space-y-2 col-span-2">
+                  <div className="space-y-2 sm:col-span-2">
                     <Label>Assign Static IP (Cloud-Led)</Label>
                     <div className="space-y-2">
                       <Input
