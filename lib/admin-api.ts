@@ -1133,6 +1133,28 @@ class AdminApiService {
   }
 
   // ------------------------------------------
+  // HOTSPOT IPAM (IP Address + Subnet Config)
+  // ------------------------------------------
+
+  async getRouterHotspotIPAM(id: number): Promise<any> {
+    return this.request<any>(`/network/routers/${id}/hotspot/ipam/`)
+  }
+
+  async previewRouterHotspotIPAM(id: number, base_ip: string, subnet_cidr: number): Promise<any> {
+    return this.request<any>(`/network/routers/${id}/hotspot/ipam/`, {
+      method: 'POST',
+      body: JSON.stringify({ base_ip, subnet_cidr }),
+    })
+  }
+
+  async applyRouterHotspotIPAM(id: number, base_ip: string, subnet_cidr: number): Promise<any> {
+    return this.request<any>(`/network/routers/${id}/hotspot/ipam/apply/`, {
+      method: 'POST',
+      body: JSON.stringify({ base_ip, subnet_cidr }),
+    })
+  }
+
+  // ------------------------------------------
   // ROUTER ACTIONS
   // ------------------------------------------
 

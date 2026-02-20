@@ -77,7 +77,6 @@ const navigationSections = [
       { name: "OLT Management", href: "/admin/olt", icon: Server },
       { name: "ONU Devices", href: "/admin/onu", icon: Box },
       { name: "Routers", href: "/admin/routers", icon: Wifi },
-      { name: "Hotspot", href: "/admin/hotspot", icon: Radio },
       { name: "IPv4 Networks", href: "/admin/networks", icon: Network },
       { name: "VPN", href: "/admin/vpn", icon: Shield },
       { name: "RADIUS", href: "/admin/radius", icon: Key },
