@@ -1027,7 +1027,6 @@ export default function PlansPage() {
             className="pl-9"
           />
         </div>
-        )}
       </div>
 
       {/* ====== HOTSPOT TAB — Quick Create Cards + Plan Listing ====== */}
