@@ -49,6 +49,7 @@ import {
   ShieldCheck,
   Link2,
   Unlink,
+  Cable,
 } from "lucide-react"
 import {
   RouterOverviewTab,
@@ -60,6 +61,7 @@ import {
   RouterWirelessTab,
   RouterHotspotTab,
   RouterHotspotIPConfigTab,
+  RouterPortManagerTab,
 } from "./components"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -999,6 +1001,10 @@ export default function RouterDetailPage() {
             <Network className="w-4 h-4" />
             <span className="hidden sm:inline">Hotspot IP Config</span>
           </TabsTrigger>
+          <TabsTrigger value="port-manager" className="gap-2">
+            <Cable className="w-4 h-4" />
+            <span className="hidden sm:inline">Port Manager</span>
+          </TabsTrigger>
           <TabsTrigger value="logs" className="gap-2">
             <FileText className="w-4 h-4" />
             <span className="hidden sm:inline">Logs</span>
@@ -1347,6 +1353,11 @@ export default function RouterDetailPage() {
         {/* Hotspot IP Config Tab */}
         <TabsContent value="hotspot-ipconfig" className="mt-6">
           <RouterHotspotIPConfigTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
+        </TabsContent>
+
+        {/* Port Manager Tab */}
+        <TabsContent value="port-manager" className="mt-6">
+          <RouterPortManagerTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
         </TabsContent>
 
         {/* Logs Tab */}

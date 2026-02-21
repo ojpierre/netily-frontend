@@ -1077,6 +1077,39 @@ class AdminApiService {
   }
 
   // ------------------------------------------
+  // ROUTER PORT MANAGER
+  // ------------------------------------------
+
+  async getPortManager(id: number): Promise<{
+    router_id: number
+    wan_interface: string
+    ports: Array<{
+      name: string
+      type: 'ethernet' | 'wireless'
+      running: boolean
+      is_selected: boolean
+      is_wan: boolean
+      disabled: boolean
+    }>
+  }> {
+    return this.request(`/network/routers/${id}/port-manager/`)
+  }
+
+  async savePortManager(id: number, ports: string[]): Promise<{
+    success?: boolean
+    message: string
+    added?: string[]
+    removed?: string[]
+    applied?: boolean
+    error?: string
+  }> {
+    return this.request(`/network/routers/${id}/port-manager/`, {
+      method: 'POST',
+      body: JSON.stringify({ ports }),
+    })
+  }
+
+  // ------------------------------------------
   // ROUTER HOTSPOT CONFIGURATION
   // ------------------------------------------
 
