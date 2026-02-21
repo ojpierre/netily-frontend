@@ -1051,6 +1051,32 @@ class AdminApiService {
   }
 
   // ------------------------------------------
+  // ROUTER PORT SCAN
+  // ------------------------------------------
+
+  async scanRouterPorts(id: number): Promise<{
+    router_id: number
+    router_name: string
+    router_status: string
+    target_ip: string | null
+    results: Array<{
+      port: number
+      service: string
+      description: string
+      status: 'open' | 'closed' | 'filtered' | 'error'
+      latency_ms: number | null
+    }>
+    api_reachable: boolean
+    winbox_reachable: boolean
+    web_reachable: boolean
+    open_count: number
+    total_scanned: number
+    error?: string
+  }> {
+    return this.request(`/network/routers/${id}/scan/`)
+  }
+
+  // ------------------------------------------
   // ROUTER HOTSPOT CONFIGURATION
   // ------------------------------------------
 
