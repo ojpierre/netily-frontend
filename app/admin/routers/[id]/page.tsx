@@ -50,6 +50,7 @@ import {
   Link2,
   Unlink,
   Cable,
+  Palette,
 } from "lucide-react"
 import {
   RouterOverviewTab,
@@ -62,6 +63,7 @@ import {
   RouterHotspotTab,
   RouterHotspotIPConfigTab,
   RouterPortManagerTab,
+  RouterPortalSettingsTab,
 } from "./components"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -1005,6 +1007,10 @@ export default function RouterDetailPage() {
             <Cable className="w-4 h-4" />
             <span className="hidden sm:inline">Port Manager</span>
           </TabsTrigger>
+          <TabsTrigger value="portal-settings" className="gap-2">
+            <Palette className="w-4 h-4" />
+            <span className="hidden sm:inline">Captive Portal</span>
+          </TabsTrigger>
           <TabsTrigger value="logs" className="gap-2">
             <FileText className="w-4 h-4" />
             <span className="hidden sm:inline">Logs</span>
@@ -1358,6 +1364,11 @@ export default function RouterDetailPage() {
         {/* Port Manager Tab */}
         <TabsContent value="port-manager" className="mt-6">
           <RouterPortManagerTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
+        </TabsContent>
+
+        {/* Captive Portal Settings Tab */}
+        <TabsContent value="portal-settings" className="mt-6">
+          <RouterPortalSettingsTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
         </TabsContent>
 
         {/* Logs Tab */}

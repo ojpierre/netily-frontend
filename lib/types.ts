@@ -415,6 +415,11 @@ export interface Router {
   pppoe_pool?: string
   pppoe_local_address?: string
   config_type?: string
+  // Captive Portal Customisation
+  template_id?: number
+  hotspot_name?: string
+  support_phone?: string
+  announcement_text?: string
   created_at: string
   updated_at?: string
 }
