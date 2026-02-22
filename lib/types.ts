@@ -2792,6 +2792,32 @@ export interface CustomerPlan {
 // HOTSPOT PORTAL (Public)
 // ==========================================
 
+export interface CaptivePortalResponse {
+  status: string
+  portal_config: CaptivePortalConfig
+  plans: CaptivePortalPlan[]
+}
+
+export interface CaptivePortalConfig {
+  template_id: number
+  hotspot_name: string
+  support_phone: string
+  announcement_text: string
+  gateway_ip: string
+}
+
+export interface CaptivePortalPlan {
+  id: string
+  name: string
+  price: number
+  download_speed: string
+  download_unit: string
+  validity: string
+  validity_unit: string
+  description: string
+}
+
+/** @deprecated Use CaptivePortalResponse instead */
 export interface HotspotRouterInfo {
   id: number
   name: string

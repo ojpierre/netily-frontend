@@ -3,38 +3,35 @@
 import { useEffect, useState, useCallback, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Shield } from "lucide-react"
-import { getApiBaseUrl } from "@/lib/subdomain"
+import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 
 // ==========================================
 // TYPES
 // ==========================================
 
 interface HotspotPlan {
-  id: number
+  id: string
   name: string
   price: number
-  duration_minutes: number
-  data_limit_mb: number | null
-  speed_limit: string
+  download_speed: string
+  download_unit: string
+  validity: string
+  validity_unit: string
   description?: string
 }
 
-interface RouterInfo {
-  id: number
-  name: string
-  location?: string
+interface PortalConfig {
+  template_id: number
+  hotspot_name: string
+  support_phone: string
+  announcement_text: string
+  gateway_ip: string
 }
 
-interface Branding {
-  logo_url?: string
-  primary_color?: string
-  company_name?: string
-}
-
-interface HotspotPlansResponse {
-  router: RouterInfo
+interface CaptivePortalResponse {
+  status: string
+  portal_config: PortalConfig
   plans: HotspotPlan[]
-  branding?: Branding
 }
 
 interface PurchaseResponse {
@@ -74,15 +71,15 @@ function getApiBase(): string {
   return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
 }
 
-async function fetchHotspotPlans(routerId: string): Promise<HotspotPlansResponse> {
-  const response = await fetch(`${getApiBase()}/hotspot/routers/${routerId}/plans/`)
+async function fetchCaptivePortal(routerId: string, tenant: string): Promise<CaptivePortalResponse> {
+  const response = await fetch(`${getApiBase()}/hotspot/captive-portal/?router=${routerId}&tenant=${tenant}`)
   if (!response.ok) throw new Error("Failed to load plans")
   return response.json()
 }
 
 async function initiatePurchase(data: {
   router_id: string
-  plan_id: number
+  plan_id: string | number
   phone_number: string
   mac_address: string
 }): Promise<PurchaseResponse> {
@@ -189,8 +186,7 @@ function PortalLoginContent() {
 
   // ── State ──
   const [plans, setPlans] = useState<HotspotPlan[]>([])
-  const [routerInfo, setRouterInfo] = useState<RouterInfo | null>(null)
-  const [branding, setBranding] = useState<Branding | null>(null)
+  const [portalConfig, setPortalConfig] = useState<PortalConfig | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<HotspotPlan | null>(null)
   const [phoneNumber, setPhoneNumber] = useState("")
   const [loading, setLoading] = useState(true)
@@ -227,10 +223,9 @@ function PortalLoginContent() {
         }
       }
 
-      const data = await fetchHotspotPlans(routerId)
-      setRouterInfo(data.router)
+      const data = await fetchCaptivePortal(routerId, tenant || getSubdomainInfo().subdomain || "")
       setPlans(data.plans)
-      if (data.branding) setBranding(data.branding)
+      setPortalConfig(data.portal_config || null)
     } catch (err: unknown) {
       setLoadError(err instanceof Error ? err.message : "Failed to load plans")
     } finally {
@@ -313,8 +308,8 @@ function PortalLoginContent() {
   }, [loginUrl])
 
   // ── Theme ──
-  const primaryColor = branding?.primary_color || "#667eea"
-  const companyName = branding?.company_name || routerName
+  const primaryColor = portalConfig?.support_phone ? "#667eea" : "#667eea"
+  const companyName = portalConfig?.hotspot_name || routerName
 
   // ── Auto-login redirect screen ──
   if (autoLoginChecked) {
@@ -449,13 +444,10 @@ function PortalLoginContent() {
                   <h3 className="text-white font-semibold text-lg">{plan.name}</h3>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-purple-200 text-xs flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {formatDuration(plan.duration_minutes)}
+                      <Clock className="w-3 h-3" /> {plan.validity} {plan.validity_unit}
                     </span>
                     <span className="text-purple-200 text-xs flex items-center gap-1">
-                      <Zap className="w-3 h-3" /> {plan.speed_limit || "Standard"}
-                    </span>
-                    <span className="text-purple-200 text-xs flex items-center gap-1">
-                      <Shield className="w-3 h-3" /> {formatData(plan.data_limit_mb)}
+                      <Zap className="w-3 h-3" /> {plan.download_speed} {plan.download_unit}
                     </span>
                   </div>
                 </div>
@@ -478,7 +470,7 @@ function PortalLoginContent() {
               {selectedPlan.name} — KSh {selectedPlan.price}
             </h3>
             <p className="text-gray-500 text-sm mb-4">
-              {formatDuration(selectedPlan.duration_minutes)} • {formatData(selectedPlan.data_limit_mb)} • {selectedPlan.speed_limit || "Standard speed"}
+              {selectedPlan.validity} {selectedPlan.validity_unit} • {selectedPlan.download_speed} {selectedPlan.download_unit}
             </p>
 
             <div className="mb-4">

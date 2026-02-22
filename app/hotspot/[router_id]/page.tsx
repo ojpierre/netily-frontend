@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState, useMemo } from "react"
 import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database } from "lucide-react"
-import { getApiBaseUrl } from "@/lib/subdomain"
+import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 
 // ==========================================
 // TYPES
@@ -13,31 +13,11 @@ interface HotspotPlan {
   name: string
   price: number
   currency?: string
-  duration_minutes: number
-  duration_display?: string
-  data_limit_mb: number | null
-  data_limit_display?: string
-  speed_limit: string
+  download_speed: string
+  download_unit: string
+  validity: string
+  validity_unit: string
   description?: string
-  is_popular?: boolean
-}
-
-interface RouterInfo {
-  id: number
-  name: string
-  location?: string
-}
-
-interface Branding {
-  logo_url?: string
-  primary_color?: string
-  secondary_color?: string
-  company_name?: string
-  welcome_title?: string
-  welcome_message?: string
-  support_phone?: string
-  support_email?: string
-  background_image_url?: string
 }
 
 interface PortalConfig {
@@ -45,13 +25,13 @@ interface PortalConfig {
   hotspot_name: string
   support_phone: string
   announcement_text: string
+  gateway_ip: string
 }
 
-interface HotspotPlansResponse {
-  router: RouterInfo
+interface CaptivePortalResponse {
+  status: string
+  portal_config: PortalConfig
   plans: HotspotPlan[]
-  branding?: Branding
-  portal_config?: PortalConfig
 }
 
 interface PurchaseResponse {
@@ -94,8 +74,9 @@ function getApiBase(): string {
   return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
 }
 
-async function fetchHotspotPlans(routerId: string): Promise<HotspotPlansResponse> {
-  const response = await fetch(`${getApiBase()}/hotspot/routers/${routerId}/plans/`)
+async function fetchCaptivePortal(routerId: string): Promise<CaptivePortalResponse> {
+  const tenant = getSubdomainInfo().subdomain || ""
+  const response = await fetch(`${getApiBase()}/hotspot/captive-portal/?router=${routerId}&tenant=${tenant}`)
   if (!response.ok) throw new Error("Failed to load hotspot plans")
   return response.json()
 }
@@ -503,9 +484,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const { router_id: routerId } = use(params)
 
   // Data state
-  const [router, setRouter] = useState<RouterInfo | null>(null)
   const [plans, setPlans] = useState<HotspotPlan[]>([])
-  const [branding, setBranding] = useState<Branding | null>(null)
   const [portalConfig, setPortalConfig] = useState<PortalConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -527,11 +506,10 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
 
   // Theme derived from portal_config
   const templateId = portalConfig?.template_id ?? 1
-  const theme = useMemo(() => getTheme(templateId, branding?.primary_color), [templateId, branding?.primary_color])
-  const displayName = portalConfig?.hotspot_name || router?.name || "WiFi Hotspot"
-  const supportPhone = portalConfig?.support_phone || branding?.support_phone || ""
+  const theme = useMemo(() => getTheme(templateId), [templateId])
+  const displayName = portalConfig?.hotspot_name || "WiFi Hotspot"
+  const supportPhone = portalConfig?.support_phone || ""
   const announcement = portalConfig?.announcement_text || ""
-  const primaryColor = branding?.primary_color
 
   // ── MikroTik query-params on mount ──
   useEffect(() => {
@@ -560,11 +538,9 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
 
   // ── Load hotspot plans + portal config ──
   useEffect(() => {
-    fetchHotspotPlans(routerId)
+    fetchCaptivePortal(routerId)
       .then((data) => {
-        setRouter(data.router)
         setPlans(data.plans)
-        setBranding(data.branding || null)
         setPortalConfig(data.portal_config || null)
         setLoading(false)
       })
@@ -731,12 +707,12 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             <div className="flex justify-between">
               <span className={theme.mutedText}>Duration</span>
               <span className={`font-semibold ${theme.planTitle}`}>
-                {selectedPlan ? formatDuration(selectedPlan.duration_minutes) : "-"}
+                {selectedPlan ? `${selectedPlan.validity} ${selectedPlan.validity_unit}` : "-"}
               </span>
             </div>
             <div className="flex justify-between">
               <span className={theme.mutedText}>Speed</span>
-              <span className={`font-semibold ${theme.planTitle}`}>{selectedPlan?.speed_limit}</span>
+              <span className={`font-semibold ${theme.planTitle}`}>{selectedPlan ? `${selectedPlan.download_speed} ${selectedPlan.download_unit}` : "-"}</span>
             </div>
             {expiresAt && (
               <div className="flex justify-between">
@@ -921,13 +897,6 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className={`font-semibold ${theme.planTitle}`}>{plan.name}</span>
-                      {plan.is_popular && (
-                        <span
-                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${theme.planPopularBg} ${theme.planPopularText}`}
-                        >
-                          POPULAR
-                        </span>
-                      )}
                       {selectedPlan?.id === plan.id && (
                         <CheckCircle2 className="w-5 h-5 text-green-500" />
                       )}
@@ -935,19 +904,13 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                     <div className={`flex items-center gap-3 mt-1 text-sm ${theme.planSub}`}>
                       <span className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
-                        {plan.duration_display || formatDuration(plan.duration_minutes)}
+                        {plan.validity} {plan.validity_unit}
                       </span>
                       <span className="flex items-center gap-1">
                         <Zap className="w-4 h-4" />
-                        {plan.speed_limit}
+                        {plan.download_speed} {plan.download_unit}
                       </span>
                     </div>
-                    {plan.data_limit_mb && (
-                      <p className={`text-xs mt-1 flex items-center gap-1 ${theme.planSub}`}>
-                        <Database className="w-3 h-3" />
-                        {plan.data_limit_display || formatData(plan.data_limit_mb)}
-                      </p>
-                    )}
                     {plan.description && (
                       <p className={`text-xs mt-1 ${theme.planSub}`}>{plan.description}</p>
                     )}

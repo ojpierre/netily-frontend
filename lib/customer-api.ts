@@ -15,7 +15,7 @@ import type {
   CustomerPaymentInitiateResponse,
   CustomerPaymentStatus,
   CustomerPlan,
-  HotspotRouterInfo,
+  CaptivePortalResponse,
   HotspotPurchaseRequest,
   HotspotPurchaseResponse,
   HotspotPurchaseStatus,
@@ -326,14 +326,14 @@ class CustomerApiService {
   // ------------------------------------------
 
   /**
-   * Get hotspot router info and plans (public)
+   * Get captive portal config and plans (public)
    */
-  async getHotspotRouter(routerId: number | string): Promise<HotspotRouterInfo> {
-    const response = await fetch(`${this.baseUrl}/hotspot/routers/${routerId}/plans/`, {
+  async getCaptivePortal(routerId: number | string, tenant: string): Promise<CaptivePortalResponse> {
+    const response = await fetch(`${this.baseUrl}/hotspot/captive-portal/?router=${routerId}&tenant=${encodeURIComponent(tenant)}`, {
       headers: { 'Content-Type': 'application/json' },
     })
     
-    return this.handleResponse<HotspotRouterInfo>(response)
+    return this.handleResponse<CaptivePortalResponse>(response)
   }
 
   /**
