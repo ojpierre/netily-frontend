@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Shield } from "lucide-react"
+import { getApiBaseUrl } from "@/lib/subdomain"
 
 // ==========================================
 // TYPES
@@ -68,10 +69,13 @@ type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "ti
 // API FUNCTIONS
 // ==========================================
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
+function getApiBase(): string {
+  if (typeof window !== "undefined") return getApiBaseUrl()
+  return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
+}
 
 async function fetchHotspotPlans(routerId: string): Promise<HotspotPlansResponse> {
-  const response = await fetch(`${API_BASE}/hotspot/routers/${routerId}/plans/`)
+  const response = await fetch(`${getApiBase()}/hotspot/routers/${routerId}/plans/`)
   if (!response.ok) throw new Error("Failed to load plans")
   return response.json()
 }
@@ -82,7 +86,7 @@ async function initiatePurchase(data: {
   phone_number: string
   mac_address: string
 }): Promise<PurchaseResponse> {
-  const response = await fetch(`${API_BASE}/hotspot/purchase/`, {
+  const response = await fetch(`${getApiBase()}/hotspot/purchase/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -96,13 +100,13 @@ async function initiatePurchase(data: {
 
 async function pollPurchaseStatus(sessionId: string, loginUrl?: string): Promise<PurchaseResponse> {
   const params = loginUrl ? `?login_url=${encodeURIComponent(loginUrl)}` : ""
-  const response = await fetch(`${API_BASE}/hotspot/purchase/${sessionId}/status/${params}`)
+  const response = await fetch(`${getApiBase()}/hotspot/purchase/${sessionId}/status/${params}`)
   if (!response.ok) throw new Error("Status check failed")
   return response.json()
 }
 
 async function checkAutoLogin(routerId: string, macAddress: string): Promise<AutoLoginResponse> {
-  const response = await fetch(`${API_BASE}/hotspot/auto-login/`, {
+  const response = await fetch(`${getApiBase()}/hotspot/auto-login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ router_id: routerId, mac_address: macAddress }),

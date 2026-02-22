@@ -174,6 +174,7 @@ export default function HotspotManagementPage() {
   // Plan Form - Enhanced with all new fields
   const [planForm, setPlanForm] = useState({
     name: "",
+    description: "",
     price: "",
     // Validity
     validity_type: "HOURS" as "MINUTES" | "HOURS" | "DAYS" | "UNLIMITED",
@@ -256,12 +257,11 @@ export default function HotspotManagementPage() {
     
     try {
       // Fetch plans for this router
-      // API might return array or { plans: [...] } object
+      // API returns flat array (pagination disabled) or could return paginated { results: [] }
       const plansResponse = await adminApi.getHotspotPlans(router.id).catch(() => [])
-      // Handle both cases: direct array or object with plans property
       const plansData = Array.isArray(plansResponse) 
         ? plansResponse 
-        : (plansResponse as any)?.plans || []
+        : (plansResponse as any)?.results || (plansResponse as any)?.plans || []
       setPlans(plansData)
       
       // Fetch sessions
@@ -301,6 +301,7 @@ export default function HotspotManagementPage() {
       setEditingPlan(plan)
       setPlanForm({
         name: plan.name,
+        description: plan.description || "",
         price: String(plan.price),
         // Validity
         validity_type: plan.validity_type || "HOURS",
@@ -332,6 +333,7 @@ export default function HotspotManagementPage() {
       setEditingPlan(null)
       setPlanForm({
         name: "",
+        description: "",
         price: "",
         validity_type: "HOURS",
         validity_value: 1,
@@ -373,6 +375,7 @@ export default function HotspotManagementPage() {
       
       const planData: Partial<HotspotPlan> = {
         name: planForm.name,
+        description: planForm.description,
         price: planForm.price,
         // Validity
         validity_type: planForm.validity_type,
@@ -899,85 +902,94 @@ add address=10.10.0.1/24 interface=bridge-hotspot
 
                   {/* Plans Tab */}
                   <TabsContent value="plans" className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <p className="text-sm text-muted-foreground">
-                        Manage hotspot pricing plans for this router
-                      </p>
+                    {/* Header row */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          Manage hotspot pricing plans for <span className="font-medium text-foreground">{selectedRouter.name}</span>
+                        </p>
+                      </div>
                       <Button onClick={() => handleOpenPlanDialog()}>
                         <Plus className="w-4 h-4 mr-2" />
                         Add Plan
                       </Button>
                     </div>
 
+                    {/* Plans table */}
                     {plans.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {plans.map((plan) => (
-                          <Card key={plan.id} className="relative">
-                            <CardHeader className="pb-2">
-                              <div className="flex items-center justify-between">
-                                <CardTitle className="text-lg">{plan.name}</CardTitle>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                      <MoreVertical className="w-4 h-4" />
+                      <Card>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[30%]">Plan</TableHead>
+                              <TableHead>Price</TableHead>
+                              <TableHead>Validity</TableHead>
+                              <TableHead>Speed</TableHead>
+                              <TableHead>Data Limit</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {plans.map((plan) => (
+                              <TableRow key={plan.id}>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <div>
+                                      <p className="font-medium">{plan.name}</p>
+                                      {plan.description && (
+                                        <p className="text-xs text-muted-foreground line-clamp-1">{plan.description}</p>
+                                      )}
+                                    </div>
+                                    {plan.is_popular && (
+                                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] shrink-0">
+                                        <Zap className="w-3 h-3 mr-0.5" />Popular
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="font-semibold text-blue-600">
+                                  {formatCurrency(parseFloat(plan.price))}
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-sm">{plan.duration_display || formatDuration(plan.duration_minutes || 0)}</span>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-sm">
+                                    {plan.download_speed || plan.speed_limit_mbps || 5}/{plan.upload_speed || plan.speed_limit_mbps || 5} {plan.speed_unit === "KBPS" ? "Kbps" : "Mbps"}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-sm">{plan.data_limit_display || formatBytes(plan.data_limit_mb)}</span>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={plan.is_active ? "default" : "secondary"} className="text-xs">
+                                    {plan.is_active ? "Active" : "Inactive"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex items-center justify-end gap-1">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenPlanDialog(plan)}>
+                                      <Edit className="w-4 h-4" />
                                     </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent>
-                                    <DropdownMenuItem onClick={() => handleOpenPlanDialog(plan)}>
-                                      <Edit className="w-4 h-4 mr-2" />
-                                      Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      className="text-red-600"
-                                      onClick={() => handleDeletePlan(plan)}
-                                    >
-                                      <Trash2 className="w-4 h-4 mr-2" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                              <div className="text-3xl font-bold text-blue-600">
-                                {formatCurrency(parseFloat(plan.price))}
-                              </div>
-                              <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div className="flex items-center gap-2">
-                                  <Timer className="w-4 h-4 text-slate-400" />
-                                  {formatDuration(plan.duration_minutes || 0)}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Signal className="w-4 h-4 text-slate-400" />
-                                  {plan.speed_limit_mbps || 5} Mbps
-                                </div>
-                                <div className="flex items-center gap-2 col-span-2">
-                                  <Globe className="w-4 h-4 text-slate-400" />
-                                  Data: {formatBytes(plan.data_limit_mb || 0)}
-                                </div>
-                              </div>
-                              {plan.is_popular && (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
-                                  Popular
-                                </Badge>
-                              )}
-                            </CardContent>
-                            <CardFooter className="pt-0">
-                              <Badge variant={plan.is_active ? "default" : "secondary"}>
-                                {plan.is_active ? "Active" : "Inactive"}
-                              </Badge>
-                            </CardFooter>
-                          </Card>
-                        ))}
-                      </div>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeletePlan(plan)}>
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </Card>
                     ) : (
                       <Card className="border-dashed">
                         <CardContent className="flex flex-col items-center justify-center py-12">
                           <Zap className="w-12 h-12 text-slate-300 mb-4" />
                           <h3 className="font-semibold text-lg mb-2">No Plans Yet</h3>
-                          <p className="text-muted-foreground text-center mb-4">
-                            Create pricing plans that customers will see when connecting to this hotspot
+                          <p className="text-muted-foreground text-center mb-4 max-w-sm">
+                            Create pricing plans that customers will see when connecting to this hotspot.
+                            Use a preset to get started quickly.
                           </p>
                           <Button onClick={() => handleOpenPlanDialog()}>
                             <Plus className="w-4 h-4 mr-2" />
@@ -1115,378 +1127,311 @@ add address=10.10.0.1/24 interface=bridge-hotspot
         </div>
       </div>
 
-      {/* Plan Dialog - Enhanced */}
+      {/* Plan Dialog - Clean modal with presets & organized form */}
       <Dialog open={showPlanDialog} onOpenChange={setShowPlanDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Wifi className="w-5 h-5 text-primary" />
-              {editingPlan ? "Edit Hotspot Plan" : "Add New Hotspot Plan"}
+              <DollarSign className="w-5 h-5 text-primary" />
+              {editingPlan ? "Edit Hotspot Plan" : "Create Hotspot Plan"}
             </DialogTitle>
             <DialogDescription>
-              Configure pricing, validity, and limits for this hotspot plan
+              {editingPlan
+                ? `Editing "${editingPlan.name}" for ${selectedRouter?.name || "router"}`
+                : `New plan for ${selectedRouter?.name || "router"} — pick a preset or customise below`}
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-6">
-            {/* Quick Create Presets */}
+
+          <div className="space-y-6 py-2">
+            {/* ── Quick Presets (only when creating) ── */}
             {!editingPlan && (
-              <div className="space-y-3">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-yellow-500" />
-                  Quick Create
-                </Label>
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Quick Presets</Label>
                 <div className="grid grid-cols-5 gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
-                    onClick={() => setPlanForm({
-                      ...planForm,
-                      name: "1 Hour",
-                      price: "50",
-                      validity_type: "HOURS",
-                      validity_value: 1,
-                      limitation_type: "DATA",
-                      data_limit_value: "500",
-                      data_limit_unit: "MB",
-                      download_speed: 5,
-                      upload_speed: 5,
-                    })}
-                  >
-                    <Timer className="w-4 h-4 mb-1 text-blue-500" />
-                    <span className="text-xs font-semibold">1 Hour</span>
-                    <span className="text-[10px] text-muted-foreground">50 KES</span>
-                    <span className="text-[10px] text-muted-foreground">500MB</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
-                    onClick={() => setPlanForm({
-                      ...planForm,
-                      name: "Daily",
-                      price: "100",
-                      validity_type: "DAYS",
-                      validity_value: 1,
-                      limitation_type: "DATA",
-                      data_limit_value: "2",
-                      data_limit_unit: "GB",
-                      download_speed: 10,
-                      upload_speed: 10,
-                    })}
-                  >
-                    <Timer className="w-4 h-4 mb-1 text-green-500" />
-                    <span className="text-xs font-semibold">Daily</span>
-                    <span className="text-[10px] text-muted-foreground">100 KES</span>
-                    <span className="text-[10px] text-muted-foreground">2GB</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
-                    onClick={() => setPlanForm({
-                      ...planForm,
-                      name: "Weekly",
-                      price: "500",
-                      validity_type: "DAYS",
-                      validity_value: 7,
-                      limitation_type: "DATA",
-                      data_limit_value: "10",
-                      data_limit_unit: "GB",
-                      download_speed: 15,
-                      upload_speed: 10,
-                    })}
-                  >
-                    <Timer className="w-4 h-4 mb-1 text-purple-500" />
-                    <span className="text-xs font-semibold">Weekly</span>
-                    <span className="text-[10px] text-muted-foreground">500 KES</span>
-                    <span className="text-[10px] text-muted-foreground">10GB</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
-                    onClick={() => setPlanForm({
-                      ...planForm,
-                      name: "Monthly",
-                      price: "1500",
-                      validity_type: "DAYS",
-                      validity_value: 30,
-                      limitation_type: "DATA",
-                      data_limit_value: "50",
-                      data_limit_unit: "GB",
-                      download_speed: 20,
-                      upload_speed: 15,
-                    })}
-                  >
-                    <Timer className="w-4 h-4 mb-1 text-orange-500" />
-                    <span className="text-xs font-semibold">Monthly</span>
-                    <span className="text-[10px] text-muted-foreground">1500 KES</span>
-                    <span className="text-[10px] text-muted-foreground">50GB</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary"
-                    onClick={() => setPlanForm({
-                      ...planForm,
-                      name: "Unlimited",
-                      price: "3000",
-                      validity_type: "UNLIMITED",
-                      validity_value: 30,
-                      limitation_type: "UNLIMITED",
-                      data_limit_value: "",
-                      data_limit_unit: "GB",
-                      download_speed: 50,
-                      upload_speed: 20,
-                    })}
-                  >
-                    <Globe className="w-4 h-4 mb-1 text-red-500" />
-                    <span className="text-xs font-semibold">Unlimited</span>
-                    <span className="text-[10px] text-muted-foreground">3000 KES</span>
-                    <span className="text-[10px] text-muted-foreground">∞ Data</span>
-                  </Button>
+                  {[
+                    { label: "1 Hour", icon: <Timer className="w-4 h-4 text-blue-500" />, price: "50", vType: "HOURS" as const, vVal: 1, lType: "DATA" as const, dlVal: "500", dlUnit: "MB" as const, dl: 5, ul: 5 },
+                    { label: "Daily", icon: <Timer className="w-4 h-4 text-green-500" />, price: "100", vType: "DAYS" as const, vVal: 1, lType: "DATA" as const, dlVal: "2", dlUnit: "GB" as const, dl: 10, ul: 10 },
+                    { label: "Weekly", icon: <Timer className="w-4 h-4 text-purple-500" />, price: "500", vType: "DAYS" as const, vVal: 7, lType: "DATA" as const, dlVal: "10", dlUnit: "GB" as const, dl: 15, ul: 10 },
+                    { label: "Monthly", icon: <Timer className="w-4 h-4 text-orange-500" />, price: "1500", vType: "DAYS" as const, vVal: 30, lType: "DATA" as const, dlVal: "50", dlUnit: "GB" as const, dl: 20, ul: 15 },
+                    { label: "Unlimited", icon: <Globe className="w-4 h-4 text-red-500" />, price: "3000", vType: "DAYS" as const, vVal: 30, lType: "UNLIMITED" as const, dlVal: "", dlUnit: "GB" as const, dl: 50, ul: 20 },
+                  ].map((p) => (
+                    <Button
+                      key={p.label}
+                      type="button"
+                      variant="outline"
+                      className="flex flex-col h-auto py-3 hover:bg-primary/5 hover:border-primary transition-colors"
+                      onClick={() => setPlanForm({
+                        ...planForm,
+                        name: p.label,
+                        price: p.price,
+                        validity_type: p.vType,
+                        validity_value: p.vVal,
+                        limitation_type: p.lType,
+                        data_limit_value: p.dlVal,
+                        data_limit_unit: p.dlUnit,
+                        download_speed: p.dl,
+                        upload_speed: p.ul,
+                      })}
+                    >
+                      {p.icon}
+                      <span className="text-xs font-semibold mt-1">{p.label}</span>
+                      <span className="text-[10px] text-muted-foreground">{p.price} KES</span>
+                    </Button>
+                  ))}
                 </div>
               </div>
             )}
 
-            {/* Basic Info */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Plan Name *</Label>
-                <Input
-                  placeholder="e.g., 1 Hour WiFi"
-                  value={planForm.name}
-                  onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Price (KES) *</Label>
-                <Input
-                  type="number"
-                  placeholder="50"
-                  value={planForm.price}
-                  onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })}
-                />
-              </div>
-            </div>
-
-            {/* Limitation Type */}
-            <div className="space-y-2">
-              <Label>Limitation Type</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="limitation_type"
-                    checked={planForm.limitation_type === "UNLIMITED"}
-                    onChange={() => setPlanForm({ ...planForm, limitation_type: "UNLIMITED", data_limit_value: "" })}
-                    className="w-4 h-4 text-primary"
+            {/* ── Section 1: Basic Info ── */}
+            <div className="space-y-3">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Basic Info</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Plan Name <span className="text-red-500">*</span></Label>
+                  <Input
+                    placeholder="e.g., 1 Hour WiFi"
+                    value={planForm.name}
+                    onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
                   />
-                  <span className="text-sm">Unlimited</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="limitation_type"
-                    checked={planForm.limitation_type === "DATA"}
-                    onChange={() => setPlanForm({ ...planForm, limitation_type: "DATA" })}
-                    className="w-4 h-4 text-primary"
-                  />
-                  <span className="text-sm">Data Plan</span>
-                </label>
-              </div>
-            </div>
-            
-            {/* Validity */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Validity *</Label>
-                <div className="flex gap-2">
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Price (KES) <span className="text-red-500">*</span></Label>
                   <Input
                     type="number"
-                    min="1"
-                    placeholder="1"
-                    value={planForm.validity_value}
-                    onChange={(e) => setPlanForm({ ...planForm, validity_value: parseInt(e.target.value) || 1 })}
-                    className="flex-1"
-                    disabled={planForm.validity_type === "UNLIMITED"}
+                    min="0"
+                    placeholder="50"
+                    value={planForm.price}
+                    onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })}
                   />
-                  <Select
-                    value={planForm.validity_type}
-                    onValueChange={(v) => setPlanForm({ ...planForm, validity_type: v as any })}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MINUTES">Minutes</SelectItem>
-                      <SelectItem value="HOURS">Hours</SelectItem>
-                      <SelectItem value="DAYS">Days</SelectItem>
-                      <SelectItem value="UNLIMITED">Unlimited</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
-
-              {/* Data Limit */}
-              <div className="space-y-2">
-                <Label>Data Limit</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="500"
-                    value={planForm.data_limit_value}
-                    onChange={(e) => setPlanForm({ ...planForm, data_limit_value: e.target.value })}
-                    className="flex-1"
-                    disabled={planForm.limitation_type === "UNLIMITED"}
-                  />
-                  <Select
-                    value={planForm.data_limit_unit}
-                    onValueChange={(v) => setPlanForm({ ...planForm, data_limit_unit: v as any })}
-                    disabled={planForm.limitation_type === "UNLIMITED"}
-                  >
-                    <SelectTrigger className="w-24">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MB">MB</SelectItem>
-                      <SelectItem value="GB">GB</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Description</Label>
+                <Input
+                  placeholder="Short description shown to customers on the portal"
+                  value={planForm.description}
+                  onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })}
+                />
               </div>
             </div>
 
-            {/* Speed Settings */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Download Speed</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  placeholder="5"
-                  value={planForm.download_speed}
-                  onChange={(e) => setPlanForm({ ...planForm, download_speed: parseInt(e.target.value) || 1 })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Upload Speed</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  placeholder="5"
-                  value={planForm.upload_speed}
-                  onChange={(e) => setPlanForm({ ...planForm, upload_speed: parseInt(e.target.value) || 1 })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Speed Unit</Label>
-                <Select
-                  value={planForm.speed_unit}
-                  onValueChange={(v) => setPlanForm({ ...planForm, speed_unit: v as any })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MBPS">Mbps</SelectItem>
-                    <SelectItem value="KBPS">Kbps</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            {/* ── Section 2: Validity & Data ── */}
+            <div className="space-y-3">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Validity & Data</Label>
 
-            {/* Simultaneous Devices */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Simultaneous Devices</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="10"
-                  placeholder="1"
-                  value={planForm.simultaneous_devices}
-                  onChange={(e) => setPlanForm({ ...planForm, simultaneous_devices: parseInt(e.target.value) || 1 })}
-                />
-                <p className="text-xs text-muted-foreground">Max devices that can use this plan at once</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select
-                  value={planForm.is_active ? "active" : "inactive"}
-                  onValueChange={(v) => setPlanForm({ ...planForm, is_active: v === "active" })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Valid Days */}
-            <div className="space-y-2">
-              <Label>Valid Days</Label>
-              <div className="flex flex-wrap gap-3">
-                {[
-                  { key: 'valid_monday', label: 'Mon' },
-                  { key: 'valid_tuesday', label: 'Tue' },
-                  { key: 'valid_wednesday', label: 'Wed' },
-                  { key: 'valid_thursday', label: 'Thu' },
-                  { key: 'valid_friday', label: 'Fri' },
-                  { key: 'valid_saturday', label: 'Sat' },
-                  { key: 'valid_sunday', label: 'Sun' },
-                ].map((day) => (
-                  <label 
-                    key={day.key} 
-                    className="flex items-center gap-1.5 cursor-pointer bg-muted/50 px-3 py-1.5 rounded-md hover:bg-muted transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={planForm[day.key as keyof typeof planForm] as boolean}
-                      onChange={(e) => setPlanForm({ ...planForm, [day.key]: e.target.checked })}
-                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+              {/* Validity row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Validity</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min="1"
+                      value={planForm.validity_value}
+                      onChange={(e) => setPlanForm({ ...planForm, validity_value: parseInt(e.target.value) || 1 })}
+                      className="flex-1"
+                      disabled={planForm.validity_type === "UNLIMITED"}
                     />
-                    <span className="text-sm">{day.label}</span>
-                  </label>
-                ))}
+                    <Select
+                      value={planForm.validity_type}
+                      onValueChange={(v) => setPlanForm({ ...planForm, validity_type: v as any })}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MINUTES">Minutes</SelectItem>
+                        <SelectItem value="HOURS">Hours</SelectItem>
+                        <SelectItem value="DAYS">Days</SelectItem>
+                        <SelectItem value="UNLIMITED">Unlimited</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Data limit */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Data Limit</Label>
+                  <div className="flex gap-2">
+                    {planForm.limitation_type === "UNLIMITED" ? (
+                      <Input value="Unlimited" disabled className="flex-1" />
+                    ) : (
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="500"
+                        value={planForm.data_limit_value}
+                        onChange={(e) => setPlanForm({ ...planForm, data_limit_value: e.target.value })}
+                        className="flex-1"
+                      />
+                    )}
+                    <Select
+                      value={planForm.limitation_type === "UNLIMITED" ? "UNLIMITED" : planForm.data_limit_unit}
+                      onValueChange={(v) => {
+                        if (v === "UNLIMITED") {
+                          setPlanForm({ ...planForm, limitation_type: "UNLIMITED", data_limit_value: "" })
+                        } else {
+                          setPlanForm({ ...planForm, limitation_type: "DATA", data_limit_unit: v as any })
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MB">MB</SelectItem>
+                        <SelectItem value="GB">GB</SelectItem>
+                        <SelectItem value="UNLIMITED">Unlimited</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Popular Badge */}
-            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-yellow-500" />
-                <span className="text-sm font-medium">Mark as Popular</span>
-                <span className="text-xs text-muted-foreground">(Shows badge on plan)</span>
+            {/* ── Section 3: Speed ── */}
+            <div className="space-y-3">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Speed</Label>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Download</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={planForm.download_speed}
+                    onChange={(e) => setPlanForm({ ...planForm, download_speed: parseInt(e.target.value) || 1 })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Upload</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={planForm.upload_speed}
+                    onChange={(e) => setPlanForm({ ...planForm, upload_speed: parseInt(e.target.value) || 1 })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Unit</Label>
+                  <Select
+                    value={planForm.speed_unit}
+                    onValueChange={(v) => setPlanForm({ ...planForm, speed_unit: v as any })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MBPS">Mbps</SelectItem>
+                      <SelectItem value="KBPS">Kbps</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <Switch
-                checked={planForm.is_popular}
-                onCheckedChange={(v) => setPlanForm({ ...planForm, is_popular: v })}
-              />
+            </div>
+
+            {/* ── Section 4: Session & Display ── */}
+            <div className="space-y-3">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Session & Display</Label>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Devices</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={planForm.simultaneous_devices}
+                    onChange={(e) => setPlanForm({ ...planForm, simultaneous_devices: parseInt(e.target.value) || 1 })}
+                  />
+                  <p className="text-[11px] text-muted-foreground">Simultaneous</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Sort Order</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={planForm.sort_order}
+                    onChange={(e) => setPlanForm({ ...planForm, sort_order: parseInt(e.target.value) || 0 })}
+                  />
+                  <p className="text-[11px] text-muted-foreground">Lower = first</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Status</Label>
+                  <Select
+                    value={planForm.is_active ? "active" : "inactive"}
+                    onValueChange={(v) => setPlanForm({ ...planForm, is_active: v === "active" })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Valid days */}
+              <div className="space-y-1.5">
+                <Label className="text-sm">Available Days</Label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: "valid_monday", label: "Mon" },
+                    { key: "valid_tuesday", label: "Tue" },
+                    { key: "valid_wednesday", label: "Wed" },
+                    { key: "valid_thursday", label: "Thu" },
+                    { key: "valid_friday", label: "Fri" },
+                    { key: "valid_saturday", label: "Sat" },
+                    { key: "valid_sunday", label: "Sun" },
+                  ].map((day) => {
+                    const checked = planForm[day.key as keyof typeof planForm] as boolean
+                    return (
+                      <button
+                        key={day.key}
+                        type="button"
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                          checked
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"
+                        }`}
+                        onClick={() => setPlanForm({ ...planForm, [day.key]: !checked })}
+                      >
+                        {day.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Popular toggle */}
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm font-medium">Mark as Popular</span>
+                  <span className="text-xs text-muted-foreground">(highlighted on portal)</span>
+                </div>
+                <Switch
+                  checked={planForm.is_popular}
+                  onCheckedChange={(v) => setPlanForm({ ...planForm, is_popular: v })}
+                />
+              </div>
             </div>
           </div>
 
-          <DialogFooter className="mt-6">
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowPlanDialog(false)} disabled={formLoading}>
               Cancel
             </Button>
-            <Button onClick={handleSavePlan} disabled={formLoading}>
+            <Button onClick={handleSavePlan} disabled={formLoading || !planForm.name || !planForm.price}>
               {formLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Saving...
                 </>
+              ) : editingPlan ? (
+                "Update Plan"
               ) : (
-                <>
-                  {editingPlan ? "Update Plan" : "Create Plan"}
-                </>
+                "Create Plan"
               )}
             </Button>
           </DialogFooter>

@@ -1,14 +1,15 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { use, useEffect, useState, useMemo } from "react"
 import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database } from "lucide-react"
+import { getApiBaseUrl } from "@/lib/subdomain"
 
 // ==========================================
 // TYPES
 // ==========================================
 
 interface HotspotPlan {
-  id: number
+  id: string
   name: string
   price: number
   currency?: string
@@ -85,21 +86,27 @@ type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "ti
 // API FUNCTIONS (Public endpoints — no auth)
 // ==========================================
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
+/** Lazily resolve the API base so we pick up the tenant subdomain from the browser URL */
+function getApiBase(): string {
+  if (typeof window !== "undefined") {
+    return getApiBaseUrl()
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
+}
 
 async function fetchHotspotPlans(routerId: string): Promise<HotspotPlansResponse> {
-  const response = await fetch(`${API_BASE}/hotspot/routers/${routerId}/plans/`)
+  const response = await fetch(`${getApiBase()}/hotspot/routers/${routerId}/plans/`)
   if (!response.ok) throw new Error("Failed to load hotspot plans")
   return response.json()
 }
 
 async function initiatePurchase(data: {
   router_id: string
-  plan_id: number
+  plan_id: string
   phone_number: string
   mac_address: string
 }): Promise<PurchaseResponse> {
-  const response = await fetch(`${API_BASE}/hotspot/purchase/`, {
+  const response = await fetch(`${getApiBase()}/hotspot/purchase/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -113,13 +120,13 @@ async function initiatePurchase(data: {
 
 async function pollPurchaseStatus(sessionId: string, loginUrl?: string): Promise<PurchaseResponse> {
   const params = loginUrl ? `?login_url=${encodeURIComponent(loginUrl)}` : ""
-  const response = await fetch(`${API_BASE}/hotspot/purchase/${sessionId}/status/${params}`)
+  const response = await fetch(`${getApiBase()}/hotspot/purchase/${sessionId}/status/${params}`)
   if (!response.ok) throw new Error("Failed to check payment status")
   return response.json()
 }
 
 async function checkAutoLogin(routerId: string, macAddress: string): Promise<AutoLoginResponse> {
-  const response = await fetch(`${API_BASE}/hotspot/auto-login/`, {
+  const response = await fetch(`${getApiBase()}/hotspot/auto-login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ router_id: routerId, mac_address: macAddress }),
@@ -492,8 +499,8 @@ function getTheme(id: number, primaryColor?: string): ThemeStyles {
 // MAIN COMPONENT
 // ==========================================
 
-export default function HotspotPage({ params }: { params: { router_id: string } }) {
-  const routerId = params.router_id
+export default function HotspotPage({ params }: { params: Promise<{ router_id: string }> }) {
+  const { router_id: routerId } = use(params)
 
   // Data state
   const [router, setRouter] = useState<RouterInfo | null>(null)

@@ -3074,42 +3074,42 @@ class AdminApiService {
   // ------------------------------------------
 
   async getHotspotPlans(routerId: number): Promise<HotspotPlan[]> {
-    return this.request<HotspotPlan[]>(`/hotspot/routers/${routerId}/plans/`)
+    return this.request<HotspotPlan[]>(`/hotspot/admin/routers/${routerId}/plans/`)
   }
 
   async createHotspotPlan(routerId: number, data: Partial<HotspotPlan>): Promise<HotspotPlan> {
-    return this.request<HotspotPlan>(`/hotspot/routers/${routerId}/plans/`, {
+    return this.request<HotspotPlan>(`/hotspot/admin/routers/${routerId}/plans/`, {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
   async updateHotspotPlan(routerId: number, planId: string, data: Partial<HotspotPlan>): Promise<HotspotPlan> {
-    return this.request<HotspotPlan>(`/hotspot/routers/${routerId}/plans/${planId}/`, {
+    return this.request<HotspotPlan>(`/hotspot/admin/routers/${routerId}/plans/${planId}/`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
   }
 
   async deleteHotspotPlan(routerId: number, planId: string): Promise<void> {
-    await this.request(`/hotspot/routers/${routerId}/plans/${planId}/`, { method: 'DELETE' })
+    await this.request(`/hotspot/admin/routers/${routerId}/plans/${planId}/`, { method: 'DELETE' })
   }
 
   async getHotspotSessions(routerId: number, params?: Record<string, string>): Promise<PaginatedResponse<HotspotSession>> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<PaginatedResponse<HotspotSession>>(`/hotspot/routers/${routerId}/sessions/${queryString}`)
+    return this.request<PaginatedResponse<HotspotSession>>(`/hotspot/admin/routers/${routerId}/sessions/${queryString}`)
   }
 
   async getHotspotBranding(routerId: number): Promise<HotspotBranding | null> {
     try {
-      return await this.request<HotspotBranding>(`/hotspot/routers/${routerId}/branding/`)
+      return await this.request<HotspotBranding>(`/hotspot/admin/routers/${routerId}/branding/`)
     } catch {
       return null
     }
   }
 
   async updateHotspotBranding(routerId: number, data: Partial<HotspotBranding>): Promise<HotspotBranding> {
-    return this.request<HotspotBranding>(`/hotspot/routers/${routerId}/branding/`, {
+    return this.request<HotspotBranding>(`/hotspot/admin/routers/${routerId}/branding/`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
