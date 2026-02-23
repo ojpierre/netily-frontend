@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from "react"
 import { useSearchParams, usePathname } from "next/navigation"
-import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle } from "lucide-react"
-import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
+import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Shield } from "lucide-react"
 
 // ==========================================
 // TYPES
@@ -15,21 +14,17 @@ interface HotspotPlan {
   description?: string
   price: number
   currency?: string
-  // Validity
   validity_type: string
   validity_value: number
   duration_display: string
-  // Speed
   download_speed: number
   upload_speed: number
   speed_unit: string
   speed_display: string
-  // Data limits
   limitation_type: string
   data_limit_value: number | null
   data_limit_unit: string
   data_limit_display: string
-  // Display
   is_popular?: boolean
 }
 
@@ -82,15 +77,17 @@ type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "ti
 function getApiBase(): string {
   // Hardcoded for precise local testing
   return "http://192.168.100.149:8000/api/v1"
-  // Fallback to normal methods if hardcoded fails
-  // if (typeof window !== "undefined") return getApiBaseUrl()
-  // return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
 }
 
 async function fetchCaptivePortal(routerId: string, tenant: string): Promise<CaptivePortalResponse> {
-  const response = await fetch(`${getApiBase()}/hotspot/captive-portal/?router=${routerId}&tenant=${tenant}`)
+  const safeTenant = tenant || "yellow1";
+  
+  // Added cache: 'no-store' to stop Next.js from caching the old broken request!
+  const response = await fetch(`${getApiBase()}/hotspot/captive-portal/?router=${routerId}&tenant=${safeTenant}`, {
+    cache: "no-store" 
+  })
+  
   if (!response.ok) {
-    // FIX: Read the exact error from Django!
     const err = await response.json().catch(() => ({}));
     throw new Error(err.message || err.error || "Failed to load plans");
   }
@@ -104,10 +101,13 @@ async function initiatePurchase(data: {
   mac_address: string
   tenant: string
 }): Promise<PurchaseResponse> {
+  data.tenant = data.tenant || "yellow1";
+
   const response = await fetch(`${getApiBase()}/hotspot/purchase/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
+    cache: "no-store"
   })
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: "Payment failed" }))
@@ -119,9 +119,11 @@ async function initiatePurchase(data: {
 async function pollPurchaseStatus(sessionId: string, loginUrl: string, tenant: string): Promise<PurchaseResponse> {
   const params = new URLSearchParams()
   if (loginUrl) params.append("login_url", loginUrl)
-  if (tenant) params.append("tenant", tenant)
+  params.append("tenant", tenant || "yellow1")
   
-  const response = await fetch(`${getApiBase()}/hotspot/purchase/${sessionId}/status/?${params.toString()}`)
+  const response = await fetch(`${getApiBase()}/hotspot/purchase/${sessionId}/status/?${params.toString()}`, {
+    cache: "no-store"
+  })
   if (!response.ok) throw new Error("Status check failed")
   return response.json()
 }
@@ -130,10 +132,10 @@ async function checkAutoLogin(routerId: string, macAddress: string, tenant: stri
   const response = await fetch(`${getApiBase()}/hotspot/auto-login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ router_id: routerId, mac_address: macAddress, tenant: tenant }),
+    body: JSON.stringify({ router_id: routerId, mac_address: macAddress, tenant: tenant || "yellow1" }),
+    cache: "no-store"
   })
   if (!response.ok) {
-    // FIX: Read the exact error from Django!
     const err = await response.json().catch(() => ({}));
     throw new Error(err.message || err.error || "Auto-login check failed");
   }
@@ -185,36 +187,21 @@ function returnTripToMikrotik(loginUrl: string, username: string, password: stri
 
 function PortalLoginContent() {
   const searchParams = useSearchParams()
-  const pathname = usePathname()
 
   // ── MikroTik variables from URL ──
   const mac = searchParams.get("mac") || "00:00:00:00:00:00"
   const ip = searchParams.get("ip") || ""
+  
+  // Grab the router name directly from the MikroTik query params!
   const routerName = searchParams.get("router") || "WiFi"
+  
   const loginUrl = searchParams.get("login_url") || ""
   const error = searchParams.get("error") || ""
   const tenant = searchParams.get("tenant") || "yellow1"
 
-  // THE ULTIMATE FIX:
-  // 1. First try to get router_id from query params
-  // 2. If not found, try to extract from the URL path (for /hotspot/{router_id} routes)
-  // 3. Finally fallback to the router name from query params
-  // The Django backend will dynamically look up the router by ID or name!
-  let routerId = searchParams.get("router_id") || ""
-  
-  if (!routerId && pathname) {
-    // Try to extract from pathname (e.g., /hotspot/TEST_ROUTER_1)
-    const parts = pathname.split('/').filter(Boolean)
-    if (parts.length > 0) {
-      // Get the last part of the path which should be the router_id
-      routerId = parts[parts.length - 1]
-    }
-  }
-  
-  // If still no routerId, fallback to the router name from query params
-  if (!routerId) {
-    routerId = searchParams.get("router") || ""
-  }
+  // THE ULTIMATE FIX: 
+  // We completely ignore the Next.js path and force it to use the Router Name (TEST_ROUTER_1)
+  const routerId = routerName;
 
   // ── State ──
   const [plans, setPlans] = useState<HotspotPlan[]>([])
@@ -241,7 +228,7 @@ function PortalLoginContent() {
   const loadPlans = async () => {
     try {
       setLoading(true)
-      const currentTenant = tenant || getSubdomainInfo().subdomain || "yellow1"
+      const currentTenant = tenant || "yellow1"
 
       if (mac !== "00:00:00:00:00:00") {
         try {
@@ -252,9 +239,7 @@ function PortalLoginContent() {
             return
           }
         } catch (err: unknown) {
-          // If auto-login fails, show the error but continue to load plans
           console.error("Auto-login error:", err)
-          // Don't set loadError here - just log it and continue
         }
       }
 
@@ -275,7 +260,7 @@ function PortalLoginContent() {
     try {
       setPaymentStatus("sending")
       setPaymentMessage("Sending M-Pesa request...")
-      const currentTenant = tenant || getSubdomainInfo().subdomain || "yellow1"
+      const currentTenant = tenant || "yellow1"
 
       const response = await initiatePurchase({
         router_id: routerId,
