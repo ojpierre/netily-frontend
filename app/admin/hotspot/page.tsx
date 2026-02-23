@@ -213,6 +213,7 @@ export default function HotspotManagementPage() {
     support_phone: "",
     support_email: "",
   })
+  const [selectedTemplateId, setSelectedTemplateId] = useState(1)
 
   // Setup Wizard State
   const [wizardStep, setWizardStep] = useState(1)
@@ -283,6 +284,8 @@ export default function HotspotManagementPage() {
           support_email: brandingData.support_email || "",
         })
       }
+      // Load template_id from the router itself
+      setSelectedTemplateId((router as any).template_id || 1)
     } catch (error) {
       console.error("Failed to fetch router details:", error)
     }
@@ -449,8 +452,11 @@ export default function HotspotManagementPage() {
 
     try {
       setFormLoading(true)
+      // Save branding (colours, text)
       await adminApi.updateHotspotBranding(selectedRouter.id, brandingForm)
-      toast.success("Branding updated successfully")
+      // Save template_id to the router itself
+      await adminApi.updateRouter(selectedRouter.id, { template_id: selectedTemplateId } as any)
+      toast.success("Branding & template updated successfully")
       setShowBrandingDialog(false)
     } catch (error: any) {
       toast.error(error.message || "Failed to save branding")
@@ -1440,14 +1446,55 @@ add address=10.10.0.1/24 interface=bridge-hotspot
 
       {/* Branding Dialog */}
       <Dialog open={showBrandingDialog} onOpenChange={setShowBrandingDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Customize Captive Portal</DialogTitle>
             <DialogDescription>
-              Brand your hotspot login page with your company details
+              Choose a visual theme and brand your hotspot login page
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-6">
+            {/* Portal Template Picker */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Portal Template</Label>
+              <p className="text-sm text-muted-foreground">Choose a visual theme for the captive portal login page</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { id: 1, name: "Classic",    bg: "bg-gradient-to-br from-blue-50 to-indigo-100", accent: "bg-blue-600" },
+                  { id: 2, name: "Dark",       bg: "bg-gradient-to-br from-gray-900 to-gray-800", accent: "bg-cyan-500" },
+                  { id: 3, name: "Gradient",   bg: "bg-gradient-to-br from-purple-600 to-pink-500", accent: "bg-purple-600" },
+                  { id: 4, name: "Minimal",    bg: "bg-gray-50",                                  accent: "bg-gray-900" },
+                  { id: 5, name: "Vibrant",    bg: "bg-gradient-to-br from-amber-400 to-orange-500", accent: "bg-orange-500" },
+                  { id: 6, name: "Corporate",  bg: "bg-gradient-to-br from-slate-100 to-slate-200", accent: "bg-slate-700" },
+                  { id: 7, name: "Glass",      bg: "bg-gradient-to-br from-teal-400 to-blue-500", accent: "bg-white" },
+                ].map((tmpl) => (
+                  <button
+                    key={tmpl.id}
+                    type="button"
+                    onClick={() => setSelectedTemplateId(tmpl.id)}
+                    className={`relative rounded-lg border-2 p-1 transition-all ${
+                      selectedTemplateId === tmpl.id
+                        ? "border-primary ring-2 ring-primary/30"
+                        : "border-muted hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    <div className={`${tmpl.bg} rounded-md h-16 flex items-end justify-center pb-1`}>
+                      <div className={`${tmpl.accent} rounded w-10 h-3`} />
+                    </div>
+                    <p className="text-xs font-medium text-center mt-1.5 mb-0.5">{tmpl.name}</p>
+                    {selectedTemplateId === tmpl.id && (
+                      <div className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground rounded-full p-0.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <hr className="border-muted" />
+
+            {/* Company & Colours */}
             <div className="space-y-2">
               <Label>Company Name</Label>
               <Input
@@ -1541,7 +1588,7 @@ add address=10.10.0.1/24 interface=bridge-hotspot
                   Saving...
                 </>
               ) : (
-                <>Save Branding</>
+                <>Save Template &amp; Branding</>
               )}
             </Button>
           </DialogFooter>

@@ -40,9 +40,24 @@ interface PortalConfig {
   gateway_ip: string
 }
 
+interface BrandingConfig {
+  company_name?: string
+  logo_url?: string | null
+  background_image_url?: string | null
+  primary_color?: string
+  secondary_color?: string
+  text_color?: string
+  background_color?: string
+  welcome_title?: string
+  welcome_message?: string
+  support_phone?: string
+  support_email?: string
+}
+
 interface CaptivePortalResponse {
   status: string
   portal_config: PortalConfig
+  branding: BrandingConfig | null
   plans: HotspotPlan[]
 }
 
@@ -80,16 +95,23 @@ type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "ti
 
 /** Lazily resolve the API base so we pick up the tenant subdomain from the browser URL */
 function getApiBase(): string {
-  if (typeof window !== "undefined") {
-    return getApiBaseUrl()
-  }
-  return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
+  // ── Hardcoded for LAN / phone testing ──
+  return "http://192.168.100.149:8000/api/v1"
 }
 
 async function fetchCaptivePortal(routerId: string): Promise<CaptivePortalResponse> {
-  const tenant = getSubdomainInfo().subdomain || ""
-  const response = await fetch(`${getApiBase()}/hotspot/captive-portal/?router=${routerId}&tenant=${tenant}`)
-  if (!response.ok) throw new Error("Failed to load hotspot plans")
+  const info = getSubdomainInfo()
+  const tenant = info.subdomain
+    || new URLSearchParams(window.location.search).get("tenant")
+    || "yellow1"                       // ← hardcoded fallback for LAN testing
+  const response = await fetch(
+    `${getApiBase()}/hotspot/captive-portal/?router=${routerId}&tenant=${tenant}`,
+    { cache: "no-store" },
+  )
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.message || err.error || "Failed to load hotspot plans")
+  }
   return response.json()
 }
 
@@ -103,6 +125,7 @@ async function initiatePurchase(data: {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
+    cache: "no-store",
   })
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: "Payment initiation failed" }))
@@ -113,16 +136,21 @@ async function initiatePurchase(data: {
 
 async function pollPurchaseStatus(sessionId: string, loginUrl?: string): Promise<PurchaseResponse> {
   const params = loginUrl ? `?login_url=${encodeURIComponent(loginUrl)}` : ""
-  const response = await fetch(`${getApiBase()}/hotspot/purchase/${sessionId}/status/${params}`)
+  const response = await fetch(`${getApiBase()}/hotspot/purchase/${sessionId}/status/${params}`, { cache: "no-store" })
   if (!response.ok) throw new Error("Failed to check payment status")
   return response.json()
 }
 
 async function checkAutoLogin(routerId: string, macAddress: string): Promise<AutoLoginResponse> {
+  const info = getSubdomainInfo()
+  const tenant = info.subdomain
+    || new URLSearchParams(window.location.search).get("tenant")
+    || "yellow1"                       // ← hardcoded fallback for LAN testing
   const response = await fetch(`${getApiBase()}/hotspot/auto-login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ router_id: routerId, mac_address: macAddress }),
+    body: JSON.stringify({ router_id: routerId, mac_address: macAddress, tenant }),
+    cache: "no-store",
   })
   if (!response.ok) throw new Error("Auto-login check failed")
   return response.json()
@@ -245,7 +273,7 @@ interface ThemeStyles {
   successPageBg: string
 }
 
-function getTheme(id: number, primaryColor?: string): ThemeStyles {
+function getTheme(id: number): ThemeStyles {
   switch (id) {
     case 2: // Dark Mode
       return {
@@ -455,7 +483,7 @@ function getTheme(id: number, primaryColor?: string): ThemeStyles {
       return {
         pageBg: "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100",
         cardClass: "bg-white rounded-2xl shadow-xl",
-        headerBg: primaryColor ? "" : "bg-blue-600",
+        headerBg: "bg-blue-600",
         headerText: "text-white",
         headerSub: "text-white/80",
         annBg: "bg-blue-50 border border-blue-200",
@@ -474,7 +502,7 @@ function getTheme(id: number, primaryColor?: string): ThemeStyles {
         inputBg: "bg-white",
         inputText: "text-gray-900",
         inputPlaceholder: "placeholder:text-gray-400",
-        ctaBg: primaryColor ? "" : "bg-blue-600 hover:bg-blue-700",
+        ctaBg: "bg-blue-600 hover:bg-blue-700",
         ctaText: "text-white",
         ctaHover: "",
         bodyText: "text-gray-700",
@@ -498,6 +526,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   // Data state
   const [plans, setPlans] = useState<HotspotPlan[]>([])
   const [portalConfig, setPortalConfig] = useState<PortalConfig | null>(null)
+  const [branding, setBranding] = useState<BrandingConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -519,9 +548,25 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   // Theme derived from portal_config
   const templateId = portalConfig?.template_id ?? 1
   const theme = useMemo(() => getTheme(templateId), [templateId])
-  const displayName = portalConfig?.hotspot_name || "WiFi Hotspot"
-  const supportPhone = portalConfig?.support_phone || ""
+  const displayName = branding?.company_name || portalConfig?.hotspot_name || "WiFi Hotspot"
+  const welcomeTitle = branding?.welcome_title || ""
+  const welcomeMessage = branding?.welcome_message || ""
+  const supportPhone = branding?.support_phone || portalConfig?.support_phone || ""
   const announcement = portalConfig?.announcement_text || ""
+
+  // Branding-derived inline style overrides (hex colours from admin panel)
+  const brandingHeaderStyle: React.CSSProperties | undefined = branding?.primary_color
+    ? { backgroundColor: branding.primary_color }
+    : undefined
+  const brandingCtaStyle: React.CSSProperties | undefined = branding?.primary_color
+    ? { backgroundColor: branding.primary_color, borderColor: branding.primary_color }
+    : undefined
+  const brandingSelectedBorderStyle: React.CSSProperties | undefined = branding?.primary_color
+    ? { borderColor: branding.primary_color }
+    : undefined
+  const brandingPriceStyle: React.CSSProperties | undefined = branding?.primary_color
+    ? { color: branding.primary_color }
+    : undefined
 
   // ── MikroTik query-params on mount ──
   useEffect(() => {
@@ -554,6 +599,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       .then((data) => {
         setPlans(data.plans)
         setPortalConfig(data.portal_config || null)
+        setBranding(data.branding || null)
         setLoading(false)
       })
       .catch((err) => {
@@ -825,36 +871,25 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   // ==========================================
   // RENDER: Main Plan Selection
   // ==========================================
-  const headerStyle = templateId === 1 && primaryColor ? { backgroundColor: primaryColor } : undefined
-  const ctaStyle = templateId === 1 && primaryColor ? { backgroundColor: primaryColor } : undefined
 
   return (
     <div className={`${theme.pageBg} flex items-center justify-center p-4`}>
       <div className={`${theme.cardClass} max-w-md w-full overflow-hidden`}>
         {/* ── Header ── */}
-        <div className={`p-6 text-center ${theme.headerBg}`} style={headerStyle}>
+        <div className={`p-6 text-center ${theme.headerBg}`} style={brandingHeaderStyle}>
           {branding?.logo_url ? (
-            <img
-              src={branding.logo_url}
-              alt={displayName}
-              className="w-16 h-16 mx-auto mb-3 rounded-full object-cover"
-            />
+            <img src={branding.logo_url} alt={displayName} className="h-12 mx-auto mb-3 object-contain" />
           ) : (
             <Wifi className={`w-12 h-12 mx-auto mb-3 ${theme.headerText}`} />
           )}
           <h1 className={`text-2xl font-bold ${theme.headerText}`}>{displayName}</h1>
-          {router?.location && (
-            <p className={`text-sm mt-1 ${theme.headerSub}`}>{router.location}</p>
+          {welcomeTitle && (
+            <p className={`text-sm mt-1 ${theme.headerSub}`}>{welcomeTitle}</p>
           )}
           {supportPhone && (
             <p className={`text-xs mt-2 flex items-center justify-center gap-1 ${theme.headerSub}`}>
               <Phone className="w-3 h-3" />
               {supportPhone}
-            </p>
-          )}
-          {branding?.company_name && (
-            <p className={`text-xs mt-1 opacity-60 ${theme.headerSub}`}>
-              Powered by {branding.company_name}
             </p>
           )}
         </div>
@@ -870,7 +905,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           )}
 
           <p className={`text-center mb-6 ${theme.bodyText}`}>
-            Select a plan and pay with M-Pesa to get connected
+            {welcomeMessage || "Select a plan and pay with M-Pesa to get connected"}
           </p>
 
           {/* Phone Number Input */}
@@ -910,6 +945,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                     ? `${theme.planSelectedBorder} ${theme.planSelectedBg} shadow-md`
                     : `${theme.planBorder} ${theme.planBg} hover:shadow-sm`
                 }`}
+                style={selectedPlan?.id === plan.id ? brandingSelectedBorderStyle : undefined}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -918,6 +954,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                       {plan.is_popular && (
                         <span
                           className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${theme.planPopularBg} ${theme.planPopularText}`}
+                          style={branding?.primary_color ? { backgroundColor: branding.primary_color } : undefined}
                         >
                           POPULAR
                         </span>
@@ -947,7 +984,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                     )}
                   </div>
                   <div className="text-right ml-3">
-                    <span className={`text-xl font-bold ${theme.planPrice}`}>
+                    <span className={`text-xl font-bold ${theme.planPrice}`} style={brandingPriceStyle}>
                       {plan.currency || "KES"} {plan.price}
                     </span>
                   </div>
@@ -969,7 +1006,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             onClick={handlePay}
             disabled={!selectedPlan || !phoneNumber || !!phoneError}
             className={`w-full py-4 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover}`}
-            style={ctaStyle}
+            style={brandingCtaStyle}
           >
             {selectedPlan
               ? `Pay ${selectedPlan.currency || "KES"} ${selectedPlan.price} with M-Pesa`

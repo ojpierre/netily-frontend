@@ -66,7 +66,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -367,6 +366,7 @@ export default function PlansPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [isPlanTypePickerOpen, setIsPlanTypePickerOpen] = useState(false)
 
   // Form state - Enhanced with all fields
   const [planForm, setPlanForm] = useState({
@@ -901,123 +901,52 @@ export default function PlansPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button onClick={() => {
-            if (activeTab === 'hotspot') {
-              setIsHotspotCreateOpen(true)
-            } else {
-              resetForm()
-              setIsCreateOpen(true)
-            }
-          }}>
-            <Plus className="mr-2 h-4 w-4" />
-            {activeTab === 'hotspot' ? 'Custom Hotspot' : 'Add Plan'}
-          </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-slate-100 rounded-lg">
-                <Package className="w-5 h-5 text-slate-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total Plans</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Check className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-green-600">{stats.active}</p>
-                <p className="text-xs text-muted-foreground">Active</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-blue-600">{stats.subscribers}</p>
-                <p className="text-xs text-muted-foreground">Subscribers</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md" onClick={() => setActiveTab("hotspot")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Wifi className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-blue-600">{stats.hotspot}</p>
-                <p className="text-xs text-muted-foreground">Hotspot</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md" onClick={() => setActiveTab("pppoe")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Globe className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-purple-600">{stats.pppoe}</p>
-                <p className="text-xs text-muted-foreground">PPPoE</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md" onClick={() => setActiveTab("static")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Server className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-orange-600">{stats.static}</p>
-                <p className="text-xs text-muted-foreground">Static IP</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* ── Tabs: Full-width, prominent, with counts ── */}
+      <div className="w-full">
+        <div className="grid grid-cols-4 gap-3">
+          {([
+            { value: "all", label: "All Plans", icon: Package, count: stats.total, activeBorder: "border-slate-500", activeBg: "bg-slate-50", activeIconBg: "bg-slate-100", activeIconColor: "text-slate-600", activeCountColor: "text-slate-600", inactiveIconBg: "bg-muted", bottomBar: "bg-slate-500" },
+            { value: "hotspot", label: "Hotspot", icon: Wifi, count: stats.hotspot, activeBorder: "border-blue-500", activeBg: "bg-blue-50", activeIconBg: "bg-blue-100", activeIconColor: "text-blue-600", activeCountColor: "text-blue-600", inactiveIconBg: "bg-muted", bottomBar: "bg-blue-500" },
+            { value: "pppoe", label: "PPPoE", icon: Globe, count: stats.pppoe, activeBorder: "border-purple-500", activeBg: "bg-purple-50", activeIconBg: "bg-purple-100", activeIconColor: "text-purple-600", activeCountColor: "text-purple-600", inactiveIconBg: "bg-muted", bottomBar: "bg-purple-500" },
+            { value: "static", label: "Static IP", icon: Server, count: stats.static, activeBorder: "border-orange-500", activeBg: "bg-orange-50", activeIconBg: "bg-orange-100", activeIconColor: "text-orange-600", activeCountColor: "text-orange-600", inactiveIconBg: "bg-muted", bottomBar: "bg-orange-500" },
+          ] as const).map((tab) => {
+            const Icon = tab.icon
+            const isActive = activeTab === tab.value
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setActiveTab(tab.value)}
+                className={`relative flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left ${
+                  isActive
+                    ? `${tab.activeBorder} ${tab.activeBg} shadow-sm`
+                    : "border-transparent bg-muted/40 hover:bg-muted/70 hover:border-muted-foreground/20"
+                }`}
+              >
+                <div className={`p-2 rounded-lg ${isActive ? tab.activeIconBg : tab.inactiveIconBg}`}>
+                  <Icon className={`w-5 h-5 ${isActive ? tab.activeIconColor : "text-muted-foreground"}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-semibold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                    {tab.label}
+                  </p>
+                  <p className={`text-2xl font-bold ${isActive ? tab.activeCountColor : "text-foreground"}`}>
+                    {tab.count}
+                  </p>
+                </div>
+                {isActive && (
+                  <div className={`absolute bottom-0 left-4 right-4 h-0.5 ${tab.bottomBar} rounded-full`} />
+                )}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      {/* Tabs & Search */}
-      <div className="flex flex-col md:flex-row md:items-center gap-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
-          <TabsList>
-            <TabsTrigger value="all">All Plans</TabsTrigger>
-            <TabsTrigger value="hotspot">
-              <Wifi className="w-3.5 h-3.5 mr-1" />
-              Hotspot
-            </TabsTrigger>
-            <TabsTrigger value="pppoe">
-              <Globe className="w-3.5 h-3.5 mr-1" />
-              PPPoE
-            </TabsTrigger>
-            <TabsTrigger value="static">Static IP</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      {/* ── Search + Create Button Row ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -1027,7 +956,83 @@ export default function PlansPage() {
             className="pl-9"
           />
         </div>
+        <Button
+          size="lg"
+          onClick={() => {
+            if (activeTab === "all") {
+              // Show plan type picker
+              setIsPlanTypePickerOpen(true)
+            } else if (activeTab === "hotspot") {
+              setIsHotspotCreateOpen(true)
+            } else {
+              resetForm()
+              setPlanForm(prev => ({
+                ...prev,
+                plan_type: activeTab.toUpperCase() as PlanType,
+              }))
+              setIsCreateOpen(true)
+            }
+          }}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          {activeTab === "all"
+            ? "Create Plan"
+            : activeTab === "hotspot"
+            ? "Create Hotspot Plan"
+            : activeTab === "pppoe"
+            ? "Create PPPoE Plan"
+            : "Create Static IP Plan"}
+        </Button>
       </div>
+
+      {/* ── Plan Type Picker Dialog (shown from "All Plans" tab) ── */}
+      <Dialog open={isPlanTypePickerOpen} onOpenChange={setIsPlanTypePickerOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>What type of plan do you want to create?</DialogTitle>
+            <DialogDescription>
+              Choose a plan type to get started
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-3 py-4">
+            {[
+              { type: "hotspot" as const, label: "Hotspot Plan", description: "Time-based WiFi access for captive portals", icon: Wifi, color: "bg-blue-500" },
+              { type: "pppoe" as const, label: "PPPoE Plan", description: "Point-to-point subscriber connections", icon: Globe, color: "bg-purple-500" },
+              { type: "static" as const, label: "Static IP Plan", description: "Dedicated static IP allocations", icon: Server, color: "bg-orange-500" },
+            ].map((opt) => {
+              const Icon = opt.icon
+              return (
+                <button
+                  key={opt.type}
+                  onClick={() => {
+                    setIsPlanTypePickerOpen(false)
+                    setActiveTab(opt.type)
+                    if (opt.type === "hotspot") {
+                      setIsHotspotCreateOpen(true)
+                    } else {
+                      resetForm()
+                      setPlanForm(prev => ({
+                        ...prev,
+                        plan_type: opt.type.toUpperCase() as PlanType,
+                      }))
+                      setIsCreateOpen(true)
+                    }
+                  }}
+                  className="flex items-center gap-4 p-4 rounded-xl border-2 border-muted hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
+                >
+                  <div className={`p-3 rounded-lg ${opt.color} flex items-center justify-center`}>
+                    <Icon className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">{opt.label}</p>
+                    <p className="text-sm text-muted-foreground">{opt.description}</p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ====== HOTSPOT TAB — Quick Create Cards + Plan Listing ====== */}
       {activeTab === 'hotspot' && (
@@ -1119,8 +1124,16 @@ export default function PlansPage() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Network className="w-5 h-5 text-primary" />
-              Add New PPPoE Plan
+              {planForm.plan_type === 'STATIC' ? (
+                <Server className="w-5 h-5 text-orange-500" />
+              ) : (
+                <Globe className="w-5 h-5 text-purple-500" />
+              )}
+              {planForm.plan_type === 'PPPOE'
+                ? 'Create PPPoE Plan'
+                : planForm.plan_type === 'STATIC'
+                ? 'Create Static IP Plan'
+                : `Create ${planForm.plan_type} Plan`}
             </DialogTitle>
           </DialogHeader>
           

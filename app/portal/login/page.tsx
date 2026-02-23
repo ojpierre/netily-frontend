@@ -80,11 +80,8 @@ type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "ti
 // ==========================================
 
 function getApiBase(): string {
-  // Hardcoded for precise local testing
-  return "http://192.168.100.149:8000/api/v1"
-  // Fallback to normal methods if hardcoded fails
-  // if (typeof window !== "undefined") return getApiBaseUrl()
-  // return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
+  if (typeof window !== "undefined") return getApiBaseUrl()
+  return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
 }
 
 async function fetchCaptivePortal(routerId: string, tenant: string): Promise<CaptivePortalResponse> {
@@ -193,7 +190,7 @@ function PortalLoginContent() {
   const routerName = searchParams.get("router") || "WiFi"
   const loginUrl = searchParams.get("login_url") || ""
   const error = searchParams.get("error") || ""
-  const tenant = searchParams.get("tenant") || "yellow1"
+  const tenant = searchParams.get("tenant") || getSubdomainInfo().subdomain || ""
 
   // THE ULTIMATE FIX:
   // 1. First try to get router_id from query params
@@ -241,7 +238,12 @@ function PortalLoginContent() {
   const loadPlans = async () => {
     try {
       setLoading(true)
-      const currentTenant = tenant || getSubdomainInfo().subdomain || "yellow1"
+      const currentTenant = tenant || getSubdomainInfo().subdomain || ""
+      if (!currentTenant) {
+        setLoadError("Tenant could not be determined. Access this page via a tenant subdomain or add ?tenant=<name> to the URL.")
+        setLoading(false)
+        return
+      }
 
       if (mac !== "00:00:00:00:00:00") {
         try {
@@ -275,7 +277,7 @@ function PortalLoginContent() {
     try {
       setPaymentStatus("sending")
       setPaymentMessage("Sending M-Pesa request...")
-      const currentTenant = tenant || getSubdomainInfo().subdomain || "yellow1"
+      const currentTenant = tenant || getSubdomainInfo().subdomain || ""
 
       const response = await initiatePurchase({
         router_id: routerId,
