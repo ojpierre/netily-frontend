@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState, useCallback, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
-import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Shield } from "lucide-react"
+import { useSearchParams, usePathname } from "next/navigation"
+import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle } from "lucide-react"
 import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 
 // ==========================================
@@ -80,13 +80,20 @@ type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "ti
 // ==========================================
 
 function getApiBase(): string {
-  if (typeof window !== "undefined") return getApiBaseUrl()
-  return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
+  // Hardcoded for precise local testing
+  return "http://192.168.100.149:8000/api/v1"
+  // Fallback to normal methods if hardcoded fails
+  // if (typeof window !== "undefined") return getApiBaseUrl()
+  // return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
 }
 
 async function fetchCaptivePortal(routerId: string, tenant: string): Promise<CaptivePortalResponse> {
   const response = await fetch(`${getApiBase()}/hotspot/captive-portal/?router=${routerId}&tenant=${tenant}`)
-  if (!response.ok) throw new Error("Failed to load plans")
+  if (!response.ok) {
+    // FIX: Read the exact error from Django!
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || err.error || "Failed to load plans");
+  }
   return response.json()
 }
 
@@ -95,6 +102,7 @@ async function initiatePurchase(data: {
   plan_id: string | number
   phone_number: string
   mac_address: string
+  tenant: string
 }): Promise<PurchaseResponse> {
   const response = await fetch(`${getApiBase()}/hotspot/purchase/`, {
     method: "POST",
@@ -108,38 +116,33 @@ async function initiatePurchase(data: {
   return response.json()
 }
 
-async function pollPurchaseStatus(sessionId: string, loginUrl?: string): Promise<PurchaseResponse> {
-  const params = loginUrl ? `?login_url=${encodeURIComponent(loginUrl)}` : ""
-  const response = await fetch(`${getApiBase()}/hotspot/purchase/${sessionId}/status/${params}`)
+async function pollPurchaseStatus(sessionId: string, loginUrl: string, tenant: string): Promise<PurchaseResponse> {
+  const params = new URLSearchParams()
+  if (loginUrl) params.append("login_url", loginUrl)
+  if (tenant) params.append("tenant", tenant)
+  
+  const response = await fetch(`${getApiBase()}/hotspot/purchase/${sessionId}/status/?${params.toString()}`)
   if (!response.ok) throw new Error("Status check failed")
   return response.json()
 }
 
-async function checkAutoLogin(routerId: string, macAddress: string): Promise<AutoLoginResponse> {
+async function checkAutoLogin(routerId: string, macAddress: string, tenant: string): Promise<AutoLoginResponse> {
   const response = await fetch(`${getApiBase()}/hotspot/auto-login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ router_id: routerId, mac_address: macAddress }),
+    body: JSON.stringify({ router_id: routerId, mac_address: macAddress, tenant: tenant }),
   })
-  if (!response.ok) throw new Error("Auto-login check failed")
+  if (!response.ok) {
+    // FIX: Read the exact error from Django!
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || err.error || "Auto-login check failed");
+  }
   return response.json()
 }
 
 // ==========================================
 // HELPERS
 // ==========================================
-
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`
-  if (minutes < 1440) return `${Math.round(minutes / 60)} hour${minutes >= 120 ? "s" : ""}`
-  return `${Math.round(minutes / 1440)} day${minutes >= 2880 ? "s" : ""}`
-}
-
-function formatData(mb: number | null): string {
-  if (!mb) return "Unlimited"
-  if (mb < 1000) return `${mb} MB`
-  return `${(mb / 1000).toFixed(1)} GB`
-}
 
 function formatPhoneNumber(phone: string): string {
   let cleaned = phone.replace(/\D/g, "")
@@ -153,10 +156,6 @@ function isValidKenyanPhone(phone: string): boolean {
   return /^254[17]\d{8}$/.test(formatPhoneNumber(phone))
 }
 
-/**
- * Return Trip — submits RADIUS credentials to MikroTik login URL.
- * This completes: MikroTik → Portal → Payment → RADIUS → Return Trip → Internet
- */
 function returnTripToMikrotik(loginUrl: string, username: string, password: string) {
   const form = document.createElement("form")
   form.method = "POST"
@@ -186,16 +185,36 @@ function returnTripToMikrotik(loginUrl: string, username: string, password: stri
 
 function PortalLoginContent() {
   const searchParams = useSearchParams()
+  const pathname = usePathname()
 
   // ── MikroTik variables from URL ──
   const mac = searchParams.get("mac") || "00:00:00:00:00:00"
   const ip = searchParams.get("ip") || ""
   const routerName = searchParams.get("router") || "WiFi"
-  const routerId = searchParams.get("router_id") || ""
   const loginUrl = searchParams.get("login_url") || ""
-  const origUrl = searchParams.get("orig_url") || ""
   const error = searchParams.get("error") || ""
-  const tenant = searchParams.get("tenant") || ""
+  const tenant = searchParams.get("tenant") || "yellow1"
+
+  // THE ULTIMATE FIX:
+  // 1. First try to get router_id from query params
+  // 2. If not found, try to extract from the URL path (for /hotspot/{router_id} routes)
+  // 3. Finally fallback to the router name from query params
+  // The Django backend will dynamically look up the router by ID or name!
+  let routerId = searchParams.get("router_id") || ""
+  
+  if (!routerId && pathname) {
+    // Try to extract from pathname (e.g., /hotspot/TEST_ROUTER_1)
+    const parts = pathname.split('/').filter(Boolean)
+    if (parts.length > 0) {
+      // Get the last part of the path which should be the router_id
+      routerId = parts[parts.length - 1]
+    }
+  }
+  
+  // If still no routerId, fallback to the router name from query params
+  if (!routerId) {
+    routerId = searchParams.get("router") || ""
+  }
 
   // ── State ──
   const [plans, setPlans] = useState<HotspotPlan[]>([])
@@ -217,26 +236,29 @@ function PortalLoginContent() {
       return
     }
     loadPlans()
-  }, [routerId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [routerId]) 
 
   const loadPlans = async () => {
     try {
       setLoading(true)
-      // First check for existing session (auto-login)
+      const currentTenant = tenant || getSubdomainInfo().subdomain || "yellow1"
+
       if (mac !== "00:00:00:00:00:00") {
         try {
-          const autoLogin = await checkAutoLogin(routerId, mac)
+          const autoLogin = await checkAutoLogin(routerId, mac, currentTenant)
           if (autoLogin.has_session && autoLogin.credentials && loginUrl) {
             setAutoLoginChecked(true)
             returnTripToMikrotik(loginUrl, autoLogin.credentials.username, autoLogin.credentials.password)
             return
           }
-        } catch {
-          // No active session — continue to show plans
+        } catch (err: unknown) {
+          // If auto-login fails, show the error but continue to load plans
+          console.error("Auto-login error:", err)
+          // Don't set loadError here - just log it and continue
         }
       }
 
-      const data = await fetchCaptivePortal(routerId, tenant || getSubdomainInfo().subdomain || "")
+      const data = await fetchCaptivePortal(routerId, currentTenant)
       setPlans(data.plans)
       setPortalConfig(data.portal_config || null)
     } catch (err: unknown) {
@@ -253,20 +275,21 @@ function PortalLoginContent() {
     try {
       setPaymentStatus("sending")
       setPaymentMessage("Sending M-Pesa request...")
+      const currentTenant = tenant || getSubdomainInfo().subdomain || "yellow1"
 
       const response = await initiatePurchase({
         router_id: routerId,
         plan_id: selectedPlan.id,
         phone_number: formatPhoneNumber(phoneNumber),
         mac_address: mac,
+        tenant: currentTenant,
       })
 
       setSessionId(response.session_id)
       setPaymentStatus("waiting")
       setPaymentMessage("Check your phone for M-Pesa prompt...")
 
-      // Start polling for payment status
-      pollForPayment(response.session_id)
+      pollForPayment(response.session_id, currentTenant)
     } catch (err: unknown) {
       setPaymentStatus("failed")
       setPaymentMessage(err instanceof Error ? err.message : "Payment failed")
@@ -274,7 +297,7 @@ function PortalLoginContent() {
   }
 
   // ── Poll for payment completion ──
-  const pollForPayment = useCallback(async (sid: string) => {
+  const pollForPayment = useCallback(async (sid: string, currentTenant: string) => {
     const maxAttempts = 60
     const interval = 3000
     let attempts = 0
@@ -287,13 +310,12 @@ function PortalLoginContent() {
       }
 
       try {
-        const status = await pollPurchaseStatus(sid, loginUrl)
+        const status = await pollPurchaseStatus(sid, loginUrl, currentTenant)
 
         if (status.status === "success") {
           setPaymentStatus("success")
           setPaymentMessage("Payment received! Connecting you to the internet...")
 
-          // Return Trip to MikroTik
           if (loginUrl && status.access_code) {
             setTimeout(() => {
               returnTripToMikrotik(loginUrl, status.access_code!, status.access_code!)
@@ -308,7 +330,6 @@ function PortalLoginContent() {
           return
         }
 
-        // Still pending — continue polling
         attempts++
         setTimeout(poll, interval)
       } catch {
@@ -316,15 +337,12 @@ function PortalLoginContent() {
         setTimeout(poll, interval)
       }
     }
-
     poll()
   }, [loginUrl])
 
-  // ── Theme ──
   const primaryColor = portalConfig?.support_phone ? "#667eea" : "#667eea"
   const companyName = portalConfig?.hotspot_name || routerName
 
-  // ── Auto-login redirect screen ──
   if (autoLoginChecked) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center p-4">
@@ -337,7 +355,6 @@ function PortalLoginContent() {
     )
   }
 
-  // ── Loading screen ──
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center p-4">
@@ -350,14 +367,13 @@ function PortalLoginContent() {
     )
   }
 
-  // ── Error screen ──
   if (loadError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
           <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-800">Connection Error</h2>
-          <p className="text-gray-500 mt-2">{loadError}</p>
+          <p className="text-gray-500 mt-2 break-words">{loadError}</p>
           <button
             onClick={() => { setLoadError(""); loadPlans() }}
             className="mt-4 px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 mx-auto"
@@ -369,7 +385,6 @@ function PortalLoginContent() {
     )
   }
 
-  // ── Payment in progress ──
   if (paymentStatus !== "idle") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center p-4">
@@ -404,9 +419,7 @@ function PortalLoginContent() {
               <h2 className="text-xl font-bold text-yellow-600">Timed Out</h2>
             </>
           )}
-
           <p className="text-gray-500 mt-2">{paymentMessage}</p>
-
           {(paymentStatus === "failed" || paymentStatus === "timeout") && (
             <button
               onClick={() => { setPaymentStatus("idle"); setPaymentMessage("") }}
@@ -420,10 +433,8 @@ function PortalLoginContent() {
     )
   }
 
-  // ── Main portal UI ──
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 to-indigo-700">
-      {/* Header */}
       <div className="text-center pt-8 pb-4 px-4">
         <div className="flex items-center justify-center gap-2 mb-2">
           <Wifi className="w-8 h-8 text-white" />
@@ -439,7 +450,6 @@ function PortalLoginContent() {
         )}
       </div>
 
-      {/* Plan Cards */}
       <div className="px-4 pb-4">
         <div className="max-w-md mx-auto space-y-3">
           {plans.map((plan) => (
@@ -485,7 +495,6 @@ function PortalLoginContent() {
         </div>
       </div>
 
-      {/* Phone + Pay Section */}
       {selectedPlan && (
         <div className="px-4 pb-8">
           <div className="max-w-md mx-auto bg-white rounded-2xl p-6 shadow-2xl">
@@ -530,7 +539,6 @@ function PortalLoginContent() {
         </div>
       )}
 
-      {/* Footer */}
       <div className="text-center pb-6 px-4">
         <p className="text-purple-300 text-xs">
           MAC: {mac} • IP: {ip}
@@ -539,10 +547,6 @@ function PortalLoginContent() {
     </div>
   )
 }
-
-// ==========================================
-// PAGE WRAPPER (Suspense for useSearchParams)
-// ==========================================
 
 export default function PortalLoginPage() {
   return (
