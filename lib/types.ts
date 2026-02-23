@@ -2809,12 +2809,25 @@ export interface CaptivePortalConfig {
 export interface CaptivePortalPlan {
   id: string
   name: string
-  price: number
-  download_speed: string
-  download_unit: string
-  validity: string
-  validity_unit: string
   description: string
+  price: number
+  currency: string
+  // Validity
+  validity_type: string
+  validity_value: number
+  duration_display: string
+  // Speed
+  download_speed: number
+  upload_speed: number
+  speed_unit: string
+  speed_display: string
+  // Data limits
+  limitation_type: string
+  data_limit_value: number | null
+  data_limit_unit: string
+  data_limit_display: string
+  // Display
+  is_popular: boolean
 }
 
 /** @deprecated Use CaptivePortalResponse instead */

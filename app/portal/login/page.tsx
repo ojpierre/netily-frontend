@@ -12,12 +12,25 @@ import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 interface HotspotPlan {
   id: string
   name: string
-  price: number
-  download_speed: string
-  download_unit: string
-  validity: string
-  validity_unit: string
   description?: string
+  price: number
+  currency?: string
+  // Validity
+  validity_type: string
+  validity_value: number
+  duration_display: string
+  // Speed
+  download_speed: number
+  upload_speed: number
+  speed_unit: string
+  speed_display: string
+  // Data limits
+  limitation_type: string
+  data_limit_value: number | null
+  data_limit_unit: string
+  data_limit_display: string
+  // Display
+  is_popular?: boolean
 }
 
 interface PortalConfig {
@@ -441,14 +454,24 @@ function PortalLoginContent() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-white font-semibold text-lg">{plan.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-white font-semibold text-lg">{plan.name}</h3>
+                    {plan.is_popular && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-yellow-400 text-yellow-900">POPULAR</span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-purple-200 text-xs flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {plan.validity} {plan.validity_unit}
+                      <Clock className="w-3 h-3" /> {plan.duration_display}
                     </span>
                     <span className="text-purple-200 text-xs flex items-center gap-1">
-                      <Zap className="w-3 h-3" /> {plan.download_speed} {plan.download_unit}
+                      <Zap className="w-3 h-3" /> {plan.speed_display}
                     </span>
+                    {plan.limitation_type !== "UNLIMITED" && plan.data_limit_value && (
+                      <span className="text-purple-200 text-xs flex items-center gap-1">
+                        <Shield className="w-3 h-3" /> {plan.data_limit_display}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
@@ -470,7 +493,7 @@ function PortalLoginContent() {
               {selectedPlan.name} — KSh {selectedPlan.price}
             </h3>
             <p className="text-gray-500 text-sm mb-4">
-              {selectedPlan.validity} {selectedPlan.validity_unit} • {selectedPlan.download_speed} {selectedPlan.download_unit}
+              {selectedPlan.duration_display} • {selectedPlan.speed_display}{selectedPlan.limitation_type !== "UNLIMITED" && selectedPlan.data_limit_value ? ` • ${selectedPlan.data_limit_display}` : ""}
             </p>
 
             <div className="mb-4">

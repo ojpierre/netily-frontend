@@ -11,13 +11,25 @@ import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 interface HotspotPlan {
   id: string
   name: string
+  description?: string
   price: number
   currency?: string
-  download_speed: string
-  download_unit: string
-  validity: string
-  validity_unit: string
-  description?: string
+  // Validity
+  validity_type: string
+  validity_value: number
+  duration_display: string
+  // Speed
+  download_speed: number
+  upload_speed: number
+  speed_unit: string
+  speed_display: string
+  // Data limits
+  limitation_type: string
+  data_limit_value: number | null
+  data_limit_unit: string
+  data_limit_display: string
+  // Display
+  is_popular?: boolean
 }
 
 interface PortalConfig {
@@ -707,13 +719,19 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             <div className="flex justify-between">
               <span className={theme.mutedText}>Duration</span>
               <span className={`font-semibold ${theme.planTitle}`}>
-                {selectedPlan ? `${selectedPlan.validity} ${selectedPlan.validity_unit}` : "-"}
+                {selectedPlan?.duration_display || "-"}
               </span>
             </div>
             <div className="flex justify-between">
               <span className={theme.mutedText}>Speed</span>
-              <span className={`font-semibold ${theme.planTitle}`}>{selectedPlan ? `${selectedPlan.download_speed} ${selectedPlan.download_unit}` : "-"}</span>
+              <span className={`font-semibold ${theme.planTitle}`}>{selectedPlan?.speed_display || "-"}</span>
             </div>
+            {selectedPlan && selectedPlan.limitation_type !== "UNLIMITED" && (
+              <div className="flex justify-between">
+                <span className={theme.mutedText}>Data</span>
+                <span className={`font-semibold ${theme.planTitle}`}>{selectedPlan.data_limit_display}</span>
+              </div>
+            )}
             {expiresAt && (
               <div className="flex justify-between">
                 <span className={theme.mutedText}>Expires</span>
@@ -897,6 +915,13 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className={`font-semibold ${theme.planTitle}`}>{plan.name}</span>
+                      {plan.is_popular && (
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${theme.planPopularBg} ${theme.planPopularText}`}
+                        >
+                          POPULAR
+                        </span>
+                      )}
                       {selectedPlan?.id === plan.id && (
                         <CheckCircle2 className="w-5 h-5 text-green-500" />
                       )}
@@ -904,13 +929,19 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                     <div className={`flex items-center gap-3 mt-1 text-sm ${theme.planSub}`}>
                       <span className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
-                        {plan.validity} {plan.validity_unit}
+                        {plan.duration_display}
                       </span>
                       <span className="flex items-center gap-1">
                         <Zap className="w-4 h-4" />
-                        {plan.download_speed} {plan.download_unit}
+                        {plan.speed_display}
                       </span>
                     </div>
+                    {plan.limitation_type !== "UNLIMITED" && plan.data_limit_value && (
+                      <p className={`text-xs mt-1 flex items-center gap-1 ${theme.planSub}`}>
+                        <Database className="w-3 h-3" />
+                        {plan.data_limit_display}
+                      </p>
+                    )}
                     {plan.description && (
                       <p className={`text-xs mt-1 ${theme.planSub}`}>{plan.description}</p>
                     )}
