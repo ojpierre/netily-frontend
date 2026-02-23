@@ -6,12 +6,14 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Allow ngrok and other dev origins for testing
+  // Allow ngrok, LAN IPs, and other dev origins for testing
   allowedDevOrigins: [
     "*.ngrok-free.app",
     "*.ngrok.io",
     "*.loca.lt",
     "*.localhost.run",
+    "192.168.100.149",
+    "localhost",
   ],
 }
 
