@@ -452,13 +452,24 @@ export default function HotspotManagementPage() {
 
     try {
       setFormLoading(true)
+      console.log("[HotspotBranding] Saving branding for router:", selectedRouter.id, brandingForm)
       // Save branding (colours, text)
       await adminApi.updateHotspotBranding(selectedRouter.id, brandingForm)
+      
+      console.log("[HotspotBranding] Saving template_id:", selectedTemplateId, "to router:", selectedRouter.id)
       // Save template_id to the router itself
       await adminApi.updateRouter(selectedRouter.id, { template_id: selectedTemplateId } as any)
+      
       toast.success("Branding & template updated successfully")
       setShowBrandingDialog(false)
+      
+      // Refresh branding data so UI stays in sync
+      const updatedBranding = await adminApi.getHotspotBranding(selectedRouter.id)
+      if (updatedBranding) {
+        setBranding(updatedBranding)
+      }
     } catch (error: any) {
+      console.error("[HotspotBranding] Save failed:", error)
       toast.error(error.message || "Failed to save branding")
     } finally {
       setFormLoading(false)

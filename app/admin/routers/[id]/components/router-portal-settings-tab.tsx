@@ -167,8 +167,9 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   const [error, setError] = useState<string | null>(null)
   const [dirty, setDirty] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [loadFailed, setLoadFailed] = useState(false)
 
-  // Original values for dirty-check
+  // Original values for dirty-check (ref avoids stale-closure issues)
   const [original, setOriginal] = useState({
     template_id: 1,
     hotspot_name: "",
@@ -180,6 +181,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   const loadSettings = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setLoadFailed(false)
     try {
       const router = await adminApi.getRouter(routerId)
       const values = {
@@ -195,7 +197,9 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
       setOriginal(values)
       setDirty(false)
     } catch (err: any) {
+      console.error("[PortalSettings] Load failed:", err)
       setError(err.message || "Failed to load portal settings")
+      setLoadFailed(true)
     } finally {
       setLoading(false)
     }
@@ -205,7 +209,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     loadSettings()
   }, [loadSettings])
 
-  // Dirty-check
+  // Dirty-check — compares current form values against the loaded originals
   useEffect(() => {
     const isDirty =
       templateId !== original.template_id ||
@@ -215,7 +219,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     setDirty(isDirty)
   }, [templateId, hotspotName, supportPhone, announcementText, original])
 
-  // ── Save ──
+  // ── Save — PATCH only changed fields ──
   const handleSave = async () => {
     if (isDemo) {
       toast.info("Demo mode — changes are not saved")
@@ -223,19 +227,37 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     }
     setSaving(true)
     setError(null)
+
+    // Build only changed fields to avoid overwriting unrelated Router data
+    const payload: Record<string, unknown> = {}
+    if (templateId !== original.template_id) payload.template_id = templateId
+    if (hotspotName !== original.hotspot_name) payload.hotspot_name = hotspotName
+    if (supportPhone !== original.support_phone) payload.support_phone = supportPhone
+    if (announcementText !== original.announcement_text) payload.announcement_text = announcementText
+
+    if (Object.keys(payload).length === 0) {
+      toast.info("No changes to save")
+      setSaving(false)
+      return
+    }
+
     try {
-      await adminApi.updateRouter(routerId, {
+      console.log("[PortalSettings] Saving payload:", payload, "to router:", routerId)
+      await adminApi.updateRouter(routerId, payload as any)
+      // Update originals to match current values so dirty resets
+      setOriginal({
         template_id: templateId,
         hotspot_name: hotspotName,
         support_phone: supportPhone,
         announcement_text: announcementText,
       })
-      setOriginal({ template_id: templateId, hotspot_name: hotspotName, support_phone: supportPhone, announcement_text: announcementText })
       setDirty(false)
       toast.success("Portal settings saved successfully")
     } catch (err: any) {
-      setError(err.message || "Failed to save portal settings")
-      toast.error("Failed to save portal settings")
+      console.error("[PortalSettings] Save failed:", err)
+      const msg = err.message || "Failed to save portal settings"
+      setError(msg)
+      toast.error(msg)
     } finally {
       setSaving(false)
     }
@@ -256,7 +278,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-xl font-semibold">Captive Portal Settings</h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -264,6 +286,11 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {dirty && (
+            <Badge variant="outline" className="text-amber-600 border-amber-300 animate-pulse">
+              Unsaved changes
+            </Badge>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -276,13 +303,14 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
             onClick={handleSave}
             disabled={!dirty || saving}
             size="sm"
+            className={dirty ? "bg-primary hover:bg-primary/90" : ""}
           >
             {saving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
               <Save className="w-4 h-4 mr-2" />
             )}
-            Save Changes
+            {saving ? "Saving…" : dirty ? "Save Changes" : "No Changes"}
           </Button>
         </div>
       </div>

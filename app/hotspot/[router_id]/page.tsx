@@ -1,7 +1,7 @@
 "use client"
 
 import { use, useEffect, useState, useMemo } from "react"
-import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database } from "lucide-react"
+import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users } from "lucide-react"
 import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 
 // ==========================================
@@ -28,6 +28,8 @@ interface HotspotPlan {
   data_limit_value: number | null
   data_limit_unit: string
   data_limit_display: string
+  // Device limits
+  simultaneous_devices?: number
   // Display
   is_popular?: boolean
 }
@@ -93,10 +95,32 @@ type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "ti
 // API FUNCTIONS (Public endpoints — no auth)
 // ==========================================
 
-/** Lazily resolve the API base so we pick up the tenant subdomain from the browser URL */
+/** Resolve the API base dynamically from subdomain or environment */
 function getApiBase(): string {
-  // ── Hardcoded for LAN / phone testing ──
-  return "http://192.168.100.149:8000/api/v1"
+  if (typeof window === "undefined") {
+    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+  }
+  
+  const hostname = window.location.hostname
+  const isDevelopment = hostname.includes("localhost") || hostname.startsWith("127.") || hostname.startsWith("192.168.")
+  
+  // For LAN IP access (e.g., 192.168.x.x:3000), use the same IP for backend
+  if (hostname.startsWith("192.168.")) {
+    return `http://${hostname.replace(":3000", "")}:8000/api/v1`
+  }
+  
+  // For subdomain.localhost:3000, route to subdomain.localhost:8000
+  if (hostname.includes("localhost")) {
+    const parts = hostname.split(".")
+    if (parts.length > 1) {
+      const subdomain = parts[0]
+      return `http://${subdomain}.localhost:8000/api/v1`
+    }
+    return "http://localhost:8000/api/v1"
+  }
+  
+  // Production: use same origin API
+  return `${window.location.origin}/api/v1`
 }
 
 async function fetchCaptivePortal(routerId: string): Promise<CaptivePortalResponse> {
@@ -112,14 +136,26 @@ async function fetchCaptivePortal(routerId: string): Promise<CaptivePortalRespon
   return response.json()
 }
 
-/** Resolve the current tenant from subdomain / query-string / fallback */
+/** Resolve the current tenant from subdomain / query-string */
 function getTenant(): string {
+  if (typeof window === "undefined") return ""
+  
   const info = getSubdomainInfo()
-  return (
-    info.subdomain ||
-    new URLSearchParams(window.location.search).get("tenant") ||
-    "yellow1" // ← hardcoded fallback for LAN testing
-  )
+  // Priority: URL query param > subdomain from hostname
+  const queryTenant = new URLSearchParams(window.location.search).get("tenant")
+  if (queryTenant) return queryTenant
+  
+  // Get subdomain from hostname (e.g., "indigo3" from "indigo3.localhost")
+  if (info.subdomain) return info.subdomain
+  
+  // Fallback: extract from hostname directly
+  const hostname = window.location.hostname
+  const parts = hostname.split(".")
+  if (parts.length > 1 && !["www", "api", "app"].includes(parts[0])) {
+    return parts[0]
+  }
+  
+  return ""
 }
 
 async function initiatePurchase(data: {
@@ -278,12 +314,26 @@ interface ThemeStyles {
   errorText: string
   successBg: string
   successPageBg: string
+  // Layout variations
+  layoutType: "grid" | "list" | "featured" | "compact"
+  // Structural variations
+  headerStyle: "centered" | "left-aligned" | "large-hero" | "minimal"
+  cardShape: "rounded-2xl" | "rounded-3xl" | "rounded-none" | "rounded-lg"
+  ctaStyle: "full-width" | "centered" | "pill"
+  showPhoneBeforePlans: boolean
+  showWifiIcon: boolean
 }
 
 function getTheme(id: number): ThemeStyles {
   switch (id) {
-    case 2: // Dark Mode
+    case 2: // Dark Mode - Featured Layout (Cyberpunk style)
       return {
+        layoutType: "featured",
+        headerStyle: "large-hero",
+        cardShape: "rounded-2xl",
+        ctaStyle: "full-width",
+        showPhoneBeforePlans: false,
+        showWifiIcon: true,
         pageBg: "min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800",
         cardClass: "bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl",
         headerBg: "bg-gradient-to-r from-cyan-600 to-blue-600",
@@ -316,8 +366,14 @@ function getTheme(id: number): ThemeStyles {
         successBg: "bg-emerald-950/40",
         successPageBg: "min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800",
       }
-    case 3: // Gradient
+    case 3: // Gradient - List Layout (Vibrant gradient style)
       return {
+        layoutType: "list",
+        headerStyle: "centered",
+        cardShape: "rounded-3xl",
+        ctaStyle: "pill",
+        showPhoneBeforePlans: true,
+        showWifiIcon: true,
         pageBg: "min-h-screen bg-gradient-to-br from-purple-700 via-fuchsia-600 to-pink-500",
         cardClass: "bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl",
         headerBg: "bg-gradient-to-r from-purple-600 to-pink-500",
@@ -350,8 +406,14 @@ function getTheme(id: number): ThemeStyles {
         successBg: "bg-green-50",
         successPageBg: "min-h-screen bg-gradient-to-br from-emerald-600 to-teal-500",
       }
-    case 4: // Minimal
+    case 4: // Minimal - Compact Layout (Clean, Apple-like)
       return {
+        layoutType: "compact",
+        headerStyle: "minimal",
+        cardShape: "rounded-lg",
+        ctaStyle: "full-width",
+        showPhoneBeforePlans: false,
+        showWifiIcon: false,
         pageBg: "min-h-screen bg-white",
         cardClass: "bg-white rounded-2xl shadow-sm border border-gray-100",
         headerBg: "bg-white border-b border-gray-100",
@@ -384,8 +446,14 @@ function getTheme(id: number): ThemeStyles {
         successBg: "bg-green-50",
         successPageBg: "min-h-screen bg-white",
       }
-    case 5: // Vibrant
+    case 5: // Vibrant - Grid Layout (Energetic, event-poster style)
       return {
+        layoutType: "grid",
+        headerStyle: "large-hero",
+        cardShape: "rounded-2xl",
+        ctaStyle: "pill",
+        showPhoneBeforePlans: false,
+        showWifiIcon: true,
         pageBg: "min-h-screen bg-gradient-to-br from-amber-400 via-orange-500 to-red-500",
         cardClass: "bg-white rounded-2xl shadow-2xl",
         headerBg: "bg-gradient-to-r from-amber-500 to-orange-500",
@@ -418,8 +486,14 @@ function getTheme(id: number): ThemeStyles {
         successBg: "bg-green-50",
         successPageBg: "min-h-screen bg-gradient-to-br from-emerald-400 to-green-500",
       }
-    case 6: // Corporate
+    case 6: // Corporate - Featured Layout (Enterprise, boardroom style)
       return {
+        layoutType: "featured",
+        headerStyle: "left-aligned",
+        cardShape: "rounded-lg",
+        ctaStyle: "full-width",
+        showPhoneBeforePlans: true,
+        showWifiIcon: false,
         pageBg: "min-h-screen bg-gradient-to-b from-slate-50 to-slate-200",
         cardClass: "bg-white rounded-2xl shadow-lg border border-slate-200",
         headerBg: "bg-slate-800",
@@ -452,8 +526,14 @@ function getTheme(id: number): ThemeStyles {
         successBg: "bg-green-50",
         successPageBg: "min-h-screen bg-gradient-to-b from-emerald-50 to-emerald-100",
       }
-    case 7: // Glass
+    case 7: // Glass - List Layout (Glassmorphism, futuristic)
       return {
+        layoutType: "list",
+        headerStyle: "centered",
+        cardShape: "rounded-3xl",
+        ctaStyle: "centered",
+        showPhoneBeforePlans: false,
+        showWifiIcon: true,
         pageBg: "min-h-screen bg-gradient-to-br from-teal-500 via-cyan-500 to-blue-600",
         cardClass: "bg-white/15 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl",
         headerBg: "bg-white/10",
@@ -486,8 +566,14 @@ function getTheme(id: number): ThemeStyles {
         successBg: "bg-emerald-500/20",
         successPageBg: "min-h-screen bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600",
       }
-    default: // Classic (1)
+    default: // Classic (1) - Grid Layout (Professional, ISP standard)
       return {
+        layoutType: "grid",
+        headerStyle: "centered",
+        cardShape: "rounded-2xl",
+        ctaStyle: "full-width",
+        showPhoneBeforePlans: false,
+        showWifiIcon: true,
         pageBg: "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100",
         cardClass: "bg-white rounded-2xl shadow-xl",
         headerBg: "bg-blue-600",
@@ -521,6 +607,48 @@ function getTheme(id: number): ThemeStyles {
         successPageBg: "min-h-screen bg-gradient-to-br from-green-50 to-emerald-100",
       }
   }
+}
+
+// ==========================================
+// PHONE INPUT COMPONENT (DRY helper)
+// ==========================================
+
+function PhoneInput({
+  phoneNumber,
+  phoneError,
+  onPhoneChange,
+  theme,
+}: {
+  phoneNumber: string
+  phoneError: string | null
+  onPhoneChange: (v: string) => void
+  theme: ThemeStyles
+}) {
+  return (
+    <div className="mb-6">
+      <label className={`block text-sm font-medium mb-2 ${theme.planTitle}`}>
+        M-Pesa Phone Number
+      </label>
+      <div className="relative">
+        <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.mutedText}`} />
+        <input
+          type="tel"
+          placeholder="0712 345 678"
+          value={phoneNumber}
+          onChange={(e) => onPhoneChange(e.target.value)}
+          className={`w-full pl-10 pr-4 py-3 border ${theme.cardShape} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} ${
+            phoneError ? "!border-red-400 !ring-red-500" : ""
+          }`}
+        />
+      </div>
+      {phoneError && (
+        <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+          <AlertCircle className="w-4 h-4" />
+          {phoneError}
+        </p>
+      )}
+    </div>
+  )
 }
 
 // ==========================================
@@ -883,19 +1011,30 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   return (
     <div className={`${theme.pageBg} flex items-center justify-center p-4`}>
       <div className={`${theme.cardClass} max-w-md w-full overflow-hidden`}>
-        {/* ── Header ── */}
-        <div className={`p-6 text-center ${theme.headerBg}`} style={brandingHeaderStyle}>
+        {/* ── Header — adapts to headerStyle ── */}
+        <div
+          className={`${theme.headerBg} ${
+            theme.headerStyle === "large-hero" ? "p-8" :
+            theme.headerStyle === "minimal" ? "p-4" :
+            "p-6"
+          } ${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"}`}
+          style={brandingHeaderStyle}
+        >
           {branding?.logo_url ? (
-            <img src={branding.logo_url} alt={displayName} className="h-12 mx-auto mb-3 object-contain" />
-          ) : (
-            <Wifi className={`w-12 h-12 mx-auto mb-3 ${theme.headerText}`} />
-          )}
-          <h1 className={`text-2xl font-bold ${theme.headerText}`}>{displayName}</h1>
+            <img
+              src={branding.logo_url}
+              alt={displayName}
+              className={`${theme.headerStyle === "large-hero" ? "h-16" : "h-12"} ${theme.headerStyle === "left-aligned" ? "" : "mx-auto"} mb-3 object-contain`}
+            />
+          ) : theme.showWifiIcon ? (
+            <Wifi className={`${theme.headerStyle === "large-hero" ? "w-16 h-16" : "w-12 h-12"} ${theme.headerStyle === "left-aligned" ? "" : "mx-auto"} mb-3 ${theme.headerText}`} />
+          ) : null}
+          <h1 className={`${theme.headerStyle === "large-hero" ? "text-3xl" : theme.headerStyle === "minimal" ? "text-lg" : "text-2xl"} font-bold ${theme.headerText}`}>{displayName}</h1>
           {welcomeTitle && (
             <p className={`text-sm mt-1 ${theme.headerSub}`}>{welcomeTitle}</p>
           )}
           {supportPhone && (
-            <p className={`text-xs mt-2 flex items-center justify-center gap-1 ${theme.headerSub}`}>
+            <p className={`text-xs mt-2 flex items-center gap-1 ${theme.headerSub} ${theme.headerStyle === "left-aligned" ? "" : "justify-center"}`}>
               <Phone className="w-3 h-3" />
               {supportPhone}
             </p>
@@ -912,50 +1051,127 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             </div>
           )}
 
-          <p className={`text-center mb-6 ${theme.bodyText}`}>
+          <p className={`${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"} mb-6 ${theme.bodyText}`}>
             {welcomeMessage || "Select a plan and pay with M-Pesa to get connected"}
           </p>
 
-          {/* Phone Number Input */}
-          <div className="mb-6">
-            <label className={`block text-sm font-medium mb-2 ${theme.planTitle}`}>
-              M-Pesa Phone Number
-            </label>
-            <div className="relative">
-              <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.mutedText}`} />
-              <input
-                type="tel"
-                placeholder="0712 345 678"
-                value={phoneNumber}
-                onChange={(e) => handlePhoneChange(e.target.value)}
-                className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} ${
-                  phoneError ? "!border-red-400 !ring-red-500" : ""
-                }`}
-              />
-            </div>
-            {phoneError && (
-              <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {phoneError}
-              </p>
-            )}
-          </div>
+          {/* Phone Number Input — shown before plans for certain templates */}
+          {theme.showPhoneBeforePlans && (
+            <PhoneInput
+              phoneNumber={phoneNumber}
+              phoneError={phoneError}
+              onPhoneChange={handlePhoneChange}
+              theme={theme}
+            />
+          )}
 
-          {/* Plan Cards */}
-          <div className="space-y-3 mb-6">
-            {plans.map((plan) => (
+          {/* Plan Cards - Layout varies by theme */}
+          <div className={`mb-6 ${
+            theme.layoutType === "grid" 
+              ? "grid grid-cols-2 gap-3" 
+              : theme.layoutType === "compact"
+              ? "flex flex-wrap gap-2"
+              : "space-y-3"
+          }`}>
+            {/* Featured layout: show popular plan first and larger */}
+            {theme.layoutType === "featured" && plans.some(p => p.is_popular) && (
+              <div className="mb-3">
+                {plans.filter(p => p.is_popular).map((plan) => (
+                  <button
+                    key={plan.id}
+                    type="button"
+                    onClick={() => setSelectedPlan(plan)}
+                    className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
+                      selectedPlan?.id === plan.id
+                        ? `${theme.planSelectedBorder} ${theme.planSelectedBg} shadow-lg ring-2 ring-opacity-50`
+                        : `${theme.planBorder} ${theme.planBg} hover:shadow-md`
+                    }`}
+                    style={selectedPlan?.id === plan.id ? brandingSelectedBorderStyle : undefined}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className={`text-xs font-bold px-2 py-1 rounded-full ${theme.planPopularBg} ${theme.planPopularText}`}
+                        style={branding?.primary_color ? { backgroundColor: branding.primary_color } : undefined}
+                      >
+                        ★ BEST VALUE
+                      </span>
+                      {selectedPlan?.id === plan.id && <CheckCircle2 className="w-5 h-5 text-green-500" />}
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className={`text-lg font-bold ${theme.planTitle}`}>{plan.name}</span>
+                        <div className={`flex items-center gap-3 mt-1 text-sm ${theme.planSub}`}>
+                          <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{plan.duration_display}</span>
+                          {plan.download_speed ? (
+                            <>
+                              <span className="flex items-center gap-1 text-green-600"><ArrowDown className="w-3.5 h-3.5" />{plan.download_speed} {plan.speed_unit || 'Mbps'}</span>
+                              <span className="flex items-center gap-1 text-blue-600"><ArrowUp className="w-3.5 h-3.5" />{plan.upload_speed} {plan.speed_unit || 'Mbps'}</span>
+                            </>
+                          ) : <span className="flex items-center gap-1"><Zap className="w-4 h-4" />{plan.speed_display}</span>}
+                        </div>
+                      </div>
+                      <span className={`text-2xl font-bold ${theme.planPrice}`} style={brandingPriceStyle}>
+                        {plan.currency || "KES"} {plan.price}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Regular plans (or all plans for non-featured layouts) */}
+            {(theme.layoutType === "featured" ? plans.filter(p => !p.is_popular) : plans).map((plan) => (
               <button
                 key={plan.id}
                 type="button"
                 onClick={() => setSelectedPlan(plan)}
-                className={`w-full text-left border-2 rounded-xl p-4 transition-all ${
+                className={`text-left border-2 transition-all ${
+                  theme.layoutType === "grid" 
+                    ? "rounded-xl p-3 flex flex-col" 
+                    : theme.layoutType === "compact"
+                    ? "rounded-lg p-2 flex-1 min-w-[140px]"
+                    : "w-full rounded-xl p-4"
+                } ${
                   selectedPlan?.id === plan.id
                     ? `${theme.planSelectedBorder} ${theme.planSelectedBg} shadow-md`
                     : `${theme.planBorder} ${theme.planBg} hover:shadow-sm`
                 }`}
                 style={selectedPlan?.id === plan.id ? brandingSelectedBorderStyle : undefined}
               >
-                <div className="flex justify-between items-start">
+                {/* Grid layout: vertical card design */}
+                {theme.layoutType === "grid" ? (
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`font-semibold text-sm ${theme.planTitle}`}>{plan.name}</span>
+                      {selectedPlan?.id === plan.id && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                    </div>
+                    {plan.is_popular && (
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full w-fit mb-2 ${theme.planPopularBg} ${theme.planPopularText}`}
+                        style={branding?.primary_color ? { backgroundColor: branding.primary_color } : undefined}>POPULAR</span>
+                    )}
+                    <div className={`text-xs space-y-1 ${theme.planSub} flex-1`}>
+                      <div className="flex items-center gap-1"><Clock className="w-3 h-3" />{plan.duration_display}</div>
+                      <div className="flex items-center gap-1"><Zap className="w-3 h-3" />{plan.speed_display}</div>
+                      {plan.simultaneous_devices && plan.simultaneous_devices > 0 && (
+                        <div className="flex items-center gap-1"><Users className="w-3 h-3" />{plan.simultaneous_devices} devices</div>
+                      )}
+                    </div>
+                    <div className={`text-lg font-bold mt-2 ${theme.planPrice}`} style={brandingPriceStyle}>
+                      {plan.currency || "KES"} {plan.price}
+                    </div>
+                  </div>
+                ) : theme.layoutType === "compact" ? (
+                  /* Compact layout: minimal info */
+                  <div className="text-center">
+                    <span className={`font-semibold text-sm block ${theme.planTitle}`}>{plan.name}</span>
+                    <span className={`text-xs ${theme.planSub}`}>{plan.duration_display}</span>
+                    <div className={`text-lg font-bold ${theme.planPrice}`} style={brandingPriceStyle}>
+                      {plan.currency || "KES"} {plan.price}
+                    </div>
+                    {selectedPlan?.id === plan.id && <CheckCircle2 className="w-4 h-4 text-green-500 mx-auto mt-1" />}
+                  </div>
+                ) : (
+                  /* List/Featured layout: horizontal design */
+                  <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className={`font-semibold ${theme.planTitle}`}>{plan.name}</span>
@@ -971,22 +1187,51 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                         <CheckCircle2 className="w-5 h-5 text-green-500" />
                       )}
                     </div>
-                    <div className={`flex items-center gap-3 mt-1 text-sm ${theme.planSub}`}>
+                    {/* Duration + Speed row */}
+                    <div className={`flex flex-wrap items-center gap-3 mt-2 text-sm ${theme.planSub}`}>
                       <span className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
                         {plan.duration_display}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Zap className="w-4 h-4" />
-                        {plan.speed_display}
-                      </span>
+                      {/* Show detailed speeds if available, otherwise fallback to speed_display */}
+                      {plan.download_speed || plan.upload_speed ? (
+                        <>
+                          <span className="flex items-center gap-1 text-green-600">
+                            <ArrowDown className="w-3.5 h-3.5" />
+                            {plan.download_speed} {plan.speed_unit || 'Mbps'}
+                          </span>
+                          <span className="flex items-center gap-1 text-blue-600">
+                            <ArrowUp className="w-3.5 h-3.5" />
+                            {plan.upload_speed} {plan.speed_unit || 'Mbps'}
+                          </span>
+                        </>
+                      ) : plan.speed_display ? (
+                        <span className="flex items-center gap-1">
+                          <Zap className="w-4 h-4" />
+                          {plan.speed_display}
+                        </span>
+                      ) : null}
                     </div>
-                    {plan.limitation_type !== "UNLIMITED" && plan.data_limit_value && (
-                      <p className={`text-xs mt-1 flex items-center gap-1 ${theme.planSub}`}>
-                        <Database className="w-3 h-3" />
-                        {plan.data_limit_display}
-                      </p>
-                    )}
+                    {/* Data limit + device limit row */}
+                    <div className={`flex flex-wrap items-center gap-3 mt-1 text-xs ${theme.planSub}`}>
+                      {plan.limitation_type !== "UNLIMITED" && plan.data_limit_value ? (
+                        <span className="flex items-center gap-1">
+                          <Database className="w-3 h-3" />
+                          {plan.data_limit_display}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-green-600">
+                          <Zap className="w-3 h-3" />
+                          Unlimited Data
+                        </span>
+                      )}
+                      {plan.simultaneous_devices && plan.simultaneous_devices > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {plan.simultaneous_devices} {plan.simultaneous_devices === 1 ? 'device' : 'devices'}
+                        </span>
+                      )}
+                    </div>
                     {plan.description && (
                       <p className={`text-xs mt-1 ${theme.planSub}`}>{plan.description}</p>
                     )}
@@ -997,9 +1242,20 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                     </span>
                   </div>
                 </div>
+                )}
               </button>
             ))}
           </div>
+
+          {/* Phone Number Input — shown after plans for most templates */}
+          {!theme.showPhoneBeforePlans && (
+            <PhoneInput
+              phoneNumber={phoneNumber}
+              phoneError={phoneError}
+              onPhoneChange={handlePhoneChange}
+              theme={theme}
+            />
+          )}
 
           {/* Inline Error */}
           {error && (
@@ -1009,17 +1265,25 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             </div>
           )}
 
-          {/* CTA Button */}
-          <button
-            onClick={handlePay}
-            disabled={!selectedPlan || !phoneNumber || !!phoneError}
-            className={`w-full py-4 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover}`}
-            style={brandingCtaStyle}
-          >
-            {selectedPlan
-              ? `Pay ${selectedPlan.currency || "KES"} ${selectedPlan.price} with M-Pesa`
-              : "Select a Plan to Continue"}
-          </button>
+          {/* CTA Button — style varies by theme */}
+          <div className={theme.ctaStyle === "centered" ? "flex justify-center" : ""}>
+            <button
+              onClick={handlePay}
+              disabled={!selectedPlan || !phoneNumber || !!phoneError}
+              className={`py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover} ${
+                theme.ctaStyle === "pill"
+                  ? "w-full rounded-full"
+                  : theme.ctaStyle === "centered"
+                  ? "px-12 rounded-xl"
+                  : "w-full rounded-xl"
+              }`}
+              style={brandingCtaStyle}
+            >
+              {selectedPlan
+                ? `Pay ${selectedPlan.currency || "KES"} ${selectedPlan.price} with M-Pesa`
+                : "Select a Plan to Continue"}
+            </button>
+          </div>
 
           <p className={`text-center text-xs mt-4 ${theme.footerText}`}>
             By connecting, you agree to the terms of service
