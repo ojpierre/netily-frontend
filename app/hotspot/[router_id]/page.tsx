@@ -100,10 +100,7 @@ function getApiBase(): string {
 }
 
 async function fetchCaptivePortal(routerId: string): Promise<CaptivePortalResponse> {
-  const info = getSubdomainInfo()
-  const tenant = info.subdomain
-    || new URLSearchParams(window.location.search).get("tenant")
-    || "yellow1"                       // ← hardcoded fallback for LAN testing
+  const tenant = getTenant()
   const response = await fetch(
     `${getApiBase()}/hotspot/captive-portal/?router=${routerId}&tenant=${tenant}`,
     { cache: "no-store" },
@@ -115,11 +112,22 @@ async function fetchCaptivePortal(routerId: string): Promise<CaptivePortalRespon
   return response.json()
 }
 
+/** Resolve the current tenant from subdomain / query-string / fallback */
+function getTenant(): string {
+  const info = getSubdomainInfo()
+  return (
+    info.subdomain ||
+    new URLSearchParams(window.location.search).get("tenant") ||
+    "yellow1" // ← hardcoded fallback for LAN testing
+  )
+}
+
 async function initiatePurchase(data: {
   router_id: string
   plan_id: string
   phone_number: string
   mac_address: string
+  tenant: string
 }): Promise<PurchaseResponse> {
   const response = await fetch(`${getApiBase()}/hotspot/purchase/`, {
     method: "POST",
@@ -134,18 +142,17 @@ async function initiatePurchase(data: {
   return response.json()
 }
 
-async function pollPurchaseStatus(sessionId: string, loginUrl?: string): Promise<PurchaseResponse> {
-  const params = loginUrl ? `?login_url=${encodeURIComponent(loginUrl)}` : ""
-  const response = await fetch(`${getApiBase()}/hotspot/purchase/${sessionId}/status/${params}`, { cache: "no-store" })
+async function pollPurchaseStatus(sessionId: string, loginUrl?: string, tenant?: string): Promise<PurchaseResponse> {
+  const qp = new URLSearchParams()
+  if (loginUrl) qp.append("login_url", loginUrl)
+  qp.append("tenant", tenant || getTenant())
+  const response = await fetch(`${getApiBase()}/hotspot/purchase/${sessionId}/status/?${qp.toString()}`, { cache: "no-store" })
   if (!response.ok) throw new Error("Failed to check payment status")
   return response.json()
 }
 
 async function checkAutoLogin(routerId: string, macAddress: string): Promise<AutoLoginResponse> {
-  const info = getSubdomainInfo()
-  const tenant = info.subdomain
-    || new URLSearchParams(window.location.search).get("tenant")
-    || "yellow1"                       // ← hardcoded fallback for LAN testing
+  const tenant = getTenant()
   const response = await fetch(`${getApiBase()}/hotspot/auto-login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -613,7 +620,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     if (paymentStatus !== "waiting" || !sessionId) return
     const pollInterval = setInterval(async () => {
       try {
-        const result = await pollPurchaseStatus(sessionId, loginUrl)
+        const result = await pollPurchaseStatus(sessionId, loginUrl, getTenant())
         if (result.status === "success") {
           setPaymentStatus("success")
           setAccessCode(result.access_code || null)
@@ -678,6 +685,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
         plan_id: selectedPlan.id,
         phone_number: formatPhoneNumber(phoneNumber),
         mac_address: getMacAddress(),
+        tenant: getTenant(),
       })
       setSessionId(result.session_id)
       setPaymentStatus("waiting")
