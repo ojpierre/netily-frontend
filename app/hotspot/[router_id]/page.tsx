@@ -705,18 +705,36 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
 
   // ── MikroTik query-params on mount ──
   useEffect(() => {
-    const url = getLoginUrl()
+    // 1. READ URL PARAMS
+    const params = new URLSearchParams(window.location.search)
+    
+    // 2. CHECK FOR ROUTER ERRORS (STOP THE LOOP)
+    const routerError = params.get("error")
+    if (routerError) {
+        console.error("Router reported error:", routerError)
+        setError(decodeURIComponent(routerError)) // Show error to user
+        setLoading(false)
+        return // <--- CRITICAL: Stop executing the rest
+    }
+
+    const url = params.get("login_url")
     if (url) setLoginUrl(url)
+    
     if (isSmartTV()) {
-      const mac = getMacAddress()
+      const mac = params.get("mac") || "00:00:00:00:00:00"
       window.location.href = `/hotspot/${routerId}/add-device?mac=${encodeURIComponent(mac)}&router_id=${routerId}`
     }
   }, [routerId])
 
   // ── Auto-login check ──
   useEffect(() => {
+    // 1. SAFETY CHECK
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("error")) return; // <--- CRITICAL: Do not auto-login if we just failed!
+
     const mac = getMacAddress()
     if (mac === "00:00:00:00:00:00" || autoLoginChecked) return
+    
     checkAutoLogin(routerId, mac)
       .then((result) => {
         if (result.has_session && result.credentials && loginUrl) {
@@ -749,15 +767,33 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     const pollInterval = setInterval(async () => {
       try {
         const result = await pollPurchaseStatus(sessionId, loginUrl, getTenant())
+        
         if (result.status === "success") {
           setPaymentStatus("success")
           setAccessCode(result.access_code || null)
           setExpiresAt(result.expires_at || null)
           clearInterval(pollInterval)
+          
+          // === AUTO-LOGIN LOGIC START ===
+          // If we have a Router Login URL and the User Credentials (username/password),
+          // automatically redirect the user to the router to log them in.
           if (loginUrl && result.access_code) {
-            setReturningToRouter(true)
-            setTimeout(() => returnTripToMikrotik(loginUrl, result.access_code!, result.access_code!), 2000)
+             setReturningToRouter(true)
+             
+             // Construct the Auto-Login URL
+             // The Router's login.html will read these params and submit the form
+             // We use 'access_code' for both username/password as per your backend logic
+             const username = encodeURIComponent(result.access_code)
+             const password = encodeURIComponent(result.access_code) // Same as username
+             const targetUrl = `${loginUrl}?username=${username}&password=${password}`
+             
+             // Redirect immediately (or with a small delay for UX)
+             setTimeout(() => {
+                 window.location.href = targetUrl
+             }, 1500)
           }
+          // === AUTO-LOGIN LOGIC END ===
+
         } else if (result.status === "failed") {
           setPaymentStatus("failed")
           setError(result.message || "Payment failed")
