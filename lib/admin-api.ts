@@ -280,12 +280,17 @@ class AdminApiService {
         detail: `Server error: ${response.status}` 
       }))
       
-      // For 400 Bad Request, throw the full error object so field errors can be displayed
+      // For 400 Bad Request, extract the specific backend message
       if (response.status === 400) {
         console.error('API 400 Error:', error)
-        // Extract meaningful error message
         let errorMessage = 'Invalid request'
-        if (error.detail) {
+
+        // Format A: DRF ValidationError as top-level array – ["Cannot delete Plan ..."]
+        if (Array.isArray(error)) {
+          errorMessage = error.join(', ')
+        }
+        // Standard DRF "detail" key
+        else if (error.detail) {
           if (Array.isArray(error.detail)) {
             errorMessage = error.detail.join(', ')
           } else if (typeof error.detail === 'string') {
@@ -293,22 +298,38 @@ class AdminApiService {
           } else if (typeof error.detail === 'object') {
             errorMessage = JSON.stringify(error.detail)
           }
-        } else if (error.non_field_errors) {
+        }
+        // "non_field_errors" key
+        else if (error.non_field_errors) {
           errorMessage = Array.isArray(error.non_field_errors) 
             ? error.non_field_errors.join(', ') 
             : error.non_field_errors
-        } else if (error.email || error.password) {
-          const errors = []
-          if (error.email) errors.push(`Email: ${error.email}`)
-          if (error.password) errors.push(`Password: ${error.password}`)
-          errorMessage = errors.join(', ')
         }
+        // Format B: field-keyed object – {"ip_address": ["The IP ... is already assigned"]}
+        else if (typeof error === 'object' && error !== null) {
+          const messages: string[] = []
+          for (const key of Object.keys(error)) {
+            const val = error[key]
+            if (Array.isArray(val)) {
+              messages.push(...val)
+            } else if (typeof val === 'string') {
+              messages.push(val)
+            }
+          }
+          if (messages.length > 0) {
+            errorMessage = messages.join(', ')
+          }
+        }
+
         console.error('API 400 Error Message:', errorMessage)
         throw new Error(errorMessage)
       }
       
       throw new Error(error.detail || error.message || `Request failed with status ${response.status}`)
     }
+
+    // Handle 204 No Content (e.g. successful DELETE)
+    if (response.status === 204) return undefined as unknown as T
     return response.json()
   }
 

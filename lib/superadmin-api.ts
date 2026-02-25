@@ -393,7 +393,30 @@ class SuperadminApiService {
         throw new Error("Session expired. Please login again.")
       }
       const err = await res.json().catch(() => ({ detail: `Error ${res.status}` }))
-      throw new Error(err.detail || err.message || JSON.stringify(err))
+
+      // Extract meaningful error message from DRF response formats
+      let errorMessage = 'Request failed'
+      if (Array.isArray(err)) {
+        // Format A: top-level array ["Cannot delete ..."]
+        errorMessage = err.join(', ')
+      } else if (err.detail) {
+        errorMessage = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail)
+      } else if (err.non_field_errors) {
+        errorMessage = Array.isArray(err.non_field_errors) ? err.non_field_errors.join(', ') : err.non_field_errors
+      } else if (err.message) {
+        errorMessage = err.message
+      } else if (typeof err === 'object' && err !== null) {
+        // Format B: field-keyed object {"field": ["message"]}
+        const messages: string[] = []
+        for (const key of Object.keys(err)) {
+          const val = err[key]
+          if (Array.isArray(val)) messages.push(...val)
+          else if (typeof val === 'string') messages.push(val)
+        }
+        if (messages.length > 0) errorMessage = messages.join(', ')
+        else errorMessage = JSON.stringify(err)
+      }
+      throw new Error(errorMessage)
     }
 
     // Handle 204 No Content

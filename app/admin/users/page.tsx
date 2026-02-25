@@ -493,8 +493,9 @@ export default function UsersPage() {
           }
           
           await adminApi.createCustomerService(newCustomer.id, serviceData)
-        } catch (serviceError) {
-          console.warn('Service creation optional error:', serviceError)
+        } catch (serviceError: any) {
+          console.error('Service creation error:', serviceError)
+          toast.error(serviceError.message || 'Failed to create service for customer')
         }
       }
 
