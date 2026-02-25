@@ -12,6 +12,23 @@ export function middleware(request: NextRequest) {
   // Get tokens from cookies
   const userToken = request.cookies.get('access_token')?.value
   const adminToken = request.cookies.get('adminToken')?.value
+  const superadminToken = request.cookies.get('superadminToken')?.value
+
+  // Superadmin routes protection
+  if (pathname.startsWith('/superadmin')) {
+    if (pathname === '/superadmin/login') {
+      if (superadminToken) {
+        return NextResponse.redirect(new URL('/superadmin', request.url))
+      }
+      return NextResponse.next()
+    }
+
+    if (!superadminToken) {
+      const loginUrl = new URL('/superadmin/login', request.url)
+      loginUrl.searchParams.set('from', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+  }
 
   // Admin routes protection
   if (pathname.startsWith('/admin')) {
