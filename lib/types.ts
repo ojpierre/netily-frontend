@@ -2537,6 +2537,21 @@ export interface RADIUSAccountingSession {
   is_active: boolean
 }
 
+// Online user session from /radius/sessions/active/ — pre-formatted for display
+export interface OnlineSession {
+  radacctid: number
+  acctsessionid: string
+  username: string
+  full_name: string
+  phone_number: string
+  mac_address: string
+  ip_address: string
+  uptime: string
+  usage: string
+  router: string
+  service_type: string
+}
+
 export interface RADIUSDashboardStats {
   total_users: number
   active_users: number

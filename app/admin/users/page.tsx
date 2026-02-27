@@ -32,7 +32,7 @@ import {
   Power,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
-import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP } from "@/lib/types"
+import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession } from "@/lib/types"
 
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -277,6 +277,13 @@ export default function UsersPage() {
   const [availableIPs, setAvailableIPs] = useState<AvailableIP[]>([])
   const [availableIPsLoading, setAvailableIPsLoading] = useState(false)
   const [ipSearchQuery, setIpSearchQuery] = useState("")
+  // Online sessions from RADIUS endpoint
+  const [onlineSessions, setOnlineSessions] = useState<OnlineSession[]>([])
+  const [onlineSessionsLoading, setOnlineSessionsLoading] = useState(false)
+  const [onlineSearchQuery, setOnlineSearchQuery] = useState("")
+  const [onlineServiceFilter, setOnlineServiceFilter] = useState("all")
+  // Active users (subscription) search
+  const [activeSearchQuery, setActiveSearchQuery] = useState("")
   const itemsPerPage = 10
 
   // Edit user form state
@@ -311,6 +318,7 @@ export default function UsersPage() {
     hasFetched.current = true
     loadUsers()
     loadPlans()
+    loadOnlineSessions()
   }, [])
 
   // Load billing plans from API
@@ -324,6 +332,20 @@ export default function UsersPage() {
       // Don't show error toast for plans - just use empty array
     } finally {
       setPlansLoading(false)
+    }
+  }
+
+  // Load online sessions from RADIUS active sessions endpoint
+  const loadOnlineSessions = async () => {
+    try {
+      setOnlineSessionsLoading(true)
+      const response = await adminApi.getOnlineSessions()
+      setOnlineSessions(response.sessions || [])
+    } catch (err) {
+      console.error('Failed to load online sessions:', err)
+      setOnlineSessions([])
+    } finally {
+      setOnlineSessionsLoading(false)
     }
   }
 
@@ -578,6 +600,36 @@ export default function UsersPage() {
   )
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
+
+  // Filtered online sessions (RADIUS active endpoint)
+  const filteredOnlineSessions = useMemo(() => {
+    return onlineSessions.filter((session) => {
+      const matchesSearch = !onlineSearchQuery || (
+        session.username.toLowerCase().includes(onlineSearchQuery.toLowerCase()) ||
+        session.full_name.toLowerCase().includes(onlineSearchQuery.toLowerCase()) ||
+        session.phone_number.includes(onlineSearchQuery) ||
+        session.ip_address.includes(onlineSearchQuery) ||
+        session.mac_address.toLowerCase().includes(onlineSearchQuery.toLowerCase())
+      )
+      const matchesService = onlineServiceFilter === "all" || session.service_type === onlineServiceFilter
+      return matchesSearch && matchesService
+    })
+  }, [onlineSessions, onlineSearchQuery, onlineServiceFilter])
+
+  // Active users (subscription-focused) — users with active status
+  const activeSubscriptionUsers = useMemo(() => {
+    return users.filter((user) => {
+      const isActive = user.status === "active" || user.status === "pending"
+      const matchesSearch = !activeSearchQuery || (
+        (user.name?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
+        (user.email?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
+        (user.phone || '').includes(activeSearchQuery) ||
+        (user.id?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
+        (user.plan?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase())
+      )
+      return isActive && matchesSearch
+    })
+  }, [users, activeSearchQuery])
 
   // Reset page when filter changes
   useEffect(() => {
@@ -1308,11 +1360,19 @@ export default function UsersPage() {
 
       {/* Connection Type Tabs */}
       <div className="flex flex-col gap-3">
-        <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); if (val !== 'all') setStatusFilter('all'); }} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+        <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); if (!['all'].includes(val)) setStatusFilter('all'); if (val === 'online-sessions') loadOnlineSessions(); }} className="w-full">
+          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-grid">
             <TabsTrigger value="all" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">All Users</span>
+            </TabsTrigger>
+            <TabsTrigger value="online-sessions" className="flex items-center gap-2">
+              <Wifi className="w-4 h-4" />
+              <span className="hidden sm:inline">Online</span>
+            </TabsTrigger>
+            <TabsTrigger value="active-subs" className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Active</span>
             </TabsTrigger>
             <TabsTrigger value="pppoe" className="flex items-center gap-2">
               <Globe className="w-4 h-4" />
@@ -1328,12 +1388,13 @@ export default function UsersPage() {
             </TabsTrigger>
             <TabsTrigger value="online" className="flex items-center gap-2">
               <Activity className="w-4 h-4" />
-              <span className="hidden sm:inline">Online</span>
+              <span className="hidden sm:inline">Connected</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {/* Status Filter Chips */}
+        {/* Status Filter Chips (hidden on Online Sessions & Active Subs tabs) */}
+        {!["online-sessions", "active-subs"].includes(activeTab) && (
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-medium text-slate-500 mr-1">Status:</span>
           {[
@@ -1361,9 +1422,11 @@ export default function UsersPage() {
             </button>
           ))}
         </div>
+        )}
       </div>
 
-      {/* Filters & Search */}
+      {/* Filters & Search (hidden on Online Sessions & Active Subs tabs) */}
+      {!["online-sessions", "active-subs"].includes(activeTab) && (
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-4">
@@ -1439,8 +1502,318 @@ export default function UsersPage() {
           )}
         </CardContent>
       </Card>
+      )}
 
-      {/* Users Table */}
+      {/* ── Online Sessions Tab ── */}
+      {activeTab === "online-sessions" && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Wifi className="w-5 h-5 text-emerald-600" />
+                  Online Users ({filteredOnlineSessions.length})
+                </CardTitle>
+                <CardDescription>Users currently connected via RADIUS — real-time session data</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    placeholder="Search name, IP, MAC..."
+                    value={onlineSearchQuery}
+                    onChange={(e) => setOnlineSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={onlineServiceFilter} onValueChange={setOnlineServiceFilter}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue placeholder="Service" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="PPPOE">PPPoE</SelectItem>
+                    <SelectItem value="HOTSPOT">Hotspot</SelectItem>
+                    <SelectItem value="STATIC">Static</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="icon" onClick={loadOnlineSessions} disabled={onlineSessionsLoading}>
+                  <RefreshCw className={`w-4 h-4 ${onlineSessionsLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {onlineSessionsLoading && onlineSessions.length === 0 ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-14 w-full" />
+                ))}
+              </div>
+            ) : filteredOnlineSessions.length === 0 ? (
+              <div className="text-center py-12">
+                <Wifi className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+                <p className="text-slate-600 font-medium">No online users</p>
+                <p className="text-slate-500 text-sm mt-1">
+                  {onlineSearchQuery || onlineServiceFilter !== "all"
+                    ? "Try adjusting your search or filter"
+                    : "No users are currently connected via RADIUS"}
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-lg border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Service</TableHead>
+                      <TableHead>IP Address</TableHead>
+                      <TableHead>MAC Address</TableHead>
+                      <TableHead>Router</TableHead>
+                      <TableHead>Uptime</TableHead>
+                      <TableHead>Usage</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOnlineSessions.map((session) => (
+                      <TableRow key={session.radacctid}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-medium text-xs">
+                              {session.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-900">{session.full_name}</p>
+                              <p className="text-xs text-slate-500">{session.phone_number}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={
+                            session.service_type === 'PPPOE' ? 'border-purple-300 text-purple-700 bg-purple-50' :
+                            session.service_type === 'HOTSPOT' ? 'border-orange-300 text-orange-700 bg-orange-50' :
+                            'border-blue-300 text-blue-700 bg-blue-50'
+                          }>
+                            {session.service_type === 'PPPOE' ? 'PPPoE' : session.service_type === 'HOTSPOT' ? 'Hotspot' : session.service_type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm">{session.ip_address || '—'}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-xs text-slate-600">{session.mac_address || '—'}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{session.router || '—'}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="text-sm">{session.uptime}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm font-medium">{session.usage}</span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Active Subscriptions Tab ── */}
+      {activeTab === "active-subs" && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  Active Subscriptions ({activeSubscriptionUsers.length})
+                </CardTitle>
+                <CardDescription>Users with active or pending subscriptions — manage extensions and removals</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    placeholder="Search name, plan, phone..."
+                    value={activeSearchQuery}
+                    onChange={(e) => setActiveSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Button variant="outline" size="icon" onClick={loadUsers} disabled={refreshing}>
+                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-14 w-full" />
+                ))}
+              </div>
+            ) : activeSubscriptionUsers.length === 0 ? (
+              <div className="text-center py-12">
+                <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+                <p className="text-slate-600 font-medium">No active subscriptions</p>
+                <p className="text-slate-500 text-sm mt-1">
+                  {activeSearchQuery ? "Try adjusting your search" : "No users with active subscriptions found"}
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-lg border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Connection</TableHead>
+                      <TableHead>Expiry</TableHead>
+                      <TableHead>Time Remaining</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {activeSubscriptionUsers.map((user) => {
+                      const expiryDate = new Date(user.expiryDate)
+                      const now = new Date()
+                      const isExpired = expiryDate <= now
+                      const daysLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                      const hoursLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60))
+                      return (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium text-xs">
+                                {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                              </div>
+                              <div>
+                                <p className="font-medium text-slate-900">{user.name}</p>
+                                <p className="text-xs text-slate-500">{user.phone}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="text-sm font-medium">{user.plan}</p>
+                              <p className="text-xs text-slate-500">KES {user.planPrice.toLocaleString()}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {user.status === "active" ? (
+                              <Badge className="bg-green-100 text-green-700">Active</Badge>
+                            ) : (
+                              <Badge className="bg-orange-100 text-orange-700">Pending</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {user.connectionStatus === "online" ? (
+                              <Badge className="bg-emerald-100 text-emerald-700 flex items-center gap-1 w-fit">
+                                <Wifi className="w-3 h-3" /> Online
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="flex items-center gap-1 w-fit">
+                                <XCircle className="w-3 h-3" /> Offline
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm">{expiryDate.toLocaleDateString()}</span>
+                          </TableCell>
+                          <TableCell>
+                            {isExpired ? (
+                              <Badge variant="destructive" className="text-xs">Expired</Badge>
+                            ) : daysLeft <= 1 ? (
+                              <Badge className="bg-red-100 text-red-700 text-xs">{hoursLeft}h left</Badge>
+                            ) : daysLeft <= 3 ? (
+                              <Badge className="bg-yellow-100 text-yellow-700 text-xs">{daysLeft}d left</Badge>
+                            ) : (
+                              <Badge className="bg-green-100 text-green-700 text-xs">{daysLeft}d left</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewUser(user)}>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleExtendSubscription(user)}>
+                                  <Calendar className="w-4 h-4 mr-2" />
+                                  Extend Subscription
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Edit User
+                                </DropdownMenuItem>
+                                {user.status === "pending" && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleActivateUser(user)}
+                                    className="text-green-600"
+                                  >
+                                    <UserCheck className="w-4 h-4 mr-2" />
+                                    Activate Now
+                                  </DropdownMenuItem>
+                                )}
+                                {user.radiusCredentials && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => handleToggleRadius(user, !user.radiusCredentials!.is_enabled)}
+                                      className={user.radiusCredentials.is_enabled ? "text-yellow-600" : "text-green-600"}
+                                    >
+                                      <Power className="w-4 h-4 mr-2" />
+                                      {user.radiusCredentials.is_enabled ? 'Disable RADIUS' : 'Enable RADIUS'}
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {user.connectionStatus === "online" && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleDisconnectUser(user)}
+                                    className="text-yellow-600"
+                                  >
+                                    <Power className="w-4 h-4 mr-2" />
+                                    Disconnect
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteUser(user)}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Remove User
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Users Table (for All/PPPoE/Static/Fiber/Online tabs) */}
+      {!["online-sessions", "active-subs"].includes(activeTab) && (
       <Card>
         <CardHeader>
           <CardTitle>
@@ -1647,6 +2020,7 @@ export default function UsersPage() {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* User Detail Drawer */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>

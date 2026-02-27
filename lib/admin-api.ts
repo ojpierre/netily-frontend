@@ -147,6 +147,8 @@ import type {
   // NEW: RADIUS Multi-Tenant types
   RADIUSTenantConfig,
   CustomerRADIUSCredentials,
+  // Online session type
+  OnlineSession,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -2937,6 +2939,11 @@ class AdminApiService {
     } catch {
       return []
     }
+  }
+
+  // Online user sessions — pre-formatted for display tables
+  async getOnlineSessions(): Promise<{ count: number; sessions: OnlineSession[] }> {
+    return this.request<{ count: number; sessions: OnlineSession[] }>('/radius/sessions/active/')
   }
 
   // ------------------------------------------
