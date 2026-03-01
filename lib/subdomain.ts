@@ -177,9 +177,23 @@ export interface ApiUrlConfig {
  * - bluenet.localhost:3000 → http://bluenet.localhost:8000/api/v1
  * - bluenet.netily.io → https://bluenet.netily.io/api/v1
  * - localhost:3000 → http://localhost:8000/api/v1 (fallback)
+ * - Production (Vercel→Railway): uses NEXT_PUBLIC_API_URL env var
  */
 export function getApiBaseUrl(config: ApiUrlConfig = {}): string {
   const info = getSubdomainInfo()
+  
+  // ── Production: use explicit env var (Vercel → Railway) ──
+  if (process.env.NEXT_PUBLIC_API_URL && !info.isDevelopment) {
+    const envUrl = process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '') // strip trailing slash
+    // If there's a tenant subdomain, prepend it to the Railway URL path
+    if (info.hasTenantSubdomain && info.subdomain) {
+      // Railway doesn't support wildcard subdomains natively, so the tenant
+      // is passed via an X-Tenant header (handled by admin-api.ts).
+      // Return the base URL as-is; the API service adds the header.
+      return envUrl
+    }
+    return envUrl
+  }
   
   console.log('[Subdomain] getApiBaseUrl called:', {
     hostname: info.hostname,
