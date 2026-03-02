@@ -26,6 +26,7 @@ const KNOWN_DOMAINS = [
   'localhost',
   'netily.io',
   'netily.com',
+  'netily.co.ke',
   'ngrok-free.app',
   'ngrok.io',
   // Add more as needed
