@@ -161,10 +161,24 @@ const validatePassword = (password: string): { valid: boolean; errors: string[] 
 // API SERVICE
 // ==========================================
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
+function getRegistrationApiBase(): string {
+  // Use explicit env var if set (should include /api/v1 already)
+  const envUrl = process.env.NEXT_PUBLIC_API_URL
+  if (envUrl) {
+    // Ensure it ends with /api/v1 regardless of what was set
+    const cleaned = envUrl.replace(/\/+$/, '')
+    return cleaned.endsWith('/api/v1') ? cleaned : `${cleaned}/api/v1`
+  }
+  // Fallback: use subdomain-aware detection (shared with rest of app)
+  if (typeof window !== 'undefined') {
+    return getApiBaseUrl()
+  }
+  return 'http://127.0.0.1:8000/api/v1'
+}
 
 async function registerCompany(data: Omit<RegisterFormData, "admin_password_confirm">) {
-  const response = await fetch(`${API_BASE}/core/companies/register/`, {
+  const apiBase = getRegistrationApiBase()
+  const response = await fetch(`${apiBase}/core/companies/register/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
