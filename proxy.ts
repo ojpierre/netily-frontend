@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // =====================================================
-// ROUTE PROTECTION MIDDLEWARE
+// ROUTE PROTECTION PROXY
 // Protects admin and dashboard routes
 // =====================================================
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Get tokens from cookies
