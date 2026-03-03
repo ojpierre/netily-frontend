@@ -38,6 +38,9 @@ jobs:
             echo "==> Restarting frontend container..."
             docker compose up -d frontend
 
+            echo "==> Restarting nginx (re-resolve container IPs)..."
+            docker compose restart nginx
+
             echo "==> Cleaning up old Docker images..."
             docker image prune -f
 
