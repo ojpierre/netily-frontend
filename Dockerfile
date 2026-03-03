@@ -24,6 +24,10 @@ COPY . .
 # Disable telemetry during build
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Production API URL — baked into the Next.js bundle at build time
+ARG NEXT_PUBLIC_API_URL=https://api.netily.co.ke/api/v1
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # Build (standalone output enabled in next.config.mjs)
 RUN npm run build
 
