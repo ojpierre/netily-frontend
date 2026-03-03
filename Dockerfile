@@ -9,7 +9,7 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 # Copy lock + manifest
-COPY package.json pnpm-lock.yaml ./
+COPY package.json package-lock.json
 
 # Install with npm (matches Vercel build; --legacy-peer-deps for compat)
 RUN npm install --legacy-peer-deps
