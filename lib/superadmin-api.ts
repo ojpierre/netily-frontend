@@ -358,7 +358,15 @@ const REFRESH_KEY = "superadminRefreshToken"
 
 class SuperadminApiService {
   private getBaseUrl(): string {
+    // SSR fallback
     if (typeof window === "undefined") return "http://localhost:8000/api/v1"
+
+    // Production: use NEXT_PUBLIC_API_URL env var (e.g. https://api.netily.co.ke/api/v1)
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')
+    }
+
+    // Development: same-host with port 8000
     const proto = window.location.protocol
     const hostname = window.location.hostname
     const port = process.env.NEXT_PUBLIC_API_PORT || "8000"
