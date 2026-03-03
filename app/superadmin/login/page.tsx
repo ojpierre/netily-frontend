@@ -54,7 +54,7 @@ export default function SuperAdminLoginPage() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-slate-300">Email</Label>
+            <Label htmlFor="email" className="text-slate-300">Your Email</Label>
             <Input
               id="email"
               type="email"
