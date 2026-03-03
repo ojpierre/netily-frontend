@@ -1,6 +1,5 @@
-name: Deploy to DigitalOcean VPS
+﻿name: Deploy Frontend to DigitalOcean VPS
 
-# This tells GitHub to run this script ONLY when you push to the prod-backend branch
 on:
   push:
     branches:
@@ -9,28 +8,35 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to VPS
+      - name: Deploy frontend to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 18m
           script: |
-            # 1. Go to the frontend folder
-            cd ~/netily-frontend
-            
-            # 2. Pull the newest code
+            set -e
+
+            echo "==> Pulling latest frontend code..."
+            cd ~/netily_frontend
             git fetch origin prod-frontend
             git reset --hard origin/prod-frontend
-            
-            # 3. Rebuild and restart the Next.js container
-            docker compose up -d --build
-            
-            # 4. Clean up old unused Docker images to save disk space
+
+            echo "==> Rebuilding frontend container (no cache so env vars are baked in)..."
+            cd ~/netily_cloud/docker
+            docker compose build --no-cache frontend
+
+            echo "==> Restarting frontend container..."
+            docker compose up -d frontend
+
+            echo "==> Cleaning up old Docker images..."
             docker image prune -f
-            
-            echo "Next.js Frontend is live on Port 3000!"
+
+            echo "==> Frontend deployment complete!"
