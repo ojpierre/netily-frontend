@@ -60,7 +60,16 @@ const getBaseUrl = (): string => {
     }
   }
   
-  // Production - use ENV_API_URL or same hostname
+  // Production tenant subdomains: use same-origin to avoid CORS
+  // e.g., pink4.netily.co.ke/api/v1/... → nginx → Django (reads Host for tenant)
+  const KNOWN_DOMAINS = ['netily.co.ke']
+  const isTenantSubdomain = KNOWN_DOMAINS.some(d => hostname.endsWith(`.${d}`) && hostname !== `www.${d}` && hostname !== `api.${d}`)
+
+  if (isTenantSubdomain) {
+    return `${protocol}//${hostname}/api/v1`
+  }
+
+  // Production bare domain - use ENV_API_URL
   if (ENV_API_URL && ENV_API_URL.trim() !== '') {
     return ENV_API_URL
   }

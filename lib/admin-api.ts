@@ -212,8 +212,22 @@ const getBaseUrl = (): string => {
     return getApiBaseUrl()
   }
   
-  // Case 4: Production or other domains
-  // Use environment variable or dynamic subdomain detection
+  // Case 4: Production domains (e.g. pink4.netily.co.ke, netily.co.ke)
+  // For tenant subdomains, use same-origin /api/v1 so:
+  //   - No CORS needed (request stays on pink4.netily.co.ke)
+  //   - nginx routes /api/ to Django, which reads the Host header for tenant detection
+  // Only use ENV_API_URL for the bare domain (netily.co.ke / www.netily.co.ke)
+  const KNOWN_DOMAINS = ['netily.co.ke']
+  const isKnownDomain = KNOWN_DOMAINS.some(d => hostname === d || hostname === `www.${d}`)
+  const isTenantSubdomain = KNOWN_DOMAINS.some(d => hostname.endsWith(`.${d}`) && hostname !== `www.${d}` && hostname !== `api.${d}`)
+
+  if (isTenantSubdomain) {
+    // Same-origin: pink4.netily.co.ke/api/v1/... → nginx → Django
+    const url = `${protocol}//${hostname}/api/v1`
+    console.log('[AdminAPI] Tenant subdomain (same-origin):', url)
+    return url
+  }
+
   if (ENV_API_URL && ENV_API_URL.trim() !== '') {
     console.log('[AdminAPI] Production mode, using ENV_API_URL:', ENV_API_URL)
     return ENV_API_URL
