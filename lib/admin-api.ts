@@ -23,6 +23,7 @@ import type {
   Invoice,
   InvoiceItem,
   Payment,
+  MpesaConfiguration,
   MpesaTransaction,
   Technician,
   DispatchJob,
@@ -2048,6 +2049,75 @@ class AdminApiService {
     return this.request<{ success: boolean; message: string }>(`/billing/payment-methods/${id}/test_connection/`, {
       method: 'POST',
     })
+  }
+
+  // ------------------------------------------
+  // M-PESA CONFIGURATION - /billing/mpesa-config/
+  // ------------------------------------------
+
+  async getMpesaConfigurations(params?: Record<string, string>): Promise<PaginatedResponse<MpesaConfiguration>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<MpesaConfiguration>>(`/billing/mpesa-config/${queryString}`)
+  }
+
+  async getMpesaConfiguration(id: number): Promise<MpesaConfiguration> {
+    return this.request<MpesaConfiguration>(`/billing/mpesa-config/${id}/`)
+  }
+
+  async createMpesaConfiguration(data: Partial<MpesaConfiguration>): Promise<MpesaConfiguration> {
+    return this.request<MpesaConfiguration>('/billing/mpesa-config/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateMpesaConfiguration(id: number, data: Partial<MpesaConfiguration>): Promise<MpesaConfiguration> {
+    return this.request<MpesaConfiguration>(`/billing/mpesa-config/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteMpesaConfiguration(id: number): Promise<void> {
+    await this.request(`/billing/mpesa-config/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async testMpesaConfiguration(id: number, data?: { test_phone?: string; test_amount?: string | number }): Promise<{
+    status: string
+    message: string
+    token_test?: Record<string, any>
+    stk_test?: Record<string, any>
+    mode?: 'token_only' | 'token_and_stk' | string
+  }> {
+    return this.request(`/billing/mpesa-config/${id}/test_connection/`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    })
+  }
+
+  async registerMpesaUrls(id: number): Promise<{ status: string; message: string; details?: Record<string, any> }> {
+    return this.request(`/billing/mpesa-config/${id}/register_urls/`, {
+      method: 'POST',
+    })
+  }
+
+  async setMpesaDefault(id: number): Promise<{ status: string; message: string; data?: MpesaConfiguration }> {
+    return this.request(`/billing/mpesa-config/${id}/set_default/`, {
+      method: 'POST',
+    })
+  }
+
+  async toggleMpesaActive(id: number): Promise<{ status: string; is_active: boolean; message: string }> {
+    return this.request(`/billing/mpesa-config/${id}/toggle-active/`, {
+      method: 'POST',
+    })
+  }
+
+  async getBillingMpesaTransactions(params?: Record<string, string>): Promise<PaginatedResponse<MpesaTransaction>> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<MpesaTransaction>>(`/billing/mpesa-transactions/${queryString}`)
   }
 
   // ------------------------------------------

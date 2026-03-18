@@ -21,8 +21,6 @@ import {
   WifiOff,
   TestTube,
   Power,
-  Eye,
-  EyeOff,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -72,6 +70,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import type { PaymentMethod, PaymentMethodType } from "@/lib/types"
+import { MpesaSettingsPanel } from "@/components/mpesa-settings-panel"
 
 const getMethodIcon = (type: PaymentMethodType) => {
   const icons: Record<PaymentMethodType, React.ElementType> = {
@@ -117,7 +116,7 @@ export default function PaymentMethodsPage() {
   // UI states
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
-  const [showSecrets, setShowSecrets] = useState<Record<number, boolean>>({})
+  const [activePageTab, setActivePageTab] = useState("methods")
 
   // Form state
   const [formData, setFormData] = useState<Partial<PaymentMethod>>({
@@ -278,6 +277,13 @@ export default function PaymentMethodsPage() {
     setIsEditOpen(true)
   }
 
+  const openMpesaTab = () => {
+    setIsCreateOpen(false)
+    setIsEditOpen(false)
+    setSelectedMethod(null)
+    setActivePageTab("mpesa")
+  }
+
   // Stats
   const stats = {
     total: methods.length,
@@ -326,7 +332,7 @@ export default function PaymentMethodsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Payment Methods</h1>
           <p className="text-muted-foreground">
-            Configure and manage payment options for your customers
+            Configure all payment options from this page
           </p>
         </div>
         <div className="flex gap-2">
@@ -334,13 +340,20 @@ export default function PaymentMethodsPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button onClick={() => setIsCreateOpen(true)}>
+          <Button onClick={() => setIsCreateOpen(true)} disabled={activePageTab === "mpesa"}>
             <Plus className="mr-2 h-4 w-4" />
             Add Method
           </Button>
         </div>
       </div>
 
+      <Tabs value={activePageTab} onValueChange={setActivePageTab} className="space-y-6">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="methods">General Methods</TabsTrigger>
+          <TabsTrigger value="mpesa">M-Pesa Settings</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="methods" className="space-y-6">
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
@@ -528,6 +541,12 @@ export default function PaymentMethodsPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="mpesa" className="space-y-6">
+          <MpesaSettingsPanel />
+        </TabsContent>
+      </Tabs>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isCreateOpen || isEditOpen} onOpenChange={(open) => {
@@ -629,82 +648,15 @@ export default function PaymentMethodsPage() {
 
             <TabsContent value="config" className="space-y-4 mt-4">
               {formData.method_type === 'MPESA' && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="shortcode">Shortcode</Label>
-                      <Input
-                        id="shortcode"
-                        placeholder="e.g., 174379"
-                        value={formData.config?.shortcode || ''}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          config: { ...formData.config, shortcode: e.target.value }
-                        })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="environment">Environment</Label>
-                      <Select
-                        value={formData.config?.environment || 'sandbox'}
-                        onValueChange={(v: string) => {
-                          const env = v as 'sandbox' | 'production'
-                          setFormData({
-                            ...formData,
-                            config: { ...formData.config, environment: env }
-                          })
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sandbox">Sandbox</SelectItem>
-                          <SelectItem value="production">Production</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="consumer_key">Consumer Key</Label>
-                    <Input
-                      id="consumer_key"
-                      type="password"
-                      placeholder="••••••••"
-                      value={formData.config?.consumer_key || ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        config: { ...formData.config, consumer_key: e.target.value }
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="consumer_secret">Consumer Secret</Label>
-                    <Input
-                      id="consumer_secret"
-                      type="password"
-                      placeholder="••••••••"
-                      value={formData.config?.consumer_secret || ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        config: { ...formData.config, consumer_secret: e.target.value }
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="passkey">Passkey</Label>
-                    <Input
-                      id="passkey"
-                      type="password"
-                      placeholder="••••••••"
-                      value={formData.config?.passkey || ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        config: { ...formData.config, passkey: e.target.value }
-                      })}
-                    />
-                  </div>
-                </>
+                <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                  <h4 className="font-medium text-green-900">M-Pesa setup is managed in this same page</h4>
+                  <p className="mt-1 text-sm text-green-800">
+                    Use the M-Pesa Settings tab to configure credentials, test connection, register URLs, and set default.
+                  </p>
+                  <Button className="mt-3" variant="outline" onClick={openMpesaTab}>
+                    Open M-Pesa Settings Tab
+                  </Button>
+                </div>
               )}
 
               {formData.method_type === 'BANK' && (

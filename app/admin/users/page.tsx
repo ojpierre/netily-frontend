@@ -30,6 +30,7 @@ import {
   Send,
   UserCheck,
   Power,
+  Copy,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
 import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession } from "@/lib/types"
@@ -112,6 +113,7 @@ interface User {
   id: string
   customerId: number
   serviceId: number | null
+  billingAccountNumber?: string
   name: string
   email: string
   phone: string
@@ -202,6 +204,7 @@ const mapCustomerToUser = (customer: Customer): User => {
     id: customer.customer_number || `USR-${customer.id}`,
     customerId: customer.id,
     serviceId: primaryService?.id ?? null,
+    billingAccountNumber: customer.billing_account_number,
     name: customer.full_name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
     email: customer.email || 'No email',
     phone: customer.phone || 'No phone',
@@ -2124,6 +2127,23 @@ export default function UsersPage() {
                     <span className="font-medium">
                       {new Date(selectedUser.expiryDate).toLocaleDateString()}
                     </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-600">Billing Account Number</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium">{selectedUser.billingAccountNumber || 'Not available'}</span>
+                      {selectedUser.billingAccountNumber && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => copyToClipboard(selectedUser.billingAccountNumber!, 'Billing account number')}
+                          title="Copy account number"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -181,6 +181,7 @@ export type ConnectionType = 'hotspot' | 'pppoe' | 'static' | 'fiber' | 'wireles
 export interface Customer {
   id: number
   customer_number: string
+  billing_account_number?: string
   first_name: string
   last_name: string
   full_name: string
@@ -1454,17 +1455,36 @@ export interface Promotion {
 export interface MpesaTransaction {
   id: number
   transaction_id: string
-  mpesa_receipt: string
+  mpesa_receipt?: string
   phone_number: string
   amount: string
   customer?: number
   customer_name?: string
+  account_reference?: string
+  result_desc?: string
   payment?: number
-  status: 'pending' | 'completed' | 'failed' | 'cancelled'
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'TIMEOUT' | 'pending' | 'completed' | 'failed' | 'cancelled'
   result_code?: string
   result_description?: string
-  transaction_date: string
+  transaction_date?: string
   created_at: string
+}
+
+export interface MpesaConfiguration {
+  id: number
+  business_shortcode: string
+  shortcode_type: 'PAYBILL' | 'TILL'
+  consumer_key?: string
+  consumer_secret?: string
+  passkey?: string
+  is_sandbox: boolean
+  is_active: boolean
+  is_default: boolean
+  validation_status?: 'VALID' | 'INVALID' | 'PENDING' | string
+  validation_error?: string
+  last_validated_at?: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 // ==========================================
