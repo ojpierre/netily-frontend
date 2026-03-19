@@ -10,8 +10,7 @@ import {
   Users,
   Wifi,
   DollarSign,
-  Check,
-  X,
+  Activity
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -42,6 +41,11 @@ const emptyPlan: Partial<NetilyPlan> = {
   is_active: true,
   sort_order: 0,
   features: {},
+  is_metered: false,
+  base_license_fee: "500.00",
+  pppoe_unit_price: "20.00",
+  pppoe_min_clients: 20,
+  hotspot_revenue_share_pct: "3.00",
 }
 
 export default function PlansPage() {
@@ -165,27 +169,42 @@ export default function PlansPage() {
                   <p className="text-sm text-slate-400 mt-1">{plan.description || "—"}</p>
                 </div>
 
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-white">{kes(plan.price_monthly)}</span>
-                  <span className="text-slate-500 text-sm">/mo</span>
-                </div>
-                <p className="text-xs text-slate-500">{kes(plan.price_yearly)}/year</p>
+                {/* Metered vs Flat Pricing Display */}
+                {plan.is_metered ? (
+                  <div className="flex flex-col gap-1 py-1">
+                    <span className="text-2xl font-bold text-emerald-400 flex items-center gap-2">
+                      <Activity className="w-5 h-5" />
+                      Metered Plan
+                    </span>
+                    <span className="text-slate-400 text-sm">
+                      {kes(plan.base_license_fee || 0)} Base + Usage
+                    </span>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-bold text-white">{kes(plan.price_monthly)}</span>
+                      <span className="text-slate-500 text-sm">/mo</span>
+                    </div>
+                    <p className="text-xs text-slate-500">{kes(plan.price_yearly)}/year</p>
+                  </div>
+                )}
 
-                <div className="space-y-2 text-sm">
+                <div className="space-y-2 text-sm pt-2">
                   <div className="flex items-center gap-2 text-slate-300">
                     <Users className="w-4 h-4 text-violet-400" />
-                    {plan.max_subscribers.toLocaleString()} subscribers
+                    {plan.max_subscribers === 0 ? "Unlimited" : plan.max_subscribers.toLocaleString()} subscribers
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
                     <Wifi className="w-4 h-4 text-violet-400" />
-                    {plan.max_routers} routers
+                    {plan.max_routers === 0 ? "Unlimited" : plan.max_routers} routers
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
                     <Users className="w-4 h-4 text-violet-400" />
-                    {plan.max_staff} staff
+                    {plan.max_staff === 0 ? "Unlimited" : plan.max_staff} staff
                   </div>
                   {plan.subscriber_count !== undefined && (
-                    <div className="flex items-center gap-2 text-slate-300">
+                    <div className="flex items-center gap-2 text-slate-300 mt-2 pt-2 border-t border-slate-800">
                       <DollarSign className="w-4 h-4 text-emerald-400" />
                       {plan.subscriber_count} active subscriptions
                     </div>
@@ -217,15 +236,12 @@ export default function PlansPage() {
         </div>
       )}
 
-      {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isEdit ? "Edit Plan" : "Create Plan"}</DialogTitle>
             <DialogDescription className="text-slate-400">
-              {isEdit
-                ? "Update plan details and limits"
-                : "Set up a new subscription tier"}
+              {isEdit ? "Update plan details and limits" : "Set up a new subscription tier"}
             </DialogDescription>
           </DialogHeader>
 
@@ -260,84 +276,132 @@ export default function PlansPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-slate-300">Monthly Price (KES)</Label>
-                <Input
-                  type="number"
-                  value={editing.price_monthly || "0"}
-                  onChange={(e) => setEditing({ ...editing, price_monthly: e.target.value })}
-                  className="bg-slate-800 border-slate-700 text-white"
-                />
+            {/* METERED BILLING TOGGLE */}
+            <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 p-4">
+              <div className="space-y-0.5">
+                <Label className="text-base text-white">Metered Billing</Label>
+                <p className="text-sm text-slate-400">
+                  Enable Pay-As-You-Grow dynamic billing.
+                </p>
               </div>
-              <div>
-                <Label className="text-slate-300">Yearly Price (KES)</Label>
-                <Input
-                  type="number"
-                  value={editing.price_yearly || "0"}
-                  onChange={(e) => setEditing({ ...editing, price_yearly: e.target.value })}
-                  className="bg-slate-800 border-slate-700 text-white"
-                />
-              </div>
+              <Switch
+                checked={editing.is_metered || false}
+                onCheckedChange={(v) => setEditing({ ...editing, is_metered: v })}
+              />
             </div>
+
+            {/* CONDITIONAL PRICING FIELDS */}
+            {editing.is_metered ? (
+              <div className="grid grid-cols-2 gap-3 p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                <div>
+                  <Label className="text-slate-300">Base Fee (KES)</Label>
+                  <Input
+                    type="number"
+                    value={editing.base_license_fee || ""}
+                    onChange={(e) => setEditing({ ...editing, base_license_fee: e.target.value })}
+                    className="bg-slate-800 border-slate-700 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-slate-300">PPPoE Rate (KES)</Label>
+                  <Input
+                    type="number"
+                    value={editing.pppoe_unit_price || ""}
+                    onChange={(e) => setEditing({ ...editing, pppoe_unit_price: e.target.value })}
+                    className="bg-slate-800 border-slate-700 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-slate-300">Min PPPoE Clients</Label>
+                  <Input
+                    type="number"
+                    value={editing.pppoe_min_clients || ""}
+                    onChange={(e) => setEditing({ ...editing, pppoe_min_clients: parseInt(e.target.value) || 0 })}
+                    className="bg-slate-800 border-slate-700 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-slate-300">Hotspot Share (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editing.hotspot_revenue_share_pct || ""}
+                    onChange={(e) => setEditing({ ...editing, hotspot_revenue_share_pct: e.target.value })}
+                    className="bg-slate-800 border-slate-700 text-white"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-slate-300">Monthly Price (KES)</Label>
+                  <Input
+                    type="number"
+                    value={editing.price_monthly || "0"}
+                    onChange={(e) => setEditing({ ...editing, price_monthly: e.target.value })}
+                    className="bg-slate-800 border-slate-700 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-slate-300">Yearly Price (KES)</Label>
+                  <Input
+                    type="number"
+                    value={editing.price_yearly || "0"}
+                    onChange={(e) => setEditing({ ...editing, price_yearly: e.target.value })}
+                    className="bg-slate-800 border-slate-700 text-white"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label className="text-slate-300">Max Subscribers</Label>
                 <Input
                   type="number"
-                  value={editing.max_subscribers || 0}
+                  value={editing.max_subscribers ?? 0}
                   onChange={(e) =>
                     setEditing({ ...editing, max_subscribers: parseInt(e.target.value) || 0 })
                   }
                   className="bg-slate-800 border-slate-700 text-white"
+                  placeholder="0 = Unlimited"
                 />
               </div>
               <div>
                 <Label className="text-slate-300">Max Routers</Label>
                 <Input
                   type="number"
-                  value={editing.max_routers || 0}
+                  value={editing.max_routers ?? 0}
                   onChange={(e) =>
                     setEditing({ ...editing, max_routers: parseInt(e.target.value) || 0 })
                   }
                   className="bg-slate-800 border-slate-700 text-white"
+                  placeholder="0 = Unlimited"
                 />
               </div>
               <div>
                 <Label className="text-slate-300">Max Staff</Label>
                 <Input
                   type="number"
-                  value={editing.max_staff || 0}
+                  value={editing.max_staff ?? 0}
                   onChange={(e) =>
                     setEditing({ ...editing, max_staff: parseInt(e.target.value) || 0 })
                   }
                   className="bg-slate-800 border-slate-700 text-white"
+                  placeholder="0 = Unlimited"
                 />
               </div>
             </div>
 
-            <div>
-              <Label className="text-slate-300">Sort Order</Label>
-              <Input
-                type="number"
-                value={editing.sort_order || 0}
-                onChange={(e) =>
-                  setEditing({ ...editing, sort_order: parseInt(e.target.value) || 0 })
-                }
-                className="bg-slate-800 border-slate-700 text-white w-24"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mt-2">
               <Switch
                 checked={editing.is_active !== false}
                 onCheckedChange={(v) => setEditing({ ...editing, is_active: v })}
               />
-              <Label className="text-slate-300">Active</Label>
+              <Label className="text-slate-300">Plan is Active</Label>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-4 border-t border-slate-800">
               <Button
                 variant="outline"
                 onClick={() => setDialogOpen(false)}

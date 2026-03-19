@@ -223,6 +223,12 @@ export interface NetilyPlan {
   is_active: boolean
   sort_order: number
   subscriber_count?: number
+  // NEW METERED FIELDS
+  is_metered?: boolean
+  base_license_fee?: string
+  pppoe_unit_price?: string
+  pppoe_min_clients?: number
+  hotspot_revenue_share_pct?: string
 }
 
 // Analytics
