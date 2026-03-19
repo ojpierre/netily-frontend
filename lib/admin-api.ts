@@ -70,7 +70,6 @@ import type {
   CreateQueueRequest,
   RouterInterface,
   InterfaceTraffic,
-  DHCPLease,
   RouterLogEntry,
   WirelessInterface,
   WirelessRegistration,
@@ -1510,8 +1509,9 @@ class AdminApiService {
   // INVOICES - /billing/invoices/
   // ------------------------------------------
 
-  async getInvoices(params?: Record<string, string>): Promise<PaginatedResponse<Invoice>> {
-    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+  async getInvoices(params?: Record<string, string | number>): Promise<PaginatedResponse<Invoice>> {
+    // Convert params to URL query string
+    const queryString = params ? '?' + new URLSearchParams(params as any).toString() : ''
     return this.request<PaginatedResponse<Invoice>>(`/billing/invoices/${queryString}`)
   }
 

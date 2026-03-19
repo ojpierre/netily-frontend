@@ -127,19 +127,6 @@ export interface AuditLog {
   created_at: string
 }
 
-export interface Company {
-  id: number
-  name: string
-  logo?: string
-  email?: string
-  phone?: string
-  address?: string
-  website?: string
-  is_active: boolean
-  created_at: string
-  updated_at: string
-}
-
 export interface Tenant {
   id: number
   name: string
@@ -782,6 +769,10 @@ export interface Invoice {
   terms?: string
   created_at: string
   updated_at?: string
+  // ADD THESE:
+  period_start?: string  // The start of the 30-day cycle
+  period_end?: string    // The end of the 30-day cycle
+  category?: 'subscription' | 'customer' // To distinguish Netily fees from ISP sales
 }
 
 export interface InvoiceItem {
@@ -2068,9 +2059,11 @@ export interface NetilyPlan {
   code: NetilyPlanCode
   price: string
   description: string
+  // ADD THESE:
+  is_metered: boolean
+  max_staff_users: number | null
   max_subscribers: number | null  // null = unlimited
   max_routers: number | null
-  max_staff_users: number | null
   features: {
     sms_notifications: boolean
     email_notifications: boolean
