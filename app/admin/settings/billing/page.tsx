@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import {
-  Zap, Check, Users, Wifi, Shield, Clock, Download, Receipt, AlertTriangle, Loader2
+  Zap, Check, Users, Wifi, Shield, Clock, Download, Receipt, AlertTriangle, Loader2, Eye
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,7 @@ import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { adminApi } from "@/lib/admin-api"
 import type { NetilyPlan, CompanySubscription, UsageStats as ApiUsageStats, Invoice } from "@/lib/types"
 
@@ -117,7 +118,7 @@ function BillingContent() {
         </Alert>
       )}
 
-      <Tabs defaultValue="current" className="space-y-6">
+      <Tabs defaultValue="invoices" className="space-y-6">
         <TabsList>
           <TabsTrigger value="current">Current Plan</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
@@ -206,7 +207,7 @@ function BillingContent() {
           )}
         </TabsContent>
 
-        {/* 2. INVOICES - Now filtering by NET-BILL prefix */}
+        {/* 2. INVOICES - Now with correct dates and View Breakdown Modal */}
         <TabsContent value="invoices">
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>
@@ -237,35 +238,85 @@ function BillingContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {invoices.map((inv) => (
-                      <TableRow key={inv?.id || Math.random()} className="hover:bg-slate-50/50 transition-colors">
-                        <TableCell className="font-mono font-bold text-blue-600">{inv?.invoice_number || '---'}</TableCell>
-                        <TableCell>{inv?.invoice_date ? new Date(inv.invoice_date).toLocaleDateString() : '---'}</TableCell>
-                        <TableCell className="text-slate-600 text-sm">
-                          {inv?.period_start && inv?.period_end ? (
-                            <>
-                              {new Date(inv.period_start).toLocaleDateString()} - {new Date(inv.period_end).toLocaleDateString()}
-                            </>
-                          ) : (
-                            'Monthly Service'
-                          )}
-                        </TableCell>
-                        <TableCell className="font-bold text-slate-900">{kes(inv?.total_amount || 0)}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={inv?.status === 'paid' ? 'default' : 'destructive'} 
-                            className="uppercase text-[9px] font-black tracking-tighter"
-                          >
-                            {inv?.status || 'pending'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="outline" size="sm" className="h-8">
-                            <Download className="w-3 h-3 mr-2" /> PDF
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {invoices.map((inv) => {
+                      // Dynamically pull correct fields regardless of TS interface constraints
+                      const billingDate = (inv as any).billing_date || inv.invoice_date;
+                      const pStart = (inv as any).service_period_start || inv.period_start;
+                      const pEnd = (inv as any).service_period_end || inv.period_end;
+
+                      return (
+                        <TableRow key={inv?.id || Math.random()} className="hover:bg-slate-50/50 transition-colors">
+                          <TableCell className="font-mono font-bold text-blue-600">{inv?.invoice_number || '---'}</TableCell>
+                          <TableCell>{billingDate ? new Date(billingDate).toLocaleDateString() : '---'}</TableCell>
+                          <TableCell className="text-slate-600 text-sm">
+                            {pStart && pEnd ? (
+                              <>
+                                {new Date(pStart).toLocaleDateString()} - {new Date(pEnd).toLocaleDateString()}
+                              </>
+                            ) : (
+                              'Monthly Service'
+                            )}
+                          </TableCell>
+                          <TableCell className="font-bold text-slate-900">{kes(inv?.total_amount || 0)}</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={inv?.status === 'paid' ? 'default' : 'destructive'} 
+                              className="uppercase text-[9px] font-black tracking-tighter"
+                            >
+                              {inv?.status || 'pending'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {/* Breakdown Modal */}
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="mr-2 h-8">
+                                  <Eye className="w-3 h-3 mr-2" /> Details
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-[500px]">
+                                <DialogHeader>
+                                  <DialogTitle>Invoice Breakdown</DialogTitle>
+                                  <CardDescription>{inv?.invoice_number}</CardDescription>
+                                </DialogHeader>
+                                <div className="mt-4">
+                                  {inv?.items && inv.items.length > 0 ? (
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead>Description</TableHead>
+                                          <TableHead className="text-right">Amount</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {inv.items.map((item: any) => (
+                                          <TableRow key={item.id}>
+                                            <TableCell className="text-sm">{item.description}</TableCell>
+                                            <TableCell className="text-right font-medium">{kes(item.total || 0)}</TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  ) : (
+                                    <div className="py-8 text-center text-slate-500 bg-slate-50 rounded-lg border border-dashed">
+                                      <Receipt className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                      <p>No line items found for this invoice.</p>
+                                    </div>
+                                  )}
+                                  <div className="mt-6 flex justify-between items-center border-t pt-4">
+                                    <span className="font-bold uppercase text-xs tracking-widest text-slate-500">Total Due</span>
+                                    <span className="font-black text-xl text-blue-600">{kes(inv?.total_amount || 0)}</span>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                            <Button variant="outline" size="sm" className="h-8">
+                              <Download className="w-3 h-3 mr-2" /> PDF
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               )}
