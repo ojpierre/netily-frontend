@@ -14,12 +14,6 @@ export type UserRole = 'admin' | 'customer' | StaffRole
 
 export type Gender = 'male' | 'female' | 'other'
 
-export interface Company {
-  id: number
-  name: string
-  email: string
-}
-
 export interface User {
   id: number
   username?: string
@@ -38,6 +32,12 @@ export interface User {
   date_joined?: string
   last_login?: string
   company?: Company
+}
+
+export interface Company {
+  id: number
+  name: string
+  email: string
 }
 
 // Request payload for creating staff users
@@ -655,21 +655,18 @@ export interface InterfaceTraffic {
 // ROUTER DHCP TYPES
 // ==========================================
 
+// This is the IPAM-aligned DHCPLease type (keeping the detailed one)
 export interface DHCPLease {
-  '.id'?: string
-  address: string
-  'mac-address': string
-  'client-id'?: string
-  'host-name'?: string
-  server?: string
-  status?: string
-  'active-address'?: string
-  'active-mac-address'?: string
-  'last-seen'?: string
-  expires?: string
-  dynamic?: string | boolean
-  disabled?: string | boolean
-  comment?: string
+  id: number
+  subnet: number
+  ip_address: string
+  mac_address: string
+  hostname?: string
+  customer?: number
+  customer_name?: string
+  lease_start: string
+  lease_expires: string
+  is_active: boolean
 }
 
 // ==========================================
@@ -1085,19 +1082,6 @@ export interface IPAddress {
   lease_expires?: string
   created_at: string
   updated_at: string
-}
-
-export interface DHCPLease {
-  id: number
-  subnet: number
-  ip_address: string
-  mac_address: string
-  hostname?: string
-  customer?: number
-  customer_name?: string
-  lease_start: string
-  lease_expires: string
-  is_active: boolean
 }
 
 // ==========================================
@@ -2272,6 +2256,7 @@ export interface HotspotSession {
   updated_at?: string
 }
 
+// Keeping the detailed HotspotBranding interface (from line 1318)
 export interface HotspotBranding {
   id: string  // UUID
   router_id: number
@@ -2865,17 +2850,6 @@ export interface HotspotRouterInfo {
   location: string
   branding: HotspotBranding
   plans: HotspotPlanPublic[]
-}
-
-export interface HotspotBranding {
-  logo_url: string | null
-  primary_color: string
-  secondary_color: string
-  welcome_title: string
-  welcome_message: string
-  terms_url: string | null
-  support_phone: string | null
-  support_email: string | null
 }
 
 export interface HotspotPlanPublic {
