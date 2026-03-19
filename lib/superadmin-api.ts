@@ -377,6 +377,20 @@ export interface PlatformChangelog {
   created_at: string;
 }
 
+// Feature Request Types
+export interface FeatureRequest {
+  id: number;
+  title: string;
+  description: string;
+  category: 'network' | 'billing' | 'hotspot' | 'ui_ux' | 'automation' | 'other';
+  status: 'pending' | 'planned' | 'in_progress' | 'completed' | 'rejected';
+  requested_by_name: string;
+  admin_comment: string | null;
+  upvotes_count: number;
+  has_upvoted: boolean;
+  created_at: string;
+}
+
 // ── API class ──────────────────────────────────────
 
 const TOKEN_KEY = "superadminToken"
@@ -716,12 +730,12 @@ class SuperadminApiService {
   // ── Changelogs ──
 
   async getChangelogs(): Promise<PlatformChangelog[]> {
-    const response = await this.request('/superadmin/changelogs/');
+    const response = await this.request<PlatformChangelog[]>('/superadmin/changelogs/');
     return response;
   }
 
   async createChangelog(data: Partial<PlatformChangelog>): Promise<PlatformChangelog> {
-    const response = await this.request('/superadmin/changelogs/', {
+    const response = await this.request<PlatformChangelog>('/superadmin/changelogs/', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -729,7 +743,7 @@ class SuperadminApiService {
   }
 
   async updateChangelog(id: number, data: Partial<PlatformChangelog>): Promise<PlatformChangelog> {
-    const response = await this.request(`/superadmin/changelogs/${id}/`, {
+    const response = await this.request<PlatformChangelog>(`/superadmin/changelogs/${id}/`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
@@ -738,6 +752,27 @@ class SuperadminApiService {
 
   async deleteChangelog(id: number): Promise<void> {
     await this.request(`/superadmin/changelogs/${id}/`, { method: 'DELETE' });
+  }
+
+  /**
+   * Get all feature requests for superadmin management
+   */
+  async getFeatureRequests(): Promise<FeatureRequest[]> {
+    return this.request<FeatureRequest[]>('/superadmin/feature-requests/')
+  }
+
+  // ── Feature Requests Management ──
+
+  /**
+   * Update a feature request's status or admin comment
+   * This is the superadmin command center for managing community feature requests
+   */
+  async updateFeatureStatus(id: number, data: {status?: string, admin_comment?: string}): Promise<FeatureRequest> {
+    const response = await this.request<FeatureRequest>(`/superadmin/feature-requests/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    return response;
   }
 
   // ── Export ──

@@ -21,10 +21,16 @@ export default function SuperadminChangelogsPage() {
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    version: string;
+    update_type: 'feature' | 'improvement' | 'bugfix' | 'maintenance';
+    content: string;
+    is_published: boolean;
+  }>({
     title: "",
     version: "",
-    update_type: "feature",
+    update_type: "feature", // Now TS knows this isn't just any string
     content: "",
     is_published: true
   })
@@ -84,6 +90,7 @@ export default function SuperadminChangelogsPage() {
       case 'feature': return 'bg-amber-100 text-amber-700 border-amber-200'
       case 'improvement': return 'bg-blue-100 text-blue-700 border-blue-200'
       case 'bugfix': return 'bg-rose-100 text-rose-700 border-rose-200'
+      case 'maintenance': return 'bg-purple-100 text-purple-700 border-purple-200'
       default: return 'bg-slate-100 text-slate-700 border-slate-200'
     }
   }
@@ -143,7 +150,7 @@ export default function SuperadminChangelogsPage() {
                     id="type"
                     className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     value={formData.update_type}
-                    onChange={(e) => setFormData({...formData, update_type: e.target.value})}
+                    onChange={(e) => setFormData({...formData, update_type: e.target.value as 'feature' | 'improvement' | 'bugfix' | 'maintenance'})}
                   >
                     <option value="feature">🌟 New Feature</option>
                     <option value="improvement">🚀 Improvement</option>

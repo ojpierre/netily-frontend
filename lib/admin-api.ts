@@ -151,6 +151,8 @@ import type {
   OnlineSession,
   // Platform Changelog types
   PlatformChangelog,
+  // Feature Request types
+  FeatureRequest,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -2712,6 +2714,42 @@ class AdminApiService {
    */
   async getPlatformChangelogs(): Promise<PlatformChangelog[]> {
     const response = await this.request<PlatformChangelog[]>('/core/changelogs/');
+    return response;
+  }
+
+  // ------------------------------------------
+  // COMMUNITY FEATURE REQUESTS - /core/feature-requests/
+  // ------------------------------------------
+
+  /**
+   * Get all community feature requests with upvote status for current ISP
+   */
+  async getFeatureRequests(): Promise<FeatureRequest[]> {
+    const response = await this.request<FeatureRequest[]>('/core/feature-requests/');
+    return response;
+  }
+
+  /**
+   * Submit a new feature request
+   */
+  async submitFeatureRequest(data: Partial<FeatureRequest>): Promise<FeatureRequest> {
+    const response = await this.request<FeatureRequest>('/core/feature-requests/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response;
+  }
+
+  /**
+   * Toggle upvote on a feature request (add or remove vote)
+   */
+  async toggleUpvote(id: number): Promise<{action: 'added' | 'removed', count: number}> {
+    const response = await this.request<{action: 'added' | 'removed', count: number}>(
+      `/core/feature-requests/${id}/toggle-upvote/`, 
+      {
+        method: 'POST',
+      }
+    );
     return response;
   }
 

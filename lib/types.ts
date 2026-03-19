@@ -40,6 +40,19 @@ export interface Company {
   email: string
 }
 
+export interface FeatureRequest {
+  id: number;
+  title: string;
+  description: string;
+  category: 'network' | 'billing' | 'hotspot' | 'ui_ux' | 'automation' | 'other';
+  status: 'pending' | 'planned' | 'in_progress' | 'completed' | 'rejected';
+  requested_by_name: string;
+  admin_comment: string | null;
+  upvotes_count: number;
+  has_upvoted: boolean;
+  created_at: string;
+}
+
 // Request payload for creating staff users
 export interface CreateStaffUserRequest {
   email: string
@@ -2901,3 +2914,4 @@ export interface HotspotPurchaseStatus {
   expires_at?: string
   error_message?: string
 }
+
