@@ -20,6 +20,8 @@ import {
   Package,
   ScrollText,
   Newspaper, // Added for Changelogs
+  Megaphone, // Added for Platform Updates
+  Lightbulb, // Added for Feature Roadmap
 } from "lucide-react"
 import { SuperAdminAuthProvider, useSuperAdminAuth } from "./superadmin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -45,7 +47,9 @@ const navItems = [
   { name: "Analytics", href: "/superadmin/analytics", icon: BarChart3 },
   { name: "Activity", href: "/superadmin/activity", icon: Activity },
   { name: "Audit Log", href: "/superadmin/audit-log", icon: ScrollText },
-  { name: "Changelogs", href: "/superadmin/changelogs", icon: Newspaper }, // Added under System grouping
+  // ── Platform Management Section ──
+  { name: "Changelogs", href: "/superadmin/changelogs", icon: Megaphone }, // Platform Updates
+  { name: "Roadmap", href: "/superadmin/roadmap", icon: Lightbulb }, // Feature Roadmap
   { name: "Settings", href: "/superadmin/settings", icon: Settings },
 ]
 
