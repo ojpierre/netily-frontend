@@ -199,6 +199,14 @@ export interface TenantStats {
   equipment_in_stock: number
   equipment_in_use: number
   equipment_faulty: number
+  // ADD THIS:
+  metered_usage?: {
+    is_metered: boolean
+    pppoe_clients: number
+    hotspot_revenue: number
+    estimated_total: number
+    cycle_end: string | null
+  }
 }
 
 export interface PaginatedResponse<T> {

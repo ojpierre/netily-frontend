@@ -8,7 +8,7 @@ import {
   Loader2, Save, CheckCircle2, Clock, Ban, XCircle, Globe,
   Mail, Phone, MapPin, Calendar, ExternalLink, Pause, Play, Trash2,
   Radio, HardDrive, Package, ScrollText, Search, Signal,
-  LogIn, ChevronLeft, ChevronRight,
+  LogIn, ChevronLeft, ChevronRight, DollarSign, Activity,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -45,6 +45,16 @@ function formatBytes(bytes: number | null | undefined): string {
 function fmtDate(d: string | null | undefined): string {
   if (!d) return "—"
   return new Date(d).toLocaleString()
+}
+
+function kes(amount: number | string): string {
+  const num = typeof amount === "string" ? parseFloat(amount) : amount
+  return new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency: "KES",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(num)
 }
 
 function statusColor(s: string): string {
@@ -259,6 +269,45 @@ export default function TenantDetailPage() {
           <StatCard label="Equipment" value={stats.equipment_items ?? 0} sub={`${stats.equipment_in_use ?? 0} in use`} icon={HardDrive} color="text-orange-400" />
           <StatCard label="Revenue" value={`KES ${(stats.tenant_revenue ?? 0).toLocaleString()}`} icon={CreditCard} color="text-emerald-400" />
         </div>
+      )}
+
+      {/* LIVE METERED USAGE CARD */}
+      {stats?.metered_usage?.is_metered && (
+        <Card className="bg-slate-900 border-emerald-500/30 mb-6 overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-3">
+            <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 flex gap-1 items-center">
+              <Activity className="w-3 h-3 animate-pulse" />
+              Live Billing Cycle
+            </Badge>
+          </div>
+          <CardContent className="pt-6">
+            <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-4">
+              Current Billing Period (Ending {new Date(stats.metered_usage.cycle_end!).toLocaleDateString()})
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-1">
+                <p className="text-xs text-slate-500">Unique PPPoE Clients</p>
+                <p className="text-2xl font-bold text-white flex items-center gap-2">
+                  <Users className="w-5 h-5 text-violet-400" />
+                  {stats.metered_usage.pppoe_clients}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-slate-500">Accumulated Hotspot Revenue</p>
+                <p className="text-2xl font-bold text-white flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-emerald-400" />
+                  {kes(stats.metered_usage.hotspot_revenue)}
+                </p>
+              </div>
+              <div className="space-y-1 bg-emerald-500/5 p-3 rounded-lg border border-emerald-500/10">
+                <p className="text-xs text-emerald-500 font-semibold">Estimated Monthly Total</p>
+                <p className="text-3xl font-bold text-emerald-400">
+                  {kes(stats.metered_usage.estimated_total)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* ── Tabs ── */}
