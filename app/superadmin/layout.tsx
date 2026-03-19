@@ -19,6 +19,7 @@ import {
   BarChart3,
   Package,
   ScrollText,
+  Newspaper, // Added for Changelogs
 } from "lucide-react"
 import { SuperAdminAuthProvider, useSuperAdminAuth } from "./superadmin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -44,6 +45,7 @@ const navItems = [
   { name: "Analytics", href: "/superadmin/analytics", icon: BarChart3 },
   { name: "Activity", href: "/superadmin/activity", icon: Activity },
   { name: "Audit Log", href: "/superadmin/audit-log", icon: ScrollText },
+  { name: "Changelogs", href: "/superadmin/changelogs", icon: Newspaper }, // Added under System grouping
   { name: "Settings", href: "/superadmin/settings", icon: Settings },
 ]
 

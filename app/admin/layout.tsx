@@ -42,6 +42,7 @@ import {
   Shield,
   Key,
   Radio,
+  Megaphone, // Added for What's New
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -128,6 +129,11 @@ const navigationSections = [
       { name: "Settings", href: "/admin/settings", icon: Settings },
     ],
   },
+]
+
+// Add What's New as a separate bottom section (not in any group)
+const bottomNavItems = [
+  { name: "What's New", href: "/admin/whats-new", icon: Megaphone },
 ]
 
 // Flat navigation for easy iteration
@@ -265,6 +271,32 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               </ul>
             </div>
           ))}
+
+          {/* Bottom navigation items (What's New) - always at the bottom */}
+          <Separator className="my-4 bg-slate-700" />
+          <ul className="space-y-1">
+            {bottomNavItems.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <li key={item.name}>
+                  <Link
+                    href={item.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive
+                        ? "bg-blue-600 text-white"
+                        : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"
+                    }`}
+                    title={sidebarCollapsed ? item.name : undefined}
+                  >
+                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                    {!sidebarCollapsed && (
+                      <span className="font-medium">{item.name}</span>
+                    )}
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
         </nav>
 
         {/* Sidebar footer */}

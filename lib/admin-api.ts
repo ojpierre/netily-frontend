@@ -149,6 +149,8 @@ import type {
   CustomerRADIUSCredentials,
   // Online session type
   OnlineSession,
+  // Platform Changelog types
+  PlatformChangelog,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -2698,6 +2700,19 @@ class AdminApiService {
     return this.request<SMSCampaign>(`/messaging/campaigns/${id}/cancel/`, {
       method: 'POST',
     })
+  }
+
+  // ------------------------------------------
+  // PLATFORM CHANGELOGS - /core/changelogs/
+  // ------------------------------------------
+
+  /**
+   * Get platform changelogs for display to ISPs
+   * This is a read-only endpoint for regular admin users
+   */
+  async getPlatformChangelogs(): Promise<PlatformChangelog[]> {
+    const response = await this.request<PlatformChangelog[]>('/core/changelogs/');
+    return response;
   }
 
   // ------------------------------------------

@@ -159,6 +159,21 @@ export interface DashboardStats {
 }
 
 // ==========================================
+// PLATFORM CHANGELOG TYPES
+// ==========================================
+
+export interface PlatformChangelog {
+  id: number;
+  title: string;
+  version: string | null;
+  content: string;
+  update_type: 'feature' | 'improvement' | 'bugfix' | 'maintenance';
+  is_published: boolean;
+  release_date: string;
+  created_at: string;
+}
+
+// ==========================================
 // CUSTOMER MODULE TYPES
 // ==========================================
 

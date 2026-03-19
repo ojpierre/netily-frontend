@@ -365,6 +365,18 @@ export interface ImpersonateResult {
   panel_url: string
 }
 
+// Platform Changelog Types
+export interface PlatformChangelog {
+  id: number;
+  title: string;
+  version: string | null;
+  content: string;
+  update_type: 'feature' | 'improvement' | 'bugfix' | 'maintenance';
+  is_published: boolean;
+  release_date: string;
+  created_at: string;
+}
+
 // ── API class ──────────────────────────────────────
 
 const TOKEN_KEY = "superadminToken"
@@ -699,6 +711,33 @@ class SuperadminApiService {
       method: "PATCH",
       body: JSON.stringify(data),
     })
+  }
+
+  // ── Changelogs ──
+
+  async getChangelogs(): Promise<PlatformChangelog[]> {
+    const response = await this.request('/superadmin/changelogs/');
+    return response;
+  }
+
+  async createChangelog(data: Partial<PlatformChangelog>): Promise<PlatformChangelog> {
+    const response = await this.request('/superadmin/changelogs/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response;
+  }
+
+  async updateChangelog(id: number, data: Partial<PlatformChangelog>): Promise<PlatformChangelog> {
+    const response = await this.request(`/superadmin/changelogs/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    return response;
+  }
+
+  async deleteChangelog(id: number): Promise<void> {
+    await this.request(`/superadmin/changelogs/${id}/`, { method: 'DELETE' });
   }
 
   // ── Export ──
