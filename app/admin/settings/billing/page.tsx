@@ -42,7 +42,8 @@ function BillingContent() {
           adminApi.getNetilyPlans(),
           adminApi.getCurrentSubscription(),
           adminApi.getUsageStats(),
-          adminApi.getInvoices({ category: 'subscription' }) 
+          // FIX: Use search filter for NET-BILL prefix to isolate Netily platform invoices
+          adminApi.getInvoices({ search: 'NET-BILL' })
         ])
 
         // FIX 1: Handle Paginated vs List responses for Plans
@@ -205,7 +206,7 @@ function BillingContent() {
           )}
         </TabsContent>
 
-        {/* 2. INVOICES - Added Array check to prevent k.map crash */}
+        {/* 2. INVOICES - Now filtering by NET-BILL prefix */}
         <TabsContent value="invoices">
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>
