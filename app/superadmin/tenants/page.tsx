@@ -214,6 +214,7 @@ export default function TenantsPage() {
                   <th className="text-left p-4">Company</th>
                   <th className="text-left p-4 hidden md:table-cell">Subdomain</th>
                   <th className="text-left p-4">Status</th>
+                  <th className="text-left p-4">Metered Usage</th>
                   <th className="text-left p-4 hidden lg:table-cell">Plan</th>
                   <th className="text-left p-4 hidden lg:table-cell">MRR</th>
                   <th className="text-left p-4 hidden xl:table-cell">Expires</th>
@@ -234,6 +235,50 @@ export default function TenantsPage() {
                       <code className="text-xs bg-slate-800 text-violet-300 px-2 py-0.5 rounded">{t.subdomain}</code>
                     </td>
                     <td className="p-4">{statusBadge(t.status)}</td>
+                    
+                    {/* NEW: Metered Usage Column */}
+                    <td className="p-4">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between w-full max-w-[120px]">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Usage</span>
+                          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                            (t.raw_active_pppoe_count ?? 0) > (t.billed_pppoe_count ?? 0) 
+                            ? 'bg-amber-100 text-amber-700' 
+                            : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {(t.raw_active_pppoe_count ?? 0) > (t.billed_pppoe_count ?? 0) ? 'OVERAGE' : 'IN-PLAN'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-end gap-1">
+                          <span className="text-lg font-black text-slate-900 leading-none">
+                            {t.raw_active_pppoe_count ?? 0}
+                          </span>
+                          <span className="text-xs font-bold text-slate-400 pb-0.5">
+                            / {t.billed_pppoe_count ?? 0}
+                          </span>
+                        </div>
+
+                        {/* Modern Progress Bar for Usage vs Commitment */}
+                        <div className="w-full max-w-[120px] h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+                          <div 
+                            className={`h-full transition-all duration-500 rounded-full ${
+                              (t.raw_active_pppoe_count ?? 0) >= (t.billed_pppoe_count ?? 0) 
+                              ? 'bg-blue-600' 
+                              : 'bg-indigo-400'
+                            }`}
+                            style={{ 
+                              width: `${Math.min(((t.raw_active_pppoe_count ?? 0) / (t.billed_pppoe_count ?? 1)) * 100, 100)}%` 
+                            }}
+                          />
+                        </div>
+                        
+                        <p className="text-[10px] text-slate-400 font-medium">
+                          {t.raw_active_pppoe_count ?? 0} Actual vs {t.billed_pppoe_count ?? 0} Min
+                        </p>
+                      </div>
+                    </td>
+                    
                     <td className="p-4 hidden lg:table-cell text-slate-300 capitalize">{t.subscription_plan || "—"}</td>
                     <td className="p-4 hidden lg:table-cell text-slate-300">
                       KES {Number(t.monthly_rate).toLocaleString()}

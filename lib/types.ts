@@ -147,6 +147,12 @@ export interface Tenant {
   company: Company
   is_active: boolean
   created_at: string
+  
+  // NEW: Add these billing fields
+  raw_active_pppoe_count?: number
+  billed_pppoe_count?: number
+  current_cycle_status?: 'active' | 'invoiced' | 'paid' | null
+  current_cycle_end?: string | null
 }
 
 export interface SystemSetting {

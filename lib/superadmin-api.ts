@@ -72,6 +72,13 @@ export interface Tenant {
   is_active: boolean
   created_at: string
   updated_at: string
+  
+  // NEW: Billing cycle metrics for metered usage display
+  raw_active_pppoe_count?: number
+  billed_pppoe_count?: number
+  current_cycle_status?: 'active' | 'invoiced' | 'paid' | null
+  current_cycle_end?: string | null
+  
   // Detail-only
   company?: TenantCompany
 }
