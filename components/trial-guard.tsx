@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { adminApi } from "@/lib/admin-api"
-import type { CompanySubscription } from "@/lib/types"
 
 // ==========================================
 // TYPES
@@ -105,28 +104,40 @@ const features = [
 // HELPER FUNCTIONS
 // ==========================================
 
-function isTrialExpired(trialStartDate: Date, trialDays: number): boolean {
+/**
+ * Renamed to checkDateExpired to avoid shadowing the state variable
+ */
+function checkDateExpired(targetDate: Date): boolean {
   const now = new Date()
-  const expiryDate = new Date(trialStartDate)
-  expiryDate.setDate(expiryDate.getDate() + trialDays)
-  return now >= expiryDate
+  return targetDate <= now
 }
 
 // ==========================================
-// EXPIRED TRIAL PAGE COMPONENT
+// EXPIRED PAGE COMPONENT
 // ==========================================
 
-function ExpiredTrialPage() {
+interface ExpiredPageProps {
+  isPaidSubscription: boolean
+  planName?: string
+}
+
+function ExpiredPage({ isPaidSubscription, planName }: ExpiredPageProps) {
   const router = useRouter()
 
   const handleSelectPlan = (planName: string) => {
-    // Navigate to billing settings with selected plan
     router.push(`/admin/settings/billing?plan=${planName.toLowerCase()}`)
   }
 
   const handleContactSales = () => {
     window.open("mailto:sales@netily.io?subject=Enterprise%20Inquiry", "_blank")
   }
+
+  const title = isPaidSubscription ? "Subscription Expired" : "Free Trial Expired"
+  const description = isPaidSubscription
+    ? `Your ${planName || "Starter"} subscription has ended. Choose a plan to continue managing your ISP business with Netily's powerful tools.`
+    : "Your 14-day free trial has ended. Choose a plan to continue managing your ISP business with Netily's powerful tools."
+  const badgeText = isPaidSubscription ? "Subscription overdue" : "Your free trial has expired"
+  const badgeColor = isPaidSubscription ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
@@ -148,16 +159,15 @@ function ExpiredTrialPage() {
       {/* Hero Section */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-full mb-6">
+          <div className={`inline-flex items-center gap-2 ${badgeColor} px-4 py-2 rounded-full mb-6`}>
             <Lock className="w-4 h-4" />
-            <span className="text-sm font-medium">Your free trial has expired</span>
+            <span className="text-sm font-medium">{badgeText}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
-            Upgrade to Continue
+            {title}
           </h1>
           <p className="text-xl text-slate-600 mb-8 max-w-2xl mx-auto">
-            Your 14-day free trial has ended. Choose a plan to continue managing your ISP business
-            with Netily&apos;s powerful tools.
+            {description}
           </p>
         </div>
       </section>
@@ -294,9 +304,10 @@ function ExpiredTrialPage() {
 export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
   const [isExpired, setIsExpired] = useState(false)
   const [isChecking, setIsChecking] = useState(true)
+  const [subscriptionType, setSubscriptionType] = useState<"trial" | "active" | null>(null)
+  const [planName, setPlanName] = useState<string | null>(null)
   const pathname = usePathname()
 
-  // Pages that should be accessible even after trial expiry
   const allowedPaths = [
     "/admin/login",
     "/admin/register",
@@ -306,22 +317,18 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
   ]
 
   useEffect(() => {
-    let isCheckingNow = false // Prevent concurrent checks
+    let isCheckingNow = false
 
-    // Check trial status from API first, then fallback to localStorage
     const checkTrial = async () => {
       if (typeof window === "undefined") return
-      if (isCheckingNow) return // Skip if a check is already in flight
+      if (isCheckingNow) return
       isCheckingNow = true
 
       try {
-        // First, try to get subscription status from API
         const subscription = await adminApi.getCurrentSubscription()
         
         if (subscription) {
-          // Store trial start date locally for countdown component
           if (subscription.trial_ends_at) {
-            // Calculate trial start date from trial end (14 days before)
             const trialEndDate = new Date(subscription.trial_ends_at)
             const trialStartDate = new Date(trialEndDate.getTime() - (trialDays * 24 * 60 * 60 * 1000))
             localStorage.setItem("trialStartDate", trialStartDate.toISOString())
@@ -329,10 +336,21 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
             localStorage.setItem("trialStartDate", subscription.current_period_start)
           }
           
-          // Check subscription status
+          setPlanName(subscription.plan_name || subscription.plan?.name || "Netily Plan")
+          
           if (subscription.status === "active") {
             localStorage.setItem("subscriptionStatus", "active")
-            setIsExpired(false)
+            setSubscriptionType("active")
+            
+            if (subscription.current_period_end) {
+              const expiryDate = new Date(subscription.current_period_end)
+              const expired = checkDateExpired(expiryDate)
+              setIsExpired(expired)
+              localStorage.setItem("subscriptionExpiry", subscription.current_period_end)
+            } else {
+              setIsExpired(false)
+            }
+            
             setIsChecking(false)
             isCheckingNow = false
             return
@@ -340,10 +358,11 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
           
           if (subscription.status === "trial") {
             localStorage.setItem("subscriptionStatus", "trial")
-            // Check if trial has expired
+            setSubscriptionType("trial")
+            
             if (subscription.trial_ends_at) {
               const trialEndDate = new Date(subscription.trial_ends_at)
-              const expired = trialEndDate <= new Date()
+              const expired = checkDateExpired(trialEndDate)
               setIsExpired(expired)
             } else {
               setIsExpired(false)
@@ -361,23 +380,36 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
           }
         }
       } catch (error) {
-        // API call failed - fallback to localStorage
         console.log("Failed to fetch subscription, falling back to localStorage:", error)
       }
 
-      // Fallback: Check localStorage
-      const storedDate = localStorage.getItem("trialStartDate")
-
-      if (!storedDate) {
-        // No trial start date - check subscription status
-        const hasSubscription = localStorage.getItem("subscriptionStatus")
-        if (hasSubscription === "active") {
-          setIsExpired(false)
+      // Check for a cached subscription expiry first
+      const cachedExpiry = localStorage.getItem("subscriptionExpiry")
+      if (cachedExpiry) {
+        const expiryDate = new Date(cachedExpiry)
+        if (!isNaN(expiryDate.getTime())) {
+          setIsExpired(checkDateExpired(expiryDate))
           setIsChecking(false)
           isCheckingNow = false
           return
         }
-        // New user with no subscription info - create a trial start date now
+      }
+
+      const storedDate = localStorage.getItem("trialStartDate")
+
+      if (!storedDate) {
+        const hasSubscription = localStorage.getItem("subscriptionStatus")
+        if (hasSubscription === "active") {
+          const expiryDateStr = localStorage.getItem("subscriptionExpiry")
+          if (expiryDateStr) {
+            setIsExpired(checkDateExpired(new Date(expiryDateStr)))
+          } else {
+            setIsExpired(false)
+          }
+          setIsChecking(false)
+          isCheckingNow = false
+          return
+        }
         const newTrialStart = new Date()
         localStorage.setItem("trialStartDate", newTrialStart.toISOString())
         localStorage.setItem("subscriptionStatus", "trial")
@@ -394,7 +426,9 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
         return
       }
 
-      const expired = isTrialExpired(trialStartDate, trialDays)
+      const trialEndDate = new Date(trialStartDate)
+      trialEndDate.setDate(trialEndDate.getDate() + trialDays)
+      const expired = checkDateExpired(trialEndDate)
       setIsExpired(expired)
       setIsChecking(false)
       isCheckingNow = false
@@ -402,27 +436,23 @@ export function TrialGuard({ children, trialDays = 14 }: TrialGuardProps) {
 
     checkTrial()
 
-    // Re-check every 5 minutes (was 60s — caused excessive polling)
     const interval = setInterval(checkTrial, 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [trialDays])
 
-  // Show loading state while checking
   if (isChecking) {
-    return null // Or a loading spinner
+    return null
   }
 
-  // Allow access to billing and certain pages
   if (allowedPaths.some((path) => pathname?.startsWith(path))) {
     return <>{children}</>
   }
 
-  // Show expired page if trial is over
   if (isExpired) {
-    return <ExpiredTrialPage />
+    const isPaidSubscription = subscriptionType === "active"
+    return <ExpiredPage isPaidSubscription={isPaidSubscription} planName={planName || undefined} />
   }
 
-  // Trial still active
   return <>{children}</>
 }
 
