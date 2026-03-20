@@ -2071,17 +2071,22 @@ export type SubscriptionStatus = 'trial' | 'active' | 'past_due' | 'cancelled' |
 export type SettlementStatus = 'pending' | 'processing' | 'completed' | 'failed'
 export type PayoutMethod = 'mpesa' | 'bank'
 
+// ojpierre/netily-frontend/netily-frontend-prod-frontend/lib/types.ts
+
 export interface NetilyPlan {
   id: number
   name: string
   code: NetilyPlanCode
-  price: string
+  price: string                   // Legacy price field
+  price_monthly: string           // Added: Current monthly price
+  base_license_fee?: string       // Added: Used for metered plans
   description: string
-  // ADD THESE:
   is_metered: boolean
+  is_popular?: boolean            // Added: For the "Most Popular" badge
   max_staff_users: number | null
-  max_subscribers: number | null  // null = unlimited
+  max_subscribers: number | null  
   max_routers: number | null
+  // Support both the object format and the simple string array format
   features: {
     sms_notifications: boolean
     email_notifications: boolean
@@ -2092,7 +2097,7 @@ export interface NetilyPlan {
     hotspot_portal: boolean
     analytics_dashboard: boolean
     multi_location: boolean
-  }
+  } | string[] 
   is_active: boolean
   sort_order: number
 }
