@@ -163,6 +163,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     console.log('AdminLayout state:', { loading, user: user?.email || user?.username, isPublicPage, mounted, pathname })
   }, [loading, user, isPublicPage, mounted, pathname])
 
+  // FORCE REDIRECT IF NO USER FOUND
+  useEffect(() => {
+    if (!loading && !user && !isPublicPage && mounted) {
+      console.log('AdminLayout: No user found, forcing redirect to login')
+      router.push("/admin/login")
+    }
+  }, [loading, user, isPublicPage, mounted, router])
+
   // Middleware already handles route protection, so we don't need client-side redirect
   // Just show appropriate UI based on auth state
 
@@ -188,14 +196,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // If no user after loading, middleware will handle redirect
-  // Show loading state briefly while middleware redirects
+  // If no user after loading, show redirecting message
+  // The useEffect above will handle the actual redirect
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
-          <p className="text-slate-500">Checking authentication...</p>
+          <p className="text-slate-500 font-medium animate-pulse">Redirecting to login...</p>
         </div>
       </div>
     )
