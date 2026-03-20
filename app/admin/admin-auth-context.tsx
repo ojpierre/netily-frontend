@@ -81,10 +81,10 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       console.log('loadUser: Token found?', !!token)
       
       if (!token) {
-        console.log('loadUser: No token found in storage. Aborting auth check.')
-        // If there's no token, there is no user. We must set user to null
-        // so the Layout component knows to redirect to login.
+        console.log('loadUser: No token found in storage. Aborting auth check and clearing cookies.')
         setUser(null)
+        // THE CRITICAL FIX: Kill the ghost cookie so Middleware allows us to stay on the Login page
+        document.cookie = "adminToken=; path=/; max-age=0; SameSite=Lax"
         return // Exit the try block early, dropping straight to the finally block
       }
 
@@ -120,7 +120,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.removeItem("adminRefreshToken")
       sessionStorage.removeItem("adminUser")
       // Clear cookies
-      document.cookie = "adminToken=; path=/; max-age=0"
+      document.cookie = "adminToken=; path=/; max-age=0; SameSite=Lax"
     } finally {
       // This will ALWAYS run, even if we return early
       setLoading(false)
@@ -222,7 +222,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.removeItem("adminUser")
     
     // Clear cookies
-    document.cookie = "adminToken=; path=/; max-age=0"
+    document.cookie = "adminToken=; path=/; max-age=0; SameSite=Lax"
     
     setUser(null)
     router.push("/admin/login")
