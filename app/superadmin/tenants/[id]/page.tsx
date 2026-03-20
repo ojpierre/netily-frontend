@@ -31,6 +31,7 @@ import {
   type TenantRouter, type PPPoEUser, type HotspotUser,
   type InventoryItem, type AuditLogEntry, type PaginatedResponse,
 } from "@/lib/superadmin-api"
+import { TenantBillingTab } from "./components/tenant-billing-tab"
 
 // ━━━━━━━━━━━━━━━ Helpers ━━━━━━━━━━━━━━━
 
@@ -316,6 +317,9 @@ export default function TenantDetailPage() {
           <TabsTrigger value="overview" className="data-[state=active]:bg-violet-600/20 data-[state=active]:text-violet-300">
             <Building2 className="w-4 h-4 mr-1.5" />Overview
           </TabsTrigger>
+          <TabsTrigger value="billing" className="data-[state=active]:bg-violet-600/20 data-[state=active]:text-violet-300">
+            <CreditCard className="w-4 h-4 mr-1.5" />Billing
+          </TabsTrigger>
           <TabsTrigger value="routers" className="data-[state=active]:bg-violet-600/20 data-[state=active]:text-violet-300">
             <Wifi className="w-4 h-4 mr-1.5" />Routers
           </TabsTrigger>
@@ -463,6 +467,12 @@ export default function TenantDetailPage() {
           </Card>
         </TabsContent>
 
+        {/* ── BILLING TAB ── */}
+        <TabsContent value="billing" className="space-y-4 mt-4">
+          {/* We pass the fetched tenant data directly into our new component */}
+          <TenantBillingTab tenant={tenant} />
+        </TabsContent>
+
         {/* ── ROUTERS TAB ── */}
         <TabsContent value="routers" className="mt-4">
           <RoutersTab tenantId={id} />
@@ -553,7 +563,7 @@ function RoutersTab({ tenantId }: { tenantId: string }) {
                   <th className="px-4 py-3">Hotspot</th>
                   <th className="px-4 py-3">Version</th>
                   <th className="px-4 py-3">Last Seen</th>
-                </tr>
+                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
                 {routers.map((r) => (
@@ -646,7 +656,7 @@ function PPPoETab({ tenantId }: { tenantId: string }) {
                     <th className="px-4 py-3">Upload</th>
                     <th className="px-4 py-3">Connected</th>
                     <th className="px-4 py-3">Last Seen</th>
-                  </tr>
+                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {data.results.map((u) => (
