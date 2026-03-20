@@ -2101,7 +2101,9 @@ export interface CompanySubscription {
   id: number
   company_id: number
   plan: NetilyPlan
+  plan_name?: string           // Flattened name from serializer
   status: SubscriptionStatus
+  billing_period?: 'monthly' | 'yearly' // Billing cycle (monthly/yearly)
   trial_ends_at: string | null
   current_period_start: string
   current_period_end: string
