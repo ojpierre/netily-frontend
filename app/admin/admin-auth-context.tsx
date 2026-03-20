@@ -69,7 +69,6 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadUser = async () => {
     if (USE_MOCK_AUTH) {
-      // Mock mode - provide admin user immediately
       setUser(MOCK_ADMIN)
       setLoading(false)
       return
@@ -81,40 +80,49 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       
       console.log('loadUser: Token found?', !!token)
       
-      if (token) {
-        // Verify token by getting current admin user
-        console.log('loadUser: Fetching user from /core/users/me/...')
-        const userData = await adminApi.getCurrentAdmin() as any
-        
-        console.log('loadUser: Received user data:', userData)
-        
-        // Check for admin privileges - support multiple field formats
-        const allowedRoles = ['admin', 'staff', 'accountant', 'support', 'superadmin']
-        const hasAdminRole = userData?.role && allowedRoles.includes(userData.role.toLowerCase())
-        const isStaffOrSuper = userData?.is_staff || userData?.is_superuser
-        
-        console.log('loadUser: Privilege check:', { role: userData?.role, hasAdminRole, isStaffOrSuper })
-        
-        if (!hasAdminRole && !isStaffOrSuper) {
-          console.log('loadUser: User does not have admin privileges')
-          throw new Error("Not an admin user")
-        }
-        
-        console.log('loadUser: Setting user successfully')
-        setUser(userData)
-      } else {
-        console.log('loadUser: No token found in storage')
+      if (!token) {
+        console.log('loadUser: No token found in storage. Aborting auth check.')
+        // If there's no token, there is no user. We must set user to null
+        // so the Layout component knows to redirect to login.
+        setUser(null)
+        return // Exit the try block early, dropping straight to the finally block
       }
+
+      // Verify token by getting current admin user
+      console.log('loadUser: Fetching user from /core/users/me/...')
+      const userData = await adminApi.getCurrentAdmin() as any
+      
+      console.log('loadUser: Received user data:', userData)
+      
+      // Check for admin privileges - support multiple field formats
+      const allowedRoles = ['admin', 'staff', 'accountant', 'support', 'superadmin']
+      const hasAdminRole = userData?.role && allowedRoles.includes(userData.role.toLowerCase())
+      const isStaffOrSuper = userData?.is_staff || userData?.is_superuser
+      
+      console.log('loadUser: Privilege check:', { role: userData?.role, hasAdminRole, isStaffOrSuper })
+      
+      if (!hasAdminRole && !isStaffOrSuper) {
+        console.log('loadUser: User does not have admin privileges')
+        throw new Error("Not an admin user")
+      }
+      
+      console.log('loadUser: Setting user successfully')
+      setUser(userData)
+      
     } catch (error) {
       console.error("loadUser: Failed to load admin user:", error)
       // Clear invalid tokens
+      setUser(null) // Ensure user is null on failure
       localStorage.removeItem("adminToken")
       localStorage.removeItem("adminRefreshToken")
       localStorage.removeItem("adminUser")
       sessionStorage.removeItem("adminToken")
       sessionStorage.removeItem("adminRefreshToken")
       sessionStorage.removeItem("adminUser")
+      // Clear cookies
+      document.cookie = "adminToken=; path=/; max-age=0"
     } finally {
+      // This will ALWAYS run, even if we return early
       setLoading(false)
     }
   }
