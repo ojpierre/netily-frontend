@@ -72,16 +72,50 @@ function ExpiredPage({ isPaidSubscription, planName, plans, loading = false }: E
   }
 
   const getFeaturesList = (plan: NetilyPlan): string[] => {
-    if (Array.isArray(plan.features)) return plan.features
+    // 1. If it's already an array, use it
+    if (Array.isArray(plan.features)) {
+      return plan.features as string[]
+    }
     
-    // Fallback features if features is the boolean object or missing
-    return [
-      `Up to ${plan.max_subscribers === 0 ? 'Unlimited' : plan.max_subscribers || 'Unlimited'} subscribers`,
-      `Up to ${plan.max_routers === 0 ? 'Unlimited' : plan.max_routers || 'Unlimited'} routers`,
-      plan.is_metered ? 'Metered usage-based billing' : 'Fixed monthly pricing',
-      'Automated Invoicing',
-      'M-Pesa Integration',
-    ]
+    // 2. If it's the boolean object format (like from NetilyPlan), convert to list
+    if (typeof plan.features === 'object' && plan.features !== null) {
+      const featureObj = plan.features as any
+      const list: string[] = []
+      
+      if (featureObj.sms_notifications) list.push("SMS Notifications")
+      if (featureObj.email_notifications) list.push("Email Notifications")
+      if (featureObj.api_access) list.push("API Access")
+      if (featureObj.custom_branding) list.push("Custom Branding")
+      if (featureObj.white_label) list.push("White Label")
+      if (featureObj.priority_support) list.push("Priority Support")
+      if (featureObj.hotspot_portal) list.push("Hotspot Portal")
+      if (featureObj.analytics_dashboard) list.push("Analytics Dashboard")
+      if (featureObj.multi_location) list.push("Multi-Location Support")
+      
+      if (list.length > 0) return list
+    }
+    
+    // 3. Fallback based on plan limits
+    const fallbackFeatures: string[] = []
+    
+    if (plan.max_subscribers !== undefined && plan.max_subscribers !== null) {
+      fallbackFeatures.push(`Up to ${plan.max_subscribers === 0 ? 'Unlimited' : plan.max_subscribers} subscribers`)
+    }
+    
+    if (plan.max_routers !== undefined && plan.max_routers !== null) {
+      fallbackFeatures.push(`Up to ${plan.max_routers === 0 ? 'Unlimited' : plan.max_routers} routers`)
+    }
+    
+    // FIX: Use max_staff_users instead of max_staff to match NetilyPlan interface
+    if (plan.max_staff_users !== undefined && plan.max_staff_users !== null) {
+      fallbackFeatures.push(`Up to ${plan.max_staff_users === 0 ? 'Unlimited' : plan.max_staff_users} staff accounts`)
+    }
+    
+    fallbackFeatures.push(plan.is_metered ? 'Metered usage-based billing' : 'Fixed monthly pricing')
+    fallbackFeatures.push('Automated Invoicing')
+    fallbackFeatures.push('M-Pesa Integration')
+    
+    return fallbackFeatures
   }
 
   return (
@@ -286,48 +320,106 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
   ]
 
   useEffect(() => {
+    let isCheckingNow = false
+
     const checkTrial = async () => {
+      if (typeof window === "undefined") return
+      if (isCheckingNow) return
+      isCheckingNow = true
+
       try {
-        const [plansData, subscription] = await Promise.all([
-          adminApi.getNetilyPlans(),
-          adminApi.getCurrentSubscription()
-        ])
+        // Fetch Real Netily Plans from Backend
+        const plansData = await adminApi.getNetilyPlans() as any
         
-        setRealPlans(plansData)
+        // FIX: Ensure realPlans is ALWAYS an array even if backend paginates
+        const plansArray = Array.isArray(plansData) 
+          ? plansData 
+          : (plansData?.results || [])
+          
+        setRealPlans(plansArray)
         setPlansLoading(false)
 
+        // Get current subscription
+        const subscription = await adminApi.getCurrentSubscription()
+        
         if (subscription) {
+          // Store trial start date locally for countdown component
+          if (subscription.trial_ends_at) {
+            const trialEndDate = new Date(subscription.trial_ends_at)
+            const trialStartDate = new Date(trialEndDate.getTime() - (trialDays * 24 * 60 * 60 * 1000))
+            localStorage.setItem("trialStartDate", trialStartDate.toISOString())
+          } else if (subscription.current_period_start) {
+            localStorage.setItem("trialStartDate", subscription.current_period_start)
+          }
+          
           setPlanName(subscription.plan_name || subscription.plan?.name || "Netily Plan")
           
           if (subscription.status === "active") {
+            localStorage.setItem("subscriptionStatus", "active")
             setSubscriptionType("active")
-            const expired = subscription.current_period_end 
-              ? checkDateExpired(new Date(subscription.current_period_end)) 
-              : false
-            setIsExpired(expired)
+            
             if (subscription.current_period_end) {
+              const expiryDate = new Date(subscription.current_period_end)
+              const expired = checkDateExpired(expiryDate)
+              setIsExpired(expired)
               localStorage.setItem("subscriptionExpiry", subscription.current_period_end)
+            } else {
+              setIsExpired(false)
             }
-          } else if (subscription.status === "trial") {
+            
+            setIsChecking(false)
+            isCheckingNow = false
+            return
+          }
+          
+          if (subscription.status === "trial") {
+            localStorage.setItem("subscriptionStatus", "trial")
             setSubscriptionType("trial")
-            setIsExpired(subscription.trial_ends_at 
-              ? checkDateExpired(new Date(subscription.trial_ends_at)) 
-              : false)
-          } else {
+            
+            if (subscription.trial_ends_at) {
+              const trialEndDate = new Date(subscription.trial_ends_at)
+              const expired = checkDateExpired(trialEndDate)
+              setIsExpired(expired)
+            } else {
+              setIsExpired(false)
+            }
+            setIsChecking(false)
+            isCheckingNow = false
+            return
+          }
+          
+          if (subscription.status === "expired" || subscription.status === "cancelled") {
             setIsExpired(true)
+            setIsChecking(false)
+            isCheckingNow = false
+            return
           }
         }
       } catch (error) {
-        console.error("TrialGuard check failed:", error)
-      } finally {
-        setIsChecking(false)
+        console.error("TrialGuard error:", error)
+        setPlansLoading(false)
       }
+      
+      // Fallback: Check for cached expiry
+      const cachedExpiry = localStorage.getItem("subscriptionExpiry")
+      if (cachedExpiry) {
+        const expiryDate = new Date(cachedExpiry)
+        if (!isNaN(expiryDate.getTime())) {
+          setIsExpired(checkDateExpired(expiryDate))
+          setIsChecking(false)
+          isCheckingNow = false
+          return
+        }
+      }
+      
+      setIsChecking(false)
+      isCheckingNow = false
     }
 
     checkTrial()
     const interval = setInterval(checkTrial, 5 * 60 * 1000)
     return () => clearInterval(interval)
-  }, [])
+  }, [trialDays])
 
   if (isChecking) {
     return (
