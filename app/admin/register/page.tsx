@@ -186,7 +186,12 @@ async function registerCompany(data: Omit<RegisterFormData, "admin_password_conf
     body: JSON.stringify(data),
   })
 
-  const result = await response.json()
+  const result = await response.json().catch(async () => {
+    const text = await response.text().catch(() => "")
+    return {
+      detail: text || `Request failed with status ${response.status}`,
+    }
+  })
 
   if (!response.ok) {
     throw { status: response.status, errors: result }
@@ -498,11 +503,25 @@ export default function AdminRegisterPage() {
         const firstError = Object.values(error.errors).flat()[0] as string
         toast.error(firstError || "Please fix the errors in the form")
       } else if (error.status === 500) {
-        setGeneralError("Something went wrong. Please try again later.")
-        toast.error("Server error. Please try again later.")
+        const backendDetail =
+          error?.errors?.detail ||
+          error?.errors?.error ||
+          "Something went wrong. Please try again later."
+        setGeneralError(String(backendDetail))
+        toast.error(String(backendDetail))
+      } else if (error.status === 502 || error.status === 503 || error.status === 504) {
+        const gatewayMessage =
+          "Registration service is temporarily unavailable (gateway/server restart). Please retry in 30-60 seconds."
+        setGeneralError(gatewayMessage)
+        toast.error(gatewayMessage)
       } else {
-        setGeneralError("Registration failed. Please try again.")
-        toast.error("Registration failed. Please try again.")
+        const fallbackMessage =
+          error?.errors?.detail ||
+          error?.errors?.error ||
+          error?.message ||
+          "Registration failed. Please try again."
+        setGeneralError(String(fallbackMessage))
+        toast.error(String(fallbackMessage))
       }
     }
   }
