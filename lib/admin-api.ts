@@ -3355,5 +3355,6 @@ class AdminApiService {
 
 // Export singleton instance
 export const adminApi = new AdminApiService()
+
 // Export class for testing/extension
 export { AdminApiService }
