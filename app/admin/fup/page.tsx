@@ -24,12 +24,11 @@ import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { adminApi } from "@/lib/admin-api"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts"
 
-// --- TYPES (Matching New Backend API) ---
+// --- TYPES ---
 export type FupPolicyStatus = "DRAFT" | "ACTIVE" | "INACTIVE"
 export type FupResetPeriod = "DAILY" | "WEEKLY" | "MONTHLY" | "SUBSCRIPTION"
-export type FupViolationAction = "WARNED" | "THROTTLED" | "RETHROTTLED" | "RELEASED" | "RESET"
-export type FupViolationStatus = "OPEN" | "ACKNOWLEDGED" | "RESOLVED"
 
 export interface FupPolicyDto {
   id: string
@@ -50,35 +49,15 @@ export interface FupPolicyDto {
   created_at: string
 }
 
-export interface FupViolationDto {
-  id: string
-  customer_name: string
-  customer_code: string
-  policy_name: string
-  usage_gb: number
-  limit_gb: number
-  action_taken: FupViolationAction
-  status: FupViolationStatus
-  occurred_at: string
+export interface FupAnalyticsOverviewDto {
+  violation_trends: Array<{ date: string; count: number }>
+  top_violators_this_month: Array<{ customer_code: string; name: string; violations: number; avg_excess_pct?: number }>
+  policy_distribution: Array<{ policy_id: string; policy_name: string; users: number }>
 }
 
-export interface FupThrottleStateDto {
-  id: string
-  customer_name: string
-  policy_name: string
-  original_download_mbps: number
-  original_upload_mbps: number
-  throttled_download_mbps: number
-  throttled_upload_mbps: number
-  active: boolean
-  applied_at: string
-}
-
-export interface FupDashboardSummaryDto {
-  active_policies: number
-  users_under_fup: number
-  active_violations: number
-  currently_throttled: number
+export interface FupAvailablePlansDto {
+  billing_plans: Array<{ id: string; name: string; already_linked: boolean }>
+  hotspot_plans: Array<{ id: string; name: string; already_linked: boolean }>
 }
 
 // --- MAPPERS ---
@@ -106,18 +85,22 @@ export default function FUPPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
-  // API State
-  const [dashboard, setDashboard] = useState<FupDashboardSummaryDto>({ active_policies: 0, users_under_fup: 0, active_violations: 0, currently_throttled: 0 })
+  // --- API STATE ---
+  const [dashboard, setDashboard] = useState<any>({ active_policies: 0, users_under_fup: 0, active_violations: 0, currently_throttled: 0 })
   const [policies, setPolicies] = useState<FupPolicyDto[]>([])
-  const [violations, setViolations] = useState<FupViolationDto[]>([])
-  const [throttledUsers, setThrottledUsers] = useState<FupThrottleStateDto[]>([])
+  const [violations, setViolations] = useState<any[]>([])
+  const [throttledUsers, setThrottledUsers] = useState<any[]>([])
+  const [analytics, setAnalytics] = useState<FupAnalyticsOverviewDto | null>(null)
 
-  // Modals
+  // --- MODAL & FORM STATE ---
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isLinkOpen, setIsLinkOpen] = useState(false)
   const [selectedPolicyForLink, setSelectedPolicyForLink] = useState<FupPolicyDto | null>(null)
+  
+  const [availablePlans, setAvailablePlans] = useState<FupAvailablePlansDto>({ billing_plans: [], hotspot_plans: [] })
+  const [selectedBillingIds, setSelectedBillingIds] = useState<string[]>([])
+  const [selectedHotspotIds, setSelectedHotspotIds] = useState<string[]>([])
 
-  // Forms
   const [policyForm, setPolicyForm] = useState<Partial<FupPolicyDto>>({
     name: "", description: "", data_limit_gb: 100, reset_period: "MONTHLY",
     throttle_download_mbps: 2, throttle_upload_mbps: 1,
@@ -128,127 +111,100 @@ export default function FUPPage() {
   const fetchAllData = async () => {
     setIsLoading(true)
     try {
-      // Fetch Dashboard Stats
-      const stats = await adminApi.getFupDashboardSummary()
-      setDashboard(stats)
+      const [stats, polData, violData, throtData, analyticsData] = await Promise.all([
+        adminApi.getFupDashboardSummary().catch(() => dashboard),
+        adminApi.getFupPolicies().catch(() => { results: [] }),
+        adminApi.getFupViolations().catch(() => { results: [] }),
+        adminApi.getFupThrottledUsers().catch(() => { results: [] }),
+        adminApi.getFupAnalyticsOverview().catch(() => null)
+      ])
 
-      // Fetch Policies (Handles paginated response)
-      const polData = await adminApi.getFupPolicies()
+      if (stats) setDashboard(stats)
       setPolicies(polData.results || polData || [])
-
-      // Fetch Violations
-      const violData = await adminApi.getFupViolations()
       setViolations(violData.results || violData || [])
-
-      // Fetch Throttled Users
-      const throtData = await adminApi.getFupThrottledUsers()
       setThrottledUsers(throtData.results || throtData || [])
-
+      if (analyticsData) setAnalytics(analyticsData)
     } catch (error: any) {
-      console.error("Failed to load FUP data:", error)
-      toast({
-        title: "Error loading FUP data",
-        description: error.message || "Could not connect to the server.",
-        variant: "destructive",
-      })
+      toast({ title: "Error loading FUP data", description: error.message, variant: "destructive" })
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Load data on mount
-  useEffect(() => {
-    fetchAllData()
-  }, [])
+  useEffect(() => { fetchAllData() }, [])
 
-  const handleRefresh = () => {
-    fetchAllData()
-  }
-
+  // --- ACTIONS ---
   const handleCreatePolicy = async () => {
     try {
-      // 1. Call the backend API to create the policy
       await adminApi.createFupPolicy(policyForm)
-      
-      // 2. Show success message
-      toast({
-        title: "Success",
-        description: "FUP Policy created successfully.",
-      })
-      
-      // 3. Close the side drawer
+      toast({ title: "Success", description: "Policy created successfully." })
       setIsCreateOpen(false)
-      
-      // 4. Reset the form
-      setPolicyForm({
-        name: "", description: "", data_limit_gb: 100, reset_period: "MONTHLY",
-        throttle_download_mbps: 2, throttle_upload_mbps: 1,
-        auto_enforce: true, notify_on_violation: true, status: "ACTIVE"
-      })
-      
-      // 5. Refresh the dashboard to show the new policy
       fetchAllData()
-      
     } catch (error: any) {
-      // Show error if the backend rejects it (e.g. missing fields)
-      toast({
-        title: "Error creating policy",
-        description: error.message || "Failed to create policy. Please check your inputs.",
-        variant: "destructive",
-      })
+      toast({ title: "Failed to create policy", description: error.message, variant: "destructive" })
     }
   }
 
-  const openLinkDialog = (policy: FupPolicyDto) => {
+  const openLinkDialog = async (policy: FupPolicyDto) => {
     setSelectedPolicyForLink(policy)
     setIsLinkOpen(true)
+    try {
+      // Fetch the actual plans from the backend
+      const data = await adminApi.getFupAvailablePlans(policy.id)
+      setAvailablePlans(data)
+      // Pre-check the boxes that are already linked
+      setSelectedBillingIds(data.billing_plans.filter((p: any) => p.already_linked).map((p: any) => p.id))
+      setSelectedHotspotIds(data.hotspot_plans.filter((p: any) => p.already_linked).map((p: any) => p.id))
+    } catch (error: any) {
+      toast({ title: "Failed to load plans", description: error.message, variant: "destructive" })
+    }
   }
 
-  const filteredPolicies = useMemo(() => {
-    return policies.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  }, [policies, searchQuery])
+  const handleSaveLinks = async () => {
+    if (!selectedPolicyForLink) return
+    try {
+      await adminApi.linkFupPlans(selectedPolicyForLink.id, {
+        plan_ids: selectedBillingIds,
+        hotspot_plan_ids: selectedHotspotIds
+      })
+      toast({ title: "Success", description: "Plans linked successfully." })
+      setIsLinkOpen(false)
+      fetchAllData()
+    } catch (error: any) {
+      toast({ title: "Failed to link plans", description: error.message, variant: "destructive" })
+    }
+  }
+
+  const toggleBillingPlan = (id: string) => {
+    setSelectedBillingIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
+  }
+
+  const toggleHotspotPlan = (id: string) => {
+    setSelectedHotspotIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
+  }
+
+  const filteredPolicies = useMemo(() => policies.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())), [policies, searchQuery])
 
   return (
     <div className="p-6 space-y-6">
-      {/* --- HEADER --- */}
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Fair Usage Policy</h1>
-          <p className="text-slate-600 mt-1">Monitor, enforce, and manage bandwidth rules</p>
-        </div>
+        <div><h1 className="text-3xl font-bold text-slate-900">Fair Usage Policy</h1><p className="text-slate-600 mt-1">Monitor, enforce, and manage bandwidth rules</p></div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create Policy
-          </Button>
+          <Button variant="outline" onClick={fetchAllData} disabled={isLoading}><RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} /> Refresh</Button>
+          <Button onClick={() => setIsCreateOpen(true)}><Plus className="w-4 h-4 mr-2" /> Create Policy</Button>
         </div>
       </div>
 
-      {/* --- DASHBOARD CARDS --- */}
+      {/* DASHBOARD CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card><CardContent className="p-4 flex justify-between items-center">
-          <div><p className="text-sm text-slate-600">Active Policies</p><p className="text-2xl font-bold text-green-600">{dashboard.active_policies}</p></div>
-          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"><Gauge className="w-5 h-5 text-green-600" /></div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 flex justify-between items-center">
-          <div><p className="text-sm text-slate-600">Users Under FUP</p><p className="text-2xl font-bold">{dashboard.users_under_fup}</p></div>
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-blue-600" /></div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 flex justify-between items-center">
-          <div><p className="text-sm text-slate-600">Active Violations</p><p className="text-2xl font-bold text-orange-600">{dashboard.active_violations}</p></div>
-          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-orange-600" /></div>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 flex justify-between items-center">
-          <div><p className="text-sm text-slate-600">Currently Throttled</p><p className="text-2xl font-bold text-red-600">{dashboard.currently_throttled}</p></div>
-          <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center"><Activity className="w-5 h-5 text-red-600" /></div>
-        </CardContent></Card>
+        <Card><CardContent className="p-4 flex justify-between items-center"><div><p className="text-sm text-slate-600">Active Policies</p><p className="text-2xl font-bold text-green-600">{dashboard.active_policies}</p></div><div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"><Gauge className="w-5 h-5 text-green-600" /></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex justify-between items-center"><div><p className="text-sm text-slate-600">Users Under FUP</p><p className="text-2xl font-bold">{dashboard.users_under_fup}</p></div><div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-blue-600" /></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex justify-between items-center"><div><p className="text-sm text-slate-600">Active Violations</p><p className="text-2xl font-bold text-orange-600">{dashboard.active_violations}</p></div><div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-orange-600" /></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex justify-between items-center"><div><p className="text-sm text-slate-600">Currently Throttled</p><p className="text-2xl font-bold text-red-600">{dashboard.currently_throttled}</p></div><div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center"><Activity className="w-5 h-5 text-red-600" /></div></CardContent></Card>
       </div>
 
-      {/* --- MAIN TABS --- */}
+      {/* TABS */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="policies">Policies</TabsTrigger>
@@ -257,35 +213,23 @@ export default function FUPPage() {
           <TabsTrigger value="throttled">Throttled Users</TabsTrigger>
         </TabsList>
 
-        {/* --- POLICIES TAB --- */}
+        {/* POLICIES TAB */}
         <TabsContent value="policies" className="space-y-4">
-          <div className="flex gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input placeholder="Search policies..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
-            </div>
-          </div>
-          
+          <div className="relative max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input placeholder="Search policies..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" /></div>
           <div className="grid gap-4">
-            {isLoading ? (
-              <div className="p-8 text-center text-slate-500 animate-pulse">Loading policies...</div>
-            ) : filteredPolicies.length === 0 ? (
-              <Card className="p-8 text-center text-slate-500">No policies found. Create one to get started.</Card>
-            ) : filteredPolicies.map((policy) => (
+            {isLoading ? (<div className="p-8 text-center text-slate-500 animate-pulse">Loading policies...</div>) 
+            : filteredPolicies.length === 0 ? (<Card className="p-8 text-center text-slate-500">No policies found.</Card>) 
+            : filteredPolicies.map((policy) => (
               <Card key={policy.id} className="border">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">{policy.name} {getStatusBadge(policy.status)}</CardTitle>
-                      <CardDescription className="mt-1">{policy.description}</CardDescription>
-                    </div>
+                    <div><CardTitle className="flex items-center gap-2">{policy.name} {getStatusBadge(policy.status)}</CardTitle><CardDescription className="mt-1">{policy.description}</CardDescription></div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => openLinkDialog(policy)}><LinkIcon className="w-4 h-4 mr-2" /> Link Plans</DropdownMenuItem>
                         <DropdownMenuItem><Edit className="w-4 h-4 mr-2" /> Edit Policy</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600"><Trash2 className="w-4 h-4 mr-2" /> Delete</DropdownMenuItem>
+                        <DropdownMenuSeparator /><DropdownMenuItem className="text-red-600"><Trash2 className="w-4 h-4 mr-2" /> Delete</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -303,7 +247,7 @@ export default function FUPPage() {
           </div>
         </TabsContent>
 
-        {/* --- VIOLATIONS TAB --- */}
+        {/* VIOLATIONS TAB */}
         <TabsContent value="violations" className="space-y-4">
           <Card>
             <CardHeader className="flex flex-row justify-between items-center">
@@ -311,11 +255,7 @@ export default function FUPPage() {
               <Button variant="outline" size="sm" onClick={() => window.open('/api/v1/fup/violations/export/', '_blank')}><Download className="w-4 h-4 mr-2" /> Export CSV</Button>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="p-4 text-center text-slate-500 animate-pulse">Loading violations...</div>
-              ) : violations.length === 0 ? (
-                <div className="p-4 text-center text-slate-500 border rounded-lg bg-slate-50">No FUP violations recorded yet.</div>
-              ) : (
+              {isLoading ? (<div className="p-4 text-center animate-pulse">Loading violations...</div>) : violations.length === 0 ? (<div className="p-4 text-center border rounded-lg bg-slate-50">No FUP violations recorded yet.</div>) : (
                 <Table>
                   <TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Policy</TableHead><TableHead>Usage (GB)</TableHead><TableHead>Action</TableHead><TableHead>Status</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
                   <TableBody>
@@ -323,12 +263,7 @@ export default function FUPPage() {
                       <TableRow key={v.id}>
                         <TableCell className="font-medium">{v.customer_name} <span className="text-xs text-slate-500 block">{v.customer_code}</span></TableCell>
                         <TableCell>{v.policy_name}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Progress value={v.limit_gb > 0 ? Math.min(100, (v.usage_gb / v.limit_gb) * 100) : 0} className="w-16 h-2" />
-                            <span className="text-xs">{v.usage_gb} / {v.limit_gb}</span>
-                          </div>
-                        </TableCell>
+                        <TableCell><div className="flex items-center gap-2"><Progress value={v.limit_gb > 0 ? Math.min(100, (v.usage_gb / v.limit_gb) * 100) : 0} className="w-16 h-2" /><span className="text-xs">{v.usage_gb} / {v.limit_gb}</span></div></TableCell>
                         <TableCell><Badge variant="outline">{v.action_taken}</Badge></TableCell>
                         <TableCell>{getViolationBadge(v.status)}</TableCell>
                         <TableCell className="text-sm text-slate-500">{new Date(v.occurred_at).toLocaleDateString()}</TableCell>
@@ -341,16 +276,12 @@ export default function FUPPage() {
           </Card>
         </TabsContent>
 
-        {/* --- THROTTLED USERS TAB --- */}
+        {/* THROTTLED USERS TAB */}
         <TabsContent value="throttled" className="space-y-4">
           <Card>
             <CardHeader><CardTitle>Currently Throttled Users</CardTitle><CardDescription>Live view of active speed restrictions</CardDescription></CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="p-4 text-center text-slate-500 animate-pulse">Loading throttled users...</div>
-              ) : throttledUsers.length === 0 ? (
-                <div className="p-4 text-center text-slate-500 border rounded-lg bg-slate-50">No users are currently throttled.</div>
-              ) : (
+              {isLoading ? (<div className="p-4 text-center animate-pulse">Loading throttled users...</div>) : throttledUsers.length === 0 ? (<div className="p-4 text-center border rounded-lg bg-slate-50">No users are currently throttled.</div>) : (
                 <Table>
                   <TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Policy</TableHead><TableHead>Original Speed</TableHead><TableHead>Throttled Speed</TableHead><TableHead>Applied At</TableHead></TableRow></TableHeader>
                   <TableBody>
@@ -370,17 +301,67 @@ export default function FUPPage() {
           </Card>
         </TabsContent>
 
-        {/* --- ANALYTICS TAB --- */}
+        {/* ANALYTICS TAB */}
         <TabsContent value="analytics" className="space-y-4">
-           <Card className="p-12 text-center border-dashed text-slate-500">
-             <Activity className="w-8 h-8 mx-auto mb-3 opacity-50" />
-             <p>Analytics charts will render here based on the `api/v1/fup/analytics/overview/` endpoint.</p>
-           </Card>
-        </TabsContent>
+          {!analytics ? (
+            <Card className="p-12 text-center text-slate-500"><Activity className="w-8 h-8 mx-auto mb-3 opacity-50" /><p>No analytics data available yet.</p></Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader><CardTitle>Violation Trends</CardTitle><CardDescription>Violations over time</CardDescription></CardHeader>
+                <CardContent>
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={analytics.violation_trends}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
+                        <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                        <RechartsTooltip cursor={{ fill: 'transparent' }} />
+                        <Bar dataKey="count" fill="#f97316" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
 
+              <Card>
+                <CardHeader><CardTitle>Policy Distribution</CardTitle><CardDescription>Users per FUP policy</CardDescription></CardHeader>
+                <CardContent className="space-y-4">
+                  {analytics.policy_distribution.map((pd, idx) => {
+                    const total = analytics.policy_distribution.reduce((acc, curr) => acc + curr.users, 0);
+                    const pct = total > 0 ? (pd.users / total) * 100 : 0;
+                    return (
+                      <div key={idx} className="space-y-2">
+                        <div className="flex justify-between text-sm"><span>{pd.policy_name}</span><span className="font-medium">{pd.users} users</span></div>
+                        <Progress value={pct} className="h-2 bg-slate-100 [&>div]:bg-blue-600" />
+                      </div>
+                    )
+                  })}
+                </CardContent>
+              </Card>
+
+              <Card className="md:col-span-2">
+                <CardHeader><CardTitle>Top Violators</CardTitle><CardDescription>Users with most recent violations</CardDescription></CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader><TableRow><TableHead>User</TableHead><TableHead>Violations</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {analytics.top_violators_this_month.map((tv, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-medium">{tv.name} <span className="text-xs text-slate-500 block">{tv.customer_code}</span></TableCell>
+                          <TableCell><Badge variant="secondary">{tv.violations}</Badge></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
-      {/* --- CREATE POLICY SHEET --- */}
+      {/* CREATE POLICY SHEET */}
       <Sheet open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <SheetContent className="w-full sm:max-w-md">
           <SheetHeader><SheetTitle>Create FUP Policy</SheetTitle><SheetDescription>Define limits and throttle speeds</SheetDescription></SheetHeader>
@@ -413,18 +394,13 @@ export default function FUPPage() {
               <div className="flex justify-between items-center"><Label>Auto Enforce</Label><Switch checked={policyForm.auto_enforce} onCheckedChange={v => setPolicyForm({...policyForm, auto_enforce: v})} /></div>
               <div className="flex justify-between items-center mt-4"><Label>Notify on Violation</Label><Switch checked={policyForm.notify_on_violation} onCheckedChange={v => setPolicyForm({...policyForm, notify_on_violation: v})} /></div>
 
-              <Button 
-                className="w-full mt-6" 
-                onClick={handleCreatePolicy}
-              >
-                Save Policy
-              </Button>
+              <Button className="w-full mt-6" onClick={handleCreatePolicy}>Save Policy</Button>
             </div>
           </ScrollArea>
         </SheetContent>
       </Sheet>
 
-      {/* --- LINK PLANS DIALOG --- */}
+      {/* LINK PLANS DIALOG */}
       <Dialog open={isLinkOpen} onOpenChange={setIsLinkOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -432,36 +408,42 @@ export default function FUPPage() {
             <DialogDescription>Select which plans should follow the <strong>{selectedPolicyForLink?.name}</strong> rules.</DialogDescription>
           </DialogHeader>
           <div className="grid md:grid-cols-2 gap-6 py-4">
-            {/* Billing Plans Section */}
             <div className="space-y-3 border p-4 rounded-lg bg-slate-50">
               <h4 className="font-semibold text-sm">Billing Plans</h4>
               <ScrollArea className="h-48">
                  <div className="space-y-3">
-                   {/* Placeholder Checkboxes - Will map from api/v1/fup/policies/:id/available_plans/ */}
-                   <div className="flex items-center space-x-2"><Checkbox id="bp1" /><Label htmlFor="bp1">Home Premium 20M</Label></div>
-                   <div className="flex items-center space-x-2"><Checkbox id="bp2" /><Label htmlFor="bp2">Business Pro 50M</Label></div>
+                   {availablePlans.billing_plans.length === 0 && <p className="text-sm text-slate-500">No plans available.</p>}
+                   {availablePlans.billing_plans.map(plan => (
+                     <div key={plan.id} className="flex items-center space-x-2">
+                       <Checkbox id={`bp-${plan.id}`} checked={selectedBillingIds.includes(plan.id)} onCheckedChange={() => toggleBillingPlan(plan.id)} />
+                       <Label htmlFor={`bp-${plan.id}`}>{plan.name}</Label>
+                     </div>
+                   ))}
                  </div>
               </ScrollArea>
             </div>
             
-            {/* Hotspot Plans Section */}
             <div className="space-y-3 border p-4 rounded-lg bg-slate-50">
               <h4 className="font-semibold text-sm">Hotspot Plans</h4>
               <ScrollArea className="h-48">
                  <div className="space-y-3">
-                   <div className="flex items-center space-x-2"><Checkbox id="hp1" /><Label htmlFor="hp1">24 Hour Voucher</Label></div>
-                   <div className="flex items-center space-x-2"><Checkbox id="hp2" /><Label htmlFor="hp2">1 Week Access</Label></div>
+                   {availablePlans.hotspot_plans.length === 0 && <p className="text-sm text-slate-500">No plans available.</p>}
+                   {availablePlans.hotspot_plans.map(plan => (
+                     <div key={plan.id} className="flex items-center space-x-2">
+                       <Checkbox id={`hp-${plan.id}`} checked={selectedHotspotIds.includes(plan.id)} onCheckedChange={() => toggleHotspotPlan(plan.id)} />
+                       <Label htmlFor={`hp-${plan.id}`}>{plan.name}</Label>
+                     </div>
+                   ))}
                  </div>
               </ScrollArea>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsLinkOpen(false)}>Cancel</Button>
-            <Button onClick={() => toast({ title: "To be wired to backend" })}>Save Links</Button>
+            <Button onClick={handleSaveLinks}>Save Links</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   )
 }
