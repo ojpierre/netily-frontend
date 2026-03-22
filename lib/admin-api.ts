@@ -3280,7 +3280,7 @@ class AdminApiService {
     })
   }
 
-  // ------------------------------------------
+// ------------------------------------------
   // FAIR USAGE POLICY (FUP) - /fup/
   // ------------------------------------------
 
@@ -3308,6 +3308,11 @@ class AdminApiService {
   async getFupThrottledUsers(params?: Record<string, string>): Promise<any> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
     return this.request<any>(`/fup/throttled/${queryString}`)
+  }
+
+  // ---> WE ADDED ANALYTICS RIGHT HERE <---
+  async getFupAnalyticsOverview(): Promise<any> {
+    return this.request<any>('/fup/analytics/overview/')
   }
 
   async getFupAvailablePlans(policyId: string): Promise<any> {

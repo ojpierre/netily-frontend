@@ -165,6 +165,40 @@ export default function FUPPage() {
     fetchAllData()
   }
 
+  const handleCreatePolicy = async () => {
+    try {
+      // 1. Call the backend API to create the policy
+      await adminApi.createFupPolicy(policyForm)
+      
+      // 2. Show success message
+      toast({
+        title: "Success",
+        description: "FUP Policy created successfully.",
+      })
+      
+      // 3. Close the side drawer
+      setIsCreateOpen(false)
+      
+      // 4. Reset the form
+      setPolicyForm({
+        name: "", description: "", data_limit_gb: 100, reset_period: "MONTHLY",
+        throttle_download_mbps: 2, throttle_upload_mbps: 1,
+        auto_enforce: true, notify_on_violation: true, status: "ACTIVE"
+      })
+      
+      // 5. Refresh the dashboard to show the new policy
+      fetchAllData()
+      
+    } catch (error: any) {
+      // Show error if the backend rejects it (e.g. missing fields)
+      toast({
+        title: "Error creating policy",
+        description: error.message || "Failed to create policy. Please check your inputs.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const openLinkDialog = (policy: FupPolicyDto) => {
     setSelectedPolicyForLink(policy)
     setIsLinkOpen(true)
@@ -379,7 +413,12 @@ export default function FUPPage() {
               <div className="flex justify-between items-center"><Label>Auto Enforce</Label><Switch checked={policyForm.auto_enforce} onCheckedChange={v => setPolicyForm({...policyForm, auto_enforce: v})} /></div>
               <div className="flex justify-between items-center mt-4"><Label>Notify on Violation</Label><Switch checked={policyForm.notify_on_violation} onCheckedChange={v => setPolicyForm({...policyForm, notify_on_violation: v})} /></div>
 
-              <Button className="w-full mt-6" onClick={() => toast({ title: "To be wired to backend" })}>Save Policy</Button>
+              <Button 
+                className="w-full mt-6" 
+                onClick={handleCreatePolicy}
+              >
+                Save Policy
+              </Button>
             </div>
           </ScrollArea>
         </SheetContent>
