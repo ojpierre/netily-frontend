@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react"
 import {
   Gauge, Plus, Edit, Trash2, MoreVertical, Search, RefreshCw,
-  AlertTriangle, CheckCircle, Users, Activity, Download, Link as LinkIcon
+  AlertTriangle,CheckCircle, Users, Activity, Download, Link as LinkIcon, Filter
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -49,6 +49,38 @@ export interface FupPolicyDto {
   created_at: string
 }
 
+export interface FupViolationDto {
+  id: string
+  customer_name: string
+  customer_code: string
+  policy_name: string
+  usage_gb: number
+  limit_gb: number
+  action_taken: "WARNED" | "THROTTLED" | "RETHROTTLED" | "RELEASED" | "RESET"
+  status: "OPEN" | "ACKNOWLEDGED" | "RESOLVED"
+  occurred_at: string
+}
+
+export interface FupThrottleStateDto {
+  id: string
+  customer_name: string
+  customer_code?: string
+  policy_name: string
+  original_download_mbps: number
+  original_upload_mbps: number
+  throttled_download_mbps: number
+  throttled_upload_mbps: number
+  active: boolean
+  applied_at: string
+}
+
+export interface FupDashboardSummaryDto {
+  active_policies: number
+  users_under_fup: number
+  active_violations: number
+  currently_throttled: number
+}
+
 export interface FupAnalyticsOverviewDto {
   violation_trends: Array<{ date: string; count: number }>
   top_violators_this_month: Array<{ customer_code: string; name: string; violations: number; avg_excess_pct?: number }>
@@ -83,14 +115,19 @@ export default function FUPPage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("policies")
   const [isLoading, setIsLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
 
   // --- API STATE ---
-  const [dashboard, setDashboard] = useState<any>({ active_policies: 0, users_under_fup: 0, active_violations: 0, currently_throttled: 0 })
+  const [dashboard, setDashboard] = useState<FupDashboardSummaryDto>({ active_policies: 0, users_under_fup: 0, active_violations: 0, currently_throttled: 0 })
   const [policies, setPolicies] = useState<FupPolicyDto[]>([])
-  const [violations, setViolations] = useState<any[]>([])
-  const [throttledUsers, setThrottledUsers] = useState<any[]>([])
+  const [violations, setViolations] = useState<FupViolationDto[]>([])
+  const [throttledUsers, setThrottledUsers] = useState<FupThrottleStateDto[]>([])
   const [analytics, setAnalytics] = useState<FupAnalyticsOverviewDto | null>(null)
+
+  // --- FILTERS ---
+  const [policySearch, setPolicySearch] = useState("")
+  const [violSearch, setViolSearch] = useState("")
+  const [violStatusFilter, setViolStatusFilter] = useState("ALL")
+  const [violPolicyFilter, setViolPolicyFilter] = useState("ALL")
 
   // --- MODAL & FORM STATE ---
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -98,6 +135,10 @@ export default function FUPPage() {
   const [selectedPolicyForLink, setSelectedPolicyForLink] = useState<FupPolicyDto | null>(null)
   
   const [availablePlans, setAvailablePlans] = useState<FupAvailablePlansDto>({ billing_plans: [], hotspot_plans: [] })
+  
+  // Link State
+  const [initialBillingIds, setInitialBillingIds] = useState<string[]>([])
+  const [initialHotspotIds, setInitialHotspotIds] = useState<string[]>([])
   const [selectedBillingIds, setSelectedBillingIds] = useState<string[]>([])
   const [selectedHotspotIds, setSelectedHotspotIds] = useState<string[]>([])
 
@@ -111,19 +152,21 @@ export default function FUPPage() {
   const fetchAllData = async () => {
     setIsLoading(true)
     try {
-      const [stats, polData, violData, throtData, analyticsData] = await Promise.all([
+      // Note the fixed catch syntax: ({ results: [] }) instead of { results: [] }
+      const [stats, polData, throtData, analyticsData] = await Promise.all([
         adminApi.getFupDashboardSummary().catch(() => dashboard),
-        adminApi.getFupPolicies().catch(() => { results: [] }),
-        adminApi.getFupViolations().catch(() => { results: [] }),
-        adminApi.getFupThrottledUsers().catch(() => { results: [] }),
+        adminApi.getFupPolicies().catch(() => ({ results: [] })),
+        adminApi.getFupThrottledUsers().catch(() => ({ results: [] })),
         adminApi.getFupAnalyticsOverview().catch(() => null)
       ])
 
       if (stats) setDashboard(stats)
-      setPolicies(polData.results || polData || [])
-      setViolations(violData.results || violData || [])
-      setThrottledUsers(throtData.results || throtData || [])
+      setPolicies(polData?.results || polData || [])
+      setThrottledUsers(throtData?.results || throtData || [])
       if (analyticsData) setAnalytics(analyticsData)
+      
+      // Fetch violations separately to easily re-fetch when filters change
+      fetchViolations()
     } catch (error: any) {
       toast({ title: "Error loading FUP data", description: error.message, variant: "destructive" })
     } finally {
@@ -131,7 +174,27 @@ export default function FUPPage() {
     }
   }
 
+  const fetchViolations = async () => {
+    try {
+      const params: any = {}
+      if (violStatusFilter !== "ALL") params.status = violStatusFilter
+      if (violPolicyFilter !== "ALL") params.policy_id = violPolicyFilter
+      if (violSearch) params.search = violSearch
+
+      const violData = await adminApi.getFupViolations(params).catch(() => ({ results: [] }))
+      setViolations(violData?.results || violData || [])
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   useEffect(() => { fetchAllData() }, [])
+
+  // Re-fetch violations when filters change
+  useEffect(() => {
+    const timer = setTimeout(() => { fetchViolations() }, 500)
+    return () => clearTimeout(timer)
+  }, [violSearch, violStatusFilter, violPolicyFilter])
 
   // --- ACTIONS ---
   const handleCreatePolicy = async () => {
@@ -145,16 +208,64 @@ export default function FUPPage() {
     }
   }
 
+  const handleTogglePolicyStatus = async (policy: FupPolicyDto) => {
+    try {
+      if (policy.status === "ACTIVE") {
+        await adminApi.deactivateFupPolicy(policy.id)
+        toast({ title: "Deactivated", description: `${policy.name} has been deactivated.` })
+      } else {
+        await adminApi.activateFupPolicy(policy.id)
+        toast({ title: "Activated", description: `${policy.name} is now active.` })
+      }
+      fetchAllData()
+    } catch (error: any) {
+      toast({ title: "Failed to update status", description: error.message, variant: "destructive" })
+    }
+  }
+
+  const handleDeletePolicy = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this policy?")) return
+    try {
+      await adminApi.deleteFupPolicy(id)
+      toast({ title: "Deleted", description: "Policy removed." })
+      fetchAllData()
+    } catch (error: any) {
+      toast({ title: "Failed to delete", description: error.message, variant: "destructive" })
+    }
+  }
+
+  const handleExportViolations = async () => {
+    try {
+      const blob = await adminApi.exportFupViolations()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `fup_violations_${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error: any) {
+      toast({ title: "Export Failed", description: error.message, variant: "destructive" })
+    }
+  }
+
+  // --- LINKING LOGIC ---
   const openLinkDialog = async (policy: FupPolicyDto) => {
     setSelectedPolicyForLink(policy)
     setIsLinkOpen(true)
     try {
-      // Fetch the actual plans from the backend
       const data = await adminApi.getFupAvailablePlans(policy.id)
       setAvailablePlans(data)
-      // Pre-check the boxes that are already linked
-      setSelectedBillingIds(data.billing_plans.filter((p: any) => p.already_linked).map((p: any) => p.id))
-      setSelectedHotspotIds(data.hotspot_plans.filter((p: any) => p.already_linked).map((p: any) => p.id))
+      
+      // Find currently linked IDs
+      const bIds = data.billing_plans.filter((p: any) => p.already_linked).map((p: any) => p.id)
+      const hIds = data.hotspot_plans.filter((p: any) => p.already_linked).map((p: any) => p.id)
+      
+      // Set initial states for diffing later
+      setInitialBillingIds(bIds)
+      setInitialHotspotIds(hIds)
+      setSelectedBillingIds(bIds)
+      setSelectedHotspotIds(hIds)
     } catch (error: any) {
       toast({ title: "Failed to load plans", description: error.message, variant: "destructive" })
     }
@@ -162,28 +273,43 @@ export default function FUPPage() {
 
   const handleSaveLinks = async () => {
     if (!selectedPolicyForLink) return
+    
+    // DIFFING LOGIC: Determine what to link and what to unlink
+    const billingToLink = selectedBillingIds.filter(id => !initialBillingIds.includes(id))
+    const billingToUnlink = initialBillingIds.filter(id => !selectedBillingIds.includes(id))
+    
+    const hotspotToLink = selectedHotspotIds.filter(id => !initialHotspotIds.includes(id))
+    const hotspotToUnlink = initialHotspotIds.filter(id => !selectedHotspotIds.includes(id))
+
     try {
-      await adminApi.linkFupPlans(selectedPolicyForLink.id, {
-        plan_ids: selectedBillingIds,
-        hotspot_plan_ids: selectedHotspotIds
-      })
-      toast({ title: "Success", description: "Plans linked successfully." })
+      // 1. Send Link Request
+      if (billingToLink.length > 0 || hotspotToLink.length > 0) {
+        await adminApi.linkFupPlans(selectedPolicyForLink.id, {
+          plan_ids: billingToLink,
+          hotspot_plan_ids: hotspotToLink
+        })
+      }
+
+      // 2. Send Unlink Request
+      if (billingToUnlink.length > 0 || hotspotToUnlink.length > 0) {
+        await adminApi.unlinkFupPlans(selectedPolicyForLink.id, {
+          plan_ids: billingToUnlink,
+          hotspot_plan_ids: hotspotToUnlink
+        })
+      }
+
+      toast({ title: "Success", description: "Plan links updated successfully." })
       setIsLinkOpen(false)
       fetchAllData()
     } catch (error: any) {
-      toast({ title: "Failed to link plans", description: error.message, variant: "destructive" })
+      toast({ title: "Failed to update links", description: error.message, variant: "destructive" })
     }
   }
 
-  const toggleBillingPlan = (id: string) => {
-    setSelectedBillingIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
-  }
+  const toggleBillingPlan = (id: string) => setSelectedBillingIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
+  const toggleHotspotPlan = (id: string) => setSelectedHotspotIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
 
-  const toggleHotspotPlan = (id: string) => {
-    setSelectedHotspotIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
-  }
-
-  const filteredPolicies = useMemo(() => policies.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())), [policies, searchQuery])
+  const filteredPolicies = useMemo(() => policies.filter(p => p.name.toLowerCase().includes(policySearch.toLowerCase())), [policies, policySearch])
 
   return (
     <div className="p-6 space-y-6">
@@ -215,7 +341,7 @@ export default function FUPPage() {
 
         {/* POLICIES TAB */}
         <TabsContent value="policies" className="space-y-4">
-          <div className="relative max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input placeholder="Search policies..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" /></div>
+          <div className="relative max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><Input placeholder="Search policies..." value={policySearch} onChange={(e) => setPolicySearch(e.target.value)} className="pl-10" /></div>
           <div className="grid gap-4">
             {isLoading ? (<div className="p-8 text-center text-slate-500 animate-pulse">Loading policies...</div>) 
             : filteredPolicies.length === 0 ? (<Card className="p-8 text-center text-slate-500">No policies found.</Card>) 
@@ -229,7 +355,13 @@ export default function FUPPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => openLinkDialog(policy)}><LinkIcon className="w-4 h-4 mr-2" /> Link Plans</DropdownMenuItem>
                         <DropdownMenuItem><Edit className="w-4 h-4 mr-2" /> Edit Policy</DropdownMenuItem>
-                        <DropdownMenuSeparator /><DropdownMenuItem className="text-red-600"><Trash2 className="w-4 h-4 mr-2" /> Delete</DropdownMenuItem>
+                        {policy.status === "ACTIVE" ? (
+                          <DropdownMenuItem onClick={() => handleTogglePolicyStatus(policy)}><AlertTriangle className="w-4 h-4 mr-2" /> Deactivate</DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => handleTogglePolicyStatus(policy)}><CheckCircle className="w-4 h-4 mr-2 text-green-600" /> Activate</DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleDeletePolicy(policy.id)} className="text-red-600"><Trash2 className="w-4 h-4 mr-2" /> Delete</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -238,8 +370,8 @@ export default function FUPPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm bg-slate-50 p-4 rounded-lg">
                     <div><span className="text-slate-500 block">Data Limit</span><span className="font-semibold">{policy.data_limit_gb} GB / {policy.reset_period}</span></div>
                     <div><span className="text-slate-500 block">Throttle Speed</span><span className="font-semibold">{policy.throttle_download_mbps}↓ / {policy.throttle_upload_mbps}↑ Mbps</span></div>
-                    <div><span className="text-slate-500 block">Active Users</span><span className="font-semibold">{policy.users_count || 0}</span></div>
                     <div><span className="text-slate-500 block">Linked Plans</span><span className="font-semibold">{policy.linked_plans_count || 0}</span></div>
+                    <div><span className="text-slate-500 block">Status Overview</span><span className="font-semibold">{policy.users_count || 0} Users • {policy.currently_throttled_count || 0} Throttled</span></div>
                   </div>
                 </CardContent>
               </Card>
@@ -250,12 +382,35 @@ export default function FUPPage() {
         {/* VIOLATIONS TAB */}
         <TabsContent value="violations" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row justify-between items-center">
+            <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div><CardTitle>Policy Violations</CardTitle><CardDescription>Audit log of FUP actions</CardDescription></div>
-              <Button variant="outline" size="sm" onClick={() => window.open('/api/v1/fup/violations/export/', '_blank')}><Download className="w-4 h-4 mr-2" /> Export CSV</Button>
+              <Button variant="outline" size="sm" onClick={handleExportViolations}><Download className="w-4 h-4 mr-2" /> Export CSV</Button>
             </CardHeader>
             <CardContent>
-              {isLoading ? (<div className="p-4 text-center animate-pulse">Loading violations...</div>) : violations.length === 0 ? (<div className="p-4 text-center border rounded-lg bg-slate-50">No FUP violations recorded yet.</div>) : (
+              
+              {/* Toolbar Filters */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input placeholder="Search by customer..." value={violSearch} onChange={(e) => setViolSearch(e.target.value)} className="pl-10" />
+                </div>
+                <Select value={violStatusFilter} onValueChange={setViolStatusFilter}>
+                  <SelectTrigger className="w-[180px]"><Filter className="w-4 h-4 mr-2 text-slate-500"/><SelectValue placeholder="Filter Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Statuses</SelectItem><SelectItem value="OPEN">Open</SelectItem>
+                    <SelectItem value="RESOLVED">Resolved</SelectItem><SelectItem value="ACKNOWLEDGED">Acknowledged</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={violPolicyFilter} onValueChange={setViolPolicyFilter}>
+                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter Policy" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Policies</SelectItem>
+                    {policies.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isLoading ? (<div className="p-4 text-center animate-pulse">Loading violations...</div>) : violations.length === 0 ? (<div className="p-4 text-center border rounded-lg bg-slate-50">No FUP violations found.</div>) : (
                 <Table>
                   <TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Policy</TableHead><TableHead>Usage (GB)</TableHead><TableHead>Action</TableHead><TableHead>Status</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
                   <TableBody>
@@ -377,7 +532,8 @@ export default function FUPPage() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="DAILY">Daily</SelectItem><SelectItem value="WEEKLY">Weekly</SelectItem>
-                      <SelectItem value="MONTHLY">Monthly</SelectItem><SelectItem value="SUBSCRIPTION">Subscription</SelectItem>
+                      <SelectItem value="MONTHLY">Monthly</SelectItem>
+                      <SelectItem value="SUBSCRIPTION" disabled>Subscription (Coming Soon)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

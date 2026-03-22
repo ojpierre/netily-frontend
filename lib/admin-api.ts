@@ -3300,9 +3300,29 @@ class AdminApiService {
     })
   }
 
+  async activateFupPolicy(id: string): Promise<any> {
+    return this.request<any>(`/fup/policies/${id}/activate/`, { method: 'POST' })
+  }
+
+  async deactivateFupPolicy(id: string): Promise<any> {
+    return this.request<any>(`/fup/policies/${id}/deactivate/`, { method: 'POST' })
+  }
+
+  async deleteFupPolicy(id: string): Promise<void> {
+    return this.request<void>(`/fup/policies/${id}/`, { method: 'DELETE' })
+  }
+
   async getFupViolations(params?: Record<string, string>): Promise<any> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
     return this.request<any>(`/fup/violations/${queryString}`)
+  }
+
+  async exportFupViolations(): Promise<Blob> {
+    const response = await fetch(`${this.baseUrl}/fup/violations/export/`, {
+      headers: this.getAuthHeaders(),
+    })
+    if (!response.ok) throw new Error('Failed to export violations')
+    return response.blob()
   }
 
   async getFupThrottledUsers(params?: Record<string, string>): Promise<any> {
@@ -3310,7 +3330,6 @@ class AdminApiService {
     return this.request<any>(`/fup/throttled/${queryString}`)
   }
 
-  // ---> WE ADDED ANALYTICS RIGHT HERE <---
   async getFupAnalyticsOverview(): Promise<any> {
     return this.request<any>('/fup/analytics/overview/')
   }
@@ -3325,10 +3344,16 @@ class AdminApiService {
       body: JSON.stringify(data),
     })
   }
+
+  async unlinkFupPlans(policyId: string, data: { plan_ids: string[]; hotspot_plan_ids: string[] }): Promise<any> {
+    return this.request<any>(`/fup/policies/${policyId}/unlink_plans/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
 }
 
 // Export singleton instance
 export const adminApi = new AdminApiService()
-
 // Export class for testing/extension
 export { AdminApiService }
