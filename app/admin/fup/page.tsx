@@ -22,6 +22,8 @@ import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useToast } from "@/hooks/use-toast"
+import { adminApi } from "@/lib/admin-api"
 
 // --- TYPES (Matching New Backend API) ---
 export type FupPolicyStatus = "DRAFT" | "ACTIVE" | "INACTIVE"
@@ -99,32 +101,14 @@ const getViolationBadge = (status: string) => {
 }
 
 export default function FUPPage() {
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("policies")
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
-  // API State (To be replaced with React Query / Fetch)
+  // API State
   const [dashboard, setDashboard] = useState<FupDashboardSummaryDto>({ active_policies: 0, users_under_fup: 0, active_violations: 0, currently_throttled: 0 })
-  const [policies, setPolicies] = useState<FupPolicyDto[]>([
-  {
-    id: "test-123",
-    name: "Test Policy",
-    description: "Just testing the UI",
-    data_limit_gb: 500,
-    throttle_download_mbps: 5,
-    throttle_upload_mbps: 2,
-    reset_period: "MONTHLY",
-    status: "ACTIVE",
-    auto_enforce: true,
-    notify_on_violation: true,
-    is_active: true,
-    linked_plans_count: 0,
-    users_count: 0,
-    active_violations_count: 0,
-    currently_throttled_count: 0,
-    created_at: new Date().toISOString()
-  }
-])
+  const [policies, setPolicies] = useState<FupPolicyDto[]>([])
   const [violations, setViolations] = useState<FupViolationDto[]>([])
   const [throttledUsers, setThrottledUsers] = useState<FupThrottleStateDto[]>([])
 
@@ -140,10 +124,45 @@ export default function FUPPage() {
     auto_enforce: true, notify_on_violation: true, status: "ACTIVE"
   })
 
-  // Simulated Fetch (Replace with real API calls)
-  const handleRefresh = async () => {
+  // --- DATA FETCHING ---
+  const fetchAllData = async () => {
     setIsLoading(true)
-    setTimeout(() => setIsLoading(false), 500)
+    try {
+      // Fetch Dashboard Stats
+      const stats = await adminApi.getFupDashboardSummary()
+      setDashboard(stats)
+
+      // Fetch Policies (Handles paginated response)
+      const polData = await adminApi.getFupPolicies()
+      setPolicies(polData.results || polData || [])
+
+      // Fetch Violations
+      const violData = await adminApi.getFupViolations()
+      setViolations(violData.results || violData || [])
+
+      // Fetch Throttled Users
+      const throtData = await adminApi.getFupThrottledUsers()
+      setThrottledUsers(throtData.results || throtData || [])
+
+    } catch (error: any) {
+      console.error("Failed to load FUP data:", error)
+      toast({
+        title: "Error loading FUP data",
+        description: error.message || "Could not connect to the server.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Load data on mount
+  useEffect(() => {
+    fetchAllData()
+  }, [])
+
+  const handleRefresh = () => {
+    fetchAllData()
   }
 
   const openLinkDialog = (policy: FupPolicyDto) => {
@@ -214,7 +233,9 @@ export default function FUPPage() {
           </div>
           
           <div className="grid gap-4">
-            {filteredPolicies.length === 0 ? (
+            {isLoading ? (
+              <div className="p-8 text-center text-slate-500 animate-pulse">Loading policies...</div>
+            ) : filteredPolicies.length === 0 ? (
               <Card className="p-8 text-center text-slate-500">No policies found. Create one to get started.</Card>
             ) : filteredPolicies.map((policy) => (
               <Card key={policy.id} className="border">
@@ -239,8 +260,8 @@ export default function FUPPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm bg-slate-50 p-4 rounded-lg">
                     <div><span className="text-slate-500 block">Data Limit</span><span className="font-semibold">{policy.data_limit_gb} GB / {policy.reset_period}</span></div>
                     <div><span className="text-slate-500 block">Throttle Speed</span><span className="font-semibold">{policy.throttle_download_mbps}↓ / {policy.throttle_upload_mbps}↑ Mbps</span></div>
-                    <div><span className="text-slate-500 block">Active Users</span><span className="font-semibold">{policy.users_count}</span></div>
-                    <div><span className="text-slate-500 block">Linked Plans</span><span className="font-semibold">{policy.linked_plans_count}</span></div>
+                    <div><span className="text-slate-500 block">Active Users</span><span className="font-semibold">{policy.users_count || 0}</span></div>
+                    <div><span className="text-slate-500 block">Linked Plans</span><span className="font-semibold">{policy.linked_plans_count || 0}</span></div>
                   </div>
                 </CardContent>
               </Card>
@@ -256,49 +277,61 @@ export default function FUPPage() {
               <Button variant="outline" size="sm" onClick={() => window.open('/api/v1/fup/violations/export/', '_blank')}><Download className="w-4 h-4 mr-2" /> Export CSV</Button>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Policy</TableHead><TableHead>Usage (GB)</TableHead><TableHead>Action</TableHead><TableHead>Status</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {violations.map((v) => (
-                    <TableRow key={v.id}>
-                      <TableCell className="font-medium">{v.customer_name} <span className="text-xs text-slate-500 block">{v.customer_code}</span></TableCell>
-                      <TableCell>{v.policy_name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress value={v.limit_gb > 0 ? Math.min(100, (v.usage_gb / v.limit_gb) * 100) : 0} className="w-16 h-2" />
-                          <span className="text-xs">{v.usage_gb} / {v.limit_gb}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell><Badge variant="outline">{v.action_taken}</Badge></TableCell>
-                      <TableCell>{getViolationBadge(v.status)}</TableCell>
-                      <TableCell className="text-sm text-slate-500">{new Date(v.occurred_at).toLocaleDateString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              {isLoading ? (
+                <div className="p-4 text-center text-slate-500 animate-pulse">Loading violations...</div>
+              ) : violations.length === 0 ? (
+                <div className="p-4 text-center text-slate-500 border rounded-lg bg-slate-50">No FUP violations recorded yet.</div>
+              ) : (
+                <Table>
+                  <TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Policy</TableHead><TableHead>Usage (GB)</TableHead><TableHead>Action</TableHead><TableHead>Status</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {violations.map((v) => (
+                      <TableRow key={v.id}>
+                        <TableCell className="font-medium">{v.customer_name} <span className="text-xs text-slate-500 block">{v.customer_code}</span></TableCell>
+                        <TableCell>{v.policy_name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Progress value={v.limit_gb > 0 ? Math.min(100, (v.usage_gb / v.limit_gb) * 100) : 0} className="w-16 h-2" />
+                            <span className="text-xs">{v.usage_gb} / {v.limit_gb}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell><Badge variant="outline">{v.action_taken}</Badge></TableCell>
+                        <TableCell>{getViolationBadge(v.status)}</TableCell>
+                        <TableCell className="text-sm text-slate-500">{new Date(v.occurred_at).toLocaleDateString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* --- THROTTLED USERS TAB (Replaces Settings) --- */}
+        {/* --- THROTTLED USERS TAB --- */}
         <TabsContent value="throttled" className="space-y-4">
           <Card>
             <CardHeader><CardTitle>Currently Throttled Users</CardTitle><CardDescription>Live view of active speed restrictions</CardDescription></CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Policy</TableHead><TableHead>Original Speed</TableHead><TableHead>Throttled Speed</TableHead><TableHead>Applied At</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {throttledUsers.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="font-medium">{t.customer_name}</TableCell>
-                      <TableCell>{t.policy_name}</TableCell>
-                      <TableCell className="text-slate-500">{t.original_download_mbps}↓ / {t.original_upload_mbps}↑</TableCell>
-                      <TableCell className="text-red-600 font-medium">{t.throttled_download_mbps}↓ / {t.throttled_upload_mbps}↑</TableCell>
-                      <TableCell className="text-sm text-slate-500">{new Date(t.applied_at).toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              {isLoading ? (
+                <div className="p-4 text-center text-slate-500 animate-pulse">Loading throttled users...</div>
+              ) : throttledUsers.length === 0 ? (
+                <div className="p-4 text-center text-slate-500 border rounded-lg bg-slate-50">No users are currently throttled.</div>
+              ) : (
+                <Table>
+                  <TableHeader><TableRow><TableHead>Customer</TableHead><TableHead>Policy</TableHead><TableHead>Original Speed</TableHead><TableHead>Throttled Speed</TableHead><TableHead>Applied At</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {throttledUsers.map((t) => (
+                      <TableRow key={t.id}>
+                        <TableCell className="font-medium">{t.customer_name}</TableCell>
+                        <TableCell>{t.policy_name}</TableCell>
+                        <TableCell className="text-slate-500">{t.original_download_mbps}↓ / {t.original_upload_mbps}↑</TableCell>
+                        <TableCell className="text-red-600 font-medium">{t.throttled_download_mbps}↓ / {t.throttled_upload_mbps}↑</TableCell>
+                        <TableCell className="text-sm text-slate-500">{new Date(t.applied_at).toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -346,7 +379,7 @@ export default function FUPPage() {
               <div className="flex justify-between items-center"><Label>Auto Enforce</Label><Switch checked={policyForm.auto_enforce} onCheckedChange={v => setPolicyForm({...policyForm, auto_enforce: v})} /></div>
               <div className="flex justify-between items-center mt-4"><Label>Notify on Violation</Label><Switch checked={policyForm.notify_on_violation} onCheckedChange={v => setPolicyForm({...policyForm, notify_on_violation: v})} /></div>
 
-              <Button className="w-full mt-6">Save Policy</Button>
+              <Button className="w-full mt-6" onClick={() => toast({ title: "To be wired to backend" })}>Save Policy</Button>
             </div>
           </ScrollArea>
         </SheetContent>
@@ -385,7 +418,7 @@ export default function FUPPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsLinkOpen(false)}>Cancel</Button>
-            <Button>Save Links</Button>
+            <Button onClick={() => toast({ title: "To be wired to backend" })}>Save Links</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

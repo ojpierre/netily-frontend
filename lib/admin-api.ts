@@ -3279,6 +3279,47 @@ class AdminApiService {
       body: JSON.stringify(data),
     })
   }
+
+  // ------------------------------------------
+  // FAIR USAGE POLICY (FUP) - /fup/
+  // ------------------------------------------
+
+  async getFupDashboardSummary(): Promise<any> {
+    return this.request<any>('/fup/dashboard/summary/')
+  }
+
+  async getFupPolicies(params?: Record<string, string>): Promise<any> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<any>(`/fup/policies/${queryString}`)
+  }
+
+  async createFupPolicy(data: any): Promise<any> {
+    return this.request<any>('/fup/policies/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async getFupViolations(params?: Record<string, string>): Promise<any> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<any>(`/fup/violations/${queryString}`)
+  }
+
+  async getFupThrottledUsers(params?: Record<string, string>): Promise<any> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<any>(`/fup/throttled/${queryString}`)
+  }
+
+  async getFupAvailablePlans(policyId: string): Promise<any> {
+    return this.request<any>(`/fup/policies/${policyId}/available_plans/`)
+  }
+
+  async linkFupPlans(policyId: string, data: { plan_ids: string[]; hotspot_plan_ids: string[] }): Promise<any> {
+    return this.request<any>(`/fup/policies/${policyId}/link_plans/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
 }
 
 // Export singleton instance
