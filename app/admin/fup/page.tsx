@@ -105,7 +105,26 @@ export default function FUPPage() {
 
   // API State (To be replaced with React Query / Fetch)
   const [dashboard, setDashboard] = useState<FupDashboardSummaryDto>({ active_policies: 0, users_under_fup: 0, active_violations: 0, currently_throttled: 0 })
-  const [policies, setPolicies] = useState<FupPolicyDto[]>([])
+  const [policies, setPolicies] = useState<FupPolicyDto[]>([
+  {
+    id: "test-123",
+    name: "Test Policy",
+    description: "Just testing the UI",
+    data_limit_gb: 500,
+    throttle_download_mbps: 5,
+    throttle_upload_mbps: 2,
+    reset_period: "MONTHLY",
+    status: "ACTIVE",
+    auto_enforce: true,
+    notify_on_violation: true,
+    is_active: true,
+    linked_plans_count: 0,
+    users_count: 0,
+    active_violations_count: 0,
+    currently_throttled_count: 0,
+    created_at: new Date().toISOString()
+  }
+])
   const [violations, setViolations] = useState<FupViolationDto[]>([])
   const [throttledUsers, setThrottledUsers] = useState<FupThrottleStateDto[]>([])
 
