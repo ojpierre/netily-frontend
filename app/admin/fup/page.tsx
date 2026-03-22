@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react"
 import {
   Gauge, Plus, Edit, Trash2, MoreVertical, Search, RefreshCw,
-  AlertTriangle,CheckCircle, Users, Activity, Download, Link as LinkIcon, Filter
+  AlertTriangle, CheckCircle, Users, Activity, Download, Link as LinkIcon, Filter
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -224,13 +224,18 @@ export default function FUPPage() {
   }
 
   const handleDeletePolicy = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this policy?")) return
+    if (!confirm("Are you sure you want to delete this policy? This cannot be undone.")) return
     try {
       await adminApi.deleteFupPolicy(id)
-      toast({ title: "Deleted", description: "Policy removed." })
+      toast({ title: "Deleted", description: "The policy has been removed." })
       fetchAllData()
-    } catch (error: any) {
-      toast({ title: "Failed to delete", description: error.message, variant: "destructive" })
+    } catch (e: any) {
+      // FIX: Show the actual backend error (e.g. "Cannot delete policy with linked plans")
+      toast({ 
+        title: "Delete Restricted", 
+        description: e.message || "Please unlink all plans and resolve violations before deleting.", 
+        variant: "destructive" 
+      })
     }
   }
 
