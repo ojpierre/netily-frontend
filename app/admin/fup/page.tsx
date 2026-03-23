@@ -92,6 +92,21 @@ export interface FupAvailablePlansDto {
   hotspot_plans: Array<{ id: string; name: string; already_linked: boolean }>
 }
 
+export interface FupUsageWindowDto {
+  id: string
+  customer_name: string
+  customer_code: string
+  policy_name: string
+  plan_name: string
+  total_gb: number
+  limit_gb: number
+  usage_percent: number
+  status: string
+  is_throttled: boolean
+  period_start: string
+  period_end: string
+}
+
 // --- MAPPERS ---
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -122,6 +137,7 @@ export default function FUPPage() {
   const [violations, setViolations] = useState<FupViolationDto[]>([])
   const [throttledUsers, setThrottledUsers] = useState<FupThrottleStateDto[]>([])
   const [analytics, setAnalytics] = useState<FupAnalyticsOverviewDto | null>(null)
+  const [usageWindows, setUsageWindows] = useState<FupUsageWindowDto[]>([])
 
   // --- FILTERS ---
   const [policySearch, setPolicySearch] = useState("")
@@ -152,18 +168,19 @@ export default function FUPPage() {
   const fetchAllData = async () => {
     setIsLoading(true)
     try {
-      // Note the fixed catch syntax: ({ results: [] }) instead of { results: [] }
-      const [stats, polData, throtData, analyticsData] = await Promise.all([
+      const [stats, polData, throtData, analyticsData, usageData] = await Promise.all([
         adminApi.getFupDashboardSummary().catch(() => dashboard),
         adminApi.getFupPolicies().catch(() => ({ results: [] })),
         adminApi.getFupThrottledUsers().catch(() => ({ results: [] })),
-        adminApi.getFupAnalyticsOverview().catch(() => null)
+        adminApi.getFupAnalyticsOverview().catch(() => null),
+        adminApi.getFupUsageWindows().catch(() => ({ results: [] }))
       ])
 
       if (stats) setDashboard(stats)
       setPolicies(polData?.results || polData || [])
       setThrottledUsers(throtData?.results || throtData || [])
       if (analyticsData) setAnalytics(analyticsData)
+      setUsageWindows(usageData?.results || usageData || [])
       
       // Fetch violations separately to easily re-fetch when filters change
       fetchViolations()
@@ -230,7 +247,6 @@ export default function FUPPage() {
       toast({ title: "Deleted", description: "The policy has been removed." })
       fetchAllData()
     } catch (e: any) {
-      // FIX: Show the actual backend error (e.g. "Cannot delete policy with linked plans")
       toast({ 
         title: "Delete Restricted", 
         description: e.message || "Please unlink all plans and resolve violations before deleting.", 
@@ -262,11 +278,9 @@ export default function FUPPage() {
       const data = await adminApi.getFupAvailablePlans(policy.id)
       setAvailablePlans(data)
       
-      // Find currently linked IDs
       const bIds = data.billing_plans.filter((p: any) => p.already_linked).map((p: any) => p.id)
       const hIds = data.hotspot_plans.filter((p: any) => p.already_linked).map((p: any) => p.id)
       
-      // Set initial states for diffing later
       setInitialBillingIds(bIds)
       setInitialHotspotIds(hIds)
       setSelectedBillingIds(bIds)
@@ -279,15 +293,12 @@ export default function FUPPage() {
   const handleSaveLinks = async () => {
     if (!selectedPolicyForLink) return
     
-    // DIFFING LOGIC: Determine what to link and what to unlink
     const billingToLink = selectedBillingIds.filter(id => !initialBillingIds.includes(id))
     const billingToUnlink = initialBillingIds.filter(id => !selectedBillingIds.includes(id))
-    
     const hotspotToLink = selectedHotspotIds.filter(id => !initialHotspotIds.includes(id))
     const hotspotToUnlink = initialHotspotIds.filter(id => !selectedHotspotIds.includes(id))
 
     try {
-      // 1. Send Link Request
       if (billingToLink.length > 0 || hotspotToLink.length > 0) {
         await adminApi.linkFupPlans(selectedPolicyForLink.id, {
           plan_ids: billingToLink,
@@ -295,7 +306,6 @@ export default function FUPPage() {
         })
       }
 
-      // 2. Send Unlink Request
       if (billingToUnlink.length > 0 || hotspotToUnlink.length > 0) {
         await adminApi.unlinkFupPlans(selectedPolicyForLink.id, {
           plan_ids: billingToUnlink,
@@ -339,10 +349,74 @@ export default function FUPPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="policies">Policies</TabsTrigger>
+          <TabsTrigger value="usage">Current Usage</TabsTrigger>
           <TabsTrigger value="violations">Violations {dashboard.active_violations > 0 && <Badge variant="destructive" className="ml-2">{dashboard.active_violations}</Badge>}</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="throttled">Throttled Users</TabsTrigger>
         </TabsList>
+
+        {/* CURRENT USAGE TAB */}
+        <TabsContent value="usage" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Current Usage Progress</CardTitle>
+              <CardDescription>Live monitoring of users currently tracked under FUP policies</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="p-4 text-center animate-pulse text-slate-500">Loading usage data...</div>
+              ) : usageWindows.length === 0 ? (
+                <div className="p-4 text-center border rounded-lg bg-slate-50 text-slate-500">No users currently under FUP tracking.</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Policy & Plan</TableHead>
+                      <TableHead className="w-[30%]">Usage Progress</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {usageWindows.map((uw) => {
+                      const isOverLimit = uw.usage_percent >= 100;
+                      return (
+                        <TableRow key={uw.id}>
+                          <TableCell className="font-medium">
+                            {uw.customer_name} <span className="text-xs text-slate-500 block">{uw.customer_code}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-slate-800">{uw.policy_name}</span>
+                            <span className="text-xs text-slate-500 block">{uw.plan_name}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1.5">
+                              <div className="flex justify-between text-xs font-medium">
+                                <span className={isOverLimit ? "text-red-600" : "text-slate-700"}>{uw.total_gb.toFixed(1)} GB used</span>
+                                <span className="text-slate-500">{uw.limit_gb.toFixed(1)} GB limit</span>
+                              </div>
+                              <Progress 
+                                value={Math.min(uw.usage_percent, 100)} 
+                                className={`h-2 ${isOverLimit ? '[&>div]:bg-red-500' : '[&>div]:bg-blue-500'}`} 
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {isOverLimit ? (
+                              <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Throttled</Badge>
+                            ) : (
+                              <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Normal</Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* POLICIES TAB */}
         <TabsContent value="policies" className="space-y-4">
@@ -392,8 +466,6 @@ export default function FUPPage() {
               <Button variant="outline" size="sm" onClick={handleExportViolations}><Download className="w-4 h-4 mr-2" /> Export CSV</Button>
             </CardHeader>
             <CardContent>
-              
-              {/* Toolbar Filters */}
               <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -472,12 +544,42 @@ export default function FUPPage() {
                 <CardContent>
                   <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={analytics.violation_trends}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
-                        <YAxis fontSize={12} tickLine={false} axisLine={false} />
-                        <RechartsTooltip cursor={{ fill: 'transparent' }} />
-                        <Bar dataKey="count" fill="#f97316" radius={[4, 4, 0, 0]} />
+                      <BarChart data={analytics.violation_trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#f97316" stopOpacity={0.9}/>
+                            <stop offset="95%" stopColor="#f97316" stopOpacity={0.2}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis 
+                          dataKey="date" 
+                          fontSize={12} 
+                          tickLine={false} 
+                          axisLine={false} 
+                          tick={{ fill: '#64748b' }} 
+                          dy={10} 
+                        />
+                        <YAxis 
+                          fontSize={12} 
+                          tickLine={false} 
+                          axisLine={false} 
+                          tick={{ fill: '#64748b' }} 
+                        />
+                        <RechartsTooltip 
+                          cursor={{ fill: '#f8fafc' }} 
+                          contentStyle={{ 
+                            borderRadius: '8px', 
+                            border: '1px solid #e2e8f0', 
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' 
+                          }} 
+                        />
+                        <Bar 
+                          dataKey="count" 
+                          fill="url(#colorCount)" 
+                          radius={[4, 4, 0, 0]} 
+                          barSize={40} 
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -571,30 +673,57 @@ export default function FUPPage() {
           <div className="grid md:grid-cols-2 gap-6 py-4">
             <div className="space-y-3 border p-4 rounded-lg bg-slate-50">
               <h4 className="font-semibold text-sm">Billing Plans</h4>
-              <ScrollArea className="h-48">
-                 <div className="space-y-3">
-                   {availablePlans.billing_plans.length === 0 && <p className="text-sm text-slate-500">No plans available.</p>}
-                   {availablePlans.billing_plans.map(plan => (
-                     <div key={plan.id} className="flex items-center space-x-2">
-                       <Checkbox id={`bp-${plan.id}`} checked={selectedBillingIds.includes(plan.id)} onCheckedChange={() => toggleBillingPlan(plan.id)} />
-                       <Label htmlFor={`bp-${plan.id}`}>{plan.name}</Label>
-                     </div>
-                   ))}
+              <ScrollArea className="h-64 pr-3">
+                 <div className="grid grid-cols-1 gap-2">
+                   {availablePlans.billing_plans.length === 0 && <p className="text-sm text-slate-500 italic p-2">No billing plans available.</p>}
+                   {availablePlans.billing_plans.map(plan => {
+                     const isSelected = selectedBillingIds.includes(plan.id);
+                     return (
+                       <div 
+                         key={plan.id} 
+                         onClick={() => toggleBillingPlan(plan.id)}
+                         className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                           isSelected ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-slate-200 hover:border-blue-200 bg-white'
+                         }`}
+                       >
+                         <Checkbox checked={isSelected} className="mt-0.5 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" />
+                         <div className="flex-1">
+                           <p className={`text-sm font-semibold leading-none ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>
+                             {plan.name}
+                           </p>
+                           {plan.already_linked && !isSelected && <span className="text-[10px] text-slate-400 mt-1 block">Currently Unlinked</span>}
+                         </div>
+                       </div>
+                     )
+                   })}
                  </div>
               </ScrollArea>
             </div>
             
             <div className="space-y-3 border p-4 rounded-lg bg-slate-50">
               <h4 className="font-semibold text-sm">Hotspot Plans</h4>
-              <ScrollArea className="h-48">
-                 <div className="space-y-3">
-                   {availablePlans.hotspot_plans.length === 0 && <p className="text-sm text-slate-500">No plans available.</p>}
-                   {availablePlans.hotspot_plans.map(plan => (
-                     <div key={plan.id} className="flex items-center space-x-2">
-                       <Checkbox id={`hp-${plan.id}`} checked={selectedHotspotIds.includes(plan.id)} onCheckedChange={() => toggleHotspotPlan(plan.id)} />
-                       <Label htmlFor={`hp-${plan.id}`}>{plan.name}</Label>
-                     </div>
-                   ))}
+              <ScrollArea className="h-64 pr-3">
+                 <div className="grid grid-cols-1 gap-2">
+                   {availablePlans.hotspot_plans.length === 0 && <p className="text-sm text-slate-500 italic p-2">No hotspot plans available.</p>}
+                   {availablePlans.hotspot_plans.map(plan => {
+                     const isSelected = selectedHotspotIds.includes(plan.id);
+                     return (
+                       <div 
+                         key={plan.id} 
+                         onClick={() => toggleHotspotPlan(plan.id)}
+                         className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                           isSelected ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-slate-200 hover:border-blue-200 bg-white'
+                         }`}
+                       >
+                         <Checkbox checked={isSelected} className="mt-0.5 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" />
+                         <div className="flex-1">
+                           <p className={`text-sm font-semibold leading-none ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>
+                             {plan.name}
+                           </p>
+                         </div>
+                       </div>
+                     )
+                   })}
                  </div>
               </ScrollArea>
             </div>

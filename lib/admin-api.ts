@@ -3330,6 +3330,12 @@ class AdminApiService {
     return this.request<any>(`/fup/throttled/${queryString}`)
   }
 
+  // ---> NEW METHOD FOR CURRENT USAGE TAB <---
+  async getFupUsageWindows(params?: Record<string, string>): Promise<any> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<any>(`/fup/usage-windows/${queryString}`)
+  }
+
   async getFupAnalyticsOverview(): Promise<any> {
     return this.request<any>('/fup/analytics/overview/')
   }
