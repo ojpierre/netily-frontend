@@ -379,7 +379,7 @@ export default function FUPPage() {
                   </TableHeader>
                   <TableBody>
                     {usageWindows.map((uw) => {
-                      const isOverLimit = uw.usage_percent >= 100;
+                      const isOverLimit = Number(uw.usage_percent || 0) >= 100;
                       return (
                         <TableRow key={uw.id}>
                           <TableCell className="font-medium">
@@ -392,11 +392,15 @@ export default function FUPPage() {
                           <TableCell>
                             <div className="space-y-1.5">
                               <div className="flex justify-between text-xs font-medium">
-                                <span className={isOverLimit ? "text-red-600" : "text-slate-700"}>{uw.total_gb.toFixed(1)} GB used</span>
-                                <span className="text-slate-500">{uw.limit_gb.toFixed(1)} GB limit</span>
+                                <span className={isOverLimit ? "text-red-600" : "text-slate-700"}>
+                                  {Number(uw.total_gb || 0).toFixed(1)} GB used
+                                </span>
+                                <span className="text-slate-500">
+                                  {Number(uw.limit_gb || 0).toFixed(1)} GB limit
+                                </span>
                               </div>
                               <Progress 
-                                value={Math.min(uw.usage_percent, 100)} 
+                                value={Math.min(Number(uw.usage_percent || 0), 100)} 
                                 className={`h-2 ${isOverLimit ? '[&>div]:bg-red-500' : '[&>div]:bg-blue-500'}`} 
                               />
                             </div>
