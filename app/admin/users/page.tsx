@@ -147,6 +147,7 @@ interface UserStats {
   fiber: number
 }
 
+// Helper: Map backend Customer to frontend User display type
 const mapCustomerToUser = (customer: Customer): User => {
   const primaryService = customer.services?.[0]
   const isOnline = primaryService?.is_online ?? false
@@ -185,6 +186,9 @@ const mapCustomerToUser = (customer: Customer): User => {
     synced_to_radius: radiusCreds.synced_to_radius ?? false,
   } : undefined
 
+  // FIX: Look for RADIUS expiration date first, then fallback to service
+  const actualExpiryDate = radiusCredentials?.expiration_date || primaryService?.expiry_date;
+
   return {
     id: customer.customer_number || `USR-${customer.id}`,
     customerId: customer.id,
@@ -200,7 +204,7 @@ const mapCustomerToUser = (customer: Customer): User => {
     plan: primaryService?.plan?.name || "No Plan",
     planPrice: primaryService?.plan?.price ? parseFloat(String(primaryService.plan.price)) : 0,
     joinedDate: safeDate(customer.created_at),
-    expiryDate: safeDate(primaryService?.expiry_date),
+    expiryDate: safeDate(actualExpiryDate), // <--- NOW USING ACCURATE RADIUS DATE
     lastOnline: isOnline ? "Now" : (primaryService?.last_seen ? new Date(primaryService.last_seen).toLocaleString() : "Never"),
     dataUsed: primaryService?.data_used || 0,
     dataLimit: primaryService?.data_limit || null,
