@@ -92,23 +92,19 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 
-// User types for different connection methods (maps to backend ConnectionType)
-// Note: Hotspot users are managed separately via captive portal
 type UserType = "pppoe" | "static" | "fiber" | "wireless"
 type UserStatus = "active" | "inactive" | "expired" | "suspended" | "pending" | "online" | "offline"
 
-// RADIUS credentials for PPPoE/Hotspot authentication
 interface RADIUSCredentials {
   id?: string
   username: string
   password: string
   is_enabled: boolean
   connection_type: string
-  expiration_date: string | null  // Wall-clock expiration
+  expiration_date: string | null 
   synced_to_radius?: boolean
 }
 
-// Display user interface - mapped from Customer API response
 interface User {
   id: string
   customerId: number
@@ -118,7 +114,7 @@ interface User {
   email: string
   phone: string
   status: UserStatus
-  serviceStatus: string | null  // Raw service status (ACTIVE, PENDING, SUSPENDED, etc.)
+  serviceStatus: string | null
   connectionStatus: "online" | "offline"
   type: UserType
   plan: string
@@ -135,11 +131,9 @@ interface User {
   uploadSpeed: number
   loyaltyPoints: number
   balance: number
-  // RADIUS credentials for network authentication
   radiusCredentials?: RADIUSCredentials
 }
 
-// Stats cards data interface
 interface UserStats {
   total: number
   active: number
@@ -152,19 +146,12 @@ interface UserStats {
   fiber: number
 }
 
-// Helper: Map backend Customer to frontend User display type
 const mapCustomerToUser = (customer: Customer): User => {
-  // Get the primary service if available
   const primaryService = customer.services?.[0]
-  
-  // Determine connection status from service
   const isOnline = primaryService?.is_online ?? false
-  
-  // Map backend status to frontend status (handle 'inactive' as 'expired' for display)
-  // If the service is PENDING, show the user as pending regardless of customer status
   const serviceStatus = (primaryService?.status || '').toUpperCase()
+  
   const mapStatus = (status: CustomerStatus): UserStatus => {
-    // Service PENDING overrides customer status — user needs activation
     if (serviceStatus === 'PENDING') return 'pending'
     switch (status) {
       case 'active': return 'active'
@@ -175,20 +162,17 @@ const mapCustomerToUser = (customer: Customer): User => {
     }
   }
   
-  // Helper to safely format dates
   const safeDate = (dateStr: string | null | undefined): string => {
     if (!dateStr) return new Date().toISOString()
     const date = new Date(dateStr)
     return isNaN(date.getTime()) ? new Date().toISOString() : dateStr
   }
   
-  // Map service type, defaulting to pppoe for managed users
   const serviceType = primaryService?.service_type?.toLowerCase() || 'pppoe'
   const mappedType = ['pppoe', 'static', 'fiber', 'wireless'].includes(serviceType) 
     ? serviceType as UserType 
     : 'pppoe'
   
-  // Map RADIUS credentials if available
   const radiusCreds = (customer as any).radius_credentials
   const radiusCredentials: RADIUSCredentials | undefined = radiusCreds ? {
     id: radiusCreds.id || '',
@@ -224,13 +208,12 @@ const mapCustomerToUser = (customer: Customer): User => {
     router: primaryService?.device?.name || "Not assigned",
     downloadSpeed: primaryService?.download_speed || 0,
     uploadSpeed: primaryService?.upload_speed || 0,
-    loyaltyPoints: 0, // Will come from loyalty module
+    loyaltyPoints: 0,
     balance: parseFloat(customer.balance) || 0,
     radiusCredentials,
   }
 }
 
-// Generate a simple password for easy testing
 const generateSimplePassword = (length: number = 8): string => {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789'
   let password = ''
@@ -255,7 +238,6 @@ export default function UsersPage() {
   const [showBulkImportDialog, setShowBulkImportDialog] = useState(false)
   const [showSmsDialog, setShowSmsDialog] = useState(false)
   const [showEditUserDialog, setShowEditUserDialog] = useState(false)
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
@@ -276,20 +258,16 @@ export default function UsersPage() {
   const [routersLoading, setRoutersLoading] = useState(false)
   const [poolsList, setPoolsList] = useState<IPPool[]>([])
   const [poolsLoading, setPoolsLoading] = useState(false)
-  // Cloud-Led: Available IPs for static IP assignment
   const [availableIPs, setAvailableIPs] = useState<AvailableIP[]>([])
   const [availableIPsLoading, setAvailableIPsLoading] = useState(false)
   const [ipSearchQuery, setIpSearchQuery] = useState("")
-  // Online sessions from RADIUS endpoint
   const [onlineSessions, setOnlineSessions] = useState<OnlineSession[]>([])
   const [onlineSessionsLoading, setOnlineSessionsLoading] = useState(false)
   const [onlineSearchQuery, setOnlineSearchQuery] = useState("")
   const [onlineServiceFilter, setOnlineServiceFilter] = useState("all")
-  // Active users (subscription) search
   const [activeSearchQuery, setActiveSearchQuery] = useState("")
   const itemsPerPage = 10
 
-  // Edit user form state
   const [editForm, setEditForm] = useState({
     first_name: "",
     last_name: "",
@@ -299,7 +277,6 @@ export default function UsersPage() {
     radius_password: "",
   })
 
-  // New customer form state
   const [newCustomerForm, setNewCustomerForm] = useState({
     first_name: "",
     last_name: "",
@@ -310,11 +287,10 @@ export default function UsersPage() {
     plan_id: "",
     router_id: "",
     ip_pool: "",
-    assigned_ip: "" as string,  // Cloud-Led: IPAddress ID for Framed-IP-Address
+    assigned_ip: "" as string, 
     activate_now: true,
   })
 
-  // Guard against React Strict Mode double-mount
   const hasFetched = React.useRef(false)
   useEffect(() => {
     if (hasFetched.current) return
@@ -324,7 +300,6 @@ export default function UsersPage() {
     loadOnlineSessions()
   }, [])
 
-  // Load billing plans from API
   const loadPlans = async () => {
     try {
       setPlansLoading(true)
@@ -332,13 +307,11 @@ export default function UsersPage() {
       setPlans(response.results || [])
     } catch (err) {
       console.error('Failed to load plans:', err)
-      // Don't show error toast for plans - just use empty array
     } finally {
       setPlansLoading(false)
     }
   }
 
-  // Load online sessions from RADIUS active sessions endpoint
   const loadOnlineSessions = async () => {
     try {
       setOnlineSessionsLoading(true)
@@ -352,9 +325,8 @@ export default function UsersPage() {
     }
   }
 
-  // Load routers for the Router dropdown
   const loadRouters = async () => {
-    if (routersList.length > 0) return // already loaded
+    if (routersList.length > 0) return
     try {
       setRoutersLoading(true)
       const response = await adminApi.getRouters({ page_size: "100" })
@@ -366,7 +338,6 @@ export default function UsersPage() {
     }
   }
 
-  // Load IP pools filtered by selected router
   const loadPoolsForRouter = async (routerId: string) => {
     if (!routerId) {
       setPoolsList([])
@@ -384,7 +355,6 @@ export default function UsersPage() {
     }
   }
 
-  // Cloud-Led: Load available IPs for a specific pool
   const loadAvailableIPs = async (poolId: number, search?: string) => {
     try {
       setAvailableIPsLoading(true)
@@ -398,32 +368,27 @@ export default function UsersPage() {
     }
   }
 
-  // Auto-load available IPs when a plan with an ip_pool is selected
   const selectedPlanPool = React.useMemo(() => {
     if (!newCustomerForm.plan_id) return null
     const plan = plans.find(p => p.id === parseInt(newCustomerForm.plan_id))
     if (!plan || !plan.ip_pool) return null
-    // plan.ip_pool is the FK id
     return typeof plan.ip_pool === 'number' ? plan.ip_pool : null
   }, [newCustomerForm.plan_id, plans])
 
-  // When the selected plan's pool changes, load available IPs
   useEffect(() => {
     if (selectedPlanPool) {
       loadAvailableIPs(selectedPlanPool)
     } else {
       setAvailableIPs([])
     }
-    // Reset selected IP
     setNewCustomerForm(prev => ({ ...prev, assigned_ip: "" }))
     setIpSearchQuery("")
-  }, [selectedPlanPool]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedPlanPool])
 
   const loadUsers = async () => {
     try {
       setLoading(true)
       setError(null)
-      
       const response = await adminApi.getCustomers()
       const mappedUsers = response.results.map(mapCustomerToUser)
       setUsers(mappedUsers)
@@ -437,13 +402,11 @@ export default function UsersPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await loadUsers()
+    await Promise.all([loadUsers(), loadOnlineSessions()])
     setRefreshing(false)
   }
 
-  // Create customer function
   const handleCreateCustomer = async () => {
-    // Validate required fields
     if (!newCustomerForm.first_name || !newCustomerForm.last_name) {
       toast.error("First name and last name are required")
       return
@@ -459,14 +422,11 @@ export default function UsersPage() {
 
     try {
       setCreating(true)
-      
-      // Create the customer - the backend auto-sync will create RADIUS credentials
-      // if the connection_type is PPPoE or Hotspot
       const customerData = {
         first_name: newCustomerForm.first_name,
         last_name: newCustomerForm.last_name,
         email: newCustomerForm.email || undefined,
-        phone_number: newCustomerForm.phone,  // Backend expects phone_number
+        phone_number: newCustomerForm.phone, 
         password: newCustomerForm.password,
         status: 'active' as const,
       }
@@ -475,40 +435,32 @@ export default function UsersPage() {
       
       // If a plan/router is selected, create a service connection
       // This triggers auto-sync to create RADIUS credentials
-      if (newCustomerForm.connection_type && newCustomerForm.connection_type !== 'none') {
+      if (newCustomerForm.connection_type) {
         try {
-          // Build service data with optional plan
           const serviceData: Record<string, any> = {
             service_type: 'INTERNET',
-            auth_connection_type: newCustomerForm.connection_type.toUpperCase(),  // PPPOE or HOTSPOT triggers RADIUS
+            auth_connection_type: newCustomerForm.connection_type.toUpperCase(),
             status: newCustomerForm.activate_now ? 'ACTIVE' : 'PENDING',
             activate_now: newCustomerForm.activate_now,
-            // Pass the same password for RADIUS authentication
-            // This makes testing easier as login and network passwords match
             radius_password: newCustomerForm.password,
           }
 
-          // Add router if selected — links RADIUS credentials to this router
           if (newCustomerForm.router_id) {
             serviceData.router = parseInt(newCustomerForm.router_id, 10)
           }
 
-          // Add IP pool name — stored as Framed-Pool RADIUS attribute
           if (newCustomerForm.ip_pool) {
             serviceData.ip_pool = newCustomerForm.ip_pool
           }
 
-          // Cloud-Led: Add assigned IP address for Framed-IP-Address
           if (newCustomerForm.assigned_ip) {
             serviceData.assigned_ip = parseInt(newCustomerForm.assigned_ip, 10)
           }
           
-          // Add plan if selected - backend expects 'plan' not 'plan_id'
           if (newCustomerForm.plan_id) {
             const planId = parseInt(newCustomerForm.plan_id, 10)
             serviceData.plan = planId
             
-            // Get selected plan details to set speeds
             const selectedPlan = plans.find(p => p.id === planId)
             if (selectedPlan) {
               serviceData.download_speed = selectedPlan.download_speed
@@ -526,7 +478,6 @@ export default function UsersPage() {
 
       toast.success(`Customer ${newCustomer.full_name} created successfully!`)
       
-      // Reset form and close dialog
       setNewCustomerForm({
         first_name: "",
         last_name: "",
@@ -545,7 +496,6 @@ export default function UsersPage() {
       setIpSearchQuery("")
       setShowAddUserDialog(false)
       
-      // Refresh the list
       await loadUsers()
       
     } catch (err: any) {
@@ -556,25 +506,58 @@ export default function UsersPage() {
     }
   }
 
-  // Calculate stats
+  // Dynamically merge live online session data with the static customer list
+  const enrichedUsers = useMemo(() => {
+    return users.map((user) => {
+      const session = onlineSessions.find(
+        (s) => s.username === user.radiusCredentials?.username
+      )
+      const isOnline = !!session
+
+      let currentUsage = user.dataUsed
+      if (session && session.usage) {
+        const valMatch = session.usage.match(/([\d.]+)/)
+        const unitMatch = session.usage.match(/(GB|MB|KB|B)/i)
+        
+        if (valMatch) {
+          let val = parseFloat(valMatch[1])
+          const unit = unitMatch ? unitMatch[1].toUpperCase() : 'GB'
+          
+          if (unit === 'MB') val = val / 1024
+          else if (unit === 'KB') val = val / (1024 * 1024)
+          
+          currentUsage = val
+        }
+      }
+
+      return {
+        ...user,
+        connectionStatus: (isOnline ? "online" : "offline") as "online" | "offline",
+        dataUsed: isOnline ? currentUsage : user.dataUsed,
+        lastOnline: isOnline ? "Now" : user.lastOnline,
+        ipAddress: session?.ip_address || user.ipAddress,
+        macAddress: session?.mac_address || user.macAddress,
+        router: session?.router || user.router,
+      }
+    })
+  }, [users, onlineSessions])
+
   const stats: UserStats = useMemo(() => {
     return {
-      total: users.length,
-      active: users.filter(u => u.status === "active").length,
-      pending: users.filter(u => u.status === "pending").length,
-      suspended: users.filter(u => u.status === "suspended").length,
-      expired: users.filter(u => u.status === "expired").length,
-      online: users.filter(u => u.connectionStatus === "online").length,
-      pppoe: users.filter(u => u.type === "pppoe").length,
-      static: users.filter(u => u.type === "static").length,
-      fiber: users.filter(u => u.type === "fiber").length,
+      total: enrichedUsers.length,
+      active: enrichedUsers.filter(u => u.status === "active").length,
+      pending: enrichedUsers.filter(u => u.status === "pending").length,
+      suspended: enrichedUsers.filter(u => u.status === "suspended").length,
+      expired: enrichedUsers.filter(u => u.status === "expired").length,
+      online: enrichedUsers.filter(u => u.connectionStatus === "online").length,
+      pppoe: enrichedUsers.filter(u => u.type === "pppoe").length,
+      static: enrichedUsers.filter(u => u.type === "static").length,
+      fiber: enrichedUsers.filter(u => u.type === "fiber").length,
     }
-  }, [users])
+  }, [enrichedUsers])
 
-  // Filter users based on tab and search
   const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      // Tab filter
+    return enrichedUsers.filter((user) => {
       const matchesTab = 
         activeTab === "all" ||
         (activeTab === "pppoe" && user.type === "pppoe") ||
@@ -582,7 +565,6 @@ export default function UsersPage() {
         (activeTab === "fiber" && user.type === "fiber") ||
         (activeTab === "online" && user.connectionStatus === "online")
 
-      // Search filter - add null checks for safety
       const matchesSearch = !searchQuery || (
         (user.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
         (user.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
@@ -590,12 +572,11 @@ export default function UsersPage() {
         (user.id?.toLowerCase() || '').includes(searchQuery.toLowerCase())
       )
 
-      // Status filter
       const matchesStatus = statusFilter === "all" || user.status === statusFilter
 
       return matchesTab && matchesSearch && matchesStatus
     })
-  }, [users, activeTab, searchQuery, statusFilter])
+  }, [enrichedUsers, activeTab, searchQuery, statusFilter])
 
   const paginatedUsers = filteredUsers.slice(
     (currentPage - 1) * itemsPerPage,
@@ -604,7 +585,6 @@ export default function UsersPage() {
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
 
-  // Filtered online sessions (RADIUS active endpoint)
   const filteredOnlineSessions = useMemo(() => {
     return onlineSessions.filter((session) => {
       const matchesSearch = !onlineSearchQuery || (
@@ -619,9 +599,8 @@ export default function UsersPage() {
     })
   }, [onlineSessions, onlineSearchQuery, onlineServiceFilter])
 
-  // Active users (subscription-focused) — users with active status
   const activeSubscriptionUsers = useMemo(() => {
-    return users.filter((user) => {
+    return enrichedUsers.filter((user) => {
       const isActive = user.status === "active" || user.status === "pending"
       const matchesSearch = !activeSearchQuery || (
         (user.name?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
@@ -632,9 +611,8 @@ export default function UsersPage() {
       )
       return isActive && matchesSearch
     })
-  }, [users, activeSearchQuery])
+  }, [enrichedUsers, activeSearchQuery])
 
-  // Reset page when filter changes
   useEffect(() => {
     setCurrentPage(1)
   }, [activeTab, searchQuery, statusFilter])
@@ -719,7 +697,7 @@ export default function UsersPage() {
     try {
       await adminApi.suspendService(user.customerId, user.serviceId, 'Manual disconnect')
       toast.success(`${user.name} disconnected`)
-      await loadUsers()
+      await Promise.all([loadUsers(), loadOnlineSessions()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to disconnect user')
     }
@@ -728,7 +706,7 @@ export default function UsersPage() {
   const handleExtendSubscription = (user: User) => {
     setUserToExtend(user)
     setExtendForm({ duration_amount: 1, duration_unit: 'DAYS', plan_id: '' })
-    loadPlans() // Ensure plans are fresh for the plan change dropdown
+    loadPlans()
     setShowExtendDialog(true)
   }
 
@@ -772,7 +750,7 @@ export default function UsersPage() {
       setShowDeleteConfirmDialog(false)
       setUserToDelete(null)
       setDrawerOpen(false)
-      await loadUsers()
+      await Promise.all([loadUsers(), loadOnlineSessions()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete user')
     } finally {
@@ -782,7 +760,7 @@ export default function UsersPage() {
 
   const handleBulkDelete = async () => {
     if (selectedUsers.length === 0) return
-    const usersToDelete = users.filter(u => selectedUsers.includes(u.id))
+    const usersToDelete = enrichedUsers.filter(u => selectedUsers.includes(u.id))
     try {
       setDeleting(true)
       for (const user of usersToDelete) {
@@ -790,10 +768,10 @@ export default function UsersPage() {
       }
       toast.success(`${usersToDelete.length} user(s) deleted successfully`)
       setSelectedUsers([])
-      await loadUsers()
+      await Promise.all([loadUsers(), loadOnlineSessions()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete some users')
-      await loadUsers()
+      await Promise.all([loadUsers(), loadOnlineSessions()])
     } finally {
       setDeleting(false)
     }
@@ -852,7 +830,6 @@ export default function UsersPage() {
     try {
       setUpdating(true)
       
-      // Update customer details
       await adminApi.updateCustomer(selectedUser.customerId, {
         first_name: editForm.first_name,
         last_name: editForm.last_name,
@@ -860,20 +837,16 @@ export default function UsersPage() {
         phone_number: editForm.phone,
       })
       
-      // Update RADIUS credentials if changed
       const radiusUpdate: { password?: string; username?: string } = {}
       
-      // Check if username changed
       if (editForm.radius_username && editForm.radius_username !== selectedUser.radiusCredentials?.username) {
         radiusUpdate.username = editForm.radius_username
       }
       
-      // Check if password changed
       if (editForm.radius_password) {
         radiusUpdate.password = editForm.radius_password
       }
       
-      // Send update if anything changed
       if (Object.keys(radiusUpdate).length > 0 && selectedUser.radiusCredentials) {
         try {
           await adminApi.updateRADIUSCredentials(selectedUser.customerId, radiusUpdate)
@@ -987,7 +960,6 @@ export default function UsersPage() {
           </Dialog>
           <Dialog open={showAddUserDialog} onOpenChange={(open) => {
             setShowAddUserDialog(open)
-            // Refresh plans and routers when dialog opens to get latest
             if (open) {
               loadPlans()
               loadRouters()
@@ -1158,7 +1130,7 @@ export default function UsersPage() {
                   </p>
                 </div>
 
-                {/* Cloud-Led: Static IP Assignment (Long Dropdown) */}
+                {/* Cloud-Led: Static IP Assignment */}
                 {selectedPlanPool && (
                   <div className="space-y-2 sm:col-span-2">
                     <Label>Assign Static IP (Cloud-Led)</Label>
@@ -1206,7 +1178,6 @@ export default function UsersPage() {
                     </div>
                   </div>
                 )}
-
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 * Required fields. PPPoE and Hotspot users will automatically get RADIUS credentials created.
@@ -1396,7 +1367,7 @@ export default function UsersPage() {
           </TabsList>
         </Tabs>
 
-        {/* Status Filter Chips (hidden on Online Sessions & Active Subs tabs) */}
+        {/* Status Filter Chips */}
         {!["online-sessions", "active-subs"].includes(activeTab) && (
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-medium text-slate-500 mr-1">Status:</span>
@@ -1428,7 +1399,7 @@ export default function UsersPage() {
         )}
       </div>
 
-      {/* Filters & Search (hidden on Online Sessions & Active Subs tabs) */}
+      {/* Filters & Search */}
       {!["online-sessions", "active-subs"].includes(activeTab) && (
       <Card>
         <CardContent className="pt-6">
@@ -1764,7 +1735,7 @@ export default function UsersPage() {
                                   Edit User
                                 </DropdownMenuItem>
                                 {user.status === "pending" && (
-                                  <DropdownMenuItem
+                                  <DropdownMenuItem 
                                     onClick={() => handleActivateUser(user)}
                                     className="text-green-600"
                                   >
@@ -1772,20 +1743,18 @@ export default function UsersPage() {
                                     Activate Now
                                   </DropdownMenuItem>
                                 )}
+                                <DropdownMenuSeparator />
                                 {user.radiusCredentials && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      onClick={() => handleToggleRadius(user, !user.radiusCredentials!.is_enabled)}
-                                      className={user.radiusCredentials.is_enabled ? "text-yellow-600" : "text-green-600"}
-                                    >
-                                      <Power className="w-4 h-4 mr-2" />
-                                      {user.radiusCredentials.is_enabled ? 'Disable RADIUS' : 'Enable RADIUS'}
-                                    </DropdownMenuItem>
-                                  </>
+                                  <DropdownMenuItem 
+                                    onClick={() => handleToggleRadius(user, !user.radiusCredentials!.is_enabled)}
+                                    className={user.radiusCredentials.is_enabled ? "text-yellow-600" : "text-green-600"}
+                                  >
+                                    <Power className="w-4 h-4 mr-2" />
+                                    {user.radiusCredentials.is_enabled ? 'Disable RADIUS' : 'Enable RADIUS'}
+                                  </DropdownMenuItem>
                                 )}
                                 {user.connectionStatus === "online" && (
-                                  <DropdownMenuItem
+                                  <DropdownMenuItem 
                                     onClick={() => handleDisconnectUser(user)}
                                     className="text-yellow-600"
                                   >
@@ -1794,7 +1763,7 @@ export default function UsersPage() {
                                   </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem
+                                <DropdownMenuItem 
                                   onClick={() => handleDeleteUser(user)}
                                   className="text-red-600"
                                 >
@@ -1972,10 +1941,6 @@ export default function UsersPage() {
                                   Disconnect
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem>
-                                <Send className="w-4 h-4 mr-2" />
-                                Send SMS
-                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteUser(user)}
