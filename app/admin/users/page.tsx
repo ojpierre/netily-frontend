@@ -132,6 +132,7 @@ interface User {
   loyaltyPoints: number
   balance: number
   radiusCredentials?: RADIUSCredentials
+  liveUsageString?: string // Added for precise real-time usage display
 }
 
 interface UserStats {
@@ -433,8 +434,6 @@ export default function UsersPage() {
 
       const newCustomer = await adminApi.createCustomer(customerData)
       
-      // If a plan/router is selected, create a service connection
-      // This triggers auto-sync to create RADIUS credentials
       if (newCustomerForm.connection_type) {
         try {
           const serviceData: Record<string, any> = {
@@ -533,7 +532,8 @@ export default function UsersPage() {
       return {
         ...user,
         connectionStatus: (isOnline ? "online" : "offline") as "online" | "offline",
-        dataUsed: isOnline ? currentUsage : user.dataUsed,
+        dataUsed: isOnline ? currentUsage : (user.dataUsed || 0),
+        liveUsageString: session?.usage, // Pull string straight from RADIUS for accuracy
         lastOnline: isOnline ? "Now" : user.lastOnline,
         ipAddress: session?.ip_address || user.ipAddress,
         macAddress: session?.mac_address || user.macAddress,
@@ -1876,9 +1876,11 @@ export default function UsersPage() {
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <p className="text-sm">{user.dataUsed.toFixed(1)} GB</p>
+                            <p className="text-sm font-medium">
+                              {user.liveUsageString || `${Number(user.dataUsed || 0).toFixed(1)} GB`}
+                            </p>
                             {user.dataLimit && (
-                              <Progress value={(user.dataUsed / user.dataLimit) * 100} className="h-1.5 w-16" />
+                              <Progress value={(Number(user.dataUsed || 0) / user.dataLimit) * 100} className="h-1.5 w-16" />
                             )}
                           </div>
                         </TableCell>
@@ -2244,12 +2246,12 @@ export default function UsersPage() {
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-slate-600">Data Used</span>
                       <span className="font-medium">
-                        {selectedUser.dataUsed.toFixed(1)} GB 
+                        {selectedUser.liveUsageString || `${Number(selectedUser.dataUsed || 0).toFixed(1)} GB`} 
                         {selectedUser.dataLimit && ` / ${selectedUser.dataLimit} GB`}
                       </span>
                     </div>
                     {selectedUser.dataLimit && (
-                      <Progress value={(selectedUser.dataUsed / selectedUser.dataLimit) * 100} className="h-2" />
+                      <Progress value={(Number(selectedUser.dataUsed || 0) / selectedUser.dataLimit) * 100} className="h-2" />
                     )}
                   </div>
                   <div className="flex justify-between text-sm">
