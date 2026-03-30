@@ -167,6 +167,14 @@ The system uses JWT (JSON Web Tokens) for authentication:
 - [Backend API Requirements](./BACKEND_API_REQUIREMENTS.md) - Complete API endpoint documentation
 - [Feature Roadmap](./FEATURE_ROADMAP.md) - Planned features and implementation guide
 
+## 💳 Tuma Payment Handoff (Frontend -> Backend)
+
+The project now has a dedicated implementation handoff for Mark with full channel mapping, payload examples, backend checklist, rollout order, and QA matrix.
+
+- Read: [PAYMENT_README.md](./PAYMENT_README.md)
+- Primary audience: Backend propagation and QA validation
+- Status: Frontend contract-ready; backend rollout in phases
+
 ## 🗺️ Roadmap
 
 ### Phase 1 ✅ (Completed)

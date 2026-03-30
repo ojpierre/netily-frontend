@@ -414,7 +414,7 @@ export default function PaymentMethodsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Payment Methods</h1>
           <p className="text-muted-foreground">
-            Configure all payment options from this page
+            Configure customer collection channels and handoff-ready backend mappings
           </p>
         </div>
         <div className="flex gap-2">
@@ -431,7 +431,7 @@ export default function PaymentMethodsPage() {
 
       <Tabs value={activePageTab} onValueChange={setActivePageTab} className="space-y-6">
         <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="methods">General Methods</TabsTrigger>
+          <TabsTrigger value="methods">Collection Methods</TabsTrigger>
           <TabsTrigger value="mpesa">M-Pesa Settings</TabsTrigger>
         </TabsList>
 
@@ -471,9 +471,9 @@ export default function PaymentMethodsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tuma Backend Handoff Contract</CardTitle>
+          <CardTitle>Tuma Backend Handoff (Mark)</CardTitle>
           <CardDescription>
-            Frontend-to-backend method mapping and required fields for Mark's propagation phase.
+            Frontend-to-backend channel mapping, required fields, and rollout status for backend propagation.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -481,10 +481,10 @@ export default function PaymentMethodsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Method</TableHead>
-                <TableHead>UI Type</TableHead>
+                <TableHead>Frontend Type</TableHead>
                 <TableHead>Backend Enum</TableHead>
                 <TableHead>Required Fields</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Propagation Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -516,7 +516,7 @@ export default function PaymentMethodsPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <CardTitle>Payment Methods</CardTitle>
-              <CardDescription>{methods.length} methods configured</CardDescription>
+              <CardDescription>{methods.length} methods configured for this tenant</CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
               <div className="relative">
@@ -690,14 +690,14 @@ export default function PaymentMethodsPage() {
           <DialogHeader>
             <DialogTitle>{isEditOpen ? 'Edit' : 'Add'} Payment Method</DialogTitle>
             <DialogDescription>
-              Configure a payment method for customer transactions
+              Define channel details for customer checkout and backend propagation.
             </DialogDescription>
           </DialogHeader>
 
           <Tabs defaultValue="basic" className="mt-4">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="basic">Basic Info</TabsTrigger>
-              <TabsTrigger value="config">Configuration</TabsTrigger>
+              <TabsTrigger value="basic">Method Details</TabsTrigger>
+              <TabsTrigger value="config">Channel Setup</TabsTrigger>
             </TabsList>
 
             <TabsContent value="basic" className="space-y-4 mt-4">
@@ -724,7 +724,7 @@ export default function PaymentMethodsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="method_type">Type *</Label>
+                <Label htmlFor="method_type">Channel Type *</Label>
                 <Select
                   value={formData.method_type}
                   onValueChange={(v) => handleMethodTypeChange(v as PaymentMethodType)}
@@ -741,7 +741,7 @@ export default function PaymentMethodsPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Tuma rollout: configure method details in frontend first, then Mark will propagate backend capabilities.
+                  Tuma rollout mode: configure frontend channel details first, then Mark enables backend capabilities per method.
                 </p>
               </div>
 
@@ -749,7 +749,7 @@ export default function PaymentMethodsPage() {
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  placeholder="Brief description of this payment method"
+                  placeholder="Shown to admins/customers as setup guidance"
                   value={formData.description || ''}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
@@ -763,7 +763,7 @@ export default function PaymentMethodsPage() {
                     checked={formData.is_active}
                     onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                   />
-                  <Label htmlFor="is_active">Active</Label>
+                  <Label htmlFor="is_active">Active for checkout</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
@@ -771,7 +771,7 @@ export default function PaymentMethodsPage() {
                     checked={formData.is_default}
                     onCheckedChange={(checked) => setFormData({ ...formData, is_default: checked })}
                   />
-                  <Label htmlFor="is_default">Default Method</Label>
+                  <Label htmlFor="is_default">Default fallback method</Label>
                 </div>
               </div>
             </TabsContent>
@@ -779,9 +779,9 @@ export default function PaymentMethodsPage() {
             <TabsContent value="config" className="space-y-4 mt-4">
               {selectedMethodGroup === 'mpesa' && (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-                  <h4 className="font-medium text-green-900">M-Pesa setup is managed in this same page</h4>
+                  <h4 className="font-medium text-green-900">M-Pesa operational setup</h4>
                   <p className="mt-1 text-sm text-green-800">
-                    Use the M-Pesa Settings tab to configure credentials, test connection, register URLs, and set default.
+                    Use the M-Pesa Settings tab to configure credentials, test connectivity, register callback URLs, and set default config.
                   </p>
                   {(selectedMethodType === 'MPESA_PAYBILL' || selectedMethodType === 'MPESA_TILL') && (
                     <div className="mt-3 grid grid-cols-2 gap-3">
@@ -812,7 +812,7 @@ export default function PaymentMethodsPage() {
                     </div>
                   )}
                   <Button className="mt-3" variant="outline" onClick={openMpesaTab}>
-                    Open M-Pesa Settings Tab
+                    Go to M-Pesa Settings
                   </Button>
                 </div>
               )}
@@ -847,7 +847,7 @@ export default function PaymentMethodsPage() {
                     </div>
                   </div>
                   <p className="text-xs text-orange-800">
-                    Frontend is ready for Airtel Money. Backend channel propagation will be completed by Mark.
+                    Frontend contract is ready. Mark will complete backend propagation (routing, validation, and settlement behavior).
                   </p>
                 </div>
               )}
@@ -970,7 +970,7 @@ export default function PaymentMethodsPage() {
                   <Label htmlFor="payhero_api_key">Payment Link API Key</Label>
                   <Input
                     id="payhero_api_key"
-                    placeholder="Provider API key"
+                    placeholder="Provider key or token (if required by backend integration)"
                     value={formData.config?.payhero_api_key || ''}
                     onChange={(e) => setFormData({
                       ...formData,
@@ -983,7 +983,7 @@ export default function PaymentMethodsPage() {
               {(selectedMethodGroup === 'offline' || (selectedMethodGroup === 'digital' && selectedMethodType !== 'PAYMENT_LINK') || selectedMethodType === 'OTHER') && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Settings className="mx-auto h-12 w-12 mb-4" />
-                  <p>No additional configuration required for this payment type.</p>
+                  <p>No additional frontend fields are required for this channel type.</p>
                 </div>
               )}
             </TabsContent>
