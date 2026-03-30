@@ -3353,6 +3353,84 @@ class AdminApiService {
       body: JSON.stringify(data),
     })
   }
+
+// ------------------------------------------
+  // FAIR USAGE POLICY (FUP) - /fup/
+  // ------------------------------------------
+
+  async getFupDashboardSummary(): Promise<any> {
+    return this.request<any>('/fup/dashboard/summary/')
+  }
+
+  async getFupPolicies(params?: Record<string, string>): Promise<any> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<any>(`/fup/policies/${queryString}`)
+  }
+
+  async createFupPolicy(data: any): Promise<any> {
+    return this.request<any>('/fup/policies/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async activateFupPolicy(id: string): Promise<any> {
+    return this.request<any>(`/fup/policies/${id}/activate/`, { method: 'POST' })
+  }
+
+  async deactivateFupPolicy(id: string): Promise<any> {
+    return this.request<any>(`/fup/policies/${id}/deactivate/`, { method: 'POST' })
+  }
+
+  async deleteFupPolicy(id: string): Promise<void> {
+    return this.request<void>(`/fup/policies/${id}/`, { method: 'DELETE' })
+  }
+
+  async getFupViolations(params?: Record<string, string>): Promise<any> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<any>(`/fup/violations/${queryString}`)
+  }
+
+  async exportFupViolations(): Promise<Blob> {
+    const response = await fetch(`${this.baseUrl}/fup/violations/export/`, {
+      headers: this.getAuthHeaders(),
+    })
+    if (!response.ok) throw new Error('Failed to export violations')
+    return response.blob()
+  }
+
+  async getFupThrottledUsers(params?: Record<string, string>): Promise<any> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<any>(`/fup/throttled/${queryString}`)
+  }
+
+  // ---> NEW METHOD FOR CURRENT USAGE TAB <---
+  async getFupUsageWindows(params?: Record<string, string>): Promise<any> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<any>(`/fup/usage-windows/${queryString}`)
+  }
+
+  async getFupAnalyticsOverview(): Promise<any> {
+    return this.request<any>('/fup/analytics/overview/')
+  }
+
+  async getFupAvailablePlans(policyId: string): Promise<any> {
+    return this.request<any>(`/fup/policies/${policyId}/available_plans/`)
+  }
+
+  async linkFupPlans(policyId: string, data: { plan_ids: string[]; hotspot_plan_ids: string[] }): Promise<any> {
+    return this.request<any>(`/fup/policies/${policyId}/link_plans/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async unlinkFupPlans(policyId: string, data: { plan_ids: string[]; hotspot_plan_ids: string[] }): Promise<any> {
+    return this.request<any>(`/fup/policies/${policyId}/unlink_plans/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
 }
 
 // Export singleton instance
