@@ -469,47 +469,7 @@ export default function PaymentMethodsPage() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Tuma Backend Handoff (Mark)</CardTitle>
-          <CardDescription>
-            Frontend-to-backend channel mapping, required fields, and rollout status for backend propagation.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Method</TableHead>
-                <TableHead>Frontend Type</TableHead>
-                <TableHead>Backend Enum</TableHead>
-                <TableHead>Required Fields</TableHead>
-                <TableHead>Propagation Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {HANDOFF_METHOD_CONTRACT.map((item) => (
-                <TableRow key={item.uiType}>
-                  <TableCell className="font-medium">{item.method}</TableCell>
-                  <TableCell>
-                    <code className="text-xs bg-muted px-2 py-1 rounded">{item.uiType}</code>
-                  </TableCell>
-                  <TableCell>
-                    <code className="text-xs bg-muted px-2 py-1 rounded">{item.backendType}</code>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{item.required}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {item.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
+      
       {/* Filters & Table */}
       <Card>
         <CardHeader>

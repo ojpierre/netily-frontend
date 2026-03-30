@@ -3,7 +3,8 @@
 import React, { useState, useMemo, useEffect } from "react"
 import {
   Gauge, Plus, Edit, Trash2, MoreVertical, Search, RefreshCw,
-  AlertTriangle, CheckCircle, Users, Activity, Download, Link as LinkIcon, Filter
+  AlertTriangle, CheckCircle, Users, Activity, Download, Link as LinkIcon, Filter,
+  Wifi, Server, Clock3, DollarSign, Zap
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -87,9 +88,36 @@ export interface FupAnalyticsOverviewDto {
   policy_distribution: Array<{ policy_id: string; policy_name: string; users: number }>
 }
 
+export interface FupPlanOptionDto {
+  id: string
+  name: string
+  already_linked: boolean
+  plan_type?: string
+  type?: string
+  status?: string
+  is_active?: boolean
+  price?: number | string
+  base_price?: number | string
+  validity_display?: string
+  validity_type?: string
+  validity_days?: number
+  duration_days?: number
+  validity_hours?: number
+  validity_minutes?: number
+  validity_months?: number
+  download_speed?: number
+  upload_speed?: number
+  speed?: number
+  subscriber_count?: number
+  subscribers_count?: number
+  users_count?: number
+  max_sessions?: number
+  simultaneous_devices?: number
+}
+
 export interface FupAvailablePlansDto {
-  billing_plans: Array<{ id: string; name: string; already_linked: boolean }>
-  hotspot_plans: Array<{ id: string; name: string; already_linked: boolean }>
+  billing_plans: FupPlanOptionDto[]
+  hotspot_plans: FupPlanOptionDto[]
 }
 
 export interface FupUsageWindowDto {
@@ -124,6 +152,78 @@ const getViolationBadge = (status: string) => {
     case "ACKNOWLEDGED": return <Badge className="bg-blue-100 text-blue-700">Acknowledged</Badge>
     default: return <Badge variant="outline">{status}</Badge>
   }
+}
+
+const planCurrencyFormatter = new Intl.NumberFormat("en-KE", {
+  style: "currency",
+  currency: "KES",
+  maximumFractionDigits: 0,
+})
+
+const formatPlanPrice = (plan: FupPlanOptionDto) => {
+  const raw = plan.base_price ?? plan.price
+  const amount = typeof raw === "string" ? parseFloat(raw) : raw
+
+  if (typeof amount === "number" && Number.isFinite(amount)) {
+    return planCurrencyFormatter.format(amount)
+  }
+
+  return "Not set"
+}
+
+const formatPlanDuration = (plan: FupPlanOptionDto) => {
+  if (plan.validity_display) return plan.validity_display
+
+  const validityType = (plan.validity_type || "").toUpperCase()
+  const days = plan.duration_days ?? plan.validity_days
+
+  if (validityType === "MINUTES" && plan.validity_minutes) {
+    return `${plan.validity_minutes} minute(s)`
+  }
+  if (validityType === "HOURS" && plan.validity_hours) {
+    return `${plan.validity_hours} hour(s)`
+  }
+  if (validityType === "MONTHS" && plan.validity_months) {
+    return `${plan.validity_months} month(s)`
+  }
+  if (days) {
+    return `${days} day(s)`
+  }
+
+  return "Flexible"
+}
+
+const getPlanUsers = (plan: FupPlanOptionDto) => {
+  return plan.users_count ?? plan.subscriber_count ?? plan.subscribers_count ?? 0
+}
+
+const getPlanSpeed = (plan: FupPlanOptionDto) => {
+  const download = plan.download_speed ?? plan.speed
+  const upload = plan.upload_speed
+
+  if (download && upload) {
+    return `${download}/${upload} Mbps`
+  }
+  if (download) {
+    return `${download} Mbps`
+  }
+
+  return "Flexible"
+}
+
+const isPlanActive = (plan: FupPlanOptionDto) => {
+  if (typeof plan.is_active === "boolean") return plan.is_active
+  if (typeof plan.status === "string") return plan.status.toUpperCase() === "ACTIVE"
+  return false
+}
+
+const getBillingPlanBucket = (plan: FupPlanOptionDto): "pppoe" | "static" | "other" => {
+  const type = (plan.plan_type || plan.type || "").toUpperCase()
+  const name = plan.name.toLowerCase()
+
+  if (type.includes("PPPOE") || name.includes("pppoe")) return "pppoe"
+  if (type.includes("STATIC") || name.includes("static") || name.includes("trap") || name.includes("pool")) return "static"
+  return "other"
 }
 
 export default function FUPPage() {
@@ -323,6 +423,126 @@ export default function FUPPage() {
 
   const toggleBillingPlan = (id: string) => setSelectedBillingIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
   const toggleHotspotPlan = (id: string) => setSelectedHotspotIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
+
+  const pppoeBillingPlans = useMemo(
+    () => availablePlans.billing_plans.filter((plan) => getBillingPlanBucket(plan) === "pppoe"),
+    [availablePlans.billing_plans]
+  )
+
+  const staticBillingPlans = useMemo(
+    () => availablePlans.billing_plans.filter((plan) => getBillingPlanBucket(plan) === "static"),
+    [availablePlans.billing_plans]
+  )
+
+  const otherBillingPlans = useMemo(
+    () => availablePlans.billing_plans.filter((plan) => getBillingPlanBucket(plan) === "other"),
+    [availablePlans.billing_plans]
+  )
+
+  const pendingLinksCount = useMemo(() => {
+    const billingNewLinks = selectedBillingIds.filter((id) => !initialBillingIds.includes(id)).length
+    const hotspotNewLinks = selectedHotspotIds.filter((id) => !initialHotspotIds.includes(id)).length
+    return billingNewLinks + hotspotNewLinks
+  }, [selectedBillingIds, initialBillingIds, selectedHotspotIds, initialHotspotIds])
+
+  const pendingUnlinksCount = useMemo(() => {
+    const billingUnlinks = initialBillingIds.filter((id) => !selectedBillingIds.includes(id)).length
+    const hotspotUnlinks = initialHotspotIds.filter((id) => !selectedHotspotIds.includes(id)).length
+    return billingUnlinks + hotspotUnlinks
+  }, [selectedBillingIds, initialBillingIds, selectedHotspotIds, initialHotspotIds])
+
+  const pendingChangesCount = pendingLinksCount + pendingUnlinksCount
+  const totalSelectedPlans = selectedBillingIds.length + selectedHotspotIds.length
+  const totalAvailablePlans = availablePlans.billing_plans.length + availablePlans.hotspot_plans.length
+
+  const renderPlanCard = (plan: FupPlanOptionDto, source: "billing" | "hotspot") => {
+    const isSelected = source === "billing"
+      ? selectedBillingIds.includes(plan.id)
+      : selectedHotspotIds.includes(plan.id)
+
+    const togglePlan = source === "billing" ? toggleBillingPlan : toggleHotspotPlan
+    const active = isPlanActive(plan)
+
+    return (
+      <button
+        key={`${source}-${plan.id}`}
+        type="button"
+        onClick={() => togglePlan(plan.id)}
+        className={`w-full rounded-lg border p-4 text-left transition-all duration-200 ${
+          isSelected
+            ? "border-blue-500 bg-blue-50 shadow-sm"
+            : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50"
+        }`}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <Checkbox checked={isSelected} className="mt-0.5 pointer-events-none data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" />
+            <div>
+              <p className={`text-sm font-semibold ${isSelected ? "text-blue-900" : "text-slate-800"}`}>{plan.name}</p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {plan.already_linked && (
+                  <Badge variant="outline" className="border-slate-300 text-slate-600">Previously linked</Badge>
+                )}
+                {!plan.already_linked && isSelected && (
+                  <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">New link</Badge>
+                )}
+                {plan.already_linked && !isSelected && (
+                  <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Will unlink</Badge>
+                )}
+              </div>
+            </div>
+          </div>
+          <Badge className={active ? "bg-blue-100 text-blue-700 hover:bg-blue-100" : "bg-slate-100 text-slate-600 hover:bg-slate-100"}>
+            {active ? "active" : "inactive"}
+          </Badge>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 text-sm text-slate-700">
+          <div className="flex items-center gap-1.5">
+            <DollarSign className="h-3.5 w-3.5 text-green-600" />
+            <span>{formatPlanPrice(plan)}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Clock3 className="h-3.5 w-3.5 text-blue-600" />
+            <span>{formatPlanDuration(plan)}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Zap className="h-3.5 w-3.5 text-orange-600" />
+            <span>{getPlanSpeed(plan)}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5 text-violet-600" />
+            <span>{getPlanUsers(plan)} users</span>
+          </div>
+        </div>
+      </button>
+    )
+  }
+
+  const renderPlanSection = (
+    title: string,
+    Icon: React.ComponentType<{ className?: string }>,
+    plans: FupPlanOptionDto[],
+    source: "billing" | "hotspot",
+    emptyMessage: string,
+  ) => (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 text-slate-600" />
+        <h4 className="text-lg font-semibold text-slate-900">{title} ({plans.length})</h4>
+      </div>
+
+      {plans.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+          {emptyMessage}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {plans.map((plan) => renderPlanCard(plan, source))}
+        </div>
+      )}
+    </div>
+  )
 
   const filteredPolicies = useMemo(() => policies.filter(p => p.name.toLowerCase().includes(policySearch.toLowerCase())), [policies, policySearch])
 
@@ -669,72 +889,60 @@ export default function FUPPage() {
 
       {/* LINK PLANS DIALOG */}
       <Dialog open={isLinkOpen} onOpenChange={setIsLinkOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Link Plans to Policy</DialogTitle>
-            <DialogDescription>Select which plans should follow the <strong>{selectedPolicyForLink?.name}</strong> rules.</DialogDescription>
+        <DialogContent className="w-[96vw] max-w-5xl p-0">
+          <DialogHeader className="border-b bg-slate-50 px-6 py-5">
+            <DialogTitle>Attach Plans to {selectedPolicyForLink?.name || "Policy"}</DialogTitle>
+            <DialogDescription>
+              Select the internet plans that should be managed by this policy. Selected plans: {totalSelectedPlans}
+            </DialogDescription>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Badge variant="outline" className="border-slate-300 text-slate-700">Available: {totalAvailablePlans}</Badge>
+              <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">To link: {pendingLinksCount}</Badge>
+              <Badge className="bg-red-100 text-red-700 hover:bg-red-100">To unlink: {pendingUnlinksCount}</Badge>
+            </div>
           </DialogHeader>
-          <div className="grid md:grid-cols-2 gap-6 py-4">
-            <div className="space-y-3 border p-4 rounded-lg bg-slate-50">
-              <h4 className="font-semibold text-sm">Billing Plans</h4>
-              <ScrollArea className="h-64 pr-3">
-                 <div className="grid grid-cols-1 gap-2">
-                   {availablePlans.billing_plans.length === 0 && <p className="text-sm text-slate-500 italic p-2">No billing plans available.</p>}
-                   {availablePlans.billing_plans.map(plan => {
-                     const isSelected = selectedBillingIds.includes(plan.id);
-                     return (
-                       <div 
-                         key={plan.id} 
-                         onClick={() => toggleBillingPlan(plan.id)}
-                         className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
-                           isSelected ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-slate-200 hover:border-blue-200 bg-white'
-                         }`}
-                       >
-                         <Checkbox checked={isSelected} className="mt-0.5 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" />
-                         <div className="flex-1">
-                           <p className={`text-sm font-semibold leading-none ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>
-                             {plan.name}
-                           </p>
-                           {plan.already_linked && !isSelected && <span className="text-[10px] text-slate-400 mt-1 block">Currently Unlinked</span>}
-                         </div>
-                       </div>
-                     )
-                   })}
-                 </div>
-              </ScrollArea>
+
+          <ScrollArea className="max-h-[68vh] px-6 py-5">
+            <div className="space-y-6">
+              {renderPlanSection(
+                "PPPoE Plans",
+                Wifi,
+                pppoeBillingPlans,
+                "billing",
+                "No PPPoE plans are available for this tenant."
+              )}
+
+              {renderPlanSection(
+                "Static Plans",
+                Server,
+                staticBillingPlans,
+                "billing",
+                "No static plans are available for this tenant."
+              )}
+
+              {otherBillingPlans.length > 0 && renderPlanSection(
+                "Billing Plans",
+                LinkIcon,
+                otherBillingPlans,
+                "billing",
+                "No additional billing plans are available."
+              )}
+
+              {renderPlanSection(
+                "Hotspot Plans",
+                Wifi,
+                availablePlans.hotspot_plans,
+                "hotspot",
+                "No hotspot plans are available for this tenant."
+              )}
             </div>
-            
-            <div className="space-y-3 border p-4 rounded-lg bg-slate-50">
-              <h4 className="font-semibold text-sm">Hotspot Plans</h4>
-              <ScrollArea className="h-64 pr-3">
-                 <div className="grid grid-cols-1 gap-2">
-                   {availablePlans.hotspot_plans.length === 0 && <p className="text-sm text-slate-500 italic p-2">No hotspot plans available.</p>}
-                   {availablePlans.hotspot_plans.map(plan => {
-                     const isSelected = selectedHotspotIds.includes(plan.id);
-                     return (
-                       <div 
-                         key={plan.id} 
-                         onClick={() => toggleHotspotPlan(plan.id)}
-                         className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
-                           isSelected ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-slate-200 hover:border-blue-200 bg-white'
-                         }`}
-                       >
-                         <Checkbox checked={isSelected} className="mt-0.5 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" />
-                         <div className="flex-1">
-                           <p className={`text-sm font-semibold leading-none ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>
-                             {plan.name}
-                           </p>
-                         </div>
-                       </div>
-                     )
-                   })}
-                 </div>
-              </ScrollArea>
-            </div>
-          </div>
-          <DialogFooter>
+          </ScrollArea>
+
+          <DialogFooter className="border-t bg-white px-6 py-4">
             <Button variant="outline" onClick={() => setIsLinkOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveLinks}>Save Links</Button>
+            <Button onClick={handleSaveLinks} disabled={pendingChangesCount === 0}>
+              Save Links {pendingChangesCount > 0 ? `(${pendingChangesCount} changes)` : ""}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
