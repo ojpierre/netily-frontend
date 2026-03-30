@@ -2014,27 +2014,100 @@ class AdminApiService {
   // PAYMENT METHODS - /billing/payment-methods/
   // ------------------------------------------
 
+  private mapPaymentMethodFromApi(item: any): PaymentMethod {
+    const config = item?.config_json || item?.config || {}
+    const isAirtel = item?.method_type === 'MOBILE_MONEY' && (
+      config?.mobile_provider === 'AIRTEL' ||
+      !!config?.airtel_paybill ||
+      !!config?.airtel_merchant_code
+    )
+
+    return {
+      ...item,
+      method_type: isAirtel ? 'AIRTEL_MONEY' : item?.method_type,
+      use_payhero: item?.use_payhero ?? item?.is_payhero_enabled ?? false,
+      payhero_channel_id: item?.payhero_channel_id ?? item?.channel_id,
+      config,
+      is_active: typeof item?.is_active === 'boolean' ? item.is_active : item?.status === 'ACTIVE',
+    }
+  }
+
+  private mapPaymentMethodToApi(data: Partial<PaymentMethod>): Record<string, any> {
+    const payload: Record<string, any> = {}
+    const config = { ...(data.config || {}) }
+
+    const methodTypeMap: Record<string, string> = {
+      MPESA: 'MPESA_STK',
+      BANK: 'BANK_TRANSFER',
+      CARD: 'CREDIT_CARD',
+      AIRTEL_MONEY: 'MOBILE_MONEY',
+    }
+
+    const uiMethodType = data.method_type
+    const backendMethodType = uiMethodType ? (methodTypeMap[uiMethodType] || uiMethodType) : undefined
+
+    if (uiMethodType === 'AIRTEL_MONEY') {
+      config.mobile_provider = 'AIRTEL'
+    }
+
+    if (data.name !== undefined) payload.name = data.name
+    if (data.code !== undefined) payload.code = data.code
+    if (backendMethodType !== undefined) payload.method_type = backendMethodType
+    if (data.description !== undefined) payload.description = data.description
+    if (data.is_active !== undefined) payload.is_active = data.is_active
+    if (data.is_default !== undefined) payload.is_default = data.is_default
+    if (data.use_payhero !== undefined) payload.is_payhero_enabled = data.use_payhero
+    if (data.payhero_channel_id !== undefined) payload.channel_id = data.payhero_channel_id
+
+    if (Object.keys(config).length > 0) {
+      payload.config_json = config
+
+      // Keep important fields mirrored for backend reports/querying.
+      if (config.bank_name !== undefined) payload.bank_name = config.bank_name
+      if (config.account_number !== undefined) payload.account_number = config.account_number
+      if (config.paybill_number !== undefined) payload.paybill_number = config.paybill_number
+      if (config.till_number !== undefined) payload.till_number = config.till_number
+      if (config.shortcode !== undefined && !payload.paybill_number && !payload.till_number) {
+        if (backendMethodType === 'MPESA_PAYBILL') {
+          payload.paybill_number = config.shortcode
+        }
+        if (backendMethodType === 'MPESA_TILL') {
+          payload.till_number = config.shortcode
+        }
+      }
+    }
+
+    return payload
+  }
+
   async getPaymentMethods(params?: Record<string, string>): Promise<PaginatedResponse<PaymentMethod>> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<PaginatedResponse<PaymentMethod>>(`/billing/payment-methods/${queryString}`)
+    const response = await this.request<PaginatedResponse<any>>(`/billing/payment-methods/${queryString}`)
+    return {
+      ...response,
+      results: (response.results || []).map((item) => this.mapPaymentMethodFromApi(item)),
+    }
   }
 
   async getPaymentMethod(id: number): Promise<PaymentMethod> {
-    return this.request<PaymentMethod>(`/billing/payment-methods/${id}/`)
+    const response = await this.request<any>(`/billing/payment-methods/${id}/`)
+    return this.mapPaymentMethodFromApi(response)
   }
 
   async createPaymentMethod(data: Partial<PaymentMethod>): Promise<PaymentMethod> {
-    return this.request<PaymentMethod>('/billing/payment-methods/', {
+    const response = await this.request<any>('/billing/payment-methods/', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(this.mapPaymentMethodToApi(data)),
     })
+    return this.mapPaymentMethodFromApi(response)
   }
 
   async updatePaymentMethod(id: number, data: Partial<PaymentMethod>): Promise<PaymentMethod> {
-    return this.request<PaymentMethod>(`/billing/payment-methods/${id}/`, {
+    const response = await this.request<any>(`/billing/payment-methods/${id}/`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: JSON.stringify(this.mapPaymentMethodToApi(data)),
     })
+    return this.mapPaymentMethodFromApi(response)
   }
 
   async deletePaymentMethod(id: number): Promise<void> {
@@ -2044,9 +2117,10 @@ class AdminApiService {
   }
 
   async togglePaymentMethodActive(id: number): Promise<PaymentMethod> {
-    return this.request<PaymentMethod>(`/billing/payment-methods/${id}/toggle_active/`, {
+    const response = await this.request<any>(`/billing/payment-methods/${id}/toggle_active/`, {
       method: 'POST',
     })
+    return this.mapPaymentMethodFromApi(response)
   }
 
   async testPaymentMethodConnection(id: number): Promise<{ success: boolean; message: string }> {

@@ -22,18 +22,64 @@ import { toast } from "sonner"
 
 const quickAmounts = [500, 1000, 2000, 5000]
 
+type RechargeMethod = {
+  value: string
+  label: string
+  icon: typeof Smartphone
+  color: "green" | "blue" | "purple" | "orange"
+  description: string
+  availableNow: boolean
+}
+
 const paymentMethods = [
-  { value: "mpesa", label: "M-Pesa", icon: Smartphone, color: "green", description: "Pay instantly via STK Push" },
-  { value: "card", label: "Credit/Debit Card", icon: CreditCard, color: "blue", description: "Visa, Mastercard accepted" },
-  { value: "bank", label: "Bank Transfer", icon: Building2, color: "purple", description: "Manual bank transfer" },
-]
+  {
+    value: "mpesa_stk",
+    label: "M-Pesa STK Push",
+    icon: Smartphone,
+    color: "green",
+    description: "Pay instantly via STK Push",
+    availableNow: true,
+  },
+  {
+    value: "mpesa_paybill_till",
+    label: "M-Pesa Paybill/Till",
+    icon: Smartphone,
+    color: "green",
+    description: "Manual M-Pesa payment with reference",
+    availableNow: false,
+  },
+  {
+    value: "airtel_money",
+    label: "Airtel Money",
+    icon: Smartphone,
+    color: "orange",
+    description: "Airtel Money collections",
+    availableNow: false,
+  },
+  {
+    value: "card",
+    label: "Card Payments",
+    icon: CreditCard,
+    color: "blue",
+    description: "Visa, Mastercard accepted",
+    availableNow: false,
+  },
+  {
+    value: "bank",
+    label: "Bank Transfer",
+    icon: Building2,
+    color: "purple",
+    description: "Manual bank transfer",
+    availableNow: false,
+  },
+] as const satisfies RechargeMethod[]
 
 type MpesaStatus = 'idle' | 'sending' | 'waiting' | 'success' | 'failed' | 'timeout'
 
 export default function RechargePage() {
   const { user, refreshUser } = useAuth()
   const [amount, setAmount] = useState("")
-  const [method, setMethod] = useState("mpesa")
+  const [method, setMethod] = useState("mpesa_stk")
   const [loading, setLoading] = useState(false)
   
   // M-Pesa STK Push state
@@ -192,7 +238,7 @@ export default function RechargePage() {
       return
     }
 
-    if (method === 'mpesa') {
+    if (method === 'mpesa_stk') {
       // Open M-Pesa dialog
       setMpesaDialogOpen(true)
       setMpesaStatus('idle')
@@ -203,19 +249,23 @@ export default function RechargePage() {
       return
     }
 
+    const selectedMethod = paymentMethods.find((option) => option.value === method)
+    if (selectedMethod && !selectedMethod.availableNow) {
+      toast.info(`${selectedMethod.label} is prepared on frontend and awaiting backend propagation.`)
+      return
+    }
+
     setLoading(true)
     try {
       if (user) {
-        // For non-M-Pesa methods, use the same API but with different method type
-        // Currently only M-Pesa is fully supported via PayHero
-        toast.error("Only M-Pesa payments are currently supported")
+        toast.error("Only M-Pesa STK Push is currently active in production")
         setLoading(false)
         return
-      } else {
-        // Mock success for demo
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        toast.success(`Payment of KSh ${amount} initiated successfully! (Demo Mode)`)
       }
+
+      // Mock success for demo
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      toast.success(`Payment of KSh ${amount} initiated successfully! (Demo Mode)`)
       setAmount("")
     } catch (error: any) {
       toast.error(error.message || "Payment failed")
@@ -325,6 +375,8 @@ export default function RechargePage() {
                             ? "border-green-500 bg-green-50"
                             : pm.color === "blue"
                             ? "border-blue-500 bg-blue-50"
+                            : pm.color === "orange"
+                            ? "border-orange-500 bg-orange-50"
                             : "border-purple-500 bg-purple-50"
                           : "border-slate-200 hover:border-slate-300"
                       }`}
@@ -336,11 +388,16 @@ export default function RechargePage() {
                           ? "text-green-600"
                           : pm.color === "blue"
                           ? "text-blue-600"
+                          : pm.color === "orange"
+                          ? "text-orange-600"
                           : "text-purple-600"
                       }`} />
                       <div className="flex-1">
-                        <Label htmlFor={pm.value} className="cursor-pointer block">
+                        <Label htmlFor={pm.value} className="cursor-pointer block flex items-center gap-2">
                           {pm.label}
+                          {!pm.availableNow && (
+                            <Badge variant="outline" className="text-[10px]">Pending Backend</Badge>
+                          )}
                         </Label>
                         <p className="text-xs text-muted-foreground">{pm.description}</p>
                       </div>
@@ -350,6 +407,8 @@ export default function RechargePage() {
                             ? "text-green-600"
                             : pm.color === "blue"
                             ? "text-blue-600"
+                            : pm.color === "orange"
+                            ? "text-orange-600"
                             : "text-purple-600"
                         }`} />
                       )}
@@ -363,14 +422,14 @@ export default function RechargePage() {
             <Button
               type="submit"
               disabled={loading || !amount}
-              className={`w-full py-6 text-lg ${method === 'mpesa' ? 'bg-green-600 hover:bg-green-700' : ''}`}
+              className={`w-full py-6 text-lg ${method === 'mpesa_stk' ? 'bg-green-600 hover:bg-green-700' : ''}`}
             >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Processing...
                 </>
-              ) : method === 'mpesa' ? (
+              ) : method === 'mpesa_stk' ? (
                 <>
                   <Smartphone className="mr-2 h-5 w-5" />
                   Pay KSh {amount || "0"} with M-Pesa
@@ -544,11 +603,11 @@ export default function RechargePage() {
           </li>
           <li className="flex items-start gap-2">
             <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>Card: You'll be redirected to secure payment gateway</span>
+            <span>M-Pesa Paybill/Till and Airtel Money are ready on frontend and will be enabled after backend propagation.</span>
           </li>
           <li className="flex items-start gap-2">
             <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>Bank: Transfer to provided account number</span>
+            <span>Card and Bank transfer methods will activate once provider credentials and backend channels are finalized.</span>
           </li>
         </ul>
       </Card>

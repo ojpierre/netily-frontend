@@ -1768,7 +1768,25 @@ export interface BillingCycleSummary {
 // PAYMENT METHODS
 // ==========================================
 
-export type PaymentMethodType = 'MPESA' | 'BANK' | 'CARD' | 'CASH' | 'VOUCHER' | 'PAYPAL' | 'STRIPE'
+export type PaymentMethodType =
+  | 'MPESA'
+  | 'MPESA_STK'
+  | 'MPESA_TILL'
+  | 'MPESA_PAYBILL'
+  | 'AIRTEL_MONEY'
+  | 'BANK'
+  | 'BANK_TRANSFER'
+  | 'CARD'
+  | 'CREDIT_CARD'
+  | 'DEBIT_CARD'
+  | 'PAYMENT_LINK'
+  | 'MOBILE_MONEY'
+  | 'CASH'
+  | 'CHEQUE'
+  | 'VOUCHER'
+  | 'PAYPAL'
+  | 'STRIPE'
+  | 'OTHER'
 
 export interface PaymentMethod {
   id: number
@@ -1785,8 +1803,15 @@ export interface PaymentMethod {
     consumer_key?: string
     consumer_secret?: string
     shortcode?: string
+    paybill_number?: string
+    till_number?: string
+    account_reference?: string
     passkey?: string
     environment?: 'sandbox' | 'production'
+    // Airtel Money config
+    airtel_paybill?: string
+    airtel_merchant_code?: string
+    airtel_business_name?: string
     // Bank config
     bank_name?: string
     account_number?: string
@@ -1794,8 +1819,10 @@ export interface PaymentMethod {
     branch?: string
     swift_code?: string
     // Card config
+    card_provider?: string
     merchant_id?: string
     api_key?: string
+    public_key?: string
     // PayHero config
     payhero_api_key?: string
   }

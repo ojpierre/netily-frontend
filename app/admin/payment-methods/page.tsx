@@ -72,30 +72,99 @@ import { adminApi } from "@/lib/admin-api"
 import type { PaymentMethod, PaymentMethodType } from "@/lib/types"
 import { MpesaSettingsPanel } from "@/components/mpesa-settings-panel"
 
+const METHOD_OPTIONS: Array<{ value: PaymentMethodType; label: string }> = [
+  { value: 'MPESA', label: 'M-Pesa (Legacy)' },
+  { value: 'MPESA_STK', label: 'M-Pesa STK Push' },
+  { value: 'MPESA_PAYBILL', label: 'M-Pesa Paybill' },
+  { value: 'MPESA_TILL', label: 'M-Pesa Till' },
+  { value: 'AIRTEL_MONEY', label: 'Airtel Money' },
+  { value: 'MOBILE_MONEY', label: 'Mobile Money' },
+  { value: 'BANK', label: 'Bank (Legacy)' },
+  { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
+  { value: 'CARD', label: 'Card (Legacy)' },
+  { value: 'CREDIT_CARD', label: 'Credit Card' },
+  { value: 'DEBIT_CARD', label: 'Debit Card' },
+  { value: 'PAYMENT_LINK', label: 'Payment Link' },
+  { value: 'CASH', label: 'Cash' },
+  { value: 'CHEQUE', label: 'Cheque' },
+  { value: 'VOUCHER', label: 'Voucher' },
+  { value: 'OTHER', label: 'Other' },
+]
+
+const HANDOFF_METHOD_CONTRACT = [
+  {
+    method: 'M-Pesa STK Push',
+    uiType: 'MPESA_STK',
+    backendType: 'MPESA_STK',
+    required: 'name, code, method_type, mpesa_configuration',
+    status: 'Live frontend + backend aligned',
+  },
+  {
+    method: 'M-Pesa Paybill/Till',
+    uiType: 'MPESA_PAYBILL / MPESA_TILL',
+    backendType: 'MPESA_PAYBILL / MPESA_TILL',
+    required: 'name, code, method_type, config.shortcode, account_reference',
+    status: 'Frontend ready, needs backend validation rules',
+  },
+  {
+    method: 'Airtel Money',
+    uiType: 'AIRTEL_MONEY',
+    backendType: 'MOBILE_MONEY (+ config.mobile_provider=AIRTEL)',
+    required: 'name, code, method_type, config.airtel_paybill',
+    status: 'Frontend ready, backend propagation pending',
+  },
+  {
+    method: 'Bank Transfer',
+    uiType: 'BANK_TRANSFER',
+    backendType: 'BANK_TRANSFER',
+    required: 'name, code, method_type, config.bank_name, config.account_number',
+    status: 'Frontend ready, backend capability enablement pending',
+  },
+  {
+    method: 'Card Payments',
+    uiType: 'CREDIT_CARD / DEBIT_CARD',
+    backendType: 'CREDIT_CARD / DEBIT_CARD',
+    required: 'name, code, method_type, config.merchant_id',
+    status: 'Frontend ready, gateway integration pending',
+  },
+] as const
+
+const getMethodLabel = (type: PaymentMethodType) => {
+  const found = METHOD_OPTIONS.find((option) => option.value === type)
+  return found?.label || type
+}
+
+const getMethodGroup = (type: PaymentMethodType) => {
+  if (['MPESA', 'MPESA_STK', 'MPESA_PAYBILL', 'MPESA_TILL'].includes(type)) return 'mpesa'
+  if (['AIRTEL_MONEY', 'MOBILE_MONEY'].includes(type)) return 'mobile_money'
+  if (['BANK', 'BANK_TRANSFER'].includes(type)) return 'bank'
+  if (['CARD', 'CREDIT_CARD', 'DEBIT_CARD', 'STRIPE'].includes(type)) return 'card'
+  if (['VOUCHER', 'PAYMENT_LINK', 'PAYPAL'].includes(type)) return 'digital'
+  if (['CASH', 'CHEQUE'].includes(type)) return 'offline'
+  return 'other'
+}
+
 const getMethodIcon = (type: PaymentMethodType) => {
-  const icons: Record<PaymentMethodType, React.ElementType> = {
-    'MPESA': Smartphone,
-    'BANK': Building2,
-    'CARD': CreditCard,
-    'CASH': Banknote,
-    'VOUCHER': Wallet,
-    'PAYPAL': Wallet,
-    'STRIPE': CreditCard,
-  }
-  return icons[type] || CreditCard
+  const group = getMethodGroup(type)
+
+  if (group === 'mpesa' || group === 'mobile_money') return Smartphone
+  if (group === 'bank') return Building2
+  if (group === 'card') return CreditCard
+  if (group === 'offline') return Banknote
+  if (group === 'digital') return Wallet
+  return CreditCard
 }
 
 const getMethodColor = (type: PaymentMethodType) => {
-  const colors: Record<PaymentMethodType, string> = {
-    'MPESA': 'bg-green-100 text-green-700 border-green-200',
-    'BANK': 'bg-blue-100 text-blue-700 border-blue-200',
-    'CARD': 'bg-purple-100 text-purple-700 border-purple-200',
-    'CASH': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    'VOUCHER': 'bg-orange-100 text-orange-700 border-orange-200',
-    'PAYPAL': 'bg-indigo-100 text-indigo-700 border-indigo-200',
-    'STRIPE': 'bg-violet-100 text-violet-700 border-violet-200',
-  }
-  return colors[type] || 'bg-gray-100 text-gray-700'
+  const group = getMethodGroup(type)
+
+  if (group === 'mpesa') return 'bg-green-100 text-green-700 border-green-200'
+  if (group === 'mobile_money') return 'bg-orange-100 text-orange-700 border-orange-200'
+  if (group === 'bank') return 'bg-blue-100 text-blue-700 border-blue-200'
+  if (group === 'card') return 'bg-purple-100 text-purple-700 border-purple-200'
+  if (group === 'offline') return 'bg-yellow-100 text-yellow-700 border-yellow-200'
+  if (group === 'digital') return 'bg-indigo-100 text-indigo-700 border-indigo-200'
+  return 'bg-gray-100 text-gray-700'
 }
 
 export default function PaymentMethodsPage() {
@@ -122,12 +191,22 @@ export default function PaymentMethodsPage() {
   const [formData, setFormData] = useState<Partial<PaymentMethod>>({
     name: "",
     code: "",
-    method_type: "MPESA",
+    method_type: "MPESA_STK",
     description: "",
     is_active: true,
     is_default: false,
     config: {},
   })
+
+  const handleMethodTypeChange = (methodType: PaymentMethodType) => {
+    const autoName = getMethodLabel(methodType)
+    setFormData((prev) => ({
+      ...prev,
+      method_type: methodType,
+      code: prev.code || methodType,
+      name: prev.name || autoName,
+    }))
+  }
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -163,7 +242,7 @@ export default function PaymentMethodsPage() {
     setFormData({
       name: "",
       code: "",
-      method_type: "MPESA",
+      method_type: "MPESA_STK",
       description: "",
       is_active: true,
       is_default: false,
@@ -291,6 +370,9 @@ export default function PaymentMethodsPage() {
     inactive: methods.filter(m => !m.is_active).length,
   }
 
+  const selectedMethodType = (formData.method_type || 'OTHER') as PaymentMethodType
+  const selectedMethodGroup = getMethodGroup(selectedMethodType)
+
   // Loading skeleton
   if (isLoading) {
     return (
@@ -387,6 +469,47 @@ export default function PaymentMethodsPage() {
         </Card>
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Tuma Backend Handoff Contract</CardTitle>
+          <CardDescription>
+            Frontend-to-backend method mapping and required fields for Mark's propagation phase.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Method</TableHead>
+                <TableHead>UI Type</TableHead>
+                <TableHead>Backend Enum</TableHead>
+                <TableHead>Required Fields</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {HANDOFF_METHOD_CONTRACT.map((item) => (
+                <TableRow key={item.uiType}>
+                  <TableCell className="font-medium">{item.method}</TableCell>
+                  <TableCell>
+                    <code className="text-xs bg-muted px-2 py-1 rounded">{item.uiType}</code>
+                  </TableCell>
+                  <TableCell>
+                    <code className="text-xs bg-muted px-2 py-1 rounded">{item.backendType}</code>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{item.required}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {item.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
       {/* Filters & Table */}
       <Card>
         <CardHeader>
@@ -411,10 +534,16 @@ export default function PaymentMethodsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="MPESA">M-Pesa</SelectItem>
-                  <SelectItem value="BANK">Bank</SelectItem>
-                  <SelectItem value="CARD">Card</SelectItem>
+                  <SelectItem value="MPESA_STK">M-Pesa STK</SelectItem>
+                  <SelectItem value="MPESA_PAYBILL">M-Pesa Paybill</SelectItem>
+                  <SelectItem value="MPESA_TILL">M-Pesa Till</SelectItem>
+                  <SelectItem value="AIRTEL_MONEY">Airtel Money</SelectItem>
+                  <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                  <SelectItem value="CREDIT_CARD">Credit Card</SelectItem>
+                  <SelectItem value="DEBIT_CARD">Debit Card</SelectItem>
+                  <SelectItem value="PAYMENT_LINK">Payment Link</SelectItem>
                   <SelectItem value="CASH">Cash</SelectItem>
+                  <SelectItem value="CHEQUE">Cheque</SelectItem>
                   <SelectItem value="VOUCHER">Voucher</SelectItem>
                 </SelectContent>
               </Select>
@@ -458,7 +587,7 @@ export default function PaymentMethodsPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={getMethodColor(method.method_type)}>
-                        {method.method_type}
+                        {getMethodLabel(method.method_type)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -598,21 +727,22 @@ export default function PaymentMethodsPage() {
                 <Label htmlFor="method_type">Type *</Label>
                 <Select
                   value={formData.method_type}
-                  onValueChange={(v) => setFormData({ ...formData, method_type: v as PaymentMethodType })}
+                  onValueChange={(v) => handleMethodTypeChange(v as PaymentMethodType)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MPESA">M-Pesa</SelectItem>
-                    <SelectItem value="BANK">Bank Transfer</SelectItem>
-                    <SelectItem value="CARD">Card Payment</SelectItem>
-                    <SelectItem value="CASH">Cash</SelectItem>
-                    <SelectItem value="VOUCHER">Voucher</SelectItem>
-                    <SelectItem value="PAYPAL">PayPal</SelectItem>
-                    <SelectItem value="STRIPE">Stripe</SelectItem>
+                    {METHOD_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Tuma rollout: configure method details in frontend first, then Mark will propagate backend capabilities.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -647,19 +777,82 @@ export default function PaymentMethodsPage() {
             </TabsContent>
 
             <TabsContent value="config" className="space-y-4 mt-4">
-              {formData.method_type === 'MPESA' && (
+              {selectedMethodGroup === 'mpesa' && (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                   <h4 className="font-medium text-green-900">M-Pesa setup is managed in this same page</h4>
                   <p className="mt-1 text-sm text-green-800">
                     Use the M-Pesa Settings tab to configure credentials, test connection, register URLs, and set default.
                   </p>
+                  {(selectedMethodType === 'MPESA_PAYBILL' || selectedMethodType === 'MPESA_TILL') && (
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="shortcode">Business Number</Label>
+                        <Input
+                          id="shortcode"
+                          placeholder={selectedMethodType === 'MPESA_PAYBILL' ? 'Paybill Number' : 'Till Number'}
+                          value={formData.config?.shortcode || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            config: { ...formData.config, shortcode: e.target.value }
+                          })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="account_reference">Account Reference</Label>
+                        <Input
+                          id="account_reference"
+                          placeholder="e.g., NETILY-SUBSCRIPTION"
+                          value={formData.config?.account_reference || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            config: { ...formData.config, account_reference: e.target.value }
+                          })}
+                        />
+                      </div>
+                    </div>
+                  )}
                   <Button className="mt-3" variant="outline" onClick={openMpesaTab}>
                     Open M-Pesa Settings Tab
                   </Button>
                 </div>
               )}
 
-              {formData.method_type === 'BANK' && (
+              {selectedMethodType === 'AIRTEL_MONEY' && (
+                <div className="space-y-4 rounded-lg border border-orange-200 bg-orange-50 p-4">
+                  <h4 className="font-medium text-orange-900">Airtel Money Collection Details</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="airtel_business_name">Business Name</Label>
+                      <Input
+                        id="airtel_business_name"
+                        placeholder="e.g., Netily ISP"
+                        value={formData.config?.airtel_business_name || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          config: { ...formData.config, airtel_business_name: e.target.value }
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="airtel_paybill">Paybill/Business Number</Label>
+                      <Input
+                        id="airtel_paybill"
+                        placeholder="e.g., 247247"
+                        value={formData.config?.airtel_paybill || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          config: { ...formData.config, airtel_paybill: e.target.value }
+                        })}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-orange-800">
+                    Frontend is ready for Airtel Money. Backend channel propagation will be completed by Mark.
+                  </p>
+                </div>
+              )}
+
+              {selectedMethodGroup === 'bank' && (
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="bank_name">Bank Name</Label>
@@ -728,7 +921,66 @@ export default function PaymentMethodsPage() {
                 </>
               )}
 
-              {(formData.method_type === 'CASH' || formData.method_type === 'VOUCHER') && (
+              {selectedMethodGroup === 'card' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="card_provider">Provider</Label>
+                      <Input
+                        id="card_provider"
+                        placeholder="e.g., Visa / Mastercard / Tuma Card"
+                        value={formData.config?.card_provider || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          config: { ...formData.config, card_provider: e.target.value }
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="merchant_id">Merchant ID</Label>
+                      <Input
+                        id="merchant_id"
+                        placeholder="Merchant identifier"
+                        value={formData.config?.merchant_id || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          config: { ...formData.config, merchant_id: e.target.value }
+                        })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="public_key">Public Key</Label>
+                    <Textarea
+                      id="public_key"
+                      rows={3}
+                      placeholder="Paste card gateway public key"
+                      value={formData.config?.public_key || ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        config: { ...formData.config, public_key: e.target.value }
+                      })}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedMethodType === 'PAYMENT_LINK' && (
+                <div className="space-y-2">
+                  <Label htmlFor="payhero_api_key">Payment Link API Key</Label>
+                  <Input
+                    id="payhero_api_key"
+                    placeholder="Provider API key"
+                    value={formData.config?.payhero_api_key || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      config: { ...formData.config, payhero_api_key: e.target.value }
+                    })}
+                  />
+                </div>
+              )}
+
+              {(selectedMethodGroup === 'offline' || (selectedMethodGroup === 'digital' && selectedMethodType !== 'PAYMENT_LINK') || selectedMethodType === 'OTHER') && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Settings className="mx-auto h-12 w-12 mb-4" />
                   <p>No additional configuration required for this payment type.</p>
