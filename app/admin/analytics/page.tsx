@@ -883,8 +883,6 @@ export default function AnalyticsPage() {
             </Card>
           </div>
 
-          </div>
-
           {/* Plan detail table */}
           <Card>
             <CardHeader>
