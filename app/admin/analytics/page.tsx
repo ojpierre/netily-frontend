@@ -16,7 +16,7 @@ import {
   Download,
   RefreshCw,
   BarChart3,
-  PieChart,
+  PieChart as PieChartIcon,
   LineChart,
   Target,
   Clock,
@@ -518,7 +518,7 @@ export default function AnalyticsPage() {
             Users
           </TabsTrigger>
           <TabsTrigger value="plans" className="flex items-center gap-2">
-            <PieChart className="w-4 h-4" />
+            <PieChartIcon className="w-4 h-4" />
             Plans
           </TabsTrigger>
           <TabsTrigger value="network" className="flex items-center gap-2">
