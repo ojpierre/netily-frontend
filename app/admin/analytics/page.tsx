@@ -54,6 +54,21 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { adminApi } from "@/lib/admin-api"
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts"
 import type {
   AnalyticsDashboard,
   RevenueData,
@@ -69,6 +84,75 @@ import type {
   RevenueTargetProgress,
   NetworkStats,
 } from "@/lib/types"
+
+// ─── Chart palette ───────────────────────────────────────────────────────────
+const C = {
+  blue:    "#3b82f6",
+  violet:  "#8b5cf6",
+  emerald: "#10b981",
+  amber:   "#f59e0b",
+  red:     "#ef4444",
+  orange:  "#f97316",
+  slate:   "#94a3b8",
+  indigo:  "#6366f1",
+}
+const PIE_COLORS = [C.blue, C.violet, C.orange, C.emerald, C.amber, C.indigo]
+
+// ─── Custom tooltip (matches shadcn theme) ────────────────────────────────────
+function ChartTooltip({
+  active,
+  payload,
+  label,
+  fmt,
+}: {
+  active?: boolean
+  payload?: any[]
+  label?: string
+  fmt?: (v: number) => string
+}) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="rounded-lg border bg-background px-3 py-2 shadow-xl text-sm min-w-[140px]">
+      {label && <p className="font-semibold text-foreground mb-2">{label}</p>}
+      {payload.map((p: any, i: number) => (
+        <div key={i} className="flex items-center gap-2 text-muted-foreground py-0.5">
+          <span
+            className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
+            style={{ background: p.color ?? p.fill }}
+          />
+          <span className="flex-1">{p.name}:</span>
+          <span className="font-semibold text-foreground">
+            {fmt ? fmt(Number(p.value)) : Number(p.value).toLocaleString()}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Donut label ──────────────────────────────────────────────────────────────
+const renderDonutLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  if (percent < 0.05) return null
+  const RADIAN = Math.PI / 180
+  const r = innerRadius + (outerRadius - innerRadius) * 0.5
+  const x = cx + r * Math.cos(-midAngle * RADIAN)
+  const y = cy + r * Math.sin(-midAngle * RADIAN)
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  )
+}
+
+// ─── Empty chart placeholder ──────────────────────────────────────────────────
+function EmptyChart({ label = "No data for this period" }: { label?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+      <BarChart3 className="w-10 h-10 opacity-30" />
+      <p className="text-sm">{label}</p>
+    </div>
+  )
+}
 
 // ==========================================
 // EMPTY DEFAULTS (used until API loads)
@@ -460,35 +544,58 @@ export default function AnalyticsPage() {
                 <CardDescription>Monthly revenue vs target</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-64 flex items-end justify-between gap-4 pt-4">
-                  {revenueData.map((data, idx) => (
-                    <div key={idx} className="flex-1 flex flex-col items-center gap-2">
-                      <div className="w-full flex gap-1 items-end justify-center h-48">
-                        <div 
-                          className="w-5 bg-blue-500 rounded-t transition-all"
-                          style={{ height: `${(data.revenue / 2000000) * 100}%` }}
-                          title={`Revenue: ${formatCurrency(data.revenue)}`}
-                        />
-                        <div 
-                          className="w-5 bg-slate-200 rounded-t transition-all"
-                          style={{ height: `${(data.target / 2000000) * 100}%` }}
-                          title={`Target: ${formatCurrency(data.target)}`}
-                        />
-                      </div>
-                      <span className="text-xs text-slate-500">{data.month}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-center gap-6 mt-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded" />
-                    <span className="text-xs text-slate-600">Revenue</span>
+                {revenueData.length === 0 ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <EmptyChart />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-slate-200 rounded" />
-                    <span className="text-xs text-slate-600">Target</span>
-                  </div>
-                </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <AreaChart data={revenueData} margin={{ top: 4, right: 8, bottom: 0, left: 8 }}>
+                      <defs>
+                        <linearGradient id="grad-rev" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={C.blue} stopOpacity={0.18} />
+                          <stop offset="95%" stopColor={C.blue} stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="grad-tgt" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={C.slate} stopOpacity={0.12} />
+                          <stop offset="95%" stopColor={C.slate} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis
+                        tickFormatter={(v) => formatCurrency(v)}
+                        tick={{ fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={72}
+                      />
+                      <Tooltip content={(p) => <ChartTooltip {...p} fmt={formatCurrency} />} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                      <Area
+                        type="monotone"
+                        dataKey="revenue"
+                        name="Revenue"
+                        stroke={C.blue}
+                        strokeWidth={2.5}
+                        fill="url(#grad-rev)"
+                        dot={false}
+                        activeDot={{ r: 4 }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="target"
+                        name="Target"
+                        stroke={C.slate}
+                        strokeWidth={2}
+                        strokeDasharray="6 3"
+                        fill="url(#grad-tgt)"
+                        dot={false}
+                        activeDot={{ r: 3 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -581,35 +688,23 @@ export default function AnalyticsPage() {
                 <CardDescription>New users vs churn over time</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-64 flex items-end justify-between gap-4 pt-4">
-                  {userGrowthData.map((data, idx) => (
-                    <div key={idx} className="flex-1 flex flex-col items-center gap-2">
-                      <div className="w-full flex gap-1 items-end justify-center h-48">
-                        <div 
-                          className="w-5 bg-green-500 rounded-t"
-                          style={{ height: `${(data.new_users / 200) * 100}%` }}
-                          title={`New: ${data.new_users}`}
-                        />
-                        <div 
-                          className="w-5 bg-red-400 rounded-t"
-                          style={{ height: `${(data.churn / 200) * 100}%` }}
-                          title={`Churn: ${data.churn}`}
-                        />
-                      </div>
-                      <span className="text-xs text-slate-500">{data.month}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-center gap-6 mt-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded" />
-                    <span className="text-xs text-slate-600">New Users</span>
+                {userGrowthData.length === 0 ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <EmptyChart />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-400 rounded" />
-                    <span className="text-xs text-slate-600">Churn</span>
-                  </div>
-                </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={userGrowthData} barSize={18} margin={{ top: 4, right: 8, bottom: 0, left: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <Tooltip content={(p) => <ChartTooltip {...p} />} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                      <Bar dataKey="new_users" name="New Users" fill={C.emerald} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="churn" name="Churned" fill={C.red} radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -720,79 +815,77 @@ export default function AnalyticsPage() {
         {/* Plans Tab */}
         <TabsContent value="plans" className="mt-6 space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Plan Distribution */}
+            {/* Donut chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Plan Distribution</CardTitle>
+                <CardDescription>Subscriber share by plan type</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {planDistribution.length === 0 ? (
+                  <div className="h-[260px] flex items-center justify-center">
+                    <EmptyChart />
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie
+                        data={planDistribution}
+                        dataKey="users"
+                        nameKey="name"
+                        innerRadius="42%"
+                        outerRadius="68%"
+                        paddingAngle={3}
+                        labelLine={false}
+                        label={renderDonutLabel}
+                      >
+                        {planDistribution.map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={(p) => <ChartTooltip {...p} />} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Plan revenue breakdown */}
             <Card>
               <CardHeader>
                 <CardTitle>Plan Performance</CardTitle>
-                <CardDescription>Users and revenue by plan</CardDescription>
+                <CardDescription>Users and revenue per plan</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {planDistribution.map((plan, idx) => (
                     <div key={idx} className="flex items-center gap-4">
-                      <div className={`w-3 h-3 rounded-full ${plan.color}`} />
+                      <div
+                        className="w-3 h-3 rounded-full shrink-0"
+                        style={{ background: PIE_COLORS[idx % PIE_COLORS.length] }}
+                      />
                       <div className="flex-1">
-                        <div className="flex justify-between mb-1">
+                        <div className="flex justify-between mb-1.5">
                           <span className="text-sm font-medium">{plan.name}</span>
                           <span className="text-sm text-slate-500">{plan.users} users</span>
                         </div>
-                        <Progress value={(plan.users / totalUsers) * 100} className="h-2" />
+                        <Progress value={totalUsers ? (plan.users / totalUsers) * 100 : 0} className="h-2" />
                       </div>
-                      <span className="text-sm font-medium w-24 text-right">{formatCurrency(plan.revenue)}</span>
+                      <span className="text-sm font-semibold w-24 text-right">{formatCurrency(plan.revenue)}</span>
                     </div>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Plan Type Revenue */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue by Plan Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Wifi className="w-5 h-5 text-blue-600" />
-                        <span className="font-medium">Hotspot Plans</span>
-                      </div>
-                      <span className="font-bold text-blue-600">{formatCurrency(1118100)}</span>
-                    </div>
-                    <Progress value={35} className="h-3" />
-                    <p className="text-xs text-slate-500 mt-1">35% of total revenue</p>
-                  </div>
-                  
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Globe className="w-5 h-5 text-purple-600" />
-                        <span className="font-medium">PPPoE Plans</span>
-                      </div>
-                      <span className="font-bold text-purple-600">{formatCurrency(1550500)}</span>
-                    </div>
-                    <Progress value={49} className="h-3" />
-                    <p className="text-xs text-slate-500 mt-1">49% of total revenue</p>
-                  </div>
-                  
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Server className="w-5 h-5 text-orange-600" />
-                        <span className="font-medium">Static IP Plans</span>
-                      </div>
-                      <span className="font-bold text-orange-600">{formatCurrency(566500)}</span>
-                    </div>
-                    <Progress value={16} className="h-3" />
-                    <p className="text-xs text-slate-500 mt-1">16% of total revenue</p>
-                  </div>
+                  {planDistribution.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-8">No plan data available.</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Popular Plans Table */}
+          </div>
+
+          {/* Plan detail table */}
           <Card>
             <CardHeader>
               <CardTitle>Plan Details</CardTitle>
@@ -810,29 +903,49 @@ export default function AnalyticsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {planDistribution.map((plan, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-medium">{plan.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className={
-                          plan.type === "hotspot" ? "bg-blue-100 text-blue-700" :
-                          plan.type === "pppoe" ? "bg-purple-100 text-purple-700" :
-                          "bg-orange-100 text-orange-700"
-                        }>
-                          {plan.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{plan.users.toLocaleString()}</TableCell>
-                      <TableCell>{formatCurrency(plan.revenue)}</TableCell>
-                      <TableCell>{formatCurrency(Math.round(plan.revenue / plan.users))}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress value={(plan.users / totalUsers) * 100} className="h-2 w-16" />
-                          <span className="text-xs">{((plan.users / totalUsers) * 100).toFixed(1)}%</span>
-                        </div>
+                  {planDistribution.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No plan data for this period.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    planDistribution.map((plan, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-medium">{plan.name}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className={
+                              plan.type === "hotspot"
+                                ? "bg-blue-100 text-blue-700"
+                                : plan.type === "pppoe"
+                                ? "bg-purple-100 text-purple-700"
+                                : "bg-orange-100 text-orange-700"
+                            }
+                          >
+                            {plan.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{plan.users.toLocaleString()}</TableCell>
+                        <TableCell>{formatCurrency(plan.revenue)}</TableCell>
+                        <TableCell>
+                          {plan.users > 0 ? formatCurrency(Math.round(plan.revenue / plan.users)) : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Progress
+                              value={totalUsers ? (plan.users / totalUsers) * 100 : 0}
+                              className="h-2 w-16"
+                            />
+                            <span className="text-xs">
+                              {totalUsers ? ((plan.users / totalUsers) * 100).toFixed(1) : "0"}%
+                            </span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -964,23 +1077,39 @@ export default function AnalyticsPage() {
                 <CardDescription>Transaction volume by payment method</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {paymentMethods.map((method, idx) => (
-                    <div key={idx} className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center">
-                        <CreditCard className="w-6 h-6 text-slate-600" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between mb-1">
-                          <span className="font-medium">{method.method}</span>
-                          <span className="text-slate-500">{method.transactions} txns</span>
-                        </div>
-                        <Progress value={method.percentage} className="h-2" />
-                      </div>
-                      <span className="font-medium w-28 text-right">{formatCurrency(method.amount)}</span>
-                    </div>
-                  ))}
-                </div>
+                {paymentMethods.length === 0 ? (
+                  <div className="h-[220px] flex items-center justify-center">
+                    <EmptyChart label="No transaction data" />
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={Math.max(220, paymentMethods.length * 52)}>
+                    <BarChart
+                      data={paymentMethods}
+                      layout="vertical"
+                      barSize={20}
+                      margin={{ top: 4, right: 60, bottom: 4, left: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                      <XAxis
+                        type="number"
+                        tickFormatter={(v) => formatCurrency(v)}
+                        tick={{ fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="method"
+                        tick={{ fontSize: 12 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={110}
+                      />
+                      <Tooltip content={(p) => <ChartTooltip {...p} fmt={formatCurrency} />} />
+                      <Bar dataKey="amount" name="Amount" fill={C.indigo} radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 

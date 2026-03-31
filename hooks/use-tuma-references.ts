@@ -26,7 +26,13 @@ export function useTumaReferences(): UseTumaReferencesReturn {
     setError(null)
     try {
       const data = await adminApi.getTumaBanks()
-      setReferences(Array.isArray(data) ? data : [])
+      // Normalize: API may return numeric ids or different field names
+      const normalize = (item: any): TumaReference => ({
+        id: String(item.id ?? item.reference_id ?? item.pk ?? ""),
+        name: item.name ?? item.reference_name ?? item.label ?? String(item.id ?? ""),
+        code: item.code ?? item.reference_code ?? "",
+      })
+      setReferences(Array.isArray(data) ? data.map(normalize) : [])
     } catch (err: any) {
       if (err.message === "Session expired. Please login again.") {
         setError("Session expired or permission denied. Please log in again.")

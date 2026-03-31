@@ -71,6 +71,24 @@ import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import type { PaymentMethod, PaymentMethodType } from "@/lib/types"
 import { MpesaSettingsPanel } from "@/components/mpesa-settings-panel"
+import { useTumaReferences } from "@/hooks/use-tuma-references"
+import { useTumaConfig } from "@/hooks/use-tuma-config"
+
+// ─── Collection Setup Helpers ─────────────────────────────────────────────────
+function getCollAccountLabel(code: string) {
+  if (code === "BUYGOODS") return "Till Number"
+  if (code === "PAYBILL") return "Paybill Number"
+  return "Account Number"
+}
+function getCollAccountPlaceholder(code: string) {
+  if (code === "BUYGOODS") return "e.g. 123456"
+  if (code === "PAYBILL") return "e.g. 600100"
+  return "e.g. 1234567890"
+}
+function maskAccount(value: string) {
+  if (!value || value.length <= 4) return value
+  return "•".repeat(value.length - 4) + value.slice(-4)
+}
 
 const METHOD_OPTIONS: Array<{ value: PaymentMethodType; label: string }> = [
   { value: 'MPESA', label: 'M-Pesa (Legacy)' },
@@ -197,6 +215,68 @@ export default function PaymentMethodsPage() {
     is_default: false,
     config: {},
   })
+
+  // ─── Collection Gateway State (powered by auto-collection API) ────────────
+  const {
+    references: tumaRefs,
+    isLoading: tumaRefsLoading,
+    error: tumaRefsError,
+  } = useTumaReferences()
+
+  const {
+    config: tumaConfig,
+    isLoading: tumaConfigLoading,
+    isSaving: tumaSaving,
+    error: tumaConfigError,
+    isFirstTimeSetup: tumaIsFirstTime,
+    save: saveTumaConfig,
+  } = useTumaConfig()
+
+  const [collRefId, setCollRefId] = useState("")
+  const [collAccount, setCollAccount] = useState("")
+  const [collErrors, setCollErrors] = useState<{ ref?: string; account?: string }>({})
+
+  // Sync loaded config into the collection form
+  useEffect(() => {
+    if (tumaConfig) {
+      setCollRefId(String(tumaConfig.collection_reference_id ?? ""))
+      setCollAccount(tumaConfig.collection_account_number ?? "")
+    }
+  }, [tumaConfig])
+
+  const handleCollectionSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const errors: typeof collErrors = {}
+    const selectedRef = tumaRefs.find((r) => r.id === collRefId)
+    const code = selectedRef?.code ?? ""
+
+    if (!collRefId) {
+      errors.ref = "Please select a collection channel."
+    }
+    if (!collAccount.trim()) {
+      errors.account = `${getCollAccountLabel(code)} is required.`
+    } else if (!/^\d+$/.test(collAccount.trim())) {
+      errors.account = "Digits only — no spaces or symbols."
+    } else {
+      const [min, max] = code === "BUYGOODS" || code === "PAYBILL" ? [5, 12] : [6, 20]
+      if (collAccount.trim().length < min || collAccount.trim().length > max) {
+        errors.account = `Must be ${min}–${max} digits.`
+      }
+    }
+
+    setCollErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
+    const ok = await saveTumaConfig({
+      collection_reference_id: collRefId,
+      collection_account_number: collAccount.trim(),
+    })
+    if (ok) {
+      toast.success("Collection channel activated successfully!")
+    } else {
+      toast.error("Failed to save. Check your details and try again.")
+    }
+  }
 
   const handleMethodTypeChange = (methodType: PaymentMethodType) => {
     const autoName = getMethodLabel(methodType)
@@ -430,9 +510,10 @@ export default function PaymentMethodsPage() {
       </div>
 
       <Tabs value={activePageTab} onValueChange={setActivePageTab} className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="methods">Collection Methods</TabsTrigger>
+        <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsTrigger value="methods">Payment Methods</TabsTrigger>
           <TabsTrigger value="mpesa">M-Pesa Settings</TabsTrigger>
+          <TabsTrigger value="collection-setup">Collection Gateway</TabsTrigger>
         </TabsList>
 
         <TabsContent value="methods" className="space-y-6">
@@ -634,6 +715,179 @@ export default function PaymentMethodsPage() {
 
         <TabsContent value="mpesa" className="space-y-6">
           <MpesaSettingsPanel />
+        </TabsContent>
+
+        {/* ─── Collection Gateway Tab ─────────────────────────────────────── */}
+        <TabsContent value="collection-setup" className="space-y-6">
+
+          {/* Connected status card */}
+          {tumaConfig && !tumaConfigLoading && (
+            <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/60 to-green-50/30 dark:border-emerald-900/50 dark:from-emerald-950/30 dark:to-green-950/20">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900/50 rounded-xl shrink-0">
+                    <CheckCircle className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <p className="font-semibold text-emerald-900 dark:text-emerald-100">
+                        Collection Channel Active
+                      </p>
+                      <Badge className="bg-emerald-600 text-white text-xs">Connected</Badge>
+                    </div>
+                    <p className="text-sm text-emerald-600 mt-0.5">
+                      Payments are being collected via your configured channel
+                    </p>
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                      {tumaConfig.business_id && (
+                        <div>
+                          <p className="text-muted-foreground">Business ID</p>
+                          <p className="font-semibold">{tumaConfig.business_id}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-muted-foreground">Channel</p>
+                        <p className="font-semibold">
+                          {tumaRefs.find((r) => r.id === String(tumaConfig.collection_reference_id))?.name ||
+                            tumaConfig.reference_name ||
+                            "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Account</p>
+                        <p className="font-semibold font-mono tracking-wider">
+                          {maskAccount(tumaConfig.collection_account_number || "")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Config form */}
+          <Card className="max-w-lg">
+            <CardHeader>
+              <CardTitle>Configure Collection Channel</CardTitle>
+              <CardDescription>
+                {tumaIsFirstTime
+                  ? "Select how you want to receive payments from customers and enter the associated account details."
+                  : "Update your payment collection channel and account details below."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {tumaConfigLoading || tumaRefsLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : (
+                <form onSubmit={handleCollectionSave} className="space-y-5" noValidate>
+
+                  {/* Channel select */}
+                  <div className="space-y-2">
+                    <Label htmlFor="coll-channel">
+                      Collection Channel <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={collRefId}
+                      onValueChange={(v) => {
+                        setCollRefId(v)
+                        setCollErrors((prev) => ({ ...prev, ref: undefined }))
+                      }}
+                    >
+                      <SelectTrigger
+                        id="coll-channel"
+                        className={collErrors.ref ? "border-red-400 focus-visible:ring-red-400/30" : ""}
+                      >
+                        <SelectValue placeholder="Select a channel…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tumaRefs.length === 0 ? (
+                          <div className="p-3 text-sm text-center text-muted-foreground">
+                            {tumaRefsLoading ? "Loading channels…" : "No channels available from server."}
+                          </div>
+                        ) : (
+                          tumaRefs.map((ref) => (
+                            <SelectItem key={ref.id} value={ref.id}>
+                              <span className="flex items-center gap-2">
+                                {ref.name}
+                                {ref.code && (
+                                  <span className="text-xs text-muted-foreground">({ref.code})</span>
+                                )}
+                              </span>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {collErrors.ref && (
+                      <p className="text-xs text-red-500">{collErrors.ref}</p>
+                    )}
+                  </div>
+
+                  {/* Dynamic account number */}
+                  <div className="space-y-2">
+                    <Label htmlFor="coll-account">
+                      {getCollAccountLabel(tumaRefs.find((r) => r.id === collRefId)?.code ?? "")}{" "}
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="coll-account"
+                      inputMode="numeric"
+                      placeholder={getCollAccountPlaceholder(
+                        tumaRefs.find((r) => r.id === collRefId)?.code ?? ""
+                      )}
+                      value={collAccount}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/\D/g, "")
+                        setCollAccount(v)
+                        setCollErrors((prev) => ({ ...prev, account: undefined }))
+                      }}
+                      className={collErrors.account ? "border-red-400 focus-visible:ring-red-400/30" : ""}
+                      maxLength={20}
+                      autoComplete="off"
+                    />
+                    {collErrors.account ? (
+                      <p className="text-xs text-red-500">{collErrors.account}</p>
+                    ) : (
+                      tumaRefs.find((r) => r.id === collRefId)?.code && (
+                        <p className="text-xs text-muted-foreground">
+                          {tumaRefs.find((r) => r.id === collRefId)?.code === "BUYGOODS" ||
+                          tumaRefs.find((r) => r.id === collRefId)?.code === "PAYBILL"
+                            ? "5–12 digits required"
+                            : "6–20 digits required"}
+                        </p>
+                      )
+                    )}
+                  </div>
+
+                  {/* Server-level error */}
+                  {(tumaConfigError || tumaRefsError) && (
+                    <div className="rounded-md border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-400">
+                      {tumaConfigError || tumaRefsError}
+                    </div>
+                  )}
+
+                  <Button type="submit" disabled={tumaSaving} className="w-full">
+                    {tumaSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving…
+                      </>
+                    ) : (
+                      <>
+                        <Settings className="mr-2 h-4 w-4" />
+                        {tumaIsFirstTime ? "Activate Collection Channel" : "Update Collection Channel"}
+                      </>
+                    )}
+                  </Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
