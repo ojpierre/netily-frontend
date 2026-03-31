@@ -1,7 +1,7 @@
 "use client"
 
 import { use, useEffect, useState, useMemo } from "react"
-import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users } from "lucide-react"
+import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users, Ticket } from "lucide-react"
 import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 
 // ==========================================
@@ -196,6 +196,37 @@ async function checkAutoLogin(routerId: string, macAddress: string): Promise<Aut
     cache: "no-store",
   })
   if (!response.ok) throw new Error("Auto-login check failed")
+  return response.json()
+}
+
+interface VoucherRedeemResponse {
+  status: string
+  message: string
+  session_id: string
+  access_code: string
+  expires_at: string
+  plan_name: string
+  voucher_remaining_value: number
+}
+
+async function redeemVoucher(data: {
+  code: string
+  pin?: string
+  router_id: string
+  plan_id: string
+  mac_address: string
+  tenant: string
+}): Promise<VoucherRedeemResponse> {
+  const response = await fetch(`${getApiBase()}/hotspot/voucher-redeem/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    cache: "no-store",
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Voucher redemption failed" }))
+    throw new Error(error.message || error.error || "Voucher redemption failed")
+  }
   return response.json()
 }
 
@@ -680,6 +711,13 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const [autoLoginChecked, setAutoLoginChecked] = useState(false)
   const [returningToRouter, setReturningToRouter] = useState(false)
 
+  // Payment mode toggle
+  const [paymentMode, setPaymentMode] = useState<"mpesa" | "voucher">("mpesa")
+  const [voucherCode, setVoucherCode] = useState("")
+  const [voucherPin, setVoucherPin] = useState("")
+  const [voucherRedeeming, setVoucherRedeeming] = useState(false)
+  const [voucherError, setVoucherError] = useState<string | null>(null)
+
   // Theme derived from portal_config
   const templateId = portalConfig?.template_id ?? 1
   const theme = useMemo(() => getTheme(templateId), [templateId])
@@ -864,6 +902,49 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     setError(null)
     setSessionId(null)
     setCountdown(120)
+  }
+
+  // ── Redeem voucher ──
+  const handleVoucherRedeem = async () => {
+    if (!selectedPlan) return
+    if (!voucherCode.trim()) {
+      setVoucherError("Enter your voucher code")
+      return
+    }
+
+    setVoucherRedeeming(true)
+    setVoucherError(null)
+    setError(null)
+
+    try {
+      const result = await redeemVoucher({
+        code: voucherCode.trim(),
+        pin: voucherPin.trim() || undefined,
+        router_id: routerId,
+        plan_id: selectedPlan.id,
+        mac_address: getMacAddress(),
+        tenant: getTenant(),
+      })
+
+      setAccessCode(result.access_code)
+      setExpiresAt(result.expires_at)
+      setPaymentStatus("success")
+
+      // Auto-login to router if login URL available
+      if (loginUrl && result.access_code) {
+        setReturningToRouter(true)
+        const username = encodeURIComponent(result.access_code)
+        const password = encodeURIComponent(result.access_code)
+        const targetUrl = `${loginUrl}?username=${username}&password=${password}`
+        setTimeout(() => {
+          window.location.href = targetUrl
+        }, 1500)
+      }
+    } catch (err: unknown) {
+      setVoucherError(err instanceof Error ? err.message : "Voucher redemption failed")
+    } finally {
+      setVoucherRedeeming(false)
+    }
   }
 
   // ==========================================
@@ -1092,7 +1173,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           </p>
 
           {/* Phone Number Input — shown before plans for certain templates */}
-          {theme.showPhoneBeforePlans && (
+          {theme.showPhoneBeforePlans && paymentMode === "mpesa" && (
             <PhoneInput
               phoneNumber={phoneNumber}
               phoneError={phoneError}
@@ -1284,13 +1365,86 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           </div>
 
           {/* Phone Number Input — shown after plans for most templates */}
-          {!theme.showPhoneBeforePlans && (
+          {!theme.showPhoneBeforePlans && paymentMode === "mpesa" && (
             <PhoneInput
               phoneNumber={phoneNumber}
               phoneError={phoneError}
               onPhoneChange={handlePhoneChange}
               theme={theme}
             />
+          )}
+
+          {/* ── Payment Mode Toggle ── */}
+          <div className="mb-4">
+            <div className={`flex rounded-lg border ${theme.inputBorder} overflow-hidden`}>
+              <button
+                type="button"
+                onClick={() => { setPaymentMode("mpesa"); setVoucherError(null) }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+                  paymentMode === "mpesa"
+                    ? `${theme.ctaBg} ${theme.ctaText}`
+                    : `${theme.planBg} ${theme.mutedText} hover:opacity-80`
+                }`}
+                style={paymentMode === "mpesa" ? brandingCtaStyle : undefined}
+              >
+                <Phone className="w-4 h-4" />
+                M-Pesa
+              </button>
+              <button
+                type="button"
+                onClick={() => { setPaymentMode("voucher"); setPhoneError(null) }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+                  paymentMode === "voucher"
+                    ? `${theme.ctaBg} ${theme.ctaText}`
+                    : `${theme.planBg} ${theme.mutedText} hover:opacity-80`
+                }`}
+                style={paymentMode === "voucher" ? brandingCtaStyle : undefined}
+              >
+                <Ticket className="w-4 h-4" />
+                Voucher
+              </button>
+            </div>
+          </div>
+
+          {/* ── Voucher Input ── */}
+          {paymentMode === "voucher" && (
+            <div className="mb-6 space-y-3">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${theme.planTitle}`}>
+                  Voucher Code
+                </label>
+                <div className="relative">
+                  <Ticket className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.mutedText}`} />
+                  <input
+                    type="text"
+                    placeholder="Enter voucher code"
+                    value={voucherCode}
+                    onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError(null) }}
+                    className={`w-full pl-10 pr-4 py-3 border ${theme.cardShape} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} font-mono tracking-wider ${
+                      voucherError ? "!border-red-400 !ring-red-500" : ""
+                    }`}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${theme.planTitle}`}>
+                  PIN <span className={theme.mutedText}>(if required)</span>
+                </label>
+                <input
+                  type="password"
+                  placeholder="Enter PIN"
+                  value={voucherPin}
+                  onChange={(e) => setVoucherPin(e.target.value)}
+                  className={`w-full px-4 py-3 border ${theme.cardShape} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder}`}
+                />
+              </div>
+              {voucherError && (
+                <div className={`p-3 rounded-lg border flex items-center gap-2 ${theme.errorBg}`}>
+                  <AlertCircle className={`w-5 h-5 flex-shrink-0 ${theme.errorText}`} />
+                  <span className={`text-sm ${theme.errorText}`}>{voucherError}</span>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Inline Error */}
@@ -1303,22 +1457,48 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
 
           {/* CTA Button — style varies by theme */}
           <div className={theme.ctaStyle === "centered" ? "flex justify-center" : ""}>
-            <button
-              onClick={handlePay}
-              disabled={!selectedPlan || !phoneNumber || !!phoneError}
-              className={`py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover} ${
-                theme.ctaStyle === "pill"
-                  ? "w-full rounded-full"
-                  : theme.ctaStyle === "centered"
-                  ? "px-12 rounded-xl"
-                  : "w-full rounded-xl"
-              }`}
-              style={brandingCtaStyle}
-            >
-              {selectedPlan
-                ? `Pay ${selectedPlan.currency || "KES"} ${selectedPlan.price} with M-Pesa`
-                : "Select a Plan to Continue"}
-            </button>
+            {paymentMode === "mpesa" ? (
+              <button
+                onClick={handlePay}
+                disabled={!selectedPlan || !phoneNumber || !!phoneError}
+                className={`py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover} ${
+                  theme.ctaStyle === "pill"
+                    ? "w-full rounded-full"
+                    : theme.ctaStyle === "centered"
+                    ? "px-12 rounded-xl"
+                    : "w-full rounded-xl"
+                }`}
+                style={brandingCtaStyle}
+              >
+                {selectedPlan
+                  ? `Pay ${selectedPlan.currency || "KES"} ${selectedPlan.price} with M-Pesa`
+                  : "Select a Plan to Continue"}
+              </button>
+            ) : (
+              <button
+                onClick={handleVoucherRedeem}
+                disabled={!selectedPlan || !voucherCode.trim() || voucherRedeeming}
+                className={`py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2 ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover} ${
+                  theme.ctaStyle === "pill"
+                    ? "w-full rounded-full"
+                    : theme.ctaStyle === "centered"
+                    ? "px-12 rounded-xl"
+                    : "w-full rounded-xl"
+                }`}
+                style={brandingCtaStyle}
+              >
+                {voucherRedeeming ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Redeeming...
+                  </>
+                ) : selectedPlan ? (
+                  `Redeem Voucher for ${selectedPlan.name}`
+                ) : (
+                  "Select a Plan to Continue"
+                )}
+              </button>
+            )}
           </div>
 
           <p className={`text-center text-xs mt-4 ${theme.footerText}`}>

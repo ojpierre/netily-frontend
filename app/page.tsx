@@ -1,519 +1,680 @@
-"use client"
+﻿"use client"
 
-import { useState, useEffect } from "react"
+import { useRef } from "react"
 import Link from "next/link"
-import { ArrowRight, Zap, Shield, Clock, Headphones, Check, Star, TrendingUp, Users, Wifi, Sparkles } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { motion, useInView, useScroll, useTransform } from "framer-motion"
+import {
+  ArrowRight,
+  Zap,
+  Check,
+  ChevronDown,
+  Sparkles,
+  Router,
+  FileText,
+  Ghost,
+  Send,
+  Shield,
+  Clock,
+  Menu,
+  X,
+} from "lucide-react"
+import { useState, useEffect } from "react"
 
-export default function LandingPage() {
-  const [email, setEmail] = useState("")
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    setIsVisible(true)
-  }, [])
-
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id)
-    element?.scrollIntoView({ behavior: "smooth" })
-  }
+// ─── Scroll-reveal wrapper ─────────────────────────────────────
+function Reveal({
+  children,
+  className = "",
+  delay = 0,
+}: {
+  children: React.ReactNode
+  className?: string
+  delay?: number
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const isInView = useInView(ref, { once: true, margin: "-80px" })
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Zap className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-blue-600">Netily</span>
-          </div>
-          <div className="hidden md:flex items-center gap-6">
-            <button onClick={() => scrollToSection("features")} className="text-slate-700 hover:text-blue-600 transition-colors">
-              Features
-            </button>
-            <button onClick={() => scrollToSection("pricing")} className="text-slate-700 hover:text-blue-600 transition-colors">
-              Pricing
-            </button>
-            <button onClick={() => scrollToSection("testimonials")} className="text-slate-700 hover:text-blue-600 transition-colors">
-              Reviews
-            </button>
-            <button onClick={() => scrollToSection("faq")} className="text-slate-700 hover:text-blue-600 transition-colors">
-              FAQ
-            </button>
-          </div>
-          <div className="flex gap-4">
-            <Link href="/login">
-              <Button variant="ghost" className="text-slate-700">
-                Login
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">Get Started</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 40 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  )
+}
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className={`max-w-7xl mx-auto transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full text-blue-700 text-sm font-medium mb-6">
-                <Sparkles className="w-4 h-4" />
-                <span>Trusted by 50,000+ customers</span>
+// ─── Marquee component ─────────────────────────────────────────
+function InfiniteMarquee() {
+  const items = [
+    "M-Pesa STK Push",
+    "MikroTik RouterOS",
+    "PayHero",
+    "FreeRADIUS",
+    "PPPoE",
+    "Hotspot Billing",
+    "Cloud Provisioning",
+    "Auto-Invoicing",
+  ]
+  return (
+    <div className="overflow-hidden whitespace-nowrap">
+      <motion.div
+        className="inline-flex gap-12"
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+      >
+        {[...items, ...items].map((item, i) => (
+          <span
+            key={i}
+            className="text-slate-400 font-medium text-sm tracking-wide uppercase flex items-center gap-2"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500/60" />
+            {item}
+          </span>
+        ))}
+      </motion.div>
+    </div>
+  )
+}
+
+// ─── FAQ Accordion ──────────────────────────────────────────────
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border-b border-slate-200">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between py-5 text-left"
+      >
+        <span className="text-lg font-semibold text-slate-900 pr-4">{q}</span>
+        <ChevronDown
+          className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-300 ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+      <motion.div
+        initial={false}
+        animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="overflow-hidden"
+      >
+        <p className="pb-5 text-slate-600 leading-relaxed">{a}</p>
+      </motion.div>
+    </div>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ════════════════════════════════════════════════════════════════
+export default function LandingPage() {
+  const [email, setEmail] = useState("")
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  const scrollTo = (id: string) => {
+    setMobileMenuOpen(false)
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  const heroRef = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] })
+  const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0])
+  const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.96])
+
+  return (
+    <div className="min-h-screen bg-white text-slate-900 antialiased">
+      {/* ━━━ 1. FLOATING HEADER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? "bg-white/80 backdrop-blur-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] border-b border-slate-200/60"
+            : "bg-transparent"
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 md:h-18">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2.5 shrink-0">
+              <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Zap className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
-                Unlimited internet, <span className="text-blue-600">paid in seconds</span>
-              </h1>
-              <p className="text-xl text-slate-600 mb-8">
-                Say goodbye to data limits and payment hassles. Netily brings you unlimited high-speed internet with instant recharges, real-time tracking, and support that actually cares. Your connection matters—we make paying for it effortless.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Link href="/register">
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg flex items-center gap-2">
-                    Start Free Today <ArrowRight className="w-5 h-5" />
-                  </Button>
-                </Link>
-                <Button 
-                  variant="outline" 
-                  className="px-8 py-6 text-lg border-slate-300 bg-transparent"
-                  onClick={() => scrollToSection("features")}
+              <span className="text-xl font-bold tracking-tight text-slate-900">Netily</span>
+            </Link>
+
+            {/* Desktop Nav */}
+            <nav className="hidden md:flex items-center gap-8">
+              {["Features", "Pricing", "FAQs"].map((label) => (
+                <button
+                  key={label}
+                  onClick={() => scrollTo(label.toLowerCase())}
+                  className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
-                  See How It Works
-                </Button>
-              </div>
-              <div className="flex items-center gap-6 text-sm text-slate-600">
-                <div className="flex items-center gap-2">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span>No hidden fees</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span>Instant activation</span>
-                </div>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-8 shadow-2xl">
-                <div className="bg-white rounded-xl p-6 mb-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-slate-600 text-sm">Current Plan</span>
-                    <Wifi className="w-5 h-5 text-green-500" />
-                  </div>
-                  <p className="text-3xl font-bold text-slate-900">Unlimited</p>
-                  <p className="text-slate-500 text-sm mt-1">Active • 1500 Mbps</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-blue-700 rounded-lg p-4 text-white">
-                    <Zap className="w-5 h-5 mb-2" />
-                    <p className="text-2xl font-bold">1500</p>
-                    <p className="text-xs text-blue-200">Mbps Speed</p>
-                  </div>
-                  <div className="bg-blue-700 rounded-lg p-4 text-white">
-                    <Clock className="w-5 h-5 mb-2" />
-                    <p className="text-2xl font-bold">31d</p>
-                    <p className="text-xs text-blue-200">Validity</p>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-blue-100 rounded-full -z-10 blur-3xl"></div>
-              <div className="absolute -top-6 -left-6 w-32 h-32 bg-blue-200 rounded-full -z-10 blur-3xl"></div>
-            </div>
-          </div>
-        </div>
-      </section>
+                  {label}
+                </button>
+              ))}
+            </nav>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-gradient-to-r from-blue-600 to-blue-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 text-center text-white">
-            <div>
-              <Users className="w-8 h-8 mx-auto mb-3 opacity-80" />
-              <p className="text-4xl font-bold mb-2">50K+</p>
-              <p className="text-blue-100">Active Users</p>
-            </div>
-            <div>
-              <Zap className="w-8 h-8 mx-auto mb-3 opacity-80" />
-              <p className="text-4xl font-bold mb-2">2.4M</p>
-              <p className="text-blue-100">Transactions</p>
-            </div>
-            <div>
-              <Star className="w-8 h-8 mx-auto mb-3 opacity-80" />
-              <p className="text-4xl font-bold mb-2">4.9/5</p>
-              <p className="text-blue-100">User Rating</p>
-            </div>
-            <div>
-              <Shield className="w-8 h-8 mx-auto mb-3 opacity-80" />
-              <p className="text-4xl font-bold mb-2">99.9%</p>
-              <p className="text-blue-100">Uptime</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="bg-slate-50 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Why 50,000+ users choose Netily</h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              We've built the most intuitive platform for internet payments. Here's what makes us different.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-4 gap-8">
-            {[
-              {
-                icon: <Wifi className="w-8 h-8" />,
-                title: "Truly Unlimited",
-                desc: "No data caps, no throttling, no surprises. Stream, game, and work without limits.",
-              },
-              {
-                icon: <Zap className="w-8 h-8" />,
-                title: "Lightning Fast",
-                desc: "High-speed connections up to 3000 Mbps. Recharge in under 10 seconds.",
-              },
-              {
-                icon: <Shield className="w-8 h-8" />,
-                title: "Bank-Grade Security",
-                desc: "Your payments are encrypted end-to-end. We're PCI DSS compliant for your peace of mind.",
-              },
-              {
-                icon: <Headphones className="w-8 h-8" />,
-                title: "Human Support",
-                desc: "Real people, real help—24/7. Average response time: under 2 minutes.",
-              },
-            ].map((feature, i) => (
-              <div key={i} className="bg-white rounded-xl p-8 border border-slate-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <div className="text-blue-600 mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-slate-600">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Get started in 3 simple steps</h2>
-            <p className="text-xl text-slate-600">From signup to surfing in under 5 minutes</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                step: "01",
-                title: "Create Your Account",
-                desc: "Sign up with your email in 60 seconds. No credit card required to start.",
-              },
-              {
-                step: "02",
-                title: "Choose Your Plan",
-                desc: "Pick the perfect package for your needs. Change anytime, no penalties.",
-              },
-              {
-                step: "03",
-                title: "Stay Connected",
-                desc: "Pay via M-Pesa or Pokopoko and get instant activation. It's that simple.",
-              },
-            ].map((item, i) => (
-              <div key={i} className="relative">
-                <div className="text-6xl font-bold text-blue-100 mb-4">{item.step}</div>
-                <h3 className="text-2xl font-bold mb-3">{item.title}</h3>
-                <p className="text-slate-600 text-lg">{item.desc}</p>
-                {i < 2 && (
-                  <div className="hidden md:block absolute top-12 -right-4 w-8 h-0.5 bg-blue-200"></div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing" className="bg-slate-50 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Simple, transparent pricing</h2>
-            <p className="text-xl text-slate-600">No surprises. No hidden fees. Just fast internet.</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                name: "Mtaani-8",
-                price: "1,500",
-                speed: "1500 Mbps",
-                features: ["Unlimited internet", "4-5 devices", "Email support", "31 days validity"],
-                popular: false,
-              },
-              {
-                name: "Mtaani-10",
-                price: "1,800",
-                speed: "2000 Mbps",
-                features: ["Unlimited internet", "6-8 devices", "Priority support", "31 days validity"],
-                popular: true,
-              },
-              {
-                name: "Mtaani-20",
-                price: "2,500",
-                speed: "3000 Mbps",
-                features: ["Unlimited internet", "Unlimited devices", "24/7 premium support", "31 days validity"],
-                popular: false,
-              },
-            ].map((plan, i) => (
-              <div
-                key={i}
-                className={`relative bg-white rounded-2xl p-8 border-2 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 ${
-                  plan.popular ? "border-blue-600 shadow-xl scale-105" : "border-slate-200"
-                }`}
+            {/* Right side */}
+            <div className="hidden md:flex items-center gap-4">
+              <Link
+                href="/login"
+                className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
               >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                    Most Popular
+                Login
+              </Link>
+              <button
+                onClick={() => scrollTo("hero-cta")}
+                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm"
+              >
+                See it in Action
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 -mr-2 text-slate-600"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="md:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200 px-4 pb-4"
+          >
+            <div className="flex flex-col gap-1 pt-2">
+              {["Features", "Pricing", "FAQs"].map((label) => (
+                <button
+                  key={label}
+                  onClick={() => scrollTo(label.toLowerCase())}
+                  className="py-3 text-left text-sm font-medium text-slate-700 hover:text-blue-600"
+                >
+                  {label}
+                </button>
+              ))}
+              <hr className="my-2 border-slate-200" />
+              <Link
+                href="/login"
+                className="py-3 text-sm font-medium text-slate-700"
+              >
+                Login
+              </Link>
+              <button
+                onClick={() => scrollTo("hero-cta")}
+                className="mt-1 w-full bg-blue-600 text-white text-sm font-semibold py-3 rounded-lg"
+              >
+                See it in Action
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </header>
+
+      {/* ━━━ 2. HERO SECTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <motion.section
+        ref={heroRef}
+        style={{ opacity: heroOpacity, scale: heroScale }}
+        className="relative pt-28 md:pt-36 pb-20 md:pb-28 px-4 sm:px-6 lg:px-8 overflow-hidden"
+      >
+        {/* Background gradient orbs */}
+        <div className="absolute inset-0 overflow-hidden -z-10">
+          <div className="absolute top-20 left-1/4 w-[600px] h-[600px] bg-blue-100 rounded-full blur-[128px] opacity-60" />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-[128px] opacity-50" />
+        </div>
+
+        <div className="max-w-4xl mx-auto text-center">
+          {/* Badge */}
+          <Reveal>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded-full text-blue-700 text-sm font-medium mb-8">
+              <Sparkles className="w-4 h-4" />
+              <span>Automated 95% Daily M-Pesa Payouts</span>
+              <span className="text-lg leading-none">✨</span>
+            </div>
+          </Reveal>
+
+          {/* Headline */}
+          <Reveal delay={0.1}>
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6">
+              Run your ISP
+              <br />
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                while you sleep.
+              </span>
+            </h1>
+          </Reveal>
+
+          {/* Sub-headline */}
+          <Reveal delay={0.2}>
+            <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
+              Stop chasing payments and manually resetting routers. Netily fully automates your billing,
+              provisioning, and customer support so you can focus on growing your network.
+            </p>
+          </Reveal>
+
+          {/* Lead Capture */}
+          <Reveal delay={0.3}>
+            <div id="hero-cta" className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+              <input
+                type="email"
+                placeholder="Enter your work email..."
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 h-13 px-5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm shadow-sm"
+              />
+              <button className="h-13 px-7 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                Get Your Custom Demo
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-400 mt-4">
+              Free demo • No credit card required • Setup in 24h
+            </p>
+          </Reveal>
+        </div>
+      </motion.section>
+
+      {/* ━━━ 3. TRUST MARQUEE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <section className="border-y border-slate-200 py-5 bg-slate-50/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-xs text-slate-400 uppercase tracking-widest font-medium text-center mb-4">
+            Natively integrated with
+          </p>
+          <InfiniteMarquee />
+        </div>
+      </section>
+
+      {/* ━━━ 4. BENTO GRID ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <section id="features" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <Reveal>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+                Why ISPs choose Netily
+              </h2>
+              <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                Cut the jargon. Here&apos;s what it actually feels like to automate your network.
+              </p>
+            </div>
+          </Reveal>
+
+          <div className="grid md:grid-cols-2 gap-4 md:gap-5">
+            {/* Card 1 — Highlight (full-width) */}
+            <Reveal className="md:col-span-2">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-8 md:p-12 text-white group">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+                <div className="relative z-10 max-w-xl">
+                  <div className="inline-flex items-center gap-2 bg-white/15 rounded-full px-3.5 py-1.5 text-sm font-medium mb-5 backdrop-blur-sm">
+                    <Zap className="w-4 h-4" />
+                    Instant M-Pesa Magic
                   </div>
-                )}
-                <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold">KSh {plan.price}</span>
-                  <span className="text-slate-600">/month</span>
+                  <h3 className="text-2xl md:text-3xl font-bold mb-3 leading-snug">
+                    Customer pays via M-Pesa. Internet connects 2 seconds later.
+                  </h3>
+                  <p className="text-blue-100 text-lg leading-relaxed">
+                    Zero manual reconciliation. STK Push fires, payment confirms, RADIUS credentials activate — all
+                    while you&apos;re asleep. The money lands in your account the next morning.
+                  </p>
                 </div>
-                <div className="space-y-2 mb-6">
-                  <p className="text-lg font-semibold text-blue-600">{plan.speed}</p>
-                  <p className="text-slate-600">Unlimited Data</p>
+                {/* Decorative dots */}
+                <div className="absolute bottom-6 right-8 grid grid-cols-5 gap-2 opacity-20">
+                  {Array.from({ length: 25 }).map((_, i) => (
+                    <div key={i} className="w-2 h-2 rounded-full bg-white" />
+                  ))}
                 </div>
+              </div>
+            </Reveal>
+
+            {/* Card 2 */}
+            <Reveal delay={0.1}>
+              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group">
+                <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <Router className="w-6 h-6 text-emerald-600" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Plug & Play Routers</h3>
+                <p className="text-slate-600 leading-relaxed">
+                  Zero-touch provisioning. Plug in a new MikroTik, and our cloud configures the client
+                  instantly. No SSH, no scripts, no headaches.
+                </p>
+              </div>
+            </Reveal>
+
+            {/* Card 3 */}
+            <Reveal delay={0.2}>
+              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group">
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <FileText className="w-6 h-6 text-amber-600" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Auto-Invoicing</h3>
+                <p className="text-slate-600 leading-relaxed">
+                  Tax-ready PDF invoices generated and emailed automatically every month. Your accountant
+                  will think you hired an assistant.
+                </p>
+              </div>
+            </Reveal>
+
+            {/* Card 4 */}
+            <Reveal delay={0.15} className="md:col-span-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-8 md:flex md:items-center md:gap-10 hover:shadow-lg transition-shadow group">
+                <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mb-5 md:mb-0 shrink-0 group-hover:scale-110 transition-transform">
+                  <Ghost className="w-6 h-6 text-violet-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-2">Ghost Records</h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    Never pay for dead accounts. Our system only bills you for exactly who connected this
+                    month. Dormant subscribers cost you nothing.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ━━━ 5. PRICING SECTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <section id="pricing" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50">
+        <div className="max-w-6xl mx-auto">
+          <Reveal>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+                Stop paying scaling taxes.
+              </h2>
+              <p className="text-lg text-slate-600 max-w-xl mx-auto">
+                Honest pricing that grows with you. No surprises, no contracts.
+              </p>
+            </div>
+          </Reveal>
+
+          <div className="grid lg:grid-cols-2 gap-6 mb-8">
+            {/* Metered */}
+            <Reveal>
+              <div className="h-full rounded-2xl bg-white border border-slate-200 p-8 md:p-10 shadow-sm hover:shadow-lg transition-shadow">
+                <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider mb-6">
+                  <Clock className="w-3.5 h-3.5" />
+                  Pay As You Grow
+                </div>
+                <h3 className="text-2xl font-bold mb-1">Metered</h3>
+                <p className="text-slate-500 mb-8">Perfect for growing ISPs who want to keep costs lean.</p>
+
+                <div className="mb-8">
+                  <div className="flex items-baseline gap-1 mb-1">
+                    <span className="text-4xl font-extrabold">500</span>
+                    <span className="text-slate-500 font-medium">KES/mo base</span>
+                  </div>
+                </div>
+
                 <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-slate-700">
-                      <Check className="w-5 h-5 text-green-600 shrink-0" />
-                      <span>{feature}</span>
+                  {[
+                    "20 KES per active PPPoE user",
+                    "3% share on Hotspot revenue",
+                    "Free M-Pesa STK Push integration",
+                    "MikroTik auto-provisioning",
+                    "Unlimited routers",
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-3 text-slate-700">
+                      <Check className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                      <span>{item}</span>
                     </li>
                   ))}
                 </ul>
-                <Link href="/register">
-                  <Button
-                    className={`w-full py-6 text-lg ${
-                      plan.popular
-                        ? "bg-blue-600 hover:bg-blue-700 text-white"
-                        : "bg-slate-100 hover:bg-slate-200 text-slate-900"
-                    }`}
+
+                <button
+                  onClick={() => scrollTo("hero-cta")}
+                  className="w-full py-3.5 rounded-xl border-2 border-slate-200 font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Start Free Trial
+                </button>
+              </div>
+            </Reveal>
+
+            {/* Flat Tiers */}
+            <Reveal delay={0.15}>
+              <div className="h-full rounded-2xl bg-white border-2 border-blue-600 p-8 md:p-10 shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-blue-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 bg-blue-600 text-white rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider mb-6">
+                    <Shield className="w-3.5 h-3.5" />
+                    Lock in Overhead
+                  </div>
+                  <h3 className="text-2xl font-bold mb-1">Flat Tiers</h3>
+                  <p className="text-slate-500 mb-8">Predictable monthly costs. Scale without surprises.</p>
+
+                  <div className="grid grid-cols-3 gap-3 mb-8">
+                    {[
+                      { name: "Starter", price: "2,999" },
+                      { name: "Pro", price: "7,999" },
+                      { name: "Enterprise", price: "19,999" },
+                    ].map((tier) => (
+                      <div key={tier.name} className="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{tier.name}</p>
+                        <p className="text-lg font-bold text-slate-900">{tier.price}</p>
+                        <p className="text-xs text-slate-400">KES/mo</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <ul className="space-y-3 mb-8">
+                    {[
+                      "All Metered features included",
+                      "Priority email & phone support",
+                      "Custom branding & white-label",
+                      "Advanced analytics dashboard",
+                      "Dedicated account manager (Enterprise)",
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-3 text-slate-700">
+                        <Check className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={() => scrollTo("hero-cta")}
+                    className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-white transition-colors shadow-sm"
                   >
-                    Get Started
-                  </Button>
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">What our customers say</h2>
-            <p className="text-xl text-slate-600">Real stories from real users</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                name: "Sarah Mwangi",
-                role: "Small Business Owner",
-                content: "Netily transformed how I manage my cafe's internet. No more long queues or payment hassles. My team loves it!",
-                rating: 5,
-              },
-              {
-                name: "James Ochieng",
-                role: "Software Developer",
-                content: "As someone who works from home, reliable internet is crucial. Netily's instant recharge saved me during a crucial client demo.",
-                rating: 5,
-              },
-              {
-                name: "Mary Njeri",
-                role: "University Student",
-                content: "The 24/7 support is amazing! I had an issue at midnight and got help in under 2 minutes. Plus, the pricing is student-friendly.",
-                rating: 5,
-              },
-            ].map((testimonial, i) => (
-              <div key={i} className="bg-white rounded-xl p-8 border border-slate-200 shadow-lg hover:shadow-xl transition-shadow">
-                <div className="flex gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, idx) => (
-                    <Star key={idx} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-slate-700 mb-6 text-lg leading-relaxed">"{testimonial.content}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 font-bold text-lg">{testimonial.name[0]}</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">{testimonial.name}</p>
-                    <p className="text-slate-600 text-sm">{testimonial.role}</p>
-                  </div>
+                    Book a Demo
+                  </button>
                 </div>
               </div>
-            ))}
+            </Reveal>
           </div>
+
+          {/* Callout box */}
+          <Reveal delay={0.2}>
+            <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 p-8 md:p-10 text-white text-center md:text-left md:flex md:items-center md:justify-between gap-6">
+              <div>
+                <h3 className="text-xl md:text-2xl font-bold mb-2">The 95% Promise</h3>
+                <p className="text-blue-100 leading-relaxed max-w-2xl">
+                  We handle the payment gateways, take a flat 5% transaction fee, and auto-settle the rest
+                  to your B2C/Bank daily. You wake up to money in your account — every morning.
+                </p>
+              </div>
+              <button
+                onClick={() => scrollTo("hero-cta")}
+                className="mt-4 md:mt-0 shrink-0 inline-flex items-center gap-2 bg-white text-blue-700 font-semibold px-6 py-3 rounded-xl hover:bg-blue-50 transition-colors shadow-sm"
+              >
+                Learn More
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </Reveal>
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section id="faq" className="bg-slate-50 py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Frequently asked questions</h2>
-            <p className="text-xl text-slate-600">Everything you need to know</p>
-          </div>
-          <div className="space-y-4">
-            {[
-              {
-                q: "How quickly can I get started?",
-                a: "You can sign up and make your first payment in under 5 minutes. Once payment is confirmed, your internet is activated instantly—no waiting, no delays.",
-              },
-              {
-                q: "What payment methods do you accept?",
-                a: "We accept M-Pesa and Pokopoko for maximum convenience. Both methods process payments instantly, and you'll receive confirmation via SMS and email.",
-              },
-              {
-                q: "Can I change my plan anytime?",
-                a: "Absolutely! You can upgrade or downgrade your plan at any time through your dashboard. Changes take effect immediately, and we'll prorate any remaining balance.",
-              },
-              {
-                q: "Is the internet really unlimited?",
-                a: "Yes! All our plans offer truly unlimited data with no caps, no throttling, and no fair usage policies. Stream, download, and browse as much as you want.",
-              },
-              {
-                q: "Is my payment information secure?",
-                a: "Yes! We use bank-grade encryption and are PCI DSS compliant. Your payment data is never stored on our servers and is processed through secure, certified payment gateways.",
-              },
-              {
-                q: "Do you offer refunds?",
-                a: "We offer a 7-day money-back guarantee if you're not satisfied. For active subscriptions, unused time can be credited to your next recharge.",
-              },
-            ].map((faq, i) => (
-              <details key={i} className="bg-white rounded-xl p-6 border border-slate-200 group">
-                <summary className="flex items-center justify-between cursor-pointer font-semibold text-lg text-slate-900">
-                  {faq.q}
-                  <ArrowRight className="w-5 h-5 text-blue-600 transition-transform group-open:rotate-90" />
-                </summary>
-                <p className="mt-4 text-slate-600 leading-relaxed">{faq.a}</p>
-              </details>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA Section */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-3xl p-12 md:p-16 text-center relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-30"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-400 rounded-full blur-3xl opacity-30"></div>
-            <div className="relative z-10">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Ready to simplify your internet payments?</h2>
-              <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-                Join 50,000+ users who've already made the switch. Start free, cancel anytime.
+      {/* ━━━ 5b. FAQs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <section id="faqs" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto">
+          <Reveal>
+            <div className="text-center mb-14">
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+                Frequently asked questions
+              </h2>
+              <p className="text-lg text-slate-600">
+                Everything you need to know about Netily.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="max-w-md bg-white h-14 text-lg"
-                />
-                <Link href="/register">
-                  <Button className="bg-white text-blue-600 hover:bg-blue-50 px-8 h-14 text-lg font-medium">
-                    Get Started Free
-                  </Button>
-                </Link>
-              </div>
-              <p className="text-blue-100 text-sm mt-4">No credit card required • Free 7-day trial</p>
             </div>
-          </div>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <div>
+              {[
+                {
+                  q: "How long does setup take?",
+                  a: "Most ISPs are fully operational on Netily within 24 hours. We handle MikroTik integration, M-Pesa STK Push configuration, and RADIUS setup during your onboarding call.",
+                },
+                {
+                  q: "Do I need to change my MikroTik configuration?",
+                  a: "Nope. Our cloud controller connects to your existing MikroTik routers via API. We configure PPPoE/Hotspot profiles remotely — zero downtime.",
+                },
+                {
+                  q: "How does the 95% payout work?",
+                  a: "When your customer pays via M-Pesa through our integrated STK Push, we collect the payment, deduct a flat 5% processing fee, and auto-settle 95% to your B2C Paybill or bank account daily.",
+                },
+                {
+                  q: "What happens if a customer doesn't pay?",
+                  a: "Netily automatically suspends their PPPoE/Hotspot session when their subscription expires. When they pay again, access is restored instantly — no manual intervention.",
+                },
+                {
+                  q: "Is there a contract or commitment?",
+                  a: "No contracts. Month-to-month billing. You can cancel anytime from your dashboard. We believe you should stay because you love the product, not because you're locked in.",
+                },
+                {
+                  q: "Can I white-label the customer portal?",
+                  a: "Yes! On Pro and Enterprise tiers, you get full white-label support — your logo, your domain, your brand. Your customers never see the Netily name.",
+                },
+              ].map((faq, i) => (
+                <FaqItem key={i} q={faq.q} a={faq.a} />
+              ))}
+            </div>
+          </Reveal>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-white" />
+      {/* ━━━ 6. GIANT FOOTER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <footer className="relative bg-slate-900 text-white overflow-hidden">
+        {/* Giant background typography */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
+          <span className="text-[18vw] md:text-[16vw] font-black tracking-tighter text-white/[0.03] whitespace-nowrap leading-none">
+            NETILY
+          </span>
+        </div>
+
+        {/* CTA Block */}
+        <div className="relative z-10 pt-20 md:pt-28 pb-16 md:pb-20 px-4 sm:px-6 lg:px-8 text-center">
+          <Reveal>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6 max-w-3xl mx-auto leading-tight">
+              Ready to put your network on autopilot?
+            </h2>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <p className="text-lg text-slate-400 max-w-xl mx-auto mb-8">
+              Join the ISPs already automating their billing, provisioning, and payouts with Netily.
+            </p>
+          </Reveal>
+          <Reveal delay={0.2}>
+            <button
+              onClick={() => scrollTo("hero-cta")}
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-4 rounded-xl transition-colors shadow-lg shadow-blue-600/25 text-lg"
+            >
+              Start Your Free Trial
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </Reveal>
+        </div>
+
+        {/* Footer links */}
+        <div className="relative z-10 border-t border-white/10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+              {/* Brand */}
+              <div>
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <Zap className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-lg font-bold">Netily</span>
                 </div>
-                <span className="text-xl font-bold">Netily</span>
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  The modern ISP management platform. Automate billing, provisioning & payouts.
+                </p>
               </div>
-              <p className="text-slate-400">Making internet payments simple and fast for everyone.</p>
+
+              {/* Product */}
+              <div>
+                <h4 className="text-sm font-semibold text-white mb-4">Product</h4>
+                <ul className="space-y-2.5">
+                  {["Features", "Pricing", "Integrations", "Changelog"].map((item) => (
+                    <li key={item}>
+                      <button
+                        onClick={() => scrollTo(item.toLowerCase())}
+                        className="text-sm text-slate-400 hover:text-white transition-colors"
+                      >
+                        {item}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Resources */}
+              <div>
+                <h4 className="text-sm font-semibold text-white mb-4">Resources</h4>
+                <ul className="space-y-2.5">
+                  {["Documentation", "API Reference", "Status Page", "Community"].map((item) => (
+                    <li key={item}>
+                      <a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">
+                        {item}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Company */}
+              <div>
+                <h4 className="text-sm font-semibold text-white mb-4">Company</h4>
+                <ul className="space-y-2.5">
+                  {["About", "Blog", "Careers", "Contact"].map((item) => (
+                    <li key={item}>
+                      <a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">
+                        {item}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold mb-4">Product</h3>
-              <ul className="space-y-2 text-slate-400">
-                <li>
-                  <button onClick={() => scrollToSection("features")} className="hover:text-white transition-colors">
-                    Features
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection("pricing")} className="hover:text-white transition-colors">
-                    Pricing
-                  </button>
-                </li>
-                <li>
-                  <Link href="/dashboard" className="hover:text-white transition-colors">
-                    Dashboard
-                  </Link>
-                </li>
-              </ul>
+
+            {/* Bottom bar */}
+            <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-slate-500">
+                &copy; {new Date().getFullYear()} Netily. All rights reserved.
+              </p>
+              <div className="flex items-center gap-6">
+                <a href="#" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
+                  Privacy Policy
+                </a>
+                <a href="#" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
+                  Terms of Service
+                </a>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold mb-4">Support</h3>
-              <ul className="space-y-2 text-slate-400">
-                <li>
-                  <Link href="/dashboard/support" className="hover:text-white transition-colors">
-                    Help Center
-                  </Link>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection("faq")} className="hover:text-white transition-colors">
-                    FAQ
-                  </button>
-                </li>
-                <li>
-                  <a href="mailto:support@netily.com" className="hover:text-white transition-colors">
-                    Contact Us
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-4">Legal</h3>
-              <ul className="space-y-2 text-slate-400">
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Terms of Service
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Refund Policy
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-slate-800 pt-8 text-center text-slate-400">
-            <p>&copy; {new Date().getFullYear()} Netily. All rights reserved.</p>
           </div>
         </div>
       </footer>
