@@ -28,18 +28,32 @@ jobs:
           script: |
             echo "==> Pulling latest frontend code..."
             cd ~/netily_frontend
+            git remote -v
             git fetch origin prod-frontend
             git reset --hard origin/prod-frontend
+            echo "==> Current commit:"
+            git log --oneline -1
+            echo "==> Checking page.tsx first line:"
+            head -5 app/page.tsx
+            echo "==> Checking if landing-page.tsx exists:"
+            ls -la app/landing-page.tsx 2>/dev/null || echo "landing-page.tsx NOT FOUND"
 
-            echo "==> Rebuilding frontend container (no cache)..."
+            echo "==> Rebuilding frontend container (no cache, no buildkit)..."
             cd ~/netily_cloud/docker
-            docker compose build --no-cache frontend
+            DOCKER_BUILDKIT=0 docker compose build --no-cache frontend
 
-            echo "==> Restarting frontend container..."
-            docker compose up -d --force-recreate frontend
+            echo "==> Stopping old frontend container..."
+            docker compose stop frontend
+            docker compose rm -f frontend
+
+            echo "==> Starting fresh frontend container..."
+            docker compose up -d frontend
 
             echo "==> Restarting nginx (re-resolve container IPs)..."
             docker compose restart nginx
+
+            echo "==> Verifying new container is running..."
+            docker ps | grep netily_frontend
 
             echo "==> Cleaning up old Docker images..."
             docker image prune -f
