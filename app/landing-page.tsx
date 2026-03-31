@@ -2,6 +2,7 @@
 
 import { useRef } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { motion, useInView, useScroll, useTransform } from "framer-motion"
 import {
   ArrowRight,
@@ -17,6 +18,13 @@ import {
   Clock,
   Menu,
   X,
+  Wifi,
+  Users,
+  TrendingUp,
+  Activity,
+  CircleDollarSign,
+  BarChart3,
+  Smartphone,
 } from "lucide-react"
 import { useState, useEffect } from "react"
 
@@ -103,6 +111,149 @@ function FaqItem({ q, a }: { q: string; a: string }) {
       >
         <p className="pb-5 text-slate-600 leading-relaxed">{a}</p>
       </motion.div>
+    </div>
+  )
+}
+
+// ─── Animated counter ──────────────────────────────────────────
+function AnimatedCounter({ value, suffix = "" }: { value: number; suffix?: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const isInView = useInView(ref, { once: true })
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    if (!isInView) return
+    let start = 0
+    const duration = 1800
+    const step = Math.ceil(value / (duration / 16))
+    const timer = setInterval(() => {
+      start += step
+      if (start >= value) { setCount(value); clearInterval(timer) }
+      else setCount(start)
+    }, 16)
+    return () => clearInterval(timer)
+  }, [isInView, value])
+
+  return <span ref={ref}>{count.toLocaleString()}{suffix}</span>
+}
+
+// ─── Dashboard mockup (hero visual) ───────────────────────────
+function DashboardMockup() {
+  return (
+    <div className="relative mx-auto max-w-5xl mt-16 md:mt-20">
+      {/* Glow behind */}
+      <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-purple-500/20 rounded-3xl blur-3xl opacity-60" />
+
+      {/* Browser chrome */}
+      <div className="relative rounded-2xl border border-slate-200/60 bg-white shadow-2xl shadow-slate-900/10 overflow-hidden">
+        {/* Title bar */}
+        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200/60">
+          <div className="flex gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-red-400" />
+            <div className="w-3 h-3 rounded-full bg-amber-400" />
+            <div className="w-3 h-3 rounded-full bg-green-400" />
+          </div>
+          <div className="flex-1 flex justify-center">
+            <div className="flex items-center gap-2 bg-white rounded-md border border-slate-200 px-3 py-1 text-xs text-slate-400 min-w-[260px]">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              admin.netily.co.ke/dashboard
+            </div>
+          </div>
+        </div>
+
+        {/* Dashboard body */}
+        <div className="flex">
+          {/* Sidebar */}
+          <div className="hidden md:flex flex-col w-52 bg-slate-900 text-white p-4 min-h-[400px]">
+            <div className="flex items-center gap-2 mb-8">
+              <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Zap className="w-4 h-4" />
+              </div>
+              <span className="font-bold text-sm">Netily</span>
+            </div>
+            {[
+              { icon: BarChart3, label: "Dashboard", active: true },
+              { icon: Users, label: "Subscribers" },
+              { icon: CircleDollarSign, label: "Billing" },
+              { icon: Wifi, label: "Network" },
+              { icon: Router, label: "Routers" },
+              { icon: Activity, label: "Monitoring" },
+            ].map((item) => (
+              <div key={item.label} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs mb-1 ${item.active ? "bg-blue-600/20 text-blue-400" : "text-slate-400"}`}>
+                <item.icon className="w-3.5 h-3.5" />
+                {item.label}
+              </div>
+            ))}
+          </div>
+
+          {/* Main content */}
+          <div className="flex-1 p-5 md:p-6 bg-slate-50/50 min-h-[400px]">
+            {/* Stat cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+              {[
+                { label: "Active Subscribers", value: "1,247", change: "+12%", color: "text-emerald-600", icon: Users },
+                { label: "Monthly Revenue", value: "KES 2.4M", change: "+8.3%", color: "text-emerald-600", icon: TrendingUp },
+                { label: "Online Routers", value: "89/92", change: "96.7%", color: "text-blue-600", icon: Router },
+                { label: "M-Pesa Today", value: "KES 84K", change: "+23%", color: "text-emerald-600", icon: Smartphone },
+              ].map((stat) => (
+                <div key={stat.label} className="bg-white rounded-xl border border-slate-200/60 p-3.5">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{stat.label}</span>
+                    <stat.icon className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                  <p className="text-lg md:text-xl font-bold text-slate-900">{stat.value}</p>
+                  <p className={`text-[10px] font-medium ${stat.color} mt-0.5`}>{stat.change}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Chart + recent payments */}
+            <div className="grid md:grid-cols-5 gap-3">
+              {/* Chart placeholder */}
+              <div className="md:col-span-3 bg-white rounded-xl border border-slate-200/60 p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-semibold text-slate-700">Revenue Overview</span>
+                  <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded font-medium">Last 7 days</span>
+                </div>
+                {/* Mini bar chart */}
+                <div className="flex items-end gap-2 h-28">
+                  {[45, 62, 38, 75, 58, 90, 82].map((h, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <div className="w-full rounded-t-sm bg-gradient-to-t from-blue-600 to-blue-400" style={{ height: `${h}%` }} />
+                      <span className="text-[8px] text-slate-400">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Recent payments */}
+              <div className="md:col-span-2 bg-white rounded-xl border border-slate-200/60 p-4">
+                <span className="text-xs font-semibold text-slate-700 block mb-3">Recent Payments</span>
+                <div className="space-y-2.5">
+                  {[
+                    { name: "John Kamau", amount: "KES 2,500", time: "2m ago" },
+                    { name: "Grace Wanjiku", amount: "KES 1,800", time: "5m ago" },
+                    { name: "David Omondi", amount: "KES 3,200", time: "12m ago" },
+                    { name: "Faith Njeri", amount: "KES 1,500", time: "18m ago" },
+                  ].map((p) => (
+                    <div key={p.name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
+                          <Check className="w-3 h-3 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-medium text-slate-700">{p.name}</p>
+                          <p className="text-[9px] text-slate-400">{p.time}</p>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-semibold text-emerald-600">{p.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -286,6 +437,11 @@ export function LandingPage() {
               Free demo • No credit card required • Setup in 24h
             </p>
           </Reveal>
+
+          {/* Dashboard mockup */}
+          <Reveal delay={0.5}>
+            <DashboardMockup />
+          </Reveal>
         </div>
       </motion.section>
 
@@ -296,6 +452,32 @@ export function LandingPage() {
             Natively integrated with
           </p>
           <InfiniteMarquee />
+        </div>
+      </section>
+
+      {/* ━━━ 3b. SOCIAL-PROOF STATS ━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <section className="py-14 md:py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-center">
+            {[
+              { value: 500, suffix: "+", label: "ISPs onboarded", icon: Wifi },
+              { value: 50000, suffix: "+", label: "Active subscribers", icon: Users },
+              { value: 95, suffix: "%", label: "Daily M-Pesa payout", icon: CircleDollarSign },
+              { value: 99, suffix: ".9%", label: "Platform uptime", icon: Activity },
+            ].map((stat, i) => (
+              <Reveal key={stat.label} delay={i * 0.1}>
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-3">
+                    <stat.icon className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <p className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-1">
+                    <AnimatedCounter value={stat.value} suffix={stat.suffix} />
+                  </p>
+                  <p className="text-sm text-slate-500 font-medium">{stat.label}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -316,9 +498,9 @@ export function LandingPage() {
           <div className="grid md:grid-cols-2 gap-4 md:gap-5">
             {/* Card 1 — Highlight (full-width) */}
             <Reveal className="md:col-span-2">
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-8 md:p-12 text-white group">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-8 md:p-12 text-white group md:flex md:items-center md:gap-10">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
-                <div className="relative z-10 max-w-xl">
+                <div className="relative z-10 max-w-xl flex-1">
                   <div className="inline-flex items-center gap-2 bg-white/15 rounded-full px-3.5 py-1.5 text-sm font-medium mb-5 backdrop-blur-sm">
                     <Zap className="w-4 h-4" />
                     Instant M-Pesa Magic
@@ -331,40 +513,92 @@ export function LandingPage() {
                     while you&apos;re asleep. The money lands in your account the next morning.
                   </p>
                 </div>
-                {/* Decorative dots */}
-                <div className="absolute bottom-6 right-8 grid grid-cols-5 gap-2 opacity-20">
-                  {Array.from({ length: 25 }).map((_, i) => (
-                    <div key={i} className="w-2 h-2 rounded-full bg-white" />
-                  ))}
+                {/* Mini STK Push phone mockup */}
+                <div className="hidden md:block relative z-10 shrink-0">
+                  <div className="w-48 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-4 transform rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                        <Smartphone className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-white">M-Pesa</p>
+                        <p className="text-[8px] text-blue-200">STK Push</p>
+                      </div>
+                    </div>
+                    <div className="bg-white/10 rounded-lg p-3 mb-2">
+                      <p className="text-[9px] text-blue-200 mb-1">Pay to</p>
+                      <p className="text-xs font-bold text-white">Netily ISP</p>
+                      <p className="text-[9px] text-blue-200 mt-2 mb-1">Amount</p>
+                      <p className="text-lg font-bold text-white">KES 2,500</p>
+                    </div>
+                    <div className="bg-green-500 rounded-lg py-2 text-center">
+                      <p className="text-[10px] font-bold text-white">Payment Confirmed ✓</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Reveal>
 
             {/* Card 2 */}
             <Reveal delay={0.1}>
-              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group">
+              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group overflow-hidden">
                 <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                   <Router className="w-6 h-6 text-emerald-600" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Plug & Play Routers</h3>
-                <p className="text-slate-600 leading-relaxed">
+                <p className="text-slate-600 leading-relaxed mb-5">
                   Zero-touch provisioning. Plug in a new MikroTik, and our cloud configures the client
                   instantly. No SSH, no scripts, no headaches.
                 </p>
+                {/* Mini router status */}
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Router Status</span>
+                    <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Live</span>
+                  </div>
+                  {[
+                    { name: "RB5009UPr+S+ — Main POP", status: "online" },
+                    { name: "hAP ac³ — Block A", status: "online" },
+                    { name: "CCR2004 — Fiber Hub", status: "online" },
+                  ].map((r) => (
+                    <div key={r.name} className="flex items-center gap-2 py-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[10px] text-slate-600 truncate">{r.name}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </Reveal>
 
             {/* Card 3 */}
             <Reveal delay={0.2}>
-              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group">
+              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group overflow-hidden">
                 <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                   <FileText className="w-6 h-6 text-amber-600" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Auto-Invoicing</h3>
-                <p className="text-slate-600 leading-relaxed">
+                <p className="text-slate-600 leading-relaxed mb-5">
                   Tax-ready PDF invoices generated and emailed automatically every month. Your accountant
                   will think you hired an assistant.
                 </p>
+                {/* Mini invoice */}
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-700">INV-2025-0142</span>
+                      <span className="text-[8px] text-slate-400 ml-2">Auto-sent</span>
+                    </div>
+                    <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Paid</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 py-1 border-t border-dashed border-slate-200">
+                    <span>10 Mbps Home Plan × 1 mo</span>
+                    <span className="font-semibold text-slate-700">KES 2,500</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 py-1 border-t border-dashed border-slate-200">
+                    <span className="font-semibold">Total</span>
+                    <span className="font-bold text-slate-900">KES 2,500</span>
+                  </div>
+                </div>
               </div>
             </Reveal>
 
@@ -388,6 +622,86 @@ export function LandingPage() {
       </section>
 
       {/* ━━━ 5. PRICING SECTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <Reveal>
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-700 text-xs font-semibold uppercase tracking-wider mb-4">
+                How it works
+              </div>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+                From sign-up to autopilot in 3 steps
+              </h2>
+            </div>
+          </Reveal>
+
+          <div className="grid md:grid-cols-3 gap-8 md:gap-12">
+            {[
+              {
+                step: "01",
+                title: "Connect your MikroTik",
+                desc: "Enter your router API credentials. Netily auto-discovers PPPoE, Hotspot, and DHCP profiles in seconds.",
+                visual: (
+                  <div className="bg-slate-900 rounded-lg p-3 text-[10px] font-mono mt-4">
+                    <p className="text-emerald-400">✓ Connected to 192.168.88.1</p>
+                    <p className="text-blue-400">  Discovering profiles...</p>
+                    <p className="text-slate-400">  Found: PPPoE-Server (45 users)</p>
+                    <p className="text-slate-400">  Found: Hotspot-1 (120 users)</p>
+                    <p className="text-emerald-400">✓ Sync complete</p>
+                  </div>
+                ),
+              },
+              {
+                step: "02",
+                title: "Link M-Pesa via Tuma",
+                desc: "Select your Tuma collection channel, enter your Till/Paybill, and STK Push is live in under 60 seconds.",
+                visual: (
+                  <div className="bg-white border border-slate-200 rounded-lg p-3 mt-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center"><Check className="w-3 h-3 text-green-600" /></div>
+                      <span className="text-[10px] font-medium text-slate-700">Tuma channel linked</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center"><Check className="w-3 h-3 text-green-600" /></div>
+                      <span className="text-[10px] font-medium text-slate-700">STK Push enabled</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center"><Check className="w-3 h-3 text-green-600" /></div>
+                      <span className="text-[10px] font-medium text-slate-700">Auto-settlement ON</span>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                step: "03",
+                title: "Go live — sit back",
+                desc: "Subscribers pay, internet activates, invoices send, and revenue settles to your bank. Automatically.",
+                visual: (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CircleDollarSign className="w-4 h-4 text-emerald-600" />
+                      <span className="text-[10px] font-bold text-emerald-800">Today&apos;s Settlement</span>
+                    </div>
+                    <p className="text-2xl font-extrabold text-emerald-700">KES 142,350</p>
+                    <p className="text-[10px] text-emerald-600 mt-1">Settled to KCB ****4521 at 6:00 AM</p>
+                  </div>
+                ),
+              },
+            ].map((item, i) => (
+              <Reveal key={item.step} delay={i * 0.15}>
+                <div className="relative">
+                  <span className="text-5xl font-black text-slate-100">{item.step}</span>
+                  <h3 className="text-lg font-bold text-slate-900 mt-2 mb-2">{item.title}</h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">{item.desc}</p>
+                  {item.visual}
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ━━━ 6. PRICING SECTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section id="pricing" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50">
         <div className="max-w-6xl mx-auto">
           <Reveal>
