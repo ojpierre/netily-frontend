@@ -31,12 +31,12 @@ jobs:
             git fetch origin prod-frontend
             git reset --hard origin/prod-frontend
 
-            echo "==> Rebuilding frontend container..."
+            echo "==> Rebuilding frontend container (no cache)..."
             cd ~/netily_cloud/docker
-            docker compose build frontend
+            docker compose build --no-cache frontend
 
             echo "==> Restarting frontend container..."
-            docker compose up -d frontend
+            docker compose up -d --force-recreate frontend
 
             echo "==> Restarting nginx (re-resolve container IPs)..."
             docker compose restart nginx
