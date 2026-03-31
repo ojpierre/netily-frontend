@@ -3431,6 +3431,37 @@ class AdminApiService {
       body: JSON.stringify(data),
     })
   }
+
+  // ------------------------------------------
+  // TUMA PAYMENT GATEWAY - /billing/tuma/
+  // ------------------------------------------
+
+  async getTumaBanks(): Promise<any[]> {
+    return this.request<any[]>('/billing/tuma/banks/')
+  }
+
+  async getTumaMode(): Promise<any> {
+    const url = `${this.baseUrl}/billing/tuma/mode/`
+    const response = await fetch(url, { headers: this.getAuthHeaders() })
+    if (response.status === 404) return null
+    try {
+      return await this.handleResponse<any>(response)
+    } catch (error: any) {
+      if (error.message === 'TOKEN_REFRESHED') {
+        const retryResponse = await fetch(url, { headers: this.getAuthHeaders() })
+        if (retryResponse.status === 404) return null
+        return this.handleResponse<any>(retryResponse)
+      }
+      throw error
+    }
+  }
+
+  async saveTumaMode(data: { collection_reference_id: string; collection_account_number: string }): Promise<any> {
+    return this.request<any>('/billing/tuma/mode/', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
 }
 
 // Export singleton instance
