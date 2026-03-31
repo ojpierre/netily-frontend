@@ -393,7 +393,7 @@ export default function LandingPage() {
           <Reveal>
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                Stop paying scaling taxes.
+                Stop paying for scaling taxes.
               </h2>
               <p className="text-lg text-slate-600 max-w-xl mx-auto">
                 Honest pricing that grows with you. No surprises, no contracts.
@@ -410,7 +410,7 @@ export default function LandingPage() {
                   Pay As You Grow
                 </div>
                 <h3 className="text-2xl font-bold mb-1">Metered</h3>
-                <p className="text-slate-500 mb-8">Perfect for growing ISPs who want to keep costs lean.</p>
+                <p className="text-slate-500 mb-8">Perfect for the growing ISPs who want to keep costs lean.</p>
 
                 <div className="mb-8">
                   <div className="flex items-baseline gap-1 mb-1">
@@ -438,7 +438,7 @@ export default function LandingPage() {
                   onClick={() => scrollTo("hero-cta")}
                   className="w-full py-3.5 rounded-xl border-2 border-slate-200 font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  Start Free Trial
+                  Start a Free Trial
                 </button>
               </div>
             </Reveal>
