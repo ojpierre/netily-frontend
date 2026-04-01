@@ -82,11 +82,17 @@ const TUMA_BANKS = [
 ]
 
 const METHOD_TYPES: { value: string; label: string; icon: typeof CreditCard; desc: string; color: string }[] = [
-  { value: "MOBILE_MONEY", label: "Mobile Money (M-Pesa)", icon: Smartphone, desc: "Receive payments directly to your M-Pesa registered phone number via STK Push", color: "emerald" },
+  { value: "MOBILE_MONEY", label: "Mobile Money", icon: Smartphone, desc: "M-Pesa, Airtel Money, or Telkom T-Kash — receive payments directly to your mobile wallet", color: "emerald" },
   { value: "MPESA_PAYBILL", label: "M-Pesa Paybill", icon: Smartphone, desc: "Customer sends money to your Paybill number", color: "emerald" },
   { value: "MPESA_TILL", label: "M-Pesa Till (Buy Goods)", icon: Smartphone, desc: "Customer pays via Till / Buy Goods number", color: "emerald" },
   { value: "BANK_TRANSFER", label: "Bank Transfer", icon: Landmark, desc: "Direct EFT or bank deposit via Tuma-supported banks", color: "blue" },
   { value: "PAYMENT_LINK", label: "Payment Link", icon: Link2, desc: "Custom payment URL for online payments", color: "violet" },
+]
+
+const MOBILE_PROVIDERS = [
+  { value: "SAFARICOM", label: "Safaricom M-Pesa", placeholder: "e.g. 254712345678" },
+  { value: "AIRTEL", label: "Airtel Money", placeholder: "e.g. 254733123456" },
+  { value: "TELKOM", label: "Telkom T-Kash", placeholder: "e.g. 254770123456" },
 ]
 
 const MAX_METHODS = 3
@@ -118,7 +124,9 @@ function labelFor(type: string): string {
 
 function configSummary(m: PaymentMethod): string {
   const c = (m.config || {}) as Record<string, string>
-  if (c.phone_number) return `M-Pesa: ${c.phone_number}`
+  const provider = MOBILE_PROVIDERS.find((p) => p.value === c.mobile_provider)
+  if (c.phone_number && provider) return `${provider.label}: ${c.phone_number}`
+  if (c.phone_number) return `Mobile: ${c.phone_number}`
   if (c.paybill_number) return `Paybill: ${c.paybill_number}`
   if (c.till_number) return `Till: ${c.till_number}`
   if (c.shortcode) return `Shortcode: ${c.shortcode}`
@@ -225,6 +233,12 @@ export default function PaymentMethodsPage() {
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error("Name is required"); return }
+    if (form.method_type === "MOBILE_MONEY" && !form.cfg.mobile_provider) {
+      toast.error("Please select a mobile provider"); return
+    }
+    if (form.method_type === "MOBILE_MONEY" && !form.cfg.phone_number) {
+      toast.error("Phone number is required"); return
+    }
     setSaving(true)
     try {
       const code = form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 20)
@@ -328,10 +342,30 @@ export default function PaymentMethodsPage() {
     const set = (k: string, v: string) => setForm((p) => ({ ...p, cfg: { ...p.cfg, [k]: v } }))
 
     if (t === "MOBILE_MONEY" || t === "MPESA_NUMBER") {
+      const selectedProvider = MOBILE_PROVIDERS.find((p) => p.value === c.mobile_provider)
       return (
         <>
-          <Field label="M-Pesa Phone Number" required ph="e.g. 254712345678" value={c.phone_number} onChange={(v) => set("phone_number", v.replace(/[^0-9]/g, ""))} />
-          <p className="text-xs text-muted-foreground -mt-1">The M-Pesa registered number where customer payments will be sent via STK Push.</p>
+          <div className="space-y-2">
+            <Label>Mobile Provider <span className="text-red-500">*</span></Label>
+            <Select value={c.mobile_provider || ""} onValueChange={(v) => set("mobile_provider", v)}>
+              <SelectTrigger><SelectValue placeholder="Select provider..." /></SelectTrigger>
+              <SelectContent>
+                {MOBILE_PROVIDERS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <Field
+            label="Phone Number"
+            required
+            ph={selectedProvider?.placeholder || "e.g. 254712345678"}
+            value={c.phone_number}
+            onChange={(v) => set("phone_number", v.replace(/[^0-9]/g, ""))}
+          />
+          <p className="text-xs text-muted-foreground -mt-1">
+            {c.mobile_provider === "AIRTEL" ? "The Airtel Money registered number for receiving payments." :
+             c.mobile_provider === "TELKOM" ? "The T-Kash registered number for receiving payments." :
+             "The M-Pesa registered number where customer payments will be sent via STK Push."}
+          </p>
         </>
       )
     }

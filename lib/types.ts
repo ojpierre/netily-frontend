@@ -1800,8 +1800,10 @@ export interface PaymentMethod {
   payhero_channel_id?: number
   // Configuration fields (JSON for flexibility)
   config?: {
-    // M-Pesa config
+    // Mobile Money config
+    mobile_provider?: 'SAFARICOM' | 'AIRTEL' | 'TELKOM'
     phone_number?: string
+    // M-Pesa config
     consumer_key?: string
     consumer_secret?: string
     shortcode?: string

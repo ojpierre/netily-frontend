@@ -2016,15 +2016,10 @@ class AdminApiService {
 
   private mapPaymentMethodFromApi(item: any): PaymentMethod {
     const config = item?.config_json || item?.config || {}
-    const isAirtel = item?.method_type === 'MOBILE_MONEY' && (
-      config?.mobile_provider === 'AIRTEL' ||
-      !!config?.airtel_paybill ||
-      !!config?.airtel_merchant_code
-    )
 
     return {
       ...item,
-      method_type: isAirtel ? 'AIRTEL_MONEY' : item?.method_type,
+      method_type: item?.method_type,
       use_payhero: item?.use_payhero ?? item?.is_payhero_enabled ?? false,
       payhero_channel_id: item?.payhero_channel_id ?? item?.channel_id,
       config,
@@ -2046,7 +2041,9 @@ class AdminApiService {
     const uiMethodType = data.method_type
     const backendMethodType = uiMethodType ? (methodTypeMap[uiMethodType] || uiMethodType) : undefined
 
-    if (uiMethodType === 'AIRTEL_MONEY') {
+    // For MOBILE_MONEY, ensure mobile_provider is preserved in config
+    // Legacy AIRTEL_MONEY → MOBILE_MONEY with provider tag
+    if (uiMethodType === 'AIRTEL_MONEY' && !config.mobile_provider) {
       config.mobile_provider = 'AIRTEL'
     }
 
