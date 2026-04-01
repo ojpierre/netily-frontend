@@ -252,8 +252,15 @@ export default function PaymentMethodsPage() {
         config: form.cfg,
       }
       if (editing) {
-        await adminApi.updatePaymentMethod(editing.id, payload)
-        toast.success("Payment method updated")
+        const result = await adminApi.updatePaymentMethod(editing.id, payload) as any
+        const synced = result?.tuma_synced
+        toast.success("Payment method updated", {
+          description: editing.is_active && synced
+            ? "Settlement details synced to Tuma."
+            : editing.is_active && synced === false
+            ? "Saved locally. Tuma sync pending — details will update on next activation."
+            : undefined,
+        })
       } else {
         const isFirst = methods.length === 0
         await adminApi.createPaymentMethod(payload)
