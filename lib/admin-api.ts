@@ -299,6 +299,14 @@ class AdminApiService {
       const error = await response.json().catch(() => ({ 
         detail: `Server error: ${response.status}` 
       }))
+
+      // Handle 409 Conflict - preserve full response data (e.g. payment_count)
+      if (response.status === 409) {
+        const conflictError = new Error(error.detail || 'Conflict') as any
+        conflictError.status = 409
+        conflictError.data = error
+        throw conflictError
+      }
       
       // For 400 Bad Request, extract the specific backend message
       if (response.status === 400) {
@@ -2107,8 +2115,11 @@ class AdminApiService {
     return this.mapPaymentMethodFromApi(response)
   }
 
-  async deletePaymentMethod(id: number): Promise<void> {
-    await this.request(`/billing/payment-methods/${id}/`, {
+  async deletePaymentMethod(id: number, force?: boolean): Promise<void> {
+    const url = force
+      ? `/billing/payment-methods/${id}/?force=true`
+      : `/billing/payment-methods/${id}/`
+    await this.request(url, {
       method: 'DELETE',
     })
   }
