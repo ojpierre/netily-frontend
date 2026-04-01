@@ -1770,6 +1770,7 @@ export interface BillingCycleSummary {
 
 export type PaymentMethodType =
   | 'MPESA'
+  | 'MPESA_NUMBER'
   | 'MPESA_STK'
   | 'MPESA_TILL'
   | 'MPESA_PAYBILL'
@@ -1800,6 +1801,7 @@ export interface PaymentMethod {
   // Configuration fields (JSON for flexibility)
   config?: {
     // M-Pesa config
+    phone_number?: string
     consumer_key?: string
     consumer_secret?: string
     shortcode?: string

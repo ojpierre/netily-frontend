@@ -81,6 +81,7 @@ const TUMA_BANKS = [
 ]
 
 const METHOD_TYPES: { value: string; label: string; icon: typeof CreditCard; desc: string; color: string }[] = [
+  { value: "MPESA_NUMBER", label: "M-Pesa Number", icon: Smartphone, desc: "Receive payments directly to your M-Pesa registered phone number", color: "emerald" },
   { value: "MPESA", label: "M-Pesa STK Push", icon: Smartphone, desc: "Automated Lipa Na M-Pesa prompt sent to customer's phone", color: "emerald" },
   { value: "MPESA_PAYBILL", label: "M-Pesa Paybill", icon: Smartphone, desc: "Customer sends money to your Paybill number", color: "emerald" },
   { value: "MPESA_TILL", label: "M-Pesa Till (Buy Goods)", icon: Smartphone, desc: "Customer pays via Till / Buy Goods number", color: "emerald" },
@@ -93,7 +94,7 @@ const METHOD_TYPES: { value: string; label: string; icon: typeof CreditCard; des
 // =============================================================================
 function iconFor(type: string) {
   const m: Record<string, typeof CreditCard> = {
-    MPESA: Smartphone, MPESA_STK: Smartphone, MPESA_PAYBILL: Smartphone,
+    MPESA_NUMBER: Smartphone, MPESA: Smartphone, MPESA_STK: Smartphone, MPESA_PAYBILL: Smartphone,
     MPESA_TILL: Smartphone, AIRTEL_MONEY: Smartphone, MOBILE_MONEY: Smartphone,
     BANK: Landmark, BANK_TRANSFER: Landmark, CARD: CreditCard,
     CREDIT_CARD: CreditCard, DEBIT_CARD: CreditCard, PAYMENT_LINK: Link2,
@@ -115,6 +116,7 @@ function labelFor(type: string): string {
 
 function configSummary(m: PaymentMethod): string {
   const c = (m.config || {}) as Record<string, string>
+  if (c.phone_number) return `M-Pesa: ${c.phone_number}`
   if (c.paybill_number) return `Paybill: ${c.paybill_number}`
   if (c.till_number) return `Till: ${c.till_number}`
   if (c.shortcode) return `Shortcode: ${c.shortcode}`
@@ -153,6 +155,10 @@ export default function PaymentMethodsPage() {
   /* ── Delete ── */
   const [deleteTarget, setDeleteTarget] = useState<PaymentMethod | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  /* ── Activate / Deactivate ── */
+  const [toggleTarget, setToggleTarget] = useState<{ method: PaymentMethod; action: 'activate' | 'deactivate' } | null>(null)
+  const [toggling, setToggling] = useState(false)
 
   /* ── Fetch ── */
   const fetchMethods = useCallback(async () => {
@@ -241,13 +247,41 @@ export default function PaymentMethodsPage() {
     }
   }
 
-  const handleToggle = async (m: PaymentMethod) => {
+  const confirmToggle = (m: PaymentMethod, action: 'activate' | 'deactivate') => {
+    setToggleTarget({ method: m, action })
+  }
+
+  const handleActivateDeactivate = async () => {
+    if (!toggleTarget) return
+    setToggling(true)
+    const { method, action } = toggleTarget
     try {
-      await adminApi.togglePaymentMethodActive(m.id)
-      toast.success(m.is_active ? "Method deactivated" : "Method activated")
+      if (action === 'activate') {
+        // Deactivate all currently active methods first (only one active at a time)
+        const currentlyActive = methods.filter((m) => m.is_active && m.id !== method.id)
+        for (const active of currentlyActive) {
+          await adminApi.updatePaymentMethod(active.id, { is_active: false })
+        }
+        // Activate the target method
+        await adminApi.updatePaymentMethod(method.id, { is_active: true })
+        toast.success(`${method.name} activated`, {
+          description: currentlyActive.length > 0
+            ? `${currentlyActive.map((m) => m.name).join(', ')} deactivated. Only one method can be active.`
+            : 'This is now your active payment method.',
+        })
+      } else {
+        await adminApi.updatePaymentMethod(method.id, { is_active: false })
+        toast.success(`${method.name} deactivated`, {
+          description: 'Customers will not see this payment option until reactivated.',
+        })
+      }
+      setToggleTarget(null)
       fetchMethods()
+      fetchStats()
     } catch (err: any) {
-      toast.error(err.message || "Toggle failed")
+      toast.error(err?.message || `Failed to ${action}`)
+    } finally {
+      setToggling(false)
     }
   }
 
@@ -273,6 +307,14 @@ export default function PaymentMethodsPage() {
     const c = form.cfg
     const set = (k: string, v: string) => setForm((p) => ({ ...p, cfg: { ...p.cfg, [k]: v } }))
 
+    if (t === "MPESA_NUMBER") {
+      return (
+        <>
+          <Field label="M-Pesa Phone Number" required ph="e.g. 254712345678" value={c.phone_number} onChange={(v) => set("phone_number", v.replace(/[^0-9]/g, ""))} />
+          <p className="text-xs text-muted-foreground -mt-1">The M-Pesa registered number where customer payments will be sent via STK Push.</p>
+        </>
+      )
+    }
     if (t === "MPESA" || t === "MPESA_STK") {
       return (
         <>
@@ -518,6 +560,16 @@ export default function PaymentMethodsPage() {
                           <Pencil className="h-3.5 w-3.5 mr-2" />Edit
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
+                        {m.is_active ? (
+                          <DropdownMenuItem onClick={() => confirmToggle(m, 'deactivate')}>
+                            <XCircle className="h-3.5 w-3.5 mr-2" />Deactivate
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => confirmToggle(m, 'activate')}>
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-2" />Activate
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-red-600" onClick={() => setDeleteTarget(m)}>
                           <Trash2 className="h-3.5 w-3.5 mr-2" />Delete
                         </DropdownMenuItem>
@@ -566,7 +618,7 @@ export default function PaymentMethodsPage() {
                     </div>
                     <Switch
                       checked={m.is_active}
-                      onCheckedChange={() => handleToggle(m)}
+                      onCheckedChange={() => confirmToggle(m, m.is_active ? 'deactivate' : 'activate')}
                       className="scale-90"
                     />
                   </div>
@@ -621,6 +673,40 @@ export default function PaymentMethodsPage() {
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Activate / Deactivate confirm */}
+      <Dialog open={!!toggleTarget} onOpenChange={(o) => { if (!o) setToggleTarget(null) }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {toggleTarget?.action === 'activate' ? 'Activate Payment Method?' : 'Deactivate Payment Method?'}
+            </DialogTitle>
+            <DialogDescription>
+              {toggleTarget?.action === 'activate' ? (
+                <>
+                  <span className="font-medium">{toggleTarget.method.name}</span> will become the active payment method.
+                  {activeMethods.filter((m) => m.id !== toggleTarget.method.id).length > 0 && (
+                    <> <span className="font-medium">{activeMethods.filter((m) => m.id !== toggleTarget.method.id).map((m) => m.name).join(', ')}</span> will be deactivated. Only one method can be active at a time.</>
+                  )}
+                </>
+              ) : (
+                <>Deactivating <span className="font-medium">{toggleTarget?.method.name}</span> means customers will no longer see this payment option. You can reactivate it anytime.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setToggleTarget(null)}>Cancel</Button>
+            <Button
+              variant={toggleTarget?.action === 'deactivate' ? 'destructive' : 'default'}
+              onClick={handleActivateDeactivate}
+              disabled={toggling}
+            >
+              {toggling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {toggleTarget?.action === 'activate' ? 'Activate' : 'Deactivate'}
             </Button>
           </DialogFooter>
         </DialogContent>
