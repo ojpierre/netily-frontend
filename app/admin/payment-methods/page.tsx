@@ -23,6 +23,7 @@ import {
   Zap,
   ArrowRight,
   Sparkles,
+  Shield,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -81,21 +82,22 @@ const TUMA_BANKS = [
 ]
 
 const METHOD_TYPES: { value: string; label: string; icon: typeof CreditCard; desc: string; color: string }[] = [
-  { value: "MPESA_NUMBER", label: "M-Pesa Number", icon: Smartphone, desc: "Receive payments directly to your M-Pesa registered phone number", color: "emerald" },
-  { value: "MPESA", label: "M-Pesa STK Push", icon: Smartphone, desc: "Automated Lipa Na M-Pesa prompt sent to customer's phone", color: "emerald" },
+  { value: "MOBILE_MONEY", label: "Mobile Money (M-Pesa)", icon: Smartphone, desc: "Receive payments directly to your M-Pesa registered phone number via STK Push", color: "emerald" },
   { value: "MPESA_PAYBILL", label: "M-Pesa Paybill", icon: Smartphone, desc: "Customer sends money to your Paybill number", color: "emerald" },
   { value: "MPESA_TILL", label: "M-Pesa Till (Buy Goods)", icon: Smartphone, desc: "Customer pays via Till / Buy Goods number", color: "emerald" },
-  { value: "BANK_TRANSFER", label: "Bank Transfer", icon: Landmark, desc: "Direct EFT or bank deposit", color: "blue" },
-  { value: "PAYMENT_LINK", label: "Payment Link", icon: Link2, desc: "Custom payment URL", color: "violet" },
+  { value: "BANK_TRANSFER", label: "Bank Transfer", icon: Landmark, desc: "Direct EFT or bank deposit via Tuma-supported banks", color: "blue" },
+  { value: "PAYMENT_LINK", label: "Payment Link", icon: Link2, desc: "Custom payment URL for online payments", color: "violet" },
 ]
+
+const MAX_METHODS = 3
 
 // =============================================================================
 // HELPERS
 // =============================================================================
 function iconFor(type: string) {
   const m: Record<string, typeof CreditCard> = {
-    MPESA_NUMBER: Smartphone, MPESA: Smartphone, MPESA_STK: Smartphone, MPESA_PAYBILL: Smartphone,
-    MPESA_TILL: Smartphone, AIRTEL_MONEY: Smartphone, MOBILE_MONEY: Smartphone,
+    MOBILE_MONEY: Smartphone, MPESA_NUMBER: Smartphone, MPESA: Smartphone, MPESA_STK: Smartphone,
+    MPESA_PAYBILL: Smartphone, MPESA_TILL: Smartphone, AIRTEL_MONEY: Smartphone,
     BANK: Landmark, BANK_TRANSFER: Landmark, CARD: CreditCard,
     CREDIT_CARD: CreditCard, DEBIT_CARD: CreditCard, PAYMENT_LINK: Link2,
   }
@@ -192,6 +194,10 @@ export default function PaymentMethodsPage() {
 
   /* ── CRUD ── */
   const openAdd = () => {
+    if (methods.length >= MAX_METHODS) {
+      toast.error(`Maximum ${MAX_METHODS} payment methods allowed`, { description: "Delete an existing method to add a new one." })
+      return
+    }
     setEditing(null)
     setForm({ method_type: "", name: "", description: "", is_default: false, cfg: {} })
     setDlgStep("pick")
@@ -234,8 +240,13 @@ export default function PaymentMethodsPage() {
         await adminApi.updatePaymentMethod(editing.id, payload)
         toast.success("Payment method updated")
       } else {
+        const isFirst = methods.length === 0
         await adminApi.createPaymentMethod(payload)
-        toast.success("Payment method created", { description: "Customers can now pay with this method." })
+        toast.success("Payment method created", {
+          description: isFirst
+            ? "Tuma business profile provisioned. Customers can now pay with this method."
+            : "Customers can now pay with this method.",
+        })
       }
       setDlgOpen(false)
       fetchMethods()
@@ -295,7 +306,16 @@ export default function PaymentMethodsPage() {
       fetchMethods()
       fetchStats()
     } catch (err: any) {
-      toast.error(err.message || "Delete failed")
+      const status = err?.status || err?.response?.status
+      if (status === 409) {
+        const data = err?.response?.data || err?.data || {}
+        toast.error("Cannot delete — linked to payments", {
+          description: `This method has ${data.payment_count || "existing"} payment(s). Deactivate it instead.`,
+          duration: 6000,
+        })
+      } else {
+        toast.error(err.message || "Delete failed")
+      }
     } finally {
       setDeleting(false)
     }
@@ -307,7 +327,7 @@ export default function PaymentMethodsPage() {
     const c = form.cfg
     const set = (k: string, v: string) => setForm((p) => ({ ...p, cfg: { ...p.cfg, [k]: v } }))
 
-    if (t === "MPESA_NUMBER") {
+    if (t === "MOBILE_MONEY" || t === "MPESA_NUMBER") {
       return (
         <>
           <Field label="M-Pesa Phone Number" required ph="e.g. 254712345678" value={c.phone_number} onChange={(v) => set("phone_number", v.replace(/[^0-9]/g, ""))} />
@@ -464,7 +484,9 @@ export default function PaymentMethodsPage() {
             Manage your collection channels. Each method is available to customers on invoices.
           </p>
         </div>
-        <Button onClick={openAdd}><Plus className="h-4 w-4 mr-1.5" />Add Method</Button>
+        <Button onClick={openAdd} disabled={methods.length >= MAX_METHODS}>
+          <Plus className="h-4 w-4 mr-1.5" />{methods.length >= MAX_METHODS ? `Limit (${MAX_METHODS})` : "Add Method"}
+        </Button>
       </div>
 
       {/* Error banner */}
@@ -628,18 +650,20 @@ export default function PaymentMethodsPage() {
           })}
 
           {/* Add new card */}
-          <button
-            onClick={openAdd}
-            className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-muted-foreground/20 p-8 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all duration-200 min-h-[200px] cursor-pointer group"
-          >
-            <div className="w-12 h-12 rounded-xl bg-muted/50 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
-              <Plus className="h-6 w-6" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-medium">Add Collection Channel</p>
-              <p className="text-xs mt-0.5">M-Pesa, Bank, or Link</p>
-            </div>
-          </button>
+          {methods.length < MAX_METHODS && (
+            <button
+              onClick={openAdd}
+              className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-muted-foreground/20 p-8 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all duration-200 min-h-[200px] cursor-pointer group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-muted/50 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
+                <Plus className="h-6 w-6" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium">Add Collection Channel</p>
+                <p className="text-xs mt-0.5">M-Pesa, Bank, or Link</p>
+              </div>
+            </button>
+          )}
         </div>
       </div>
 
