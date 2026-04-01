@@ -259,8 +259,8 @@ export default function PaymentMethodsPage() {
         await adminApi.createPaymentMethod(payload)
         toast.success("Payment method created", {
           description: isFirst
-            ? "Tuma business profile provisioned. Customers can now pay with this method."
-            : "Customers can now pay with this method.",
+            ? "Tuma business provisioned with your settlement details. This is now your active payment channel."
+            : "Added as inactive — activate it when you want to switch settlement channels.",
         })
       }
       setDlgOpen(false)
@@ -282,15 +282,28 @@ export default function PaymentMethodsPage() {
     setToggling(true)
     const { method, action } = toggleTarget
     try {
-      // Use the backend toggle endpoint — it handles deactivating others + Tuma sync
-      await adminApi.togglePaymentMethodActive(method.id)
+      // Backend toggle handles: deactivate others + Tuma settlement sync
+      const result = await adminApi.togglePaymentMethodActive(method.id)
+
       if (action === 'activate') {
+        const channel = result.settlement_channel || method.name
+        const ref = result.tuma_reference ? ` via ${result.tuma_reference}` : ''
+        const synced = result.tuma_synced !== false
+
         toast.success(`${method.name} activated`, {
-          description: 'Tuma payment channel synced. This is now your active payment method.',
+          description: synced
+            ? `Settlement channel: ${channel}${ref}. All customer payments now route here.`
+            : `Activated locally. Tuma sync pending${result.tuma_error ? `: ${result.tuma_error}` : '.'}`,
+          duration: synced ? 4000 : 6000,
         })
+        if (result.note) {
+          toast.info(result.note, { duration: 5000 })
+        }
       } else {
         toast.success(`${method.name} deactivated`, {
-          description: 'Customers will not see this payment option until reactivated.',
+          description: result.tuma_synced !== false
+            ? 'Tuma settlement paused. No active payment channel — activate another to resume collections.'
+            : 'Deactivated locally. Customers will no longer see this option.',
         })
       }
       setToggleTarget(null)
@@ -309,12 +322,19 @@ export default function PaymentMethodsPage() {
     setDeleting(true)
     try {
       const isForce = !!forceDeleteInfo
-      await adminApi.deletePaymentMethod(target.id, isForce)
-      toast.success("Payment method deleted", {
-        description: isForce
-          ? `${forceDeleteInfo!.paymentCount} payment(s) were unlinked from this method.`
-          : undefined,
-      })
+      const result = await adminApi.deletePaymentMethod(target.id, isForce)
+
+      // Build descriptive toast based on what happened
+      let description: string | undefined
+      if (result?.tuma_action === 'business_deleted') {
+        description = 'Tuma business profile removed — no payment methods remain.'
+      } else if (result?.tuma_action === 'deactivated') {
+        description = 'Tuma settlement paused — activate another method to resume collections.'
+      } else if (isForce) {
+        description = `${forceDeleteInfo!.paymentCount} payment(s) were unlinked from this method.`
+      }
+
+      toast.success(`${target.name} deleted`, { description })
       setDeleteTarget(null)
       setForceDeleteInfo(null)
       fetchMethods()

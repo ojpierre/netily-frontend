@@ -2115,20 +2115,26 @@ class AdminApiService {
     return this.mapPaymentMethodFromApi(response)
   }
 
-  async deletePaymentMethod(id: number, force?: boolean): Promise<void> {
+  async deletePaymentMethod(id: number, force?: boolean): Promise<{ tuma_action?: string }> {
     const url = force
       ? `/billing/payment-methods/${id}/?force=true`
       : `/billing/payment-methods/${id}/`
-    await this.request(url, {
+    return this.request(url, {
       method: 'DELETE',
     })
   }
 
-  async togglePaymentMethodActive(id: number): Promise<PaymentMethod> {
+  async togglePaymentMethodActive(id: number): Promise<PaymentMethod & {
+    tuma_synced?: boolean
+    settlement_channel?: string
+    tuma_reference?: string
+    tuma_error?: string
+    note?: string
+  }> {
     const response = await this.request<any>(`/billing/payment-methods/${id}/toggle_active/`, {
       method: 'POST',
     })
-    return this.mapPaymentMethodFromApi(response)
+    return { ...this.mapPaymentMethodFromApi(response), ...response }
   }
 
   async testPaymentMethodConnection(id: number): Promise<{ success: boolean; message: string }> {
