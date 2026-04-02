@@ -64,6 +64,8 @@ interface HotspotPlanSummary {
   id: string
   name: string
   price?: string
+  router_id?: number
+  router_name?: string
   // Add other fields as needed
 }
 
@@ -141,12 +143,15 @@ export default function VouchersPage() {
     }
   }, [statusFilter, planFilter])
 
-  // FETCH HOTSPOT PLANS - Changed from adminApi.getPlans() to adminApi.getAllHotspotPlans()
+  // FETCH HOTSPOT PLANS - Fixed to handle both array and paginated responses
   const fetchPlans = async () => {
     try {
-      // CHANGE: Fetch Hotspot Plans, not standard PPPoE plans
       const response = await adminApi.getAllHotspotPlans()
-      setPlans(response.results || [])
+      
+      // FIX: Check if response is already an array, otherwise look for .results
+      const plansData = Array.isArray(response) ? response : (response.results || [])
+      
+      setPlans(plansData)
     } catch (error) {
       console.error('Failed to fetch hotspot plans:', error)
       toast.error('Failed to load hotspot plans')
