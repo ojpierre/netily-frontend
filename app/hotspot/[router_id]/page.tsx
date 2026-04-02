@@ -209,11 +209,11 @@ interface VoucherRedeemResponse {
   voucher_remaining_value: number
 }
 
+// FIX: Updated redeemVoucher function - pin removed, plan_id optional
 async function redeemVoucher(data: {
   code: string
-  pin?: string
   router_id: string
-  plan_id: string
+  plan_id?: string  // Now optional - backend auto-detects from voucher
   mac_address: string
   tenant: string
 }): Promise<VoucherRedeemResponse> {
@@ -714,7 +714,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   // Payment mode toggle
   const [paymentMode, setPaymentMode] = useState<"mpesa" | "voucher">("mpesa")
   const [voucherCode, setVoucherCode] = useState("")
-  const [voucherPin, setVoucherPin] = useState("")
+  // FIX: Removed voucherPin state
   const [voucherRedeeming, setVoucherRedeeming] = useState(false)
   const [voucherError, setVoucherError] = useState<string | null>(null)
 
@@ -822,7 +822,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
              // The Router's login.html will read these params and submit the form
              // We use 'access_code' for both username/password as per your backend logic
              const username = encodeURIComponent(result.access_code)
-             const password = encodeURIComponent(result.access_code) // Same as username
+             const password = encodeURIComponent(result.access_code)
              const targetUrl = `${loginUrl}?username=${username}&password=${password}`
              
              // Redirect immediately (or with a small delay for UX)
@@ -904,9 +904,10 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     setCountdown(120)
   }
 
-  // ── Redeem voucher ──
+  // ── Redeem voucher ── FIXED: Removed selectedPlan requirement and pin
   const handleVoucherRedeem = async () => {
-    if (!selectedPlan) return
+    // FIX: Removed if (!selectedPlan) return
+    
     if (!voucherCode.trim()) {
       setVoucherError("Enter your voucher code")
       return
@@ -919,9 +920,9 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     try {
       const result = await redeemVoucher({
         code: voucherCode.trim(),
-        pin: voucherPin.trim() || undefined,
+        // FIX: Removed pin
         router_id: routerId,
-        plan_id: selectedPlan.id,
+        // FIX: Removed plan_id (backend auto-detects it now)
         mac_address: getMacAddress(),
         tenant: getTenant(),
       })
@@ -1406,7 +1407,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             </div>
           </div>
 
-          {/* ── Voucher Input ── */}
+          {/* ── Voucher Input ── FIXED: Removed PIN input section */}
           {paymentMode === "voucher" && (
             <div className="mb-6 space-y-3">
               <div>
@@ -1417,27 +1418,16 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                   <Ticket className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.mutedText}`} />
                   <input
                     type="text"
-                    placeholder="Enter voucher code"
+                    placeholder="Enter 5-digit code"
                     value={voucherCode}
                     onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError(null) }}
-                    className={`w-full pl-10 pr-4 py-3 border ${theme.cardShape} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} font-mono tracking-wider ${
+                    className={`w-full pl-10 pr-4 py-3 border ${theme.cardShape} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} font-mono tracking-wider text-lg ${
                       voucherError ? "!border-red-400 !ring-red-500" : ""
                     }`}
                   />
                 </div>
               </div>
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${theme.planTitle}`}>
-                  PIN <span className={theme.mutedText}>(if required)</span>
-                </label>
-                <input
-                  type="password"
-                  placeholder="Enter PIN"
-                  value={voucherPin}
-                  onChange={(e) => setVoucherPin(e.target.value)}
-                  className={`w-full px-4 py-3 border ${theme.cardShape} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder}`}
-                />
-              </div>
+              {/* PIN INPUT COMPLETELY REMOVED */}
               {voucherError && (
                 <div className={`p-3 rounded-lg border flex items-center gap-2 ${theme.errorBg}`}>
                   <AlertCircle className={`w-5 h-5 flex-shrink-0 ${theme.errorText}`} />
@@ -1477,7 +1467,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             ) : (
               <button
                 onClick={handleVoucherRedeem}
-                disabled={!selectedPlan || !voucherCode.trim() || voucherRedeeming}
+                disabled={!voucherCode.trim() || voucherRedeeming}
                 className={`py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2 ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover} ${
                   theme.ctaStyle === "pill"
                     ? "w-full rounded-full"
@@ -1492,10 +1482,8 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                     <Loader2 className="w-5 h-5 animate-spin" />
                     Redeeming...
                   </>
-                ) : selectedPlan ? (
-                  `Redeem Voucher for ${selectedPlan.name}`
                 ) : (
-                  "Select a Plan to Continue"
+                  "Redeem Voucher"
                 )}
               </button>
             )}
