@@ -3401,6 +3401,18 @@ class AdminApiService {
     return this.request<VoucherListResponse>(`/hotspot/admin/vouchers/?${queryString}`)
   }
 
+  // ------------------------------------------
+  // HOTSPOT PLANS (Global)
+  // ------------------------------------------
+
+  /**
+   * Get all hotspot plans across all routers (for admin management)
+   * @returns List of hotspot plans
+   */
+  async getAllHotspotPlans(): Promise<{ results: any[] }> {
+    return this.request<{ results: any[] }>('/hotspot/admin/plans/')
+  }
+
 // ------------------------------------------
   // FAIR USAGE POLICY (FUP) - /fup/
   // ------------------------------------------

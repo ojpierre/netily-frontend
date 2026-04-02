@@ -56,7 +56,16 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
-import type { VoucherItem, VoucherSummary, Plan, VoucherGenerateResponse } from "@/lib/types"
+import type { VoucherItem, VoucherSummary, VoucherGenerateResponse } from "@/lib/types"
+
+// Remove Plan import since we're using a different type now
+// We'll define a local interface for hotspot plans
+interface HotspotPlanSummary {
+  id: string
+  name: string
+  price?: string
+  // Add other fields as needed
+}
 
 const formatDate = (dateString: string) => {
   if (!dateString) return 'Never'
@@ -93,7 +102,7 @@ export default function VouchersPage() {
   // Data states
   const [vouchers, setVouchers] = useState<VoucherItem[]>([])
   const [summary, setSummary] = useState<VoucherSummary>({ total: 0, used: 0, unused: 0 })
-  const [plans, setPlans] = useState<Plan[]>([])
+  const [plans, setPlans] = useState<HotspotPlanSummary[]>([])
   
   // Loading states
   const [isLoading, setIsLoading] = useState(true)
@@ -132,12 +141,15 @@ export default function VouchersPage() {
     }
   }, [statusFilter, planFilter])
 
+  // FETCH HOTSPOT PLANS - Changed from adminApi.getPlans() to adminApi.getAllHotspotPlans()
   const fetchPlans = async () => {
     try {
-      const response = await adminApi.getPlans()
+      // CHANGE: Fetch Hotspot Plans, not standard PPPoE plans
+      const response = await adminApi.getAllHotspotPlans()
       setPlans(response.results || [])
     } catch (error) {
-      console.error('Failed to fetch plans:', error)
+      console.error('Failed to fetch hotspot plans:', error)
+      toast.error('Failed to load hotspot plans')
     }
   }
 
