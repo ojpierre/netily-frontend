@@ -96,7 +96,7 @@ const navigationSections = [
       { name: "Receipts", href: "/admin/receipts", icon: FileText },
       { name: "Vouchers", href: "/admin/vouchers", icon: QrCode },
       { name: "Payment Methods", href: "/admin/payment-methods", icon: Banknote },
-      { name: "Analytics", href: "/admin/analytics", icon: TrendingUp },
+      { name: "Reports", href: "/admin/analytics", icon: TrendingUp },
     ],
   },
   {

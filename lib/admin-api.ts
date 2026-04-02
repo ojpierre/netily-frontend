@@ -2497,6 +2497,13 @@ class AdminApiService {
   // ------------------------------------------
 
   /**
+   * Get Reports & Analytics page data (all 4 tabs in one call)
+   */
+  async getReportsData(timeRange: string = '30d'): Promise<any> {
+    return this.request<any>(`/analytics/reports/?time_range=${timeRange}`)
+  }
+
+  /**
    * Get complete analytics dashboard data
    * @param timeRange - Time range filter: 7d, 30d, 90d, 12m, ytd
    */

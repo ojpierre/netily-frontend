@@ -552,13 +552,29 @@ export default function PaymentsPage() {
     setPollingPaymentId(null)
   }
 
-  // Calculate local stats
+  // Calculate local stats — map backend nested keys to flat keys the cards expect
   const localStats = useMemo(() => {
-    if (stats) return stats
+    const s = stats as any
+    // If the API returned data with flat keys or nested keys, prefer flat keys
+    if (s) {
+      const methodDist: { name: string; total: number }[] = s.method_distribution ?? []
+      const mpesaEntry = methodDist.find((m: any) => m.name?.toUpperCase()?.includes('MPESA') || m.name?.toUpperCase()?.includes('M-PESA'))
+      const bankEntry = methodDist.find((m: any) => m.name?.toUpperCase()?.includes('BANK'))
+      return {
+        total_payments: (s.completed_count ?? s.status_distribution?.COMPLETED ?? 0) + (s.pending_count ?? s.status_distribution?.PENDING ?? 0) + (s.failed_count ?? s.status_distribution?.FAILED ?? 0),
+        total_collected: s.total_collected ?? 0,
+        total_pending: s.total_pending ?? 0,
+        completed_count: s.completed_count ?? s.status_distribution?.COMPLETED ?? 0,
+        pending_count: s.pending_count ?? s.status_distribution?.PENDING ?? 0,
+        failed_count: s.failed_count ?? s.status_distribution?.FAILED ?? 0,
+        mpesa_total: mpesaEntry?.total ?? 0,
+        bank_total: bankEntry?.total ?? 0,
+      }
+    }
+    // Fallback: compute from loaded payments
     const completed = payments.filter(p => p.status?.toUpperCase() === 'COMPLETED')
     const pending = payments.filter(p => p.status?.toUpperCase() === 'PENDING')
     const failed = payments.filter(p => p.status?.toUpperCase() === 'FAILED')
-    
     return {
       total_payments: payments.length,
       total_collected: completed.reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0),
