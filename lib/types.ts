@@ -1952,6 +1952,55 @@ export interface VoucherBatchStats {
 }
 
 // ==========================================
+// HOTSPOT VOUCHERS (New Backend Contract)
+// ==========================================
+
+export type VoucherSummary = {
+  total: number;
+  used: number;
+  unused: number;
+};
+
+export type VoucherItem = {
+  id: string | number;
+  code: string;
+  pin: string;
+  status: "ACTIVE" | "USED" | "EXPIRED" | "CANCELLED" | "RESERVED" | string;
+  use_count: number;
+  is_valid: boolean;
+  expires_at: string;
+  plan_id?: string | null;
+  plan_name?: string | null;
+  batch_number?: string;
+};
+
+export type VoucherListResponse = {
+  summary: VoucherSummary;
+  count: number;
+  results: VoucherItem[];
+};
+
+export type VoucherGeneratePayload = {
+  plan_id: string;
+  quantity: number;
+  valid_days?: number;
+  prefix?: string;
+};
+
+export type VoucherGenerateResponse = {
+  message: string;
+  batch: {
+    id: string | number;
+    batch_number: string;
+    plan_id: string;
+    plan_name: string;
+    price: string;
+    valid_to: string;
+  };
+  vouchers: VoucherItem[];
+};
+
+// ==========================================
 // DASHBOARD STATS (Backend Aligned)
 // ==========================================
 

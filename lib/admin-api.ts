@@ -153,6 +153,10 @@ import type {
   PlatformChangelog,
   // Feature Request types
   FeatureRequest,
+   // Voucher types
+  VoucherGeneratePayload,
+  VoucherGenerateResponse,
+  VoucherListResponse,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -3366,6 +3370,35 @@ class AdminApiService {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
+  }
+
+  // ------------------------------------------
+  // HOTSPOT VOUCHERS - /hotspot/admin/vouchers/
+  // ------------------------------------------
+
+  /**
+   * Generate new hotspot vouchers
+   * @param payload - Voucher generation payload containing plan_id, quantity, optional valid_days and prefix
+   */
+  async generateHotspotVouchers(payload: VoucherGeneratePayload): Promise<VoucherGenerateResponse> {
+    return this.request<VoucherGenerateResponse>('/hotspot/admin/vouchers/generate/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  }
+
+  /**
+   * List hotspot vouchers with optional filters
+   * @param params - Optional filters: status ('ACTIVE', 'USED', 'EXPIRED', 'CANCELLED', 'RESERVED') and plan_id
+   */
+  async listHotspotVouchers(params: { status?: string; plan_id?: string }): Promise<VoucherListResponse> {
+    // Filter out undefined/empty values
+    const queryParams: Record<string, string> = {}
+    if (params.status && params.status !== 'all') queryParams.status = params.status
+    if (params.plan_id) queryParams.plan_id = params.plan_id
+    
+    const queryString = new URLSearchParams(queryParams).toString()
+    return this.request<VoucherListResponse>(`/hotspot/admin/vouchers/?${queryString}`)
   }
 
 // ------------------------------------------
