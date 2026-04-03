@@ -250,6 +250,32 @@ async function verifyTVCode(code: string, tenant: string) {
   return res.json()
 }
 
+// === NEW: Poll TV payment status ===
+async function pollTvPaidStatus({
+  tenant,
+  routerId,
+  mac,
+  code,
+}: {
+  tenant: string
+  routerId: string
+  mac: string
+  code?: string
+}) {
+  const qp = new URLSearchParams({
+    tenant,
+    router_id: routerId,
+    mac_address: mac,
+  })
+  if (code) qp.append("code", code)
+
+  const res = await fetch(`${getApiBase()}/hotspot/tv/code-status/?${qp.toString()}`, {
+    cache: "no-store",
+  })
+  if (!res.ok) throw new Error("Failed to check TV status")
+  return res.json()
+}
+
 /**
  * "Return Trip" — submits RADIUS credentials back to MikroTik's login URL.
  * MikroTik -> Cloud Portal -> Payment -> RADIUS created -> Return Trip -> Internet
@@ -752,6 +778,8 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const [isTvDevice, setIsTvDevice] = useState(false)
   const [tvDisplayCode, setTvDisplayCode] = useState<string | null>(null)
   const [tvCodeLoading, setTvCodeLoading] = useState(false)
+  const [tvExpiresAtMs, setTvExpiresAtMs] = useState<number | null>(null) // FIX #1: Track actual expiry
+  const [tvPaymentStatus, setTvPaymentStatus] = useState<"pending" | "paid">("pending") // FIX #2: Track payment
 
   // Phone paying for TV
   const [targetDevice, setTargetDevice] = useState<"this" | "tv">("this")
@@ -802,7 +830,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     if (url) setLoginUrl(url)
   }, [routerId])
 
-  // ── Auto-login & TV Detection ──
+  // ── Auto-login & TV Detection (FIXED: No more resetting countdown every 10s) ──
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
     if (searchParams.get("error")) return
@@ -817,20 +845,21 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           returnTripToMikrotik(loginUrl, result.credentials.username, result.credentials.password)
         } else if (isSmartTV()) {
             setIsTvDevice(true)
-            const fetchCode = () => {
+            // FIX #1: New fetchCode that uses backend expiry
+            const fetchCode = async () => {
                 setTvCodeLoading(true)
-                generateTVCode(routerId, mac, getTenant())
-                  .then(data => {
-                      setTvDisplayCode(data.code)
-                      // Reset countdown when code refreshes
-                      setCountdown(120) 
-                  })
-                  .finally(() => setTvCodeLoading(false))
+                try {
+                    const data = await generateTVCode(routerId, mac, getTenant())
+                    setTvDisplayCode(data.code)
+                    // backend returns expires_in (seconds). default 300 if missing
+                    const expiresIn = Number(data.expires_in ?? 300)
+                    setTvExpiresAtMs(Date.now() + expiresIn * 1000)
+                } finally {
+                    setTvCodeLoading(false)
+                }
             }
             fetchCode()
-            // Polling every 10s as requested by Senior Dev
-            const pollInterval = setInterval(fetchCode, 10000) 
-            return () => clearInterval(pollInterval)
+            // No more setInterval(fetchCode, 10000) - code refreshes only on expiry
         }
         setAutoLoginChecked(true)
       })
@@ -839,7 +868,11 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
          if (isSmartTV()) {
             setIsTvDevice(true)
             generateTVCode(routerId, mac, getTenant())
-               .then(data => setTvDisplayCode(data.code))
+               .then(data => {
+                   setTvDisplayCode(data.code)
+                   const expiresIn = Number(data.expires_in ?? 300)
+                   setTvExpiresAtMs(Date.now() + expiresIn * 1000)
+               })
                .finally(() => setLoading(false))
          }
       })
@@ -896,7 +929,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     return () => clearInterval(pollInterval)
   }, [paymentStatus, sessionId, loginUrl])
 
-  // ── Countdown ──
+  // ── Countdown for phone payment ──
   useEffect(() => {
     if (paymentStatus !== "waiting") return
     const timer = setInterval(() => {
@@ -911,19 +944,75 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     return () => clearInterval(timer)
   }, [paymentStatus])
 
-  // TV countdown for code refresh
+  // FIX #1: TV countdown based on real expiry (not resetting every 10s)
   useEffect(() => {
-    if (!isTvDevice || tvCodeLoading) return
+    if (!isTvDevice || !tvExpiresAtMs) return
+
     const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          return 120
+      const secondsLeft = Math.max(0, Math.ceil((tvExpiresAtMs - Date.now()) / 1000))
+      setCountdown(secondsLeft)
+
+      // Refresh only when truly expired
+      if (secondsLeft <= 0 && !tvCodeLoading) {
+        const fetchCode = async () => {
+          setTvCodeLoading(true)
+          try {
+            const data = await generateTVCode(routerId, getMacAddress(), getTenant())
+            setTvDisplayCode(data.code)
+            const expiresIn = Number(data.expires_in ?? 300)
+            setTvExpiresAtMs(Date.now() + expiresIn * 1000)
+          } finally {
+            setTvCodeLoading(false)
+          }
         }
-        return prev - 1
-      })
+        fetchCode()
+      }
     }, 1000)
+
     return () => clearInterval(timer)
-  }, [isTvDevice, tvCodeLoading])
+  }, [isTvDevice, tvExpiresAtMs, routerId, tvCodeLoading])
+
+  // FIX #2: TV auto-show "paid" when payment was made on phone
+  useEffect(() => {
+    if (!isTvDevice || !tvDisplayCode) return
+
+    const mac = getMacAddress()
+    const tenant = getTenant()
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const status = await pollTvPaidStatus({
+          tenant,
+          routerId,
+          mac,
+          code: tvDisplayCode,
+        })
+
+        if (status.status === "paid") {
+          setTvPaymentStatus("paid")
+          setAccessCode(status.access_code || null)
+          setExpiresAt(status.expires_at || null)
+
+          // Auto-login TV via MikroTik login_url
+          if (loginUrl && status.access_code) {
+            setReturningToRouter(true)
+            const username = encodeURIComponent(status.access_code)
+            const password = encodeURIComponent(status.access_code)
+            const targetUrl = `${loginUrl}?username=${username}&password=${password}`
+            setTimeout(() => {
+              window.location.href = targetUrl
+            }, 1500)
+          }
+          
+          clearInterval(pollInterval)
+        }
+      } catch {
+        // silent retry
+      }
+    }, 3000)
+
+    return () => clearInterval(pollInterval)
+  }, [isTvDevice, tvDisplayCode, routerId, loginUrl])
 
   // Phone validation
   const handlePhoneChange = (value: string) => {
@@ -1044,9 +1133,35 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   }
 
   // ==========================================
-  // RENDER: TV MODE SCREEN
+  // RENDER: TV MODE SCREEN (FIXED: Shows success when paid)
   // ==========================================
   if (isTvDevice) {
+    // Show success screen if payment was made
+    if (tvPaymentStatus === "paid") {
+      return (
+        <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-8 text-white text-center">
+          <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-12 h-12 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold mb-4">Connected!</h1>
+          <p className="text-xl text-gray-400 mb-8">You now have internet access. Enjoy!</p>
+          {accessCode && (
+            <div className="bg-gray-900 rounded-xl p-4 mb-6">
+              <p className="text-sm text-gray-400 mb-1">Your Access Code</p>
+              <p className="text-2xl font-mono font-bold text-green-400">{accessCode}</p>
+            </div>
+          )}
+          {returningToRouter && (
+            <div className="flex items-center gap-2 text-blue-400">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Connecting to internet...</span>
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    // Show pairing screen
     return (
         <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-8 text-white text-center">
             <Monitor className="w-24 h-24 text-blue-500 mb-6" />
@@ -1060,13 +1175,29 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                 </div>
             </div>
             
-            {/* Expiry Countdown requested by Senior Dev */}
+            {/* Expiry Countdown - now reflects real TTL from backend */}
             <div className="flex items-center gap-2 text-gray-500 mb-8">
                 <Clock className="w-4 h-4" />
-                <span>Code refreshes in {countdown}s</span>
+                <span>Code expires in {countdown}s</span>
             </div>
 
-            <button onClick={() => window.location.reload()} className="flex items-center gap-2 text-blue-500 font-semibold underline">
+            <button 
+              onClick={() => {
+                const fetchCode = async () => {
+                  setTvCodeLoading(true)
+                  try {
+                    const data = await generateTVCode(routerId, getMacAddress(), getTenant())
+                    setTvDisplayCode(data.code)
+                    const expiresIn = Number(data.expires_in ?? 300)
+                    setTvExpiresAtMs(Date.now() + expiresIn * 1000)
+                  } finally {
+                    setTvCodeLoading(false)
+                  }
+                }
+                fetchCode()
+              }} 
+              className="flex items-center gap-2 text-blue-500 font-semibold underline"
+            >
                 <RefreshCw className="w-4 h-4" /> Refresh Now
             </button>
         </div>
