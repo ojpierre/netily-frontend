@@ -2498,9 +2498,10 @@ class AdminApiService {
 
   /**
    * Get Reports & Analytics page data (all 4 tabs in one call)
+   * UPDATED: Now points to reports-contract/ endpoint
    */
   async getReportsData(timeRange: string = '30d'): Promise<any> {
-    return this.request<any>(`/analytics/reports/?time_range=${timeRange}`)
+    return this.request<any>(`/analytics/reports-contract/?time_range=${timeRange}`)
   }
 
   /**
@@ -2520,9 +2521,10 @@ class AdminApiService {
 
   /**
    * Get revenue trend data
+   * UPDATED: Now points to revenue-contract/ endpoint
    */
   async getRevenueData(timeRange: string = '30d'): Promise<RevenueData[]> {
-    return this.request<RevenueData[]>(`/analytics/revenue/?time_range=${timeRange}`)
+    return this.request<RevenueData[]>(`/analytics/revenue-contract/?time_range=${timeRange}`)
   }
 
   /**
@@ -2614,6 +2616,34 @@ class AdminApiService {
       throw new Error('Failed to export analytics report')
     }
     return response.blob()
+  }
+
+  // ============================================================
+  // NEW: Analytics Contract Endpoints
+  // ============================================================
+
+  /**
+   * Get churn analytics data
+   * @param timeRange - Time range filter: 7d, 30d, 90d, 12m, ytd
+   */
+  async getChurnAnalytics(timeRange: string = '90d'): Promise<any> {
+    return this.request<any>(`/analytics/churn/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get customers analytics data
+   * @param timeRange - Time range filter: 7d, 30d, 90d, 12m, ytd
+   */
+  async getCustomersAnalytics(timeRange: string = '30d'): Promise<any> {
+    return this.request<any>(`/analytics/customers/?time_range=${timeRange}`)
+  }
+
+  /**
+   * Get usage analytics data
+   * @param timeRange - Time range filter: 7d, 30d, 90d, 12m, ytd
+   */
+  async getUsageAnalytics(timeRange: string = '7d'): Promise<any> {
+    return this.request<any>(`/analytics/usage/?time_range=${timeRange}`)
   }
 
   // ------------------------------------------

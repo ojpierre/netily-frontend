@@ -1,7 +1,7 @@
 "use client"
 
 import { use, useEffect, useState, useMemo } from "react"
-import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users, Ticket } from "lucide-react"
+import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users, Ticket, Monitor, Smartphone } from "lucide-react"
 import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 
 // ==========================================
@@ -164,6 +164,7 @@ async function initiatePurchase(data: {
   phone_number: string
   mac_address: string
   tenant: string
+  tv_code?: string
 }): Promise<PurchaseResponse> {
   const response = await fetch(`${getApiBase()}/hotspot/purchase/`, {
     method: "POST",
@@ -209,11 +210,10 @@ interface VoucherRedeemResponse {
   voucher_remaining_value: number
 }
 
-// FIX: Updated redeemVoucher function - pin removed, plan_id optional
 async function redeemVoucher(data: {
   code: string
   router_id: string
-  plan_id?: string  // Now optional - backend auto-detects from voucher
+  plan_id?: string
   mac_address: string
   tenant: string
 }): Promise<VoucherRedeemResponse> {
@@ -228,6 +228,26 @@ async function redeemVoucher(data: {
     throw new Error(error.message || error.error || "Voucher redemption failed")
   }
   return response.json()
+}
+
+// === NEW TV API FUNCTIONS ===
+async function generateTVCode(routerId: string, mac: string, tenant: string) {
+  const res = await fetch(`${getApiBase()}/hotspot/tv/generate-code/?tenant=${tenant}&router_id=${routerId}&mac_address=${mac}`)
+  if (!res.ok) throw new Error("Failed to generate TV code")
+  return res.json()
+}
+
+async function verifyTVCode(code: string, tenant: string) {
+  const res = await fetch(`${getApiBase()}/hotspot/tv/verify-code/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, tenant })
+  })
+  if (!res.ok) {
+      const err = await res.json().catch(()=>({}))
+      throw new Error(err.error || err.message || "Failed to verify TV code")
+  }
+  return res.json()
 }
 
 /**
@@ -714,9 +734,21 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   // Payment mode toggle
   const [paymentMode, setPaymentMode] = useState<"mpesa" | "voucher">("mpesa")
   const [voucherCode, setVoucherCode] = useState("")
-  // FIX: Removed voucherPin state
   const [voucherRedeeming, setVoucherRedeeming] = useState(false)
   const [voucherError, setVoucherError] = useState<string | null>(null)
+
+  // === TV MODE STATES ===
+  const [isTvDevice, setIsTvDevice] = useState(false)
+  const [tvDisplayCode, setTvDisplayCode] = useState<string | null>(null)
+  const [tvCodeLoading, setTvCodeLoading] = useState(false)
+
+  // Phone paying for TV
+  const [targetDevice, setTargetDevice] = useState<"this" | "tv">("this")
+  const [tvInputCode, setTvInputCode] = useState("")
+  const [verifiedTV, setVerifiedTV] = useState<{ mac_address: string; router_id?: string; code: string } | null>(null)
+  const [isVerifyingTV, setIsVerifyingTV] = useState(false)
+  const [tvVerifyError, setTvVerifyError] = useState<string | null>(null)
+  // ==========================================
 
   // Theme derived from portal_config
   const templateId = portalConfig?.template_id ?? 1
@@ -750,25 +782,19 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     const routerError = params.get("error")
     if (routerError) {
         console.error("Router reported error:", routerError)
-        setError(decodeURIComponent(routerError)) // Show error to user
+        setError(decodeURIComponent(routerError))
         setLoading(false)
-        return // <--- CRITICAL: Stop executing the rest
+        return
     }
 
     const url = params.get("login_url")
     if (url) setLoginUrl(url)
-    
-    if (isSmartTV()) {
-      const mac = params.get("mac") || "00:00:00:00:00:00"
-      window.location.href = `/hotspot/${routerId}/add-device?mac=${encodeURIComponent(mac)}&router_id=${routerId}`
-    }
   }, [routerId])
 
-  // ── Auto-login check ──
+  // ── Auto-login & TV Detection ──
   useEffect(() => {
-    // 1. SAFETY CHECK
-    const params = new URLSearchParams(window.location.search)
-    if (params.get("error")) return; // <--- CRITICAL: Do not auto-login if we just failed!
+    const searchParams = new URLSearchParams(window.location.search)
+    if (searchParams.get("error")) return
 
     const mac = getMacAddress()
     if (mac === "00:00:00:00:00:00" || autoLoginChecked) return
@@ -778,14 +804,39 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
         if (result.has_session && result.credentials && loginUrl) {
           setReturningToRouter(true)
           returnTripToMikrotik(loginUrl, result.credentials.username, result.credentials.password)
+        } else if (isSmartTV()) {
+            setIsTvDevice(true)
+            const fetchCode = () => {
+                setTvCodeLoading(true)
+                generateTVCode(routerId, mac, getTenant())
+                  .then(data => {
+                      setTvDisplayCode(data.code)
+                      // Reset countdown when code refreshes
+                      setCountdown(120) 
+                  })
+                  .finally(() => setTvCodeLoading(false))
+            }
+            fetchCode()
+            // Polling every 10s as requested by Senior Dev
+            const pollInterval = setInterval(fetchCode, 10000) 
+            return () => clearInterval(pollInterval)
         }
         setAutoLoginChecked(true)
       })
-      .catch(() => setAutoLoginChecked(true))
+      .catch(() => {
+         setAutoLoginChecked(true)
+         if (isSmartTV()) {
+            setIsTvDevice(true)
+            generateTVCode(routerId, mac, getTenant())
+               .then(data => setTvDisplayCode(data.code))
+               .finally(() => setLoading(false))
+         }
+      })
   }, [routerId, loginUrl, autoLoginChecked])
 
   // ── Load hotspot plans + portal config ──
   useEffect(() => {
+    if (isTvDevice) return
     fetchCaptivePortal(routerId)
       .then((data) => {
         setPlans(data.plans)
@@ -797,7 +848,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
         setError(err.message || "Failed to load plans")
         setLoading(false)
       })
-  }, [routerId])
+  }, [routerId, isTvDevice])
 
   // ── Poll payment status ──
   useEffect(() => {
@@ -812,25 +863,15 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           setExpiresAt(result.expires_at || null)
           clearInterval(pollInterval)
           
-          // === AUTO-LOGIN LOGIC START ===
-          // If we have a Router Login URL and the User Credentials (username/password),
-          // automatically redirect the user to the router to log them in.
           if (loginUrl && result.access_code) {
              setReturningToRouter(true)
-             
-             // Construct the Auto-Login URL
-             // The Router's login.html will read these params and submit the form
-             // We use 'access_code' for both username/password as per your backend logic
              const username = encodeURIComponent(result.access_code)
              const password = encodeURIComponent(result.access_code)
              const targetUrl = `${loginUrl}?username=${username}&password=${password}`
-             
-             // Redirect immediately (or with a small delay for UX)
              setTimeout(() => {
                  window.location.href = targetUrl
              }, 1500)
           }
-          // === AUTO-LOGIN LOGIC END ===
 
         } else if (result.status === "failed") {
           setPaymentStatus("failed")
@@ -859,35 +900,83 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     return () => clearInterval(timer)
   }, [paymentStatus])
 
+  // TV countdown for code refresh
+  useEffect(() => {
+    if (!isTvDevice || tvCodeLoading) return
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          return 120
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [isTvDevice, tvCodeLoading])
+
   // Phone validation
   const handlePhoneChange = (value: string) => {
     setPhoneNumber(value)
     setPhoneError(value && !isValidKenyanPhone(value) ? "Enter a valid Safaricom or Airtel number" : null)
   }
 
+  // TV code handlers
+  const handleTvCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTvInputCode(e.target.value.toUpperCase())
+    if (verifiedTV) setVerifiedTV(null)
+    if (tvVerifyError) setTvVerifyError(null)
+  }
+
+  const handleVerifyTV = async () => {
+    if (tvInputCode.length !== 5) {
+        setTvVerifyError("Code must be 5 characters")
+        return
+    }
+    setIsVerifyingTV(true)
+    setTvVerifyError(null)
+    try {
+        const res = await verifyTVCode(tvInputCode, getTenant())
+        setVerifiedTV({ mac_address: res.mac_address, router_id: res.router_id, code: tvInputCode })
+    } catch(err: any) {
+        setTvVerifyError(err.message)
+        setVerifiedTV(null)
+    } finally {
+        setIsVerifyingTV(false)
+    }
+  }
+
   // ── Initiate payment ──
   const handlePay = async () => {
     if (!selectedPlan) return
-    if (!phoneNumber) {
-      setPhoneError("Phone number is required")
-      return
-    }
-    if (!isValidKenyanPhone(phoneNumber)) {
-      setPhoneError("Enter a valid Safaricom or Airtel number")
-      return
-    }
+    if (!phoneNumber) { setPhoneError("Phone number is required"); return }
+    if (!isValidKenyanPhone(phoneNumber)) { setPhoneError("Enter a valid Safaricom or Airtel number"); return }
+    
+    if (targetDevice === "tv" && !verifiedTV) { setTvVerifyError("Please verify the TV code first"); return }
 
     setPaymentStatus("sending")
     setError(null)
     setCountdown(120)
 
+    // IMPORTANT: Use the TV's MAC and Router if verified, else use current device
+    let finalMac = getMacAddress()
+    let finalRouter = routerId
+    let finalTvCode = undefined
+
+    if (targetDevice === "tv" && verifiedTV) {
+        finalMac = verifiedTV.mac_address
+        // Ensure we pay to the router the TV is actually connected to
+        if (verifiedTV.router_id) finalRouter = String(verifiedTV.router_id)
+        finalTvCode = verifiedTV.code
+    }
+
     try {
       const result = await initiatePurchase({
-        router_id: routerId,
+        router_id: finalRouter,
         plan_id: selectedPlan.id,
         phone_number: formatPhoneNumber(phoneNumber),
-        mac_address: getMacAddress(),
+        mac_address: finalMac,
         tenant: getTenant(),
+        tv_code: finalTvCode // Passing the TV pairing code to the backend
       })
       setSessionId(result.session_id)
       setPaymentStatus("waiting")
@@ -904,10 +993,8 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     setCountdown(120)
   }
 
-  // ── Redeem voucher ── FIXED: Removed selectedPlan requirement and pin
+  // ── Redeem voucher ──
   const handleVoucherRedeem = async () => {
-    // FIX: Removed if (!selectedPlan) return
-    
     if (!voucherCode.trim()) {
       setVoucherError("Enter your voucher code")
       return
@@ -920,9 +1007,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     try {
       const result = await redeemVoucher({
         code: voucherCode.trim(),
-        // FIX: Removed pin
         router_id: routerId,
-        // FIX: Removed plan_id (backend auto-detects it now)
         mac_address: getMacAddress(),
         tenant: getTenant(),
       })
@@ -931,7 +1016,6 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       setExpiresAt(result.expires_at)
       setPaymentStatus("success")
 
-      // Auto-login to router if login URL available
       if (loginUrl && result.access_code) {
         setReturningToRouter(true)
         const username = encodeURIComponent(result.access_code)
@@ -946,6 +1030,36 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     } finally {
       setVoucherRedeeming(false)
     }
+  }
+
+  // ==========================================
+  // RENDER: TV MODE SCREEN
+  // ==========================================
+  if (isTvDevice) {
+    return (
+        <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-8 text-white text-center">
+            <Monitor className="w-24 h-24 text-blue-500 mb-6" />
+            <h1 className="text-4xl font-bold mb-4">Pair Your TV</h1>
+            <p className="text-xl text-gray-400 mb-8 max-w-lg">
+               Enter this code on your phone to connect this TV:
+            </p>
+            <div className="bg-gray-900 border-2 border-blue-500 rounded-3xl p-10 mb-6 shadow-[0_0_50px_rgba(59,130,246,0.2)]">
+                <div className="text-8xl font-mono font-bold tracking-[0.3em] text-blue-400 uppercase">
+                    {tvDisplayCode || "Loading"}
+                </div>
+            </div>
+            
+            {/* Expiry Countdown requested by Senior Dev */}
+            <div className="flex items-center gap-2 text-gray-500 mb-8">
+                <Clock className="w-4 h-4" />
+                <span>Code refreshes in {countdown}s</span>
+            </div>
+
+            <button onClick={() => window.location.reload()} className="flex items-center gap-2 text-blue-500 font-semibold underline">
+                <RefreshCw className="w-4 h-4" /> Refresh Now
+            </button>
+        </div>
+    )
   }
 
   // ==========================================
@@ -1167,6 +1281,48 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
               <Megaphone className={`w-4 h-4 mt-0.5 flex-shrink-0 ${theme.annIcon}`} />
               <p className={`text-sm ${theme.annText}`}>{announcement}</p>
             </div>
+          )}
+
+          {/* DEVICE TARGET TOGGLE */}
+          <div className="mb-6 bg-gray-100 p-1.5 rounded-xl flex items-center">
+            <button 
+                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${targetDevice === 'this' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                onClick={() => setTargetDevice('this')}
+            >
+                <Smartphone className="w-4 h-4" /> This Device
+            </button>
+            <button 
+                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${targetDevice === 'tv' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                onClick={() => setTargetDevice('tv')}
+            >
+                <Monitor className="w-4 h-4" /> Pay for TV
+            </button>
+          </div>
+
+          {/* TV CODE VERIFICATION BLOCK */}
+          {targetDevice === 'tv' && (
+              <div className="mb-6 p-4 border rounded-xl bg-blue-50/50 border-blue-100">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Enter code shown on TV</label>
+                  <div className="flex gap-2">
+                      <input 
+                          type="text" 
+                          maxLength={5}
+                          value={tvInputCode}
+                          onChange={handleTvCodeChange}
+                          placeholder="e.g. A1B2C"
+                          className="flex-1 px-4 py-2 border border-blue-200 rounded-lg font-mono uppercase text-center text-xl tracking-[0.25em] focus:ring-2 focus:ring-blue-500 outline-none"
+                      />
+                      <button 
+                          onClick={handleVerifyTV}
+                          disabled={tvInputCode.length !== 5 || isVerifyingTV || !!verifiedTV}
+                          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center"
+                      >
+                          {isVerifyingTV ? <Loader2 className="w-4 h-4 animate-spin" /> : (verifiedTV ? <CheckCircle2 className="w-4 h-4" /> : 'Verify')}
+                      </button>
+                  </div>
+                  {tvVerifyError && <p className="text-red-500 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" /> {tvVerifyError}</p>}
+                  {verifiedTV && <p className="text-green-600 text-sm mt-2 flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> TV Verified Successfully!</p>}
+              </div>
           )}
 
           <p className={`${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"} mb-6 ${theme.bodyText}`}>
@@ -1407,7 +1563,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             </div>
           </div>
 
-          {/* ── Voucher Input ── FIXED: Removed PIN input section */}
+          {/* ── Voucher Input ── */}
           {paymentMode === "voucher" && (
             <div className="mb-6 space-y-3">
               <div>
@@ -1427,7 +1583,6 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                   />
                 </div>
               </div>
-              {/* PIN INPUT COMPLETELY REMOVED */}
               {voucherError && (
                 <div className={`p-3 rounded-lg border flex items-center gap-2 ${theme.errorBg}`}>
                   <AlertCircle className={`w-5 h-5 flex-shrink-0 ${theme.errorText}`} />
@@ -1450,7 +1605,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             {paymentMode === "mpesa" ? (
               <button
                 onClick={handlePay}
-                disabled={!selectedPlan || !phoneNumber || !!phoneError}
+                disabled={!selectedPlan || !phoneNumber || !!phoneError || (targetDevice === "tv" && !verifiedTV)}
                 className={`py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover} ${
                   theme.ctaStyle === "pill"
                     ? "w-full rounded-full"
