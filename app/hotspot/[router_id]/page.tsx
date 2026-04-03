@@ -322,9 +322,20 @@ function getLoginUrl(): string {
 function isSmartTV(): boolean {
   if (typeof window !== "undefined") {
     const params = new URLSearchParams(window.location.search)
-    if (params.get("smart_tv") === "1") return true
+    // 1. Check for explicit flag from your fixed MikroTik script
+    if (params.get("smart_tv") === "1" || params.get("tv") === "1") return true
+    
     const ua = navigator.userAgent.toLowerCase()
-    return /smart-?tv|webos|tizen|vidaa|hbbtv|roku|firetv|apple\s?tv/i.test(ua)
+    
+    // 2. Check User-Agent for TV keywords
+    const isTVAgent = /smart-?tv|webos|tizen|vidaa|hbbtv|roku|firetv|apple\s?tv|android\s?tv|bravia|netcast|viera|xbox|playstation|nintendo|box|stb/i.test(ua)
+    
+    // 3. Check for Large Screen + No Touch (The TV Footprint)
+    const isLargeNonTouch = window.innerWidth >= 1024 && 
+                            !('ontouchstart' in window) && 
+                            navigator.maxTouchPoints === 0;
+
+    return isTVAgent || isLargeNonTouch;
   }
   return false
 }
@@ -1299,23 +1310,23 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             </button>
           </div>
 
-          {/* TV CODE VERIFICATION BLOCK */}
+          {/* TV CODE VERIFICATION BLOCK - FIXED UI */}
           {targetDevice === 'tv' && (
               <div className="mb-6 p-4 border rounded-xl bg-blue-50/50 border-blue-100">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Enter code shown on TV</label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
                       <input 
                           type="text" 
                           maxLength={5}
                           value={tvInputCode}
                           onChange={handleTvCodeChange}
                           placeholder="e.g. A1B2C"
-                          className="flex-1 px-4 py-2 border border-blue-200 rounded-lg font-mono uppercase text-center text-xl tracking-[0.25em] focus:ring-2 focus:ring-blue-500 outline-none"
+                          className="flex-1 min-w-0 px-2 py-2 border border-blue-200 rounded-lg font-mono uppercase text-center text-lg tracking-[0.1em] focus:ring-2 focus:ring-blue-500 outline-none"
                       />
                       <button 
                           onClick={handleVerifyTV}
                           disabled={tvInputCode.length !== 5 || isVerifyingTV || !!verifiedTV}
-                          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center"
+                          className="flex-shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center justify-center whitespace-nowrap"
                       >
                           {isVerifyingTV ? <Loader2 className="w-4 h-4 animate-spin" /> : (verifiedTV ? <CheckCircle2 className="w-4 h-4" /> : 'Verify')}
                       </button>
