@@ -230,7 +230,7 @@ async function redeemVoucher(data: {
   return response.json()
 }
 
-// === NEW TV API FUNCTIONS ===
+// === TV API FUNCTIONS ===
 async function generateTVCode(routerId: string, mac: string, tenant: string) {
   const res = await fetch(`${getApiBase()}/hotspot/tv/generate-code/?tenant=${tenant}&router_id=${routerId}&mac_address=${mac}`)
   if (!res.ok) throw new Error("Failed to generate TV code")
@@ -247,32 +247,6 @@ async function verifyTVCode(code: string, tenant: string) {
       const err = await res.json().catch(()=>({}))
       throw new Error(err.error || err.message || "Failed to verify TV code")
   }
-  return res.json()
-}
-
-// === NEW: Poll TV payment status ===
-async function pollTvPaidStatus({
-  tenant,
-  routerId,
-  mac,
-  code,
-}: {
-  tenant: string
-  routerId: string
-  mac: string
-  code?: string
-}) {
-  const qp = new URLSearchParams({
-    tenant,
-    router_id: routerId,
-    mac_address: mac,
-  })
-  if (code) qp.append("code", code)
-
-  const res = await fetch(`${getApiBase()}/hotspot/tv/code-status/?${qp.toString()}`, {
-    cache: "no-store",
-  })
-  if (!res.ok) throw new Error("Failed to check TV status")
   return res.json()
 }
 
@@ -970,32 +944,28 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     return () => clearInterval(timer)
   }, [isTvDevice, tvExpiresAtMs, routerId, tvCodeLoading])
 
-  // TV auto-show "paid" when payment was made on phone
+  // FIX #2: TV auto-show "paid" when payment was made on phone
+  // Uses existing checkAutoLogin endpoint instead of non-existent pollTvPaidStatus
   useEffect(() => {
     if (!isTvDevice || !tvDisplayCode) return
 
     const mac = getMacAddress()
-    const tenant = getTenant()
 
+    // Poll the backend every 4 seconds using the existing checkAutoLogin endpoint!
     const pollInterval = setInterval(async () => {
       try {
-        const status = await pollTvPaidStatus({
-          tenant,
-          routerId,
-          mac,
-          code: tvDisplayCode,
-        })
+        const result = await checkAutoLogin(routerId, mac)
 
-        if (status.status === "paid") {
+        // If the backend says this MAC now has an active session, auto-login!
+        if (result.has_session && result.credentials) {
           setTvPaymentStatus("paid")
-          setAccessCode(status.access_code || null)
-          setExpiresAt(status.expires_at || null)
+          setAccessCode(result.credentials.username)
 
           // Auto-login TV via MikroTik login_url
-          if (loginUrl && status.access_code) {
+          if (loginUrl) {
             setReturningToRouter(true)
-            const username = encodeURIComponent(status.access_code)
-            const password = encodeURIComponent(status.access_code)
+            const username = encodeURIComponent(result.credentials.username)
+            const password = encodeURIComponent(result.credentials.password)
             const targetUrl = `${loginUrl}?username=${username}&password=${password}`
             setTimeout(() => {
               window.location.href = targetUrl
@@ -1005,9 +975,9 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           clearInterval(pollInterval)
         }
       } catch {
-        // silent retry
+        // silent retry (wait for the phone to pay)
       }
-    }, 3000)
+    }, 4000)
 
     return () => clearInterval(pollInterval)
   }, [isTvDevice, tvDisplayCode, routerId, loginUrl])
