@@ -1020,16 +1020,24 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     setPhoneError(value && !isValidKenyanPhone(value) ? "Enter a valid Safaricom or Airtel number" : null)
   }
 
-  // TV code handlers
+  // TV code handlers - Updated for 9-character format with auto-hyphen
   const handleTvCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTvInputCode(e.target.value.toUpperCase())
-    if (verifiedTV) setVerifiedTV(null)
-    if (tvVerifyError) setTvVerifyError(null)
+    // Remove all non-alphanumeric characters, then uppercase
+    let rawValue = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    
+    // Automatically insert the hyphen after the 4th character
+    if (rawValue.length > 4) {
+      rawValue = rawValue.slice(0, 4) + '-' + rawValue.slice(4, 8);
+    }
+    
+    setTvInputCode(rawValue);
+    if (verifiedTV) setVerifiedTV(null);
+    if (tvVerifyError) setTvVerifyError(null);
   }
 
   const handleVerifyTV = async () => {
-    if (tvInputCode.length !== 5) {
-        setTvVerifyError("Code must be 5 characters")
+    if (tvInputCode.length !== 9) {
+        setTvVerifyError("Code must be 9 characters (e.g., ABCD-1234)")
         return
     }
     setIsVerifyingTV(true)
@@ -1441,22 +1449,22 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             </button>
           </div>
 
-          {/* TV CODE VERIFICATION BLOCK - FIXED UI */}
+          {/* TV CODE VERIFICATION BLOCK - Updated for 9-character format */}
           {targetDevice === 'tv' && (
               <div className="mb-6 p-4 border rounded-xl bg-blue-50/50 border-blue-100">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Enter code shown on TV</label>
                   <div className="flex gap-2 items-center">
                       <input 
                           type="text" 
-                          maxLength={5}
+                          maxLength={9}
                           value={tvInputCode}
                           onChange={handleTvCodeChange}
-                          placeholder="e.g. A1B2C"
+                          placeholder="e.g. ABCD-1234"
                           className="flex-1 min-w-0 px-2 py-2 border border-blue-200 rounded-lg font-mono uppercase text-center text-lg tracking-[0.1em] focus:ring-2 focus:ring-blue-500 outline-none"
                       />
                       <button 
                           onClick={handleVerifyTV}
-                          disabled={tvInputCode.length !== 5 || isVerifyingTV || !!verifiedTV}
+                          disabled={tvInputCode.length !== 9 || isVerifyingTV || !!verifiedTV}
                           className="flex-shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center justify-center whitespace-nowrap"
                       >
                           {isVerifyingTV ? <Loader2 className="w-4 h-4 animate-spin" /> : (verifiedTV ? <CheckCircle2 className="w-4 h-4" /> : 'Verify')}
