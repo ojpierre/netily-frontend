@@ -101,6 +101,10 @@ interface ReportsData {
     hourly_revenue: { hour: string; peak_hours: number; business_hours: number; off_hours: number }[]
     user_registrations: { date: string; count: number }[]
     network_data_flow: { date: string; upload: number; download: number }[]
+    weekly_income: { day: string; amount: number }[]
+    last_week_income: { day: string; amount: number }[]
+    monthly_earnings: { month: string; amount: number }[]
+    last_year_earnings: { month: string; amount: number }[]
   }
   financial: {
     income_comparison: {
@@ -135,6 +139,8 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [data, setData] = useState<ReportsData | null>(null)
+  const [weekView, setWeekView] = useState<"this" | "last">("this")
+  const [yearView, setYearView] = useState<"this" | "last">("this")
   const fetchedRef = useRef(false)
 
   const fetchData = useCallback(async () => {
@@ -279,6 +285,125 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
+          {/* Weekly Income & Monthly Earnings */}
+          <div className="grid lg:grid-cols-2 gap-6">
+
+            {/* Weekly Income Chart */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base font-semibold text-blue-700">Weekly Income</CardTitle>
+                    <CardDescription>Daily revenue for the selected week</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-1 rounded-lg border p-1">
+                    <button
+                      onClick={() => setWeekView("this")}
+                      className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                        weekView === "this"
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "text-slate-500 hover:text-slate-700"
+                      }`}
+                    >
+                      This Week
+                    </button>
+                    <button
+                      onClick={() => setWeekView("last")}
+                      className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                        weekView === "last"
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "text-slate-500 hover:text-slate-700"
+                      }`}
+                    >
+                      Last Week
+                    </button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const weekData = weekView === "this" ? o?.weekly_income : o?.last_week_income
+                  return !weekData?.length
+                    ? <div className="h-[220px] flex items-center justify-center"><EmptyChart /></div>
+                    : (
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={weekData} barSize={32} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                          <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                          <YAxis tickFormatter={fmtKsh} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={65} />
+                          <Tooltip content={(p) => <ChartTooltip {...p} fmt={fmtKshFull} />} />
+                          <Bar
+                            dataKey="amount"
+                            name="Income"
+                            fill={weekView === "this" ? C.blue : C.purple}
+                            radius={[4, 4, 0, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* Monthly Earnings Chart */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base font-semibold text-emerald-700">Monthly Earnings</CardTitle>
+                    <CardDescription>Revenue per month for the selected year</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-1 rounded-lg border p-1">
+                    <button
+                      onClick={() => setYearView("this")}
+                      className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                        yearView === "this"
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : "text-slate-500 hover:text-slate-700"
+                      }`}
+                    >
+                      This Year
+                    </button>
+                    <button
+                      onClick={() => setYearView("last")}
+                      className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                        yearView === "last"
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : "text-slate-500 hover:text-slate-700"
+                      }`}
+                    >
+                      Last Year
+                    </button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const monthData = yearView === "this" ? o?.monthly_earnings : o?.last_year_earnings
+                  return !monthData?.length
+                    ? <div className="h-[220px] flex items-center justify-center"><EmptyChart /></div>
+                    : (
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={monthData} barSize={22} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                          <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <YAxis tickFormatter={fmtKsh} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={65} />
+                          <Tooltip content={(p) => <ChartTooltip {...p} fmt={fmtKshFull} />} />
+                          <Bar
+                            dataKey="amount"
+                            name="Earnings"
+                            fill={yearView === "this" ? C.emerald : C.amber}
+                            radius={[4, 4, 0, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )
+                })()}
+              </CardContent>
+            </Card>
+
+          </div>
+
           {/* User Registrations & Network Data Flow side by side */}
           <div className="grid lg:grid-cols-2 gap-6">
             {/* User Registrations */}
@@ -288,9 +413,9 @@ export default function ReportsPage() {
                 <CardDescription>Daily new user registrations (Last {timeRange === "7d" ? "7" : timeRange === "30d" ? "30" : "90"} days)</CardDescription>
               </CardHeader>
               <CardContent>
-                {!o?.user_registrations?.length ? <div className="h-[220px] flex items-center justify-center"><EmptyChart /></div> : (
+                {!u?.registration_trends?.length ? <div className="h-[220px] flex items-center justify-center"><EmptyChart /></div> : (
                   <ResponsiveContainer width="100%" height={220}>
-                    <AreaChart data={o.user_registrations} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                    <AreaChart data={u.registration_trends} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
                       <defs>
                         <linearGradient id="regGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor={C.emerald} stopOpacity={0.2} />
@@ -298,7 +423,7 @@ export default function ReportsPage() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                      <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor((o.user_registrations.length) / 8))} />
+                      <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor((u.registration_trends.length) / 8))} />
                       <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={30} />
                       <Tooltip content={(p) => <ChartTooltip {...p} />} />
                       <Area type="monotone" dataKey="count" name="Registrations" stroke={C.emerald} strokeWidth={2} fill="url(#regGrad)" dot={{ r: 3, fill: C.emerald, strokeWidth: 0 }} activeDot={{ r: 5 }} />
