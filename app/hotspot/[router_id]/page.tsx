@@ -778,8 +778,8 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const [isTvDevice, setIsTvDevice] = useState(false)
   const [tvDisplayCode, setTvDisplayCode] = useState<string | null>(null)
   const [tvCodeLoading, setTvCodeLoading] = useState(false)
-  const [tvExpiresAtMs, setTvExpiresAtMs] = useState<number | null>(null) // FIX #1: Track actual expiry
-  const [tvPaymentStatus, setTvPaymentStatus] = useState<"pending" | "paid">("pending") // FIX #2: Track payment
+  const [tvExpiresAtMs, setTvExpiresAtMs] = useState<number | null>(null)
+  const [tvPaymentStatus, setTvPaymentStatus] = useState<"pending" | "paid">("pending")
 
   // Phone paying for TV
   const [targetDevice, setTargetDevice] = useState<"this" | "tv">("this")
@@ -830,7 +830,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     if (url) setLoginUrl(url)
   }, [routerId])
 
-  // ── Auto-login & TV Detection (FIXED: No more resetting countdown every 10s) ──
+  // ── Auto-login & TV Detection ──
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
     if (searchParams.get("error")) return
@@ -845,13 +845,11 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           returnTripToMikrotik(loginUrl, result.credentials.username, result.credentials.password)
         } else if (isSmartTV()) {
             setIsTvDevice(true)
-            // FIX #1: New fetchCode that uses backend expiry
             const fetchCode = async () => {
                 setTvCodeLoading(true)
                 try {
                     const data = await generateTVCode(routerId, mac, getTenant())
                     setTvDisplayCode(data.code)
-                    // backend returns expires_in (seconds). default 300 if missing
                     const expiresIn = Number(data.expires_in ?? 300)
                     setTvExpiresAtMs(Date.now() + expiresIn * 1000)
                 } finally {
@@ -859,7 +857,6 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                 }
             }
             fetchCode()
-            // No more setInterval(fetchCode, 10000) - code refreshes only on expiry
         }
         setAutoLoginChecked(true)
       })
@@ -894,7 +891,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       })
   }, [routerId, isTvDevice])
 
-  // ── Poll payment status ──
+  // ── Poll payment status (FIXED: Don't auto-login phone when paying for TV) ──
   useEffect(() => {
     if (paymentStatus !== "waiting" || !sessionId) return
     const pollInterval = setInterval(async () => {
@@ -907,7 +904,8 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           setExpiresAt(result.expires_at || null)
           clearInterval(pollInterval)
           
-          if (loginUrl && result.access_code) {
+          // ONLY auto-login if we are paying for THIS device (not for TV)
+          if (loginUrl && result.access_code && targetDevice !== "tv") {
              setReturningToRouter(true)
              const username = encodeURIComponent(result.access_code)
              const password = encodeURIComponent(result.access_code)
@@ -927,7 +925,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       }
     }, 3000)
     return () => clearInterval(pollInterval)
-  }, [paymentStatus, sessionId, loginUrl])
+  }, [paymentStatus, sessionId, loginUrl, targetDevice])
 
   // ── Countdown for phone payment ──
   useEffect(() => {
@@ -944,7 +942,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     return () => clearInterval(timer)
   }, [paymentStatus])
 
-  // FIX #1: TV countdown based on real expiry (not resetting every 10s)
+  // TV countdown based on real expiry
   useEffect(() => {
     if (!isTvDevice || !tvExpiresAtMs) return
 
@@ -972,7 +970,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     return () => clearInterval(timer)
   }, [isTvDevice, tvExpiresAtMs, routerId, tvCodeLoading])
 
-  // FIX #2: TV auto-show "paid" when payment was made on phone
+  // TV auto-show "paid" when payment was made on phone
   useEffect(() => {
     if (!isTvDevice || !tvDisplayCode) return
 
@@ -1084,7 +1082,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
         phone_number: formatPhoneNumber(phoneNumber),
         mac_address: finalMac,
         tenant: getTenant(),
-        tv_code: finalTvCode // Passing the TV pairing code to the backend
+        tv_code: finalTvCode
       })
       setSessionId(result.session_id)
       setPaymentStatus("waiting")
@@ -1101,22 +1099,35 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     setCountdown(120)
   }
 
-  // ── Redeem voucher ──
+  // ── Redeem voucher (FIXED: Don't auto-login phone when paying for TV) ──
   const handleVoucherRedeem = async () => {
     if (!voucherCode.trim()) {
       setVoucherError("Enter your voucher code")
       return
+    }
+    
+    if (targetDevice === "tv" && !verifiedTV) { 
+      setTvVerifyError("Please verify the TV code first"); 
+      return 
     }
 
     setVoucherRedeeming(true)
     setVoucherError(null)
     setError(null)
 
+    let finalMac = getMacAddress()
+    let finalRouter = routerId
+
+    if (targetDevice === "tv" && verifiedTV) {
+        finalMac = verifiedTV.mac_address
+        if (verifiedTV.router_id) finalRouter = String(verifiedTV.router_id)
+    }
+
     try {
       const result = await redeemVoucher({
         code: voucherCode.trim(),
-        router_id: routerId,
-        mac_address: getMacAddress(),
+        router_id: finalRouter,
+        mac_address: finalMac, // Use TV's MAC if in TV mode
         tenant: getTenant(),
       })
 
@@ -1124,7 +1135,8 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       setExpiresAt(result.expires_at)
       setPaymentStatus("success")
 
-      if (loginUrl && result.access_code) {
+      // ONLY auto-login if we are paying for THIS device (not for TV)
+      if (loginUrl && result.access_code && targetDevice !== "tv") {
         setReturningToRouter(true)
         const username = encodeURIComponent(result.access_code)
         const password = encodeURIComponent(result.access_code)
@@ -1141,7 +1153,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   }
 
   // ==========================================
-  // RENDER: TV MODE SCREEN (FIXED: Shows success when paid)
+  // RENDER: TV MODE SCREEN
   // ==========================================
   if (isTvDevice) {
     // Show success screen if payment was made
@@ -1183,7 +1195,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                 </div>
             </div>
             
-            {/* Expiry Countdown - now reflects real TTL from backend */}
+            {/* Expiry Countdown */}
             <div className="flex items-center gap-2 text-gray-500 mb-8">
                 <Clock className="w-4 h-4" />
                 <span>Code expires in {countdown}s</span>
@@ -1449,7 +1461,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             </button>
           </div>
 
-          {/* TV CODE VERIFICATION BLOCK - Updated for 9-character format */}
+          {/* TV CODE VERIFICATION BLOCK */}
           {targetDevice === 'tv' && (
               <div className="mb-6 p-4 border rounded-xl bg-blue-50/50 border-blue-100">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Enter code shown on TV</label>
@@ -1724,7 +1736,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                   <Ticket className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.mutedText}`} />
                   <input
                     type="text"
-                    placeholder="Enter 5-digit code"
+                    placeholder="Enter voucher code"
                     value={voucherCode}
                     onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError(null) }}
                     className={`w-full pl-10 pr-4 py-3 border ${theme.cardShape} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} font-mono tracking-wider text-lg ${
@@ -1772,7 +1784,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             ) : (
               <button
                 onClick={handleVoucherRedeem}
-                disabled={!voucherCode.trim() || voucherRedeeming}
+                disabled={!voucherCode.trim() || voucherRedeeming || (targetDevice === "tv" && !verifiedTV)}
                 className={`py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2 ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover} ${
                   theme.ctaStyle === "pill"
                     ? "w-full rounded-full"
