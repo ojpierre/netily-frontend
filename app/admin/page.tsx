@@ -26,6 +26,15 @@ import {
   BarChart3,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -97,6 +106,8 @@ export default function AdminDashboard() {
     recentActivity: [],
   })
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [weekView, setWeekView] = useState<"this" | "last">("this")
+  const [yearView, setYearView] = useState<"this" | "last">("this")
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -475,6 +486,179 @@ export default function AdminDashboard() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* ─── Row 2.5: Weekly Income & Monthly Earnings ─── */}
+      <div className="grid gap-4 md:grid-cols-2">
+
+        {/* Weekly Income Chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-blue-600" />
+                  Weekly Income
+                </CardTitle>
+                <CardDescription>Daily revenue for the selected week</CardDescription>
+              </div>
+              <div className="flex items-center gap-1 rounded-lg border p-1">
+                <button
+                  onClick={() => setWeekView("this")}
+                  className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                    weekView === "this"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  This Week
+                </button>
+                <button
+                  onClick={() => setWeekView("last")}
+                  className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                    weekView === "last"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  Last Week
+                </button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="h-[220px] flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
+              </div>
+            ) : !(weekView === "this"
+                ? (data.core as any)?.weekly_income
+                : (data.core as any)?.last_week_income
+              )?.length ? (
+              <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-slate-400">
+                <BarChart3 className="w-10 h-10 opacity-30" />
+                <p className="text-sm">No data for this period</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart
+                  data={
+                    weekView === "this"
+                      ? (data.core as any)?.weekly_income
+                      : (data.core as any)?.last_week_income
+                  }
+                  barSize={28}
+                  margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : `${v}`}
+                    tick={{ fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={45}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => [`KSh ${value.toLocaleString()}`, "Income"]}
+                    contentStyle={{ borderRadius: 8, fontSize: 13 }}
+                  />
+                  <Bar
+                    dataKey="amount"
+                    name="Income"
+                    fill={weekView === "this" ? "#3b82f6" : "#8b5cf6"}
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Monthly Earnings Chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                  Monthly Earnings
+                </CardTitle>
+                <CardDescription>Revenue per month for the selected year</CardDescription>
+              </div>
+              <div className="flex items-center gap-1 rounded-lg border p-1">
+                <button
+                  onClick={() => setYearView("this")}
+                  className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                    yearView === "this"
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  This Year
+                </button>
+                <button
+                  onClick={() => setYearView("last")}
+                  className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                    yearView === "last"
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  Last Year
+                </button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="h-[220px] flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
+              </div>
+            ) : !(yearView === "this"
+                ? (data.core as any)?.monthly_earnings
+                : (data.core as any)?.last_year_earnings
+              )?.length ? (
+              <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-slate-400">
+                <BarChart3 className="w-10 h-10 opacity-30" />
+                <p className="text-sm">No data for this period</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart
+                  data={
+                    yearView === "this"
+                      ? (data.core as any)?.monthly_earnings
+                      : (data.core as any)?.last_year_earnings
+                  }
+                  barSize={18}
+                  margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : `${v}`}
+                    tick={{ fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={45}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => [`KSh ${value.toLocaleString()}`, "Earnings"]}
+                    contentStyle={{ borderRadius: 8, fontSize: 13 }}
+                  />
+                  <Bar
+                    dataKey="amount"
+                    name="Earnings"
+                    fill={yearView === "this" ? "#10b981" : "#f59e0b"}
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
       </div>
 
       {/* ─── Row 3: Quick Actions & Recent Activity ─── */}
