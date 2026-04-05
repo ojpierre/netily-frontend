@@ -509,12 +509,24 @@ export default function UsersPage() {
     }
   }
 
-  // Dynamically merge live online session data with the static customer list
+  // FIX: Dynamically merge live online session data with the static customer list
+  // Match by RADIUS username OR phone number (for Hotspot users)
   const enrichedUsers = useMemo(() => {
     return users.map((user) => {
-      const session = onlineSessions.find(
-        (s) => s.username === user.radiusCredentials?.username
-      )
+      const session = onlineSessions.find((s) => {
+        // Match by strict RADIUS username if available
+        if (user.radiusCredentials?.username && s.username === user.radiusCredentials.username) return true;
+        // Fallback: Match by phone number (common for Hotspot users without static radius credentials)
+        if (user.phone && s.phone_number) {
+          const cleanUserPhone = user.phone.replace(/\D/g, '');
+          const cleanSessionPhone = s.phone_number.replace(/\D/g, '');
+          if (cleanUserPhone.length >= 9 && cleanSessionPhone.length >= 9 && cleanUserPhone.slice(-9) === cleanSessionPhone.slice(-9)) {
+            return true;
+          }
+        }
+        return false;
+      })
+
       const isOnline = !!session
 
       let currentUsage = user.dataUsed
@@ -537,7 +549,7 @@ export default function UsersPage() {
         ...user,
         connectionStatus: (isOnline ? "online" : "offline") as "online" | "offline",
         dataUsed: isOnline ? currentUsage : (user.dataUsed || 0),
-        liveUsageString: session?.usage, // Pull string straight from RADIUS for accuracy
+        liveUsageString: session?.usage,
         lastOnline: isOnline ? "Now" : user.lastOnline,
         ipAddress: session?.ip_address || user.ipAddress,
         macAddress: session?.mac_address || user.macAddress,
@@ -603,9 +615,18 @@ export default function UsersPage() {
     })
   }, [onlineSessions, onlineSearchQuery, onlineServiceFilter])
 
+  // FIX: Active subscriptions - reject expired users and "No Plan" (voucher) users
   const activeSubscriptionUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
-      const isActive = user.status === "active" || user.status === "pending"
+      const expiryDate = new Date(user.expiryDate)
+      const now = new Date()
+      const isExpired = expiryDate <= now
+      
+      const hasPlan = user.plan !== "No Plan"
+      
+      // Explicitly reject expired users and hotspot users with no base subscription
+      const isActive = (user.status === "active" || user.status === "pending") && !isExpired && hasPlan
+
       const matchesSearch = !activeSearchQuery || (
         (user.name?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
         (user.email?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
@@ -1705,7 +1726,22 @@ export default function UsersPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm">{expiryDate.toLocaleDateString()}</span>
+                            {user.plan === "No Plan" ? (
+                              <div>
+                                <p className="text-sm">—</p>
+                                <p className="text-xs text-slate-500">Voucher</p>
+                              </div>
+                            ) : (
+                              <div>
+                                <p className="text-sm">{new Date(user.expiryDate).toLocaleDateString()}</p>
+                                <p className="text-xs text-slate-500">
+                                  {new Date(user.expiryDate) > new Date() 
+                                    ? `${Math.ceil((new Date(user.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left`
+                                    : "Expired"
+                                  }
+                                </p>
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             {isExpired ? (
@@ -1889,15 +1925,22 @@ export default function UsersPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div>
-                            <p className="text-sm">{new Date(user.expiryDate).toLocaleDateString()}</p>
-                            <p className="text-xs text-slate-500">
-                              {new Date(user.expiryDate) > new Date() 
-                                ? `${Math.ceil((new Date(user.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left`
-                                : "Expired"
-                              }
-                            </p>
-                          </div>
+                          {user.plan === "No Plan" ? (
+                            <div>
+                              <p className="text-sm">—</p>
+                              <p className="text-xs text-slate-500">Voucher</p>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-sm">{new Date(user.expiryDate).toLocaleDateString()}</p>
+                              <p className="text-xs text-slate-500">
+                                {new Date(user.expiryDate) > new Date() 
+                                  ? `${Math.ceil((new Date(user.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left`
+                                  : "Expired"
+                                }
+                              </p>
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -2096,7 +2139,7 @@ export default function UsersPage() {
                   <div className="flex justify-between">
                     <span className="text-slate-600">Expiry Date</span>
                     <span className="font-medium">
-                      {new Date(selectedUser.expiryDate).toLocaleDateString()}
+                      {selectedUser.plan === "No Plan" ? "Managed by Voucher" : new Date(selectedUser.expiryDate).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2">
