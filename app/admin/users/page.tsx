@@ -149,10 +149,11 @@ interface HotspotClientData {
     status: string;
     plan_name: string;
     expires_at: string;
-    created_at: string;        // Added
-    router_name: string;       // Added
-    access_code: string;       // Added
-    data_used_bytes: number;   // Added
+    created_at: string;
+    router_id: number;          // Fixed to match JSON
+    access_code: string;        // Fixed to match JSON
+    mpesa_receipt: string | null; // Fixed to match JSON
+    data_used_mb: number;       // Fixed to match JSON
   } | null;
 }
 
@@ -1901,30 +1902,38 @@ export default function UsersPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>User / Code</TableHead>
+                      <TableHead>User / Receipt</TableHead>
                       <TableHead>Plan</TableHead>
                       <TableHead>Duration</TableHead>
-                      <TableHead>Router</TableHead>
+                      <TableHead>Connection</TableHead>
                       <TableHead>Usage</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {activeHotspotClients.map((client) => {
                       const session = client.current_session!;
-                      // Convert bytes to GB/MB automatically
-                      const dataUsedGB = (session.data_used_bytes || 0) / (1024 * 1024 * 1024);
-                      const usageDisplay = dataUsedGB < 0.1 
-                          ? `${((session.data_used_bytes || 0) / (1024 * 1024)).toFixed(2)} MB` 
-                          : `${dataUsedGB.toFixed(2)} GB`;
+                      
+                      // Convert MB to GB for display if > 1024 MB
+                      const dataUsedMB = session.data_used_mb || 0;
+                      const usageDisplay = dataUsedMB >= 1024 
+                          ? `${(dataUsedMB / 1024).toFixed(2)} GB` 
+                          : `${dataUsedMB.toFixed(2)} MB`;
 
                       return (
                         <TableRow key={client.id}>
                           <TableCell>
-                            <p className="font-medium text-slate-900">{session.access_code || client.canonical_phone}</p>
-                            <p className="text-xs text-slate-500">{client.canonical_phone}</p>
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-white font-medium text-xs">
+                                HS
+                              </div>
+                              <div>
+                                <p className="font-medium text-slate-900">{session.access_code || client.canonical_phone}</p>
+                                <p className="text-xs text-slate-500">{session.mpesa_receipt || client.canonical_phone}</p>
+                              </div>
+                            </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            <Badge variant="outline" className="bg-pink-50 text-pink-700 border-pink-200">
                               {session.plan_name}
                             </Badge>
                           </TableCell>
@@ -1935,8 +1944,10 @@ export default function UsersPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <p className="text-sm font-medium">{session.router_name || "Unknown"}</p>
-                            <p className="text-xs text-slate-500">Hotspot</p>
+                            <p className="text-sm font-medium">Router #{session.router_id}</p>
+                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                              <Wifi className="w-3 h-3 text-pink-500" /> Hotspot
+                            </p>
                           </TableCell>
                           <TableCell>
                             <span className="text-sm font-medium text-slate-700">{usageDisplay}</span>
