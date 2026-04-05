@@ -133,7 +133,7 @@ interface User {
   loyaltyPoints: number
   balance: number
   radiusCredentials?: RADIUSCredentials
-  liveUsageString?: string // Added for precise real-time usage display
+  liveUsageString?: string
 }
 
 interface HotspotClientData {
@@ -150,10 +150,10 @@ interface HotspotClientData {
     plan_name: string;
     expires_at: string;
     created_at: string;
-    router_id: number;          // Fixed to match JSON
-    access_code: string;        // Fixed to match JSON
-    mpesa_receipt: string | null; // Fixed to match JSON
-    data_used_mb: number;       // Fixed to match JSON
+    router_id: number;
+    access_code: string;
+    mpesa_receipt: string | null;
+    data_used_mb: number;
   } | null;
 }
 
@@ -166,7 +166,7 @@ interface UserStats {
   online: number
   pppoe: number
   static: number
-  hotspot: number // Added hotspot, removed fiber
+  hotspot: number
 }
 
 // Helper: Map backend Customer to frontend User display type
@@ -208,7 +208,6 @@ const mapCustomerToUser = (customer: Customer): User => {
     synced_to_radius: radiusCreds.synced_to_radius ?? false,
   } : undefined
 
-  // FIX: Look for RADIUS expiration date first, then fallback to service
   const actualExpiryDate = radiusCredentials?.expiration_date || primaryService?.expiry_date;
 
   return {
@@ -254,7 +253,6 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [users, setUsers] = useState<User[]>([])
-  // Hotspot State
   const [hotspotClients, setHotspotClients] = useState<HotspotClientData[]>([])
   const [hotspotLoading, setHotspotLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
@@ -585,15 +583,13 @@ export default function UsersPage() {
     })
   }, [users, onlineSessions])
 
+  // FIXED: Removed expiry check - trust the API's status field
   const activeHotspotClients = useMemo(() => {
     return hotspotClients.filter(client => {
       if (!client.current_session) return false;
-      
-      const isStatusActive = client.current_session.status === 'active' || client.current_session.status === 'paid';
-      const expiryDate = new Date(client.current_session.expires_at);
-      const isNotExpired = expiryDate > new Date();
-      
-      return isStatusActive && isNotExpired;
+      // Only check status - backend already knows if it's active/paid
+      return client.current_session.status === 'active' || 
+             client.current_session.status === 'paid';
     });
   }, [hotspotClients]);
 
@@ -1913,7 +1909,6 @@ export default function UsersPage() {
                     {activeHotspotClients.map((client) => {
                       const session = client.current_session!;
                       
-                      // Convert MB to GB for display if > 1024 MB
                       const dataUsedMB = session.data_used_mb || 0;
                       const usageDisplay = dataUsedMB >= 1024 
                           ? `${(dataUsedMB / 1024).toFixed(2)} GB` 
