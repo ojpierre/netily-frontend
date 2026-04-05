@@ -3450,6 +3450,23 @@ class AdminApiService {
     return this.request<{ results: any[] }>('/hotspot/admin/plans/')
   }
 
+  // ------------------------------------------
+  // HOTSPOT CLIENTS - /hotspot/admin/clients/
+  // ------------------------------------------
+
+  /**
+   * Get list of transient hotspot clients with their lifetime stats and current session
+   * @param params - Optional filters (search, ordering, etc.)
+   */
+  async getHotspotClients(params?: Record<string, string>): Promise<any> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request(`/hotspot/admin/clients/${queryString}`)
+  }
+
+  async getHotspotClient(id: number): Promise<any> {
+    return this.request(`/hotspot/admin/clients/${id}/`)
+  }
+
 // ------------------------------------------
   // FAIR USAGE POLICY (FUP) - /fup/
   // ------------------------------------------
