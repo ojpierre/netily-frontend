@@ -337,6 +337,12 @@ export default function ReportsPage() {
                             name="Income"
                             fill={weekView === "this" ? C.blue : C.purple}
                             radius={[4, 4, 0, 0]}
+                            label={{
+                              position: "top",
+                              fontSize: 10,
+                              fill: "#64748b",
+                              formatter: (v: number) => v > 0 ? (v >= 1000 ? `${(v/1000).toFixed(0)}K` : `${v}`) : "",
+                            }}
                           />
                         </BarChart>
                       </ResponsiveContainer>
@@ -394,6 +400,12 @@ export default function ReportsPage() {
                             name="Earnings"
                             fill={yearView === "this" ? C.emerald : C.amber}
                             radius={[4, 4, 0, 0]}
+                            label={{
+                              position: "top",
+                              fontSize: 10,
+                              fill: "#64748b",
+                              formatter: (v: number) => v > 0 ? (v >= 1000 ? `${(v/1000).toFixed(0)}K` : `${v}`) : "",
+                            }}
                           />
                         </BarChart>
                       </ResponsiveContainer>

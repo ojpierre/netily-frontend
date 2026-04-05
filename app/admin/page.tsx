@@ -572,6 +572,12 @@ export default function AdminDashboard() {
                     name="Income"
                     fill={weekView === "this" ? "#3b82f6" : "#8b5cf6"}
                     radius={[4, 4, 0, 0]}
+                    label={{
+                      position: "top",
+                      fontSize: 10,
+                      fill: "#64748b",
+                      formatter: (v: number) => v > 0 ? (v >= 1000 ? `${(v/1000).toFixed(0)}K` : `${v}`) : "",
+                    }}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -656,6 +662,12 @@ export default function AdminDashboard() {
                     name="Earnings"
                     fill={yearView === "this" ? "#10b981" : "#f59e0b"}
                     radius={[4, 4, 0, 0]}
+                    label={{
+                      position: "top",
+                      fontSize: 10,
+                      fill: "#64748b",
+                      formatter: (v: number) => v > 0 ? (v >= 1000 ? `${(v/1000).toFixed(0)}K` : `${v}`) : "",
+                    }}
                   />
                 </BarChart>
               </ResponsiveContainer>
