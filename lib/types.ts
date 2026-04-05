@@ -2883,6 +2883,10 @@ export interface CustomerDashboardData {
     due_date: string
     status: string
   }>
+  weekly_income?: { day: string; amount: number }[]
+  last_week_income?: { day: string; amount: number }[]
+  monthly_earnings?: { month: string; amount: number }[]
+  last_year_earnings?: { month: string; amount: number }[]
 }
 
 export interface CustomerPaymentInitiateRequest {
