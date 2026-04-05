@@ -149,6 +149,10 @@ interface HotspotClientData {
     status: string;
     plan_name: string;
     expires_at: string;
+    created_at: string;        // Added
+    router_name: string;       // Added
+    access_code: string;       // Added
+    data_used_bytes: number;   // Added
   } | null;
 }
 
@@ -580,6 +584,18 @@ export default function UsersPage() {
     })
   }, [users, onlineSessions])
 
+  const activeHotspotClients = useMemo(() => {
+    return hotspotClients.filter(client => {
+      if (!client.current_session) return false;
+      
+      const isStatusActive = client.current_session.status === 'active' || client.current_session.status === 'paid';
+      const expiryDate = new Date(client.current_session.expires_at);
+      const isNotExpired = expiryDate > new Date();
+      
+      return isStatusActive && isNotExpired;
+    });
+  }, [hotspotClients]);
+
   const stats: UserStats = useMemo(() => {
     return {
       total: enrichedUsers.length,
@@ -590,9 +606,9 @@ export default function UsersPage() {
       online: enrichedUsers.filter(u => u.connectionStatus === "online").length,
       pppoe: enrichedUsers.filter(u => u.type === "pppoe").length,
       static: enrichedUsers.filter(u => u.type === "static").length,
-      hotspot: hotspotClients.length,
+      hotspot: activeHotspotClients.length,
     }
-  }, [enrichedUsers, hotspotClients])
+  }, [enrichedUsers, activeHotspotClients])
 
   const filteredUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
@@ -1861,9 +1877,9 @@ export default function UsersPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Smartphone className="w-5 h-5 text-pink-600" />
-                  Hotspot Clients ({hotspotClients.length})
+                  Active Hotspot Subscriptions ({activeHotspotClients.length})
                 </CardTitle>
-                <CardDescription>Transient users connecting via Captive Portal and Vouchers</CardDescription>
+                <CardDescription>Hotspot clients with currently active, unexpired vouchers.</CardDescription>
               </div>
               <Button variant="outline" size="icon" onClick={loadHotspotClients} disabled={hotspotLoading}>
                 <RefreshCw className={`w-4 h-4 ${hotspotLoading ? 'animate-spin' : ''}`} />
@@ -1875,66 +1891,59 @@ export default function UsersPage() {
               <div className="space-y-3">
                 {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
               </div>
-            ) : hotspotClients.length === 0 ? (
+            ) : activeHotspotClients.length === 0 ? (
               <div className="text-center py-12">
                 <Smartphone className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                <p className="text-slate-600 font-medium">No Hotspot clients found</p>
+                <p className="text-slate-600 font-medium">No active hotspot subscriptions</p>
               </div>
             ) : (
               <div className="rounded-lg border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Phone / MAC</TableHead>
-                      <TableHead>Current Plan</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Expiry</TableHead>
-                      <TableHead>Total Sessions</TableHead>
-                      <TableHead>Total Spend</TableHead>
+                      <TableHead>User / Code</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>Duration</TableHead>
+                      <TableHead>Router</TableHead>
+                      <TableHead>Usage</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {hotspotClients.map((client) => (
-                      <TableRow key={client.id}>
-                        <TableCell>
-                          <p className="font-medium text-slate-900">{client.canonical_phone}</p>
-                          <p className="text-xs text-slate-500">First seen: {new Date(client.first_seen_at).toLocaleDateString()}</p>
-                        </TableCell>
-                        <TableCell>
-                          {client.current_session ? (
+                    {activeHotspotClients.map((client) => {
+                      const session = client.current_session!;
+                      // Convert bytes to GB/MB automatically
+                      const dataUsedGB = (session.data_used_bytes || 0) / (1024 * 1024 * 1024);
+                      const usageDisplay = dataUsedGB < 0.1 
+                          ? `${((session.data_used_bytes || 0) / (1024 * 1024)).toFixed(2)} MB` 
+                          : `${dataUsedGB.toFixed(2)} GB`;
+
+                      return (
+                        <TableRow key={client.id}>
+                          <TableCell>
+                            <p className="font-medium text-slate-900">{session.access_code || client.canonical_phone}</p>
+                            <p className="text-xs text-slate-500">{client.canonical_phone}</p>
+                          </TableCell>
+                          <TableCell>
                             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                              {client.current_session.plan_name}
+                              {session.plan_name}
                             </Badge>
-                          ) : (
-                            <span className="text-slate-400 text-sm">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {client.current_session?.status === 'active' ? (
-                            <Badge className="bg-emerald-100 text-emerald-700">Active</Badge>
-                          ) : client.current_session?.status === 'expired' ? (
-                            <Badge className="bg-red-100 text-red-700">Expired</Badge>
-                          ) : (
-                            <Badge className="bg-slate-100 text-slate-700">Inactive</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {client.current_session?.expires_at ? (
-                            <span className="text-sm">
-                              {new Date(client.current_session.expires_at).toLocaleString()}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 text-sm">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm font-medium">{client.total_sessions}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm font-medium text-slate-700">KES {parseFloat(client.total_spend).toLocaleString()}</span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-xs text-slate-600 space-y-1">
+                              <p><span className="font-medium text-slate-400">Sub:</span> {new Date(session.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
+                              <p><span className="font-medium text-slate-400">Exp:</span> {new Date(session.expires_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm font-medium">{session.router_name || "Unknown"}</p>
+                            <p className="text-xs text-slate-500">Hotspot</p>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm font-medium text-slate-700">{usageDisplay}</span>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </div>
