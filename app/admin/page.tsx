@@ -59,6 +59,7 @@ interface DashboardData {
   payments: PaymentDashboardStats | null
   tickets: SupportTicketStats | null
   recentActivity: ActivityItem[]
+  reports: any | null
 }
 
 interface ActivityItem {
@@ -104,6 +105,7 @@ export default function AdminDashboard() {
     payments: null,
     tickets: null,
     recentActivity: [],
+    reports: null,
   })
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [weekView, setWeekView] = useState<"this" | "last">("this")
@@ -114,11 +116,12 @@ export default function AdminDashboard() {
       setError(null)
 
       // Fetch all dashboard data in parallel — each call is independent
-      const [coreRes, routerRes, paymentRes, ticketRes] = await Promise.allSettled([
+      const [coreRes, routerRes, paymentRes, ticketRes, reportsRes] = await Promise.allSettled([
         adminApi.getDashboard(),
         adminApi.getRouterDashboardStats(),
         adminApi.getPaymentDashboardStats(),
         adminApi.getTicketStats(),
+        adminApi.getReportsData("30d"),
       ])
 
       setData({
@@ -130,6 +133,7 @@ export default function AdminDashboard() {
           coreRes.status === "fulfilled" && (coreRes.value as any)?.recent_activity
             ? (coreRes.value as any).recent_activity
             : [],
+        reports: reportsRes.status === "fulfilled" ? reportsRes.value : null,
       })
     } catch (err: any) {
       console.error("Dashboard fetch error:", err)
@@ -532,8 +536,8 @@ export default function AdminDashboard() {
                 <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
               </div>
             ) : !(weekView === "this"
-                ? (data.core as any)?.weekly_income
-                : (data.core as any)?.last_week_income
+                ? data.reports?.overview?.weekly_income
+                : data.reports?.overview?.last_week_income
               )?.length ? (
               <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-slate-400">
                 <BarChart3 className="w-10 h-10 opacity-30" />
@@ -544,8 +548,8 @@ export default function AdminDashboard() {
                 <BarChart
                   data={
                     weekView === "this"
-                      ? (data.core as any)?.weekly_income
-                      : (data.core as any)?.last_week_income
+                      ? data.reports?.overview?.weekly_income
+                      : data.reports?.overview?.last_week_income
                   }
                   barSize={28}
                   margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
@@ -616,8 +620,8 @@ export default function AdminDashboard() {
                 <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
               </div>
             ) : !(yearView === "this"
-                ? (data.core as any)?.monthly_earnings
-                : (data.core as any)?.last_year_earnings
+                ? data.reports?.overview?.monthly_earnings
+                : data.reports?.overview?.last_year_earnings
               )?.length ? (
               <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-slate-400">
                 <BarChart3 className="w-10 h-10 opacity-30" />
@@ -628,8 +632,8 @@ export default function AdminDashboard() {
                 <BarChart
                   data={
                     yearView === "this"
-                      ? (data.core as any)?.monthly_earnings
-                      : (data.core as any)?.last_year_earnings
+                      ? data.reports?.overview?.monthly_earnings
+                      : data.reports?.overview?.last_year_earnings
                   }
                   barSize={18}
                   margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
