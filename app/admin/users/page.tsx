@@ -31,6 +31,7 @@ import {
   UserCheck,
   Power,
   Copy,
+  Smartphone,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
 import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession } from "@/lib/types"
@@ -135,6 +136,22 @@ interface User {
   liveUsageString?: string // Added for precise real-time usage display
 }
 
+interface HotspotClientData {
+  id: number;
+  canonical_phone: string;
+  email: string | null;
+  external_client_id: string | null;
+  total_spend: string;
+  total_sessions: number;
+  first_seen_at: string;
+  last_seen_at: string;
+  current_session: {
+    status: string;
+    plan_name: string;
+    expires_at: string;
+  } | null;
+}
+
 interface UserStats {
   total: number
   active: number
@@ -144,7 +161,7 @@ interface UserStats {
   online: number
   pppoe: number
   static: number
-  fiber: number
+  hotspot: number // Added hotspot, removed fiber
 }
 
 // Helper: Map backend Customer to frontend User display type
@@ -204,7 +221,7 @@ const mapCustomerToUser = (customer: Customer): User => {
     plan: primaryService?.plan?.name || "No Plan",
     planPrice: primaryService?.plan?.price ? parseFloat(String(primaryService.plan.price)) : 0,
     joinedDate: safeDate(customer.created_at),
-    expiryDate: safeDate(actualExpiryDate), // <--- NOW USING ACCURATE RADIUS DATE
+    expiryDate: safeDate(actualExpiryDate),
     lastOnline: isOnline ? "Now" : (primaryService?.last_seen ? new Date(primaryService.last_seen).toLocaleString() : "Never"),
     dataUsed: primaryService?.data_used || 0,
     dataLimit: primaryService?.data_limit || null,
@@ -232,6 +249,9 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [users, setUsers] = useState<User[]>([])
+  // Hotspot State
+  const [hotspotClients, setHotspotClients] = useState<HotspotClientData[]>([])
+  const [hotspotLoading, setHotspotLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
@@ -303,6 +323,7 @@ export default function UsersPage() {
     loadUsers()
     loadPlans()
     loadOnlineSessions()
+    loadHotspotClients()
   }, [])
 
   const loadPlans = async () => {
@@ -327,6 +348,18 @@ export default function UsersPage() {
       setOnlineSessions([])
     } finally {
       setOnlineSessionsLoading(false)
+    }
+  }
+
+  const loadHotspotClients = async () => {
+    try {
+      setHotspotLoading(true)
+      const response = adminApi.getHotspotClients ? await adminApi.getHotspotClients() : { results: [] }
+      setHotspotClients(response.results || response || [])
+    } catch (err) {
+      console.error('Failed to load hotspot clients:', err)
+    } finally {
+      setHotspotLoading(false)
     }
   }
 
@@ -407,7 +440,7 @@ export default function UsersPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await Promise.all([loadUsers(), loadOnlineSessions()])
+    await Promise.all([loadUsers(), loadOnlineSessions(), loadHotspotClients()])
     setRefreshing(false)
   }
 
@@ -509,21 +542,10 @@ export default function UsersPage() {
     }
   }
 
-  // FIX: Dynamically merge live online session data with the static customer list
-  // Match by RADIUS username OR phone number (for Hotspot users)
   const enrichedUsers = useMemo(() => {
     return users.map((user) => {
       const session = onlineSessions.find((s) => {
-        // Match by strict RADIUS username if available
         if (user.radiusCredentials?.username && s.username === user.radiusCredentials.username) return true;
-        // Fallback: Match by phone number (common for Hotspot users without static radius credentials)
-        if (user.phone && s.phone_number) {
-          const cleanUserPhone = user.phone.replace(/\D/g, '');
-          const cleanSessionPhone = s.phone_number.replace(/\D/g, '');
-          if (cleanUserPhone.length >= 9 && cleanSessionPhone.length >= 9 && cleanUserPhone.slice(-9) === cleanSessionPhone.slice(-9)) {
-            return true;
-          }
-        }
         return false;
       })
 
@@ -568,18 +590,16 @@ export default function UsersPage() {
       online: enrichedUsers.filter(u => u.connectionStatus === "online").length,
       pppoe: enrichedUsers.filter(u => u.type === "pppoe").length,
       static: enrichedUsers.filter(u => u.type === "static").length,
-      fiber: enrichedUsers.filter(u => u.type === "fiber").length,
+      hotspot: hotspotClients.length,
     }
-  }, [enrichedUsers])
+  }, [enrichedUsers, hotspotClients])
 
   const filteredUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
       const matchesTab = 
         activeTab === "all" ||
         (activeTab === "pppoe" && user.type === "pppoe") ||
-        (activeTab === "static" && user.type === "static") ||
-        (activeTab === "fiber" && user.type === "fiber") ||
-        (activeTab === "online" && user.connectionStatus === "online")
+        (activeTab === "static" && user.type === "static")
 
       const matchesSearch = !searchQuery || (
         (user.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
@@ -615,7 +635,6 @@ export default function UsersPage() {
     })
   }, [onlineSessions, onlineSearchQuery, onlineServiceFilter])
 
-  // FIX: Active subscriptions - reject expired users and "No Plan" (voucher) users
   const activeSubscriptionUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
       const expiryDate = new Date(user.expiryDate)
@@ -624,7 +643,6 @@ export default function UsersPage() {
       
       const hasPlan = user.plan !== "No Plan"
       
-      // Explicitly reject expired users and hotspot users with no base subscription
       const isActive = (user.status === "active" || user.status === "pending") && !isExpired && hasPlan
 
       const matchesSearch = !activeSearchQuery || (
@@ -1258,7 +1276,7 @@ export default function UsersPage() {
           </CardContent>
         </Card>
         
-        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${activeTab === 'online' ? 'ring-2 ring-emerald-400' : ''}`} onClick={() => { setActiveTab("online"); setStatusFilter("all"); }}>
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${activeTab === 'online-sessions' ? 'ring-2 ring-emerald-400' : ''}`} onClick={() => { setActiveTab("online-sessions"); setStatusFilter("all"); }}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-emerald-100 rounded-lg">
@@ -1355,12 +1373,27 @@ export default function UsersPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Hotspot Card */}
+        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${activeTab === 'hotspot' ? 'ring-2 ring-pink-400' : ''}`} onClick={() => { setActiveTab("hotspot"); setStatusFilter("all"); }}>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-pink-100 rounded-lg">
+                <Smartphone className="w-4 h-4 text-pink-600" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-pink-600">{stats.hotspot}</p>
+                <p className="text-xs text-slate-500">Hotspot</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Connection Type Tabs */}
       <div className="flex flex-col gap-3">
         <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); if (!['all'].includes(val)) setStatusFilter('all'); if (val === 'online-sessions') loadOnlineSessions(); }} className="w-full">
-          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 lg:w-auto lg:inline-grid">
             <TabsTrigger value="all" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">All Users</span>
@@ -1371,7 +1404,7 @@ export default function UsersPage() {
             </TabsTrigger>
             <TabsTrigger value="active-subs" className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Active</span>
+              <span className="hidden sm:inline">Active Subs</span>
             </TabsTrigger>
             <TabsTrigger value="pppoe" className="flex items-center gap-2">
               <Globe className="w-4 h-4" />
@@ -1381,19 +1414,15 @@ export default function UsersPage() {
               <Server className="w-4 h-4" />
               <span className="hidden sm:inline">Static IP</span>
             </TabsTrigger>
-            <TabsTrigger value="fiber" className="flex items-center gap-2">
-              <Signal className="w-4 h-4" />
-              <span className="hidden sm:inline">Fiber</span>
-            </TabsTrigger>
-            <TabsTrigger value="online" className="flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              <span className="hidden sm:inline">Connected</span>
+            <TabsTrigger value="hotspot" className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4" />
+              <span className="hidden sm:inline">Hotspot</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
 
         {/* Status Filter Chips */}
-        {!["online-sessions", "active-subs"].includes(activeTab) && (
+        {!["online-sessions", "active-subs", "hotspot"].includes(activeTab) && (
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-medium text-slate-500 mr-1">Status:</span>
           {[
@@ -1425,7 +1454,7 @@ export default function UsersPage() {
       </div>
 
       {/* Filters & Search */}
-      {!["online-sessions", "active-subs"].includes(activeTab) && (
+      {!["online-sessions", "active-subs", "hotspot"].includes(activeTab) && (
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-4">
@@ -1824,17 +1853,104 @@ export default function UsersPage() {
         </Card>
       )}
 
-      {/* Users Table (for All/PPPoE/Static/Fiber/Online tabs) */}
-      {!["online-sessions", "active-subs"].includes(activeTab) && (
+      {/* ── Hotspot Clients Tab ── */}
+      {activeTab === "hotspot" && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Smartphone className="w-5 h-5 text-pink-600" />
+                  Hotspot Clients ({hotspotClients.length})
+                </CardTitle>
+                <CardDescription>Transient users connecting via Captive Portal and Vouchers</CardDescription>
+              </div>
+              <Button variant="outline" size="icon" onClick={loadHotspotClients} disabled={hotspotLoading}>
+                <RefreshCw className={`w-4 h-4 ${hotspotLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {hotspotLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
+              </div>
+            ) : hotspotClients.length === 0 ? (
+              <div className="text-center py-12">
+                <Smartphone className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+                <p className="text-slate-600 font-medium">No Hotspot clients found</p>
+              </div>
+            ) : (
+              <div className="rounded-lg border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Phone / MAC</TableHead>
+                      <TableHead>Current Plan</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Expiry</TableHead>
+                      <TableHead>Total Sessions</TableHead>
+                      <TableHead>Total Spend</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {hotspotClients.map((client) => (
+                      <TableRow key={client.id}>
+                        <TableCell>
+                          <p className="font-medium text-slate-900">{client.canonical_phone}</p>
+                          <p className="text-xs text-slate-500">First seen: {new Date(client.first_seen_at).toLocaleDateString()}</p>
+                        </TableCell>
+                        <TableCell>
+                          {client.current_session ? (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              {client.current_session.plan_name}
+                            </Badge>
+                          ) : (
+                            <span className="text-slate-400 text-sm">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {client.current_session?.status === 'active' ? (
+                            <Badge className="bg-emerald-100 text-emerald-700">Active</Badge>
+                          ) : client.current_session?.status === 'expired' ? (
+                            <Badge className="bg-red-100 text-red-700">Expired</Badge>
+                          ) : (
+                            <Badge className="bg-slate-100 text-slate-700">Inactive</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {client.current_session?.expires_at ? (
+                            <span className="text-sm">
+                              {new Date(client.current_session.expires_at).toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-sm">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm font-medium">{client.total_sessions}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm font-medium text-slate-700">KES {parseFloat(client.total_spend).toLocaleString()}</span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Users Table (for All/PPPoE/Static tabs) */}
+      {!["online-sessions", "active-subs", "hotspot"].includes(activeTab) && (
       <Card>
         <CardHeader>
           <CardTitle>
             {activeTab === "all" && "All Users"}
-            {activeTab === "hotspot" && "Hotspot Users"}
             {activeTab === "pppoe" && "PPPoE Users"}
             {activeTab === "static" && "Static IP Users"}
-            {activeTab === "fiber" && "Fiber Users"}
-            {activeTab === "online" && "Online Users"}
             {statusFilter !== "all" && ` — ${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`}
             {" "}({filteredUsers.length})
           </CardTitle>
