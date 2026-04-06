@@ -157,6 +157,7 @@ import type {
   VoucherGeneratePayload,
   VoucherGenerateResponse,
   VoucherListResponse,
+  ActiveSubscriptionsResponse,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -3466,6 +3467,11 @@ class AdminApiService {
   async getHotspotClient(id: number): Promise<any> {
     return this.request(`/hotspot/admin/clients/${id}/`)
   }
+
+    // ADD THIS NEW METHOD ↓
+async getActiveSubscriptions(): Promise<ActiveSubscriptionsResponse> {
+  return this.request<ActiveSubscriptionsResponse>('/hotspot/admin/active-subscriptions/')
+}
 
 // ------------------------------------------
   // FAIR USAGE POLICY (FUP) - /fup/

@@ -157,6 +157,30 @@ interface HotspotClientData {
   } | null;
 }
 
+interface ActiveSubscription {
+  id: number;
+  username: string;
+  canonical_username: string;
+  phone: string;
+  full_name: string;
+  plan_name: string;
+  plan_price: string;
+  expiry_date: string;
+  hours_left: number;
+  days_left: number;
+  router: string;
+  mac_address: string | null;
+  session_id: string | null;
+  data_used_mb: number;
+  service_type: "PPPOE" | "HOTSPOT" | "STATIC";
+}
+
+interface ActiveSubscriptionsResponse {
+  pppoe: ActiveSubscription[];
+  hotspot: ActiveSubscription[];
+  total: number;
+}
+
 interface UserStats {
   total: number
   active: number
@@ -254,6 +278,7 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [hotspotClients, setHotspotClients] = useState<HotspotClientData[]>([])
+  const [activeSubscriptions, setActiveSubscriptions] = useState<ActiveSubscriptionsResponse>({ pppoe: [], hotspot: [], total: 0 })
   const [hotspotLoading, setHotspotLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -327,6 +352,7 @@ export default function UsersPage() {
     loadPlans()
     loadOnlineSessions()
     loadHotspotClients()
+    loadActiveSubscriptions()
   }, [])
 
   const loadPlans = async () => {
@@ -361,6 +387,19 @@ export default function UsersPage() {
       setHotspotClients(response.results || response || [])
     } catch (err) {
       console.error('Failed to load hotspot clients:', err)
+    } finally {
+      setHotspotLoading(false)
+    }
+  }
+
+  // NEW: Load active subscriptions from the unified endpoint
+  const loadActiveSubscriptions = async () => {
+    try {
+      setHotspotLoading(true)
+      const response = await adminApi.getActiveSubscriptions?.() || { pppoe: [], hotspot: [], total: 0 }
+      setActiveSubscriptions(response)
+    } catch (err) {
+      console.error('Failed to load active subscriptions:', err)
     } finally {
       setHotspotLoading(false)
     }
@@ -443,7 +482,7 @@ export default function UsersPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await Promise.all([loadUsers(), loadOnlineSessions(), loadHotspotClients()])
+    await Promise.all([loadUsers(), loadOnlineSessions(), loadHotspotClients(), loadActiveSubscriptions()])
     setRefreshing(false)
   }
 
@@ -594,6 +633,10 @@ export default function UsersPage() {
   }, [hotspotClients]);
 
   const stats: UserStats = useMemo(() => {
+    // Use the new active subscriptions endpoint for hotspot count
+    const hotspotCount = activeSubscriptions.hotspot?.length || 0;
+    const pppoeCount = activeSubscriptions.pppoe?.length || 0;
+    
     return {
       total: enrichedUsers.length,
       active: enrichedUsers.filter(u => u.status === "active").length,
@@ -603,9 +646,9 @@ export default function UsersPage() {
       online: enrichedUsers.filter(u => u.connectionStatus === "online").length,
       pppoe: enrichedUsers.filter(u => u.type === "pppoe").length,
       static: enrichedUsers.filter(u => u.type === "static").length,
-      hotspot: activeHotspotClients.length,
+      hotspot: hotspotCount + pppoeCount, // Combined active subscriptions count
     }
-  }, [enrichedUsers, activeHotspotClients])
+  }, [enrichedUsers, activeSubscriptions])
 
   const filteredUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
@@ -1396,7 +1439,7 @@ export default function UsersPage() {
               </div>
               <div>
                 <p className="text-xl font-bold text-pink-600">{stats.hotspot}</p>
-                <p className="text-xs text-slate-500">Hotspot</p>
+                <p className="text-xs text-slate-500">Active Subs</p>
               </div>
             </div>
           </CardContent>
@@ -1624,8 +1667,15 @@ export default function UsersPage() {
                               {session.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                             </div>
                             <div>
-                              <p className="font-medium text-slate-900">{session.full_name}</p>
-                              <p className="text-xs text-slate-500">{session.phone_number}</p>
+                              {/* FIXED: Show canonical_username for hotspot, full name for PPPoE */}
+                              <p className="font-medium text-slate-900">
+                                {(session as any).canonical_username ? (session as any).canonical_username : session.full_name}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {(session as any).canonical_username ? (
+                                  <span className="text-pink-600 font-medium">Hotspot</span>
+                                ) : session.phone_number}
+                              </p>
                             </div>
                           </div>
                         </TableCell>
@@ -1874,11 +1924,11 @@ export default function UsersPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Smartphone className="w-5 h-5 text-pink-600" />
-                  Active Hotspot Subscriptions ({activeHotspotClients.length})
+                  Active Hotspot Subscriptions ({activeSubscriptions.hotspot?.length || 0})
                 </CardTitle>
                 <CardDescription>Hotspot clients with currently active, unexpired vouchers.</CardDescription>
               </div>
-              <Button variant="outline" size="icon" onClick={loadHotspotClients} disabled={hotspotLoading}>
+              <Button variant="outline" size="icon" onClick={loadActiveSubscriptions} disabled={hotspotLoading}>
                 <RefreshCw className={`w-4 h-4 ${hotspotLoading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
@@ -1888,7 +1938,7 @@ export default function UsersPage() {
               <div className="space-y-3">
                 {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
               </div>
-            ) : activeHotspotClients.length === 0 ? (
+            ) : !activeSubscriptions.hotspot?.length ? (
               <div className="text-center py-12">
                 <Smartphone className="w-12 h-12 mx-auto mb-4 text-slate-300" />
                 <p className="text-slate-600 font-medium">No active hotspot subscriptions</p>
@@ -1898,7 +1948,7 @@ export default function UsersPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>User / Receipt</TableHead>
+                      <TableHead>User / Access Code</TableHead>
                       <TableHead>Plan</TableHead>
                       <TableHead>Duration</TableHead>
                       <TableHead>Connection</TableHead>
@@ -1906,46 +1956,47 @@ export default function UsersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {activeHotspotClients.map((client) => {
-                      const session = client.current_session!;
-                      
-                      const dataUsedMB = session.data_used_mb || 0;
-                      const usageDisplay = dataUsedMB >= 1024 
-                          ? `${(dataUsedMB / 1024).toFixed(2)} GB` 
-                          : `${dataUsedMB.toFixed(2)} MB`;
+                    {activeSubscriptions.hotspot.map((item) => {
+                      const dataUsedDisplay = item.data_used_mb >= 1024 
+                          ? `${(item.data_used_mb / 1024).toFixed(2)} GB` 
+                          : `${item.data_used_mb.toFixed(2)} MB`;
 
                       return (
-                        <TableRow key={client.id}>
+                        <TableRow key={item.id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-white font-medium text-xs">
                                 HS
                               </div>
                               <div>
-                                <p className="font-medium text-slate-900">{session.access_code || client.canonical_phone}</p>
-                                <p className="text-xs text-slate-500">{session.mpesa_receipt || client.canonical_phone}</p>
+                                {/* FIXED: Use canonical_username from new endpoint */}
+                                <p className="font-medium text-slate-900 font-mono">{item.canonical_username}</p>
+                                <p className="text-xs text-slate-500">{item.phone}</p>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="bg-pink-50 text-pink-700 border-pink-200">
-                              {session.plan_name}
+                              {item.plan_name}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <div className="text-xs text-slate-600 space-y-1">
-                              <p><span className="font-medium text-slate-400">Sub:</span> {new Date(session.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
-                              <p><span className="font-medium text-slate-400">Exp:</span> {new Date(session.expires_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-amber-600">{item.hours_left}h left</p>
+                              <p className="text-xs text-slate-500">Expires: {new Date(item.expiry_date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <p className="text-sm font-medium">Router #{session.router_id}</p>
+                            <p className="text-sm font-medium">{item.router || '—'}</p>
                             <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                               <Wifi className="w-3 h-3 text-pink-500" /> Hotspot
                             </p>
+                            {item.mac_address && (
+                              <p className="text-xs font-mono text-slate-400">{item.mac_address}</p>
+                            )}
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm font-medium text-slate-700">{usageDisplay}</span>
+                            <span className="text-sm font-medium text-slate-700">{dataUsedDisplay}</span>
                           </TableCell>
                         </TableRow>
                       )

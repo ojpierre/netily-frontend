@@ -2669,6 +2669,36 @@ export interface OnlineSession {
   usage: string
   router: string
   service_type: string
+  canonical_username: string | null  // ADD THIS LINE
+}
+
+export interface ActiveSubscription {
+  type: "pppoe" | "hotspot"
+  username: string
+  canonical_username: string | null
+  display_name: string
+  phone: string | null
+  email: string | null
+  customer_code: string | null
+  plan_name: string
+  plan_price: number
+  expiry_date: string | null
+  days_left: number | null
+  hours_left: number
+  is_unlimited: boolean
+  connection_type: string
+  subscribed_at: string | null
+  router: string | null
+  mac_address: string | null
+  session_id: string | null
+  client_total_sessions: number
+  client_total_spend: number
+}
+
+export interface ActiveSubscriptionsResponse {
+  pppoe: ActiveSubscription[]
+  hotspot: ActiveSubscription[]
+  total: number
 }
 
 export interface RADIUSDashboardStats {
