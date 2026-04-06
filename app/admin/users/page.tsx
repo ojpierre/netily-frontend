@@ -1957,9 +1957,10 @@ export default function UsersPage() {
                   </TableHeader>
                   <TableBody>
                     {activeSubscriptions.hotspot.map((item) => {
-                      const dataUsedDisplay = item.data_used_mb >= 1024 
-                          ? `${(item.data_used_mb / 1024).toFixed(2)} GB` 
-                          : `${item.data_used_mb.toFixed(2)} MB`;
+                      const dataUsedMb = item.data_used_mb ?? 0;
+                      const dataUsedDisplay = dataUsedMb >= 1024 
+                          ? `${(dataUsedMb / 1024).toFixed(2)} GB` 
+                          : `${dataUsedMb.toFixed(2)} MB`;
 
                       return (
                         <TableRow key={item.id}>
