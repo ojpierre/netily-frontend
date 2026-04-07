@@ -632,10 +632,15 @@ export default function UsersPage() {
     });
   }, [hotspotClients]);
 
+  // FIXED: stats.online now uses onlineSessions.length (true online count from RADIUS)
+  // Added activeSubscriptions.total for the new card
   const stats: UserStats = useMemo(() => {
     // Use the new active subscriptions endpoint for hotspot count
     const hotspotCount = activeSubscriptions.hotspot?.length || 0;
     const pppoeCount = activeSubscriptions.pppoe?.length || 0;
+    
+    // FIXED: Online count uses onlineSessions.length (includes both PPPoE and Hotspot)
+    const onlineCount = onlineSessions.length;
     
     return {
       total: enrichedUsers.length,
@@ -643,12 +648,12 @@ export default function UsersPage() {
       pending: enrichedUsers.filter(u => u.status === "pending").length,
       suspended: enrichedUsers.filter(u => u.status === "suspended").length,
       expired: enrichedUsers.filter(u => u.status === "expired").length,
-      online: enrichedUsers.filter(u => u.connectionStatus === "online").length,
+      online: onlineCount,  // FIXED: Now uses actual online sessions
       pppoe: enrichedUsers.filter(u => u.type === "pppoe").length,
       static: enrichedUsers.filter(u => u.type === "static").length,
       hotspot: hotspotCount + pppoeCount, // Combined active subscriptions count
     }
-  }, [enrichedUsers, activeSubscriptions])
+  }, [enrichedUsers, activeSubscriptions, onlineSessions])
 
   const filteredUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
@@ -993,6 +998,9 @@ export default function UsersPage() {
     toast.success(`${label} copied to clipboard`)
   }
 
+  // Calculate total active subscriptions (PPPoE + Hotspot from activeSubscriptions)
+  const totalActiveSubscriptions = (activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0)
+
   if (error) {
     return (
       <div className="space-y-6">
@@ -1316,8 +1324,8 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+      {/* Stats Cards - Updated with new Online vs Active Subs card and grid layout */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
         <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'all' && activeTab === 'all' ? 'ring-2 ring-slate-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("all"); }}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
@@ -1440,6 +1448,44 @@ export default function UsersPage() {
               <div>
                 <p className="text-xl font-bold text-pink-600">{stats.hotspot}</p>
                 <p className="text-xs text-slate-500">Active Subs</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* NEW: Online vs Active Subs Card */}
+        <Card className="col-span-2 md:col-span-2 cursor-pointer hover:shadow-md transition-shadow border-2 border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50" onClick={() => { setActiveTab("online-sessions"); setStatusFilter("all"); }}>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-blue-100 rounded-lg">
+                  <Wifi className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Online / Active</p>
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-xl font-bold text-blue-600">{stats.online}</p>
+                    <p className="text-sm text-slate-400">/</p>
+                    <p className="text-xl font-bold text-slate-700">{totalActiveSubscriptions}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(100, totalActiveSubscriptions > 0
+                        ? (stats.online / totalActiveSubscriptions) * 100
+                        : 0)}%`
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {totalActiveSubscriptions > 0
+                    ? `${Math.round((stats.online / totalActiveSubscriptions) * 100)}%`
+                    : '0%'} online
+                </p>
               </div>
             </div>
           </CardContent>
