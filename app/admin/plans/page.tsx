@@ -386,9 +386,9 @@ export default function PlansPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [planToDelete, setPlanToDelete] = useState<Plan | null>(null)
 
-  // Router state for hotspot plans
+  // Router state for hotspot plans - updated to accept 'all'
   const [routers, setRouters] = useState<Router[]>([])
-  const [selectedRouterId, setSelectedRouterId] = useState<number | null>(null)
+  const [selectedRouterId, setSelectedRouterId] = useState<number | 'all' | null>(null)
   const [routersLoading, setRoutersLoading] = useState(false)
 
   // Filter states
@@ -503,105 +503,54 @@ export default function PlansPage() {
     try {
       const res = await adminApi.getRouters({ is_active: 'true' })
       setRouters(res.results || [])
-    } catch (error) {
-      console.error('Failed to fetch routers:', error)
     } finally {
       setRoutersLoading(false)
     }
   }, [routers.length])
 
-  // Hotspot quick-create from preset — creates HotspotPlan linked to selected router
-  const handleHotspotPresetCreate = async (preset: HotspotPreset) => {
-    if (!selectedRouterId) {
-      toast.error('Please select a router first')
-      return
-    }
-    setHotspotCreating(true)
+  // NEW: Fetch hotspot plans from all routers
+  const fetchAllHotspotPlans = useCallback(async () => {
     try {
-      await adminApi.createHotspotPlan(selectedRouterId, {
-        name: preset.config.name,
-        price: preset.config.base_price.toString(),
-        validity_type: preset.config.validity_type === 'MINUTES' ? 'MINUTES' :
-                       preset.config.validity_type === 'HOURS' ? 'HOURS' : 'DAYS',
-        validity_value: preset.config.validity_type === 'MINUTES' ? preset.config.validity_minutes! :
-                        preset.config.validity_type === 'HOURS' ? preset.config.validity_hours! :
-                        preset.config.duration_days!,
-        download_speed: preset.config.download_speed,
-        upload_speed: preset.config.upload_speed,
-        simultaneous_devices: preset.config.max_sessions || 1,
-        is_active: true,
-        is_popular: false,
-      } as any)
-      toast.success(`"${preset.config.name}" plan created for selected router!`)
-      fetchPlans()
-      fetchDashboardStats()
-      if (selectedRouterId) fetchHotspotPlans(selectedRouterId)
-    } catch (error: any) {
-      toast.error(error.message || `Failed to create ${preset.name} plan`)
-    } finally {
-      setHotspotCreating(false)
-    }
-  }
-
-  // Hotspot custom create handler — creates HotspotPlan linked to selected router
-  const handleHotspotCustomCreate = async () => {
-    if (!hotspotForm.name || !hotspotForm.price) {
-      toast.error('Name and price are required')
-      return
-    }
-    if (!selectedRouterId) {
-      toast.error('Please select a router first')
-      return
-    }
-    setHotspotCreating(true)
-    try {
-      const validityType = hotspotForm.validity_type as 'MINUTES' | 'HOURS' | 'DAYS' | 'UNLIMITED'
-      const validityValue = validityType === 'MINUTES' ? parseInt(hotspotForm.validity_minutes) :
-                            validityType === 'HOURS' ? parseInt(hotspotForm.validity_hours) :
-                            validityType === 'DAYS' ? parseInt(hotspotForm.duration_days) : 0
-
-      await adminApi.createHotspotPlan(selectedRouterId, {
-        name: hotspotForm.name,
-        description: hotspotForm.description || undefined,
-        price: hotspotForm.price,
-        validity_type: validityType,
-        validity_value: validityValue || 1,
-        download_speed: hotspotForm.download_speed ? parseInt(hotspotForm.download_speed) : 10,
-        upload_speed: hotspotForm.upload_speed ? parseInt(hotspotForm.upload_speed) : 5,
-        simultaneous_devices: hotspotForm.max_sessions ? parseInt(hotspotForm.max_sessions) : 1,
-        is_active: true,
-        is_popular: false,
-      } as any)
-      toast.success('Hotspot plan created!')
-      setIsHotspotCreateOpen(false)
-      setHotspotForm({ name: '', price: '', download_speed: '', upload_speed: '', validity_type: 'HOURS', duration_days: '1', validity_hours: '1', validity_minutes: '30', max_sessions: '1', description: '', features: '' })
-      fetchPlans()
-      fetchDashboardStats()
-      if (selectedRouterId) fetchHotspotPlans(selectedRouterId)
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create hotspot plan')
-    } finally {
-      setHotspotCreating(false)
-    }
-  }
-
-  // Fetch data
-  const fetchPlans = useCallback(async () => {
-    try {
-      const params: Record<string, string> = { ordering: '-created_at' }
-      if (activeTab !== 'all') {
-        params.plan_type = activeTab.toUpperCase()
+      const allPlans: Plan[] = []
+      for (const r of routers) {
+        const hPlans = await adminApi.getHotspotPlans(r.id)
+        const mapped: Plan[] = hPlans.map((hp: any) => ({
+          id: hp.id,
+          name: hp.name,
+          code: '',
+          plan_type: 'HOTSPOT' as PlanType,
+          description: hp.description || '',
+          base_price: hp.price,
+          price: hp.price,
+          download_speed: hp.download_speed,
+          upload_speed: hp.upload_speed,
+          speed_unit: hp.speed_unit || 'MBPS',
+          validity_type: hp.validity_type || 'HOURS',
+          validity_hours: hp.validity_type === 'HOURS' ? hp.validity_value : undefined,
+          validity_minutes: hp.validity_type === 'MINUTES' ? hp.validity_value : undefined,
+          duration_days: hp.validity_type === 'DAYS' ? hp.validity_value : undefined,
+          validity_display: hp.duration_display,
+          max_sessions: hp.simultaneous_devices,
+          is_active: hp.is_active,
+          is_public: true,
+          is_popular: hp.is_popular,
+          features: [],
+          subscriber_count: 0,
+          created_at: hp.created_at,
+          updated_at: hp.updated_at,
+          _isHotspotPlan: true,
+          _hotspotPlanId: hp.id,
+          _routerId: r.id,
+          _routerName: r.name,
+        })) as any[]
+        allPlans.push(...mapped)
       }
-
-      const response = await adminApi.getPlans(params)
-      setPlans(response.results || [])
+      setHotspotPlans(allPlans)
     } catch (error) {
-      console.error('Failed to fetch plans:', error)
-      toast.error('Failed to load plans')
-    } finally {
-      setIsLoading(false)
+      console.error('Failed to fetch all hotspot plans:', error)
+      setHotspotPlans([])
     }
-  }, [activeTab])
+  }, [routers])
 
   // Fetch HotspotPlan records for a specific router
   const fetchHotspotPlans = useCallback(async (routerId: number) => {
@@ -643,12 +592,34 @@ export default function PlansPage() {
     }
   }, [])
 
-  // Fetch hotspot plans when router changes
+  // Fetch hotspot plans when router changes - updated for 'all'
   useEffect(() => {
-    if (activeTab === 'hotspot' && selectedRouterId) {
-      fetchHotspotPlans(selectedRouterId)
+    if (activeTab === 'hotspot') {
+      if (selectedRouterId === 'all' && routers.length > 0) {
+        fetchAllHotspotPlans()
+      } else if (selectedRouterId && selectedRouterId !== 'all') {
+        fetchHotspotPlans(selectedRouterId as number)
+      }
     }
-  }, [activeTab, selectedRouterId, fetchHotspotPlans])
+  }, [activeTab, selectedRouterId, fetchHotspotPlans, fetchAllHotspotPlans, routers.length])
+
+  // Fetch data
+  const fetchPlans = useCallback(async () => {
+    try {
+      const params: Record<string, string> = { ordering: '-created_at' }
+      if (activeTab !== 'all') {
+        params.plan_type = activeTab.toUpperCase()
+      }
+
+      const response = await adminApi.getPlans(params)
+      setPlans(response.results || [])
+    } catch (error) {
+      console.error('Failed to fetch plans:', error)
+      toast.error('Failed to load plans')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [activeTab])
 
   useEffect(() => {
     if (!hasFetchedRef.current) {
@@ -658,7 +629,7 @@ export default function PlansPage() {
       loadSubnetPrefixOptions()
       fetchRouters()
     }
-  }, [fetchPlans, fetchDashboardStats])
+  }, [fetchPlans, fetchDashboardStats, loadSubnetPrefixOptions, fetchRouters])
 
   // Re-fetch when tab changes
   useEffect(() => {
@@ -667,12 +638,16 @@ export default function PlansPage() {
     }
   }, [activeTab, fetchPlans])
 
-  // Refresh
+  // Refresh - updated for 'all'
   const handleRefresh = async () => {
     setIsRefreshing(true)
     const refreshTasks = [fetchPlans(), fetchDashboardStats()]
-    if (activeTab === 'hotspot' && selectedRouterId) {
-      refreshTasks.push(fetchHotspotPlans(selectedRouterId))
+    if (activeTab === 'hotspot') {
+      if (selectedRouterId === 'all') {
+        refreshTasks.push(fetchAllHotspotPlans())
+      } else if (selectedRouterId) {
+        refreshTasks.push(fetchHotspotPlans(selectedRouterId as number))
+      }
     }
     await Promise.all(refreshTasks)
     setIsRefreshing(false)
@@ -975,7 +950,7 @@ export default function PlansPage() {
     setPlanToDelete(plan)
   }
 
-  // Confirm and execute delete
+  // Confirm and execute delete - updated to refresh correctly
   const handleConfirmDelete = async () => {
     if (!planToDelete) return
     setDeletingId(planToDelete.id)
@@ -992,14 +967,104 @@ export default function PlansPage() {
       setPlanToDelete(null)
       fetchPlans()
       fetchDashboardStats()
-      if (selectedRouterId) {
-        fetchHotspotPlans(selectedRouterId)
+      if (selectedRouterId === 'all') {
+        fetchAllHotspotPlans()
+      } else if (selectedRouterId) {
+        fetchHotspotPlans(selectedRouterId as number)
       }
     } catch (error: any) {
       console.error('Failed to delete plan:', error)
       toast.error(error.message || 'Failed to delete plan')
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  // Hotspot quick-create from preset — updated to support 'all' routers
+  const handleHotspotPresetCreate = async (preset: HotspotPreset) => {
+    if (!selectedRouterId) {
+      toast.error('Please select a router first')
+      return
+    }
+    setHotspotCreating(true)
+    try {
+      const targetRouters = selectedRouterId === 'all' ? routers : routers.filter(r => r.id === selectedRouterId)
+      
+      for (const router of targetRouters) {
+        await adminApi.createHotspotPlan(router.id, {
+          name: preset.config.name,
+          price: preset.config.base_price.toString(),
+          validity_type: preset.config.validity_type === 'MINUTES' ? 'MINUTES' :
+                         preset.config.validity_type === 'HOURS' ? 'HOURS' : 'DAYS',
+          validity_value: preset.config.validity_type === 'MINUTES' ? preset.config.validity_minutes! :
+                          preset.config.validity_type === 'HOURS' ? preset.config.validity_hours! :
+                          preset.config.duration_days!,
+          download_speed: preset.config.download_speed,
+          upload_speed: preset.config.upload_speed,
+          simultaneous_devices: preset.config.max_sessions || 1,
+          is_active: true,
+          is_popular: false,
+        } as any)
+      }
+      
+      const routerLabel = selectedRouterId === 'all' ? `all ${targetRouters.length} routers` : 'selected router'
+      toast.success(`"${preset.config.name}" plan created for ${routerLabel}!`)
+      fetchPlans()
+      fetchDashboardStats()
+      if (selectedRouterId === 'all') fetchAllHotspotPlans()
+      else fetchHotspotPlans(selectedRouterId as number)
+    } catch (error: any) {
+      toast.error(error.message || `Failed to create ${preset.name} plan`)
+    } finally {
+      setHotspotCreating(false)
+    }
+  }
+
+  // Hotspot custom create handler — updated to support 'all' routers
+  const handleHotspotCustomCreate = async () => {
+    if (!hotspotForm.name || !hotspotForm.price) {
+      toast.error('Name and price are required')
+      return
+    }
+    if (!selectedRouterId) {
+      toast.error('Please select a router first')
+      return
+    }
+    setHotspotCreating(true)
+    try {
+      const validityType = hotspotForm.validity_type as 'MINUTES' | 'HOURS' | 'DAYS' | 'UNLIMITED'
+      const validityValue = validityType === 'MINUTES' ? parseInt(hotspotForm.validity_minutes) :
+                            validityType === 'HOURS' ? parseInt(hotspotForm.validity_hours) :
+                            validityType === 'DAYS' ? parseInt(hotspotForm.duration_days) : 0
+
+      const targetRouters = selectedRouterId === 'all' ? routers : routers.filter(r => r.id === selectedRouterId)
+
+      for (const router of targetRouters) {
+        await adminApi.createHotspotPlan(router.id, {
+          name: hotspotForm.name,
+          description: hotspotForm.description || undefined,
+          price: hotspotForm.price,
+          validity_type: validityType,
+          validity_value: validityValue || 1,
+          download_speed: hotspotForm.download_speed ? parseInt(hotspotForm.download_speed) : 10,
+          upload_speed: hotspotForm.upload_speed ? parseInt(hotspotForm.upload_speed) : 5,
+          simultaneous_devices: hotspotForm.max_sessions ? parseInt(hotspotForm.max_sessions) : 1,
+          is_active: true,
+          is_popular: false,
+        } as any)
+      }
+      
+      toast.success('Hotspot plan created!')
+      setIsHotspotCreateOpen(false)
+      setHotspotForm({ name: '', price: '', download_speed: '', upload_speed: '', validity_type: 'HOURS', duration_days: '1', validity_hours: '1', validity_minutes: '30', max_sessions: '1', description: '', features: '' })
+      fetchPlans()
+      fetchDashboardStats()
+      if (selectedRouterId === 'all') fetchAllHotspotPlans()
+      else fetchHotspotPlans(selectedRouterId as number)
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create hotspot plan')
+    } finally {
+      setHotspotCreating(false)
     }
   }
 
@@ -1186,7 +1251,7 @@ export default function PlansPage() {
       {/* ====== HOTSPOT TAB — Router Picker + Quick Create Cards + Plan Listing ====== */}
       {activeTab === 'hotspot' && (
         <>
-          {/* Router Selector */}
+          {/* Router Selector - Updated with "All Routers" option */}
           <Card className="border-blue-200 bg-blue-50/30">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -1194,7 +1259,9 @@ export default function PlansPage() {
                 Select Router
               </CardTitle>
               <CardDescription>
-                Hotspot plans are linked to a specific router. Select the router where these plans will be available.
+                {selectedRouterId === 'all'
+                  ? `Managing plans across all ${routers.length} routers`
+                  : 'Hotspot plans are linked to a specific router. Select the router where these plans will be available.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1208,12 +1275,25 @@ export default function PlansPage() {
               ) : (
                 <Select
                   value={selectedRouterId?.toString() || ''}
-                  onValueChange={(v) => setSelectedRouterId(parseInt(v))}
+                  onValueChange={(v) => {
+                    if (v === 'all') {
+                      setSelectedRouterId('all')
+                      fetchAllHotspotPlans()
+                    } else {
+                      setSelectedRouterId(parseInt(v))
+                    }
+                  }}
                 >
                   <SelectTrigger className="max-w-sm bg-white">
                     <SelectValue placeholder="Choose a router..." />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        All Routers
+                      </div>
+                    </SelectItem>
                     {routers.map((r) => (
                       <SelectItem key={r.id} value={r.id.toString()}>
                         <div className="flex items-center gap-2">
@@ -1228,7 +1308,7 @@ export default function PlansPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Create Presets — only shown when router is selected */}
+          {/* Quick Create Presets — only shown when router is selected, updated description */}
           {selectedRouterId && (
           <Card>
             <CardHeader className="pb-3">
@@ -1237,7 +1317,12 @@ export default function PlansPage() {
                 Quick Create Hotspot Plans
               </CardTitle>
               <CardDescription>
-                One-click to create industry-standard hotspot packages for <span className="font-semibold">{routers.find(r => r.id === selectedRouterId)?.name}</span>.
+                One-click to create industry-standard hotspot packages for{' '}
+                <span className="font-semibold">
+                  {selectedRouterId === 'all'
+                    ? `all ${routers.length} routers`
+                    : routers.find(r => r.id === selectedRouterId)?.name || 'Unknown'}
+                </span>.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1969,7 +2054,7 @@ export default function PlansPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Hotspot Custom Create Dialog */}
+      {/* Hotspot Custom Create Dialog - Updated with router info */}
       <Dialog open={isHotspotCreateOpen} onOpenChange={setIsHotspotCreateOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1978,7 +2063,11 @@ export default function PlansPage() {
               Create Custom Hotspot Plan
             </DialogTitle>
             <DialogDescription>
-              Creating plan for router: <span className="font-semibold">{routers.find(r => r.id === selectedRouterId)?.name || 'Unknown'}</span>
+              Creating plan for: <span className="font-semibold">
+                {selectedRouterId === 'all' 
+                  ? `all ${routers.length} routers`
+                  : routers.find(r => r.id === selectedRouterId)?.name || 'Unknown'}
+              </span>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-4">
