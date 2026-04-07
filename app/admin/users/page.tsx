@@ -717,6 +717,20 @@ export default function UsersPage() {
     })
   }, [enrichedUsers, activeSearchQuery])
 
+  // NEW: Build a map of access_code → live usage string from RADIUS online sessions.
+  // Hotspot sessions use the access_code as the RADIUS username.
+  // This lets us show live usage in the hotspot tab instead of the stale DB value.
+  const hotspotLiveUsageMap = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const session of onlineSessions) {
+      // Hotspot sessions have canonical_username set (PPPoE sessions do not)
+      if ((session as any).canonical_username && session.usage) {
+        map.set(session.username, session.usage)
+      }
+    }
+    return map
+  }, [onlineSessions])
+
   useEffect(() => {
     setCurrentPage(1)
   }, [activeTab, searchQuery, statusFilter])
@@ -1962,7 +1976,7 @@ export default function UsersPage() {
         </Card>
       )}
 
-      {/* ── Hotspot Clients Tab ── */}
+      {/* ── Hotspot Clients Tab ── UPDATED with live RADIUS usage */}
       {activeTab === "hotspot" && (
         <Card>
           <CardHeader>
@@ -2008,6 +2022,11 @@ export default function UsersPage() {
                           ? `${(dataUsedMb / 1024).toFixed(2)} GB` 
                           : `${dataUsedMb.toFixed(2)} MB`;
 
+                      // Get live usage from RADIUS if available
+                      const liveUsage = hotspotLiveUsageMap.get(item.canonical_username);
+                      const displayUsage = liveUsage ?? dataUsedDisplay;
+                      const isLive = !!liveUsage;
+
                       return (
                         <TableRow key={item.id}>
                           <TableCell>
@@ -2043,7 +2062,16 @@ export default function UsersPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm font-medium text-slate-700">{dataUsedDisplay}</span>
+                            {/* 
+                              Prefer live RADIUS usage (from online sessions) over the stale DB value.
+                              hotspotLiveUsageMap keys on the RADIUS username = the access_code.
+                            */}
+                            <span className="text-sm font-medium text-slate-700">
+                              {displayUsage}
+                            </span>
+                            {isLive && (
+                              <span className="block text-xs text-emerald-600">● Live</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       )
