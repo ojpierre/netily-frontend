@@ -4,6 +4,7 @@ import { useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, useInView, useScroll, useTransform } from "framer-motion"
+import { BillingCalculator } from "@/components/BillingCalculator"
 import {
   ArrowRight,
   Zap,
@@ -304,7 +305,7 @@ export function LandingPage() {
 
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-8">
-              {["Features", "Pricing", "FAQs"].map((label) => (
+              {["Features", "Pricing", "Calculator", "FAQs"].map((label) => (
                 <button
                   key={label}
                   onClick={() => scrollTo(label.toLowerCase())}
@@ -350,7 +351,7 @@ export function LandingPage() {
             className="md:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200 px-4 pb-4"
           >
             <div className="flex flex-col gap-1 pt-2">
-              {["Features", "Pricing", "FAQs"].map((label) => (
+              {["Features", "Pricing", "Calculator", "FAQs"].map((label) => (
                 <button
                   key={label}
                   onClick={() => scrollTo(label.toLowerCase())}
@@ -830,6 +831,9 @@ export function LandingPage() {
           </Reveal>
         </div>
       </section>
+
+      {/* ━━━ 6b. BILLING CALCULATOR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <BillingCalculator onGetStarted={() => scrollTo("hero-cta")} />
 
       {/* ━━━ 5b. FAQs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section id="faqs" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8">
