@@ -717,43 +717,44 @@ export function LandingPage() {
           </Reveal>
 
           <div className="grid lg:grid-cols-2 gap-6 mb-8">
-            {/* Metered */}
+            {/* Metered — links to calculator */}
             <Reveal>
-              <div className="h-full rounded-2xl bg-white border border-slate-200 p-8 md:p-10 shadow-sm hover:shadow-lg transition-shadow">
-                <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider mb-6">
-                  <Clock className="w-3.5 h-3.5" />
-                  Pay As You Grow
-                </div>
-                <h3 className="text-2xl font-bold mb-1">Metered</h3>
-                <p className="text-slate-500 mb-8">Perfect for the growing ISPs who want to keep costs lean.</p>
-
-                <div className="mb-8">
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-4xl font-extrabold">500</span>
-                    <span className="text-slate-500 font-medium">KES/mo base</span>
+              <div className="h-full rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50 border border-blue-200 p-8 md:p-10 shadow-sm hover:shadow-lg transition-shadow flex flex-col justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider mb-6">
+                    <Clock className="w-3.5 h-3.5" />
+                    Pay As You Grow
                   </div>
-                </div>
+                  <h3 className="text-2xl font-bold mb-1">Metered</h3>
+                  <p className="text-slate-500 mb-8">Perfect for growing ISPs who want to keep costs lean.</p>
 
-                <ul className="space-y-3 mb-8">
-                  {[
-                    "20 KES per active PPPoE user",
-                    "3% share on Hotspot revenue",
-                    "Free M-Pesa STK Push integration",
-                    "MikroTik auto-provisioning",
-                    "Unlimited routers",
-                  ].map((item) => (
-                    <li key={item} className="flex items-start gap-3 text-slate-700">
-                      <Check className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
+                  <div className="mb-8">
+                    <div className="flex items-baseline gap-1 mb-1">
+                      <span className="text-4xl font-extrabold">500</span>
+                      <span className="text-slate-500 font-medium">KES/mo base</span>
+                    </div>
+                    <p className="text-sm text-slate-500">+ 20 KES per PPPoE user + 3% hotspot share</p>
+                  </div>
+
+                  <ul className="space-y-3 mb-8">
+                    {[
+                      "Free M-Pesa STK Push integration",
+                      "MikroTik auto-provisioning",
+                      "Unlimited routers",
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-3 text-slate-700">
+                        <Check className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
                 <button
-                  onClick={() => scrollTo("hero-cta")}
-                  className="w-full py-3.5 rounded-xl border-2 border-slate-200 font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                  onClick={() => scrollTo("calculator")}
+                  className="w-full py-3.5 rounded-xl border-2 border-blue-300 font-semibold text-blue-700 hover:bg-blue-50 transition-colors"
                 >
-                  Start a Free Trial
+                  Calculate Your Cost &darr;
                 </button>
               </div>
             </Reveal>

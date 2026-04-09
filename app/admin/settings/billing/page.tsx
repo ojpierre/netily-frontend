@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import {
-  Zap, Check, Users, Wifi, Shield, Clock, Download, Receipt, AlertTriangle, Loader2, Eye
+  Zap, Check, Users, Wifi, Shield, Clock, Download, Receipt, AlertTriangle, Loader2, Eye, Phone
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { adminApi } from "@/lib/admin-api"
 import type { NetilyPlan, CompanySubscription, UsageStats as ApiUsageStats, Invoice } from "@/lib/types"
 
@@ -33,6 +34,9 @@ function BillingContent() {
   const [apiPlans, setApiPlans] = useState<NetilyPlan[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [usage, setUsage] = useState<ApiUsageStats | null>(null)
+  const [payingInvoiceId, setPayingInvoiceId] = useState<number | null>(null)
+  const [payPhone, setPayPhone] = useState("")
+  const [payLoading, setPayLoading] = useState(false)
 
   useEffect(() => {
     setHasMounted(true)
@@ -57,7 +61,20 @@ function BillingContent() {
         }
 
         setSubscription(subData)
-        setUsage(usageData)
+
+        // Normalize flat backend response → nested UsageStats format
+        if (usageData && !(usageData as any).subscribers) {
+          const raw = usageData as any
+          setUsage({
+            subscribers: { current: raw.current_subscribers ?? 0, limit: raw.max_subscribers === 0 ? null : (raw.max_subscribers ?? null), percentage: raw.subscribers_usage_percent ?? null },
+            routers: { current: raw.current_routers ?? 0, limit: raw.max_routers === 0 ? null : (raw.max_routers ?? null), percentage: raw.routers_usage_percent ?? null },
+            staff: { current: raw.current_staff ?? 0, limit: raw.max_staff === 0 ? null : (raw.max_staff ?? null), percentage: raw.staff_usage_percent ?? null },
+            is_over_limit: raw.is_near_limit ?? false,
+            warnings: raw.warnings ?? [],
+          } as ApiUsageStats)
+        } else {
+          setUsage(usageData)
+        }
 
         // FIX 2: Safe Invoice extraction
         setInvoices(invoicesData?.results || [])
@@ -84,10 +101,10 @@ function BillingContent() {
     )
   }
 
-  // Helper for Plan Price
+  // Helper for Plan Price — use Number() so string "0.00" is treated as falsy
   const getPlanPriceDisplay = (plan: NetilyPlan) => {
     if (plan?.is_metered) {
-      const basePrice = plan.base_license_fee || plan.price_monthly || "0"
+      const basePrice = Number(plan.base_license_fee) || Number(plan.price_monthly) || 0
       return (
         <div className="flex flex-col">
           <span className="text-2xl font-black">{kes(basePrice)}</span>
@@ -95,13 +112,56 @@ function BillingContent() {
         </div>
       )
     }
-    const price = plan?.price_monthly || plan?.price || "0"
+    const price = Number(plan?.price_monthly) || Number(plan?.price) || 0
     return (
       <div className="flex items-baseline gap-1">
         <span className="text-2xl font-black">{kes(price)}</span>
         <span className="text-sm text-slate-500">/mo</span>
       </div>
     )
+  }
+
+  // Client-side PDF generation via print window
+  const handleDownloadPDF = (inv: Invoice) => {
+    const billingDate = (inv as any).billing_date || inv.invoice_date
+    const w = window.open('', '_blank')
+    if (!w) { toast.error("Please allow pop-ups to download PDF"); return }
+    w.document.write(`<html><head><title>Invoice ${inv.invoice_number}</title>
+<style>body{font-family:system-ui,sans-serif;padding:40px;max-width:800px;margin:0 auto}h1{font-size:24px;margin-bottom:8px}.meta{color:#666;margin-bottom:24px}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #eee}th{background:#f8f9fa;font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.5px}.total{font-size:20px;font-weight:800;text-align:right;margin-top:24px;padding-top:16px;border-top:2px solid #333}.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase}.paid{background:#dcfce7;color:#166534}.pending{background:#fef2f2;color:#991b1b}@media print{body{padding:20px}}</style></head><body>
+<h1>Invoice ${inv.invoice_number}</h1>
+<p class="meta">Date: ${billingDate ? new Date(billingDate).toLocaleDateString('en-KE', { dateStyle: 'long' }) : '---'}</p>
+<p>Status: <span class="badge ${inv.status === 'paid' ? 'paid' : 'pending'}">${(inv.status || 'pending').toUpperCase()}</span></p>
+<table><thead><tr><th>Description</th><th style="text-align:right">Amount</th></tr></thead><tbody>
+${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}</td><td style="text-align:right">KES ${Number(item.total || 0).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2" style="text-align:center;color:#999;padding:24px">Platform subscription fee</td></tr>'}
+</tbody></table><div class="total">Total: KES ${Number(inv.total_amount || 0).toLocaleString()}</div>
+</body></html>`)
+    w.document.close()
+    setTimeout(() => w.print(), 300)
+  }
+
+  // STK Push payment for unpaid invoices
+  const handlePayInvoice = async (invoiceId: number) => {
+    const phone = payPhone.trim()
+    if (!phone || phone.length < 10) {
+      toast.error("Please enter a valid phone number")
+      return
+    }
+    setPayLoading(true)
+    try {
+      await adminApi.initiateSubscriptionPayment({
+        plan_id: subscription?.plan?.code || 'metered',
+        payment_method: 'mpesa_stk',
+        phone_number: phone.startsWith('0') ? `254${phone.slice(1)}` : phone,
+        billing_period: 'monthly',
+      })
+      toast.success("STK Push sent! Check your phone to complete payment.")
+      setPayingInvoiceId(null)
+      setPayPhone("")
+    } catch (error: any) {
+      toast.error(error?.message || "Payment initiation failed")
+    } finally {
+      setPayLoading(false)
+    }
   }
 
   return (
@@ -175,28 +235,39 @@ function BillingContent() {
                     </li>
                     <li className="text-sm flex items-center gap-3">
                       <Check className="w-4 h-4 text-emerald-500" /> 
-                      {subscription.plan?.max_staff_users || 'Unlimited'} Staff Accounts
+                      {(subscription.plan as any)?.max_staff || subscription.plan?.max_staff_users || 'Unlimited'} Staff Accounts
                     </li>
-                    {subscription.plan?.features?.api_access && (
-                      <li className="text-sm flex items-center gap-3">
-                        <Check className="w-4 h-4 text-emerald-500" /> Full API Access
-                      </li>
-                    )}
-                    {subscription.plan?.features?.white_label && (
-                      <li className="text-sm flex items-center gap-3">
-                        <Check className="w-4 h-4 text-emerald-500" /> White-label Solution
-                      </li>
-                    )}
-                    {subscription.plan?.features?.priority_support && (
-                      <li className="text-sm flex items-center gap-3">
-                        <Check className="w-4 h-4 text-emerald-500" /> Priority Support
-                      </li>
-                    )}
-                    {subscription.plan?.features?.multi_location && (
-                      <li className="text-sm flex items-center gap-3">
-                        <Check className="w-4 h-4 text-emerald-500" /> Multi-location Support
-                      </li>
-                    )}
+                    {Array.isArray(subscription.plan?.features)
+                      ? subscription.plan.features.map((feat: string) => (
+                          <li key={feat} className="text-sm flex items-center gap-3">
+                            <Check className="w-4 h-4 text-emerald-500" /> {feat}
+                          </li>
+                        ))
+                      : (
+                        <>
+                          {subscription.plan?.features?.api_access && (
+                            <li className="text-sm flex items-center gap-3">
+                              <Check className="w-4 h-4 text-emerald-500" /> Full API Access
+                            </li>
+                          )}
+                          {subscription.plan?.features?.white_label && (
+                            <li className="text-sm flex items-center gap-3">
+                              <Check className="w-4 h-4 text-emerald-500" /> White-label Solution
+                            </li>
+                          )}
+                          {subscription.plan?.features?.priority_support && (
+                            <li className="text-sm flex items-center gap-3">
+                              <Check className="w-4 h-4 text-emerald-500" /> Priority Support
+                            </li>
+                          )}
+                          {subscription.plan?.features?.multi_location && (
+                            <li className="text-sm flex items-center gap-3">
+                              <Check className="w-4 h-4 text-emerald-500" /> Multi-location Support
+                            </li>
+                          )}
+                        </>
+                      )
+                    }
                   </ul>
                 </div>
               </CardContent>
@@ -311,9 +382,43 @@ function BillingContent() {
                                 </div>
                               </DialogContent>
                             </Dialog>
-                            <Button variant="outline" size="sm" className="h-8">
+                            <Button variant="outline" size="sm" className="h-8" onClick={() => handleDownloadPDF(inv)}>
                               <Download className="w-3 h-3 mr-2" /> PDF
                             </Button>
+                            {inv?.status !== 'paid' && (
+                              <Dialog open={payingInvoiceId === inv.id} onOpenChange={(open) => { if (!open) { setPayingInvoiceId(null); setPayPhone("") } }}>
+                                <DialogTrigger asChild>
+                                  <Button size="sm" className="ml-2 h-8 bg-green-600 hover:bg-green-700" onClick={() => setPayingInvoiceId(inv.id)}>
+                                    <Phone className="w-3 h-3 mr-2" /> Pay
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[400px]">
+                                  <DialogHeader>
+                                    <DialogTitle>Pay Invoice {inv.invoice_number}</DialogTitle>
+                                    <CardDescription>Amount: {kes(inv?.total_amount || 0)}</CardDescription>
+                                  </DialogHeader>
+                                  <div className="mt-4 space-y-4">
+                                    <div>
+                                      <label className="text-sm font-medium text-slate-700 block mb-1.5">M-Pesa Phone Number</label>
+                                      <Input
+                                        placeholder="0712345678"
+                                        value={payPhone}
+                                        onChange={(e) => setPayPhone(e.target.value)}
+                                        maxLength={13}
+                                      />
+                                      <p className="text-xs text-slate-400 mt-1">You&apos;ll receive an STK push prompt on this number</p>
+                                    </div>
+                                    <Button
+                                      className="w-full bg-green-600 hover:bg-green-700"
+                                      disabled={payLoading || !payPhone.trim()}
+                                      onClick={() => handlePayInvoice(inv.id)}
+                                    >
+                                      {payLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</> : "Send STK Push"}
+                                    </Button>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                            )}
                           </TableCell>
                         </TableRow>
                       )
@@ -364,7 +469,7 @@ function BillingContent() {
                     </div>
                     <div className="flex items-center gap-3">
                       <Shield className="w-4 h-4 text-slate-400" /> 
-                      {plan.max_staff_users || 'Unlimited'} Staff Accounts
+                      {(plan as any).max_staff || plan.max_staff_users || 'Unlimited'} Staff Accounts
                     </div>
                   </div>
                   {plan.is_metered && (
