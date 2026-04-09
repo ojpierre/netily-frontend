@@ -86,15 +86,16 @@ function BillingContent() {
 
   // Helper for Plan Price
   const getPlanPriceDisplay = (plan: NetilyPlan) => {
-    const price = plan?.price || "0"
     if (plan?.is_metered) {
+      const basePrice = plan.base_license_fee || plan.price_monthly || "0"
       return (
         <div className="flex flex-col">
-          <span className="text-2xl font-black">{kes(price)}</span>
+          <span className="text-2xl font-black">{kes(basePrice)}</span>
           <span className="text-[10px] text-blue-600 font-bold uppercase">Base + Metered Usage</span>
         </div>
       )
     }
+    const price = plan?.price_monthly || plan?.price || "0"
     return (
       <div className="flex items-baseline gap-1">
         <span className="text-2xl font-black">{kes(price)}</span>
@@ -150,7 +151,7 @@ function BillingContent() {
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Base Monthly Fee</p>
-                      <p className="font-bold text-slate-900">{kes(subscription.plan?.price || 0)}</p>
+                      <p className="font-bold text-slate-900">{kes(subscription.plan?.price_monthly || subscription.plan?.base_license_fee || subscription.plan?.price || 0)}</p>
                     </div>
                   </div>
                   <Separator />
