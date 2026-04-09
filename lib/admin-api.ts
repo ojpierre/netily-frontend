@@ -2933,6 +2933,7 @@ class AdminApiService {
     payment_method: 'mpesa_stk' | 'mpesa_paybill' | 'bank_transfer'
     phone_number?: string
     billing_period: 'monthly' | 'yearly'
+    amount?: number  // Override amount (e.g. invoice total)
   }): Promise<{ 
     checkout_request_id: string
     merchant_request_id: string

@@ -146,6 +146,12 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
       toast.error("Please enter a valid phone number")
       return
     }
+    const inv = invoices.find(i => i.id === invoiceId)
+    const invoiceAmount = inv ? Number(inv.total_amount) : 0
+    if (!invoiceAmount) {
+      toast.error("Could not determine invoice amount")
+      return
+    }
     setPayLoading(true)
     try {
       await adminApi.initiateSubscriptionPayment({
@@ -153,6 +159,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
         payment_method: 'mpesa_stk',
         phone_number: phone.startsWith('0') ? `254${phone.slice(1)}` : phone,
         billing_period: 'monthly',
+        amount: invoiceAmount,
       })
       toast.success("STK Push sent! Check your phone to complete payment.")
       setPayingInvoiceId(null)
