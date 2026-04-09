@@ -1724,17 +1724,24 @@ export default function UsersPage() {
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-medium text-xs">
-                              {session.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                              {((session.full_name || session.username) ?? 'HS')
+                                .split(' ')
+                                .map((n: string) => n?.[0] ?? '')
+                                .join('')
+                                .toUpperCase()
+                                .slice(0, 2) || 'HS'}
                             </div>
                             <div>
-                              {/* FIXED: Show canonical_username for hotspot, full name for PPPoE */}
+                              {/* FIXED: Show canonical_username for hotspot, full name for PPPoE with null guard */}
                               <p className="font-medium text-slate-900">
-                                {(session as any).canonical_username ? (session as any).canonical_username : session.full_name}
+                                {(session as any).canonical_username
+                                  ? (session as any).canonical_username
+                                  : (session.full_name || session.username)}
                               </p>
                               <p className="text-xs text-slate-500">
-                                {(session as any).canonical_username ? (
-                                  <span className="text-pink-600 font-medium">Hotspot</span>
-                                ) : session.phone_number}
+                                {(session as any).canonical_username
+                                  ? <span className="text-pink-600 font-medium">Hotspot</span>
+                                  : (session.phone_number || '')}
                               </p>
                             </div>
                           </div>

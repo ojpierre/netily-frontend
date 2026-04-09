@@ -319,24 +319,42 @@ function getLoginUrl(): string {
   return ""
 }
 
+// ==========================================
+// 3-LAYER HYBRID TV DETECTION
+// ==========================================
 function isSmartTV(): boolean {
-  if (typeof window !== "undefined") {
-    const params = new URLSearchParams(window.location.search)
-    // 1. Check for explicit flag from your fixed MikroTik script
-    if (params.get("smart_tv") === "1" || params.get("tv") === "1") return true
-    
-    const ua = navigator.userAgent.toLowerCase()
-    
-    // 2. Check User-Agent for TV keywords
-    const isTVAgent = /smart-?tv|webos|tizen|vidaa|hbbtv|roku|firetv|apple\s?tv|android\s?tv|bravia|netcast|viera|xbox|playstation|nintendo|box|stb/i.test(ua)
-    
-    // 3. Check for Large Screen + No Touch (The TV Footprint)
-    const isLargeNonTouch = window.innerWidth >= 1024 && 
-                            !('ontouchstart' in window) && 
-                            navigator.maxTouchPoints === 0;
+  if (typeof window === "undefined") return false
 
-    return isTVAgent || isLargeNonTouch;
+  const params = new URLSearchParams(window.location.search)
+  
+  // Layer 1: explicit param from MikroTik login.html (admin override)
+  if (params.get("smart_tv") === "1" || params.get("force_tv") === "1") return true
+  if (params.get("smart_tv") === "0" || params.get("force_tv") === "0") return false
+
+  const ua = navigator.userAgent.toLowerCase()
+
+  // Layer 2: known TV UA patterns
+  if (/smart-?tv|webos|tizen|vidaa|hbbtv|roku|firetv|appletv|apple\s?tv|bravia|netcast|viera|aft[a-z]|crkey|tv safari/i.test(ua)) {
+    return true
   }
+
+  // Android TV: android but no "mobile" token + wide screen (≥1280px)
+  if (/android/i.test(ua) && !/mobile/i.test(ua) && window.screen.width >= 1280) {
+    return true
+  }
+
+  // Layer 3: geometry heuristic (safe — desktop OSes are excluded)
+  const isDesktopOS = /windows nt|macintosh|\bx11\b|linux x86_64|cros/i.test(ua)
+  if (!isDesktopOS
+    && window.screen.width >= 1280
+    && window.screen.height >= 720
+    && (window.screen.width / window.screen.height) >= 1.5
+    && !("ontouchstart" in window)
+    && navigator.maxTouchPoints === 0
+  ) {
+    return true
+  }
+
   return false
 }
 
