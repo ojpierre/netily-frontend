@@ -2835,6 +2835,47 @@ class AdminApiService {
   }
 
   // ------------------------------------------
+  // SMS GATEWAY CONFIG - /messaging/gateway/
+  // ------------------------------------------
+
+  async getSMSGatewayConfigs(): Promise<SMSGatewayConfig[]> {
+    const resp = await this.request<{ results?: SMSGatewayConfig[] } | SMSGatewayConfig[]>('/messaging/gateway/')
+    return Array.isArray(resp) ? resp : (resp.results ?? [])
+  }
+
+  async createSMSGatewayConfig(data: SMSGatewayConfigWrite): Promise<SMSGatewayConfig> {
+    return this.request<SMSGatewayConfig>('/messaging/gateway/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateSMSGatewayConfig(id: number, data: Partial<SMSGatewayConfigWrite>): Promise<SMSGatewayConfig> {
+    return this.request<SMSGatewayConfig>(`/messaging/gateway/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteSMSGatewayConfig(id: number): Promise<void> {
+    await this.request(`/messaging/gateway/${id}/`, { method: 'DELETE' })
+  }
+
+  async activateSMSGateway(id: number): Promise<SMSGatewayConfig> {
+    return this.request<SMSGatewayConfig>(`/messaging/gateway/${id}/activate/`, {
+      method: 'POST',
+    })
+  }
+
+  async testSMSGateway(id: number): Promise<{ success: boolean; balance?: Record<string, unknown>; error?: string }> {
+    return this.request(`/messaging/gateway/${id}/test/`, { method: 'POST' })
+  }
+
+  async getSMSProviderFields(): Promise<Record<string, Record<string, string>>> {
+    return this.request('/messaging/gateway/providers/')
+  }
+
+  // ------------------------------------------
   // PLATFORM CHANGELOGS - /core/changelogs/
   // ------------------------------------------
 

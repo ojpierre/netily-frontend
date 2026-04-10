@@ -2494,6 +2494,41 @@ export interface SMSBalance {
   credits?: number
 }
 
+export type SMSProvider = 'africastalking' | 'twilio' | 'vonage' | 'infobip' | 'beem' | 'advanta' | 'hubtel'
+
+export interface SMSGatewayConfig {
+  id: number
+  provider: SMSProvider
+  provider_display: string
+  is_active: boolean
+  api_key: string        // masked on read
+  api_secret: string     // masked on read  
+  username: string
+  sender_id: string
+  extra_config: Record<string, string>
+  auto_payment_confirmation: boolean
+  auto_expiry_reminder: boolean
+  auto_welcome_message: boolean
+  auto_service_suspension: boolean
+  field_labels: Record<string, string>
+  created_at: string
+  updated_at: string
+}
+
+export interface SMSGatewayConfigWrite {
+  provider: SMSProvider
+  is_active?: boolean
+  api_key: string
+  api_secret?: string
+  username?: string
+  sender_id?: string
+  extra_config?: Record<string, string>
+  auto_payment_confirmation?: boolean
+  auto_expiry_reminder?: boolean
+  auto_welcome_message?: boolean
+  auto_service_suspension?: boolean
+}
+
 // ==========================================
 // VPN MODULE TYPES
 // ==========================================

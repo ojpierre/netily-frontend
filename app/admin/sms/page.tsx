@@ -92,6 +92,9 @@ import type {
   SMSCampaign,
   SMSStats,
   SMSBalance,
+  SMSGatewayConfig,
+  SMSGatewayConfigWrite,
+  SMSProvider,
 } from "@/lib/types"
 
 type SMSStatus = "pending" | "sent" | "delivered" | "failed"
@@ -157,6 +160,20 @@ export default function SMSPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
 
+  // Gateway config state
+  const [gatewayConfigs, setGatewayConfigs] = useState<SMSGatewayConfig[]>([])
+  const [providerFields, setProviderFields] = useState<Record<string, Record<string, string>>>({})
+  const [gwForm, setGwForm] = useState<SMSGatewayConfigWrite>({
+    provider: 'africastalking', is_active: true,
+    api_key: '', api_secret: '', username: '', sender_id: '',
+    extra_config: {},
+    auto_payment_confirmation: true, auto_expiry_reminder: true,
+    auto_welcome_message: true, auto_service_suspension: false,
+  })
+  const [gwEditing, setGwEditing] = useState<number | null>(null)
+  const [gwSaving, setGwSaving] = useState(false)
+  const [gwTesting, setGwTesting] = useState(false)
+
   // Compose form state
   const [composeForm, setComposeForm] = useState({
     recipients: "",
@@ -176,12 +193,14 @@ export default function SMSPage() {
     try {
       setIsLoading(true)
       
-      const [messagesData, templatesData, campaignsData, statsData, balanceData] = await Promise.all([
+      const [messagesData, templatesData, campaignsData, statsData, balanceData, gatewayData, providerData] = await Promise.all([
         adminApi.getSMSMessages().catch(() => null),
         adminApi.getSMSTemplates().catch(() => null),
         adminApi.getSMSCampaigns().catch(() => null),
         adminApi.getSMSStats().catch(() => null),
         adminApi.getSMSBalance().catch(() => null),
+        adminApi.getSMSGatewayConfigs().catch(() => null),
+        adminApi.getSMSProviderFields().catch(() => null),
       ])
       
       if (messagesData) {
@@ -205,6 +224,32 @@ export default function SMSPage() {
       
       if (balanceData) {
         setBalance(balanceData)
+      }
+      
+      if (gatewayData) {
+        const list = Array.isArray(gatewayData) ? gatewayData : []
+        setGatewayConfigs(list)
+        // Pre-fill form with active config
+        const active = list.find((g: SMSGatewayConfig) => g.is_active)
+        if (active) {
+          setGwEditing(active.id)
+          setGwForm({
+            provider: active.provider,
+            is_active: active.is_active,
+            api_key: '', api_secret: '', // don't fill masked values
+            username: active.username,
+            sender_id: active.sender_id,
+            extra_config: active.extra_config || {},
+            auto_payment_confirmation: active.auto_payment_confirmation,
+            auto_expiry_reminder: active.auto_expiry_reminder,
+            auto_welcome_message: active.auto_welcome_message,
+            auto_service_suspension: active.auto_service_suspension,
+          })
+        }
+      }
+      
+      if (providerData) {
+        setProviderFields(providerData)
       }
     } catch (err) {
       console.error("Error fetching SMS data:", err)
@@ -348,6 +393,133 @@ export default function SMSPage() {
       message: template.content,
       template: template.id.toString(),
     })
+  }
+
+  // ── Gateway config handlers ────────────────────────────
+  const handleGatewaySave = async () => {
+    if (!gwForm.api_key && !gwEditing) {
+      toast.error("API Key is required")
+      return
+    }
+    setGwSaving(true)
+    try {
+      const payload: Partial<SMSGatewayConfigWrite> = { ...gwForm }
+      // Don't send empty credential fields during update (preserve existing)
+      if (gwEditing) {
+        if (!payload.api_key) delete payload.api_key
+        if (!payload.api_secret) delete payload.api_secret
+      }
+      let result: SMSGatewayConfig
+      if (gwEditing) {
+        result = await adminApi.updateSMSGatewayConfig(gwEditing, payload)
+      } else {
+        result = await adminApi.createSMSGatewayConfig(gwForm)
+      }
+      // Refresh
+      const configs = await adminApi.getSMSGatewayConfigs().catch(() => [])
+      setGatewayConfigs(configs)
+      setGwEditing(result.id)
+      toast.success("Gateway configuration saved")
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save gateway config")
+    } finally {
+      setGwSaving(false)
+    }
+  }
+
+  const handleGatewayTest = async () => {
+    if (!gwEditing) {
+      toast.error("Save the configuration first before testing")
+      return
+    }
+    setGwTesting(true)
+    try {
+      const res = await adminApi.testSMSGateway(gwEditing)
+      if (res.success) {
+        toast.success(`Connection successful! Balance: ${JSON.stringify(res.balance)}`)
+      } else {
+        toast.error(`Test failed: ${res.error}`)
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Connection test failed")
+    } finally {
+      setGwTesting(false)
+    }
+  }
+
+  const handleGatewayActivate = async (id: number) => {
+    try {
+      await adminApi.activateSMSGateway(id)
+      const configs = await adminApi.getSMSGatewayConfigs().catch(() => [])
+      setGatewayConfigs(configs)
+      toast.success("Gateway activated")
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to activate gateway")
+    }
+  }
+
+  const handleGatewayDelete = async (id: number) => {
+    try {
+      await adminApi.deleteSMSGatewayConfig(id)
+      setGatewayConfigs(prev => prev.filter(g => g.id !== id))
+      if (gwEditing === id) {
+        setGwEditing(null)
+        setGwForm({ provider: 'africastalking', is_active: true, api_key: '', api_secret: '', username: '', sender_id: '', extra_config: {}, auto_payment_confirmation: true, auto_expiry_reminder: true, auto_welcome_message: true, auto_service_suspension: false })
+      }
+      toast.success("Gateway deleted")
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete gateway")
+    }
+  }
+
+  const activeGw = gatewayConfigs.find(g => g.is_active)
+
+  // Provider display labels
+  const PROVIDER_OPTIONS: { value: SMSProvider; label: string }[] = [
+    { value: 'africastalking', label: "Africa's Talking" },
+    { value: 'twilio', label: 'Twilio' },
+    { value: 'vonage', label: 'Vonage (Nexmo)' },
+    { value: 'infobip', label: 'Infobip' },
+    { value: 'beem', label: 'Beem Africa' },
+    { value: 'advanta', label: 'Advanta SMS' },
+    { value: 'hubtel', label: 'Hubtel' },
+  ]
+
+  // Fields that each provider needs
+  const PROVIDER_FIELD_MAP: Record<SMSProvider, { key: string; label: string; type?: string }[]> = {
+    africastalking: [
+      { key: 'username', label: 'Username' },
+      { key: 'api_key', label: 'API Key', type: 'password' },
+      { key: 'sender_id', label: 'Sender ID' },
+    ],
+    twilio: [
+      { key: 'api_key', label: 'Account SID', type: 'password' },
+      { key: 'api_secret', label: 'Auth Token', type: 'password' },
+      { key: 'sender_id', label: 'From Number' },
+    ],
+    vonage: [
+      { key: 'api_key', label: 'API Key', type: 'password' },
+      { key: 'api_secret', label: 'API Secret', type: 'password' },
+      { key: 'sender_id', label: 'Sender ID' },
+    ],
+    infobip: [
+      { key: 'api_key', label: 'API Key', type: 'password' },
+      { key: 'sender_id', label: 'Sender ID' },
+    ],
+    beem: [
+      { key: 'api_key', label: 'API Key', type: 'password' },
+      { key: 'api_secret', label: 'Secret Key', type: 'password' },
+      { key: 'sender_id', label: 'Sender Name' },
+    ],
+    advanta: [
+      { key: 'api_key', label: 'API Key', type: 'password' },
+      { key: 'sender_id', label: 'Short Code' },
+    ],
+    hubtel: [
+      { key: 'api_key', label: 'Client ID', type: 'password' },
+      { key: 'api_secret', label: 'Client Secret', type: 'password' },
+      { key: 'sender_id', label: 'Sender ID' },
+    ],
   }
 
   return (
@@ -800,42 +972,125 @@ export default function SMSPage() {
         {/* Settings Tab */}
         <TabsContent value="settings" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
+
+            {/* ── Gateway Provider Config ── */}
             <Card>
               <CardHeader>
                 <CardTitle>SMS Gateway Configuration</CardTitle>
-                <CardDescription>Configure your SMS provider settings</CardDescription>
+                <CardDescription>
+                  {gwEditing ? 'Update your SMS provider credentials' : 'Configure your SMS provider'}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Provider</Label>
-                  <Select defaultValue="africastalking">
+                  <Select value={gwForm.provider} onValueChange={(v) => setGwForm({ ...gwForm, provider: v as SMSProvider })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="africastalking">Africa's Talking</SelectItem>
-                      <SelectItem value="twilio">Twilio</SelectItem>
-                      <SelectItem value="nexmo">Vonage (Nexmo)</SelectItem>
-                      <SelectItem value="infobip">Infobip</SelectItem>
+                      {PROVIDER_OPTIONS.map(p => (
+                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>API Key</Label>
-                  <Input type="password" placeholder="Enter API key" />
+
+                {/* Dynamic fields per provider */}
+                {PROVIDER_FIELD_MAP[gwForm.provider]?.map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <Label>{field.label}</Label>
+                    <Input
+                      type={field.type || 'text'}
+                      placeholder={gwEditing ? '(leave blank to keep current)' : `Enter ${field.label.toLowerCase()}`}
+                      value={(gwForm as any)[field.key] || ''}
+                      onChange={(e) => setGwForm({ ...gwForm, [field.key]: e.target.value })}
+                    />
+                  </div>
+                ))}
+
+                {/* Advanta extra: partner_id */}
+                {gwForm.provider === 'advanta' && (
+                  <div className="space-y-2">
+                    <Label>Partner ID</Label>
+                    <Input
+                      placeholder="Enter Partner ID"
+                      value={gwForm.extra_config?.partner_id || ''}
+                      onChange={(e) => setGwForm({ ...gwForm, extra_config: { ...gwForm.extra_config, partner_id: e.target.value } })}
+                    />
+                  </div>
+                )}
+
+                {/* Infobip extra: base_url */}
+                {gwForm.provider === 'infobip' && (
+                  <div className="space-y-2">
+                    <Label>Base URL</Label>
+                    <Input
+                      placeholder="https://xxxxx.api.infobip.com"
+                      value={gwForm.extra_config?.base_url || ''}
+                      onChange={(e) => setGwForm({ ...gwForm, extra_config: { ...gwForm.extra_config, base_url: e.target.value } })}
+                    />
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button className="flex-1" onClick={handleGatewaySave} disabled={gwSaving}>
+                    {gwSaving ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    {gwEditing ? 'Update Gateway' : 'Save Gateway'}
+                  </Button>
+                  {gwEditing && (
+                    <Button variant="outline" onClick={handleGatewayTest} disabled={gwTesting}>
+                      {gwTesting ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
+                      Test
+                    </Button>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label>Username</Label>
-                  <Input placeholder="Enter username" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Sender ID</Label>
-                  <Input placeholder="e.g., NETILY" />
-                </div>
-                <Button className="w-full">Save Gateway Settings</Button>
+
+                {/* Existing configs list */}
+                {gatewayConfigs.length > 0 && (
+                  <div className="pt-3 border-t space-y-2">
+                    <Label className="text-xs text-slate-500 uppercase tracking-wide">Saved Gateways</Label>
+                    {gatewayConfigs.map(gw => (
+                      <div key={gw.id} className={`flex items-center justify-between p-2 rounded-lg text-sm ${gw.is_active ? 'bg-green-50 border border-green-200' : 'bg-slate-50'}`}>
+                        <div>
+                          <span className="font-medium">{gw.provider_display}</span>
+                          {gw.is_active && <Badge className="ml-2 bg-green-100 text-green-700 text-xs">Active</Badge>}
+                          {gw.sender_id && <span className="ml-2 text-slate-400 text-xs">{gw.sender_id}</span>}
+                        </div>
+                        <div className="flex gap-1">
+                          {!gw.is_active && (
+                            <Button size="sm" variant="ghost" onClick={() => handleGatewayActivate(gw.id)}>Activate</Button>
+                          )}
+                          <Button size="sm" variant="ghost" onClick={() => {
+                            setGwEditing(gw.id)
+                            setGwForm({
+                              provider: gw.provider, is_active: gw.is_active,
+                              api_key: '', api_secret: '', username: gw.username, sender_id: gw.sender_id,
+                              extra_config: gw.extra_config || {},
+                              auto_payment_confirmation: gw.auto_payment_confirmation,
+                              auto_expiry_reminder: gw.auto_expiry_reminder,
+                              auto_welcome_message: gw.auto_welcome_message,
+                              auto_service_suspension: gw.auto_service_suspension,
+                            })
+                          }}>Edit</Button>
+                          <Button size="sm" variant="ghost" className="text-red-500" onClick={() => handleGatewayDelete(gw.id)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    <Button variant="outline" size="sm" className="w-full" onClick={() => {
+                      setGwEditing(null)
+                      setGwForm({ provider: 'africastalking', is_active: true, api_key: '', api_secret: '', username: '', sender_id: '', extra_config: {}, auto_payment_confirmation: true, auto_expiry_reminder: true, auto_welcome_message: true, auto_service_suspension: false })
+                    }}>
+                      <Plus className="w-4 h-4 mr-2" /> Add Another Gateway
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
+            {/* ── Automated Triggers ── */}
             <Card>
               <CardHeader>
                 <CardTitle>Automated Messages</CardTitle>
@@ -847,7 +1102,7 @@ export default function SMSPage() {
                     <Label>Payment Confirmation</Label>
                     <p className="text-sm text-slate-500">Send SMS after successful payment</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch checked={gwForm.auto_payment_confirmation} onCheckedChange={(v) => setGwForm({ ...gwForm, auto_payment_confirmation: v })} />
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
@@ -855,7 +1110,7 @@ export default function SMSPage() {
                     <Label>Expiry Reminder</Label>
                     <p className="text-sm text-slate-500">Notify users before subscription expires</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch checked={gwForm.auto_expiry_reminder} onCheckedChange={(v) => setGwForm({ ...gwForm, auto_expiry_reminder: v })} />
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
@@ -863,7 +1118,7 @@ export default function SMSPage() {
                     <Label>Welcome Message</Label>
                     <p className="text-sm text-slate-500">Send welcome SMS to new users</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch checked={gwForm.auto_welcome_message} onCheckedChange={(v) => setGwForm({ ...gwForm, auto_welcome_message: v })} />
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
@@ -871,40 +1126,49 @@ export default function SMSPage() {
                     <Label>Service Disconnection</Label>
                     <p className="text-sm text-slate-500">Notify when service is suspended</p>
                   </div>
-                  <Switch />
+                  <Switch checked={gwForm.auto_service_suspension} onCheckedChange={(v) => setGwForm({ ...gwForm, auto_service_suspension: v })} />
                 </div>
+                <p className="text-xs text-slate-400 mt-2">
+                  Trigger settings are saved per gateway config. Click &quot;Update Gateway&quot; to persist changes.
+                </p>
               </CardContent>
             </Card>
 
+            {/* ── Live Balance & Usage ── */}
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>SMS Balance & Usage</CardTitle>
-                <CardDescription>Monitor your SMS credits and usage</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>SMS Balance & Usage</CardTitle>
+                    <CardDescription>
+                      {activeGw ? `Provider: ${activeGw.provider_display}` : 'No active gateway configured'}
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={fetchSMSData}>
+                    <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 sm:grid-cols-4">
                   <div className="p-4 bg-slate-50 rounded-lg">
-                    <p className="text-sm text-slate-600">Available Credits</p>
-                    <p className="text-2xl font-bold">10,450</p>
+                    <p className="text-sm text-slate-600">Balance</p>
+                    <p className="text-2xl font-bold">
+                      {balance ? `${balance.currency || 'KES'} ${Number(balance.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
+                    </p>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-lg">
-                    <p className="text-sm text-slate-600">Used This Month</p>
-                    <p className="text-2xl font-bold">2,350</p>
+                    <p className="text-sm text-slate-600">Sent This Month</p>
+                    <p className="text-2xl font-bold">{stats.messages_this_week?.toLocaleString() || 0}</p>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-lg">
-                    <p className="text-sm text-slate-600">Cost Per SMS</p>
-                    <p className="text-2xl font-bold">KSh 0.50</p>
+                    <p className="text-sm text-slate-600">Delivery Rate</p>
+                    <p className="text-2xl font-bold">{stats.delivery_rate || 0}%</p>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-lg">
                     <p className="text-sm text-slate-600">Total Spent</p>
-                    <p className="text-2xl font-bold">KSh 1,175</p>
+                    <p className="text-2xl font-bold">KSh {Number(stats.total_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                   </div>
-                </div>
-                <div className="mt-4">
-                  <Button variant="outline">
-                    <Zap className="w-4 h-4 mr-2" />
-                    Top Up Credits
-                  </Button>
                 </div>
               </CardContent>
             </Card>
