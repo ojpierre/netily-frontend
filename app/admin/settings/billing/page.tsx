@@ -37,6 +37,9 @@ function BillingContent() {
   const [payingInvoiceId, setPayingInvoiceId] = useState<number | null>(null)
   const [payPhone, setPayPhone] = useState("")
   const [payLoading, setPayLoading] = useState(false)
+  const [selectingPlan, setSelectingPlan] = useState<NetilyPlan | null>(null)
+  const [planPayPhone, setPlanPayPhone] = useState("")
+  const [planPayLoading, setPlanPayLoading] = useState(false)
 
   useEffect(() => {
     setHasMounted(true)
@@ -171,6 +174,38 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
     }
   }
 
+  // STK Push payment for selecting a new plan
+  const handleSelectPlan = async () => {
+    if (!selectingPlan) return
+    const phone = planPayPhone.trim()
+    if (!phone || phone.length < 10) {
+      toast.error("Please enter a valid phone number")
+      return
+    }
+    const amount = Number(selectingPlan.base_license_fee) || Number(selectingPlan.price_monthly) || 0
+    if (!amount) {
+      toast.error("Could not determine plan price")
+      return
+    }
+    setPlanPayLoading(true)
+    try {
+      await adminApi.initiateSubscriptionPayment({
+        plan_id: selectingPlan.code,
+        payment_method: 'mpesa_stk',
+        phone_number: phone.startsWith('0') ? `254${phone.slice(1)}` : phone,
+        billing_period: 'monthly',
+        amount,
+      })
+      toast.success("STK Push sent! Check your phone to complete payment. Your plan will activate upon confirmation.")
+      setSelectingPlan(null)
+      setPlanPayPhone("")
+    } catch (error: any) {
+      toast.error(error?.message || "Payment initiation failed")
+    } finally {
+      setPlanPayLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -178,15 +213,20 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
         <p className="text-slate-600">Review your subscription status and official monthly invoices</p>
       </div>
 
-      {subscription?.status === "expired" && (
+      {(subscription?.status === "expired" || subscription?.status === "past_due") && (
         <Alert variant="destructive">
           <AlertTriangle className="w-4 h-4" />
-          <AlertTitle>Subscription Expired</AlertTitle>
-          <AlertDescription>Your account is currently locked. Please settle outstanding invoices to resume service.</AlertDescription>
+          <AlertTitle>Account Locked</AlertTitle>
+          <AlertDescription>
+            {subscription?.status === "expired" 
+              ? "Your trial has expired. Select a plan below and pay to restore access."
+              : "Your subscription payment is past due. Please settle your invoice to restore access."
+            }
+          </AlertDescription>
         </Alert>
       )}
 
-      <Tabs defaultValue="invoices" className="space-y-6">
+      <Tabs defaultValue={subscription?.status === "expired" || subscription?.status === "past_due" ? "plans" : "invoices"} className="space-y-6">
         <TabsList>
           <TabsTrigger value="current">Current Plan</TabsTrigger>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
@@ -488,13 +528,46 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   )}
                 </CardContent>
                 <CardFooter>
-                  <Button 
-                    variant={plan.code === subscription?.plan?.code ? 'secondary' : 'default'} 
-                    className="w-full font-bold" 
-                    disabled={plan.code === subscription?.plan?.code}
-                  >
-                    {plan.code === subscription?.plan?.code ? 'Currently Active' : 'Select Plan'}
-                  </Button>
+                  {plan.code === subscription?.plan?.code ? (
+                    <Button variant="secondary" className="w-full font-bold" disabled>
+                      Currently Active
+                    </Button>
+                  ) : (
+                    <Dialog open={selectingPlan?.code === plan.code} onOpenChange={(open) => { if (!open) { setSelectingPlan(null); setPlanPayPhone("") } }}>
+                      <DialogTrigger asChild>
+                        <Button className="w-full font-bold" onClick={() => setSelectingPlan(plan)}>
+                          Select Plan
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[420px]">
+                        <DialogHeader>
+                          <DialogTitle>Subscribe to {plan.name}</DialogTitle>
+                          <CardDescription>
+                            Pay {kes(Number(plan.base_license_fee) || Number(plan.price_monthly) || 0)} to activate this plan
+                          </CardDescription>
+                        </DialogHeader>
+                        <div className="mt-4 space-y-4">
+                          <div>
+                            <label className="text-sm font-medium text-slate-700 block mb-1.5">M-Pesa Phone Number</label>
+                            <Input
+                              placeholder="0712345678"
+                              value={planPayPhone}
+                              onChange={(e) => setPlanPayPhone(e.target.value)}
+                              maxLength={13}
+                            />
+                            <p className="text-xs text-slate-400 mt-1">You&apos;ll receive an STK push prompt on this number</p>
+                          </div>
+                          <Button
+                            className="w-full bg-green-600 hover:bg-green-700"
+                            disabled={planPayLoading || !planPayPhone.trim()}
+                            onClick={handleSelectPlan}
+                          >
+                            {planPayLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</> : `Pay ${kes(Number(plan.base_license_fee) || Number(plan.price_monthly) || 0)}`}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </CardFooter>
               </Card>
             ))}
