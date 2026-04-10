@@ -1755,8 +1755,15 @@ export default function UsersPage() {
                             {session.service_type === 'PPPOE' ? 'PPPoE' : session.service_type === 'HOTSPOT' ? 'Hotspot' : session.service_type}
                           </Badge>
                         </TableCell>
+                        {/* UPDATED: IP Address column with pending accounting indicator */}
                         <TableCell>
-                          <span className="font-mono text-sm">{session.ip_address || '—'}</span>
+                          <span className="font-mono text-sm">
+                            {session.ip_address
+                              ? session.ip_address
+                              : (session as any).accounting_pending
+                                ? <span className="text-amber-500 text-xs italic">router connecting…</span>
+                                : "—"}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <span className="font-mono text-xs text-slate-600">{session.mac_address || '—'}</span>
@@ -1764,10 +1771,20 @@ export default function UsersPage() {
                         <TableCell>
                           <span className="text-sm">{session.router || '—'}</span>
                         </TableCell>
+                        {/* UPDATED: Uptime column with spinner for pending accounting */}
                         <TableCell>
                           <div className="flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="text-sm">{session.uptime}</span>
+                            {(session as any).accounting_pending ? (
+                              <span className="flex items-center gap-1 text-amber-600 text-xs">
+                                <RefreshCw className="w-3 h-3 animate-spin" />
+                                {session.uptime}
+                              </span>
+                            ) : (
+                              <>
+                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                <span className="text-sm">{session.uptime}</span>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
