@@ -533,45 +533,48 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                       Currently Active
                     </Button>
                   ) : (
-                    <Dialog open={selectingPlan?.code === plan.code} onOpenChange={(open) => { if (!open) { setSelectingPlan(null); setPlanPayPhone("") } }}>
-                      <DialogTrigger asChild>
-                        <Button className="w-full font-bold" onClick={() => setSelectingPlan(plan)}>
-                          Select Plan
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[420px]">
-                        <DialogHeader>
-                          <DialogTitle>Subscribe to {plan.name}</DialogTitle>
-                          <CardDescription>
-                            Pay {kes(Number(plan.base_license_fee) || Number(plan.price_monthly) || 0)} to activate this plan
-                          </CardDescription>
-                        </DialogHeader>
-                        <div className="mt-4 space-y-4">
-                          <div>
-                            <label className="text-sm font-medium text-slate-700 block mb-1.5">M-Pesa Phone Number</label>
-                            <Input
-                              placeholder="0712345678"
-                              value={planPayPhone}
-                              onChange={(e) => setPlanPayPhone(e.target.value)}
-                              maxLength={13}
-                            />
-                            <p className="text-xs text-slate-400 mt-1">You&apos;ll receive an STK push prompt on this number</p>
-                          </div>
-                          <Button
-                            className="w-full bg-green-600 hover:bg-green-700"
-                            disabled={planPayLoading || !planPayPhone.trim()}
-                            onClick={handleSelectPlan}
-                          >
-                            {planPayLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</> : `Pay ${kes(Number(plan.base_license_fee) || Number(plan.price_monthly) || 0)}`}
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                    <Button className="w-full font-bold" onClick={() => { setSelectingPlan(plan); setPlanPayPhone("") }}>
+                      Select Plan
+                    </Button>
                   )}
                 </CardFooter>
               </Card>
             ))}
           </div>
+
+          {/* Single shared dialog for plan selection — lives outside the map to avoid controlled/uncontrolled conflicts */}
+          <Dialog open={!!selectingPlan} onOpenChange={(open) => { if (!open) { setSelectingPlan(null); setPlanPayPhone("") } }}>
+            <DialogContent className="sm:max-w-[420px]">
+              <DialogHeader>
+                <DialogTitle>Subscribe to {selectingPlan?.name}</DialogTitle>
+                <CardDescription>
+                  Pay {selectingPlan ? kes(Number(selectingPlan.base_license_fee) || Number(selectingPlan.price_monthly) || 0) : ''} to activate this plan
+                </CardDescription>
+              </DialogHeader>
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 block mb-1.5">M-Pesa Phone Number</label>
+                  <Input
+                    placeholder="0712345678"
+                    value={planPayPhone}
+                    onChange={(e) => setPlanPayPhone(e.target.value)}
+                    maxLength={13}
+                  />
+                  <p className="text-xs text-slate-400 mt-1">You&apos;ll receive an STK push prompt on this number</p>
+                </div>
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700"
+                  disabled={planPayLoading || !planPayPhone.trim()}
+                  onClick={handleSelectPlan}
+                >
+                  {planPayLoading
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                    : `Pay ${selectingPlan ? kes(Number(selectingPlan.base_license_fee) || Number(selectingPlan.price_monthly) || 0) : ''}`
+                  }
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* 4. RESOURCE USAGE */}
