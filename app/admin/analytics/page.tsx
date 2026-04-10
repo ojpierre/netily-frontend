@@ -129,6 +129,22 @@ interface ReportsData {
     usage_summary: { total_upload: number; total_download: number; total_usage: number }
     performance: { peak_usage_day: string; avg_daily_usage: string; download_upload_ratio: string }
   }
+  // NEW: Top customers and plan analytics
+  top_customers: {
+    type: string
+    display_name: string
+    identifier: string
+    total_amount: number
+    tx_count: number
+  }[]
+  plan_analytics: {
+    plan_type: string
+    connection_type: string
+    name: string
+    base_price: number
+    total_revenue: number
+    total_transactions: number
+  }[]
 }
 
 // =============================================================================
@@ -561,6 +577,78 @@ export default function ReportsPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* ── Plan Transaction & Revenue Analytics ── */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold text-teal-700 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" /> Plan Performance
+              </CardTitle>
+              <CardDescription>All active plans — total transactions &amp; lifetime revenue generated</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!data?.plan_analytics?.length ? (
+                <EmptyChart label="No plan data yet" />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-xs text-muted-foreground">
+                        <th className="pb-2 pr-4 font-medium">Plan</th>
+                        <th className="pb-2 pr-4 font-medium">Type</th>
+                        <th className="pb-2 pr-4 font-medium text-right">Base Price</th>
+                        <th className="pb-2 pr-4 font-medium text-right">Transactions</th>
+                        <th className="pb-2 font-medium text-right">Lifetime Revenue</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {data.plan_analytics.map((p, i) => {
+                        const isHotspot = p.plan_type === "hotspot"
+                        const maxRev = Math.max(...data.plan_analytics.map((x) => x.total_revenue), 1)
+                        const barPct = Math.round((p.total_revenue / maxRev) * 100)
+                        return (
+                          <tr key={i} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="py-3 pr-4 font-medium text-slate-800 max-w-[200px]">
+                              <p className="truncate">{p.name}</p>
+                              <div
+                                className="mt-1 h-1 rounded-full bg-teal-500 opacity-60"
+                                style={{ width: `${barPct}%` }}
+                              />
+                            </td>
+                            <td className="py-3 pr-4">
+                              <Badge
+                                variant="outline"
+                                className={
+                                  isHotspot
+                                    ? "text-[10px] bg-blue-50 text-blue-700 border-blue-200"
+                                    : "text-[10px] bg-purple-50 text-purple-700 border-purple-200"
+                                }
+                              >
+                                {isHotspot ? "📶 Hotspot" : "🔌 " + p.connection_type}
+                              </Badge>
+                            </td>
+                            <td className="py-3 pr-4 text-right text-slate-600">
+                              {fmtKshFull(p.base_price)}
+                            </td>
+                            <td className="py-3 pr-4 text-right">
+                              <span className="font-semibold text-slate-800">
+                                {p.total_transactions.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="py-3 text-right">
+                              <span className={`font-bold ${p.total_revenue > 0 ? "text-teal-700" : "text-slate-400"}`}>
+                                {fmtKshFull(p.total_revenue)}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ════════════════════════════════════════════════
@@ -609,6 +697,92 @@ export default function ReportsPage() {
                   <span className={`text-sm font-bold ${color}`}>{typeof value === "number" ? value.toLocaleString() : value}</span>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* ── Top 10 Impactful Customers ── */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold text-violet-700 flex items-center gap-2">
+                <Users className="w-4 h-4" /> Top 10 Most Impactful Customers
+              </CardTitle>
+              <CardDescription>Ranked by lifetime spend — PPPoE &amp; Hotspot combined</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!data?.top_customers?.length ? (
+                <EmptyChart label="No customer data yet" />
+              ) : (
+                <div className="space-y-2">
+                  {data.top_customers.map((c, i) => {
+                    const rank = i + 1
+                    const badgeConfig =
+                      rank === 1
+                        ? { label: "👑 Most Valuable", cls: "bg-yellow-100 text-yellow-800 border-yellow-300" }
+                        : rank === 2
+                        ? { label: "🥈 Elite Client", cls: "bg-slate-100 text-slate-700 border-slate-300" }
+                        : rank === 3
+                        ? { label: "🥉 Top Performer", cls: "bg-orange-100 text-orange-700 border-orange-300" }
+                        : rank <= 5
+                        ? { label: "⭐ High Value", cls: "bg-blue-50 text-blue-700 border-blue-200" }
+                        : { label: c.type === "HOTSPOT" ? "📶 Hotspot Pro" : "🔌 PPPoE Client", cls: "bg-gray-50 text-gray-600 border-gray-200" }
+
+                    const isTop3 = rank <= 3
+                    return (
+                      <div
+                        key={i}
+                        className={`flex items-center gap-4 rounded-xl px-4 py-3 border transition-all ${
+                          isTop3
+                            ? "bg-gradient-to-r from-violet-50 to-white border-violet-200 shadow-sm"
+                            : "bg-white border-slate-100 hover:border-slate-200"
+                        }`}
+                      >
+                        {/* Rank */}
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+                            rank === 1
+                              ? "bg-yellow-400 text-yellow-900"
+                              : rank === 2
+                              ? "bg-slate-300 text-slate-800"
+                              : rank === 3
+                              ? "bg-orange-300 text-orange-900"
+                              : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {rank}
+                        </div>
+
+                        {/* Name + badge */}
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-semibold truncate ${isTop3 ? "text-slate-900 text-base" : "text-slate-700 text-sm"}`}>
+                            {c.display_name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${badgeConfig.cls}`}>
+                              {badgeConfig.label}
+                            </Badge>
+                            {c.identifier && (
+                              <span className="text-[10px] text-muted-foreground truncate">{c.identifier}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Transactions */}
+                        <div className="text-right shrink-0 hidden sm:block">
+                          <p className="text-xs text-muted-foreground">{c.tx_count} transactions</p>
+                        </div>
+
+                        {/* Amount */}
+                        <div className={`text-right shrink-0 ${isTop3 ? "min-w-[110px]" : "min-w-[90px]"}`}>
+                          <p className={`font-bold ${isTop3 ? "text-violet-700 text-base" : "text-slate-700 text-sm"}`}>
+                            {fmtKshFull(c.total_amount)}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">lifetime</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
