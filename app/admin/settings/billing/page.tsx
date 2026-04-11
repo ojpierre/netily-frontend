@@ -174,17 +174,16 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
     }
   }
 
+  // Derive display amount for a plan (UI only — backend calculates real amount)
+  const getPlanAmount = (plan: NetilyPlan | null) =>
+    plan ? (Number(plan.base_license_fee) || Number(plan.price_monthly) || 0) : 0
+
   // STK Push payment for selecting a new plan
   const handleSelectPlan = async () => {
     if (!selectingPlan) return
     const phone = planPayPhone.trim()
     if (!phone || phone.length < 10) {
       toast.error("Please enter a valid phone number")
-      return
-    }
-    const amount = Number(selectingPlan.base_license_fee) || Number(selectingPlan.price_monthly) || 0
-    if (!amount) {
-      toast.error("Could not determine plan price")
       return
     }
     setPlanPayLoading(true)
@@ -194,7 +193,6 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
         payment_method: 'mpesa_stk',
         phone_number: phone.startsWith('0') ? `254${phone.slice(1)}` : phone,
         billing_period: 'monthly',
-        amount,
       })
       toast.success("STK Push sent! Check your phone to complete payment. Your plan will activate upon confirmation.")
       setSelectingPlan(null)
@@ -548,7 +546,10 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
               <DialogHeader>
                 <DialogTitle>Subscribe to {selectingPlan?.name}</DialogTitle>
                 <DialogDescription>
-                  Pay {selectingPlan ? kes(Number(selectingPlan.base_license_fee) || Number(selectingPlan.price_monthly) || 0) : ''} to activate this plan
+                  {selectingPlan?.is_metered
+                    ? `Base fee ${kes(getPlanAmount(selectingPlan))} + metered usage. You'll be charged based on actual usage.`
+                    : `Pay ${kes(getPlanAmount(selectingPlan))} to activate this plan`
+                  }
                 </DialogDescription>
               </DialogHeader>
               <div className="mt-4 space-y-4">
@@ -569,7 +570,9 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                 >
                   {planPayLoading
                     ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
-                    : `Pay ${selectingPlan ? kes(Number(selectingPlan.base_license_fee) || Number(selectingPlan.price_monthly) || 0) : ''}`
+                    : selectingPlan?.is_metered
+                      ? `Subscribe — ${kes(getPlanAmount(selectingPlan))} base`
+                      : `Pay ${kes(getPlanAmount(selectingPlan))}`
                   }
                 </Button>
               </div>
