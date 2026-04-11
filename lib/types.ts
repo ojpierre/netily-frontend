@@ -3077,3 +3077,111 @@ export interface HotspotPurchaseStatus {
   error_message?: string
 }
 
+// ==========================================
+// LOYALTY PROGRAM
+// ==========================================
+
+export type TierLevel = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond'
+export type RewardStatus = 'active' | 'inactive' | 'expired'
+export type RewardCategory = 'internet' | 'credit' | 'voucher' | 'discount' | 'hardware' | 'other'
+export type TransactionType = 'earned' | 'redeemed' | 'expired' | 'bonus' | 'adjusted'
+export type RuleTrigger = 'payment' | 'signup' | 'referral' | 'tenure_monthly' | 'plan_upgrade' | 'manual'
+
+export interface LoyaltySettings {
+  points_per_currency: number
+  currency_unit: number
+  signup_bonus: number
+  referral_bonus: number
+  tenure_monthly_bonus: number
+  points_expiry_enabled: boolean
+  points_expiry_months: number
+  expiry_warning_days: number
+  notify_points_earned: boolean
+  notify_redemption: boolean
+  notify_tier_upgrade: boolean
+  notify_monthly_summary: boolean
+  program_active: boolean
+  auto_enroll_new_customers: boolean
+}
+
+export interface LoyaltyTier {
+  id: number
+  name: string
+  level: TierLevel
+  min_points: number
+  max_points: number | null
+  points_multiplier: number
+  benefits: string[]
+  color: string
+  members_count: number
+}
+
+export interface LoyaltyMember {
+  id: number
+  customer_id: number
+  customer_code: string
+  customer_status: string
+  name: string
+  email: string
+  phone: string
+  tier: number | null
+  tier_name: string
+  tier_level: TierLevel
+  current_points: number
+  lifetime_points: number
+  total_spent: number
+  total_payments: number
+  redemptions_count: number
+  joined_date: string
+  last_activity: string
+}
+
+export interface LoyaltyReward {
+  id: number
+  name: string
+  description: string
+  points_cost: number
+  category: RewardCategory
+  status: RewardStatus
+  stock_quantity: number | null
+  redemption_count: number
+  valid_until: string | null
+  image: string
+  voucher_batch_id: number | null
+  credit_amount: number | null
+  is_available: boolean
+}
+
+export interface PointsTransaction {
+  id: number
+  member_id: number
+  member_name: string
+  transaction_type: TransactionType
+  points: number
+  description: string
+  reward: number | null
+  reward_name: string | null
+  expires_at: string | null
+  created_at: string
+}
+
+export interface PointsRule {
+  id: number
+  name: string
+  trigger: RuleTrigger
+  points: number
+  description: string
+  is_active: boolean
+  min_amount: number | null
+}
+
+export interface LoyaltyStats {
+  total_members: number
+  total_points_issued: number
+  total_redemptions: number
+  avg_points_per_member: number
+  active_rewards: number
+  total_spent: number
+  tier_distribution: { id: number; name: string; level: string; count: number }[]
+}
+

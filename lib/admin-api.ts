@@ -158,6 +158,14 @@ import type {
   VoucherGenerateResponse,
   VoucherListResponse,
   ActiveSubscriptionsResponse,
+  // Loyalty types
+  LoyaltySettings,
+  LoyaltyTier,
+  LoyaltyMember,
+  LoyaltyReward,
+  PointsTransaction,
+  PointsRule,
+  LoyaltyStats,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -2873,6 +2881,144 @@ class AdminApiService {
 
   async getSMSProviderFields(): Promise<Record<string, Record<string, string>>> {
     return this.request('/messaging/gateway/providers/')
+  }
+
+  // ------------------------------------------
+  // LOYALTY PROGRAM - /loyalty/
+  // ------------------------------------------
+
+  async getLoyaltyStats(): Promise<LoyaltyStats> {
+    return this.request<LoyaltyStats>('/loyalty/stats/')
+  }
+
+  async getLoyaltySettings(): Promise<LoyaltySettings> {
+    return this.request<LoyaltySettings>('/loyalty/settings/')
+  }
+
+  async updateLoyaltySettings(data: Partial<LoyaltySettings>): Promise<LoyaltySettings> {
+    return this.request<LoyaltySettings>('/loyalty/settings/', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async getLoyaltyTiers(): Promise<LoyaltyTier[]> {
+    const resp = await this.request<{ results?: LoyaltyTier[] } | LoyaltyTier[]>('/loyalty/tiers/')
+    return Array.isArray(resp) ? resp : (resp.results ?? [])
+  }
+
+  async createLoyaltyTier(data: Partial<LoyaltyTier>): Promise<LoyaltyTier> {
+    return this.request<LoyaltyTier>('/loyalty/tiers/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateLoyaltyTier(id: number, data: Partial<LoyaltyTier>): Promise<LoyaltyTier> {
+    return this.request<LoyaltyTier>(`/loyalty/tiers/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteLoyaltyTier(id: number): Promise<void> {
+    await this.request(`/loyalty/tiers/${id}/`, { method: 'DELETE' })
+  }
+
+  async getLoyaltyMembers(params?: Record<string, string>): Promise<PaginatedResponse<LoyaltyMember>> {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<LoyaltyMember>>(`/loyalty/members/${qs}`)
+  }
+
+  async getLoyaltyMember(id: number): Promise<LoyaltyMember> {
+    return this.request<LoyaltyMember>(`/loyalty/members/${id}/`)
+  }
+
+  async awardPoints(memberId: number, points: number, reason?: string): Promise<PointsTransaction> {
+    return this.request<PointsTransaction>('/loyalty/members/award/', {
+      method: 'POST',
+      body: JSON.stringify({ member_id: memberId, points, reason }),
+    })
+  }
+
+  async bulkAwardPoints(memberIds: number[], points: number, reason?: string): Promise<{ awarded: number; points_each: number }> {
+    return this.request('/loyalty/members/bulk-award/', {
+      method: 'POST',
+      body: JSON.stringify({ member_ids: memberIds, points, reason }),
+    })
+  }
+
+  async getLoyaltyRewards(): Promise<LoyaltyReward[]> {
+    const resp = await this.request<{ results?: LoyaltyReward[] } | LoyaltyReward[]>('/loyalty/rewards/')
+    return Array.isArray(resp) ? resp : (resp.results ?? [])
+  }
+
+  async createLoyaltyReward(data: Partial<LoyaltyReward>): Promise<LoyaltyReward> {
+    return this.request<LoyaltyReward>('/loyalty/rewards/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateLoyaltyReward(id: number, data: Partial<LoyaltyReward>): Promise<LoyaltyReward> {
+    return this.request<LoyaltyReward>(`/loyalty/rewards/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteLoyaltyReward(id: number): Promise<void> {
+    await this.request(`/loyalty/rewards/${id}/`, { method: 'DELETE' })
+  }
+
+  async redeemReward(memberId: number, rewardId: number): Promise<{ transaction: PointsTransaction; voucher_code: string | null }> {
+    return this.request('/loyalty/rewards/redeem/', {
+      method: 'POST',
+      body: JSON.stringify({ member_id: memberId, reward_id: rewardId }),
+    })
+  }
+
+  async awardVoucher(memberId: number, voucherBatchId?: number, sendSms?: boolean): Promise<{ voucher_code: string; voucher_pin: string; member: string }> {
+    return this.request('/loyalty/rewards/award-voucher/', {
+      method: 'POST',
+      body: JSON.stringify({ member_id: memberId, voucher_batch_id: voucherBatchId, send_sms: sendSms ?? true }),
+    })
+  }
+
+  async getLoyaltyTransactions(params?: Record<string, string>): Promise<PaginatedResponse<PointsTransaction>> {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<PointsTransaction>>(`/loyalty/transactions/${qs}`)
+  }
+
+  async getLoyaltyRules(): Promise<PointsRule[]> {
+    const resp = await this.request<{ results?: PointsRule[] } | PointsRule[]>('/loyalty/rules/')
+    return Array.isArray(resp) ? resp : (resp.results ?? [])
+  }
+
+  async createLoyaltyRule(data: Partial<PointsRule>): Promise<PointsRule> {
+    return this.request<PointsRule>('/loyalty/rules/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateLoyaltyRule(id: number, data: Partial<PointsRule>): Promise<PointsRule> {
+    return this.request<PointsRule>(`/loyalty/rules/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteLoyaltyRule(id: number): Promise<void> {
+    await this.request(`/loyalty/rules/${id}/`, { method: 'DELETE' })
+  }
+
+  async getLoyaltyLeaderboard(sort?: string, limit?: number): Promise<LoyaltyMember[]> {
+    const params = new URLSearchParams()
+    if (sort) params.set('sort', sort)
+    if (limit) params.set('limit', String(limit))
+    const qs = params.toString() ? '?' + params.toString() : ''
+    return this.request<LoyaltyMember[]>(`/loyalty/leaderboard/${qs}`)
   }
 
   // ------------------------------------------

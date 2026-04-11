@@ -1,604 +1,377 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { adminApi } from "@/lib/admin-api"
 import {
-  Gift,
-  Star,
-  Award,
-  Trophy,
-  Crown,
-  Gem,
-  Users,
-  TrendingUp,
-  Plus,
-  Edit,
-  Trash2,
-  MoreVertical,
-  Search,
-  Filter,
-  RefreshCw,
-  ArrowUpRight,
-  ArrowDownRight,
-  History,
-  Settings,
-  Zap,
-  Target,
-  Percent,
-  DollarSign,
-  Calendar,
-  Clock,
-  Eye,
-  Send,
-  Download,
-  ChevronRight,
-} from "lucide-react"
+  LoyaltyStats, LoyaltySettings, LoyaltyTier, LoyaltyMember,
+  LoyaltyReward, PointsTransaction, PointsRule, TierLevel, RewardCategory
+} from "@/lib/types"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table"
-import { Progress } from "@/components/ui/progress"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import {
+  Trophy, Star, Gift, Users, TrendingUp, Award, Crown, Medal,
+  Plus, Search, Loader2, RefreshCw, Zap, Edit, Trash2, Settings
+} from "lucide-react"
 
-type TierLevel = "bronze" | "silver" | "gold" | "platinum" | "diamond"
-type RewardStatus = "active" | "inactive" | "expired"
-type TransactionType = "earned" | "redeemed" | "expired" | "bonus" | "adjusted"
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-interface LoyaltyTier {
-  id: string
-  name: string
-  level: TierLevel
-  minPoints: number
-  maxPoints: number | null
-  pointsMultiplier: number
-  benefits: string[]
-  color: string
-  icon: React.ReactNode
-  membersCount: number
+const kes = (v: number | string) =>
+  `KES ${Number(v).toLocaleString("en-KE", { minimumFractionDigits: 2 })}`
+
+const tierColors: Record<TierLevel | string, string> = {
+  bronze: "bg-amber-600 text-white",
+  silver: "bg-slate-400 text-white",
+  gold: "bg-yellow-500 text-white",
+  platinum: "bg-cyan-600 text-white",
+  diamond: "bg-purple-600 text-white",
 }
 
-interface Reward {
-  id: string
-  name: string
-  description: string
-  pointsCost: number
-  category: string
-  status: RewardStatus
-  stockQuantity: number | null
-  redemptionCount: number
-  validUntil: string | null
-  image?: string
+const tierIcons: Record<TierLevel | string, React.ReactNode> = {
+  bronze: <Medal className="w-3 h-3" />,
+  silver: <Medal className="w-3 h-3" />,
+  gold: <Star className="w-3 h-3" />,
+  platinum: <Crown className="w-3 h-3" />,
+  diamond: <Trophy className="w-3 h-3" />,
 }
 
-interface LoyaltyMember {
-  id: string
-  name: string
-  email: string
-  phone: string
-  tier: TierLevel
-  currentPoints: number
-  lifetimePoints: number
-  joinedDate: string
-  lastActivity: string
-  redemptions: number
+const categoryLabels: Record<RewardCategory, string> = {
+  internet: "Internet / Data",
+  credit: "Account Credit",
+  voucher: "Hotspot Voucher",
+  discount: "Plan Discount",
+  hardware: "Hardware",
+  other: "Other",
 }
 
-interface PointsTransaction {
-  id: string
-  memberId: string
-  memberName: string
-  type: TransactionType
-  points: number
-  description: string
-  date: string
-}
-
-// TODO: Wire to backend loyalty/rewards API when available
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function LoyaltyPage() {
-  const [tiers] = useState<LoyaltyTier[]>([])
-  const [rewards] = useState<Reward[]>([])
-  const [members] = useState<LoyaltyMember[]>([])
-  const [transactions] = useState<PointsTransaction[]>([])
-  const [selectedMember, setSelectedMember] = useState<LoyaltyMember | null>(null)
-  const [isMemberDetailOpen, setIsMemberDetailOpen] = useState(false)
-  const [isAddRewardOpen, setIsAddRewardOpen] = useState(false)
-  const [isAwardPointsOpen, setIsAwardPointsOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [tierFilter, setTierFilter] = useState<string>("all")
+  const { toast } = useToast()
 
-  // Calculate stats
-  const stats = useMemo(() => {
-    const totalMembers = tiers.reduce((acc, t) => acc + t.membersCount, 0)
-    const totalPointsIssued = members.reduce((acc, m) => acc + m.lifetimePoints, 0)
-    const totalRedemptions = rewards.reduce((acc, r) => acc + r.redemptionCount, 0)
-    const avgPointsPerMember = members.length > 0 ? Math.round(members.reduce((acc, m) => acc + m.currentPoints, 0) / members.length) : 0
-    const activeRewards = rewards.filter(r => r.status === "active").length
+  // Data state
+  const [stats, setStats] = useState<LoyaltyStats | null>(null)
+  const [settings, setSettings] = useState<LoyaltySettings | null>(null)
+  const [tiers, setTiers] = useState<LoyaltyTier[]>([])
+  const [members, setMembers] = useState<LoyaltyMember[]>([])
+  const [rewards, setRewards] = useState<LoyaltyReward[]>([])
+  const [transactions, setTransactions] = useState<PointsTransaction[]>([])
+  const [rules, setRules] = useState<PointsRule[]>([])
+  const [leaderboard, setLeaderboard] = useState<{ most_returning: LoyaltyMember[]; highest_spending: LoyaltyMember[]; top_points: LoyaltyMember[] }>({ most_returning: [], highest_spending: [], top_points: [] })
 
-    return { totalMembers, totalPointsIssued, totalRedemptions, avgPointsPerMember, activeRewards }
-  }, [tiers, members, rewards])
+  // Loading states
+  const [loading, setLoading] = useState(true)
+  const [savingSettings, setSavingSettings] = useState(false)
 
-  // Filter members
-  const filteredMembers = useMemo(() => {
-    return members.filter(member => {
-      const matchesSearch = 
-        member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.phone.includes(searchQuery)
-      const matchesTier = tierFilter === "all" || member.tier === tierFilter
-      return matchesSearch && matchesTier
-    })
-  }, [members, searchQuery, tierFilter])
+  // Search / filter
+  const [memberSearch, setMemberSearch] = useState("")
 
-  const getTierBadge = (tier: TierLevel) => {
-    const tierData = tiers.find(t => t.level === tier)
-    if (!tierData) return null
-    
-    const colors: Record<TierLevel, string> = {
-      bronze: "bg-amber-100 text-amber-800 border-amber-200",
-      silver: "bg-slate-100 text-slate-700 border-slate-200",
-      gold: "bg-yellow-100 text-yellow-800 border-yellow-200",
-      platinum: "bg-slate-200 text-slate-800 border-slate-300",
-      diamond: "bg-cyan-100 text-cyan-800 border-cyan-200",
+  // Award Points dialog
+  const [awardDialog, setAwardDialog] = useState(false)
+  const [awardMemberId, setAwardMemberId] = useState<string>("")
+  const [awardPoints, setAwardPointsValue] = useState("")
+  const [awardReason, setAwardReason] = useState("")
+  const [awardLoading, setAwardLoading] = useState(false)
+
+  // Award Voucher dialog
+  const [voucherDialog, setVoucherDialog] = useState(false)
+  const [voucherMemberId, setVoucherMemberId] = useState<string>("")
+  const [voucherBatchId, setVoucherBatchId] = useState("")
+  const [voucherSMS, setVoucherSMS] = useState(true)
+  const [voucherLoading, setVoucherLoading] = useState(false)
+
+  // Reward dialog
+  const [rewardDialog, setRewardDialog] = useState<"create" | "edit" | null>(null)
+  const [editingReward, setEditingReward] = useState<LoyaltyReward | null>(null)
+  const [rewardForm, setRewardForm] = useState<Partial<LoyaltyReward>>({})
+  const [rewardLoading, setRewardLoading] = useState(false)
+
+  // Settings form
+  const [settingsForm, setSettingsForm] = useState<Partial<LoyaltySettings>>({})
+
+  // ─── Load all data ──────────────────────────────────────────────────────────
+
+  const loadAll = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [s, cfg, t, m, r, tx, rl, lbPoints, lbSpent, lbReturning] = await Promise.all([
+        adminApi.getLoyaltyStats(),
+        adminApi.getLoyaltySettings(),
+        adminApi.getLoyaltyTiers(),
+        adminApi.getLoyaltyMembers(),
+        adminApi.getLoyaltyRewards(),
+        adminApi.getLoyaltyTransactions(),
+        adminApi.getLoyaltyRules(),
+        adminApi.getLoyaltyLeaderboard('lifetime_points', 10),
+        adminApi.getLoyaltyLeaderboard('total_spent', 10),
+        adminApi.getLoyaltyLeaderboard('total_payments', 10),
+      ])
+      setStats(s)
+      setSettings(cfg)
+      setSettingsForm(cfg)
+      setTiers(t)
+      setMembers(Array.isArray(m) ? m : (m.results ?? []))
+      setRewards(r)
+      setTransactions(tx.results ?? [])
+      setRules(rl)
+      setLeaderboard({ top_points: lbPoints, highest_spending: lbSpent, most_returning: lbReturning })
+    } catch {
+      toast({ title: "Failed to load loyalty data", variant: "destructive" })
+    } finally {
+      setLoading(false)
     }
-    
+  }, [toast])
+
+  useEffect(() => { loadAll() }, [loadAll])
+
+  // ─── Award Points ───────────────────────────────────────────────────────────
+
+  const handleAwardPoints = async () => {
+    if (!awardMemberId || !awardPoints) return
+    setAwardLoading(true)
+    try {
+      await adminApi.awardPoints(Number(awardMemberId), Number(awardPoints), awardReason || undefined)
+      toast({ title: "Points awarded successfully" })
+      setAwardDialog(false)
+      setAwardMemberId(""); setAwardPointsValue(""); setAwardReason("")
+      loadAll()
+    } catch (e: any) {
+      toast({ title: e?.message ?? "Failed to award points", variant: "destructive" })
+    } finally {
+      setAwardLoading(false)
+    }
+  }
+
+  // ─── Award Voucher ──────────────────────────────────────────────────────────
+
+  const handleAwardVoucher = async () => {
+    if (!voucherMemberId) return
+    setVoucherLoading(true)
+    try {
+      await adminApi.awardVoucher(Number(voucherMemberId), voucherBatchId ? Number(voucherBatchId) : undefined, voucherSMS)
+      toast({ title: "Voucher awarded successfully" })
+      setVoucherDialog(false)
+      setVoucherMemberId(""); setVoucherBatchId(""); setVoucherSMS(true)
+    } catch (e: any) {
+      toast({ title: e?.message ?? "Failed to award voucher", variant: "destructive" })
+    } finally {
+      setVoucherLoading(false)
+    }
+  }
+
+  // ─── Save Settings ──────────────────────────────────────────────────────────
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true)
+    try {
+      const updated = await adminApi.updateLoyaltySettings(settingsForm)
+      setSettings(updated)
+      toast({ title: "Settings saved" })
+    } catch {
+      toast({ title: "Failed to save settings", variant: "destructive" })
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
+  // ─── Reward CRUD ────────────────────────────────────────────────────────────
+
+  const openCreateReward = () => {
+    setEditingReward(null)
+    setRewardForm({ status: "active", category: "other" })
+    setRewardDialog("create")
+  }
+
+  const openEditReward = (r: LoyaltyReward) => {
+    setEditingReward(r)
+    setRewardForm({ ...r })
+    setRewardDialog("edit")
+  }
+
+  const handleSaveReward = async () => {
+    setRewardLoading(true)
+    try {
+      if (rewardDialog === "edit" && editingReward) {
+        await adminApi.updateLoyaltyReward(editingReward.id, rewardForm)
+        toast({ title: "Reward updated" })
+      } else {
+        await adminApi.createLoyaltyReward(rewardForm)
+        toast({ title: "Reward created" })
+      }
+      setRewardDialog(null)
+      const updated = await adminApi.getLoyaltyRewards()
+      setRewards(updated)
+    } catch {
+      toast({ title: "Failed to save reward", variant: "destructive" })
+    } finally {
+      setRewardLoading(false)
+    }
+  }
+
+  const handleDeleteReward = async (id: number) => {
+    try {
+      await adminApi.deleteLoyaltyReward(id)
+      setRewards(prev => prev.filter(r => r.id !== id))
+      toast({ title: "Reward deleted" })
+    } catch {
+      toast({ title: "Failed to delete reward", variant: "destructive" })
+    }
+  }
+
+  // ─── Filtered members ───────────────────────────────────────────────────────
+
+  const filteredMembers = members.filter(m =>
+    !memberSearch ||
+    m.name?.toLowerCase().includes(memberSearch.toLowerCase()) ||
+    m.customer_code?.toLowerCase().includes(memberSearch.toLowerCase()) ||
+    m.phone?.includes(memberSearch)
+  )
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
+
+  if (loading) {
     return (
-      <Badge variant="outline" className={colors[tier]}>
-        {tierData.icon}
-        <span className="ml-1">{tierData.name}</span>
-      </Badge>
+      <div className="flex items-center justify-center h-72">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
     )
   }
 
-  const getTransactionBadge = (type: TransactionType) => {
-    const styles: Record<TransactionType, string> = {
-      earned: "bg-green-100 text-green-700",
-      redeemed: "bg-blue-100 text-blue-700",
-      expired: "bg-red-100 text-red-700",
-      bonus: "bg-purple-100 text-purple-700",
-      adjusted: "bg-slate-100 text-slate-700",
-    }
-    return <Badge className={styles[type]}>{type}</Badge>
-  }
-
-  const handleViewMember = (member: LoyaltyMember) => {
-    setSelectedMember(member)
-    setIsMemberDetailOpen(true)
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Loyalty Program</h1>
-          <p className="text-slate-500 mt-1">Manage points, rewards, and member tiers</p>
+          <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+            <Trophy className="w-6 h-6 text-yellow-500" /> Loyalty Program
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">Manage members, tiers, rewards, and points</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsAwardPointsOpen(true)}>
-            <Gift className="w-4 h-4 mr-2" />
-            Award Points
+          <Button variant="outline" size="sm" onClick={loadAll}>
+            <RefreshCw className="w-4 h-4 mr-2" /> Refresh
           </Button>
-          <Button onClick={() => setIsAddRewardOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Reward
+          <Button size="sm" onClick={() => setAwardDialog(true)}>
+            <Zap className="w-4 h-4 mr-2" /> Award Points
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setVoucherDialog(true)}>
+            <Gift className="w-4 h-4 mr-2" /> Award Voucher
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.totalMembers.toLocaleString()}</p>
-                <p className="text-xs text-slate-500">Total Members</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <StatCard icon={<Users className="w-5 h-5 text-blue-600" />} label="Total Members" value={stats.total_members.toLocaleString()} />
+          <StatCard icon={<Star className="w-5 h-5 text-yellow-500" />} label="Points Issued" value={stats.total_points_issued.toLocaleString()} />
+          <StatCard icon={<Gift className="w-5 h-5 text-green-600" />} label="Redemptions" value={stats.total_redemptions.toLocaleString()} />
+          <StatCard icon={<TrendingUp className="w-5 h-5 text-purple-600" />} label="Avg Points" value={Math.round(stats.avg_points_per_member).toLocaleString()} />
+          <StatCard icon={<Award className="w-5 h-5 text-orange-500" />} label="Active Rewards" value={stats.active_rewards.toLocaleString()} />
+          <StatCard icon={<TrendingUp className="w-5 h-5 text-cyan-600" />} label="Total Spent" value={kes(stats.total_spent)} />
+        </div>
+      )}
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Star className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{(stats.totalPointsIssued / 1000).toFixed(0)}K</p>
-                <p className="text-xs text-slate-500">Points Issued</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Tier Distribution */}
+      {stats?.tier_distribution && stats.tier_distribution.length > 0 && (
+        <div className="flex gap-3 flex-wrap">
+          {stats.tier_distribution.map(td => (
+            <Badge key={td.id} className={`${tierColors[td.level] ?? "bg-slate-500 text-white"} gap-1 px-3 py-1.5`}>
+              {tierIcons[td.level]} {td.name}: {td.count}
+            </Badge>
+          ))}
+        </div>
+      )}
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Gift className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.totalRedemptions.toLocaleString()}</p>
-                <p className="text-xs text-slate-500">Redemptions</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <Target className="w-5 h-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.avgPointsPerMember.toLocaleString()}</p>
-                <p className="text-xs text-slate-500">Avg Points/Member</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-100 rounded-lg">
-                <Award className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.activeRewards}</p>
-                <p className="text-xs text-slate-500">Active Rewards</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs */}
-      <Tabs defaultValue="tiers" className="w-full">
-        <TabsList>
-          <TabsTrigger value="tiers" className="flex items-center gap-2">
-            <Trophy className="w-4 h-4" />
-            Tiers
-          </TabsTrigger>
-          <TabsTrigger value="rewards" className="flex items-center gap-2">
-            <Gift className="w-4 h-4" />
-            Rewards
-          </TabsTrigger>
-          <TabsTrigger value="members" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Members
-          </TabsTrigger>
-          <TabsTrigger value="transactions" className="flex items-center gap-2">
-            <History className="w-4 h-4" />
-            Transactions
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            Settings
-          </TabsTrigger>
+      {/* Main Tabs */}
+      <Tabs defaultValue="members">
+        <TabsList className="grid grid-cols-6 w-full">
+          <TabsTrigger value="members"><Users className="w-4 h-4 mr-1" /> Members</TabsTrigger>
+          <TabsTrigger value="tiers"><Crown className="w-4 h-4 mr-1" /> Tiers</TabsTrigger>
+          <TabsTrigger value="rewards"><Gift className="w-4 h-4 mr-1" /> Rewards</TabsTrigger>
+          <TabsTrigger value="transactions"><Star className="w-4 h-4 mr-1" /> Transactions</TabsTrigger>
+          <TabsTrigger value="leaderboard"><Trophy className="w-4 h-4 mr-1" /> Leaderboard</TabsTrigger>
+          <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-1" /> Settings</TabsTrigger>
         </TabsList>
 
-        {/* Tiers Tab */}
-        <TabsContent value="tiers" className="mt-6">
-          <div className="grid md:grid-cols-5 gap-4">
-            {tiers.map((tier) => (
-              <Card key={tier.id} className="relative overflow-hidden">
-                <div className={`absolute top-0 left-0 right-0 h-1 ${tier.color}`} />
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${tier.color} text-white`}>
-                      {tier.icon}
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{tier.name}</CardTitle>
-                      <CardDescription className="text-xs">
-                        {tier.minPoints.toLocaleString()} - {tier.maxPoints?.toLocaleString() || "∞"} pts
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-500">Members</span>
-                    <span className="font-bold">{tier.membersCount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-500">Multiplier</span>
-                    <Badge variant="secondary">{tier.pointsMultiplier}x</Badge>
-                  </div>
-                  <Separator />
-                  <div>
-                    <p className="text-xs font-medium text-slate-500 mb-2">Benefits</p>
-                    <ul className="space-y-1">
-                      {tier.benefits.slice(0, 3).map((benefit, idx) => (
-                        <li key={idx} className="text-xs text-slate-600 flex items-start gap-1">
-                          <ChevronRight className="w-3 h-3 mt-0.5 text-slate-400" />
-                          {benefit}
-                        </li>
-                      ))}
-                      {tier.benefits.length > 3 && (
-                        <li className="text-xs text-blue-600">+{tier.benefits.length - 3} more</li>
-                      )}
-                    </ul>
-                  </div>
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Edit className="w-3 h-3 mr-1" />
-                    Edit Tier
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Tier Distribution */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Member Distribution</CardTitle>
-              <CardDescription>Members across loyalty tiers</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {tiers.map((tier) => {
-                  const percentage = (tier.membersCount / stats.totalMembers) * 100
-                  return (
-                    <div key={tier.id} className="flex items-center gap-4">
-                      <div className="w-24 flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${tier.color}`} />
-                        <span className="text-sm font-medium">{tier.name}</span>
-                      </div>
-                      <div className="flex-1">
-                        <Progress value={percentage} className="h-3" />
-                      </div>
-                      <div className="w-32 flex justify-between">
-                        <span className="text-sm">{tier.membersCount.toLocaleString()}</span>
-                        <span className="text-sm text-slate-500">{percentage.toFixed(1)}%</span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Rewards Tab */}
-        <TabsContent value="rewards" className="mt-6">
-          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {rewards.map((reward) => (
-              <Card key={reward.id} className={reward.status !== "active" ? "opacity-60" : ""}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div className="p-2 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg">
-                      <Gift className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Redemptions
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <CardTitle className="text-base mt-2">{reward.name}</CardTitle>
-                  <CardDescription className="text-xs">{reward.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                      <Star className="w-3 h-3 mr-1" />
-                      {reward.pointsCost.toLocaleString()} pts
-                    </Badge>
-                    <Badge variant="outline" className={
-                      reward.status === "active" ? "bg-green-50 text-green-700" :
-                      reward.status === "inactive" ? "bg-slate-50 text-slate-700" :
-                      "bg-red-50 text-red-700"
-                    }>
-                      {reward.status}
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="p-2 bg-slate-50 rounded">
-                      <p className="text-slate-500">Category</p>
-                      <p className="font-medium">{reward.category}</p>
-                    </div>
-                    <div className="p-2 bg-slate-50 rounded">
-                      <p className="text-slate-500">Redeemed</p>
-                      <p className="font-medium">{reward.redemptionCount.toLocaleString()}</p>
-                    </div>
-                  </div>
-
-                  {reward.stockQuantity !== null && (
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-500">Stock</span>
-                      <span className={reward.stockQuantity < 10 ? "text-red-600 font-medium" : ""}>
-                        {reward.stockQuantity} left
-                      </span>
-                    </div>
-                  )}
-
-                  {reward.validUntil && (
-                    <div className="flex items-center gap-1 text-xs text-slate-500">
-                      <Clock className="w-3 h-3" />
-                      Valid until {reward.validUntil}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-
-            {/* Add New Reward Card */}
-            <Card className="border-dashed cursor-pointer hover:border-blue-300 hover:bg-blue-50/50 transition-colors" onClick={() => setIsAddRewardOpen(true)}>
-              <CardContent className="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-400">
-                <Plus className="w-8 h-8 mb-2" />
-                <p className="font-medium">Add New Reward</p>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Members Tab */}
-        <TabsContent value="members" className="mt-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  placeholder="Search members..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-64"
-                />
-              </div>
-              <Select value={tierFilter} onValueChange={setTierFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Tier" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Tiers</SelectItem>
-                  <SelectItem value="bronze">Bronze</SelectItem>
-                  <SelectItem value="silver">Silver</SelectItem>
-                  <SelectItem value="gold">Gold</SelectItem>
-                  <SelectItem value="platinum">Platinum</SelectItem>
-                  <SelectItem value="diamond">Diamond</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-          </div>
-
+        {/* ── MEMBERS ── */}
+        <TabsContent value="members" className="mt-4">
           <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle>Members</CardTitle>
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    placeholder="Search name, code, phone…"
+                    className="pl-9 h-9"
+                    value={memberSearch}
+                    onChange={e => setMemberSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Member</TableHead>
                     <TableHead>Tier</TableHead>
-                    <TableHead>Current Points</TableHead>
-                    <TableHead>Lifetime Points</TableHead>
-                    <TableHead>Redemptions</TableHead>
-                    <TableHead>Last Activity</TableHead>
-                    <TableHead className="w-12"></TableHead>
+                    <TableHead className="text-right">Current Pts</TableHead>
+                    <TableHead className="text-right">Lifetime Pts</TableHead>
+                    <TableHead className="text-right">Total Spent</TableHead>
+                    <TableHead className="text-right">Payments</TableHead>
+                    <TableHead className="text-right">Redemptions</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMembers.map((member) => (
-                    <TableRow key={member.id} className="cursor-pointer" onClick={() => handleViewMember(member)}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
-                              {member.name.split(" ").map(n => n[0]).join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{member.name}</p>
-                            <p className="text-xs text-slate-500">{member.email}</p>
-                          </div>
-                        </div>
+                  {filteredMembers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-12 text-slate-400">
+                        No members found
                       </TableCell>
-                      <TableCell>{getTierBadge(member.tier)}</TableCell>
+                    </TableRow>
+                  ) : filteredMembers.map(m => (
+                    <TableRow key={m.id}>
                       <TableCell>
-                        <span className="font-medium text-purple-600">{member.currentPoints.toLocaleString()}</span>
+                        <div className="font-medium text-slate-900">{m.name}</div>
+                        <div className="text-xs text-slate-400">{m.customer_code} · {m.phone}</div>
                       </TableCell>
-                      <TableCell>{member.lifetimePoints.toLocaleString()}</TableCell>
-                      <TableCell>{member.redemptions}</TableCell>
-                      <TableCell className="text-sm text-slate-500">{member.lastActivity}</TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewMember(member)}>
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Gift className="w-4 h-4 mr-2" />
-                              Award Points
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Send className="w-4 h-4 mr-2" />
-                              Send Notification
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      <TableCell>
+                        {m.tier_level ? (
+                          <Badge className={`${tierColors[m.tier_level] ?? "bg-slate-500 text-white"} text-[10px] gap-1`}>
+                            {tierIcons[m.tier_level]} {m.tier_name}
+                          </Badge>
+                        ) : <span className="text-slate-400 text-sm">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">{m.current_points.toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-slate-500">{m.lifetime_points.toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-slate-500">{kes(m.total_spent)}</TableCell>
+                      <TableCell className="text-right">{m.total_payments}</TableCell>
+                      <TableCell className="text-right">{m.redemptions_count}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm" variant="outline" className="h-7 text-xs mr-1"
+                          onClick={() => { setAwardMemberId(String(m.id)); setAwardDialog(true) }}
+                        >
+                          <Zap className="w-3 h-3 mr-1" /> Award
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -608,34 +381,161 @@ export default function LoyaltyPage() {
           </Card>
         </TabsContent>
 
-        {/* Transactions Tab */}
-        <TabsContent value="transactions" className="mt-6">
+        {/* ── TIERS ── */}
+        <TabsContent value="tiers" className="mt-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {tiers.map(tier => (
+              <Card key={tier.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge className={`${tierColors[tier.level] ?? "bg-slate-500 text-white"} gap-1 px-3`}>
+                        {tierIcons[tier.level]} {tier.name}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-slate-400">{tier.members_count} members</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Min Points</span>
+                    <span className="font-semibold">{tier.min_points.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Max Points</span>
+                    <span className="font-semibold">{tier.max_points?.toLocaleString() ?? "Unlimited"}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Multiplier</span>
+                    <span className="font-semibold">{tier.points_multiplier}×</span>
+                  </div>
+                  {tier.benefits.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Benefits</p>
+                      <ul className="space-y-1">
+                        {tier.benefits.map((b, i) => (
+                          <li key={i} className="text-xs text-slate-600 flex items-start gap-1">
+                            <span className="text-green-500 mt-0.5">✓</span> {b}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+            {tiers.length === 0 && (
+              <div className="col-span-3 py-16 text-center text-slate-400">
+                No tiers configured. Run <code className="text-xs bg-slate-100 px-1 rounded">populate_loyalty_members</code> to create defaults.
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ── REWARDS ── */}
+        <TabsContent value="rewards" className="mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Recent Transactions</CardTitle>
-              <CardDescription>Points earned, redeemed, and adjusted</CardDescription>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle>Reward Catalog</CardTitle>
+                <Button size="sm" onClick={openCreateReward}>
+                  <Plus className="w-4 h-4 mr-2" /> New Reward
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Reward</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-right">Points Cost</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Stock</TableHead>
+                    <TableHead className="text-right">Redeemed</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rewards.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-12 text-slate-400">No rewards yet</TableCell>
+                    </TableRow>
+                  ) : rewards.map(r => (
+                    <TableRow key={r.id}>
+                      <TableCell>
+                        <div className="font-medium">{r.name}</div>
+                        {r.description && <div className="text-xs text-slate-400 truncate max-w-[200px]">{r.description}</div>}
+                      </TableCell>
+                      <TableCell><span className="text-sm text-slate-600">{categoryLabels[r.category] ?? r.category}</span></TableCell>
+                      <TableCell className="text-right font-bold text-blue-600">{r.points_cost.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Badge variant={r.status === "active" ? "default" : "secondary"} className="text-[10px] uppercase">
+                          {r.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">{r.stock_quantity ?? "∞"}</TableCell>
+                      <TableCell className="text-right">{r.redemption_count}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 mr-1" onClick={() => openEditReward(r)}>
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500 hover:text-red-600" onClick={() => handleDeleteReward(r.id)}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── TRANSACTIONS ── */}
+        <TabsContent value="transactions" className="mt-4">
+          <Card>
+            <CardHeader><CardTitle>Points Transactions</CardTitle></CardHeader>
+            <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead>Member</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Description</TableHead>
                     <TableHead className="text-right">Points</TableHead>
+                    <TableHead>Description</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions.map((txn) => (
-                    <TableRow key={txn.id}>
-                      <TableCell className="text-sm text-slate-500">{txn.date}</TableCell>
-                      <TableCell className="font-medium">{txn.memberName}</TableCell>
-                      <TableCell>{getTransactionBadge(txn.type)}</TableCell>
-                      <TableCell className="text-sm">{txn.description}</TableCell>
-                      <TableCell className={`text-right font-medium ${txn.points > 0 ? "text-green-600" : "text-red-600"}`}>
-                        {txn.points > 0 ? "+" : ""}{txn.points.toLocaleString()}
+                  {transactions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-12 text-slate-400">No transactions yet</TableCell>
+                    </TableRow>
+                  ) : transactions.map(tx => (
+                    <TableRow key={tx.id}>
+                      <TableCell className="text-xs text-slate-500">
+                        {new Date(tx.created_at).toLocaleString("en-KE")}
                       </TableCell>
+                      <TableCell className="font-medium text-sm">{tx.member_name}</TableCell>
+                      <TableCell>
+                        <Badge
+                          className={`text-[10px] uppercase ${
+                            tx.transaction_type === "earned" ? "bg-green-100 text-green-700" :
+                            tx.transaction_type === "redeemed" ? "bg-orange-100 text-orange-700" :
+                            tx.transaction_type === "bonus" ? "bg-blue-100 text-blue-700" :
+                            tx.transaction_type === "expired" ? "bg-red-100 text-red-700" :
+                            "bg-slate-100 text-slate-700"
+                          }`}
+                          variant="secondary"
+                        >
+                          {tx.transaction_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className={`text-right font-bold ${tx.points >= 0 ? "text-green-600" : "text-red-500"}`}>
+                        {tx.points >= 0 ? "+" : ""}{tx.points}
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-500 max-w-[250px] truncate">{tx.description}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -644,355 +544,334 @@ export default function LoyaltyPage() {
           </Card>
         </TabsContent>
 
-        {/* Settings Tab */}
-        <TabsContent value="settings" className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Program Settings</CardTitle>
-              <CardDescription>Configure loyalty program parameters</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Points Earning</h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Points per KES 100</Label>
-                        <p className="text-xs text-slate-500">Base earning rate</p>
-                      </div>
-                      <Input type="number" defaultValue="1" className="w-20" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Signup Bonus</Label>
-                        <p className="text-xs text-slate-500">Points for new members</p>
-                      </div>
-                      <Input type="number" defaultValue="50" className="w-20" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Referral Bonus</Label>
-                        <p className="text-xs text-slate-500">Points for referrals</p>
-                      </div>
-                      <Input type="number" defaultValue="100" className="w-20" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium">Points Expiry</h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Enable Expiry</Label>
-                        <p className="text-xs text-slate-500">Points expire after period</p>
-                      </div>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Expiry Period (months)</Label>
-                        <p className="text-xs text-slate-500">Time until expiry</p>
-                      </div>
-                      <Input type="number" defaultValue="12" className="w-20" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Expiry Warning (days)</Label>
-                        <p className="text-xs text-slate-500">Send reminder before expiry</p>
-                      </div>
-                      <Input type="number" defaultValue="30" className="w-20" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h4 className="font-medium">Notifications</h4>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                    <div>
-                      <Label>Points Earned Notification</Label>
-                      <p className="text-xs text-slate-500">Notify on earning points</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                    <div>
-                      <Label>Redemption Confirmation</Label>
-                      <p className="text-xs text-slate-500">Confirm reward redemption</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                    <div>
-                      <Label>Tier Upgrade Alert</Label>
-                      <p className="text-xs text-slate-500">Notify on tier change</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                    <div>
-                      <Label>Monthly Summary</Label>
-                      <p className="text-xs text-slate-500">Send monthly points summary</p>
-                    </div>
-                    <Switch />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button>Save Settings</Button>
-              </div>
-            </CardContent>
-          </Card>
+        {/* ── LEADERBOARD ── */}
+        <TabsContent value="leaderboard" className="mt-4">
+          <div className="grid md:grid-cols-3 gap-6">
+            <LeaderboardCard title="Top Points" icon={<Star className="w-4 h-4 text-yellow-500" />} members={leaderboard.top_points} valueKey="lifetime_points" valueFormat={v => v.toLocaleString() + " pts"} />
+            <LeaderboardCard title="Highest Spending" icon={<TrendingUp className="w-4 h-4 text-green-600" />} members={leaderboard.highest_spending} valueKey="total_spent" valueFormat={v => kes(v)} />
+            <LeaderboardCard title="Most Returning" icon={<Crown className="w-4 h-4 text-purple-600" />} members={leaderboard.most_returning} valueKey="total_payments" valueFormat={v => v + " payments"} />
+          </div>
         </TabsContent>
-      </Tabs>
 
-      {/* Member Detail Sheet */}
-      <Sheet open={isMemberDetailOpen} onOpenChange={setIsMemberDetailOpen}>
-        <SheetContent className="w-[500px] sm:max-w-[500px]">
-          {selectedMember && (
-            <>
-              <SheetHeader>
-                <div className="flex items-center gap-4">
-                  <Avatar className="w-12 h-12">
-                    <AvatarFallback className="bg-blue-100 text-blue-600">
-                      {selectedMember.name.split(" ").map(n => n[0]).join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <SheetTitle>{selectedMember.name}</SheetTitle>
-                    <SheetDescription>{selectedMember.email}</SheetDescription>
+        {/* ── SETTINGS ── */}
+        <TabsContent value="settings" className="mt-4">
+          {settings && (
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader><CardTitle>Points Configuration</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <SettingField
+                    label="Points per KES" hint={`1 point per KES ${settingsForm.currency_unit ?? settings.currency_unit}`}
+                    value={settingsForm.points_per_currency ?? settings.points_per_currency}
+                    onChange={v => setSettingsForm(p => ({ ...p, points_per_currency: Number(v) }))}
+                    type="number"
+                  />
+                  <SettingField
+                    label="Currency Unit (KES)" hint="e.g. 100 means per KES 100"
+                    value={settingsForm.currency_unit ?? settings.currency_unit}
+                    onChange={v => setSettingsForm(p => ({ ...p, currency_unit: Number(v) }))}
+                    type="number"
+                  />
+                  <SettingField
+                    label="Signup Bonus (pts)"
+                    value={settingsForm.signup_bonus ?? settings.signup_bonus}
+                    onChange={v => setSettingsForm(p => ({ ...p, signup_bonus: Number(v) }))}
+                    type="number"
+                  />
+                  <SettingField
+                    label="Referral Bonus (pts)"
+                    value={settingsForm.referral_bonus ?? settings.referral_bonus}
+                    onChange={v => setSettingsForm(p => ({ ...p, referral_bonus: Number(v) }))}
+                    type="number"
+                  />
+                  <SettingField
+                    label="Monthly Tenure Bonus (pts)"
+                    value={settingsForm.tenure_monthly_bonus ?? settings.tenure_monthly_bonus}
+                    onChange={v => setSettingsForm(p => ({ ...p, tenure_monthly_bonus: Number(v) }))}
+                    type="number"
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle>Expiry & Notifications</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label>Points Expiry Enabled</Label>
+                    <Switch
+                      checked={settingsForm.points_expiry_enabled ?? settings.points_expiry_enabled}
+                      onCheckedChange={v => setSettingsForm(p => ({ ...p, points_expiry_enabled: v }))}
+                    />
                   </div>
-                </div>
-              </SheetHeader>
-              <ScrollArea className="h-[calc(100vh-180px)] mt-6">
-                <div className="space-y-6">
-                  {/* Tier & Points */}
-                  <div className="flex items-center gap-4">
-                    {getTierBadge(selectedMember.tier)}
-                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                      <Star className="w-3 h-3 mr-1" />
-                      {selectedMember.currentPoints.toLocaleString()} points
-                    </Badge>
-                  </div>
-
-                  {/* Progress to Next Tier */}
-                  {selectedMember.tier !== "diamond" && (
-                    <Card>
-                      <CardContent className="p-4">
-                        <p className="text-sm font-medium mb-2">Progress to Next Tier</p>
-                        {(() => {
-                          const currentTier = tiers.find(t => t.level === selectedMember.tier)!
-                          const nextTierIndex = tiers.findIndex(t => t.level === selectedMember.tier) + 1
-                          const nextTier = tiers[nextTierIndex]
-                          const progress = ((selectedMember.lifetimePoints - currentTier.minPoints) / (nextTier.minPoints - currentTier.minPoints)) * 100
-                          const pointsNeeded = nextTier.minPoints - selectedMember.lifetimePoints
-
-                          return (
-                            <>
-                              <div className="flex justify-between text-xs mb-2">
-                                <span>{currentTier.name}</span>
-                                <span>{nextTier.name}</span>
-                              </div>
-                              <Progress value={Math.min(progress, 100)} className="h-2" />
-                              <p className="text-xs text-slate-500 mt-2">
-                                {pointsNeeded > 0 ? `${pointsNeeded.toLocaleString()} points needed` : "Ready for upgrade!"}
-                              </p>
-                            </>
-                          )
-                        })()}
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-50 rounded-lg">
-                      <p className="text-xs text-slate-500">Lifetime Points</p>
-                      <p className="text-xl font-bold">{selectedMember.lifetimePoints.toLocaleString()}</p>
-                    </div>
-                    <div className="p-4 bg-slate-50 rounded-lg">
-                      <p className="text-xs text-slate-500">Redemptions</p>
-                      <p className="text-xl font-bold">{selectedMember.redemptions}</p>
-                    </div>
-                    <div className="p-4 bg-slate-50 rounded-lg">
-                      <p className="text-xs text-slate-500">Member Since</p>
-                      <p className="text-sm font-medium">{selectedMember.joinedDate}</p>
-                    </div>
-                    <div className="p-4 bg-slate-50 rounded-lg">
-                      <p className="text-xs text-slate-500">Last Activity</p>
-                      <p className="text-sm font-medium">{selectedMember.lastActivity}</p>
-                    </div>
-                  </div>
-
-                  {/* Contact */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Contact</h4>
-                    <p className="text-sm text-slate-600">{selectedMember.phone}</p>
-                    <p className="text-sm text-slate-600">{selectedMember.email}</p>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Actions</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" className="justify-start">
-                        <Gift className="w-4 h-4 mr-2" />
-                        Award Points
-                      </Button>
-                      <Button variant="outline" className="justify-start">
-                        <Send className="w-4 h-4 mr-2" />
-                        Send Message
-                      </Button>
-                      <Button variant="outline" className="justify-start">
-                        <History className="w-4 h-4 mr-2" />
-                        View History
-                      </Button>
-                      <Button variant="outline" className="justify-start">
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit Member
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Recent Transactions */}
-                  <div className="space-y-3">
-                    <h4 className="font-medium">Recent Transactions</h4>
-                    {transactions.filter(t => t.memberId === selectedMember.id).slice(0, 5).map((txn) => (
-                      <div key={txn.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                        <div>
-                          <p className="text-sm">{txn.description}</p>
-                          <p className="text-xs text-slate-500">{txn.date}</p>
-                        </div>
-                        <span className={`font-medium ${txn.points > 0 ? "text-green-600" : "text-red-600"}`}>
-                          {txn.points > 0 ? "+" : ""}{txn.points}
-                        </span>
+                  <SettingField
+                    label="Expiry Window (months)"
+                    value={settingsForm.points_expiry_months ?? settings.points_expiry_months}
+                    onChange={v => setSettingsForm(p => ({ ...p, points_expiry_months: Number(v) }))}
+                    type="number"
+                  />
+                  <SettingField
+                    label="Expiry Warning (days before)"
+                    value={settingsForm.expiry_warning_days ?? settings.expiry_warning_days}
+                    onChange={v => setSettingsForm(p => ({ ...p, expiry_warning_days: Number(v) }))}
+                    type="number"
+                  />
+                  <div className="border-t pt-4 space-y-3">
+                    <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">SMS Notifications</p>
+                    {([
+                      ["notify_points_earned", "Points Earned"],
+                      ["notify_redemption", "Redemption"],
+                      ["notify_tier_upgrade", "Tier Upgrade"],
+                      ["notify_monthly_summary", "Monthly Summary"],
+                    ] as const).map(([key, label]) => (
+                      <div key={key} className="flex items-center justify-between">
+                        <Label className="text-sm">{label}</Label>
+                        <Switch
+                          checked={(settingsForm[key as keyof LoyaltySettings] as boolean) ?? (settings[key as keyof LoyaltySettings] as boolean)}
+                          onCheckedChange={v => setSettingsForm(p => ({ ...p, [key]: v }))}
+                        />
                       </div>
                     ))}
                   </div>
-                </div>
-              </ScrollArea>
-            </>
+                  <div className="border-t pt-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Program Active</Label>
+                      <Switch
+                        checked={settingsForm.program_active ?? settings.program_active}
+                        onCheckedChange={v => setSettingsForm(p => ({ ...p, program_active: v }))}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label>Auto-Enroll New Customers</Label>
+                      <Switch
+                        checked={settingsForm.auto_enroll_new_customers ?? settings.auto_enroll_new_customers}
+                        onCheckedChange={v => setSettingsForm(p => ({ ...p, auto_enroll_new_customers: v }))}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="md:col-span-2 flex justify-end">
+                <Button onClick={handleSaveSettings} disabled={savingSettings} className="w-40">
+                  {savingSettings ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</> : "Save Settings"}
+                </Button>
+              </div>
+            </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </TabsContent>
+      </Tabs>
 
-      {/* Add Reward Dialog */}
-      <Dialog open={isAddRewardOpen} onOpenChange={setIsAddRewardOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add New Reward</DialogTitle>
-            <DialogDescription>Create a new reward for members to redeem</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label>Reward Name</Label>
-              <Input placeholder="e.g., 1 Day Free Internet" />
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea placeholder="Describe what the member gets..." />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Points Cost</Label>
-                <Input type="number" placeholder="100" />
-              </div>
-              <div className="space-y-2">
-                <Label>Category</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="internet">Internet</SelectItem>
-                    <SelectItem value="credit">Credit</SelectItem>
-                    <SelectItem value="hardware">Hardware</SelectItem>
-                    <SelectItem value="entertainment">Entertainment</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Stock Quantity (optional)</Label>
-                <Input type="number" placeholder="Leave empty for unlimited" />
-              </div>
-              <div className="space-y-2">
-                <Label>Valid Until (optional)</Label>
-                <Input type="date" />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddRewardOpen(false)}>Cancel</Button>
-            <Button onClick={() => setIsAddRewardOpen(false)}>Add Reward</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Award Points Dialog */}
-      <Dialog open={isAwardPointsOpen} onOpenChange={setIsAwardPointsOpen}>
-        <DialogContent className="max-w-lg">
+      {/* ── AWARD POINTS DIALOG ── */}
+      <Dialog open={awardDialog} onOpenChange={open => { if (!open) { setAwardDialog(false); setAwardMemberId(""); setAwardPointsValue(""); setAwardReason("") } }}>
+        <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
             <DialogTitle>Award Points</DialogTitle>
-            <DialogDescription>Manually award points to members</DialogDescription>
+            <DialogDescription>Manually award loyalty points to a member</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label>Select Member</Label>
-              <Select>
+          <div className="space-y-4 mt-2">
+            <div>
+              <Label className="text-sm mb-1.5 block">Member</Label>
+              <Select value={awardMemberId} onValueChange={setAwardMemberId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Search and select member" />
+                  <SelectValue placeholder="Select a member…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {members.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                      {member.name} ({member.email})
+                  {members.map(m => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.name} ({m.customer_code}) — {m.current_points} pts
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Points to Award</Label>
-              <Input type="number" placeholder="100" />
+            <div>
+              <Label className="text-sm mb-1.5 block">Points to Award</Label>
+              <Input
+                type="number" min={1} placeholder="e.g. 100"
+                value={awardPoints} onChange={e => setAwardPointsValue(e.target.value)}
+              />
             </div>
-            <div className="space-y-2">
-              <Label>Reason</Label>
-              <Select>
+            <div>
+              <Label className="text-sm mb-1.5 block">Reason (optional)</Label>
+              <Textarea
+                placeholder="e.g. Anniversary bonus"
+                value={awardReason} onChange={e => setAwardReason(e.target.value)}
+                rows={2}
+              />
+            </div>
+            <Button
+              className="w-full" disabled={awardLoading || !awardMemberId || !awardPoints}
+              onClick={handleAwardPoints}
+            >
+              {awardLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Awarding…</> : <><Zap className="w-4 h-4 mr-2" /> Award Points</>}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── AWARD VOUCHER DIALOG ── */}
+      <Dialog open={voucherDialog} onOpenChange={open => { if (!open) { setVoucherDialog(false); setVoucherMemberId(""); setVoucherBatchId(""); setVoucherSMS(true) } }}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Award Voucher</DialogTitle>
+            <DialogDescription>Award a hotspot voucher to a loyalty member</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <Label className="text-sm mb-1.5 block">Member</Label>
+              <Select value={voucherMemberId} onValueChange={setVoucherMemberId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select reason" />
+                  <SelectValue placeholder="Select a member…" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bonus">Loyalty Bonus</SelectItem>
-                  <SelectItem value="referral">Referral Reward</SelectItem>
-                  <SelectItem value="compensation">Customer Compensation</SelectItem>
-                  <SelectItem value="promotion">Promotional Campaign</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  {members.map(m => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.name} ({m.customer_code})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Notes (optional)</Label>
-              <Textarea placeholder="Additional details about this award..." />
+            <div>
+              <Label className="text-sm mb-1.5 block">Voucher Batch ID (optional)</Label>
+              <Input
+                type="number" min={1} placeholder="Leave blank for default"
+                value={voucherBatchId} onChange={e => setVoucherBatchId(e.target.value)}
+              />
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAwardPointsOpen(false)}>Cancel</Button>
-            <Button onClick={() => setIsAwardPointsOpen(false)}>
-              <Gift className="w-4 h-4 mr-2" />
-              Award Points
+            <div className="flex items-center justify-between">
+              <Label>Send SMS notification</Label>
+              <Switch checked={voucherSMS} onCheckedChange={setVoucherSMS} />
+            </div>
+            <Button
+              className="w-full" disabled={voucherLoading || !voucherMemberId}
+              onClick={handleAwardVoucher}
+            >
+              {voucherLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Awarding…</> : <><Gift className="w-4 h-4 mr-2" /> Award Voucher</>}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
+
+      {/* ── REWARD DIALOG (create/edit) ── */}
+      <Dialog open={!!rewardDialog} onOpenChange={open => { if (!open) setRewardDialog(null) }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{rewardDialog === "edit" ? "Edit Reward" : "New Reward"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <Label className="text-sm mb-1.5 block">Name</Label>
+              <Input value={rewardForm.name ?? ""} onChange={e => setRewardForm(p => ({ ...p, name: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-sm mb-1.5 block">Description</Label>
+              <Textarea rows={2} value={rewardForm.description ?? ""} onChange={e => setRewardForm(p => ({ ...p, description: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm mb-1.5 block">Points Cost</Label>
+                <Input type="number" min={1} value={rewardForm.points_cost ?? ""} onChange={e => setRewardForm(p => ({ ...p, points_cost: Number(e.target.value) }))} />
+              </div>
+              <div>
+                <Label className="text-sm mb-1.5 block">Category</Label>
+                <Select value={rewardForm.category ?? "other"} onValueChange={v => setRewardForm(p => ({ ...p, category: v as RewardCategory }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(categoryLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm mb-1.5 block">Status</Label>
+                <Select value={rewardForm.status ?? "active"} onValueChange={v => setRewardForm(p => ({ ...p, status: v as any }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-sm mb-1.5 block">Stock (blank = unlimited)</Label>
+                <Input type="number" min={0} value={rewardForm.stock_quantity ?? ""} onChange={e => setRewardForm(p => ({ ...p, stock_quantity: e.target.value ? Number(e.target.value) : null }))} />
+              </div>
+            </div>
+            <Button className="w-full" disabled={rewardLoading || !rewardForm.name || !rewardForm.points_cost} onClick={handleSaveReward}>
+              {rewardLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</> : "Save Reward"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <Card>
+      <CardContent className="p-4 flex items-center gap-3">
+        <div className="p-2 bg-slate-50 rounded-lg">{icon}</div>
+        <div>
+          <p className="text-xs text-slate-500">{label}</p>
+          <p className="font-black text-base text-slate-900 leading-tight">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function LeaderboardCard({
+  title, icon, members, valueKey, valueFormat
+}: {
+  title: string
+  icon: React.ReactNode
+  members: LoyaltyMember[]
+  valueKey: keyof LoyaltyMember
+  valueFormat: (v: number) => string
+}) {
+  const medals = ["🥇", "🥈", "🥉"]
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">{icon} {title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {members.length === 0 ? (
+          <p className="text-slate-400 text-sm py-4 text-center">No data</p>
+        ) : members.slice(0, 10).map((m, i) => (
+          <div key={m.id} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg leading-none">{medals[i] ?? <span className="w-5 text-center text-xs text-slate-400">{i + 1}</span>}</span>
+              <div>
+                <p className="text-sm font-medium leading-tight">{m.name}</p>
+                <p className="text-xs text-slate-400">{m.customer_code}</p>
+              </div>
+            </div>
+            <span className="text-sm font-bold text-blue-600">
+              {valueFormat(Number(m[valueKey]))}
+            </span>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
+function SettingField({
+  label, hint, value, onChange, type = "text"
+}: {
+  label: string; hint?: string; value: number | string; onChange: (v: string) => void; type?: string
+}) {
+  return (
+    <div>
+      <Label className="text-sm mb-1.5 block">{label}</Label>
+      <Input type={type} value={value} onChange={e => onChange(e.target.value)} />
+      {hint && <p className="text-xs text-slate-400 mt-1">{hint}</p>}
     </div>
   )
 }

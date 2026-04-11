@@ -15,7 +15,7 @@ import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { adminApi } from "@/lib/admin-api"
 import type { NetilyPlan, CompanySubscription, UsageStats as ApiUsageStats, Invoice } from "@/lib/types"
@@ -547,9 +547,9 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
             <DialogContent className="sm:max-w-[420px]">
               <DialogHeader>
                 <DialogTitle>Subscribe to {selectingPlan?.name}</DialogTitle>
-                <CardDescription>
+                <DialogDescription>
                   Pay {selectingPlan ? kes(Number(selectingPlan.base_license_fee) || Number(selectingPlan.price_monthly) || 0) : ''} to activate this plan
-                </CardDescription>
+                </DialogDescription>
               </DialogHeader>
               <div className="mt-4 space-y-4">
                 <div>
