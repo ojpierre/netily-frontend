@@ -1648,7 +1648,7 @@ export default function UsersPage() {
       </Card>
       )}
 
-      {/* ── Online Sessions Tab ── */}
+      {/* ── Online Sessions Tab ── UPDATED: Spinner only when IP is missing */}
       {activeTab === "online-sessions" && (
         <Card>
           <CardHeader>
@@ -1732,7 +1732,6 @@ export default function UsersPage() {
                                 .slice(0, 2) || 'HS'}
                             </div>
                             <div>
-                              {/* FIXED: Show canonical_username for hotspot, full name for PPPoE with null guard */}
                               <p className="font-medium text-slate-900">
                                 {(session as any).canonical_username
                                   ? (session as any).canonical_username
@@ -1755,12 +1754,12 @@ export default function UsersPage() {
                             {session.service_type === 'PPPOE' ? 'PPPoE' : session.service_type === 'HOTSPOT' ? 'Hotspot' : session.service_type}
                           </Badge>
                         </TableCell>
-                        {/* UPDATED: IP Address column with pending accounting indicator */}
+                        {/* FIX 1b: IP Address column - show "connecting…" only when accounting_pending AND no IP */}
                         <TableCell>
                           <span className="font-mono text-sm">
                             {session.ip_address
                               ? session.ip_address
-                              : (session as any).accounting_pending
+                              : (session as any).accounting_pending && !session.ip_address
                                 ? <span className="text-amber-500 text-xs italic">router connecting…</span>
                                 : "—"}
                           </span>
@@ -1771,10 +1770,10 @@ export default function UsersPage() {
                         <TableCell>
                           <span className="text-sm">{session.router || '—'}</span>
                         </TableCell>
-                        {/* UPDATED: Uptime column with spinner for pending accounting */}
+                        {/* FIX 1a: Uptime column - spinner only when accounting_pending AND IP missing */}
                         <TableCell>
                           <div className="flex items-center gap-1.5">
-                            {(session as any).accounting_pending ? (
+                            {(session as any).accounting_pending && !session.ip_address ? (
                               <span className="flex items-center gap-1 text-amber-600 text-xs">
                                 <RefreshCw className="w-3 h-3 animate-spin" />
                                 {session.uptime}
@@ -2059,7 +2058,6 @@ export default function UsersPage() {
                                 HS
                               </div>
                               <div>
-                                {/* FIXED: Use canonical_username from new endpoint */}
                                 <p className="font-medium text-slate-900 font-mono">{item.canonical_username}</p>
                                 <p className="text-xs text-slate-500">{item.phone}</p>
                               </div>
@@ -2086,10 +2084,6 @@ export default function UsersPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            {/* 
-                              Prefer live RADIUS usage (from online sessions) over the stale DB value.
-                              hotspotLiveUsageMap keys on the RADIUS username = the access_code.
-                            */}
                             <span className="text-sm font-medium text-slate-700">
                               {displayUsage}
                             </span>
