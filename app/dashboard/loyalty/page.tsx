@@ -180,10 +180,10 @@ export default function CustomerLoyaltyPage() {
       </Card>
 
       <Tabs defaultValue="rewards">
-        <TabsList>
-          <TabsTrigger value="rewards">Available Rewards</TabsTrigger>
-          <TabsTrigger value="history">Points History</TabsTrigger>
-          <TabsTrigger value="tiers">Membership Tiers</TabsTrigger>
+        <TabsList className="w-full flex overflow-x-auto">
+          <TabsTrigger value="rewards" className="flex-1 min-w-0 text-xs sm:text-sm">Available Rewards</TabsTrigger>
+          <TabsTrigger value="history" className="flex-1 min-w-0 text-xs sm:text-sm">Points History</TabsTrigger>
+          <TabsTrigger value="tiers" className="flex-1 min-w-0 text-xs sm:text-sm">Membership Tiers</TabsTrigger>
         </TabsList>
 
         {/* Rewards Tab */}

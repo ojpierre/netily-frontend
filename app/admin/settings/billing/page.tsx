@@ -228,8 +228,11 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
   }
 
   // Derive display amount for a plan (UI only — backend calculates real amount)
-  const getPlanAmount = (plan: NetilyPlan | null) =>
-    plan ? (Number(plan.base_license_fee) || Number(plan.price_monthly) || 0) : 0
+  const getPlanAmount = (plan: NetilyPlan | null) => {
+    if (!plan) return 0
+    if (plan.is_metered) return Number(plan.base_license_fee) || 0
+    return Number(plan.price_monthly) || 0
+  }
 
   // STK Push payment for selecting a new plan
   const handleSelectPlan = async () => {
@@ -293,11 +296,11 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
       )}
 
       <Tabs defaultValue={subscription?.status === "expired" || subscription?.status === "past_due" ? "plans" : "invoices"} className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="current">Current Plan</TabsTrigger>
-          <TabsTrigger value="invoices">Invoices</TabsTrigger>
-          <TabsTrigger value="plans">Available Plans</TabsTrigger>
-          <TabsTrigger value="usage">Resource Usage</TabsTrigger>
+        <TabsList className="w-full flex overflow-x-auto">
+          <TabsTrigger value="current" className="flex-1 min-w-0 text-xs sm:text-sm">Current Plan</TabsTrigger>
+          <TabsTrigger value="invoices" className="flex-1 min-w-0 text-xs sm:text-sm">Invoices</TabsTrigger>
+          <TabsTrigger value="plans" className="flex-1 min-w-0 text-xs sm:text-sm">Available Plans</TabsTrigger>
+          <TabsTrigger value="usage" className="flex-1 min-w-0 text-xs sm:text-sm">Usage</TabsTrigger>
         </TabsList>
 
         {/* 1. CURRENT PLAN */}
@@ -315,7 +318,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   {subscription.status || 'Active'}
                 </Badge>
               </CardHeader>
-              <CardContent className="grid md:grid-cols-2 gap-12 pt-6">
+              <CardContent className="grid md:grid-cols-2 gap-6 md:gap-12 pt-6">
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
@@ -411,15 +414,16 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   </p>
                 </div>
               ) : (
+                <div className="overflow-x-auto -mx-4 sm:mx-0">
                 <Table>
                   <TableHeader className="bg-slate-50/50">
                     <TableRow>
-                      <TableHead className="font-bold text-slate-900">Invoice Number</TableHead>
-                      <TableHead className="font-bold text-slate-900">Billing Date</TableHead>
-                      <TableHead className="font-bold text-slate-900">Period</TableHead>
-                      <TableHead className="font-bold text-slate-900">Total Amount</TableHead>
-                      <TableHead className="font-bold text-slate-900">Status</TableHead>
-                      <TableHead className="text-right font-bold text-slate-900">Action</TableHead>
+                      <TableHead className="font-bold text-slate-900 whitespace-nowrap">Invoice Number</TableHead>
+                      <TableHead className="font-bold text-slate-900 whitespace-nowrap">Billing Date</TableHead>
+                      <TableHead className="font-bold text-slate-900 whitespace-nowrap hidden sm:table-cell">Period</TableHead>
+                      <TableHead className="font-bold text-slate-900 whitespace-nowrap">Total Amount</TableHead>
+                      <TableHead className="font-bold text-slate-900 whitespace-nowrap">Status</TableHead>
+                      <TableHead className="text-right font-bold text-slate-900 whitespace-nowrap">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -433,7 +437,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                         <TableRow key={inv?.id || Math.random()} className="hover:bg-slate-50/50 transition-colors">
                           <TableCell className="font-mono font-bold text-blue-600">{inv?.invoice_number || '---'}</TableCell>
                           <TableCell>{billingDate ? new Date(billingDate).toLocaleDateString() : '---'}</TableCell>
-                          <TableCell className="text-slate-600 text-sm">
+                          <TableCell className="text-slate-600 text-sm hidden sm:table-cell">
                             {pStart && pEnd ? (
                               <>
                                 {new Date(pStart).toLocaleDateString()} - {new Date(pEnd).toLocaleDateString()}
@@ -538,6 +542,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                     })}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -545,7 +550,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
 
         {/* 3. AVAILABLE PLANS - Added Array check to prevent k.map crash */}
         <TabsContent value="plans">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {Array.isArray(apiPlans) && apiPlans.map((plan) => (
               <Card 
                 key={plan.id} 
@@ -610,7 +615,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
 
           {/* Single shared dialog for plan selection — lives outside the map to avoid controlled/uncontrolled conflicts */}
           <Dialog open={!!selectingPlan} onOpenChange={(open) => { if (!open) { setSelectingPlan(null); setPlanPayPhone("") } }}>
-            <DialogContent className="sm:max-w-[420px]">
+            <DialogContent className="max-w-[92vw] sm:max-w-[420px]">
               <DialogHeader>
                 <DialogTitle>Subscribe to {selectingPlan?.name}</DialogTitle>
                 <DialogDescription>
@@ -652,7 +657,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
         <TabsContent value="usage" className="space-y-6">
           {usage ? (
             <>
-              <div className="grid gap-6 md:grid-cols-3">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                 <Card className="border-slate-200">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-xs font-black uppercase text-slate-400 tracking-widest">

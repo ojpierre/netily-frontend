@@ -333,13 +333,13 @@ export default function LoyaltyPage() {
 
       {/* Main Tabs */}
       <Tabs defaultValue="members">
-        <TabsList className="grid grid-cols-6 w-full">
-          <TabsTrigger value="members"><Users className="w-4 h-4 mr-1" /> Members</TabsTrigger>
-          <TabsTrigger value="tiers"><Crown className="w-4 h-4 mr-1" /> Tiers</TabsTrigger>
-          <TabsTrigger value="rewards"><Gift className="w-4 h-4 mr-1" /> Rewards</TabsTrigger>
-          <TabsTrigger value="transactions"><Star className="w-4 h-4 mr-1" /> Transactions</TabsTrigger>
-          <TabsTrigger value="leaderboard"><Trophy className="w-4 h-4 mr-1" /> Leaderboard</TabsTrigger>
-          <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-1" /> Settings</TabsTrigger>
+        <TabsList className="grid grid-cols-3 sm:grid-cols-6 w-full">
+          <TabsTrigger value="members" className="text-xs sm:text-sm"><Users className="w-4 h-4 mr-1 hidden sm:inline" /> Members</TabsTrigger>
+          <TabsTrigger value="tiers" className="text-xs sm:text-sm"><Crown className="w-4 h-4 mr-1 hidden sm:inline" /> Tiers</TabsTrigger>
+          <TabsTrigger value="rewards" className="text-xs sm:text-sm"><Gift className="w-4 h-4 mr-1 hidden sm:inline" /> Rewards</TabsTrigger>
+          <TabsTrigger value="transactions" className="text-xs sm:text-sm"><Star className="w-4 h-4 mr-1 hidden sm:inline" /> Transactions</TabsTrigger>
+          <TabsTrigger value="leaderboard" className="text-xs sm:text-sm"><Trophy className="w-4 h-4 mr-1 hidden sm:inline" /> Leaderboard</TabsTrigger>
+          <TabsTrigger value="settings" className="text-xs sm:text-sm"><Settings className="w-4 h-4 mr-1 hidden sm:inline" /> Settings</TabsTrigger>
         </TabsList>
 
         {/* ── MEMBERS ── */}
