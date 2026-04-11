@@ -3122,6 +3122,7 @@ class AdminApiService {
     billing_period: 'monthly' | 'yearly'
     amount?: number  // Override amount (e.g. invoice total)
   }): Promise<{ 
+    payment_id: string
     checkout_request_id: string
     merchant_request_id: string
     message: string 
@@ -3130,6 +3131,22 @@ class AdminApiService {
       method: 'POST',
       body: JSON.stringify(data),
     })
+  }
+
+  async checkSubscriptionPaymentStatus(paymentId: string): Promise<{
+    payment_id: string
+    status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+    message: string
+    mpesa_receipt: string | null
+    completed_at: string | null
+  }> {
+    return this.request(`/subscriptions/payments/${paymentId}/status/`)
+  }
+
+  /** Invalidate cached subscription so the next fetch hits the server */
+  invalidateSubscriptionCache() {
+    this._subscriptionCache = null
+    this._subscriptionInflight = null
   }
 
   // ------------------------------------------

@@ -40,57 +40,106 @@ function BillingContent() {
   const [selectingPlan, setSelectingPlan] = useState<NetilyPlan | null>(null)
   const [planPayPhone, setPlanPayPhone] = useState("")
   const [planPayLoading, setPlanPayLoading] = useState(false)
+  const [pendingPaymentId, setPendingPaymentId] = useState<string | null>(null)
+  const [paymentStatus, setPaymentStatus] = useState<string>("")
+
+  const loadBillingData = async (showSpinner = false) => {
+    if (showSpinner) setIsLoading(true)
+    try {
+      adminApi.invalidateSubscriptionCache()
+      const [plansData, subData, usageData, invoicesData] = await Promise.all([
+        adminApi.getNetilyPlans(),
+        adminApi.getCurrentSubscription(),
+        adminApi.getUsageStats(),
+        // FIX: Use search filter for NET-BILL prefix to isolate Netily platform invoices
+        adminApi.getInvoices({ search: 'NET-BILL' })
+      ])
+
+      // FIX 1: Handle Paginated vs List responses for Plans
+      if (Array.isArray(plansData)) {
+        setApiPlans(plansData)
+      } else if (plansData && (plansData as any).results) {
+        setApiPlans((plansData as any).results)
+      } else {
+        setApiPlans([])
+      }
+
+      setSubscription(subData)
+
+      // Normalize flat backend response → nested UsageStats format
+      if (usageData && !(usageData as any).subscribers) {
+        const raw = usageData as any
+        setUsage({
+          subscribers: { current: raw.current_subscribers ?? 0, limit: raw.max_subscribers === 0 ? null : (raw.max_subscribers ?? null), percentage: raw.subscribers_usage_percent ?? null },
+          routers: { current: raw.current_routers ?? 0, limit: raw.max_routers === 0 ? null : (raw.max_routers ?? null), percentage: raw.routers_usage_percent ?? null },
+          staff: { current: raw.current_staff ?? 0, limit: raw.max_staff === 0 ? null : (raw.max_staff ?? null), percentage: raw.staff_usage_percent ?? null },
+          is_over_limit: raw.is_near_limit ?? false,
+          warnings: raw.warnings ?? [],
+        } as ApiUsageStats)
+      } else {
+        setUsage(usageData)
+      }
+
+      // FIX 2: Safe Invoice extraction
+      setInvoices(invoicesData?.results || [])
+      
+    } catch (error) {
+      console.error("Billing load error:", error)
+      if (showSpinner) toast.error("Failed to load billing records")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
     setHasMounted(true)
-    const loadBillingData = async () => {
-      setIsLoading(true)
+    loadBillingData(true)
+  }, [])
+
+  // ─── Poll pending payment status ─────────────────────────────────────────
+  useEffect(() => {
+    if (!pendingPaymentId) return
+    let cancelled = false
+    let attempts = 0
+    const maxAttempts = 24 // ~2 minutes at 5s intervals
+
+    const poll = async () => {
+      if (cancelled || attempts >= maxAttempts) {
+        if (attempts >= maxAttempts) {
+          setPaymentStatus("")
+          setPendingPaymentId(null)
+          toast.info("Payment is still processing. It will activate automatically once confirmed.")
+        }
+        return
+      }
+      attempts++
       try {
-        const [plansData, subData, usageData, invoicesData] = await Promise.all([
-          adminApi.getNetilyPlans(),
-          adminApi.getCurrentSubscription(),
-          adminApi.getUsageStats(),
-          // FIX: Use search filter for NET-BILL prefix to isolate Netily platform invoices
-          adminApi.getInvoices({ search: 'NET-BILL' })
-        ])
+        const res = await adminApi.checkSubscriptionPaymentStatus(pendingPaymentId)
+        if (cancelled) return
 
-        // FIX 1: Handle Paginated vs List responses for Plans
-        if (Array.isArray(plansData)) {
-          setApiPlans(plansData)
-        } else if (plansData && (plansData as any).results) {
-          setApiPlans((plansData as any).results)
-        } else {
-          setApiPlans([])
+        if (res.status === 'completed') {
+          setPaymentStatus("")
+          setPendingPaymentId(null)
+          toast.success("Payment confirmed! Your plan is now active.", { duration: 6000 })
+          loadBillingData()
+          return
         }
-
-        setSubscription(subData)
-
-        // Normalize flat backend response → nested UsageStats format
-        if (usageData && !(usageData as any).subscribers) {
-          const raw = usageData as any
-          setUsage({
-            subscribers: { current: raw.current_subscribers ?? 0, limit: raw.max_subscribers === 0 ? null : (raw.max_subscribers ?? null), percentage: raw.subscribers_usage_percent ?? null },
-            routers: { current: raw.current_routers ?? 0, limit: raw.max_routers === 0 ? null : (raw.max_routers ?? null), percentage: raw.routers_usage_percent ?? null },
-            staff: { current: raw.current_staff ?? 0, limit: raw.max_staff === 0 ? null : (raw.max_staff ?? null), percentage: raw.staff_usage_percent ?? null },
-            is_over_limit: raw.is_near_limit ?? false,
-            warnings: raw.warnings ?? [],
-          } as ApiUsageStats)
-        } else {
-          setUsage(usageData)
+        if (res.status === 'failed' || res.status === 'cancelled') {
+          setPaymentStatus("")
+          setPendingPaymentId(null)
+          toast.error(res.message || "Payment failed. Please try again.")
+          return
         }
-
-        // FIX 2: Safe Invoice extraction
-        setInvoices(invoicesData?.results || [])
-        
-      } catch (error) {
-        console.error("Billing load error:", error)
-        toast.error("Failed to load billing records")
-      } finally {
-        setIsLoading(false)
+        // Still pending — poll again
+        setTimeout(poll, 5000)
+      } catch {
+        if (!cancelled) setTimeout(poll, 5000)
       }
     }
-    loadBillingData()
-  }, [])
+
+    setTimeout(poll, 4000) // first poll after 4s (give user time to enter PIN)
+    return () => { cancelled = true }
+  }, [pendingPaymentId])
 
   if (!hasMounted || isLoading) {
     return (
@@ -157,16 +206,20 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
     }
     setPayLoading(true)
     try {
-      await adminApi.initiateSubscriptionPayment({
+      const res = await adminApi.initiateSubscriptionPayment({
         plan_id: subscription?.plan?.code || 'metered',
         payment_method: 'mpesa_stk',
         phone_number: phone.startsWith('0') ? `254${phone.slice(1)}` : phone,
         billing_period: 'monthly',
         amount: invoiceAmount,
       })
-      toast.success("STK Push sent! Check your phone to complete payment.")
+      toast.success("STK Push sent! Check your phone and enter your M-Pesa PIN.")
       setPayingInvoiceId(null)
       setPayPhone("")
+      if (res.payment_id) {
+        setPendingPaymentId(res.payment_id)
+        setPaymentStatus("Waiting for M-Pesa confirmation…")
+      }
     } catch (error: any) {
       toast.error(error?.message || "Payment initiation failed")
     } finally {
@@ -188,15 +241,20 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
     }
     setPlanPayLoading(true)
     try {
-      await adminApi.initiateSubscriptionPayment({
+      const res = await adminApi.initiateSubscriptionPayment({
         plan_id: selectingPlan.code,
         payment_method: 'mpesa_stk',
         phone_number: phone.startsWith('0') ? `254${phone.slice(1)}` : phone,
         billing_period: 'monthly',
       })
-      toast.success("STK Push sent! Check your phone to complete payment. Your plan will activate upon confirmation.")
+      toast.success("STK Push sent! Check your phone and enter your M-Pesa PIN.")
       setSelectingPlan(null)
       setPlanPayPhone("")
+      // Start polling for payment confirmation
+      if (res.payment_id) {
+        setPendingPaymentId(res.payment_id)
+        setPaymentStatus("Waiting for M-Pesa confirmation…")
+      }
     } catch (error: any) {
       toast.error(error?.message || "Payment initiation failed")
     } finally {
@@ -220,6 +278,16 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
               ? "Your trial has expired. Select a plan below and pay to restore access."
               : "Your subscription payment is past due. Please settle your invoice to restore access."
             }
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {pendingPaymentId && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+          <AlertTitle className="text-blue-800">Processing Payment</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            {paymentStatus || "Waiting for M-Pesa confirmation…"} This page will update automatically once your payment is confirmed.
           </AlertDescription>
         </Alert>
       )}
