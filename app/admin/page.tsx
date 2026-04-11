@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   Users,
   UserCheck,
@@ -91,11 +92,26 @@ function timeAgo(timestamp: string): string {
   return `${diffDays}d ago`
 }
 
+// ChangeBadge component for revenue changes
+function ChangeBadge({ value }: { value: number }) {
+  const isPositive = value > 0
+  const absValue = Math.abs(value)
+  return (
+    <Badge
+      variant="secondary"
+      className={`text-xs ${isPositive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+    >
+      {isPositive ? "+" : "-"}{absValue}%
+    </Badge>
+  )
+}
+
 // ──────────────────────────────────────
 // COMPONENT
 // ──────────────────────────────────────
 
 export default function AdminDashboard() {
+  const router = useRouter()
   const { user } = useAdminAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -110,18 +126,28 @@ export default function AdminDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [weekView, setWeekView] = useState<"this" | "last">("this")
   const [yearView, setYearView] = useState<"this" | "last">("this")
+  
+  // NEW: State for live online sessions and active subscriptions
+  const [onlineSessions, setOnlineSessions] = useState<any[]>([])
+  const [activeSubscriptions, setActiveSubscriptions] = useState<{ pppoe: any[]; hotspot: any[]; total: number }>({ 
+    pppoe: [], 
+    hotspot: [], 
+    total: 0 
+  })
 
   const fetchDashboardData = useCallback(async () => {
     try {
       setError(null)
 
       // Fetch all dashboard data in parallel — each call is independent
-      const [coreRes, routerRes, paymentRes, ticketRes, reportsRes] = await Promise.allSettled([
+      const [coreRes, routerRes, paymentRes, ticketRes, reportsRes, sessionsRes, activeSubsRes] = await Promise.allSettled([
         adminApi.getDashboard(),
         adminApi.getRouterDashboardStats(),
         adminApi.getPaymentDashboardStats(),
         adminApi.getTicketStats(),
         adminApi.getReportsData("30d"),
+        adminApi.getOnlineSessions(),          // ← ADDED: live online sessions
+        adminApi.getActiveSubscriptions?.(),   // ← ADDED: active subscriptions
       ])
 
       setData({
@@ -135,6 +161,14 @@ export default function AdminDashboard() {
             : [],
         reports: reportsRes.status === "fulfilled" ? reportsRes.value : null,
       })
+
+      // Update live data separately
+      if (sessionsRes.status === "fulfilled") {
+        setOnlineSessions(sessionsRes.value?.sessions || [])
+      }
+      if (activeSubsRes.status === "fulfilled") {
+        setActiveSubscriptions(activeSubsRes.value || { pppoe: [], hotspot: [], total: 0 })
+      }
     } catch (err: any) {
       console.error("Dashboard fetch error:", err)
       setError("Failed to load dashboard data. Please try again.")
@@ -270,31 +304,97 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Network Uptime */}
-        <Card>
+        {/* CHANGE 1: Online vs Active — animated circular ring */}
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => router.push('/admin/users?tab=online-sessions')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Network Uptime</CardTitle>
-            <Activity className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium">Online / Active</CardTitle>
+            <span className="text-xs text-slate-400 flex items-center gap-1">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live
+            </span>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold text-blue-600">
-                  {core?.network_uptime ?? routers?.average_uptime ?? 0}%
+              <Skeleton className="h-16 w-full" />
+            ) : (() => {
+              const onlineCount = onlineSessions.length
+              const activeCount = (activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0)
+              const pct = activeCount > 0 ? Math.round((onlineCount / activeCount) * 100) : 0
+              // SVG ring: circumference of r=26 circle = 2π×26 ≈ 163.4
+              const CIRC = 163.4
+              const filled = (pct / 100) * CIRC
+              return (
+                <div className="flex items-center gap-4 mt-1">
+                  {/* Circular ring */}
+                  <div className="relative flex-shrink-0" style={{ width: 68, height: 68 }}>
+                    <svg width="68" height="68" viewBox="0 0 68 68">
+                      {/* Track */}
+                      <circle
+                        cx="34" cy="34" r="26"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="6"
+                        className="text-slate-100 dark:text-slate-800"
+                      />
+                      {/* Animated fill ring */}
+                      <circle
+                        cx="34" cy="34" r="26"
+                        fill="none"
+                        stroke="#3b82f6"
+                        strokeWidth="6"
+                        strokeLinecap="round"
+                        strokeDasharray={`${filled} ${CIRC}`}
+                        strokeDashoffset="0"
+                        transform="rotate(-90 34 34)"
+                        style={{
+                          transition: 'stroke-dasharray 0.8s ease',
+                          animation: 'dashSpin 2.8s linear infinite',
+                        }}
+                      />
+                      {/* Centre pulse dot */}
+                      <circle cx="34" cy="34" r="4" fill="#3b82f6"
+                        style={{ animation: 'pulseDot 1.8s ease-in-out infinite' }}
+                      />
+                    </svg>
+                    {/* Percentage label */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className="text-[10px] font-medium text-slate-500">{pct}%</span>
+                    </div>
+                    {/* Inject keyframes once */}
+                    <style>{`
+                      @keyframes dashSpin {
+                        to { stroke-dashoffset: -${CIRC}; }
+                      }
+                      @keyframes pulseDot {
+                        0%,100% { opacity:1; r:4; }
+                        50% { opacity:.55; r:3; }
+                      }
+                    `}</style>
+                  </div>
+                  {/* Numbers + legend */}
+                  <div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-blue-600">{onlineCount}</span>
+                      <span className="text-slate-400 text-sm">/</span>
+                      <span className="text-xl font-semibold text-slate-700 dark:text-slate-200">{activeCount}</span>
+                    </div>
+                    <div className="mt-1.5 flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+                        <span className="text-xs text-slate-500">Online now</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-slate-300 inline-block" />
+                        <span className="text-xs text-slate-500">Active subs</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-2">
-                  <Progress
-                    value={core?.network_uptime ?? routers?.average_uptime ?? 0}
-                    className="h-2"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    {routers?.total_connected_users ?? core?.online_customers ?? 0} users online
-                  </p>
-                </div>
-              </>
-            )}
+              )
+            })()}
           </CardContent>
         </Card>
       </div>
@@ -366,7 +466,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Revenue Card */}
+        {/* CHANGE 2: Revenue Card */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -384,52 +484,54 @@ export default function AdminDashboard() {
           <CardContent>
             {loading ? (
               <div className="space-y-3">
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div className="space-y-2">
+                {/* Today */}
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg border-l-[3px] border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20">
                   <div>
                     <p className="text-xs text-slate-500">Today</p>
-                    <p className="text-lg font-bold text-green-700">
-                      {formatKSh(payments?.amount_today)}
+                    <p className="text-base font-bold text-slate-900 dark:text-slate-100">
+                      {formatKSh(data.reports?.overview?.today_revenue ?? payments?.amount_today)}
                     </p>
                   </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-700">
-                    {payments?.payments_today ?? 0} txns
-                  </Badge>
+                  {(data.reports?.overview?.today_change ?? 0) !== 0 && (
+                    <ChangeBadge value={data.reports?.overview?.today_change ?? 0} />
+                  )}
                 </div>
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                {/* This week */}
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg border-l-[3px] border-l-green-500 bg-green-50/50 dark:bg-green-950/20">
                   <div>
-                    <p className="text-xs text-slate-500">This Month</p>
-                    <p className="text-lg font-bold text-blue-700">
-                      {formatKSh(payments?.amount_this_month)}
+                    <p className="text-xs text-slate-500">This week</p>
+                    <p className="text-base font-bold text-slate-900 dark:text-slate-100">
+                      {formatKSh(data.reports?.overview?.week_revenue ?? 0)}
                     </p>
                   </div>
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                    {payments?.payments_this_month ?? 0} txns
-                  </Badge>
+                  {(data.reports?.overview?.week_change ?? 0) !== 0 && (
+                    <ChangeBadge value={data.reports?.overview?.week_change ?? 0} />
+                  )}
                 </div>
-                <div className="pt-2 border-t grid grid-cols-3 gap-2 text-center">
+                {/* This month */}
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg border-l-[3px] border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20">
                   <div>
-                    <p className="text-xs text-slate-400">Completed</p>
-                    <p className="text-sm font-semibold text-green-600">
-                      {payments?.completed_payments ?? 0}
+                    <p className="text-xs text-slate-500">This month</p>
+                    <p className="text-base font-bold text-slate-900 dark:text-slate-100">
+                      {formatKSh(data.reports?.overview?.month_revenue ?? payments?.amount_this_month)}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-400">Pending</p>
-                    <p className="text-sm font-semibold text-amber-600">
-                      {payments?.pending_payments ?? 0}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400">Failed</p>
-                    <p className="text-sm font-semibold text-red-600">
-                      {payments?.failed_payments ?? 0}
-                    </p>
-                  </div>
+                  {(data.reports?.overview?.month_change ?? 0) !== 0 && (
+                    <ChangeBadge value={data.reports?.overview?.month_change ?? 0} />
+                  )}
+                </div>
+                {/* Transaction count footer */}
+                <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t">
+                  <span>Transactions today</span>
+                  <span className="font-semibold text-slate-700">
+                    {data.reports?.overview?.total_transactions_today ?? payments?.payments_today ?? 0}
+                  </span>
                 </div>
               </div>
             )}
