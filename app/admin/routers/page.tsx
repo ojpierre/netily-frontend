@@ -654,51 +654,59 @@ export default function RoutersPage() {
                     </div>
                   </div>
 
-                  {/* SLA Progress */}
-                  {r.uptime_percentage !== undefined && (
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>SLA: {r.sla_target || 99}%</span>
-                        <span className={(r.uptime_percentage || 0) >= (r.sla_target || 99) ? "text-green-600" : "text-red-600"}>
-                          {Number(r.uptime_percentage || 0).toFixed(2)}%
-                        </span>
+                  {/* SLA Progress — uses status as proxy when uptime_percentage is 0 */}
+                  {(() => {
+                    const slaTarget = r.sla_target || 99
+                    // If uptime_percentage is available and non-zero, use it; otherwise derive from status
+                    const uptimePct = r.uptime_percentage && r.uptime_percentage > 0
+                      ? r.uptime_percentage
+                      : r.status === 'online' ? slaTarget : 0
+                    const meetsSlA = uptimePct >= slaTarget
+                    return (
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-slate-500">SLA target: {slaTarget}%</span>
+                          <span className={meetsSlA ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                            {r.uptime_percentage && r.uptime_percentage > 0 
+                              ? `${Number(r.uptime_percentage).toFixed(1)}%`
+                              : r.status === 'online' ? '✓ Online' : '✗ Offline'
+                            }
+                          </span>
+                        </div>
+                        <Progress
+                          value={r.uptime_percentage && r.uptime_percentage > 0 ? r.uptime_percentage : r.status === 'online' ? 100 : 0}
+                          className={`h-2 ${!meetsSlA && r.status !== 'online' ? "[&>div]:bg-red-500" : r.status === 'online' ? "[&>div]:bg-green-500" : "[&>div]:bg-slate-300"}`}
+                        />
                       </div>
-                      <Progress 
-                        value={r.uptime_percentage} 
-                        className={`h-2 ${(r.uptime_percentage || 0) < (r.sla_target || 99) ? "[&>div]:bg-red-500" : ""}`}
-                      />
-                    </div>
-                  )}
+                    )
+                  })()}
 
-                  {/* Metrics Preview */}
-                  {r.status === "online" && r.metrics && (
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t">
-                      <div className="text-center">
-                        <p className="text-xs text-slate-500">CPU</p>
-                        <p className={`font-medium ${
-                          r.metrics.cpu_usage > 80 ? "text-red-600" : 
-                          r.metrics.cpu_usage > 60 ? "text-amber-600" : "text-slate-700"
-                        }`}>
-                          {r.metrics.cpu_usage}%
-                        </p>
+                  {/* CPU + Memory mini metrics */}
+                  {r.metrics && r.status === 'online' && (
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                      <div>
+                        <div className="flex justify-between text-xs mb-0.5">
+                          <span className="text-slate-400">CPU</span>
+                          <span className={r.metrics.cpu_usage > 80 ? "text-red-600 font-medium" : r.metrics.cpu_usage > 60 ? "text-amber-600" : "text-slate-600"}>
+                            {r.metrics.cpu_usage}%
+                          </span>
+                        </div>
+                        <Progress
+                          value={r.metrics.cpu_usage}
+                          className={`h-1.5 ${r.metrics.cpu_usage > 80 ? "[&>div]:bg-red-500" : r.metrics.cpu_usage > 60 ? "[&>div]:bg-amber-500" : ""}`}
+                        />
                       </div>
-                      <div className="text-center">
-                        <p className="text-xs text-slate-500">Memory</p>
-                        <p className={`font-medium ${
-                          r.metrics.memory_usage > 80 ? "text-red-600" : 
-                          r.metrics.memory_usage > 60 ? "text-amber-600" : "text-slate-700"
-                        }`}>
-                          {r.metrics.memory_usage}%
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-slate-500">Temp</p>
-                        <p className={`font-medium ${
-                          (r.metrics.temperature || 0) > 65 ? "text-red-600" : 
-                          (r.metrics.temperature || 0) > 55 ? "text-amber-600" : "text-slate-700"
-                        }`}>
-                          {r.metrics.temperature || "N/A"}°C
-                        </p>
+                      <div>
+                        <div className="flex justify-between text-xs mb-0.5">
+                          <span className="text-slate-400">RAM</span>
+                          <span className={r.metrics.memory_usage > 80 ? "text-red-600 font-medium" : r.metrics.memory_usage > 60 ? "text-amber-600" : "text-slate-600"}>
+                            {r.metrics.memory_usage}%
+                          </span>
+                        </div>
+                        <Progress
+                          value={r.metrics.memory_usage}
+                          className={`h-1.5 ${r.metrics.memory_usage > 80 ? "[&>div]:bg-red-500" : r.metrics.memory_usage > 60 ? "[&>div]:bg-amber-500" : ""}`}
+                        />
                       </div>
                     </div>
                   )}

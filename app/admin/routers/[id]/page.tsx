@@ -331,6 +331,9 @@ export default function RouterDetailPage() {
     is_active: true,
   })
 
+  // Fix 2b: Add live status data state
+  const [liveStatusData, setLiveStatusData] = useState<{ cpu_load?: string; free_memory?: string; total_memory?: string; uptime?: string; model?: string } | null>(null)
+
   // Fetch data
   const fetchData = useCallback(async () => {
     try {
@@ -392,6 +395,7 @@ export default function RouterDetailPage() {
     }
   }, [routerId])
 
+  // Fix 2b: Updated useEffect to include live status fetch
   useEffect(() => {
     // Prevent duplicate fetches in React Strict Mode
     if (hasFetchedRef.current) return
@@ -403,6 +407,12 @@ export default function RouterDetailPage() {
       .then((data) => setAuthScript(data.one_liner))
       .catch(() => setAuthScript(null))
       .finally(() => setIsScriptLoading(false))
+    // Fetch live status for the top stats cards (non-blocking)
+    adminApi.getRouterLiveStatus(parseInt(routerId))
+      .then((live) => {
+        if (live?.online) setLiveStatusData(live)
+      })
+      .catch(() => {}) // silently ignore — live status is best-effort
   }, [fetchData, routerId])
   // Handler to copy script
   const handleCopyAuthScript = () => {
@@ -444,6 +454,7 @@ export default function RouterDetailPage() {
     }
   }
 
+  // Fix 2a: Updated handleReboot to gracefully handle connection drop
   const handleReboot = async () => {
     setIsRebooting(true)
     try {
@@ -455,9 +466,31 @@ export default function RouterDetailPage() {
           setRouterData(prev => prev ? { ...prev, status: "online" as RouterStatus, uptime: "0d 0h 1m" } : null)
         }, 5000)
       } else {
-        await adminApi.rebootRouter(parseInt(routerId))
-        toast.success("Reboot command sent successfully")
-        fetchData()
+        // MikroTik drops the TCP connection immediately on reboot — this is expected.
+        // We treat any response (including connection errors) as success.
+        try {
+          await adminApi.rebootRouter(parseInt(routerId))
+        } catch (rebootErr: unknown) {
+          // Connection closed/reset by MikroTik is normal and means the command was received
+          const msg = rebootErr instanceof Error ? rebootErr.message.toLowerCase() : ''
+          if (
+            msg.includes('network') ||
+            msg.includes('fetch') ||
+            msg.includes('connection') ||
+            msg.includes('econnreset') ||
+            msg.includes('timeout') ||
+            msg.includes('aborted')
+          ) {
+            // This is the expected outcome — router closed the connection as it rebooted
+          } else {
+            // A real error (e.g. 403, 500) — rethrow
+            throw rebootErr
+          }
+        }
+        toast.success("Reboot command sent — router will reconnect in ~60 seconds")
+        // Optimistically mark offline; fetchData after a delay
+        setRouterData(prev => prev ? { ...prev, status: "offline" as RouterStatus } : null)
+        setTimeout(() => fetchData(), 15000)
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -777,8 +810,9 @@ export default function RouterDetailPage() {
             </div>
       {/* Auth Script Dialog */}
       {isAuthScriptDialogOpen && (
+        // Fix 2d: Updated DialogContent with max-w-lg and w-full
         <Dialog open={isAuthScriptDialogOpen} onOpenChange={setIsAuthScriptDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-lg w-full">
             <DialogHeader>
               <DialogTitle>Router Authentication Script</DialogTitle>
               <DialogDescription>
@@ -796,7 +830,8 @@ export default function RouterDetailPage() {
               <div className="p-4 text-center">Loading script...</div>
             ) : authScript ? (
               <>
-                <div className="bg-gray-100 rounded p-4 font-mono text-xs whitespace-pre-wrap mb-4">
+                {/* Fix 2d: Updated pre/code block with overflow handling */}
+                <div className="bg-gray-100 dark:bg-gray-800 rounded p-4 font-mono text-xs break-all overflow-x-auto max-h-48 overflow-y-auto mb-4">
                   {authScript}
                 </div>
                 {routerData.is_authenticated && (
@@ -846,8 +881,11 @@ export default function RouterDetailPage() {
                   <Badge variant="outline" className="text-amber-600 border-amber-300">Demo</Badge>
                 )}
               </div>
+              {/* Fix 2d: Updated badges to show model from live status */}
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <Badge variant="outline">{routerData.model || "Unknown Model"}</Badge>
+                <Badge variant="outline">
+                  {liveStatusData?.model || routerData.model || "Unknown Model"}
+                </Badge>
                 <Badge variant="outline" className="font-mono">{routerData.ip_address}</Badge>
                 <Badge variant="secondary" className="capitalize">{routerData.router_type}</Badge>
               </div>
@@ -917,6 +955,7 @@ export default function RouterDetailPage() {
           </CardContent>
         </Card>
 
+        {/* Fix 2c: Updated Uptime card to use live status data */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -924,13 +963,16 @@ export default function RouterDetailPage() {
                 <Clock className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-lg font-bold">{routerData.uptime || "N/A"}</p>
+                <p className="text-lg font-bold">
+                  {liveStatusData?.uptime || routerData.uptime || "N/A"}
+                </p>
                 <p className="text-xs text-slate-500">Uptime</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Fix 2c: Updated SLA card to show formatted value */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -938,8 +980,15 @@ export default function RouterDetailPage() {
                 <Shield className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{Number(routerData.uptime_percentage || 0).toFixed(2)}%</p>
-                <p className="text-xs text-slate-500">SLA ({routerData.sla_target}%)</p>
+                <p className="text-2xl font-bold">
+                  {routerData.uptime_percentage && routerData.uptime_percentage > 0
+                    ? `${Number(routerData.uptime_percentage).toFixed(1)}%`
+                    : routerData.status === 'online' ? '✓' : '—'
+                  }
+                </p>
+                <p className="text-xs text-slate-500">
+                  SLA target: {routerData.sla_target || 99}%
+                </p>
               </div>
             </div>
           </CardContent>
@@ -1270,65 +1319,7 @@ export default function RouterDetailPage() {
 
         {/* Users Tab */}
         <TabsContent value="users" className="mt-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Connected Users ({users.length})</CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleSyncUsers}
-                  disabled={isSyncing}
-                >
-                  {isSyncing ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                  )}
-                  Sync
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {users.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Username</TableHead>
-                      <TableHead>IP Address</TableHead>
-                      <TableHead>MAC Address</TableHead>
-                      <TableHead>Download</TableHead>
-                      <TableHead>Upload</TableHead>
-                      <TableHead>Uptime</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.username}</TableCell>
-                        <TableCell className="font-mono text-sm">{user.ip_address}</TableCell>
-                        <TableCell className="font-mono text-sm">{user.mac_address}</TableCell>
-                        <TableCell>{user.download} MB</TableCell>
-                        <TableCell>{user.upload} MB</TableCell>
-                        <TableCell>{user.uptime}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-green-100 text-green-700">
-                            {user.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="py-12 text-center text-slate-500">
-                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No users connected</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <RouterUsersTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
         </TabsContent>
 
         {/* Firewall Tab */}
