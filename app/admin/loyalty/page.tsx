@@ -153,6 +153,12 @@ export default function LoyaltyPage() {
 
   useEffect(() => { loadAll() }, [loadAll])
 
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const timer = setInterval(() => { loadAll() }, 30_000)
+    return () => clearInterval(timer)
+  }, [loadAll])
+
   // ─── Award Points ───────────────────────────────────────────────────────────
 
   const handleAwardPoints = async () => {
@@ -261,7 +267,7 @@ export default function LoyaltyPage() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
-  if (loading) {
+  if (loading && members.length === 0) {
     return (
       <div className="flex items-center justify-center h-72">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
@@ -277,11 +283,14 @@ export default function LoyaltyPage() {
           <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
             <Trophy className="w-6 h-6 text-yellow-500" /> Loyalty Program
           </h1>
-          <p className="text-slate-500 text-sm mt-1">Manage points, rewards, and member tiers</p>
+          <p className="text-slate-500 text-sm mt-1">
+            Manage points, rewards, and member tiers
+            <span className="ml-2 text-xs text-green-500 font-medium">● Live</span>
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={loadAll}>
-            <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+          <Button variant="outline" size="sm" onClick={loadAll} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
           <Button size="sm" onClick={() => setAwardDialog(true)}>
             <Zap className="w-4 h-4 mr-2" /> Award Points
