@@ -104,6 +104,9 @@ import type {
   SendSMSRequest,
   SendBulkSMSRequest,
   SMSBalance,
+  SMSNotificationSettings,
+  SMSWallet,
+  SMSUnitTopup,
   // Staff types
   CreateStaffUserRequest,
   CreateStaffUserResponse,
@@ -2883,6 +2886,36 @@ class AdminApiService {
     return this.request('/messaging/gateway/providers/')
   }
 
+  // ── SMS Notification Settings ──────────────────────────────────
+  async getSMSNotificationSettings(): Promise<SMSNotificationSettings> {
+    return this.request<SMSNotificationSettings>('/messaging/notification-settings/')
+  }
+
+  async updateSMSNotificationSettings(data: Partial<SMSNotificationSettings>): Promise<SMSNotificationSettings> {
+    return this.request<SMSNotificationSettings>('/messaging/notification-settings/', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // ── SMS Wallet ─────────────────────────────────────────────────
+  async getSMSWallet(): Promise<SMSWallet> {
+    return this.request<SMSWallet>('/messaging/wallet/')
+  }
+
+  async initiateSMSTopup(units: number, phoneNumber: string): Promise<{
+    topup_id: number
+    units: number
+    amount: string
+    checkout_request_id: string
+    message: string
+  }> {
+    return this.request('/messaging/topup/initiate/', {
+      method: 'POST',
+      body: JSON.stringify({ units, phone_number: phoneNumber }),
+    })
+  }
+
   // ------------------------------------------
   // LOYALTY PROGRAM - /loyalty/
   // ------------------------------------------
@@ -3673,12 +3706,11 @@ class AdminApiService {
     return this.request(`/hotspot/admin/clients/${id}/`)
   }
 
-    // ADD THIS NEW METHOD ↓
-async getActiveSubscriptions(): Promise<ActiveSubscriptionsResponse> {
-  return this.request<ActiveSubscriptionsResponse>('/hotspot/admin/active-subscriptions/')
-}
+  async getActiveSubscriptions(): Promise<ActiveSubscriptionsResponse> {
+    return this.request<ActiveSubscriptionsResponse>('/hotspot/admin/active-subscriptions/')
+  }
 
-// ------------------------------------------
+  // ------------------------------------------
   // FAIR USAGE POLICY (FUP) - /fup/
   // ------------------------------------------
 

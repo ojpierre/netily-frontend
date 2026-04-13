@@ -2494,7 +2494,15 @@ export interface SMSBalance {
   credits?: number
 }
 
-export type SMSProvider = 'africastalking' | 'twilio' | 'vonage' | 'infobip' | 'beem' | 'advanta' | 'hubtel'
+export type SMSProvider =
+  | 'africastalking'
+  | 'twilio'
+  | 'vonage'
+  | 'infobip'
+  | 'beem'
+  | 'advanta'
+  | 'hubtel'
+  | 'bytewave'
 
 export interface SMSGatewayConfig {
   id: number
@@ -2513,6 +2521,46 @@ export interface SMSGatewayConfig {
   field_labels: Record<string, string>
   created_at: string
   updated_at: string
+}
+
+export interface SMSNotificationSettings {
+  use_inbuilt_system: boolean
+  // hotspot
+  hotspot_new_subscription: boolean
+  hotspot_welcome: boolean
+  hotspot_session_expiry: boolean
+  hotspot_expiry_minutes_before: number
+  hotspot_payment_failed: boolean
+  hotspot_session_expired: boolean
+  // pppoe
+  pppoe_welcome: boolean
+  pppoe_payment_confirmation: boolean
+  pppoe_expiry_reminder: boolean
+  pppoe_expiry_days_before: number
+  pppoe_service_suspended: boolean
+  pppoe_service_resumed: boolean
+  pppoe_plan_changed: boolean
+  pppoe_renewal_confirmation: boolean
+  pppoe_new_subscription: boolean
+  updated_at?: string
+}
+
+export interface SMSWallet {
+  sms_units: number
+  sell_price_per_unit: number
+  topup_history: SMSUnitTopup[]
+}
+
+export interface SMSUnitTopup {
+  id: number
+  units_purchased: number
+  amount_paid: number
+  payment_reference: string
+  payment_method: string
+  status: 'pending' | 'completed' | 'failed'
+  checkout_request_id: string
+  notes: string
+  created_at: string
 }
 
 export interface SMSGatewayConfigWrite {
@@ -3185,3 +3233,59 @@ export interface LoyaltyStats {
   tier_distribution: { id: number; name: string; level: string; count: number }[]
 }
 
+// Default template variables for each event type
+export interface SMSTemplateVariable {
+  key: string
+  label: string
+  example: string
+}
+
+export const SMS_TEMPLATE_VARIABLES: Record<string, SMSTemplateVariable[]> = {
+  hotspot_welcome: [
+    { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
+    { key: '{expires_at}', label: 'Expiry Time', example: '3:45 PM' },
+    { key: '{access_code}', label: 'Access Code', example: 'ABCD-1234' },
+    { key: '{speed}', label: 'Speed', example: '5Mbps' },
+  ],
+  hotspot_expiry: [
+    { key: '{minutes_left}', label: 'Minutes Remaining', example: '15' },
+    { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
+    { key: '{access_code}', label: 'Access Code', example: 'ABCD-1234' },
+  ],
+  hotspot_expired: [
+    { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
+    { key: '{router_name}', label: 'Location', example: 'Main Hall' },
+  ],
+  pppoe_welcome: [
+    { key: '{customer_name}', label: 'Customer Name', example: 'John' },
+    { key: '{username}', label: 'PPPoE Username', example: '712345678' },
+    { key: '{password}', label: 'PPPoE Password', example: 'abc12345' },
+    { key: '{plan_name}', label: 'Plan Name', example: 'Home 10Mbps' },
+  ],
+  pppoe_payment: [
+    { key: '{customer_name}', label: 'Customer Name', example: 'John' },
+    { key: '{amount}', label: 'Amount', example: '2,500' },
+    { key: '{reference}', label: 'Reference', example: 'PAY-12345' },
+    { key: '{new_expiry}', label: 'New Expiry Date', example: 'Feb 15, 2026' },
+  ],
+  pppoe_expiry: [
+    { key: '{customer_name}', label: 'Customer Name', example: 'John' },
+    { key: '{days_left}', label: 'Days Remaining', example: '4' },
+    { key: '{expiry_date}', label: 'Expiry Date', example: 'Feb 15, 2026' },
+    { key: '{plan_name}', label: 'Plan Name', example: 'Home 10Mbps' },
+    { key: '{amount_due}', label: 'Amount Due', example: '2,500' },
+  ],
+  pppoe_suspended: [
+    { key: '{customer_name}', label: 'Customer Name', example: 'John' },
+    { key: '{reason}', label: 'Reason', example: 'payment overdue' },
+  ],
+  pppoe_resumed: [
+    { key: '{customer_name}', label: 'Customer Name', example: 'John' },
+    { key: '{plan_name}', label: 'Plan Name', example: 'Home 10Mbps' },
+  ],
+  pppoe_plan_changed: [
+    { key: '{customer_name}', label: 'Customer Name', example: 'John' },
+    { key: '{old_plan}', label: 'Previous Plan', example: 'Home 5Mbps' },
+    { key: '{new_plan}', label: 'New Plan', example: 'Home 10Mbps' },
+  ],
+}
