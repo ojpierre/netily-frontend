@@ -77,11 +77,12 @@ const PROVIDER_FIELDS: Record<SMSProvider, { key: string; label: string; type?: 
   bytewave: [{ key: 'api_key', label: 'API Token', type: 'password' }, { key: 'sender_id', label: 'Sender ID' }],
 }
 
+// FIX 1: Updated pricing tiers
 const TOPUP_PACKAGES = [
-  { units: 500, label: '500 Units', price: 300, pricePerUnit: 0.60 },
-  { units: 1000, label: '1,000 Units', price: 600, pricePerUnit: 0.60 },
-  { units: 2000, label: '2,000 Units', price: 1100, pricePerUnit: 0.55, badge: 'Popular' },
-  { units: 5000, label: '5,000 Units', price: 2500, pricePerUnit: 0.50, badge: 'Best Value' },
+  { units: 25, label: '25 Units', price: 10, pricePerUnit: 0.40 },
+  { units: 500, label: '500 Units', price: 200, pricePerUnit: 0.40 },
+  { units: 1000, label: '1,000 Units', price: 400, pricePerUnit: 0.40, badge: 'Popular' },
+  { units: 5000, label: '5,000 Units', price: 2000, pricePerUnit: 0.40, badge: 'Best Value' },
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -518,14 +519,23 @@ export default function SMSPage() {
     handleSaveNotifSettings(patch)
   }
 
+  // FIX 4: Updated handleGatewaySave with inbuilt logic
   const handleGatewaySave = async () => {
     setGwSaving(true)
     try {
-      const payload: Partial<SMSGatewayConfigWrite> = { ...gwForm }
-      if (gwEditing) { if (!payload.api_key) delete payload.api_key; if (!payload.api_secret) delete payload.api_secret }
+      const payload: Partial<SMSGatewayConfigWrite> = { ...gwForm, is_active: true }
+      // If using inbuilt, clear credentials before sending
+      if (payload.use_inbuilt_system) {
+        delete payload.api_key
+        delete payload.api_secret
+        delete payload.username
+      } else if (gwEditing) {
+        if (!payload.api_key) delete payload.api_key
+        if (!payload.api_secret) delete payload.api_secret
+      }
       let res: SMSGatewayConfig
       if (gwEditing) res = await adminApi.updateSMSGatewayConfig(gwEditing, payload)
-      else res = await adminApi.createSMSGatewayConfig(gwForm)
+      else res = await adminApi.createSMSGatewayConfig(payload as SMSGatewayConfigWrite)
       const updated = await adminApi.getSMSGatewayConfigs().catch(() => [])
       setGatewayConfigs(updated)
       setGwEditing(res.id)
@@ -562,10 +572,13 @@ export default function SMSPage() {
               <RefreshCw className={`w-4 h-4 mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setIsTopupOpen(true)}>
-              <Wallet className="w-4 h-4 mr-1.5" />
-              {walletUnits > 0 ? `${Number(walletUnits).toLocaleString()} units` : 'Buy Units'}
-            </Button>
+            {/* FIX 5: Show topup button only when inbuilt is active */}
+            {notifSettings.use_inbuilt_system && (
+              <Button variant="outline" size="sm" onClick={() => setIsTopupOpen(true)}>
+                <Wallet className="w-4 h-4 mr-1.5" />
+                {walletUnits > 0 ? `${Number(walletUnits).toLocaleString()} units` : 'Buy Units'}
+              </Button>
+            )}
             <Button size="sm" onClick={() => setIsComposeOpen(true)}>
               <Send className="w-4 h-4 mr-1.5" />
               Send SMS
@@ -606,7 +619,10 @@ export default function SMSPage() {
             <TabsTrigger value="campaigns" className="text-xs"><Users className="w-3.5 h-3.5 mr-1.5" />Campaigns</TabsTrigger>
             <TabsTrigger value="notifications" className="text-xs"><Bell className="w-3.5 h-3.5 mr-1.5" />Notifications</TabsTrigger>
             <TabsTrigger value="gateway" className="text-xs"><Settings className="w-3.5 h-3.5 mr-1.5" />Gateway</TabsTrigger>
-            <TabsTrigger value="wallet" className="text-xs"><Wallet className="w-3.5 h-3.5 mr-1.5" />Wallet</TabsTrigger>
+            {/* FIX 6: Hide the Wallet tab when inbuilt is not active */}
+            {notifSettings.use_inbuilt_system && (
+              <TabsTrigger value="wallet" className="text-xs"><Wallet className="w-3.5 h-3.5 mr-1.5" />Wallet</TabsTrigger>
+            )}
           </TabsList>
 
           {/* ── HISTORY ──────────────────────────────────────────────────────── */}
@@ -1086,7 +1102,7 @@ export default function SMSPage() {
                             <Button size="sm" variant="ghost" className="h-6 text-xs"
                               onClick={() => {
                                 setGwEditing(gw.id)
-                                setGwForm({ provider: gw.provider, is_active: gw.is_active, api_key: '', api_secret: '', username: gw.username, sender_id: gw.sender_id, extra_config: gw.extra_config ?? {}, auto_payment_confirmation: gw.auto_payment_confirmation, auto_expiry_reminder: gw.auto_expiry_reminder, auto_welcome_message: gw.auto_welcome_message, auto_service_suspension: gw.auto_service_suspension })
+                                setGwForm({ provider: gw.provider, is_active: gw.is_active, use_inbuilt_system: gw.use_inbuilt_system, api_key: '', api_secret: '', username: gw.username, sender_id: gw.sender_id, extra_config: gw.extra_config ?? {}, auto_payment_confirmation: gw.auto_payment_confirmation, auto_expiry_reminder: gw.auto_expiry_reminder, auto_welcome_message: gw.auto_welcome_message, auto_service_suspension: gw.auto_service_suspension })
                               }}>
                               Edit
                             </Button>
@@ -1098,7 +1114,7 @@ export default function SMSPage() {
                         </div>
                       ))}
                       <Button variant="outline" size="sm" className="w-full text-xs"
-                        onClick={() => { setGwEditing(null); setGwForm({ provider: 'africastalking', is_active: true, api_key: '', api_secret: '', username: '', sender_id: '', extra_config: {}, auto_payment_confirmation: true, auto_expiry_reminder: true, auto_welcome_message: true, auto_service_suspension: false }) }}>
+                        onClick={() => { setGwEditing(null); setGwForm({ provider: 'africastalking', is_active: true, use_inbuilt_system: false, api_key: '', api_secret: '', username: '', sender_id: '', extra_config: {}, auto_payment_confirmation: true, auto_expiry_reminder: true, auto_welcome_message: true, auto_service_suspension: false }) }}>
                         <Plus className="w-3.5 h-3.5 mr-1.5" />Add Another Gateway
                       </Button>
                     </div>
@@ -1144,79 +1160,81 @@ export default function SMSPage() {
           </TabsContent>
 
           {/* ── WALLET ───────────────────────────────────────────────────────── */}
-          <TabsContent value="wallet" className="mt-4">
-            <div className="grid lg:grid-cols-3 gap-4">
-              {/* Balance card */}
-              <Card className="lg:col-span-1">
-                <CardContent className="p-6 text-center space-y-4">
-                  <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto">
-                    <Wallet className="w-8 h-8 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Available SMS Units</p>
-                    <p className="text-4xl font-extrabold text-slate-900 mt-1">{Number(walletUnits).toLocaleString()}</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      ≈ KES {(walletUnits * (wallet?.sell_price_per_unit ?? 0.6)).toFixed(0)} value
-                    </p>
-                  </div>
-                  <Button className="w-full" onClick={() => setIsTopupOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" />Buy More Units
-                  </Button>
+          {notifSettings.use_inbuilt_system && (
+            <TabsContent value="wallet" className="mt-4">
+              <div className="grid lg:grid-cols-3 gap-4">
+                {/* Balance card */}
+                <Card className="lg:col-span-1">
+                  <CardContent className="p-6 text-center space-y-4">
+                    <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto">
+                      <Wallet className="w-8 h-8 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Available SMS Units</p>
+                      <p className="text-4xl font-extrabold text-slate-900 mt-1">{Number(walletUnits).toLocaleString()}</p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        ≈ KES {(walletUnits * (wallet?.sell_price_per_unit ?? 0.6)).toFixed(0)} value
+                      </p>
+                    </div>
+                    <Button className="w-full" onClick={() => setIsTopupOpen(true)}>
+                      <Plus className="w-4 h-4 mr-2" />Buy More Units
+                    </Button>
 
-                  <div className="text-left pt-2 space-y-1">
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Pricing Tiers</p>
-                    {TOPUP_PACKAGES.map(p => (
-                      <div key={p.units} className="flex justify-between text-xs text-slate-500">
-                        <span>{p.units.toLocaleString()}+ units</span>
-                        <span>KES {p.pricePerUnit.toFixed(2)}/unit</span>
+                    {/* FIX 2: Updated pricing tiers display */}
+                    <div className="text-left pt-2 space-y-1">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Flat Rate</p>
+                      <div className="flex justify-between text-xs text-slate-500">
+                        <span>All units</span>
+                        <span className="font-semibold text-slate-700">KES 0.40/unit</span>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                      <p className="text-xs text-slate-400 mt-1">Minimum top-up: KES 10 (25 units)</p>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              {/* Top-up history */}
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Top-up History</CardTitle>
-                  <CardDescription>Your recent unit purchases</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-slate-50">
-                          <TableHead className="text-xs">Units</TableHead>
-                          <TableHead className="text-xs">Amount</TableHead>
-                          <TableHead className="text-xs">Status</TableHead>
-                          <TableHead className="text-xs">Date</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(wallet?.topup_history ?? []).map(t => (
-                          <TableRow key={t.id}>
-                            <TableCell className="font-medium">{t.units_purchased.toLocaleString()}</TableCell>
-                            <TableCell>KES {Number(t.amount_paid).toLocaleString()}</TableCell>
-                            <TableCell><StatusBadge status={t.status} /></TableCell>
-                            <TableCell className="text-xs text-slate-400">
-                              {new Date(t.created_at).toLocaleDateString()}
-                            </TableCell>
+                {/* Top-up history */}
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Top-up History</CardTitle>
+                    <CardDescription>Your recent unit purchases</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-slate-50">
+                            <TableHead className="text-xs">Units</TableHead>
+                            <TableHead className="text-xs">Amount</TableHead>
+                            <TableHead className="text-xs">Status</TableHead>
+                            <TableHead className="text-xs">Date</TableHead>
                           </TableRow>
-                        ))}
-                        {(wallet?.topup_history ?? []).length === 0 && (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-10 text-slate-400 text-sm">
-                              No purchases yet
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                        </TableHeader>
+                        <TableBody>
+                          {(wallet?.topup_history ?? []).map(t => (
+                            <TableRow key={t.id}>
+                              <TableCell className="font-medium">{t.units_purchased.toLocaleString()}</TableCell>
+                              <TableCell>KES {Number(t.amount_paid).toLocaleString()}</TableCell>
+                              <TableCell><StatusBadge status={t.status} /></TableCell>
+                              <TableCell className="text-xs text-slate-400">
+                                {new Date(t.created_at).toLocaleDateString()}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {(wallet?.topup_history ?? []).length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center py-10 text-slate-400 text-sm">
+                                No purchases yet
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* ── COMPOSE DIALOG ────────────────────────────────────────────────── */}

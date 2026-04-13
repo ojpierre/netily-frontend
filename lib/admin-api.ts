@@ -2743,10 +2743,14 @@ class AdminApiService {
     return this.request<SMSMessage>(`/messaging/sms/${id}/`)
   }
 
-  async sendSMS(data: SendSMSRequest): Promise<SMSMessage | SMSMessage[]> {
-    return this.request<SMSMessage | SMSMessage[]>('/messaging/sms/send/', {
+  async sendSMS(data: { recipient: string; message: string; template?: string }): Promise<SMSMessage> {
+    return this.request<SMSMessage>('/messaging/sms/', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        recipient: data.recipient,
+        message: data.message,
+        ...(data.template ? { template: data.template } : {}),
+      }),
     })
   }
 
