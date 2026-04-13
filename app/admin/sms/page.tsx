@@ -1012,7 +1012,7 @@ export default function SMSPage() {
             </div>
           </TabsContent>
 
-          {/* ── GATEWAY ──────────────────────────────────────────────────────── */}
+          {/* ── GATEWAY (UPDATED UI) ─────────────────────────────────────────── */}
           <TabsContent value="gateway" className="mt-4">
             <div className="grid lg:grid-cols-2 gap-4">
               <Card>
@@ -1020,123 +1020,204 @@ export default function SMSPage() {
                   <CardTitle>Provider Configuration</CardTitle>
                   <CardDescription>
                     {notifSettings.use_inbuilt_system
-                      ? 'Inbuilt system is active — custom gateway is a fallback'
-                      : 'Configure your SMS provider credentials'}
+                      ? 'Using Netily Inbuilt Gateway (Bytewave Master Account)'
+                      : 'Configure your own SMS provider credentials'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label>Provider</Label>
-                    <Select value={gwForm.provider} onValueChange={v => setGwForm(p => ({ ...p, provider: v as SMSProvider }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {PROVIDER_OPTIONS.map(p => (
-                          <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
 
-                  {PROVIDER_FIELDS[gwForm.provider]?.map(f => (
-                    <div key={f.key} className="space-y-1.5">
-                      <Label>{f.label}</Label>
-                      <Input
-                        type={f.type ?? 'text'}
-                        placeholder={gwEditing ? '(leave blank to keep current)' : `Enter ${f.label.toLowerCase()}`}
-                        value={(gwForm as any)[f.key] ?? ''}
-                        onChange={e => setGwForm(p => ({ ...p, [f.key]: e.target.value }))}
-                      />
-                    </div>
-                  ))}
-
-                  {gwForm.provider === 'advanta' && (
-                    <div className="space-y-1.5">
-                      <Label>Partner ID</Label>
-                      <Input
-                        value={gwForm.extra_config?.partner_id ?? ''}
-                        onChange={e => setGwForm(p => ({ ...p, extra_config: { ...p.extra_config, partner_id: e.target.value } }))}
-                      />
-                    </div>
-                  )}
-                  {gwForm.provider === 'infobip' && (
-                    <div className="space-y-1.5">
-                      <Label>Base URL</Label>
-                      <Input
-                        placeholder="https://xxxxx.api.infobip.com"
-                        value={gwForm.extra_config?.base_url ?? ''}
-                        onChange={e => setGwForm(p => ({ ...p, extra_config: { ...p.extra_config, base_url: e.target.value } }))}
-                      />
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <Button className="flex-1" onClick={handleGatewaySave} disabled={gwSaving}>
-                      {gwSaving && <RefreshCw className="w-4 h-4 mr-1.5 animate-spin" />}
-                      {gwEditing ? 'Update' : 'Save Gateway'}
-                    </Button>
-                    {gwEditing && (
-                      <Button variant="outline" onClick={handleGatewayTest} disabled={gwTesting}>
-                        {gwTesting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  {/* ── INBUILT MODE BANNER ─────────────────────────────── */}
+                  {notifSettings.use_inbuilt_system ? (
+                    <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-5 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
+                          <Zap className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-blue-900">Netily Inbuilt SMS Active</p>
+                          <p className="text-xs text-blue-600">
+                            Messages route through Netily's Bytewave master account. Units deducted from your wallet.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-blue-100">
+                        <span className="text-slate-500">Provider</span>
+                        <span className="font-semibold text-slate-800">Bytewave (Netily Default)</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-blue-100">
+                        <span className="text-slate-500">API Keys</span>
+                        <span className="text-slate-400 italic text-xs">Managed by Netily — not required</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-blue-100">
+                        <span className="text-slate-500">SMS Units</span>
+                        <span className="font-bold text-blue-700">
+                          {Number(walletUnits).toLocaleString()} units available
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-blue-700 border-blue-300 hover:bg-blue-100"
+                        onClick={() => setIsTopupOpen(true)}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />Buy More Units
                       </Button>
-                    )}
-                  </div>
+                      <p className="text-xs text-center text-slate-400">
+                        To use your own provider, turn off "Netily Inbuilt SMS" in the Notifications tab.
+                      </p>
+                    </div>
+                  ) : (
+                    /* ── CUSTOM PROVIDER FORM ──────────────────────────── */
+                    <>
+                      <div className="space-y-1.5">
+                        <Label>Provider</Label>
+                        <Select
+                          value={gwForm.provider}
+                          onValueChange={v => setGwForm(p => ({ ...p, provider: v as SMSProvider }))}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {PROVIDER_OPTIONS.map(p => (
+                              <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  {/* saved list */}
-                  {gatewayConfigs.length > 0 && (
-                    <div className="pt-3 border-t space-y-2">
-                      <p className="text-xs text-slate-400 uppercase tracking-wide font-medium">Saved Gateways</p>
-                      {gatewayConfigs.map(gw => (
-                        <div key={gw.id} className={`flex items-center justify-between p-2.5 rounded-lg text-sm ${gw.is_active ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-100'}`}>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{gw.provider_display}</span>
-                            {gw.is_active && <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Active</Badge>}
-                            {gw.sender_id && <span className="text-slate-400 text-xs">{gw.sender_id}</span>}
-                          </div>
-                          <div className="flex gap-1">
-                            {!gw.is_active && (
-                              <Button size="sm" variant="ghost" className="h-6 text-xs"
-                                onClick={() => adminApi.activateSMSGateway(gw.id).then(fetchAll)}>
-                                Activate
-                              </Button>
-                            )}
-                            <Button size="sm" variant="ghost" className="h-6 text-xs"
-                              onClick={() => {
-                                setGwEditing(gw.id)
-                                setGwForm({ provider: gw.provider, is_active: gw.is_active, use_inbuilt_system: gw.use_inbuilt_system, api_key: '', api_secret: '', username: gw.username, sender_id: gw.sender_id, extra_config: gw.extra_config ?? {}, auto_payment_confirmation: gw.auto_payment_confirmation, auto_expiry_reminder: gw.auto_expiry_reminder, auto_welcome_message: gw.auto_welcome_message, auto_service_suspension: gw.auto_service_suspension })
-                              }}>
-                              Edit
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-400"
-                              onClick={() => adminApi.deleteSMSGatewayConfig(gw.id).then(fetchAll)}>
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
+                      {PROVIDER_FIELDS[gwForm.provider]?.map(f => (
+                        <div key={f.key} className="space-y-1.5">
+                          <Label>{f.label}</Label>
+                          <Input
+                            type={f.type ?? 'text'}
+                            placeholder={gwEditing ? '(leave blank to keep current)' : `Enter ${f.label.toLowerCase()}`}
+                            value={(gwForm as any)[f.key] ?? ''}
+                            onChange={e => setGwForm(p => ({ ...p, [f.key]: e.target.value }))}
+                          />
                         </div>
                       ))}
-                      <Button variant="outline" size="sm" className="w-full text-xs"
-                        onClick={() => { setGwEditing(null); setGwForm({ provider: 'africastalking', is_active: true, use_inbuilt_system: false, api_key: '', api_secret: '', username: '', sender_id: '', extra_config: {}, auto_payment_confirmation: true, auto_expiry_reminder: true, auto_welcome_message: true, auto_service_suspension: false }) }}>
-                        <Plus className="w-3.5 h-3.5 mr-1.5" />Add Another Gateway
-                      </Button>
-                    </div>
+
+                      {gwForm.provider === 'advanta' && (
+                        <div className="space-y-1.5">
+                          <Label>Partner ID</Label>
+                          <Input
+                            value={gwForm.extra_config?.partner_id ?? ''}
+                            onChange={e => setGwForm(p => ({
+                              ...p, extra_config: { ...p.extra_config, partner_id: e.target.value }
+                            }))}
+                          />
+                        </div>
+                      )}
+                      {gwForm.provider === 'infobip' && (
+                        <div className="space-y-1.5">
+                          <Label>Base URL</Label>
+                          <Input
+                            placeholder="https://xxxxx.api.infobip.com"
+                            value={gwForm.extra_config?.base_url ?? ''}
+                            onChange={e => setGwForm(p => ({
+                              ...p, extra_config: { ...p.extra_config, base_url: e.target.value }
+                            }))}
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <Button className="flex-1" onClick={handleGatewaySave} disabled={gwSaving}>
+                          {gwSaving && <RefreshCw className="w-4 h-4 mr-1.5 animate-spin" />}
+                          {gwEditing ? 'Update Gateway' : 'Save Gateway'}
+                        </Button>
+                        {gwEditing && (
+                          <Button variant="outline" onClick={handleGatewayTest} disabled={gwTesting}>
+                            {gwTesting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Saved gateways list - only show custom gateways */}
+                      {gatewayConfigs.filter(g => !g.use_inbuilt_system).length > 0 && (
+                        <div className="pt-3 border-t space-y-2">
+                          <p className="text-xs text-slate-400 uppercase tracking-wide font-medium">Saved Gateways</p>
+                          {gatewayConfigs.filter(g => !g.use_inbuilt_system).map(gw => (
+                            <div key={gw.id} className={`flex items-center justify-between p-2.5 rounded-lg text-sm ${
+                              gw.is_active
+                                ? 'bg-emerald-50 border border-emerald-200'
+                                : 'bg-slate-50 border border-slate-100'
+                            }`}>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{gw.provider_display}</span>
+                                {gw.is_active && (
+                                  <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Active</Badge>
+                                )}
+                                {gw.sender_id && (
+                                  <span className="text-slate-400 text-xs">{gw.sender_id}</span>
+                                )}
+                              </div>
+                              <div className="flex gap-1">
+                                {!gw.is_active && (
+                                  <Button size="sm" variant="ghost" className="h-6 text-xs"
+                                    onClick={() => adminApi.activateSMSGateway(gw.id).then(fetchAll)}>
+                                    Activate
+                                  </Button>
+                                )}
+                                <Button size="sm" variant="ghost" className="h-6 text-xs"
+                                  onClick={() => {
+                                    setGwEditing(gw.id)
+                                    setGwForm({
+                                      provider: gw.provider,
+                                      is_active: gw.is_active,
+                                      use_inbuilt_system: false,
+                                      api_key: '', api_secret: '',
+                                      username: gw.username,
+                                      sender_id: gw.sender_id,
+                                      extra_config: gw.extra_config ?? {},
+                                      auto_payment_confirmation: gw.auto_payment_confirmation,
+                                      auto_expiry_reminder: gw.auto_expiry_reminder,
+                                      auto_welcome_message: gw.auto_welcome_message,
+                                      auto_service_suspension: gw.auto_service_suspension,
+                                    })
+                                  }}>
+                                  Edit
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-400"
+                                  onClick={() => adminApi.deleteSMSGatewayConfig(gw.id).then(fetchAll)}>
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                          <Button variant="outline" size="sm" className="w-full text-xs"
+                            onClick={() => { setGwEditing(null); setGwForm({ provider: 'africastalking', is_active: true, use_inbuilt_system: false, api_key: '', api_secret: '', username: '', sender_id: '', extra_config: {}, auto_payment_confirmation: true, auto_expiry_reminder: true, auto_welcome_message: true, auto_service_suspension: false }) }}>
+                            <Plus className="w-3.5 h-3.5 mr-1.5" />Add Another Gateway
+                          </Button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Live balance */}
+              {/* Live balance card — updated for inbuilt mode */}
               <Card>
                 <CardHeader>
                   <CardTitle>Live Balance</CardTitle>
-                  <CardDescription>Current balance from your active provider</CardDescription>
+                  <CardDescription>
+                    {notifSettings.use_inbuilt_system
+                      ? 'Your Netily wallet SMS units'
+                      : 'Current balance from your active provider'}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 p-5 text-white">
-                    <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Provider Balance</p>
-                    <p className="text-3xl font-bold">
-                      {balance
-                        ? `${balance.currency || 'KES'} ${Number(balance.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                        : '—'}
+                    <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">
+                      {notifSettings.use_inbuilt_system ? 'Wallet Units' : 'Provider Balance'}
                     </p>
-                    {balance && (
+                    <p className="text-3xl font-bold">
+                      {notifSettings.use_inbuilt_system
+                        ? `${Number(walletUnits).toLocaleString()} units`
+                        : balance
+                          ? `${balance.currency || 'KES'} ${Number(balance.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                          : '—'}
+                    </p>
+                    {!notifSettings.use_inbuilt_system && balance && (
                       <p className="text-xs text-slate-400 mt-1">{balance.provider}</p>
                     )}
                   </div>
@@ -1146,7 +1227,10 @@ export default function SMSPage() {
                       { label: 'Sent Today', value: stats.messages_today },
                       { label: 'This Week', value: stats.messages_this_week },
                       { label: 'Delivery Rate', value: `${stats.delivery_rate ?? 0}%` },
-                      { label: 'Total Spend', value: `KES ${Number(stats.total_cost ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
+                      {
+                        label: 'Total Spend',
+                        value: `KES ${Number(stats.total_cost ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                      },
                     ].map(s => (
                       <div key={s.label} className="bg-slate-50 rounded-lg p-3">
                         <p className="text-xs text-slate-500">{s.label}</p>

@@ -2566,6 +2566,7 @@ export interface SMSUnitTopup {
 export interface SMSGatewayConfigWrite {
   provider: SMSProvider
   is_active?: boolean
+  use_inbuilt_system?: boolean
   api_key: string
   api_secret?: string
   username?: string
