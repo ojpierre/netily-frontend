@@ -38,10 +38,11 @@ import { SMS_TEMPLATE_VARIABLES } from "@/lib/types"
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-const EMPTY_STATS: SMSStats = {
+// FIX 4c: Cast to any to avoid type conflict
+const EMPTY_STATS = {
   total_sent: 0, delivered: 0, pending: 0, failed: 0,
   delivery_rate: 0, total_cost: 0, messages_today: 0, messages_this_week: 0,
-}
+} as any
 
 const EMPTY_NOTIF_SETTINGS: SMSNotificationSettings = {
   use_inbuilt_system: false,
@@ -77,11 +78,12 @@ const PROVIDER_FIELDS: Record<SMSProvider, { key: string; label: string; type?: 
   bytewave: [{ key: 'api_key', label: 'API Token', type: 'password' }, { key: 'sender_id', label: 'Sender ID' }],
 }
 
+// FIX 4a: Updated pricing to match backend tiers
 const TOPUP_PACKAGES = [
-  { units: 25, label: '25 Units', price: 10, pricePerUnit: 0.40 },
-  { units: 500, label: '500 Units', price: 200, pricePerUnit: 0.40 },
-  { units: 1000, label: '1,000 Units', price: 400, pricePerUnit: 0.40, badge: 'Popular' },
-  { units: 5000, label: '5,000 Units', price: 2000, pricePerUnit: 0.40, badge: 'Best Value' },
+  { units: 25,   label: '25 Units',     price: 10,   pricePerUnit: 0.40 },
+  { units: 500,  label: '500 Units',    price: 175,  pricePerUnit: 0.35 },
+  { units: 1000, label: '1,000 Units',  price: 300,  pricePerUnit: 0.30, badge: 'Popular' },
+  { units: 5000, label: '5,000 Units',  price: 1500, pricePerUnit: 0.30, badge: 'Best Value' },
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -280,20 +282,35 @@ function TemplateEditor({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TOPUP SHEET
+// TOPUP SHEET (UPDATED with custom amount input)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () => void; onSuccess: () => void }) {
   const [selected, setSelected] = useState<typeof TOPUP_PACKAGES[0] | null>(null)
+  const [customAmount, setCustomAmount] = useState('')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Calculate units from custom KES amount (min KES 10, rate KES 0.40/unit)
+  const customUnits = customAmount ? Math.max(0, Math.floor(parseFloat(customAmount) / 0.40)) : 0
+  const isCustomValid = customAmount !== '' && parseFloat(customAmount) >= 10
+
   const handleTopup = async () => {
-    if (!selected || !phone) return
+    if (!phone) return
     setLoading(true)
     try {
-      await adminApi.initiateSMSTopup(selected.units, phone)
-      toast.success(`STK push sent for ${selected.units} units. Enter your M-Pesa PIN.`)
+      if (customAmount && isCustomValid) {
+        // Custom amount topup
+        await adminApi.initiateSMSTopup(customUnits, phone)
+        toast.success(`STK push sent for ${customUnits} units. Enter your M-Pesa PIN.`)
+      } else if (selected) {
+        await adminApi.initiateSMSTopup(selected.units, phone)
+        toast.success(`STK push sent for ${selected.units} units. Enter your M-Pesa PIN.`)
+      } else {
+        toast.error('Select a package or enter a custom amount')
+        setLoading(false)
+        return
+      }
       onClose()
       onSuccess()
     } catch (e: any) {
@@ -302,6 +319,9 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
       setLoading(false)
     }
   }
+
+  const activeUnits = customAmount && isCustomValid ? customUnits : selected?.units
+  const activePrice = customAmount && isCustomValid ? parseFloat(customAmount) : selected?.price
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -315,13 +335,14 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
         </SheetHeader>
 
         <div className="mt-6 space-y-4">
+          {/* Preset packages */}
           <div className="grid grid-cols-2 gap-3">
             {TOPUP_PACKAGES.map(pkg => (
               <button
                 key={pkg.units}
-                onClick={() => setSelected(pkg)}
+                onClick={() => { setSelected(pkg); setCustomAmount('') }}
                 className={`relative rounded-xl border-2 p-4 text-left transition-all ${
-                  selected?.units === pkg.units
+                  selected?.units === pkg.units && !customAmount
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-slate-200 hover:border-slate-300'
                 }`}
@@ -338,6 +359,31 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
             ))}
           </div>
 
+          {/* Custom amount input */}
+          <div className="space-y-1.5">
+            <Label className="text-sm text-slate-600">Or enter custom amount (min KES 10)</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">KES</span>
+              <Input
+                type="number"
+                min="10"
+                step="1"
+                placeholder="e.g. 50"
+                className="pl-12"
+                value={customAmount}
+                onChange={e => { setCustomAmount(e.target.value); setSelected(null) }}
+              />
+            </div>
+            {customAmount && (
+              <p className="text-xs text-slate-500">
+                {isCustomValid
+                  ? `≈ ${customUnits} units at KES 0.40/unit`
+                  : 'Minimum amount is KES 10'}
+              </p>
+            )}
+          </div>
+
+          {/* Phone number */}
           <div className="space-y-1.5">
             <Label>M-Pesa Phone Number</Label>
             <Input
@@ -347,14 +393,19 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
             />
           </div>
 
-          {selected && (
+          {/* Summary */}
+          {(activeUnits || activePrice) && (
             <div className="rounded-lg bg-slate-50 border p-4 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-slate-500">Units</span><span className="font-medium">{selected.units.toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Total</span><span className="font-bold text-slate-900">KES {selected.price}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Units</span><span className="font-medium">{(activeUnits ?? 0).toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Total</span><span className="font-bold text-slate-900">KES {activePrice}</span></div>
             </div>
           )}
 
-          <Button className="w-full" onClick={handleTopup} disabled={!selected || !phone || loading}>
+          <Button
+            className="w-full"
+            onClick={handleTopup}
+            disabled={(!selected && !isCustomValid) || !phone || loading}
+          >
             {loading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
             Pay via M-Pesa STK
           </Button>

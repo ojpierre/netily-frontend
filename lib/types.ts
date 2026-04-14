@@ -2458,14 +2458,14 @@ export interface SMSCampaign {
 }
 
 export interface SMSStats {
-  total_messages: number
+  total_sent: number
   delivered: number
   pending: number
   failed: number
-  delivery_rate: number    // Percentage
-  total_cost: string
+  delivery_rate: number
+  total_cost: number | string
   messages_today: number
-  messages_this_month: number
+  messages_this_week: number
 }
 
 export interface SendSMSRequest {
