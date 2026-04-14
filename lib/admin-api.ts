@@ -107,6 +107,8 @@ import type {
   SMSNotificationSettings,
   SMSWallet,
   SMSUnitTopup,
+  SMSGatewayConfig,        
+  SMSGatewayConfigWrite,
   // Staff types
   CreateStaffUserRequest,
   CreateStaffUserResponse,
@@ -2759,6 +2761,48 @@ class AdminApiService {
       method: 'POST',
       body: JSON.stringify(data),
     })
+  }
+
+  /**
+   * Search customers for SMS compose dialog
+   * @param q - Search query (name, phone, code)
+   * @param type - Customer type: 'pppoe', 'hotspot', or 'all'
+   * @param limit - Max results (default 20, max 100)
+   */
+  async searchCustomers(q: string, type: string = 'all', limit: number = 20): Promise<{ results: { id: string; name: string; phone: string; code: string; type: string }[]; count: number }> {
+    const res = await fetch(`${this.baseUrl}/messaging/customers/search/?q=${encodeURIComponent(q)}&type=${type}&limit=${limit}`, {
+      headers: this.getAuthHeaders(),
+    })
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: 'Search failed' }))
+      throw new Error(error.error || 'Search failed')
+    }
+    return res.json()
+  }
+
+  /**
+   * Send bulk SMS to multiple recipients (direct send)
+   * @param data - Object with recipients array and message
+   */
+  async sendBulkSMSDirect(data: { recipients: string[]; message: string }): Promise<{ detail: string; total_cost: string; messages: any[] }> {
+    return this.request<{ detail: string; total_cost: string; messages: any[] }>('/messaging/sms/bulk/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  /**
+   * Send a campaign to a customer group (PPPoE, Hotspot, or All)
+   * @param data - Object with group, message, and optional name
+   */
+  async sendCampaignToGroup(data: { group: string; message: string; name?: string }): Promise<{ campaign_id: number; name: string; group: string; recipient_count: number; message: string }> {
+    const res = await fetch(`${this.baseUrl}/messaging/campaigns/send-to-group/`, {
+      method: 'POST',
+      headers: { ...this.getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to start campaign')
+    return res.json()
   }
 
   async retrySMS(id: number): Promise<SMSMessage> {

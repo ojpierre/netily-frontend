@@ -77,7 +77,6 @@ const PROVIDER_FIELDS: Record<SMSProvider, { key: string; label: string; type?: 
   bytewave: [{ key: 'api_key', label: 'API Token', type: 'password' }, { key: 'sender_id', label: 'Sender ID' }],
 }
 
-// FIX 1: Updated pricing tiers
 const TOPUP_PACKAGES = [
   { units: 25, label: '25 Units', price: 10, pricePerUnit: 0.40 },
   { units: 500, label: '500 Units', price: 200, pricePerUnit: 0.40 },
@@ -404,7 +403,31 @@ export default function SMSPage() {
     auto_welcome_message: true, auto_service_suspension: false,
   })
 
-  const [composeForm, setComposeForm] = useState({ recipients: '', message: '', template: '' })
+  // FIX: Compose dialog with customer search
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [customerResults, setCustomerResults] = useState<{id:string; name:string; phone:string; code:string; type:string}[]>([])
+  const [selectedRecipients, setSelectedRecipients] = useState<{phone:string; name:string}[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [recipientType, setRecipientType] = useState<'pppoe'|'hotspot'|'all'>('pppoe')
+
+  // FIX: Campaign bulk state
+  const [bulkGroup, setBulkGroup] = useState<'pppoe'|'hotspot'|'all'>('pppoe')
+  const [bulkName, setBulkName] = useState('')
+  const [bulkMessage, setBulkMessage] = useState('')
+  const [bulkSending, setBulkSending] = useState(false)
+
+  // Debounced search
+  useEffect(() => {
+    if (customerSearch.length < 2) { setCustomerResults([]); return }
+    const t = setTimeout(async () => {
+      setSearchLoading(true)
+      try {
+        const res = await adminApi.searchCustomers(customerSearch, recipientType)
+        setCustomerResults(res.results ?? [])
+      } catch {} finally { setSearchLoading(false) }
+    }, 350)
+    return () => clearTimeout(t)
+  }, [customerSearch, recipientType])
 
   // ── fetch ──────────────────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
@@ -464,18 +487,44 @@ export default function SMSPage() {
 
   // ── handlers ───────────────────────────────────────────────────────────────
   const handleSend = async () => {
-    if (!composeForm.recipients || !composeForm.message) {
-      toast.error('Fill in recipient and message')
+    const phones = selectedRecipients.map(r => r.phone)
+    if (phones.length === 0 || !composeForm.message) {
+      toast.error('Add at least one recipient and a message')
       return
     }
     setIsSending(true)
     try {
-      const res = await adminApi.sendSMS({ recipient: composeForm.recipients, message: composeForm.message }).catch(() => null)
-      if (res) { setMessages(p => [res as SMSMessage, ...p]); toast.success('SMS sent') }
-      else toast.error('Failed to send')
+      if (phones.length === 1) {
+        await adminApi.sendSMS({ recipient: phones[0], message: composeForm.message })
+      } else {
+        await adminApi.sendBulkSMS({ recipients: phones, message: composeForm.message })
+      }
+      toast.success(`SMS sent to ${phones.length} recipient(s)`)
       setIsComposeOpen(false)
+      setSelectedRecipients([])
       setComposeForm({ recipients: '', message: '', template: '' })
+      fetchAll()
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Failed to send')
     } finally { setIsSending(false) }
+  }
+
+  const handleBulkSend = async () => {
+    if (!bulkMessage.trim()) { toast.error('Message is required'); return }
+    setBulkSending(true)
+    try {
+      const res = await adminApi.sendCampaignToGroup({
+        group: bulkGroup,
+        message: bulkMessage,
+        name: bulkName || undefined,
+      })
+      toast.success(`Campaign started — ${res.recipient_count} recipients`)
+      setBulkMessage('')
+      setBulkName('')
+      fetchAll()
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Failed to start campaign')
+    } finally { setBulkSending(false) }
   }
 
   const handleSaveTemplate = async (data: { name: string; content: string; event_type?: string }) => {
@@ -519,12 +568,10 @@ export default function SMSPage() {
     handleSaveNotifSettings(patch)
   }
 
-  // FIX 4: Updated handleGatewaySave with inbuilt logic
   const handleGatewaySave = async () => {
     setGwSaving(true)
     try {
       const payload: Partial<SMSGatewayConfigWrite> = { ...gwForm, is_active: true }
-      // If using inbuilt, clear credentials before sending
       if (payload.use_inbuilt_system) {
         delete payload.api_key
         delete payload.api_secret
@@ -554,6 +601,7 @@ export default function SMSPage() {
     finally { setGwTesting(false) }
   }
 
+  const [composeForm, setComposeForm] = useState({ recipients: '', message: '', template: '' })
   const walletUnits = wallet?.sms_units ?? 0
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -572,7 +620,6 @@ export default function SMSPage() {
               <RefreshCw className={`w-4 h-4 mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            {/* FIX 5: Show topup button only when inbuilt is active */}
             {notifSettings.use_inbuilt_system && (
               <Button variant="outline" size="sm" onClick={() => setIsTopupOpen(true)}>
                 <Wallet className="w-4 h-4 mr-1.5" />
@@ -619,7 +666,6 @@ export default function SMSPage() {
             <TabsTrigger value="campaigns" className="text-xs"><Users className="w-3.5 h-3.5 mr-1.5" />Campaigns</TabsTrigger>
             <TabsTrigger value="notifications" className="text-xs"><Bell className="w-3.5 h-3.5 mr-1.5" />Notifications</TabsTrigger>
             <TabsTrigger value="gateway" className="text-xs"><Settings className="w-3.5 h-3.5 mr-1.5" />Gateway</TabsTrigger>
-            {/* FIX 6: Hide the Wallet tab when inbuilt is not active */}
             {notifSettings.use_inbuilt_system && (
               <TabsTrigger value="wallet" className="text-xs"><Wallet className="w-3.5 h-3.5 mr-1.5" />Wallet</TabsTrigger>
             )}
@@ -778,55 +824,88 @@ export default function SMSPage() {
             </Card>
           </TabsContent>
 
-          {/* ── CAMPAIGNS ────────────────────────────────────────────────────── */}
+          {/* ── CAMPAIGNS (UPDATED) ─────────────────────────────────────────── */}
           <TabsContent value="campaigns" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Bulk Campaigns</CardTitle>
-                <CardDescription>Mass SMS to customer segments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-slate-50">
-                        <TableHead className="text-xs">Campaign</TableHead>
-                        <TableHead className="text-xs">Recipients</TableHead>
-                        <TableHead className="text-xs">Progress</TableHead>
-                        <TableHead className="text-xs">Status</TableHead>
-                        <TableHead className="text-xs hidden sm:table-cell">Created</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {campaigns.map(c => (
-                        <TableRow key={c.id}>
-                          <TableCell>
-                            <div className="font-medium text-sm">{c.name}</div>
-                            <p className="text-xs text-slate-400 truncate max-w-[180px]">{c.message}</p>
-                          </TableCell>
-                          <TableCell className="text-sm">{(c.recipient_count ?? 0).toLocaleString()}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Progress value={c.recipient_count ? ((c.delivered_count ?? 0) / c.recipient_count) * 100 : 0} className="w-20 h-1.5" />
-                              <span className="text-xs text-slate-500">{c.delivered_count ?? 0}/{c.recipient_count ?? 0}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell><StatusBadge status={c.status} /></TableCell>
-                          <TableCell className="hidden sm:table-cell text-xs text-slate-400">
-                            {c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}
-                          </TableCell>
+            <div className="grid lg:grid-cols-2 gap-4">
+              {/* Send bulk card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Send Bulk SMS</CardTitle>
+                  <CardDescription>Send to all PPPoE, Hotspot, or every customer at once</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label>Target Group</Label>
+                    <Select value={bulkGroup} onValueChange={(v: any) => setBulkGroup(v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pppoe">PPPoE / Static customers</SelectItem>
+                        <SelectItem value="hotspot">Hotspot users</SelectItem>
+                        <SelectItem value="all">All (PPPoE + Hotspot)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Campaign Name</Label>
+                    <Input placeholder="e.g., April Promotion" value={bulkName} onChange={e => setBulkName(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between">
+                      <Label>Message</Label>
+                      <span className={`text-xs ${bulkMessage.length > 160 ? 'text-amber-600' : 'text-slate-400'}`}>
+                        {bulkMessage.length}/160 · {Math.ceil(Math.max(bulkMessage.length,1)/160)} unit(s)/recipient
+                      </span>
+                    </div>
+                    <Textarea rows={4} placeholder="Type your message…" value={bulkMessage}
+                      onChange={e => setBulkMessage(e.target.value)} />
+                  </div>
+                  <Button className="w-full" disabled={!bulkMessage || bulkSending}
+                    onClick={handleBulkSend}>
+                    {bulkSending ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                    Send to {bulkGroup === 'all' ? 'All Customers' : bulkGroup === 'pppoe' ? 'PPPoE Customers' : 'Hotspot Users'}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Campaign history */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Campaign History</CardTitle>
+                  <CardDescription>Previous bulk sends and their results</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-slate-50">
+                          <TableHead className="text-xs">Name</TableHead>
+                          <TableHead className="text-xs text-right">Recipients</TableHead>
+                          <TableHead className="text-xs text-right">Sent ✓</TableHead>
+                          <TableHead className="text-xs text-right">Failed ✗</TableHead>
+                          <TableHead className="text-xs">Status</TableHead>
                         </TableRow>
-                      ))}
-                      {campaigns.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-12 text-slate-400 text-sm">No campaigns yet</TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+                      </TableHeader>
+                      <TableBody>
+                        {campaigns.map(c => (
+                          <TableRow key={c.id}>
+                            <TableCell className="text-sm font-medium">{c.name}</TableCell>
+                            <TableCell className="text-sm text-right">{(c.recipient_count ?? 0).toLocaleString()}</TableCell>
+                            <TableCell className="text-sm text-right text-emerald-600">{c.delivered_count ?? 0}</TableCell>
+                            <TableCell className="text-sm text-right text-red-500">{c.failed_count ?? 0}</TableCell>
+                            <TableCell><StatusBadge status={c.status} /></TableCell>
+                          </TableRow>
+                        ))}
+                        {campaigns.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-10 text-slate-400 text-sm">No campaigns yet</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* ── NOTIFICATIONS ────────────────────────────────────────────────── */}
@@ -1012,7 +1091,7 @@ export default function SMSPage() {
             </div>
           </TabsContent>
 
-          {/* ── GATEWAY (UPDATED UI) ─────────────────────────────────────────── */}
+          {/* ── GATEWAY ─────────────────────────────────────────────────────── */}
           <TabsContent value="gateway" className="mt-4">
             <div className="grid lg:grid-cols-2 gap-4">
               <Card>
@@ -1264,9 +1343,8 @@ export default function SMSPage() {
                       <Plus className="w-4 h-4 mr-2" />Buy More Units
                     </Button>
 
-                    {/* FIX 2: Updated pricing tiers display */}
                     <div className="text-left pt-2 space-y-1">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Flat Rate</p>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Pricing</p>
                       <div className="flex justify-between text-xs text-slate-500">
                         <span>All units</span>
                         <span className="font-semibold text-slate-700">KES 0.40/unit</span>
@@ -1321,23 +1399,72 @@ export default function SMSPage() {
           )}
         </Tabs>
 
-        {/* ── COMPOSE DIALOG ────────────────────────────────────────────────── */}
+        {/* ── COMPOSE DIALOG (UPDATED) ───────────────────────────────────────── */}
         <Dialog open={isComposeOpen} onOpenChange={setIsComposeOpen}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Send SMS</DialogTitle>
-              <DialogDescription>Send to one or multiple phone numbers</DialogDescription>
+              <DialogDescription>Search for customers and add them as recipients</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label>Recipient(s)</Label>
-                <Textarea
-                  rows={2}
-                  placeholder="+254712345678, +254723456789"
-                  value={composeForm.recipients}
-                  onChange={e => setComposeForm(p => ({ ...p, recipients: e.target.value }))}
-                />
+                <Label>Recipient Type</Label>
+                <Select value={recipientType} onValueChange={(v: any) => {
+                  setRecipientType(v)
+                  setCustomerSearch('')
+                  setCustomerResults([])
+                }}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pppoe">PPPoE / Static</SelectItem>
+                    <SelectItem value="hotspot">Hotspot</SelectItem>
+                    <SelectItem value="all">All</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              <div className="space-y-1.5">
+                <Label>Search & Add Recipients</Label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
+                  <Input
+                    className="pl-8 h-8 text-sm"
+                    placeholder="Name or phone…"
+                    value={customerSearch}
+                    onChange={e => setCustomerSearch(e.target.value)}
+                  />
+                </div>
+                {customerResults.length > 0 && (
+                  <div className="border rounded-lg max-h-40 overflow-y-auto text-sm divide-y">
+                    {customerResults.map(c => (
+                      <button key={c.id} className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex justify-between"
+                        onClick={() => {
+                          if (!selectedRecipients.find(r => r.phone === c.phone)) {
+                            setSelectedRecipients(p => [...p, { phone: c.phone, name: c.name }])
+                          }
+                          setCustomerSearch('')
+                          setCustomerResults([])
+                        }}>
+                        <span className="font-medium">{c.name}</span>
+                        <span className="text-slate-400">{c.phone}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedRecipients.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {selectedRecipients.map(r => (
+                      <span key={r.phone} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                        {r.name || r.phone}
+                        <button onClick={() => setSelectedRecipients(p => p.filter(x => x.phone !== r.phone))}>
+                          <XCircle className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-1.5">
                 <Label>Template (optional)</Label>
                 <Select value={composeForm.template} onValueChange={v => {
@@ -1350,6 +1477,7 @@ export default function SMSPage() {
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-1.5">
                 <div className="flex justify-between">
                   <Label>Message</Label>
@@ -1367,9 +1495,9 @@ export default function SMSPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsComposeOpen(false)}>Cancel</Button>
-              <Button onClick={handleSend} disabled={isSending || !composeForm.recipients || !composeForm.message}>
+              <Button onClick={handleSend} disabled={isSending || selectedRecipients.length === 0 || !composeForm.message}>
                 {isSending ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                Send
+                Send to {selectedRecipients.length} recipient(s)
               </Button>
             </DialogFooter>
           </DialogContent>
