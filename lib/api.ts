@@ -757,3 +757,20 @@ export async function purchaseHotspotAccess({ routerId, planId, phoneNumber }: {
   // return api.request(`/hotspot/purchase/`, { method: 'POST', body: JSON.stringify({ router: routerId, plan: planId, phone_number: phoneNumber }) })
   return { status: 'success', message: 'Payment simulated. Access granted.' }
 }
+
+/**
+ * Submit a lead from the landing page (public, no auth required)
+ */
+export async function submitLead(data: { name: string; email: string; phone: string; company: string }): Promise<{ message: string }> {
+  const baseUrl = getBaseUrl()
+  const response = await fetch(`${baseUrl}/core/leads/submit/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: 'Failed to submit' }))
+    throw new Error(err.error || 'Failed to submit lead')
+  }
+  return response.json()
+}

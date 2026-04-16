@@ -502,6 +502,19 @@ class AdminApiService {
     })
   }
 
+  async sendOTP(): Promise<{ message: string; email: string }> {
+    return this.request<{ message: string; email: string }>('/core/auth/otp/send/', {
+      method: 'POST',
+    })
+  }
+
+  async verifyOTP(otp: string): Promise<{ message: string; verified: boolean }> {
+    return this.request<{ message: string; verified: boolean }>('/core/auth/otp/verify/', {
+      method: 'POST',
+      body: JSON.stringify({ otp }),
+    })
+  }
+
   async logout(): Promise<void> {
     await this.request('/core/auth/logout/', {
       method: 'POST',

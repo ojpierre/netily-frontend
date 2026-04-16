@@ -389,9 +389,9 @@ export default function RoutersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Router Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Router Management</h1>
           <p className="text-slate-500 mt-1">
             Monitor and manage network access servers
           </p>
@@ -510,8 +510,8 @@ export default function RoutersPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
             placeholder="Search routers..."
@@ -521,7 +521,7 @@ export default function RoutersPage() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -533,7 +533,7 @@ export default function RoutersPage() {
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
@@ -893,55 +893,49 @@ export default function RoutersPage() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Router</DialogTitle>
-            <DialogDescription>Update router configuration</DialogDescription>
+            <DialogTitle>Details Overview</DialogTitle>
+            <DialogDescription>Router configuration details (read-only)</DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-name">Router Name *</Label>
+                <Label htmlFor="edit-name">Router Name</Label>
                 <Input
                   id="edit-name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  readOnly
+                  className="bg-slate-50 text-slate-600 cursor-default"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-router_type">Router Type</Label>
-                <Select
-                  value={formData.router_type}
-                  onValueChange={(v) => setFormData({ ...formData, router_type: v as RouterType })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mikrotik">MikroTik</SelectItem>
-                    <SelectItem value="cisco">Cisco</SelectItem>
-                    <SelectItem value="ubiquiti">Ubiquiti</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="edit-router_type"
+                  value={formData.router_type ? formData.router_type.charAt(0).toUpperCase() + formData.router_type.slice(1) : ""}
+                  readOnly
+                  className="bg-slate-50 text-slate-600 cursor-default"
+                />
               </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-ip_address">IP Address *</Label>
+                <Label htmlFor="edit-ip_address">IP Address</Label>
                 <Input
                   id="edit-ip_address"
                   value={formData.ip_address}
-                  onChange={(e) => setFormData({ ...formData, ip_address: e.target.value })}
+                  readOnly
+                  className="bg-slate-50 text-slate-600 cursor-default"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-api_port">API Port</Label>
                 <Input
                   id="edit-api_port"
-                  type="number"
                   value={formData.api_port}
-                  onChange={(e) => setFormData({ ...formData, api_port: parseInt(e.target.value) })}
+                  readOnly
+                  className="bg-slate-50 text-slate-600 cursor-default"
                 />
               </div>
             </div>
@@ -952,17 +946,18 @@ export default function RoutersPage() {
                 <Input
                   id="edit-api_username"
                   value={formData.api_username}
-                  onChange={(e) => setFormData({ ...formData, api_username: e.target.value })}
+                  readOnly
+                  className="bg-slate-50 text-slate-600 cursor-default"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-api_password">API Password (leave blank to keep)</Label>
+                <Label htmlFor="edit-api_password">API Password</Label>
                 <Input
                   id="edit-api_password"
                   type="password"
-                  value={formData.api_password}
-                  onChange={(e) => setFormData({ ...formData, api_password: e.target.value })}
-                  placeholder="••••••••"
+                  value="••••••••"
+                  readOnly
+                  className="bg-slate-50 text-slate-600 cursor-default"
                 />
               </div>
             </div>
@@ -973,17 +968,17 @@ export default function RoutersPage() {
                 <Input
                   id="edit-model"
                   value={formData.model}
-                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                  readOnly
+                  className="bg-slate-50 text-slate-600 cursor-default"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-sla_target">SLA Target (%)</Label>
                 <Input
                   id="edit-sla_target"
-                  type="number"
-                  step="0.1"
                   value={formData.sla_target}
-                  onChange={(e) => setFormData({ ...formData, sla_target: parseFloat(e.target.value) })}
+                  readOnly
+                  className="bg-slate-50 text-slate-600 cursor-default"
                 />
               </div>
             </div>
@@ -993,7 +988,8 @@ export default function RoutersPage() {
               <Input
                 id="edit-location"
                 value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                readOnly
+                className="bg-slate-50 text-slate-600 cursor-default"
               />
             </div>
             
@@ -1002,7 +998,8 @@ export default function RoutersPage() {
               <Textarea
                 id="edit-notes"
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                readOnly
+                className="bg-slate-50 text-slate-600 cursor-default resize-none"
                 rows={2}
               />
             </div>
@@ -1010,11 +1007,7 @@ export default function RoutersPage() {
           
           <DialogFooter>
             <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); setSelectedRouter(null); resetForm() }}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdate} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-              Save Changes
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

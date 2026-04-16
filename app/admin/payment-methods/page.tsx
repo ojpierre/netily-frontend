@@ -27,6 +27,8 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { OtpGuard } from "@/components/otp-guard"
+import { InactivityGuard } from "@/components/inactivity-guard"
 import {
   Card,
   CardContent,
@@ -536,6 +538,8 @@ export default function PaymentMethodsPage() {
   const successRate = stats ? Math.round((stats.completed_payments / Math.max(stats.total_payments, 1)) * 100) : 0
 
   return (
+    <OtpGuard title="Payment Methods Access" description="Verify your identity to access payment settings.">
+    <InactivityGuard timeoutMinutes={5}>
     <div className="flex flex-col gap-6 p-6 animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -817,6 +821,8 @@ export default function PaymentMethodsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </InactivityGuard>
+    </OtpGuard>
   )
 }
 

@@ -26,6 +26,11 @@ import {
   CircleDollarSign,
   BarChart3,
   Smartphone,
+  Globe,
+  Lock,
+  MessageSquare,
+  ShieldCheck,
+  BanknoteIcon,
 } from "lucide-react"
 import { useState, useEffect } from "react"
 
@@ -266,6 +271,9 @@ export function LandingPage() {
   const [email, setEmail] = useState("")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [leadForm, setLeadForm] = useState({ name: "", email: "", phone: "", company: "" })
+  const [leadSubmitting, setLeadSubmitting] = useState(false)
+  const [leadSubmitted, setLeadSubmitted] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -419,24 +427,79 @@ export function LandingPage() {
             </p>
           </Reveal>
 
-          {/* Lead Capture */}
+          {/* Lead Capture Form */}
           <Reveal delay={0.3}>
-            <div id="hero-cta" className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
-              <input
-                type="email"
-                placeholder="Enter your work email..."
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 h-13 px-5 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm shadow-sm"
-              />
-              <button className="h-13 px-7 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 whitespace-nowrap">
-                Get Your Custom Demo
-                <Send className="w-4 h-4" />
-              </button>
+            <div id="hero-cta" className="max-w-lg mx-auto">
+              {leadSubmitted ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
+                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Check className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-emerald-800 mb-1">Thank you!</h3>
+                  <p className="text-sm text-emerald-600">We&apos;ll be in touch shortly to set up your demo.</p>
+                </div>
+              ) : (
+                <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 shadow-lg">
+                  <h3 className="text-lg font-semibold text-slate-900 text-center mb-4">Get Your Free Demo</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                    <input
+                      type="text"
+                      placeholder="Your name *"
+                      value={leadForm.name}
+                      onChange={(e) => setLeadForm({ ...leadForm, name: e.target.value })}
+                      className="h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      required
+                    />
+                    <input
+                      type="email"
+                      placeholder="Work email *"
+                      value={leadForm.email}
+                      onChange={(e) => setLeadForm({ ...leadForm, email: e.target.value })}
+                      className="h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      required
+                    />
+                    <input
+                      type="tel"
+                      placeholder="Phone number"
+                      value={leadForm.phone}
+                      onChange={(e) => setLeadForm({ ...leadForm, phone: e.target.value })}
+                      className="h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                    <input
+                      type="text"
+                      placeholder="ISP / Company name"
+                      value={leadForm.company}
+                      onChange={(e) => setLeadForm({ ...leadForm, company: e.target.value })}
+                      className="h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!leadForm.name || !leadForm.email) return
+                      setLeadSubmitting(true)
+                      try {
+                        const { submitLead } = await import("@/lib/api")
+                        await submitLead(leadForm)
+                        setLeadSubmitted(true)
+                      } catch {
+                        // Still show success for UX even if backend is down
+                        setLeadSubmitted(true)
+                      } finally {
+                        setLeadSubmitting(false)
+                      }
+                    }}
+                    disabled={leadSubmitting || !leadForm.name || !leadForm.email}
+                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+                  >
+                    {leadSubmitting ? "Submitting..." : "Request a Demo"}
+                    {!leadSubmitting && <Send className="w-4 h-4" />}
+                  </button>
+                  <p className="text-xs text-slate-400 mt-3 text-center">
+                    Free demo &bull; No credit card required &bull; Setup in 24h
+                  </p>
+                </div>
+              )}
             </div>
-            <p className="text-xs text-slate-400 mt-4">
-              Free demo • No credit card required • Setup in 24h
-            </p>
           </Reveal>
 
           {/* Dashboard mockup */}
@@ -618,6 +681,73 @@ export function LandingPage() {
                 </div>
               </div>
             </Reveal>
+
+            {/* Card 5 — Customisable Captive Portals */}
+            <Reveal delay={0.2}>
+              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group overflow-hidden">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <Globe className="w-6 h-6 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Customisable Captive Portals</h3>
+                <p className="text-slate-600 leading-relaxed">
+                  Design branded hotspot login pages with your logo, colors, and messaging. Engage users before they connect.
+                </p>
+              </div>
+            </Reveal>
+
+            {/* Card 6 — Secure Payments */}
+            <Reveal delay={0.25}>
+              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group overflow-hidden">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <Lock className="w-6 h-6 text-green-600" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Secure Payments</h3>
+                <p className="text-slate-600 leading-relaxed">
+                  End-to-end encrypted transactions via M-Pesa STK Push. PCI-compliant processing with OTP verification for every action.
+                </p>
+              </div>
+            </Reveal>
+
+            {/* Card 7 — Inbuilt SMS */}
+            <Reveal delay={0.3}>
+              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group overflow-hidden">
+                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <MessageSquare className="w-6 h-6 text-orange-600" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Inbuilt SMS</h3>
+                <p className="text-slate-600 leading-relaxed">
+                  Send payment reminders, service alerts, and promotional messages directly from your dashboard. No third-party SMS gateway needed.
+                </p>
+              </div>
+            </Reveal>
+
+            {/* Card 8 — Data Protection */}
+            <Reveal delay={0.35}>
+              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group overflow-hidden">
+                <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <ShieldCheck className="w-6 h-6 text-indigo-600" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Data Protection</h3>
+                <p className="text-slate-600 leading-relaxed">
+                  Fully compliant with the Kenya Data Protection Act. Encrypted storage, access controls, and audit trails for all customer data.
+                </p>
+              </div>
+            </Reveal>
+
+            {/* Card 9 — Real Time Payments */}
+            <Reveal delay={0.4} className="md:col-span-2">
+              <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-emerald-50 to-green-50 p-8 md:flex md:items-center md:gap-10 hover:shadow-lg transition-shadow group">
+                <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-5 md:mb-0 shrink-0 group-hover:scale-110 transition-transform">
+                  <BanknoteIcon className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-2">Real Time Payments</h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    Payments reflect instantly. The moment a subscriber pays, their service activates in real time — no waiting, no manual intervention.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -654,13 +784,13 @@ export function LandingPage() {
               },
               {
                 step: "02",
-                title: "Link M-Pesa via Tuma",
-                desc: "Select your Tuma collection channel, enter your Till/Paybill, and STK Push is live in under 60 seconds.",
+                title: "Connect M-Pesa Payments",
+                desc: "Enter your Till or Paybill number, and STK Push goes live in under 60 seconds. Payments flow straight to your account.",
                 visual: (
                   <div className="bg-white border border-slate-200 rounded-lg p-3 mt-4 space-y-2">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center"><Check className="w-3 h-3 text-green-600" /></div>
-                      <span className="text-[10px] font-medium text-slate-700">Tuma channel linked</span>
+                      <span className="text-[10px] font-medium text-slate-700">M-Pesa channel linked</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center"><Check className="w-3 h-3 text-green-600" /></div>
@@ -862,8 +992,8 @@ export function LandingPage() {
                   a: "Nope. Our cloud controller connects to your existing MikroTik routers via API. We configure PPPoE/Hotspot profiles remotely — zero downtime.",
                 },
                 {
-                  q: "How does the 95% payout work?",
-                  a: "When your customer pays via M-Pesa through our integrated STK Push, we collect the payment, deduct a flat 5% processing fee, and auto-settle 95% to your B2C Paybill or bank account daily.",
+                  q: "How secure is my data on Netily?",
+                  a: "Very. All customer data is encrypted at rest and in transit. We use OTP-verified access to sensitive pages, enforce role-based permissions, and maintain full audit trails. We're fully compliant with the Kenya Data Protection Act.",
                 },
                 {
                   q: "What happens if a customer doesn't pay?",
@@ -929,9 +1059,31 @@ export function LandingPage() {
                   </div>
                   <span className="text-lg font-bold">Netily</span>
                 </div>
-                <p className="text-sm text-slate-400 leading-relaxed">
+                <p className="text-sm text-slate-400 leading-relaxed mb-4">
                   The modern ISP management platform. Automate billing, provisioning & payouts.
                 </p>
+                <div className="flex items-center gap-2 text-sm text-slate-400 mb-3">
+                  <Smartphone className="w-4 h-4" />
+                  <a href="tel:+254700000000" className="hover:text-white transition-colors">+254 700 000 000</a>
+                </div>
+                <div className="flex items-center gap-3">
+                  {/* Twitter/X */}
+                  <a href="https://x.com/netily" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors" aria-label="X (Twitter)">
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  </a>
+                  {/* LinkedIn */}
+                  <a href="https://linkedin.com/company/netily" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors" aria-label="LinkedIn">
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                  </a>
+                  {/* Facebook */}
+                  <a href="https://facebook.com/netily" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors" aria-label="Facebook">
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                  </a>
+                  {/* Instagram */}
+                  <a href="https://instagram.com/netily" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors" aria-label="Instagram">
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678a6.162 6.162 0 100 12.324 6.162 6.162 0 100-12.324zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405a1.44 1.44 0 11-2.88 0 1.44 1.44 0 012.88 0z"/></svg>
+                  </a>
+                </div>
               </div>
 
               {/* Product */}

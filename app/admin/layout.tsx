@@ -81,7 +81,6 @@ const navigationSections = [
       { name: "ONU Devices", href: "/admin/onu", icon: Box },
       { name: "Routers", href: "/admin/routers", icon: Wifi },
       { name: "IPv4 Networks", href: "/admin/networks", icon: Network },
-      { name: "VPN", href: "/admin/vpn", icon: Shield },
       { name: "RADIUS", href: "/admin/radius", icon: Key },
       { name: "FUP", href: "/admin/fup", icon: Gauge },
       { name: "Usage", href: "/admin/usage", icon: BarChart3 },
@@ -90,7 +89,6 @@ const navigationSections = [
   {
     title: "Finance",
     items: [
-      { name: "Billing Cycles", href: "/admin/billing-cycles", icon: Calendar },
       { name: "Invoices", href: "/admin/invoices", icon: Receipt },
       { name: "Payments", href: "/admin/payments", icon: CreditCard },
       { name: "Receipts", href: "/admin/receipts", icon: FileText },
@@ -103,8 +101,6 @@ const navigationSections = [
     title: "Billing & Payouts",
     items: [
       { name: "Subscription", href: "/admin/settings/billing", icon: CreditCard },
-      { name: "Payout Settings", href: "/admin/settings/payouts", icon: DollarSign },
-      { name: "Settlements", href: "/admin/settings/settlements", icon: ArrowRightLeft },
     ],
   },
   {
