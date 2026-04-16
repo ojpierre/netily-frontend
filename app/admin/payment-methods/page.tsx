@@ -27,9 +27,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-// TODO: Re-enable OtpGuard once backend OTP/Redis is confirmed stable in production
-// import { OtpGuard } from "@/components/otp-guard"
-// import { InactivityGuard } from "@/components/inactivity-guard"
+import { InactivityGuard } from "@/components/inactivity-guard"
 import {
   Card,
   CardContent,
@@ -67,8 +65,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
-import { MpesaSettingsPanel } from "@/components/mpesa-settings-panel"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { PaymentMethod, PaymentMethodType, PaymentDashboardStats, MpesaConfiguration } from "@/lib/types"
 
 // =============================================================================
@@ -308,7 +304,6 @@ export default function PaymentMethodsPage() {
   /* ── Derived ── */
   const activeMethods = methods.filter((m) => m.is_active)
   const isFirstTime = !methodsLoading && methods.length === 0
-  const [integrationTab, setIntegrationTab] = useState("netily")
 
   /* ── CRUD ── */
   const openAdd = () => {
@@ -659,7 +654,7 @@ export default function PaymentMethodsPage() {
           <p className="text-sm text-muted-foreground mt-1">Set up how your customers pay you.</p>
         </div>
 
-        <div className="max-w-3xl">
+        <div className="max-w-2xl">
           {/* Welcome card */}
           <Card className="border-dashed border-2 mb-6">
             <CardContent className="pt-8 pb-8">
@@ -668,78 +663,44 @@ export default function PaymentMethodsPage() {
                   <Sparkles className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">Welcome! Choose your payment integration</h2>
+                  <h2 className="text-xl font-bold">Welcome! Let&apos;s set up your first payment method</h2>
                   <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                    Pick the integration that suits your business. You can use Netily&apos;s built-in Tuma gateway,
-                    connect your own M-Pesa Daraja API keys, or integrate with KopoKopo.
+                    Add a collection channel so your customers can start paying. Each method you add becomes
+                    available on invoices and the customer portal.
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* 3 Integration Options */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            {/* Netily (Tuma) */}
-            <Card className="hover:shadow-md transition-all cursor-pointer border-2 hover:border-blue-400" onClick={() => { setIntegrationTab("netily"); openAdd(); }}>
-              <CardHeader className="text-center pb-3">
-                <div className="mx-auto w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-2">
-                  <Shield className="h-6 w-6 text-blue-600" />
+          {/* Step-by-step guide */}
+          <div className="space-y-3 mb-8">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">How it works</h3>
+            {[
+              { step: 1, title: "Add a payment method", desc: "Choose M-Pesa, Bank Transfer, or a payment link — whatever your customers prefer." },
+              { step: 2, title: "Configure the details", desc: "Enter your Paybill, Till number, or bank account. We'll handle the rest via Tuma." },
+              { step: 3, title: "Start collecting", desc: "The method appears on invoices immediately. Payments reconcile automatically." },
+            ].map((s) => (
+              <div key={s.step} className="flex items-start gap-4 p-4 rounded-xl border bg-card">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-bold text-primary">{s.step}</span>
                 </div>
-                <CardTitle className="text-base">Netily Integration</CardTitle>
-                <CardDescription className="text-xs">
-                  Powered by Tuma — M-Pesa, banks & payment links. Fastest setup, fully managed.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Badge className="w-full justify-center bg-blue-50 text-blue-700 border-0 text-[10px]">Recommended</Badge>
-              </CardContent>
-            </Card>
-
-            {/* M-Pesa Daraja */}
-            <Card className="hover:shadow-md transition-all cursor-pointer border-2 hover:border-emerald-400" onClick={() => setIntegrationTab("daraja")}>
-              <CardHeader className="text-center pb-3">
-                <div className="mx-auto w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-2">
-                  <Smartphone className="h-6 w-6 text-emerald-600" />
+                <div>
+                  <p className="text-sm font-semibold">{s.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
                 </div>
-                <CardTitle className="text-base">M-Pesa Daraja</CardTitle>
-                <CardDescription className="text-xs">
-                  Use your own Safaricom Daraja API keys. Full control over your M-Pesa business.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Badge variant="outline" className="w-full justify-center text-[10px]">Own API Keys</Badge>
-              </CardContent>
-            </Card>
-
-            {/* KopoKopo */}
-            <Card className="hover:shadow-md transition-all cursor-pointer border-2 hover:border-violet-400" onClick={() => setIntegrationTab("kopokopo")}>
-              <CardHeader className="text-center pb-3">
-                <div className="mx-auto w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center mb-2">
-                  <Landmark className="h-6 w-6 text-violet-600" />
-                </div>
-                <CardTitle className="text-base">KopoKopo</CardTitle>
-                <CardDescription className="text-xs">
-                  Connect your KopoKopo account for STK push, settlements & transaction tracking.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Badge variant="outline" className="w-full justify-center text-[10px]">Own API Keys</Badge>
-              </CardContent>
-            </Card>
+              </div>
+            ))}
           </div>
 
-          {/* Show the selected integration content */}
-          {integrationTab === "daraja" && (
-            <Card>
-              <CardContent className="pt-6">
-                <MpesaSettingsPanel />
-              </CardContent>
-            </Card>
-          )}
-          {integrationTab === "kopokopo" && (
-            <KopoKopoSettings />
-          )}
+          {/* Primary CTA */}
+          <Button onClick={openAdd} size="lg" className="w-full">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Your First Payment Method
+          </Button>
+          <p className="text-center text-xs text-muted-foreground mt-3">
+            Powered by <a href="https://tuma.co.ke" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">Tuma</a> — M-Pesa, Kenyan banks &amp; more
+          </p>
         </div>
 
         {/* Dialog still needs to be available */}
@@ -768,18 +729,19 @@ export default function PaymentMethodsPage() {
   const successRate = stats ? Math.round((stats.completed_payments / Math.max(stats.total_payments, 1)) * 100) : 0
 
   return (
-    // TODO: Re-enable OtpGuard + InactivityGuard once backend OTP/Redis is stable in production
-    // <OtpGuard title="Payment Methods Access" description="Verify your identity to access payment settings.">
-    // <InactivityGuard timeoutMinutes={5}>
+    <InactivityGuard timeoutMinutes={5}>
     <div className="flex flex-col gap-6 p-6 animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Payment Methods</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage your collection channels and payment integrations.
+            Manage your collection channels. Each method is available to customers on invoices.
           </p>
         </div>
+        <Button onClick={openAdd} disabled={methods.length >= MAX_METHODS}>
+          <Plus className="h-4 w-4 mr-1.5" />{methods.length >= MAX_METHODS ? `Limit (${MAX_METHODS})` : "Add Method"}
+        </Button>
       </div>
 
       {/* Integration Tabs */}
@@ -996,18 +958,6 @@ export default function PaymentMethodsPage() {
           )}
         </div>
       </div>
-        </TabsContent>
-
-        {/* ─── TAB 2: M-Pesa Daraja (Own Keys) ─── */}
-        <TabsContent value="daraja" className="mt-4">
-          <MpesaSettingsPanel />
-        </TabsContent>
-
-        {/* ─── TAB 3: KopoKopo ─── */}
-        <TabsContent value="kopokopo" className="mt-4">
-          <KopoKopoSettings />
-        </TabsContent>
-      </Tabs>
 
       {/* ═══════════════════════════════════════════
          ADD / EDIT DIALOG (unchanged UX)
@@ -1098,8 +1048,7 @@ export default function PaymentMethodsPage() {
         </DialogContent>
       </Dialog>
     </div>
-    // </InactivityGuard>
-    // </OtpGuard>
+    </InactivityGuard>
   )
 }
 
@@ -1216,136 +1165,6 @@ function AddEditDialog({ open, onOpenChange, dlgStep, setDlgStep, editing, form,
         )}
       </DialogContent>
     </Dialog>
-  )
-}
-
-// =============================================================================
-// KOPOKOPO SETTINGS
-// =============================================================================
-function KopoKopoSettings() {
-  const [form, setForm] = useState({
-    client_id: "",
-    client_secret: "",
-    api_key: "",
-    till_number: "",
-    is_sandbox: true,
-  })
-  const [saving, setSaving] = useState(false)
-  const [loaded, setLoaded] = useState(false)
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await adminApi.getKopoKopoConfig()
-        if (data) {
-          setForm({
-            client_id: data.client_id || "",
-            client_secret: data.client_secret || "",
-            api_key: data.api_key || "",
-            till_number: data.till_number || "",
-            is_sandbox: data.is_sandbox ?? true,
-          })
-        }
-      } catch { /* Not configured yet */ }
-      setLoaded(true)
-    }
-    load()
-  }, [])
-
-  const handleSave = async () => {
-    if (!form.client_id || !form.client_secret) {
-      toast.error("Client ID and Client Secret are required")
-      return
-    }
-    setSaving(true)
-    try {
-      await adminApi.saveKopoKopoConfig(form)
-      toast.success("KopoKopo settings saved")
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to save KopoKopo settings")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  if (!loaded) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
-
-  return (
-    <div className="max-w-xl space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Landmark className="h-5 w-5 text-violet-600" />
-            KopoKopo Integration
-          </CardTitle>
-          <CardDescription>
-            Connect your KopoKopo account to receive M-Pesa payments via STK Push.
-            Get your API credentials from the{" "}
-            <a href="https://app.kopokopo.com" target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:underline font-medium">
-              KopoKopo Dashboard
-            </a>.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Client ID <span className="text-red-500">*</span></Label>
-            <Input
-              placeholder="Your KopoKopo Client ID"
-              value={form.client_id}
-              onChange={(e) => setForm((p) => ({ ...p, client_id: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Client Secret <span className="text-red-500">*</span></Label>
-            <Input
-              type="password"
-              placeholder="Your KopoKopo Client Secret"
-              value={form.client_secret}
-              onChange={(e) => setForm((p) => ({ ...p, client_secret: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>API Key</Label>
-            <Input
-              type="password"
-              placeholder="Your KopoKopo API Key"
-              value={form.api_key}
-              onChange={(e) => setForm((p) => ({ ...p, api_key: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Till Number</Label>
-            <Input
-              placeholder="e.g. K123456"
-              value={form.till_number}
-              onChange={(e) => setForm((p) => ({ ...p, till_number: e.target.value }))}
-            />
-          </div>
-          <div className="flex items-center justify-between py-1">
-            <div>
-              <Label className="text-sm">Sandbox Mode</Label>
-              <p className="text-xs text-muted-foreground">Use KopoKopo sandbox for testing</p>
-            </div>
-            <Switch
-              checked={form.is_sandbox}
-              onCheckedChange={(v) => setForm((p) => ({ ...p, is_sandbox: v }))}
-            />
-          </div>
-        </CardContent>
-        <div className="px-6 pb-6">
-          <Button onClick={handleSave} disabled={saving} className="w-full">
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save KopoKopo Settings
-          </Button>
-        </div>
-      </Card>
-    </div>
   )
 }
 
