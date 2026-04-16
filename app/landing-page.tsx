@@ -160,7 +160,7 @@ function DashboardMockup() {
             <div className="w-3 h-3 rounded-full bg-green-400" />
           </div>
           <div className="flex-1 flex justify-center">
-            <div className="flex items-center gap-2 bg-white rounded-md border border-slate-200 px-3 py-1 text-xs text-slate-400 min-w-[260px]">
+            <div className="flex items-center gap-2 bg-white rounded-md border border-slate-200 px-3 py-1 text-xs text-slate-400 min-w-0 sm:min-w-[260px] max-w-full">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
               admin.netily.co.ke/dashboard
             </div>
@@ -271,7 +271,7 @@ export function LandingPage() {
   const [email, setEmail] = useState("")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const [leadForm, setLeadForm] = useState({ name: "", email: "", phone: "", company: "" })
+  const [leadForm, setLeadForm] = useState({ name: "", email: "", phone: "", company: "", message: "" })
   const [leadSubmitting, setLeadSubmitting] = useState(false)
   const [leadSubmitted, setLeadSubmitted] = useState(false)
 
@@ -333,7 +333,7 @@ export function LandingPage() {
                 Login
               </Link>
               <button
-                onClick={() => scrollTo("hero-cta")}
+                onClick={() => scrollTo("contact")}
                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm"
               >
                 See it in Action
@@ -376,7 +376,7 @@ export function LandingPage() {
                 Login
               </Link>
               <button
-                onClick={() => scrollTo("hero-cta")}
+                onClick={() => scrollTo("contact")}
                 className="mt-1 w-full bg-blue-600 text-white text-sm font-semibold py-3 rounded-lg"
               >
                 See it in Action
@@ -403,7 +403,9 @@ export function LandingPage() {
           <Reveal>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded-full text-blue-700 text-sm font-medium mb-8">
               <Sparkles className="w-4 h-4" />
-              <span>Automated 95% Daily M-Pesa Payouts</span>
+              {/*<span>Automated 95% Daily M-Pesa Payouts</span>
+              */}
+              <span>Trusted by 100+ ISPs across Africa</span>
               <span className="text-lg leading-none">✨</span>
             </div>
           </Reveal>
@@ -427,78 +429,22 @@ export function LandingPage() {
             </p>
           </Reveal>
 
-          {/* Lead Capture Form */}
+          {/* CTA Buttons */}
           <Reveal delay={0.3}>
-            <div id="hero-cta" className="max-w-lg mx-auto">
-              {leadSubmitted ? (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
-                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Check className="w-6 h-6 text-emerald-600" />
-                  </div>
-                  <h3 className="text-lg font-bold text-emerald-800 mb-1">Thank you!</h3>
-                  <p className="text-sm text-emerald-600">We&apos;ll be in touch shortly to set up your demo.</p>
-                </div>
-              ) : (
-                <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 shadow-lg">
-                  <h3 className="text-lg font-semibold text-slate-900 text-center mb-4">Get Your Free Demo</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                    <input
-                      type="text"
-                      placeholder="Your name *"
-                      value={leadForm.name}
-                      onChange={(e) => setLeadForm({ ...leadForm, name: e.target.value })}
-                      className="h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      required
-                    />
-                    <input
-                      type="email"
-                      placeholder="Work email *"
-                      value={leadForm.email}
-                      onChange={(e) => setLeadForm({ ...leadForm, email: e.target.value })}
-                      className="h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      required
-                    />
-                    <input
-                      type="tel"
-                      placeholder="Phone number"
-                      value={leadForm.phone}
-                      onChange={(e) => setLeadForm({ ...leadForm, phone: e.target.value })}
-                      className="h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    />
-                    <input
-                      type="text"
-                      placeholder="ISP / Company name"
-                      value={leadForm.company}
-                      onChange={(e) => setLeadForm({ ...leadForm, company: e.target.value })}
-                      className="h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    />
-                  </div>
-                  <button
-                    onClick={async () => {
-                      if (!leadForm.name || !leadForm.email) return
-                      setLeadSubmitting(true)
-                      try {
-                        const { submitLead } = await import("@/lib/api")
-                        await submitLead(leadForm)
-                        setLeadSubmitted(true)
-                      } catch {
-                        // Still show success for UX even if backend is down
-                        setLeadSubmitted(true)
-                      } finally {
-                        setLeadSubmitting(false)
-                      }
-                    }}
-                    disabled={leadSubmitting || !leadForm.name || !leadForm.email}
-                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
-                  >
-                    {leadSubmitting ? "Submitting..." : "Request a Demo"}
-                    {!leadSubmitting && <Send className="w-4 h-4" />}
-                  </button>
-                  <p className="text-xs text-slate-400 mt-3 text-center">
-                    Free demo &bull; No credit card required &bull; Setup in 24h
-                  </p>
-                </div>
-              )}
+            <div id="hero-cta" className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={() => scrollTo("contact")}
+                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-xl transition-colors shadow-lg shadow-blue-600/25 text-lg"
+              >
+                I&apos;m Interested
+                <ArrowRight className="w-5 h-5" />
+              </button>
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-900 font-semibold px-8 py-4 rounded-xl transition-colors border border-slate-200 shadow-sm text-lg"
+              >
+                Start Free Trial
+              </Link>
             </div>
           </Reveal>
 
@@ -931,7 +877,7 @@ export function LandingPage() {
                   </ul>
 
                   <button
-                    onClick={() => scrollTo("hero-cta")}
+                    onClick={() => scrollTo("contact")}
                     className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-white transition-colors shadow-sm"
                   >
                     Book a Demo
@@ -952,7 +898,7 @@ export function LandingPage() {
                 </p>
               </div>
               <button
-                onClick={() => scrollTo("hero-cta")}
+                onClick={() => scrollTo("contact")}
                 className="mt-4 md:mt-0 shrink-0 inline-flex items-center gap-2 bg-white text-blue-700 font-semibold px-6 py-3 rounded-xl hover:bg-blue-50 transition-colors shadow-sm"
               >
                 Learn More
@@ -964,7 +910,7 @@ export function LandingPage() {
       </section>
 
       {/* ━━━ 6b. BILLING CALCULATOR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <BillingCalculator onGetStarted={() => scrollTo("hero-cta")} />
+      <BillingCalculator onGetStarted={() => scrollTo("contact")} />
 
       {/* ━━━ 5b. FAQs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section id="faqs" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8">
@@ -1015,6 +961,112 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* ━━━ CONTACT / INQUIRY FORM ━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <section id="contact" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50">
+        <div className="max-w-3xl mx-auto">
+          <Reveal>
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+                Get in Touch
+              </h2>
+              <p className="text-lg text-slate-600 max-w-xl mx-auto">
+                Interested in Netily? Have a question? Drop us a message and we&apos;ll get back to you within 24 hours.
+              </p>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            {leadSubmitted ? (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 text-center max-w-lg mx-auto">
+                <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-7 h-7 text-emerald-600" />
+                </div>
+                <h3 className="text-xl font-bold text-emerald-800 mb-2">Message Sent!</h3>
+                <p className="text-sm text-emerald-600">Thank you for reaching out. Our team will get back to you shortly.</p>
+              </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-lg max-w-2xl mx-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name *</label>
+                    <input
+                      type="text"
+                      placeholder="John Doe"
+                      value={leadForm.name}
+                      onChange={(e) => setLeadForm({ ...leadForm, name: e.target.value })}
+                      className="w-full h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Email Address *</label>
+                    <input
+                      type="email"
+                      placeholder="john@example.com"
+                      value={leadForm.email}
+                      onChange={(e) => setLeadForm({ ...leadForm, email: e.target.value })}
+                      className="w-full h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Phone Number</label>
+                    <input
+                      type="tel"
+                      placeholder="+254 7XX XXX XXX"
+                      value={leadForm.phone}
+                      onChange={(e) => setLeadForm({ ...leadForm, phone: e.target.value })}
+                      className="w-full h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">ISP / Company</label>
+                    <input
+                      type="text"
+                      placeholder="Your ISP name"
+                      value={leadForm.company}
+                      onChange={(e) => setLeadForm({ ...leadForm, company: e.target.value })}
+                      className="w-full h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Message</label>
+                  <textarea
+                    placeholder="Tell us about your ISP, what you're looking for, or any questions you have..."
+                    value={leadForm.message}
+                    onChange={(e) => setLeadForm({ ...leadForm, message: e.target.value })}
+                    rows={4}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+                  />
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!leadForm.name || !leadForm.email) return
+                    setLeadSubmitting(true)
+                    try {
+                      const { submitLead } = await import("@/lib/api")
+                      await submitLead(leadForm)
+                      setLeadSubmitted(true)
+                    } catch {
+                      setLeadSubmitted(true)
+                    } finally {
+                      setLeadSubmitting(false)
+                    }
+                  }}
+                  disabled={leadSubmitting || !leadForm.name || !leadForm.email}
+                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+                >
+                  {leadSubmitting ? "Sending..." : "Send Message"}
+                  {!leadSubmitting && <Send className="w-4 h-4" />}
+                </button>
+                <p className="text-xs text-slate-400 mt-3 text-center">
+                  We typically respond within 24 hours &bull; No spam, ever
+                </p>
+              </div>
+            )}
+          </Reveal>
+        </div>
+      </section>
+
       {/* ━━━ 6. GIANT FOOTER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <footer className="relative bg-slate-900 text-white overflow-hidden">
         {/* Giant background typography */}
@@ -1038,7 +1090,7 @@ export function LandingPage() {
           </Reveal>
           <Reveal delay={0.2}>
             <button
-              onClick={() => scrollTo("hero-cta")}
+              onClick={() => scrollTo("contact")}
               className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-4 rounded-xl transition-colors shadow-lg shadow-blue-600/25 text-lg"
             >
               Start Your Free Trial

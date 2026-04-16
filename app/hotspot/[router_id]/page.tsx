@@ -747,6 +747,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
 
   // Selection & payment
   const [selectedPlan, setSelectedPlan] = useState<HotspotPlan | null>(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState("")
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("idle")
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -1037,6 +1038,15 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     } finally {
         setIsVerifyingTV(false)
     }
+  }
+
+  // ── Select plan and open payment modal ──
+  const selectPlanAndPay = (plan: HotspotPlan) => {
+    setSelectedPlan(plan)
+    setShowPaymentModal(true)
+    setPhoneError(null)
+    setVoucherError(null)
+    setError(null)
   }
 
   // ── Initiate payment ──
@@ -1504,7 +1514,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                   <button
                     key={plan.id}
                     type="button"
-                    onClick={() => setSelectedPlan(plan)}
+                    onClick={() => selectPlanAndPay(plan)}
                     className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
                       selectedPlan?.id === plan.id
                         ? `${theme.planSelectedBorder} ${theme.planSelectedBg} shadow-lg ring-2 ring-opacity-50`
@@ -1547,7 +1557,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
               <button
                 key={plan.id}
                 type="button"
-                onClick={() => setSelectedPlan(plan)}
+                onClick={() => selectPlanAndPay(plan)}
                 className={`text-left border-2 transition-all ${
                   theme.layoutType === "grid" 
                     ? "rounded-xl p-3 flex flex-col" 
@@ -1671,115 +1681,145 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             ))}
           </div>
 
-          {/* Phone Number Input — shown after plans for most templates */}
-          {!theme.showPhoneBeforePlans && paymentMode === "mpesa" && (
-            <PhoneInput
-              phoneNumber={phoneNumber}
-              phoneError={phoneError}
-              onPhoneChange={handlePhoneChange}
-              theme={theme}
-            />
+          {/* Support footer */}
+          {supportPhone && (
+            <p className={`text-center text-xs mt-4 ${theme.footerText}`}>
+              Need help? Call{" "}
+              <a href={`tel:${supportPhone}`} className="underline">
+                {supportPhone}
+              </a>
+            </p>
           )}
+        </div>
+      </div>
 
-          {/* ── Payment Mode Toggle ── */}
-          <div className="mb-4">
-            <div className={`flex rounded-lg border ${theme.inputBorder} overflow-hidden`}>
-              <button
-                type="button"
-                onClick={() => { setPaymentMode("mpesa"); setVoucherError(null) }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
-                  paymentMode === "mpesa"
-                    ? `${theme.ctaBg} ${theme.ctaText}`
-                    : `${theme.planBg} ${theme.mutedText} hover:opacity-80`
-                }`}
-                style={paymentMode === "mpesa" ? brandingCtaStyle : undefined}
-              >
-                <Phone className="w-4 h-4" />
-                M-Pesa
-              </button>
-              <button
-                type="button"
-                onClick={() => { setPaymentMode("voucher"); setPhoneError(null) }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
-                  paymentMode === "voucher"
-                    ? `${theme.ctaBg} ${theme.ctaText}`
-                    : `${theme.planBg} ${theme.mutedText} hover:opacity-80`
-                }`}
-                style={paymentMode === "voucher" ? brandingCtaStyle : undefined}
-              >
-                <Ticket className="w-4 h-4" />
-                Voucher
-              </button>
-            </div>
-          </div>
+      {/* ━━━ PAYMENT MODAL ━━━ */}
+      {showPaymentModal && selectedPlan && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowPaymentModal(false)}
+          />
+          {/* Modal */}
+          <div className={`relative w-full sm:max-w-md mx-auto ${theme.cardClass} rounded-t-2xl sm:rounded-2xl p-6 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300`}>
+            {/* Close button */}
+            <button
+              onClick={() => setShowPaymentModal(false)}
+              className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center ${theme.planBg} ${theme.mutedText} hover:opacity-70`}
+            >
+              ✕
+            </button>
 
-          {/* ── Voucher Input ── */}
-          {paymentMode === "voucher" && (
-            <div className="mb-6 space-y-3">
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${theme.planTitle}`}>
-                  Voucher Code
-                </label>
-                <div className="relative">
-                  <Ticket className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.mutedText}`} />
-                  <input
-                    type="text"
-                    placeholder="Enter voucher code"
-                    value={voucherCode}
-                    onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError(null) }}
-                    className={`w-full pl-10 pr-4 py-3 border ${theme.cardShape} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} font-mono tracking-wider text-lg ${
-                      voucherError ? "!border-red-400 !ring-red-500" : ""
-                    }`}
-                  />
-                </div>
+            {/* Plan Summary */}
+            <div className={`mb-5 pb-4 border-b ${theme.planBorder}`}>
+              <h3 className={`text-lg font-bold mb-2 ${theme.planTitle}`}>{selectedPlan.name}</h3>
+              <div className={`flex flex-wrap gap-x-4 gap-y-1 text-sm ${theme.mutedText}`}>
+                <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{selectedPlan.duration_display}</span>
+                <span className="flex items-center gap-1"><Zap className="w-4 h-4" />{selectedPlan.speed_display}</span>
+                {selectedPlan.limitation_type !== "UNLIMITED" && selectedPlan.data_limit_value && (
+                  <span className="flex items-center gap-1"><Database className="w-4 h-4" />{selectedPlan.data_limit_display}</span>
+                )}
               </div>
-              {voucherError && (
-                <div className={`p-3 rounded-lg border flex items-center gap-2 ${theme.errorBg}`}>
-                  <AlertCircle className={`w-5 h-5 flex-shrink-0 ${theme.errorText}`} />
-                  <span className={`text-sm ${theme.errorText}`}>{voucherError}</span>
+              <div className={`text-2xl font-bold mt-2 ${theme.planPrice}`} style={brandingPriceStyle}>
+                {selectedPlan.currency || "KES"} {selectedPlan.price}
+              </div>
+            </div>
+
+            {/* Phone Number Input */}
+            {paymentMode === "mpesa" && (
+              <PhoneInput
+                phoneNumber={phoneNumber}
+                phoneError={phoneError}
+                onPhoneChange={handlePhoneChange}
+                theme={theme}
+              />
+            )}
+
+            {/* Payment Mode Toggle */}
+            <div className="mb-4">
+              <div className={`flex rounded-lg border ${theme.inputBorder} overflow-hidden`}>
+                <button
+                  type="button"
+                  onClick={() => { setPaymentMode("mpesa"); setVoucherError(null) }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+                    paymentMode === "mpesa"
+                      ? `${theme.ctaBg} ${theme.ctaText}`
+                      : `${theme.planBg} ${theme.mutedText} hover:opacity-80`
+                  }`}
+                  style={paymentMode === "mpesa" ? brandingCtaStyle : undefined}
+                >
+                  <Phone className="w-4 h-4" />
+                  M-Pesa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPaymentMode("voucher"); setPhoneError(null) }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
+                    paymentMode === "voucher"
+                      ? `${theme.ctaBg} ${theme.ctaText}`
+                      : `${theme.planBg} ${theme.mutedText} hover:opacity-80`
+                  }`}
+                  style={paymentMode === "voucher" ? brandingCtaStyle : undefined}
+                >
+                  <Ticket className="w-4 h-4" />
+                  Voucher
+                </button>
+              </div>
+            </div>
+
+            {/* Voucher Input */}
+            {paymentMode === "voucher" && (
+              <div className="mb-4 space-y-3">
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme.planTitle}`}>
+                    Voucher Code
+                  </label>
+                  <div className="relative">
+                    <Ticket className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.mutedText}`} />
+                    <input
+                      type="text"
+                      placeholder="Enter voucher code"
+                      value={voucherCode}
+                      onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError(null) }}
+                      className={`w-full pl-10 pr-4 py-3 border ${theme.cardShape} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} font-mono tracking-wider text-lg ${
+                        voucherError ? "!border-red-400 !ring-red-500" : ""
+                      }`}
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
-          )}
+                {voucherError && (
+                  <div className={`p-3 rounded-lg border flex items-center gap-2 ${theme.errorBg}`}>
+                    <AlertCircle className={`w-5 h-5 flex-shrink-0 ${theme.errorText}`} />
+                    <span className={`text-sm ${theme.errorText}`}>{voucherError}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
-          {/* Inline Error */}
-          {error && (
-            <div className={`mb-4 p-3 rounded-lg border flex items-center gap-2 ${theme.errorBg}`}>
-              <AlertCircle className={`w-5 h-5 flex-shrink-0 ${theme.errorText}`} />
-              <span className={`text-sm ${theme.errorText}`}>{error}</span>
-            </div>
-          )}
+            {/* Inline Error */}
+            {error && (
+              <div className={`mb-4 p-3 rounded-lg border flex items-center gap-2 ${theme.errorBg}`}>
+                <AlertCircle className={`w-5 h-5 flex-shrink-0 ${theme.errorText}`} />
+                <span className={`text-sm ${theme.errorText}`}>{error}</span>
+              </div>
+            )}
 
-          {/* CTA Button — style varies by theme */}
-          <div className={theme.ctaStyle === "centered" ? "flex justify-center" : ""}>
+            {/* CTA Button */}
             {paymentMode === "mpesa" ? (
               <button
                 onClick={handlePay}
-                disabled={!selectedPlan || !phoneNumber || !!phoneError || (targetDevice === "tv" && !verifiedTV)}
-                className={`py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover} ${
-                  theme.ctaStyle === "pill"
-                    ? "w-full rounded-full"
-                    : theme.ctaStyle === "centered"
-                    ? "px-12 rounded-xl"
-                    : "w-full rounded-xl"
-                }`}
+                disabled={!phoneNumber || !!phoneError || (targetDevice === "tv" && !verifiedTV)}
+                className={`w-full py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg rounded-xl ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover}`}
                 style={brandingCtaStyle}
               >
-                {selectedPlan
-                  ? `Pay ${selectedPlan.currency || "KES"} ${selectedPlan.price} with M-Pesa`
-                  : "Select a Plan to Continue"}
+                Pay {selectedPlan.currency || "KES"} {selectedPlan.price} with M-Pesa
               </button>
             ) : (
               <button
                 onClick={handleVoucherRedeem}
                 disabled={!voucherCode.trim() || voucherRedeeming || (targetDevice === "tv" && !verifiedTV)}
-                className={`py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2 ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover} ${
-                  theme.ctaStyle === "pill"
-                    ? "w-full rounded-full"
-                    : theme.ctaStyle === "centered"
-                    ? "px-12 rounded-xl"
-                    : "w-full rounded-xl"
-                }`}
+                className={`w-full py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg rounded-xl flex items-center justify-center gap-2 ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover}`}
                 style={brandingCtaStyle}
               >
                 {voucherRedeeming ? (
@@ -1792,23 +1832,13 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                 )}
               </button>
             )}
-          </div>
 
-          <p className={`text-center text-xs mt-4 ${theme.footerText}`}>
-            By connecting, you agree to the terms of service
-          </p>
-
-          {/* Support footer */}
-          {supportPhone && (
-            <p className={`text-center text-xs mt-2 ${theme.footerText}`}>
-              Need help? Call{" "}
-              <a href={`tel:${supportPhone}`} className="underline">
-                {supportPhone}
-              </a>
+            <p className={`text-center text-xs mt-3 ${theme.footerText}`}>
+              By connecting, you agree to the terms of service
             </p>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

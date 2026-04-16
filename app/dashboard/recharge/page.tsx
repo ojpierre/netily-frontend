@@ -344,7 +344,7 @@ export default function RechargePage() {
                 className="mt-2 text-lg"
                 min="1"
               />
-              <div className="grid grid-cols-4 gap-2 mt-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-3">
                 {quickAmounts.map((value) => (
                   <Button
                     key={value}
