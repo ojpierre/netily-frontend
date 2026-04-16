@@ -90,7 +90,7 @@ const METHOD_TYPES: { value: string; label: string; icon: typeof CreditCard; des
   { value: "MOBILE_MONEY", label: "Mobile Money", icon: Smartphone, desc: "M-Pesa, Airtel Money, or Telkom T-Kash — receive payments directly to your mobile wallet", color: "emerald" },
   { value: "MPESA_PAYBILL", label: "M-Pesa Paybill", icon: Smartphone, desc: "Customer sends money to your Paybill number", color: "emerald" },
   { value: "MPESA_TILL", label: "M-Pesa Till (Buy Goods)", icon: Smartphone, desc: "Customer pays via Till / Buy Goods number", color: "emerald" },
-  { value: "BANK_TRANSFER", label: "Bank Transfer", icon: Landmark, desc: "Direct EFT or bank deposit via Tuma-supported banks", color: "blue" },
+  { value: "BANK_TRANSFER", label: "Bank Transfer", icon: Landmark, desc: "Direct EFT or bank deposit via supported banks", color: "blue" },
   { value: "PAYMENT_LINK", label: "Payment Link", icon: Link2, desc: "Custom payment URL for online payments", color: "violet" },
 ]
 
@@ -173,7 +173,7 @@ function DarajaSection({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">Use your own Daraja credentials</p>
-          <p className="text-xs text-muted-foreground">Skip Tuma — route payments directly via Safaricom Daraja API</p>
+          <p className="text-xs text-muted-foreground">Route payments directly via Safaricom Daraja API using your own credentials</p>
         </div>
         <Switch checked={value.enabled} onCheckedChange={(v) => onChange("enabled", v)} />
       </div>
@@ -443,13 +443,13 @@ export default function PaymentMethodsPage() {
       if (editing) {
         const result = await adminApi.updatePaymentMethod(editing.id, payload) as any
         const synced = result?.tuma_synced
-        const provider = form.daraja.enabled ? "Direct M-Pesa (Daraja)" : "Tuma gateway"
+        const provider = form.daraja.enabled ? "Direct M-Pesa (Daraja)" : "payment gateway"
         toast.success("Payment method updated", {
-          description: `Settlement via ${provider}.${editing.is_active && synced ? " Tuma synced." : ""}`,
+          description: `Settlement via ${provider}.${editing.is_active && synced ? " Synced." : ""}`,
         })
       } else {
         const isFirst = methods.length === 0
-        const provider = form.daraja.enabled ? "Direct M-Pesa (Daraja)" : "Tuma gateway"
+        const provider = form.daraja.enabled ? "Direct M-Pesa (Daraja)" : "payment gateway"
         await adminApi.createPaymentMethod(payload)
         toast.success("Payment method created", {
           description: isFirst
@@ -481,13 +481,13 @@ export default function PaymentMethodsPage() {
 
       if (action === 'activate') {
         const channel = result.settlement_channel || method.name
-        const ref = result.tuma_reference ? ` via ${result.tuma_reference}` : ''
+        const ref = result.tuma_reference ? ` (ref: ${result.tuma_reference})` : ''
         const synced = result.tuma_synced !== false
 
         toast.success(`${method.name} activated`, {
           description: synced
             ? `Settlement channel: ${channel}${ref}. All customer payments now route here.`
-            : `Activated locally. Tuma sync pending${result.tuma_error ? `: ${result.tuma_error}` : '.'}`,
+            : `Activated locally. Sync pending${result.tuma_error ? `: ${result.tuma_error}` : '.'}`,
           duration: synced ? 4000 : 6000,
         })
         if (result.note) {
@@ -496,7 +496,7 @@ export default function PaymentMethodsPage() {
       } else {
         toast.success(`${method.name} deactivated`, {
           description: result.tuma_synced !== false
-            ? 'Tuma settlement paused. No active payment channel — activate another to resume collections.'
+            ? 'Settlement paused. No active payment channel — activate another to resume collections.'
             : 'Deactivated locally. Customers will no longer see this option.',
         })
       }
@@ -521,9 +521,9 @@ export default function PaymentMethodsPage() {
       // Build descriptive toast based on what happened
       let description: string | undefined
       if (result?.tuma_action === 'business_deleted') {
-        description = 'Tuma business profile removed — no payment methods remain.'
+        description = 'Payment profile removed — no payment methods remain.'
       } else if (result?.tuma_action === 'deactivated') {
-        description = 'Tuma settlement paused — activate another method to resume collections.'
+        description = 'Settlement paused — activate another method to resume collections.'
       } else if (isForce) {
         description = `${forceDeleteInfo!.paymentCount} payment(s) were unlinked from this method.`
       }
@@ -787,7 +787,7 @@ export default function PaymentMethodsPage() {
         <TabsList className="grid w-full max-w-lg grid-cols-3">
           <TabsTrigger value="netily" className="gap-1.5">
             <Shield className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Netily</span> (Tuma)
+            <span className="hidden sm:inline">Netily</span>
           </TabsTrigger>
           <TabsTrigger value="daraja" className="gap-1.5">
             <Smartphone className="h-3.5 w-3.5" />
@@ -799,7 +799,7 @@ export default function PaymentMethodsPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* ─── TAB 1: Netily (Tuma) ─── */}
+        {/* ─── TAB 1: Netily ─── */}
         <TabsContent value="netily" className="space-y-6 mt-4">
           <div className="flex items-center justify-between">
             <div />
@@ -934,7 +934,7 @@ export default function PaymentMethodsPage() {
                         Direct M-Pesa · {(m as any).mpesa_configuration_details.business_shortcode}
                       </Badge>
                     ) : (m.method_type?.startsWith('MPESA') || m.method_type === 'MOBILE_MONEY') ? (
-                      <Badge variant="outline" className="text-[10px]">via Tuma</Badge>
+                      <Badge variant="outline" className="text-[10px]">Netily</Badge>
                     ) : null}
                   </div>
 
