@@ -73,6 +73,13 @@ function AccountSettingsTab() {
     phone_number: "",
   })
   
+  // Company logo state
+  const [companyId, setCompanyId] = useState<number | null>(null)
+  const [companyLogo, setCompanyLogo] = useState<string>("")
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string>("")
+  const [logoSaving, setLogoSaving] = useState(false)
+  
   // Password form state
   const [passwords, setPasswords] = useState({
     current_password: "",
@@ -92,6 +99,15 @@ function AccountSettingsTab() {
           email: user.email || "",
           phone_number: user.phone_number || "",
         })
+        // Load company logo if user has a company
+        const cId = (user as any).company_id || (user as any).company?.id
+        if (cId) {
+          setCompanyId(cId)
+          try {
+            const company = await adminApi.getCompany(cId)
+            setCompanyLogo(company.logo || "")
+          } catch { /* non-critical */ }
+        }
       } catch (error) {
         console.error("Failed to load profile:", error)
         toast.error("Failed to load profile")
@@ -237,6 +253,104 @@ function AccountSettingsTab() {
         </CardFooter>
       </Card>
       
+      {/* Password Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Company Branding</CardTitle>
+          <CardDescription>Upload your company logo — shown on invoices, the dashboard, and customer portal</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-start gap-6">
+            {/* Preview */}
+            <div className="w-24 h-24 rounded-xl border bg-white flex items-center justify-center overflow-hidden shrink-0">
+              {(logoPreview || companyLogo) ? (
+                <img
+                  src={logoPreview || companyLogo}
+                  alt="Company logo"
+                  className="max-w-full max-h-full object-contain"
+                />
+              ) : (
+                <Camera className="w-8 h-8 text-slate-300" />
+              )}
+            </div>
+            <div className="flex-1 space-y-3">
+              <div>
+                <label
+                  htmlFor="company-logo-upload"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer hover:bg-slate-50 transition-colors text-sm font-medium"
+                >
+                  <Camera className="w-4 h-4" />
+                  {companyLogo || logoPreview ? "Change Logo" : "Upload Logo"}
+                </label>
+                <input
+                  id="company-logo-upload"
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    if (file.size > 2 * 1024 * 1024) {
+                      toast.error("Logo must be smaller than 2 MB")
+                      return
+                    }
+                    setLogoFile(file)
+                    setLogoPreview(URL.createObjectURL(file))
+                  }}
+                />
+              </div>
+              <p className="text-xs text-slate-500">PNG, JPG, SVG or WebP. Max 2 MB.</p>
+            </div>
+          </div>
+        </CardContent>
+        {logoFile && (
+          <CardFooter>
+            <Button
+              onClick={async () => {
+                if (!companyId || !logoFile) return
+                setLogoSaving(true)
+                try {
+                  const formData = new FormData()
+                  formData.append('logo', logoFile)
+                  await fetch(`/api/core/companies/${companyId}/`, {
+                    method: 'PATCH',
+                    headers: {
+                      'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') || '' : ''}`,
+                    },
+                    body: formData,
+                  }).then(async (res) => {
+                    if (!res.ok) throw new Error('Upload failed')
+                    const data = await res.json()
+                    setCompanyLogo(data.logo || logoPreview)
+                    setLogoFile(null)
+                    setLogoPreview("")
+                    toast.success("Company logo updated")
+                  })
+                } catch (error) {
+                  console.error("Failed to upload logo:", error)
+                  toast.error("Failed to upload logo")
+                } finally {
+                  setLogoSaving(false)
+                }
+              }}
+              disabled={logoSaving}
+            >
+              {logoSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Logo
+                </>
+              )}
+            </Button>
+          </CardFooter>
+        )}
+      </Card>
+
       {/* Password Card */}
       <Card>
         <CardHeader>

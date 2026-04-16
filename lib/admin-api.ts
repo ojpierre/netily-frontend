@@ -3879,6 +3879,21 @@ class AdminApiService {
       body: JSON.stringify(data),
     })
   }
+
+  // ------------------------------------------
+  // KOPOKOPO INTEGRATION
+  // ------------------------------------------
+
+  async getKopoKopoConfig(): Promise<any> {
+    return this.request('/billing/kopokopo-config/')
+  }
+
+  async saveKopoKopoConfig(data: any): Promise<any> {
+    return this.request('/billing/kopokopo-config/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
 }
 
 // Export singleton instance

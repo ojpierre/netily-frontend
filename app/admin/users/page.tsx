@@ -342,6 +342,7 @@ export default function UsersPage() {
     ip_pool: "",
     assigned_ip: "" as string, 
     activate_now: true,
+    activation_delay_minutes: 0,
   })
 
   const hasFetched = React.useRef(false)
@@ -520,6 +521,7 @@ export default function UsersPage() {
             auth_connection_type: newCustomerForm.connection_type.toUpperCase(),
             status: newCustomerForm.activate_now ? 'ACTIVE' : 'PENDING',
             activate_now: newCustomerForm.activate_now,
+            activation_delay_minutes: newCustomerForm.activation_delay_minutes || 0,
             radius_password: newCustomerForm.password,
           }
 
@@ -568,6 +570,7 @@ export default function UsersPage() {
         ip_pool: "",
         assigned_ip: "",
         activate_now: true,
+        activation_delay_minutes: 0,
       })
       setPoolsList([])
       setAvailableIPs([])
@@ -1306,15 +1309,42 @@ export default function UsersPage() {
               <div className="flex items-center gap-3 mt-3 p-3 bg-slate-50 rounded-lg border">
                 <Checkbox
                   id="activate_now"
-                  checked={newCustomerForm.activate_now}
-                  onCheckedChange={(checked) => setNewCustomerForm({...newCustomerForm, activate_now: checked as boolean})}
+                  checked={newCustomerForm.activate_now && newCustomerForm.activation_delay_minutes === 0}
+                  onCheckedChange={(checked) => setNewCustomerForm({...newCustomerForm, activate_now: checked as boolean, activation_delay_minutes: 0})}
                 />
                 <div>
                   <Label htmlFor="activate_now" className="font-medium cursor-pointer">Activate Now</Label>
                   <p className="text-xs text-muted-foreground">
-                    {newCustomerForm.activate_now 
-                      ? "Service will be activated immediately and expiration timer starts now."
-                      : "Service will be saved as PENDING. Activate later to start the expiration timer."}
+                    Service will be activated immediately and expiration timer starts now.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 mt-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <Checkbox
+                  id="activate_delay_1hr"
+                  checked={newCustomerForm.activate_now && newCustomerForm.activation_delay_minutes === 60}
+                  onCheckedChange={(checked) => setNewCustomerForm({...newCustomerForm, activate_now: checked ? true : false, activation_delay_minutes: checked ? 60 : 0})}
+                />
+                <div>
+                  <Label htmlFor="activate_delay_1hr" className="font-medium cursor-pointer flex items-center gap-2">
+                    1 Hour Testing Delay
+                    <span className="text-[10px] font-bold bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">TEST</span>
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Service will auto-activate after exactly 1 hour. Use this to give customers a testing window before the plan timer starts.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 mt-2 p-3 bg-slate-50 rounded-lg border">
+                <Checkbox
+                  id="activate_pending"
+                  checked={!newCustomerForm.activate_now}
+                  onCheckedChange={(checked) => setNewCustomerForm({...newCustomerForm, activate_now: !checked as boolean, activation_delay_minutes: 0})}
+                />
+                <div>
+                  <Label htmlFor="activate_pending" className="font-medium cursor-pointer">Save as Pending</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Service will be saved as PENDING. Activate later to start the expiration timer.
                   </p>
                 </div>
               </div>

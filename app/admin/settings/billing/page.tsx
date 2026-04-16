@@ -164,6 +164,19 @@ function BillingContent() {
         </div>
       )
     }
+    // Non-metered plans: show commission percentage instead of price
+    const pct = Number((plan as any).hotspot_revenue_share_pct) || 0
+    if (pct > 0) {
+      return (
+        <div className="flex flex-col">
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-black">{pct}%</span>
+          </div>
+          <span className="text-[10px] text-slate-500 font-bold uppercase">Commission</span>
+        </div>
+      )
+    }
+    // Fallback if no percentage set
     const price = Number(plan?.price_monthly) || Number(plan?.price) || 0
     return (
       <div className="flex items-baseline gap-1">

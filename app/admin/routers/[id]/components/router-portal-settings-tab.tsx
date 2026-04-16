@@ -19,6 +19,9 @@ import {
   Layers,
   Type,
   AlertCircle,
+  ImageIcon,
+  Upload,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -160,6 +163,9 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   const [hotspotName, setHotspotName] = useState("")
   const [supportPhone, setSupportPhone] = useState("")
   const [announcementText, setAnnouncementText] = useState("")
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string>("")
+  const [existingLogo, setExistingLogo] = useState<string>("")
 
   // UI state
   const [loading, setLoading] = useState(true)
@@ -194,6 +200,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
       setHotspotName(values.hotspot_name)
       setSupportPhone(values.support_phone)
       setAnnouncementText(values.announcement_text)
+      setExistingLogo((router as any).logo || "")
       setOriginal(values)
       setDirty(false)
     } catch (err: any) {
@@ -215,9 +222,10 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
       templateId !== original.template_id ||
       hotspotName !== original.hotspot_name ||
       supportPhone !== original.support_phone ||
-      announcementText !== original.announcement_text
+      announcementText !== original.announcement_text ||
+      logoFile !== null
     setDirty(isDirty)
-  }, [templateId, hotspotName, supportPhone, announcementText, original])
+  }, [templateId, hotspotName, supportPhone, announcementText, original, logoFile])
 
   // ── Save — PATCH only changed fields ──
   const handleSave = async () => {
@@ -235,15 +243,25 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     if (supportPhone !== original.support_phone) payload.support_phone = supportPhone
     if (announcementText !== original.announcement_text) payload.announcement_text = announcementText
 
-    if (Object.keys(payload).length === 0) {
+    if (Object.keys(payload).length === 0 && !logoFile) {
       toast.info("No changes to save")
       setSaving(false)
       return
     }
 
     try {
-      console.log("[PortalSettings] Saving payload:", payload, "to router:", routerId)
-      await adminApi.updateRouter(routerId, payload as any)
+      // If logo file is being uploaded, use FormData for multipart upload
+      if (logoFile) {
+        const formData = new FormData()
+        Object.entries(payload).forEach(([key, value]) => {
+          formData.append(key, String(value))
+        })
+        formData.append('logo', logoFile)
+        await adminApi.updateRouter(routerId, formData as any)
+      } else {
+        console.log("[PortalSettings] Saving payload:", payload, "to router:", routerId)
+        await adminApi.updateRouter(routerId, payload as any)
+      }
       // Update originals to match current values so dirty resets
       setOriginal({
         template_id: templateId,
@@ -252,6 +270,11 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
         announcement_text: announcementText,
       })
       setDirty(false)
+      if (logoFile) {
+        setExistingLogo(logoPreview)
+        setLogoFile(null)
+        setLogoPreview("")
+      }
       toast.success("Portal settings saved successfully")
     } catch (err: any) {
       console.error("[PortalSettings] Save failed:", err)
@@ -448,6 +471,64 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                   <span className="text-xs text-muted-foreground">
                     {announcementText.length}/255
                   </span>
+                </div>
+              </div>
+
+              {/* Logo Upload */}
+              <div className="space-y-2">
+                <Label>Portal Logo</Label>
+                <div className="flex items-start gap-4">
+                  {/* Preview */}
+                  {(logoPreview || existingLogo) && (
+                    <div className="relative w-20 h-20 rounded-xl border bg-white flex items-center justify-center overflow-hidden shrink-0">
+                      <img
+                        src={logoPreview || existingLogo}
+                        alt="Logo preview"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLogoFile(null)
+                          setLogoPreview("")
+                          if (existingLogo) setExistingLogo("")
+                        }}
+                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <label
+                      htmlFor="logo-upload"
+                      className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-muted-foreground/20 p-4 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
+                    >
+                      <Upload className="w-5 h-5 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground text-center">
+                        {logoPreview || existingLogo ? "Replace logo" : "Upload ISP logo"}
+                      </span>
+                    </label>
+                    <input
+                      id="logo-upload"
+                      type="file"
+                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        if (file.size > 2 * 1024 * 1024) {
+                          toast.error("Logo must be smaller than 2 MB")
+                          return
+                        }
+                        setLogoFile(file)
+                        setLogoPreview(URL.createObjectURL(file))
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1.5">
+                      PNG, JPG, SVG or WebP. Max 2 MB. Displayed on the captive portal header.
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
