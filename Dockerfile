@@ -2,7 +2,9 @@
 # NETILY FRONTEND — Multi-stage Next.js Standalone Build
 # ================================================================
 # Produces a minimal ~120 MB image with node server.js
+# Uses BuildKit cache mounts for fast incremental rebuilds
 # ================================================================
+# syntax=docker/dockerfile:1
 
 # ── Stage 1: Install dependencies ──────────────────────────────
 FROM node:20-alpine AS deps
@@ -11,8 +13,9 @@ WORKDIR /app
 # Copy lock + manifest
 COPY package.json package-lock.json ./
 
-# Install with npm (matches Vercel build; --legacy-peer-deps for compat)
-RUN npm install --legacy-peer-deps
+# Install with npm — BuildKit cache mount keeps npm cache between builds
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --legacy-peer-deps
 
 # ── Stage 2: Build ─────────────────────────────────────────────
 FROM node:20-alpine AS builder
@@ -28,8 +31,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_API_URL=https://api.netily.co.ke/api/v1
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Build (standalone output enabled in next.config.mjs)
-RUN npm run build
+# Build — BuildKit cache mount preserves .next/cache for incremental builds
+RUN --mount=type=cache,target=/app/.next/cache \
+    npm run build
 
 # ── Stage 3: Production runner ─────────────────────────────────
 FROM node:20-alpine AS runner

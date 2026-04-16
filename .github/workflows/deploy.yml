@@ -12,7 +12,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -24,54 +24,42 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          command_timeout: 18m
+          command_timeout: 12m
           script: |
+            set -e
+
             echo "==> Pulling latest frontend code..."
             cd ~/netily_frontend
-            git remote -v
             git fetch origin prod-frontend
             git reset --hard origin/prod-frontend
-            echo "==> Current commit:"
-            git log --oneline -1
-            echo "==> Checking page.tsx first line:"
-            head -5 app/page.tsx
-            echo "==> Checking if landing-page.tsx exists:"
-            ls -la app/landing-page.tsx 2>/dev/null || echo "landing-page.tsx NOT FOUND"
+            echo "  Commit: $(git log --oneline -1)"
 
-            echo "==> Rebuilding frontend container (no cache, no buildkit)..."
+            echo "==> Building frontend container (BuildKit + layer cache)..."
             cd ~/netily_cloud/docker
-            DOCKER_BUILDKIT=0 docker compose build --no-cache frontend
+            DOCKER_BUILDKIT=1 docker compose build frontend
 
-            echo "==> Stopping old frontend container..."
-            docker compose stop frontend
-            docker compose rm -f frontend
-
-            echo "==> Starting fresh frontend container..."
-            docker compose up -d frontend
+            echo "==> Restarting frontend container..."
+            docker compose up -d --force-recreate --no-deps frontend
 
             echo "==> Restarting nginx (re-resolve container IPs)..."
             docker compose restart nginx
 
-            echo "==> Verifying new container is running..."
-            docker ps | grep netily_frontend
-
-            echo "==> Health check: waiting for frontend to respond..."
+            echo "==> Health check: verifying frontend responds..."
             for i in 1 2 3 4 5 6; do
-              HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/ 2>/dev/null || echo "000")
-              echo "  Attempt $i: HTTP status = $HTTP_CODE"
-              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "307" ] || [ "$HTTP_CODE" = "308" ]; then
-                echo "  ✅ Frontend is responding!"
+              if docker exec netily_frontend wget -q --spider http://localhost:3000/ 2>/dev/null; then
+                echo "  ✅ Frontend is healthy! (attempt $i)"
                 break
               fi
               if [ "$i" = "6" ]; then
-                echo "  ❌ Frontend not responding after 30s. Dumping logs:"
-                docker compose logs --tail=50 frontend
+                echo "  ❌ Frontend not responding after 30s. Logs:"
+                docker compose logs --tail=30 frontend
                 exit 1
               fi
+              echo "  Attempt $i: waiting..."
               sleep 5
             done
 
-            echo "==> Cleaning up old Docker images..."
+            echo "==> Cleaning up dangling images..."
             docker image prune -f
 
             echo "==> Frontend deployment complete!"

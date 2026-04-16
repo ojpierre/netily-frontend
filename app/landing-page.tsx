@@ -439,12 +439,12 @@ export function LandingPage() {
                 I&apos;m Interested
                 <ArrowRight className="w-5 h-5" />
               </button>
-              <Link
+              {/*<Link
                 href="/register"
                 className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-900 font-semibold px-8 py-4 rounded-xl transition-colors border border-slate-200 shadow-sm text-lg"
               >
                 Start Free Trial
-              </Link>
+              </Link>*/}
             </div>
           </Reveal>
 
