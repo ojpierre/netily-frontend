@@ -326,17 +326,11 @@ export function LandingPage() {
 
             {/* Right side */}
             <div className="hidden md:flex items-center gap-4">
-              <Link
-                href="/login"
-                className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-              >
-                Login
-              </Link>
               <button
                 onClick={() => scrollTo("contact")}
                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm"
               >
-                See it in Action
+                Get in Touch
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -369,17 +363,11 @@ export function LandingPage() {
                 </button>
               ))}
               <hr className="my-2 border-slate-200" />
-              <Link
-                href="/login"
-                className="py-3 text-sm font-medium text-slate-700"
-              >
-                Login
-              </Link>
               <button
                 onClick={() => scrollTo("contact")}
                 className="mt-1 w-full bg-blue-600 text-white text-sm font-semibold py-3 rounded-lg"
               >
-                See it in Action
+                Get in Touch
               </button>
             </div>
           </motion.div>
@@ -439,12 +427,6 @@ export function LandingPage() {
                 I&apos;m Interested
                 <ArrowRight className="w-5 h-5" />
               </button>
-              {/*<Link
-                href="/register"
-                className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-900 font-semibold px-8 py-4 rounded-xl transition-colors border border-slate-200 shadow-sm text-lg"
-              >
-                Start Free Trial
-              </Link>*/}
             </div>
           </Reveal>
 

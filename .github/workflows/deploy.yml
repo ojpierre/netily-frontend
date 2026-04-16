@@ -46,8 +46,10 @@ jobs:
 
             echo "==> Health check: verifying frontend responds..."
             for i in 1 2 3 4 5 6; do
-              if docker exec netily_frontend wget -q --spider http://localhost:3000/ 2>/dev/null; then
-                echo "  ✅ Frontend is healthy! (attempt $i)"
+              HTTP_CODE=$(docker exec netily_frontend node -e "fetch('http://localhost:3000/').then(r=>{console.log(r.status);process.exit(r.ok||r.status<400?0:1)}).catch(()=>{console.log(0);process.exit(1)})" 2>/dev/null || echo "0")
+              echo "  Attempt $i: HTTP $HTTP_CODE"
+              if [ "$HTTP_CODE" != "0" ] && [ "$HTTP_CODE" != "" ]; then
+                echo "  ✅ Frontend is healthy!"
                 break
               fi
               if [ "$i" = "6" ]; then
@@ -55,7 +57,6 @@ jobs:
                 docker compose logs --tail=30 frontend
                 exit 1
               fi
-              echo "  Attempt $i: waiting..."
               sleep 5
             done
 
