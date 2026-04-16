@@ -29,7 +29,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 
 // --- TYPES ---
 export type FupPolicyStatus = "DRAFT" | "ACTIVE" | "INACTIVE"
-export type FupResetPeriod = "DAILY" | "WEEKLY" | "MONTHLY" | "SUBSCRIPTION"
+export type FupResetPeriod = "DAILY" | "WEEKLY" | "MONTHLY" | "SUBSCRIPTION" | "PEAK_HOURS"
 
 export interface FupPolicyDto {
   id: string
@@ -48,6 +48,8 @@ export interface FupPolicyDto {
   active_violations_count: number
   currently_throttled_count: number
   created_at: string
+  peak_hour_start?: string
+  peak_hour_end?: string
 }
 
 export interface FupViolationDto {
@@ -258,10 +260,21 @@ export default function FUPPage() {
   const [selectedBillingIds, setSelectedBillingIds] = useState<string[]>([])
   const [selectedHotspotIds, setSelectedHotspotIds] = useState<string[]>([])
 
-  const [policyForm, setPolicyForm] = useState<Partial<FupPolicyDto>>({
-    name: "", description: "", data_limit_gb: 100, reset_period: "MONTHLY",
-    throttle_download_mbps: 2, throttle_upload_mbps: 1,
-    auto_enforce: true, notify_on_violation: true, status: "ACTIVE"
+  const [policyForm, setPolicyForm] = useState<Partial<FupPolicyDto & {
+    peak_hour_start?: string
+    peak_hour_end?: string
+  }>>({
+    name: "",
+    description: "",
+    data_limit_gb: 100,
+    reset_period: "MONTHLY",
+    throttle_download_mbps: 2,
+    throttle_upload_mbps: 1,
+    auto_enforce: true,
+    notify_on_violation: true,
+    status: "ACTIVE",
+    peak_hour_start: "19:00",
+    peak_hour_end: "22:00",
   })
 
   // --- DATA FETCHING ---
@@ -853,35 +866,146 @@ export default function FUPPage() {
           <SheetHeader><SheetTitle>Create FUP Policy</SheetTitle><SheetDescription>Define limits and throttle speeds</SheetDescription></SheetHeader>
           <ScrollArea className="h-[calc(100vh-120px)] mt-4 pr-4">
             <div className="space-y-4">
-              <div className="space-y-2"><Label>Policy Name</Label><Input placeholder="e.g., Bronze FUP" value={policyForm.name} onChange={e => setPolicyForm({...policyForm, name: e.target.value})} /></div>
-              <div className="space-y-2"><Label>Description</Label><Textarea placeholder="Details..." value={policyForm.description} onChange={e => setPolicyForm({...policyForm, description: e.target.value})} /></div>
-              
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="space-y-2"><Label>Data Limit (GB)</Label><Input type="number" value={policyForm.data_limit_gb} onChange={e => setPolicyForm({...policyForm, data_limit_gb: Number(e.target.value)})} /></div>
-                <div className="space-y-2"><Label>Reset Period</Label>
-                  <Select value={policyForm.reset_period} onValueChange={(v: FupResetPeriod) => setPolicyForm({...policyForm, reset_period: v})}>
+              <div className="space-y-2">
+                <Label>Policy Name</Label>
+                <Input
+                  placeholder="e.g., Bronze FUP"
+                  value={policyForm.name || ""}
+                  onChange={e => setPolicyForm({ ...policyForm, name: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea
+                  placeholder="Optional details..."
+                  value={policyForm.description || ""}
+                  onChange={e => setPolicyForm({ ...policyForm, description: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Data Limit (GB)</Label>
+                  {/* FIX: value uses '' when 0 so user can clear it */}
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 100"
+                    value={policyForm.data_limit_gb || ""}
+                    onChange={e =>
+                      setPolicyForm({
+                        ...policyForm,
+                        data_limit_gb: e.target.value === "" ? 0 : Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Reset Period</Label>
+                  <Select
+                    value={policyForm.reset_period}
+                    onValueChange={(v: FupResetPeriod) => setPolicyForm({ ...policyForm, reset_period: v })}
+                  >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="DAILY">Daily</SelectItem><SelectItem value="WEEKLY">Weekly</SelectItem>
+                      <SelectItem value="DAILY">Daily</SelectItem>
+                      <SelectItem value="WEEKLY">Weekly</SelectItem>
                       <SelectItem value="MONTHLY">Monthly</SelectItem>
-                      <SelectItem value="SUBSCRIPTION" disabled>Subscription (Coming Soon)</SelectItem>
+                      <SelectItem value="SUBSCRIPTION">Subscription Period</SelectItem>
+                      <SelectItem value="PEAK_HOURS">⏱ Peak Hours Only</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <Separator className="my-4" />
-              <h3 className="text-sm font-semibold text-slate-500">Throttle Speeds (Mbps)</h3>
+              {/* Peak hours time picker — only shown when PEAK_HOURS selected */}
+              {policyForm.reset_period === "PEAK_HOURS" && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
+                  <p className="text-xs font-medium text-amber-800">
+                    ⏱ Peak Hours (Nairobi EAT time) — Usage only tracked during this window
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-amber-800">Start Time</Label>
+                      <Input
+                        type="time"
+                        value={policyForm.peak_hour_start || "19:00"}
+                        onChange={e => setPolicyForm({ ...policyForm, peak_hour_start: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-amber-800">End Time</Label>
+                      <Input
+                        type="time"
+                        value={policyForm.peak_hour_end || "22:00"}
+                        onChange={e => setPolicyForm({ ...policyForm, peak_hour_end: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-amber-700">
+                    Default: 7:00 PM – 10:00 PM EAT (Nairobi)
+                  </p>
+                </div>
+              )}
+
+              <Separator className="my-2" />
+              <h3 className="text-sm font-semibold text-slate-500">Throttle Speeds After Limit</h3>
+
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Download (↓)</Label><Input type="number" value={policyForm.throttle_download_mbps} onChange={e => setPolicyForm({...policyForm, throttle_download_mbps: Number(e.target.value)})} /></div>
-                <div className="space-y-2"><Label>Upload (↑)</Label><Input type="number" value={policyForm.throttle_upload_mbps} onChange={e => setPolicyForm({...policyForm, throttle_upload_mbps: Number(e.target.value)})} /></div>
+                <div className="space-y-2">
+                  <Label>Download ↓ (Mbps)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 2"
+                    value={policyForm.throttle_download_mbps || ""}
+                    onChange={e =>
+                      setPolicyForm({
+                        ...policyForm,
+                        throttle_download_mbps: e.target.value === "" ? 0 : Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Upload ↑ (Mbps)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 1"
+                    value={policyForm.throttle_upload_mbps || ""}
+                    onChange={e =>
+                      setPolicyForm({
+                        ...policyForm,
+                        throttle_upload_mbps: e.target.value === "" ? 0 : Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
               </div>
 
-              <Separator className="my-4" />
-              <div className="flex justify-between items-center"><Label>Auto Enforce</Label><Switch checked={policyForm.auto_enforce} onCheckedChange={v => setPolicyForm({...policyForm, auto_enforce: v})} /></div>
-              <div className="flex justify-between items-center mt-4"><Label>Notify on Violation</Label><Switch checked={policyForm.notify_on_violation} onCheckedChange={v => setPolicyForm({...policyForm, notify_on_violation: v})} /></div>
+              <Separator className="my-2" />
 
-              <Button className="w-full mt-6" onClick={handleCreatePolicy}>Save Policy</Button>
+              <div className="flex justify-between items-center">
+                <Label>Auto Enforce</Label>
+                <Switch
+                  checked={!!policyForm.auto_enforce}
+                  onCheckedChange={v => setPolicyForm({ ...policyForm, auto_enforce: v })}
+                />
+              </div>
+              <div className="flex justify-between items-center mt-4">
+                <Label>Notify on Violation</Label>
+                <Switch
+                  checked={!!policyForm.notify_on_violation}
+                  onCheckedChange={v => setPolicyForm({ ...policyForm, notify_on_violation: v })}
+                />
+              </div>
+
+              <Button className="w-full mt-6" onClick={handleCreatePolicy}>
+                Save Policy
+              </Button>
             </div>
           </ScrollArea>
         </SheetContent>
