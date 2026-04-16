@@ -958,6 +958,18 @@ export default function PaymentMethodsPage() {
           )}
         </div>
       </div>
+        </TabsContent>
+
+        {/* ─── TAB 2: M-Pesa Daraja (Own Keys) ─── */}
+        <TabsContent value="daraja" className="mt-4">
+          <MpesaSettingsPanel />
+        </TabsContent>
+
+        {/* ─── TAB 3: KopoKopo ─── */}
+        <TabsContent value="kopokopo" className="mt-4">
+          <KopoKopoSettings />
+        </TabsContent>
+      </Tabs>
 
       {/* ═══════════════════════════════════════════
          ADD / EDIT DIALOG (unchanged UX)
