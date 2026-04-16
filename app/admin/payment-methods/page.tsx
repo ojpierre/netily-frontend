@@ -63,8 +63,10 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
+import { MpesaSettingsPanel } from "@/components/mpesa-settings-panel"
 import type { PaymentMethod, PaymentMethodType, PaymentDashboardStats, MpesaConfiguration } from "@/lib/types"
 
 // =============================================================================
@@ -304,6 +306,7 @@ export default function PaymentMethodsPage() {
   /* ── Derived ── */
   const activeMethods = methods.filter((m) => m.is_active)
   const isFirstTime = !methodsLoading && methods.length === 0
+  const [integrationTab, setIntegrationTab] = useState("netily")
 
   /* ── CRUD ── */
   const openAdd = () => {
@@ -1190,6 +1193,93 @@ function Field({ label, ph, value, onChange, required, type }: {
     <div className="space-y-2">
       <Label>{label}{required && <span className="text-red-500"> *</span>}</Label>
       <Input type={type || "text"} placeholder={ph} value={value || ""} onChange={(e) => onChange(e.target.value)} />
+    </div>
+  )
+}
+
+// =============================================================================
+// KOPOKOPO SETTINGS PANEL
+// =============================================================================
+function KopoKopoSettings() {
+  const [config, setConfig] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    adminApi.getKopoKopoConfig()
+      .then((data: any) => setConfig(data || {}))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await adminApi.saveKopoKopoConfig(config)
+      toast.success("KopoKopo configuration saved")
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save KopoKopo configuration")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4 max-w-lg">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6 max-w-lg">
+      <div>
+        <h3 className="text-base font-semibold">KopoKopo Integration</h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          Connect your KopoKopo account to accept M-Pesa and other payments directly.
+        </p>
+      </div>
+      <div className="space-y-4">
+        <Field
+          label="Client ID"
+          ph="Your KopoKopo client ID"
+          value={config.client_id}
+          onChange={(v) => setConfig((c) => ({ ...c, client_id: v }))}
+          required
+        />
+        <Field
+          label="Client Secret"
+          ph="Your KopoKopo client secret"
+          value={config.client_secret}
+          onChange={(v) => setConfig((c) => ({ ...c, client_secret: v }))}
+          required
+          type="password"
+        />
+        <Field
+          label="Webhook Secret"
+          ph="Optional — for verifying webhook signatures"
+          value={config.webhook_secret}
+          onChange={(v) => setConfig((c) => ({ ...c, webhook_secret: v }))}
+        />
+        <div className="flex items-center gap-3 rounded-lg border p-4">
+          <Switch
+            id="kk-sandbox"
+            checked={config.is_sandbox === "true"}
+            onCheckedChange={(v) => setConfig((c) => ({ ...c, is_sandbox: v ? "true" : "false" }))}
+          />
+          <div>
+            <Label htmlFor="kk-sandbox" className="cursor-pointer font-medium">Sandbox mode</Label>
+            <p className="text-xs text-muted-foreground">Use KopoKopo test environment</p>
+          </div>
+        </div>
+      </div>
+      <Button onClick={handleSave} disabled={saving}>
+        {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Save KopoKopo Settings
+      </Button>
     </div>
   )
 }
