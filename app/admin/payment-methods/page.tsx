@@ -66,7 +66,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
-import type { PaymentMethod, PaymentMethodType, PaymentDashboardStats } from "@/lib/types"
+import type { PaymentMethod, PaymentMethodType, PaymentDashboardStats, MpesaConfiguration } from "@/lib/types"
 
 // =============================================================================
 // CONSTANTS
@@ -145,6 +145,93 @@ const colorMap: Record<string, { bg: string; text: string; icon: string; ring: s
 }
 
 // =============================================================================
+// DARAJA SECTION COMPONENT
+// =============================================================================
+function DarajaSection({
+  value,
+  onChange,
+  isEditing,
+}: {
+  value: {
+    enabled: boolean
+    business_shortcode: string
+    shortcode_type: string
+    consumer_key: string
+    consumer_secret: string
+    passkey: string
+    is_sandbox: boolean
+    existing_id: number | null
+  }
+  onChange: (k: string, v: any) => void
+  isEditing: boolean
+}) {
+  return (
+    <div className="rounded-lg border border-dashed p-4 space-y-3 mt-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">Use your own Daraja credentials</p>
+          <p className="text-xs text-muted-foreground">Skip Tuma — route payments directly via Safaricom Daraja API</p>
+        </div>
+        <Switch checked={value.enabled} onCheckedChange={(v) => onChange("enabled", v)} />
+      </div>
+
+      {value.enabled && (
+        <div className="space-y-3 pt-2 border-t">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Shortcode Type</Label>
+              <Select value={value.shortcode_type} onValueChange={(v) => onChange("shortcode_type", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PAYBILL">Paybill</SelectItem>
+                  <SelectItem value="TILL">Till (Buy Goods)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Shortcode / Paybill <span className="text-red-500">*</span></Label>
+              <Input placeholder="e.g. 174379" value={value.business_shortcode} onChange={(e) => onChange("business_shortcode", e.target.value.replace(/\D/g, ""))} />
+            </div>
+          </div>
+          <Field
+            label={isEditing ? "Consumer Key (leave blank to keep existing)" : "Consumer Key"}
+            required={!isEditing}
+            ph="From Daraja portal"
+            value={value.consumer_key}
+            onChange={(v) => onChange("consumer_key", v)}
+          />
+          <Field
+            label={isEditing ? "Consumer Secret (leave blank to keep existing)" : "Consumer Secret"}
+            required={!isEditing}
+            ph="From Daraja portal"
+            value={value.consumer_secret}
+            onChange={(v) => onChange("consumer_secret", v)}
+          />
+          <Field
+            label="Passkey (for STK Push)"
+            ph="From Daraja sandbox/production"
+            value={value.passkey}
+            onChange={(v) => onChange("passkey", v)}
+          />
+          <div className="flex items-center justify-between py-1">
+            <div>
+              <Label className="text-sm">Sandbox / Test mode</Label>
+              <p className="text-xs text-muted-foreground">Use Daraja sandbox environment</p>
+            </div>
+            <Switch checked={value.is_sandbox} onCheckedChange={(v) => onChange("is_sandbox", v)} />
+          </div>
+          {value.existing_id && (
+            <p className="text-xs text-emerald-600 flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3" /> Daraja config linked (ID {value.existing_id})
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// =============================================================================
 // PAGE
 // =============================================================================
 export default function PaymentMethodsPage() {
@@ -161,7 +248,23 @@ export default function PaymentMethodsPage() {
   const [dlgOpen, setDlgOpen] = useState(false)
   const [dlgStep, setDlgStep] = useState<"pick" | "details">("pick")
   const [editing, setEditing] = useState<PaymentMethod | null>(null)
-  const [form, setForm] = useState({ method_type: "", name: "", description: "", is_default: false, cfg: {} as Record<string, string> })
+  const [form, setForm] = useState({
+    method_type: "",
+    name: "",
+    description: "",
+    is_default: false,
+    cfg: {} as Record<string, string>,
+    daraja: {
+      enabled: false,
+      business_shortcode: "",
+      shortcode_type: "PAYBILL" as "PAYBILL" | "TILL",
+      consumer_key: "",
+      consumer_secret: "",
+      passkey: "",
+      is_sandbox: false,
+      existing_id: null as number | null,
+    },
+  })
   const [saving, setSaving] = useState(false)
 
   /* ── Delete ── */
@@ -210,19 +313,46 @@ export default function PaymentMethodsPage() {
       return
     }
     setEditing(null)
-    setForm({ method_type: "", name: "", description: "", is_default: false, cfg: {} })
+    setForm({
+      method_type: "",
+      name: "",
+      description: "",
+      is_default: false,
+      cfg: {},
+      daraja: {
+        enabled: false,
+        business_shortcode: "",
+        shortcode_type: "PAYBILL",
+        consumer_key: "",
+        consumer_secret: "",
+        passkey: "",
+        is_sandbox: false,
+        existing_id: null,
+      },
+    })
     setDlgStep("pick")
     setDlgOpen(true)
   }
 
   const openEdit = (m: PaymentMethod) => {
     setEditing(m)
+    const details = m.mpesa_configuration_details
     setForm({
       method_type: m.method_type,
       name: m.name,
       description: m.description || "",
       is_default: m.is_default,
       cfg: (m.config || {}) as Record<string, string>,
+      daraja: {
+        enabled: !!details?.business_shortcode,
+        business_shortcode: details?.business_shortcode || "",
+        shortcode_type: details?.shortcode_type || "PAYBILL",
+        consumer_key: "",   // write-only — never prefilled
+        consumer_secret: "",
+        passkey: "",
+        is_sandbox: details?.is_sandbox ?? false,
+        existing_id: typeof m.mpesa_configuration === 'number' ? m.mpesa_configuration : null,
+      },
     })
     setDlgStep("details")
     setDlgOpen(true)
@@ -230,7 +360,23 @@ export default function PaymentMethodsPage() {
 
   const pickType = (type: string) => {
     const meta = METHOD_TYPES.find((m) => m.value === type)
-    setForm((p) => ({ ...p, method_type: type, name: meta?.label || type, cfg: {} }))
+    const shortcodeType = type === 'MPESA_TILL' ? 'TILL' : 'PAYBILL'
+    setForm((p) => ({
+      ...p,
+      method_type: type,
+      name: meta?.label || type,
+      cfg: {},
+      daraja: {
+        enabled: false,
+        business_shortcode: "",
+        shortcode_type: shortcodeType,
+        consumer_key: "",
+        consumer_secret: "",
+        passkey: "",
+        is_sandbox: false,
+        existing_id: null,
+      },
+    }))
     setDlgStep("details")
   }
 
@@ -242,34 +388,69 @@ export default function PaymentMethodsPage() {
     if (form.method_type === "MOBILE_MONEY" && !form.cfg.phone_number) {
       toast.error("Phone number is required"); return
     }
+
+    // Daraja validation
+    if (form.daraja.enabled) {
+      if (!form.daraja.business_shortcode) { toast.error("Shortcode/Paybill is required for direct M-Pesa"); return }
+      if (!editing || form.daraja.consumer_key) {
+        // On create always required; on edit only required if changing
+        if (!form.daraja.consumer_key || !form.daraja.consumer_secret) {
+          toast.error("Consumer Key and Consumer Secret are required"); return
+        }
+      }
+    }
+
     setSaving(true)
     try {
+      let mpesaConfigId: number | null = null
+
+      // Step 1: Create or update Daraja config if enabled
+      if (form.daraja.enabled) {
+        const darajaPayload: Partial<MpesaConfiguration> = {
+          business_shortcode: form.daraja.business_shortcode,
+          shortcode_type: form.daraja.shortcode_type,
+          is_sandbox: form.daraja.is_sandbox,
+          is_active: true,
+          ...(form.daraja.consumer_key && { consumer_key: form.daraja.consumer_key }),
+          ...(form.daraja.consumer_secret && { consumer_secret: form.daraja.consumer_secret }),
+          ...(form.daraja.passkey && { passkey: form.daraja.passkey }),
+        }
+        let cfg
+        if (form.daraja.existing_id) {
+          cfg = await adminApi.updateMpesaConfiguration(form.daraja.existing_id, darajaPayload)
+        } else {
+          cfg = await adminApi.createMpesaConfiguration(darajaPayload)
+        }
+        mpesaConfigId = cfg.id
+      }
+
+      // Step 2: Save payment method
       const code = form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 20)
-      const payload: Partial<PaymentMethod> = {
+      const payload: Partial<PaymentMethod> & { mpesa_configuration?: number | null } = {
         name: form.name.trim(),
         code,
         method_type: form.method_type as PaymentMethodType,
         description: form.description.trim(),
         is_default: form.is_default,
         config: form.cfg,
+        mpesa_configuration: form.daraja.enabled ? mpesaConfigId : null,
       }
+
       if (editing) {
         const result = await adminApi.updatePaymentMethod(editing.id, payload) as any
         const synced = result?.tuma_synced
+        const provider = form.daraja.enabled ? "Direct M-Pesa (Daraja)" : "Tuma gateway"
         toast.success("Payment method updated", {
-          description: editing.is_active && synced
-            ? "Settlement details synced to Tuma."
-            : editing.is_active && synced === false
-            ? "Saved locally. Tuma sync pending — details will update on next activation."
-            : undefined,
+          description: `Settlement via ${provider}.${editing.is_active && synced ? " Tuma synced." : ""}`,
         })
       } else {
         const isFirst = methods.length === 0
+        const provider = form.daraja.enabled ? "Direct M-Pesa (Daraja)" : "Tuma gateway"
         await adminApi.createPaymentMethod(payload)
         toast.success("Payment method created", {
           description: isFirst
-            ? "Tuma business provisioned with your settlement details. This is now your active payment channel."
-            : "Added as inactive — activate it when you want to switch settlement channels.",
+            ? `Active via ${provider}.`
+            : "Added as inactive — activate to switch.",
         })
       }
       setDlgOpen(false)
@@ -369,10 +550,14 @@ export default function PaymentMethodsPage() {
     const t = form.method_type
     const c = form.cfg
     const set = (k: string, v: string) => setForm((p) => ({ ...p, cfg: { ...p.cfg, [k]: v } }))
+    const setDaraja = (k: string, v: any) => setForm((p) => ({ ...p, daraja: { ...p.daraja, [k]: v } }))
+    const showDaraja = ['MPESA_PAYBILL', 'MPESA_TILL', 'MPESA_STK', 'MOBILE_MONEY'].includes(t)
+
+    let fields: React.ReactNode = null
 
     if (t === "MOBILE_MONEY" || t === "MPESA_NUMBER") {
       const selectedProvider = MOBILE_PROVIDERS.find((p) => p.value === c.mobile_provider)
-      return (
+      fields = (
         <>
           <div className="space-y-2">
             <Label>Mobile Provider <span className="text-red-500">*</span></Label>
@@ -391,29 +576,25 @@ export default function PaymentMethodsPage() {
             onChange={(v) => set("phone_number", v.replace(/[^0-9]/g, ""))}
           />
           <p className="text-xs text-muted-foreground -mt-1">
-            {c.mobile_provider === "AIRTEL" ? "The Airtel Money registered number for receiving payments." :
-             c.mobile_provider === "TELKOM" ? "The T-Kash registered number for receiving payments." :
-             "The M-Pesa registered number where customer payments will be sent via STK Push."}
+            {c.mobile_provider === "AIRTEL" ? "The Airtel Money registered number." :
+             c.mobile_provider === "TELKOM" ? "The T-Kash registered number." :
+             "The M-Pesa registered number for STK Push payments."}
           </p>
         </>
       )
-    }
-    if (t === "MPESA" || t === "MPESA_STK") {
-      return (
+    } else if (t === "MPESA" || t === "MPESA_STK") {
+      fields = (
         <>
           <Field label="Shortcode / Paybill" ph="e.g. 174379" value={c.shortcode} onChange={(v) => set("shortcode", v)} />
           <Field label="Account Reference" ph="e.g. CompanyXLTD" value={c.account_reference} onChange={(v) => set("account_reference", v)} />
         </>
       )
-    }
-    if (t === "MPESA_PAYBILL") {
-      return <Field label="Paybill Number" required ph="e.g. 600100" value={c.paybill_number} onChange={(v) => set("paybill_number", v.replace(/\D/g, ""))} />
-    }
-    if (t === "MPESA_TILL") {
-      return <Field label="Till Number" required ph="e.g. 123456" value={c.till_number} onChange={(v) => set("till_number", v.replace(/\D/g, ""))} />
-    }
-    if (t === "BANK_TRANSFER" || t === "BANK") {
-      return (
+    } else if (t === "MPESA_PAYBILL") {
+      fields = <Field label="Paybill Number" required ph="e.g. 600100" value={c.paybill_number} onChange={(v) => set("paybill_number", v.replace(/\D/g, ""))} />
+    } else if (t === "MPESA_TILL") {
+      fields = <Field label="Till Number" required ph="e.g. 123456" value={c.till_number} onChange={(v) => set("till_number", v.replace(/\D/g, ""))} />
+    } else if (t === "BANK_TRANSFER" || t === "BANK") {
+      fields = (
         <>
           <div className="space-y-2">
             <Label>Bank <span className="text-red-500">*</span></Label>
@@ -428,11 +609,22 @@ export default function PaymentMethodsPage() {
           <Field label="Account Number" required ph="e.g. 0112345678" value={c.account_number} onChange={(v) => set("account_number", v)} />
         </>
       )
+    } else if (t === "PAYMENT_LINK") {
+      fields = <Field label="Payment URL" ph="https://pay.example.com/..." value={c.custom_link} onChange={(v) => set("custom_link", v)} type="url" />
     }
-    if (t === "PAYMENT_LINK") {
-      return <Field label="Payment URL" ph="https://pay.example.com/..." value={c.custom_link} onChange={(v) => set("custom_link", v)} type="url" />
-    }
-    return null
+
+    return (
+      <>
+        {fields}
+        {showDaraja && (
+          <DarajaSection
+            value={form.daraja}
+            onChange={setDaraja}
+            isEditing={!!editing}
+          />
+        )}
+      </>
+    )
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -673,6 +865,17 @@ export default function PaymentMethodsPage() {
                     </div>
                   )}
 
+                  {/* Provider badge */}
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    {(m as any).mpesa_configuration_details?.business_shortcode ? (
+                      <Badge variant="outline" className="text-[10px] border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-400">
+                        Direct M-Pesa · {(m as any).mpesa_configuration_details.business_shortcode}
+                      </Badge>
+                    ) : (m.method_type?.startsWith('MPESA') || m.method_type === 'MOBILE_MONEY') ? (
+                      <Badge variant="outline" className="text-[10px]">via Tuma</Badge>
+                    ) : null}
+                  </div>
+
                   {/* Method breakdown from stats */}
                   {stats?.payment_methods_breakdown && (() => {
                     const breakdown = stats.payment_methods_breakdown?.find(
@@ -858,7 +1061,7 @@ function AddEditDialog({ open, onOpenChange, dlgStep, setDlgStep, editing, form,
   dlgStep: "pick" | "details"
   setDlgStep: (s: "pick" | "details") => void
   editing: PaymentMethod | null
-  form: { method_type: string; name: string; description: string; is_default: boolean; cfg: Record<string, string> }
+  form: { method_type: string; name: string; description: string; is_default: boolean; cfg: Record<string, string>; daraja: any }
   setForm: React.Dispatch<React.SetStateAction<typeof form>>
   saving: boolean
   onSave: () => void

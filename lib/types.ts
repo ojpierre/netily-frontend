@@ -1798,6 +1798,15 @@ export interface PaymentMethod {
   // PayHero integration
   use_payhero: boolean
   payhero_channel_id?: number
+  mpesa_configuration?: number | null
+  mpesa_configuration_details?: {
+    id: number
+    business_shortcode: string
+    shortcode_type: 'PAYBILL' | 'TILL'
+    is_sandbox: boolean
+    is_active: boolean
+    validation_status?: 'PENDING' | 'VALID' | 'INVALID'
+  } | null
   // Configuration fields (JSON for flexibility)
   config?: {
     // Mobile Money config

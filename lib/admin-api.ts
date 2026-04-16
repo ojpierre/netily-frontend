@@ -2061,6 +2061,8 @@ class AdminApiService {
       method_type: item?.method_type,
       use_payhero: item?.use_payhero ?? item?.is_payhero_enabled ?? false,
       payhero_channel_id: item?.payhero_channel_id ?? item?.channel_id,
+      mpesa_configuration: item?.mpesa_configuration ?? null,           // ADD
+      mpesa_configuration_details: item?.mpesa_configuration_details ?? null, // ADD
       config,
       is_active: typeof item?.is_active === 'boolean' ? item.is_active : item?.status === 'ACTIVE',
     }
@@ -2094,6 +2096,11 @@ class AdminApiService {
     if (data.is_default !== undefined) payload.is_default = data.is_default
     if (data.use_payhero !== undefined) payload.is_payhero_enabled = data.use_payhero
     if (data.payhero_channel_id !== undefined) payload.channel_id = data.payhero_channel_id
+
+    // Pass mpesa_configuration FK (null to clear, number to link)
+    if ('mpesa_configuration' in data) {
+      payload.mpesa_configuration = data.mpesa_configuration ?? null
+    }
 
     if (Object.keys(config).length > 0) {
       payload.config_json = config
