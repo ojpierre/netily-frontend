@@ -1082,7 +1082,7 @@ export default function RouterDetailPage() {
           </TabsTrigger>
           <TabsTrigger value="edit" className="gap-2">
             <Edit3 className="w-4 h-4" />
-            <span className="hidden sm:inline">Edit</span>
+            <span className="hidden sm:inline">Configuration</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1867,144 +1867,131 @@ export default function RouterDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* Edit Tab */}
+        {/* Configuration Tab (read-only) */}
         <TabsContent value="edit" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Edit Router</CardTitle>
-              <CardDescription>Update router configuration</CardDescription>
+              <CardTitle>Router Configuration</CardTitle>
+              <CardDescription>Current router configuration — read only. Contact support to make changes.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
+                <Shield className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-700">Router configuration is locked to prevent accidental changes. Please contact <strong>Netily Support</strong> if you need to update any of these values.</p>
+              </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Router Name *</Label>
+                  <Label htmlFor="name" className="text-slate-500">Router Name</Label>
                   <Input
                     id="name"
                     value={editForm.name}
-                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    disabled
+                    className="bg-slate-50 text-slate-600 cursor-not-allowed"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="router_type">Router Type</Label>
-                  <Select
+                  <Label htmlFor="router_type" className="text-slate-500">Router Type</Label>
+                  <Input
+                    id="router_type"
                     value={editForm.router_type}
-                    onValueChange={(v) => setEditForm({ ...editForm, router_type: v as RouterType })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mikrotik">MikroTik</SelectItem>
-                      <SelectItem value="cisco">Cisco</SelectItem>
-                      <SelectItem value="ubiquiti">Ubiquiti</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    disabled
+                    className="bg-slate-50 text-slate-600 cursor-not-allowed capitalize"
+                  />
                 </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="ip_address">IP Address *</Label>
+                  <Label htmlFor="ip_address" className="text-slate-500">IP Address</Label>
                   <Input
                     id="ip_address"
                     value={editForm.ip_address}
-                    onChange={(e) => setEditForm({ ...editForm, ip_address: e.target.value })}
+                    disabled
+                    className="bg-slate-50 font-mono text-slate-600 cursor-not-allowed"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="api_port">API Port</Label>
+                  <Label htmlFor="api_port" className="text-slate-500">API Port</Label>
                   <Input
                     id="api_port"
-                    type="number"
                     value={editForm.api_port}
-                    onChange={(e) => setEditForm({ ...editForm, api_port: parseInt(e.target.value) })}
+                    disabled
+                    className="bg-slate-50 font-mono text-slate-600 cursor-not-allowed"
                   />
                 </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="api_username">API Username</Label>
+                  <Label htmlFor="api_username" className="text-slate-500">API Username</Label>
                   <Input
                     id="api_username"
                     value={editForm.api_username}
-                    onChange={(e) => setEditForm({ ...editForm, api_username: e.target.value })}
+                    disabled
+                    className="bg-slate-50 font-mono text-slate-600 cursor-not-allowed"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="api_password">API Password (leave blank to keep)</Label>
+                  <Label htmlFor="api_password" className="text-slate-500">API Password</Label>
                   <Input
                     id="api_password"
                     type="password"
-                    value={editForm.api_password}
-                    onChange={(e) => setEditForm({ ...editForm, api_password: e.target.value })}
-                    placeholder="••••••••"
+                    value="••••••••"
+                    disabled
+                    className="bg-slate-50 text-slate-600 cursor-not-allowed"
                   />
                 </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="model">Model</Label>
+                  <Label htmlFor="model" className="text-slate-500">Model</Label>
                   <Input
                     id="model"
-                    value={editForm.model}
-                    onChange={(e) => setEditForm({ ...editForm, model: e.target.value })}
+                    value={editForm.model || "—"}
+                    disabled
+                    className="bg-slate-50 text-slate-600 cursor-not-allowed"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="sla_target">SLA Target (%)</Label>
+                  <Label htmlFor="sla_target" className="text-slate-500">SLA Target (%)</Label>
                   <Input
                     id="sla_target"
-                    type="number"
-                    step="0.1"
                     value={editForm.sla_target}
-                    onChange={(e) => setEditForm({ ...editForm, sla_target: parseFloat(e.target.value) })}
+                    disabled
+                    className="bg-slate-50 text-slate-600 cursor-not-allowed"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
+                <Label htmlFor="location" className="text-slate-500">Location</Label>
                 <Input
                   id="location"
-                  value={editForm.location}
-                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                  value={editForm.location || "—"}
+                  disabled
+                  className="bg-slate-50 text-slate-600 cursor-not-allowed"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor="notes" className="text-slate-500">Notes</Label>
                 <Textarea
                   id="notes"
-                  value={editForm.notes}
-                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  value={editForm.notes || "—"}
+                  disabled
                   rows={3}
+                  className="bg-slate-50 text-slate-600 cursor-not-allowed resize-none"
                 />
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 opacity-60">
                 <Switch
                   id="is_active"
                   checked={editForm.is_active}
-                  onCheckedChange={(checked) => setEditForm({ ...editForm, is_active: checked })}
+                  disabled
                 />
-                <Label htmlFor="is_active">Active</Label>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={fetchData}>
-                  Reset
-                </Button>
-                <Button onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  Save Changes
-                </Button>
+                <Label htmlFor="is_active" className="text-slate-500">Active</Label>
               </div>
             </CardContent>
           </Card>

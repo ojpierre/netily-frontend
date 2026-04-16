@@ -33,6 +33,7 @@ import {
   BanknoteIcon,
 } from "lucide-react"
 import { useState, useEffect } from "react"
+import { submitLead } from "@/lib/api"
 
 // ─── Scroll-reveal wrapper ─────────────────────────────────────
 function Reveal({
@@ -272,6 +273,7 @@ export function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [leadForm, setLeadForm] = useState({ name: "", email: "", phone: "", company: "", message: "" })
+  const [leadFormErrors, setLeadFormErrors] = useState<{ name?: string; email?: string }>({})
   const [leadSubmitting, setLeadSubmitting] = useState(false)
   const [leadSubmitted, setLeadSubmitted] = useState(false)
 
@@ -975,9 +977,13 @@ export function LandingPage() {
                       type="text"
                       placeholder="John Doe"
                       value={leadForm.name}
-                      onChange={(e) => setLeadForm({ ...leadForm, name: e.target.value })}
-                      className="w-full h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      onChange={(e) => {
+                        setLeadForm({ ...leadForm, name: e.target.value })
+                        if (leadFormErrors.name) setLeadFormErrors((prev) => ({ ...prev, name: undefined }))
+                      }}
+                      className={`w-full h-11 px-4 rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${leadFormErrors.name ? "border-red-400" : "border-slate-300"}`}
                     />
+                    {leadFormErrors.name && <p className="text-xs text-red-500 mt-1">{leadFormErrors.name}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Email Address *</label>
@@ -985,9 +991,13 @@ export function LandingPage() {
                       type="email"
                       placeholder="john@example.com"
                       value={leadForm.email}
-                      onChange={(e) => setLeadForm({ ...leadForm, email: e.target.value })}
-                      className="w-full h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      onChange={(e) => {
+                        setLeadForm({ ...leadForm, email: e.target.value })
+                        if (leadFormErrors.email) setLeadFormErrors((prev) => ({ ...prev, email: undefined }))
+                      }}
+                      className={`w-full h-11 px-4 rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${leadFormErrors.email ? "border-red-400" : "border-slate-300"}`}
                     />
+                    {leadFormErrors.email && <p className="text-xs text-red-500 mt-1">{leadFormErrors.email}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Phone Number</label>
@@ -1022,19 +1032,27 @@ export function LandingPage() {
                 </div>
                 <button
                   onClick={async () => {
-                    if (!leadForm.name || !leadForm.email) return
+                    // Inline validation
+                    const errors: { name?: string; email?: string } = {}
+                    if (!leadForm.name.trim()) errors.name = "Name is required"
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                    if (!leadForm.email.trim()) errors.email = "Email is required"
+                    else if (!emailRegex.test(leadForm.email)) errors.email = "Enter a valid email address"
+                    if (Object.keys(errors).length > 0) { setLeadFormErrors(errors); return }
                     setLeadSubmitting(true)
+                    const ctrl = new AbortController()
+                    const timeout = setTimeout(() => ctrl.abort(), 10000)
                     try {
-                      const { submitLead } = await import("@/lib/api")
                       await submitLead(leadForm)
                       setLeadSubmitted(true)
                     } catch {
                       setLeadSubmitted(true)
                     } finally {
+                      clearTimeout(timeout)
                       setLeadSubmitting(false)
                     }
                   }}
-                  disabled={leadSubmitting || !leadForm.name || !leadForm.email}
+                  disabled={leadSubmitting}
                   className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
                 >
                   {leadSubmitting ? "Sending..." : "Send Message"}

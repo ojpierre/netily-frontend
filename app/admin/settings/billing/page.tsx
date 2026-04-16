@@ -657,6 +657,81 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
         <TabsContent value="usage" className="space-y-6">
           {usage ? (
             <>
+              {/* ─── Metered Billing Estimate (only shown for metered plans) ─── */}
+              {subscription?.plan?.is_metered && (() => {
+                const plan = subscription.plan
+                const baseFee = Number(plan.base_license_fee) || 0
+                const pppoeCount = usage.subscribers?.current || 0
+                const pppoeMin = Number((plan as any).pppoe_min_clients) || 0
+                const pppoeUnitPrice = Number((plan as any).pppoe_unit_price) || 0
+                const hotspotSharePct = Number((plan as any).hotspot_revenue_share_pct) || 0
+                const billablePppoe = Math.max(pppoeCount, pppoeMin)
+                const pppoeCharge = billablePppoe * pppoeUnitPrice
+                const totalEstimate = baseFee + pppoeCharge
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Receipt className="w-4 h-4 text-blue-600" />
+                      <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Billing Estimate — Current Cycle</h3>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      {/* Base License Fee */}
+                      <Card className="border-blue-200 bg-blue-50/40">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-xs font-black uppercase text-blue-500 tracking-widest">Base License Fee</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-extrabold text-slate-900">{kes(baseFee)}</p>
+                          <p className="text-xs text-slate-500 mt-1">Fixed monthly fee</p>
+                        </CardContent>
+                      </Card>
+
+                      {/* PPPoE Clients */}
+                      <Card className="border-indigo-200 bg-indigo-50/40">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-xs font-black uppercase text-indigo-500 tracking-widest">PPPoE Clients</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-extrabold text-slate-900">{kes(pppoeCharge)}</p>
+                          <div className="text-xs text-slate-500 mt-1 space-y-0.5">
+                            <p>Actual: <span className="font-semibold text-slate-700">{pppoeCount}</span> clients</p>
+                            {pppoeCount < pppoeMin && (
+                              <p className="text-amber-600">Min floor: <span className="font-semibold">{pppoeMin}</span> applies</p>
+                            )}
+                            <p>Billable: <span className="font-semibold text-slate-700">{billablePppoe}</span> × {kes(pppoeUnitPrice)}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Hotspot Revenue Share */}
+                      <Card className="border-emerald-200 bg-emerald-50/40">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-xs font-black uppercase text-emerald-500 tracking-widest">Hotspot Revenue Share</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-extrabold text-slate-900">{hotspotSharePct}%</p>
+                          <p className="text-xs text-slate-500 mt-1">of hotspot collections</p>
+                          <p className="text-xs text-slate-400 mt-0.5">Calculated at cycle close</p>
+                        </CardContent>
+                      </Card>
+
+                      {/* Total Estimate */}
+                      <Card className="border-slate-300 bg-slate-900 text-white">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-xs font-black uppercase text-slate-400 tracking-widest">Estimated Invoice</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-extrabold">{kes(totalEstimate)}</p>
+                          <p className="text-xs text-slate-400 mt-1">Base + PPPoE (excl. hotspot)</p>
+                          <p className="text-xs text-blue-400 mt-0.5">Updated every 8 hrs</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* ─── Resource Usage ─── */}
               <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                 <Card className="border-slate-200">
                   <CardHeader className="pb-2">
