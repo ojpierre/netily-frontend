@@ -275,12 +275,32 @@ class CustomerApiService {
   /**
    * Get available ISP plans (public)
    */
-  async getPlans(): Promise<CustomerPlan[]> {
+  async getPlans(): Promise<{ plans: CustomerPlan[]; branding: any }> {
     const response = await fetch(`${this.baseUrl}/self-service/plans/`, {
       headers: { 'Content-Type': 'application/json' },
     })
     
-    return this.handleResponse<CustomerPlan[]>(response)
+    return this.handleResponse<{ plans: CustomerPlan[]; branding: any }>(response)
+  }
+
+  /**
+   * Request a plan change (upgrade/downgrade)
+   */
+  async requestPlanChange(data: {
+    plan_id: number
+    request_type: 'upgrade' | 'downgrade'
+    notes?: string
+  }): Promise<any> {
+    return this.request('/self-service/service-requests/', {
+      method: 'POST',
+      body: JSON.stringify({
+        request_type: data.request_type,
+        requested_plan: data.plan_id,
+        subject: `Plan ${data.request_type}`,
+        description: data.notes || `Requesting plan ${data.request_type}`,
+        customer_notes: data.notes || '',
+      }),
+    })
   }
 
   // ------------------------------------------

@@ -213,6 +213,8 @@ export default function HotspotManagementPage() {
     support_phone: "",
     support_email: "",
   })
+  const [brandingLogoFile, setBrandingLogoFile] = useState<File | null>(null)
+  const [brandingLogoPreview, setBrandingLogoPreview] = useState<string>("")
   const [selectedTemplateId, setSelectedTemplateId] = useState(1)
 
   // Setup Wizard State
@@ -453,8 +455,19 @@ export default function HotspotManagementPage() {
     try {
       setFormLoading(true)
       console.log("[HotspotBranding] Saving branding for router:", selectedRouter.id, brandingForm)
-      // Save branding (colours, text)
-      await adminApi.updateHotspotBranding(selectedRouter.id, brandingForm)
+      
+      // If a logo file was selected, upload it via FormData
+      if (brandingLogoFile) {
+        const formData = new FormData()
+        formData.append('logo', brandingLogoFile)
+        Object.entries(brandingForm).forEach(([key, value]) => {
+          formData.append(key, value)
+        })
+        await adminApi.updateHotspotBrandingWithLogo(selectedRouter.id, formData)
+      } else {
+        // Save branding (colours, text) without logo
+        await adminApi.updateHotspotBranding(selectedRouter.id, brandingForm)
+      }
       
       console.log("[HotspotBranding] Saving template_id:", selectedTemplateId, "to router:", selectedRouter.id)
       // Save template_id to the router itself
@@ -462,6 +475,8 @@ export default function HotspotManagementPage() {
       
       toast.success("Branding & template updated successfully")
       setShowBrandingDialog(false)
+      setBrandingLogoFile(null)
+      setBrandingLogoPreview("")
       
       // Refresh branding data so UI stays in sync
       const updatedBranding = await adminApi.getHotspotBranding(selectedRouter.id)
@@ -1513,6 +1528,39 @@ add address=10.10.0.1/24 interface=bridge-hotspot
                 value={brandingForm.company_name}
                 onChange={(e) => setBrandingForm({ ...brandingForm, company_name: e.target.value })}
               />
+            </div>
+
+            {/* Company Logo Upload */}
+            <div className="space-y-2">
+              <Label>Company Logo</Label>
+              <div className="flex items-center gap-4">
+                {(brandingLogoPreview || (branding as any)?.logo_url) && (
+                  <div className="w-16 h-16 rounded-lg border border-muted overflow-hidden bg-muted flex items-center justify-center">
+                    <img
+                      src={brandingLogoPreview || (branding as any)?.logo_url}
+                      alt="Logo preview"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setBrandingLogoFile(file)
+                        setBrandingLogoPreview(URL.createObjectURL(file))
+                      }
+                    }}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    PNG or JPG, max 2MB. Displayed on captive portal login page.
+                  </p>
+                </div>
+              </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">

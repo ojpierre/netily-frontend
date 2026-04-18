@@ -3010,6 +3010,12 @@ export interface CustomerDashboardData {
   last_week_income?: { day: string; amount: number }[]
   monthly_earnings?: { month: string; amount: number }[]
   last_year_earnings?: { month: string; amount: number }[]
+  branding?: {
+    company_name: string
+    logo_url: string | null
+    phone: string
+    email: string
+  } | null
 }
 
 export interface CustomerPaymentInitiateRequest {
@@ -3042,11 +3048,17 @@ export interface CustomerPlan {
   name: string
   description: string
   price: string
-  speed_down: string
-  speed_up: string
-  data_limit: string | null
+  speed_down: number | string
+  speed_up: number | string
+  speed_unit?: string
+  speed_display?: string
+  data_limit: number | string | null
   validity_days: number
+  validity_display?: string
+  plan_type?: string
   is_active: boolean
+  is_popular?: boolean
+  features?: string[]
 }
 
 // ==========================================

@@ -3716,6 +3716,21 @@ class AdminApiService {
     })
   }
 
+  /**
+   * Update hotspot branding with logo file (multipart form data)
+   */
+  async updateHotspotBrandingWithLogo(routerId: number, formData: FormData): Promise<HotspotBranding> {
+    const token = this.getAdminToken()
+    const response = await fetch(`${this.baseUrl}/hotspot/admin/routers/${routerId}/branding/`, {
+      method: 'PATCH',
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    })
+    return this.handleResponse<HotspotBranding>(response)
+  }
+
   // ------------------------------------------
   // HOTSPOT VOUCHERS - /hotspot/admin/vouchers/
   // ------------------------------------------
