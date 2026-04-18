@@ -71,11 +71,11 @@ function Slider({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-          <Icon className="w-4 h-4 text-blue-600" />
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <Icon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           {label}
         </div>
-        <span className="text-sm font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-lg tabular-nums">
+        <span className="text-sm font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-2.5 py-0.5 rounded-lg tabular-nums">
           {formatValue(value)}
         </span>
       </div>
@@ -211,7 +211,7 @@ function PlanCard({
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative flex flex-col bg-white rounded-2xl border-2 p-6 transition-shadow hover:shadow-lg ${
+      className={`relative flex flex-col bg-white dark:bg-slate-900 rounded-2xl border-2 p-6 transition-shadow hover:shadow-lg ${
         highlighted ? "border-blue-600 shadow-blue-100 shadow-lg" : style.color
       }`}
     >
@@ -229,8 +229,8 @@ function PlanCard({
             <Icon className="w-3 h-3" />
             {style.badgeText}
           </span>
-          <h3 className="text-lg font-bold text-slate-900">{plan.plan_name}</h3>
-          {plan.tagline && <p className="text-xs text-slate-500 mt-0.5">{plan.tagline}</p>}
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">{plan.plan_name}</h3>
+          {plan.tagline && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{plan.tagline}</p>}
         </div>
       </div>
 
@@ -246,16 +246,16 @@ function PlanCard({
       </div>
 
       {/* Cost breakdown */}
-      <div className="bg-slate-50 rounded-xl p-4 mb-5 space-y-2">
-        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Cost breakdown</p>
+      <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-5 space-y-2">
+        <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Cost breakdown</p>
         {rows.map((row, i) => (
           <div key={i} className="flex items-start justify-between gap-4 text-xs">
-            <span className="text-slate-600">{row.label}</span>
-            <span className="font-semibold text-slate-900 whitespace-nowrap">{row.value}</span>
+            <span className="text-slate-600 dark:text-slate-400">{row.label}</span>
+            <span className="font-semibold text-slate-900 dark:text-white whitespace-nowrap">{row.value}</span>
           </div>
         ))}
-        <div className="border-t border-slate-200 pt-2 flex items-center justify-between text-sm">
-          <span className="font-semibold text-slate-700">Total</span>
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-2 flex items-center justify-between text-sm">
+          <span className="font-semibold text-slate-700 dark:text-slate-300">Total</span>
           <span className={`font-bold ${style.accent}`}>KES {fmt(plan.estimated_monthly)}/mo</span>
         </div>
       </div>
@@ -264,7 +264,7 @@ function PlanCard({
       {plan.features?.length > 0 && (
         <ul className="space-y-2 mb-6 flex-1">
           {plan.features.slice(0, 5).map((f, i) => (
-            <li key={i} className="flex items-start gap-2 text-xs text-slate-700">
+            <li key={i} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
               <Check className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${style.accent}`} />
               {f}
             </li>
@@ -278,7 +278,7 @@ function PlanCard({
         className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
           highlighted
             ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-            : "border-2 border-slate-200 text-slate-700 hover:bg-slate-50"
+            : "border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
         }`}
       >
         Start Free Trial
@@ -358,7 +358,7 @@ export function BillingCalculator({ onGetStarted }: { onGetStarted: () => void }
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
             See exactly what<br className="hidden md:block" /> you&apos;ll pay.
           </h2>
-          <p className="text-lg text-slate-600 max-w-xl mx-auto">
+          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
             Drag the sliders to match your network size. Real numbers, no guesswork.
           </p>
         </motion.div>
@@ -368,7 +368,7 @@ export function BillingCalculator({ onGetStarted }: { onGetStarted: () => void }
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 md:p-8 mb-8"
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm p-6 md:p-8 mb-8"
         >
           <div className="grid md:grid-cols-2 gap-8">
             <Slider

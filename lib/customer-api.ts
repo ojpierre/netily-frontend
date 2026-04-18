@@ -181,6 +181,20 @@ class CustomerApiService {
   }
 
   /**
+   * Customer login via email
+   */
+  async loginWithEmail(email: string, password: string): Promise<{ access: string; refresh: string; user?: any }> {
+    const response = await fetch(`${this.baseUrl}/self-service/login/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+      credentials: 'include',
+    })
+    
+    return this.handleResponse(response)
+  }
+
+  /**
    * Verify phone number with OTP
    */
   async verifyPhone(data: PhoneVerificationRequest): Promise<PhoneVerificationResponse> {
@@ -236,7 +250,7 @@ class CustomerApiService {
    * Get current user profile
    */
   async getProfile(): Promise<any> {
-    return this.request('/core/users/me/')
+    return this.request('/self-service/dashboard/')
   }
 
   /**
@@ -245,7 +259,8 @@ class CustomerApiService {
   async updateProfile(data: Partial<{
     first_name: string
     last_name: string
-    phone_number: string
+    email: string
+    address: string
   }>): Promise<any> {
     return this.request('/self-service/profile/', {
       method: 'PATCH',

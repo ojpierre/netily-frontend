@@ -115,13 +115,13 @@ export default function CustomerDashboardPage() {
           <Card className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 mb-1">Balance</p>
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-sm text-muted-foreground mb-1">Balance</p>
+                <p className="text-2xl font-bold">
                   KSh {parseFloat(data.customer.balance || "0").toLocaleString()}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </Card>
@@ -129,15 +129,15 @@ export default function CustomerDashboardPage() {
           <Card className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 mb-1">Plan</p>
+                <p className="text-sm text-muted-foreground mb-1">Plan</p>
                 {data.current_plan ? (
-                  <p className="text-xl font-bold text-slate-900">{data.current_plan.name}</p>
+                  <p className="text-xl font-bold">{data.current_plan.name}</p>
                 ) : (
-                  <p className="text-lg font-bold text-orange-600">No Plan</p>
+                  <p className="text-lg font-bold text-orange-600 dark:text-orange-400">No Plan</p>
                 )}
               </div>
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <Wifi className="w-5 h-5 text-green-600" />
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-950 rounded-lg flex items-center justify-center">
+                <Wifi className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </Card>
@@ -145,13 +145,13 @@ export default function CustomerDashboardPage() {
           <Card className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 mb-1">Days Left</p>
-                <p className={`text-2xl font-bold ${daysRemaining < 3 ? "text-red-600" : "text-slate-900"}`}>
+                <p className="text-sm text-muted-foreground mb-1">Days Left</p>
+                <p className={`text-2xl font-bold ${daysRemaining < 3 ? "text-red-600 dark:text-red-400" : ""}`}>
                   {data.current_plan ? daysRemaining : "—"}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-orange-600" />
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-950 rounded-lg flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-orange-600 dark:text-orange-400" />
               </div>
             </div>
           </Card>
@@ -159,17 +159,17 @@ export default function CustomerDashboardPage() {
           <Card className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 mb-1">Speed</p>
+                <p className="text-sm text-muted-foreground mb-1">Speed</p>
                 {data.current_plan ? (
-                  <p className="text-xl font-bold text-slate-900">
+                  <p className="text-xl font-bold">
                     {data.current_plan.speed_down} Mbps
                   </p>
                 ) : (
-                  <p className="text-xl font-bold text-gray-400">—</p>
+                  <p className="text-xl font-bold text-muted-foreground">—</p>
                 )}
               </div>
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-purple-600" />
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-950 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </Card>
@@ -179,11 +179,11 @@ export default function CustomerDashboardPage() {
         {data.usage && data.usage.data_limit && (
           <Card className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-slate-900">Data Usage</h3>
+              <h3 className="font-semibold">Data Usage</h3>
               <Badge variant="outline">{data.usage.data_used} / {data.usage.data_limit}</Badge>
             </div>
             <Progress value={data.usage.percentage} className="h-2" />
-            <p className="text-sm text-slate-500 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               {data.usage.percentage.toFixed(1)}% used
             </p>
           </Card>
@@ -191,16 +191,16 @@ export default function CustomerDashboardPage() {
 
         {/* Expiry Warning */}
         {data.current_plan && daysRemaining <= 5 && daysRemaining >= 0 && (
-          <Card className="p-5 bg-orange-50 border-orange-200">
+          <Card className="p-5 bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <AlertCircle className="w-5 h-5 text-orange-600" />
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-950 rounded-lg flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-orange-900">
+                <h3 className="font-semibold text-orange-900 dark:text-orange-300">
                   {daysRemaining === 0 ? "Service Expired!" : "Expiring Soon!"}
                 </h3>
-                <p className="text-sm text-orange-800 mb-3">
+                <p className="text-sm text-orange-800 dark:text-orange-400 mb-3">
                   {daysRemaining === 0 
                     ? "Your subscription has expired. Renew now to restore service."
                     : `Your service expires in ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""}. Renew now.`}
@@ -220,16 +220,16 @@ export default function CustomerDashboardPage() {
 
         {/* Pending Invoices */}
         {data.pending_invoices && data.pending_invoices.length > 0 && (
-          <Card className="p-5 bg-red-50 border-red-200">
+          <Card className="p-5 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <FileText className="w-5 h-5 text-red-600" />
+              <div className="w-10 h-10 bg-red-100 dark:bg-red-950 rounded-lg flex items-center justify-center flex-shrink-0">
+                <FileText className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-red-900">
+                <h3 className="font-semibold text-red-900 dark:text-red-300">
                   {data.pending_invoices.length} Unpaid Invoice{data.pending_invoices.length > 1 ? "s" : ""}
                 </h3>
-                <p className="text-sm text-red-800 mb-3">
+                <p className="text-sm text-red-800 dark:text-red-400 mb-3">
                   Pay your outstanding invoices to avoid service interruption.
                 </p>
                 <Button size="sm" variant="destructive" onClick={() => setShowPaymentModal(true)}>
@@ -281,25 +281,25 @@ export default function CustomerDashboardPage() {
             <h3 className="font-semibold mb-4">Plan Details</h3>
             {data.current_plan ? (
               <div className="space-y-2">
-                <div className="flex justify-between p-2 bg-slate-50 rounded">
-                  <span className="text-slate-600 text-sm">Plan</span>
+                <div className="flex justify-between p-2 bg-muted rounded">
+                  <span className="text-muted-foreground text-sm">Plan</span>
                   <span className="font-medium text-sm">{data.current_plan.name}</span>
                 </div>
-                <div className="flex justify-between p-2 bg-slate-50 rounded">
-                  <span className="text-slate-600 text-sm">Download</span>
+                <div className="flex justify-between p-2 bg-muted rounded">
+                  <span className="text-muted-foreground text-sm">Download</span>
                   <span className="font-medium text-sm">{data.current_plan.speed_down} Mbps</span>
                 </div>
-                <div className="flex justify-between p-2 bg-slate-50 rounded">
-                  <span className="text-slate-600 text-sm">Upload</span>
+                <div className="flex justify-between p-2 bg-muted rounded">
+                  <span className="text-muted-foreground text-sm">Upload</span>
                   <span className="font-medium text-sm">{data.current_plan.speed_up} Mbps</span>
                 </div>
-                <div className="flex justify-between p-2 bg-slate-50 rounded">
-                  <span className="text-slate-600 text-sm">Price</span>
+                <div className="flex justify-between p-2 bg-muted rounded">
+                  <span className="text-muted-foreground text-sm">Price</span>
                   <span className="font-medium text-sm">KSh {parseFloat(data.current_plan.price).toLocaleString()}</span>
                 </div>
                 {data.current_plan.expiry_date && (
-                  <div className="flex justify-between p-2 bg-slate-50 rounded">
-                    <span className="text-slate-600 text-sm">Expires</span>
+                  <div className="flex justify-between p-2 bg-muted rounded">
+                    <span className="text-muted-foreground text-sm">Expires</span>
                     <span className="font-medium text-sm">
                       {new Date(data.current_plan.expiry_date).toLocaleDateString()}
                     </span>
@@ -307,8 +307,8 @@ export default function CustomerDashboardPage() {
                 )}
               </div>
             ) : (
-              <div className="text-center py-6 text-slate-500">
-                <Wifi className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+              <div className="text-center py-6 text-muted-foreground">
+                <Wifi className="w-10 h-10 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No active plan</p>
                 <Button 
                   className="mt-3" 
@@ -327,7 +327,7 @@ export default function CustomerDashboardPage() {
           <Card className="p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Recent Payments</h3>
-              <Link href="/customer/payments" className="text-sm text-blue-600 hover:underline">
+              <Link href="/customer/payments" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
                 View all
               </Link>
             </div>
@@ -335,24 +335,24 @@ export default function CustomerDashboardPage() {
               {data.recent_payments.slice(0, 3).map((payment) => (
                 <div
                   key={payment.id}
-                  className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-muted rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <CreditCard className="w-4 h-4 text-green-600" />
+                    <div className="w-8 h-8 bg-green-100 dark:bg-green-950 rounded-full flex items-center justify-center">
+                      <CreditCard className="w-4 h-4 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
                       <p className="font-medium text-sm">
                         KSh {parseFloat(payment.amount).toLocaleString()}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         {payment.method} • {new Date(payment.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                   <Badge
                     variant={payment.status === "completed" ? "default" : "secondary"}
-                    className={payment.status === "completed" ? "bg-green-100 text-green-700" : ""}
+                    className={payment.status === "completed" ? "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400" : ""}
                   >
                     {payment.status}
                   </Badge>

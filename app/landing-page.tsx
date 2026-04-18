@@ -99,12 +99,12 @@ function InfiniteMarquee() {
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="border-b border-slate-200">
+    <div className="border-b border-slate-200 dark:border-slate-800">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between py-5 text-left"
       >
-        <span className="text-lg font-semibold text-slate-900 pr-4">{q}</span>
+        <span className="text-lg font-semibold text-slate-900 dark:text-white pr-4">{q}</span>
         <ChevronDown
           className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-300 ${
             open ? "rotate-180" : ""
@@ -117,7 +117,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         transition={{ duration: 0.3, ease: "easeInOut" }}
         className="overflow-hidden"
       >
-        <p className="pb-5 text-slate-600 leading-relaxed">{a}</p>
+        <p className="pb-5 text-slate-600 dark:text-slate-400 leading-relaxed">{a}</p>
       </motion.div>
     </div>
   )
@@ -295,12 +295,12 @@ export function LandingPage() {
   const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.96])
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 antialiased">
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased">
       {/* ━━━ 1. FLOATING HEADER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled
-            ? "bg-white/80 backdrop-blur-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] border-b border-slate-200/60"
+            ? "bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] border-b border-slate-200/60 dark:border-slate-800/60"
             : "bg-transparent"
         }`}
       >
@@ -311,7 +311,7 @@ export function LandingPage() {
               <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
                 <Zap className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold tracking-tight text-slate-900">Netily</span>
+              <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Netily</span>
             </Link>
 
             {/* Desktop Nav */}
@@ -320,7 +320,7 @@ export function LandingPage() {
                 <button
                   key={label}
                   onClick={() => scrollTo(label.toLowerCase())}
-                  className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
                 >
                   {label}
                 </button>
@@ -357,19 +357,19 @@ export function LandingPage() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="md:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200 px-4 pb-4"
+            className="md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 px-4 pb-4"
           >
             <div className="flex flex-col gap-1 pt-2">
               {["Features", "Pricing", "Calculator", "FAQs"].map((label) => (
                 <button
                   key={label}
                   onClick={() => scrollTo(label.toLowerCase())}
-                  className="py-3 text-left text-sm font-medium text-slate-700 hover:text-blue-600"
+                  className="py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600"
                 >
                   {label}
                 </button>
               ))}
-              <hr className="my-2 border-slate-200" />
+              <hr className="my-2 border-slate-200 dark:border-slate-700" />
               <button
                 onClick={() => scrollTo("contact")}
                 className="mt-1 w-full bg-blue-600 text-white text-sm font-semibold py-3 rounded-lg"
@@ -418,7 +418,7 @@ export function LandingPage() {
 
           {/* Sub-headline */}
           <Reveal delay={0.2}>
-            <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
+            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
               Stop chasing payments and manually resetting routers. Netily fully automates your billing,
               provisioning, and customer support so you can focus on growing your network.
             </p>
@@ -445,7 +445,7 @@ export function LandingPage() {
       </motion.section>
 
       {/* ━━━ 3. TRUST MARQUEE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section className="border-y border-slate-200 py-5 bg-slate-50/50">
+      <section className="border-y border-slate-200 dark:border-slate-800 py-5 bg-slate-50/50 dark:bg-slate-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-xs text-slate-400 uppercase tracking-widest font-medium text-center mb-4">
             Natively integrated with
@@ -466,13 +466,13 @@ export function LandingPage() {
             ].map((stat, i) => (
               <Reveal key={stat.label} delay={i * 0.1}>
                 <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-3">
-                    <stat.icon className="w-5 h-5 text-blue-600" />
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center mb-3">
+                    <stat.icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <p className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-1">
+                  <p className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-1">
                     <AnimatedCounter value={stat.value} suffix={stat.suffix} />
                   </p>
-                  <p className="text-sm text-slate-500 font-medium">{stat.label}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{stat.label}</p>
                 </div>
               </Reveal>
             ))}
@@ -488,7 +488,7 @@ export function LandingPage() {
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
                 Why ISPs choose Netily
               </h2>
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
                 Cut the jargon. Here&apos;s what it actually feels like to automate your network.
               </p>
             </div>
@@ -540,19 +540,19 @@ export function LandingPage() {
 
             {/* Card 2 */}
             <Reveal delay={0.1}>
-              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <Router className="w-6 h-6 text-emerald-600" />
+              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
+                <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <Router className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Plug & Play Routers</h3>
-                <p className="text-slate-600 leading-relaxed mb-5">
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-5">
                   Zero-touch provisioning. Plug in a new MikroTik, and our cloud configures the client
                   instantly. No SSH, no scripts, no headaches.
                 </p>
                 {/* Mini router status */}
-                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Router Status</span>
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Router Status</span>
                     <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Live</span>
                   </div>
                   {[
@@ -562,7 +562,7 @@ export function LandingPage() {
                   ].map((r) => (
                     <div key={r.name} className="flex items-center gap-2 py-1">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[10px] text-slate-600 truncate">{r.name}</span>
+                      <span className="text-[10px] text-slate-600 dark:text-slate-400 truncate">{r.name}</span>
                     </div>
                   ))}
                 </div>
@@ -571,31 +571,31 @@ export function LandingPage() {
 
             {/* Card 3 */}
             <Reveal delay={0.2}>
-              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <FileText className="w-6 h-6 text-amber-600" />
+              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
+                <div className="w-12 h-12 bg-amber-100 dark:bg-amber-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <FileText className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Auto-Invoicing</h3>
-                <p className="text-slate-600 leading-relaxed mb-5">
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-5">
                   Tax-ready PDF invoices generated and emailed automatically every month. Your accountant
                   will think you hired an assistant.
                 </p>
                 {/* Mini invoice */}
-                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <span className="text-[10px] font-bold text-slate-700">INV-2025-0142</span>
+                      <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">INV-2025-0142</span>
                       <span className="text-[8px] text-slate-400 ml-2">Auto-sent</span>
                     </div>
                     <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Paid</span>
                   </div>
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 py-1 border-t border-dashed border-slate-200">
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 py-1 border-t border-dashed border-slate-200 dark:border-slate-700">
                     <span>10 Mbps Home Plan × 1 mo</span>
-                    <span className="font-semibold text-slate-700">KES 2,500</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">KES 2,500</span>
                   </div>
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 py-1 border-t border-dashed border-slate-200">
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 py-1 border-t border-dashed border-slate-200 dark:border-slate-700">
                     <span className="font-semibold">Total</span>
-                    <span className="font-bold text-slate-900">KES 2,500</span>
+                    <span className="font-bold text-slate-900 dark:text-white">KES 2,500</span>
                   </div>
                 </div>
               </div>
@@ -603,13 +603,13 @@ export function LandingPage() {
 
             {/* Card 4 */}
             <Reveal delay={0.15} className="md:col-span-2">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-8 md:flex md:items-center md:gap-10 hover:shadow-lg transition-shadow group">
-                <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mb-5 md:mb-0 shrink-0 group-hover:scale-110 transition-transform">
-                  <Ghost className="w-6 h-6 text-violet-600" />
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-8 md:flex md:items-center md:gap-10 hover:shadow-lg transition-shadow group">
+                <div className="w-12 h-12 bg-violet-100 dark:bg-violet-950 rounded-xl flex items-center justify-center mb-5 md:mb-0 shrink-0 group-hover:scale-110 transition-transform">
+                  <Ghost className="w-6 h-6 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold mb-2">Ghost Records</h3>
-                  <p className="text-slate-600 leading-relaxed">
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                     Never pay for dead accounts. Our system only bills you for exactly who connected this
                     month. Dormant subscribers cost you nothing.
                   </p>
@@ -619,12 +619,12 @@ export function LandingPage() {
 
             {/* Card 5 — Customisable Captive Portals */}
             <Reveal delay={0.2}>
-              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <Globe className="w-6 h-6 text-blue-600" />
+              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <Globe className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Customisable Captive Portals</h3>
-                <p className="text-slate-600 leading-relaxed">
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   Design branded hotspot login pages with your logo, colors, and messaging. Engage users before they connect.
                 </p>
               </div>
@@ -632,12 +632,12 @@ export function LandingPage() {
 
             {/* Card 6 — Secure Payments */}
             <Reveal delay={0.25}>
-              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <Lock className="w-6 h-6 text-green-600" />
+              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <Lock className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Secure Payments</h3>
-                <p className="text-slate-600 leading-relaxed">
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   End-to-end encrypted transactions via M-Pesa STK Push. PCI-compliant processing with OTP verification for every action.
                 </p>
               </div>
@@ -645,12 +645,12 @@ export function LandingPage() {
 
             {/* Card 7 — Inbuilt SMS */}
             <Reveal delay={0.3}>
-              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <MessageSquare className="w-6 h-6 text-orange-600" />
+              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
+                <div className="w-12 h-12 bg-orange-100 dark:bg-orange-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <MessageSquare className="w-6 h-6 text-orange-600 dark:text-orange-400" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Inbuilt SMS</h3>
-                <p className="text-slate-600 leading-relaxed">
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   Send payment reminders, service alerts, and promotional messages directly from your dashboard. No third-party SMS gateway needed.
                 </p>
               </div>
@@ -658,12 +658,12 @@ export function LandingPage() {
 
             {/* Card 8 — Data Protection */}
             <Reveal delay={0.35}>
-              <div className="h-full rounded-2xl border border-slate-200 bg-white p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <ShieldCheck className="w-6 h-6 text-indigo-600" />
+              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
+                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <ShieldCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Data Protection</h3>
-                <p className="text-slate-600 leading-relaxed">
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   Fully compliant with the Kenya Data Protection Act. Encrypted storage, access controls, and audit trails for all customer data.
                 </p>
               </div>
@@ -671,13 +671,13 @@ export function LandingPage() {
 
             {/* Card 9 — Real Time Payments */}
             <Reveal delay={0.4} className="md:col-span-2">
-              <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-emerald-50 to-green-50 p-8 md:flex md:items-center md:gap-10 hover:shadow-lg transition-shadow group">
-                <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-5 md:mb-0 shrink-0 group-hover:scale-110 transition-transform">
-                  <BanknoteIcon className="w-6 h-6 text-emerald-600" />
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 p-8 md:flex md:items-center md:gap-10 hover:shadow-lg transition-shadow group">
+                <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950 rounded-xl flex items-center justify-center mb-5 md:mb-0 shrink-0 group-hover:scale-110 transition-transform">
+                  <BanknoteIcon className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold mb-2">Real Time Payments</h3>
-                  <p className="text-slate-600 leading-relaxed">
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                     Payments reflect instantly. The moment a subscriber pays, their service activates in real time — no waiting, no manual intervention.
                   </p>
                 </div>
@@ -688,11 +688,11 @@ export function LandingPage() {
       </section>
 
       {/* ━━━ 5. PRICING SECTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950">
         <div className="max-w-5xl mx-auto">
           <Reveal>
             <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-700 text-xs font-semibold uppercase tracking-wider mb-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-950 border border-indigo-100 dark:border-indigo-800 rounded-full text-indigo-700 dark:text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-4">
                 How it works
               </div>
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
@@ -722,18 +722,18 @@ export function LandingPage() {
                 title: "Connect M-Pesa Payments",
                 desc: "Enter your Till or Paybill number, and STK Push goes live in under 60 seconds. Payments flow straight to your account.",
                 visual: (
-                  <div className="bg-white border border-slate-200 rounded-lg p-3 mt-4 space-y-2">
+                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 mt-4 space-y-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center"><Check className="w-3 h-3 text-green-600" /></div>
-                      <span className="text-[10px] font-medium text-slate-700">M-Pesa channel linked</span>
+                      <div className="w-6 h-6 rounded bg-green-100 dark:bg-green-950 flex items-center justify-center"><Check className="w-3 h-3 text-green-600 dark:text-green-400" /></div>
+                      <span className="text-[10px] font-medium text-slate-700 dark:text-slate-300">M-Pesa channel linked</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center"><Check className="w-3 h-3 text-green-600" /></div>
-                      <span className="text-[10px] font-medium text-slate-700">STK Push enabled</span>
+                      <div className="w-6 h-6 rounded bg-green-100 dark:bg-green-950 flex items-center justify-center"><Check className="w-3 h-3 text-green-600 dark:text-green-400" /></div>
+                      <span className="text-[10px] font-medium text-slate-700 dark:text-slate-300">STK Push enabled</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center"><Check className="w-3 h-3 text-green-600" /></div>
-                      <span className="text-[10px] font-medium text-slate-700">Auto-settlement ON</span>
+                      <div className="w-6 h-6 rounded bg-green-100 dark:bg-green-950 flex items-center justify-center"><Check className="w-3 h-3 text-green-600 dark:text-green-400" /></div>
+                      <span className="text-[10px] font-medium text-slate-700 dark:text-slate-300">Auto-settlement ON</span>
                     </div>
                   </div>
                 ),
@@ -756,9 +756,9 @@ export function LandingPage() {
             ].map((item, i) => (
               <Reveal key={item.step} delay={i * 0.15}>
                 <div className="relative">
-                  <span className="text-5xl font-black text-slate-100">{item.step}</span>
-                  <h3 className="text-lg font-bold text-slate-900 mt-2 mb-2">{item.title}</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">{item.desc}</p>
+                  <span className="text-5xl font-black text-slate-100 dark:text-slate-800">{item.step}</span>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-2 mb-2">{item.title}</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{item.desc}</p>
                   {item.visual}
                 </div>
               </Reveal>
@@ -768,14 +768,14 @@ export function LandingPage() {
       </section>
 
       {/* ━━━ 6. PRICING SECTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section id="pricing" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50">
+      <section id="pricing" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
         <div className="max-w-6xl mx-auto">
           <Reveal>
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
                 Stop paying for scaling taxes.
               </h2>
-              <p className="text-lg text-slate-600 max-w-xl mx-auto">
+              <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
                 Honest pricing that grows with you. No surprises, no contracts.
               </p>
             </div>
@@ -784,21 +784,21 @@ export function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-6 mb-8">
             {/* Metered — links to calculator */}
             <Reveal>
-              <div className="h-full rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50 border border-blue-200 p-8 md:p-10 shadow-sm hover:shadow-lg transition-shadow flex flex-col justify-between">
+              <div className="h-full rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-blue-950 border border-blue-200 dark:border-blue-800 p-8 md:p-10 shadow-sm hover:shadow-lg transition-shadow flex flex-col justify-between">
                 <div>
                   <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider mb-6">
                     <Clock className="w-3.5 h-3.5" />
                     Pay As You Grow
                   </div>
                   <h3 className="text-2xl font-bold mb-1">Metered</h3>
-                  <p className="text-slate-500 mb-8">Perfect for growing ISPs who want to keep costs lean.</p>
+                  <p className="text-slate-500 dark:text-slate-400 mb-8">Perfect for growing ISPs who want to keep costs lean.</p>
 
                   <div className="mb-8">
                     <div className="flex items-baseline gap-1 mb-1">
                       <span className="text-4xl font-extrabold">500</span>
-                      <span className="text-slate-500 font-medium">KES/mo base</span>
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">KES/mo base</span>
                     </div>
-                    <p className="text-sm text-slate-500">+ 20 KES per PPPoE user + 3% hotspot share</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">+ 20 KES per PPPoE user + 3% hotspot share</p>
                   </div>
 
                   <ul className="space-y-3 mb-8">
@@ -807,8 +807,8 @@ export function LandingPage() {
                       "MikroTik auto-provisioning",
                       "Unlimited routers",
                     ].map((item) => (
-                      <li key={item} className="flex items-start gap-3 text-slate-700">
-                        <Check className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                      <li key={item} className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
+                        <Check className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                         <span>{item}</span>
                       </li>
                     ))}
@@ -817,7 +817,7 @@ export function LandingPage() {
 
                 <button
                   onClick={() => scrollTo("calculator")}
-                  className="w-full py-3.5 rounded-xl border-2 border-blue-300 font-semibold text-blue-700 hover:bg-blue-50 transition-colors"
+                  className="w-full py-3.5 rounded-xl border-2 border-blue-300 dark:border-blue-700 font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors"
                 >
                   Calculate Your Cost &darr;
                 </button>
@@ -826,7 +826,7 @@ export function LandingPage() {
 
             {/* Flat Tiers */}
             <Reveal delay={0.15}>
-              <div className="h-full rounded-2xl bg-white border-2 border-blue-600 p-8 md:p-10 shadow-lg relative overflow-hidden">
+              <div className="h-full rounded-2xl bg-white dark:bg-slate-900 border-2 border-blue-600 p-8 md:p-10 shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-blue-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
                 <div className="relative z-10">
                   <div className="inline-flex items-center gap-2 bg-blue-600 text-white rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider mb-6">
@@ -834,7 +834,7 @@ export function LandingPage() {
                     Fixed Plans
                   </div>
                   <h3 className="text-2xl font-bold mb-1">Predictable Plans</h3>
-                  <p className="text-slate-500 mb-8">Lock in a fixed monthly rate. No billing surprises, ever.</p>
+                  <p className="text-slate-500 dark:text-slate-400 mb-8">Lock in a fixed monthly rate. No billing surprises, ever.</p>
 
                   <div className="grid grid-cols-3 gap-3 mb-8">
                     {[
@@ -842,9 +842,9 @@ export function LandingPage() {
                       { name: "Pro", desc: "Up to 1,000 subs", highlight: "Growing ISPs" },
                       { name: "Enterprise", desc: "Unlimited", highlight: "Large ISPs" },
                     ].map((tier) => (
-                      <div key={tier.name} className="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
-                        <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">{tier.name}</p>
-                        <p className="text-sm font-bold text-slate-900">{tier.desc}</p>
+                      <div key={tier.name} className="text-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                        <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">{tier.name}</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">{tier.desc}</p>
                         <p className="text-xs text-slate-400">{tier.highlight}</p>
                       </div>
                     ))}
@@ -859,8 +859,8 @@ export function LandingPage() {
                       "Only 3% transaction commission",
                       "Dedicated account manager (Enterprise)",
                     ].map((item) => (
-                      <li key={item} className="flex items-start gap-3 text-slate-700">
-                        <Check className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                      <li key={item} className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
+                        <Check className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                         <span>{item}</span>
                       </li>
                     ))}
@@ -910,7 +910,7 @@ export function LandingPage() {
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
                 Frequently asked questions
               </h2>
-              <p className="text-lg text-slate-600">
+              <p className="text-lg text-slate-600 dark:text-slate-400">
                 Everything you need to know about Netily.
               </p>
             </div>
@@ -952,14 +952,14 @@ export function LandingPage() {
       </section>
 
       {/* ━━━ CONTACT / INQUIRY FORM ━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section id="contact" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50">
+      <section id="contact" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
         <div className="max-w-3xl mx-auto">
           <Reveal>
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
                 Get in Touch
               </h2>
-              <p className="text-lg text-slate-600 max-w-xl mx-auto">
+              <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
                 Interested in Netily? Have a question? Drop us a message and we&apos;ll get back to you within 24 hours.
               </p>
             </div>
@@ -975,10 +975,10 @@ export function LandingPage() {
                 <p className="text-sm text-emerald-600">Thank you for reaching out. Our team will get back to you shortly.</p>
               </div>
             ) : (
-              <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-lg max-w-2xl mx-auto">
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 shadow-lg max-w-2xl mx-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name *</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Full Name *</label>
                     <input
                       type="text"
                       placeholder="John Doe"
@@ -987,12 +987,12 @@ export function LandingPage() {
                         setLeadForm({ ...leadForm, name: e.target.value })
                         if (leadFormErrors.name) setLeadFormErrors((prev) => ({ ...prev, name: undefined }))
                       }}
-                      className={`w-full h-11 px-4 rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${leadFormErrors.name ? "border-red-400" : "border-slate-300"}`}
+                      className={`w-full h-11 px-4 rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${leadFormErrors.name ? "border-red-400" : "border-slate-300 dark:border-slate-600"}`}
                     />
                     {leadFormErrors.name && <p className="text-xs text-red-500 mt-1">{leadFormErrors.name}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Email Address *</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email Address *</label>
                     <input
                       type="email"
                       placeholder="john@example.com"
@@ -1001,39 +1001,39 @@ export function LandingPage() {
                         setLeadForm({ ...leadForm, email: e.target.value })
                         if (leadFormErrors.email) setLeadFormErrors((prev) => ({ ...prev, email: undefined }))
                       }}
-                      className={`w-full h-11 px-4 rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${leadFormErrors.email ? "border-red-400" : "border-slate-300"}`}
+                      className={`w-full h-11 px-4 rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${leadFormErrors.email ? "border-red-400" : "border-slate-300 dark:border-slate-600"}`}
                     />
                     {leadFormErrors.email && <p className="text-xs text-red-500 mt-1">{leadFormErrors.email}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Phone Number</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Phone Number</label>
                     <input
                       type="tel"
                       placeholder="+254 7XX XXX XXX"
                       value={leadForm.phone}
                       onChange={(e) => setLeadForm({ ...leadForm, phone: e.target.value })}
-                      className="w-full h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">ISP / Company</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">ISP / Company</label>
                     <input
                       type="text"
                       placeholder="Your ISP name"
                       value={leadForm.company}
                       onChange={(e) => setLeadForm({ ...leadForm, company: e.target.value })}
-                      className="w-full h-11 px-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     />
                   </div>
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Message</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Message</label>
                   <textarea
                     placeholder="Tell us about your ISP, what you're looking for, or any questions you have..."
                     value={leadForm.message}
                     onChange={(e) => setLeadForm({ ...leadForm, message: e.target.value })}
                     rows={4}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
                   />
                 </div>
                 <button
