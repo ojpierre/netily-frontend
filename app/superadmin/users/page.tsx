@@ -172,8 +172,6 @@ export default function UsersPage() {
           </CardContent>
         </Card>
       </div>
-        </p>
-      </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
