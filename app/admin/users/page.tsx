@@ -195,6 +195,7 @@ interface UserStats {
 }
 
 // Helper: Map backend Customer to frontend User display type
+// FIX 1: Updated to properly extract billing account number from all services
 const mapCustomerToUser = (customer: Customer): User => {
   const primaryService = customer.services?.[0]
   const isOnline = primaryService?.is_online ?? false
@@ -239,9 +240,15 @@ const mapCustomerToUser = (customer: Customer): User => {
     id: customer.customer_number || `USR-${customer.id}`,
     customerId: customer.id,
     serviceId: primaryService?.id ?? null,
-    billingAccountNumber: primaryService?.billing_account_number 
-      || (customer as any).billing_account_number 
-      || null,
+    // FIX 1: Check all services for billing_account_number
+    billingAccountNumber: (() => {
+      const serviceWithBilling = customer.services?.find(s => s.billing_account_number)
+      return serviceWithBilling?.billing_account_number 
+        || primaryService?.billing_account_number
+        || (customer as any).billing_account_number
+        || (customer as any).services?.[0]?.billing_account_number
+        || null
+    })(),
     name: customer.full_name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
     email: customer.email || 'No email',
     phone: customer.phone || 'No phone',
@@ -322,6 +329,10 @@ export default function UsersPage() {
   const [onlineSearchQuery, setOnlineSearchQuery] = useState("")
   const [onlineServiceFilter, setOnlineServiceFilter] = useState("all")
   const [activeSearchQuery, setActiveSearchQuery] = useState("")
+  // FIX 3: State for editing billing account number
+  const [editingBilling, setEditingBilling] = useState(false)
+  const [billingNumberEdit, setBillingNumberEdit] = useState("")
+  const [savingBilling, setSavingBilling] = useState(false)
   const itemsPerPage = 10
 
   const [editForm, setEditForm] = useState({
@@ -492,6 +503,30 @@ export default function UsersPage() {
     setRefreshing(true)
     await Promise.all([loadUsers(), loadOnlineSessions(), loadHotspotClients(), loadActiveSubscriptions()])
     setRefreshing(false)
+  }
+
+  // FIX 3: Handler for saving billing account number
+  const handleSaveBillingNumber = async () => {
+    if (!selectedUser || !billingNumberEdit.trim()) return
+    try {
+      setSavingBilling(true)
+      const services = await adminApi.getCustomerServices(selectedUser.customerId)
+      const primaryService = services[0]
+      if (!primaryService) throw new Error('No service found')
+      await adminApi.updateCustomerService(
+        selectedUser.customerId,
+        primaryService.id,
+        { billing_account_number: billingNumberEdit.trim().toUpperCase() }
+      )
+      toast.success('Billing account number updated')
+      setEditingBilling(false)
+      setSelectedUser(prev => prev ? { ...prev, billingAccountNumber: billingNumberEdit.trim().toUpperCase() } : prev)
+      await loadUsers()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update billing number')
+    } finally {
+      setSavingBilling(false)
+    }
   }
 
   // Updated handleCreateCustomer with payment recording
@@ -1133,331 +1168,225 @@ export default function UsersPage() {
                 Add User
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
+            {/* FIX 2: Updated Add User Dialog content with improved layout */}
+            <DialogContent className="max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Add New User</DialogTitle>
+                <DialogTitle>Add New Customer</DialogTitle>
                 <DialogDescription>
-                  Create a new customer account. For PPPoE/Hotspot users, RADIUS credentials will be created automatically.
+                  Create a new customer. RADIUS credentials are auto-created for PPPoE/Static connections.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>First Name *</Label>
-                  <Input 
-                    placeholder="John" 
-                    value={newCustomerForm.first_name}
-                    onChange={(e) => setNewCustomerForm({...newCustomerForm, first_name: e.target.value})}
-                  />
+
+              {/* Personal Info */}
+              <div className="space-y-4 mt-2">
+                <h4 className="text-sm font-semibold text-slate-700 border-b pb-1">Personal Information</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>First Name <span className="text-red-500">*</span></Label>
+                    <Input
+                      placeholder="John"
+                      value={newCustomerForm.first_name}
+                      onChange={(e) => setNewCustomerForm({...newCustomerForm, first_name: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Last Name <span className="text-red-500">*</span></Label>
+                    <Input
+                      placeholder="Doe"
+                      value={newCustomerForm.last_name}
+                      onChange={(e) => setNewCustomerForm({...newCustomerForm, last_name: e.target.value})}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Last Name *</Label>
-                  <Input 
-                    placeholder="Doe" 
-                    value={newCustomerForm.last_name}
-                    onChange={(e) => setNewCustomerForm({...newCustomerForm, last_name: e.target.value})}
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>Phone <span className="text-red-500">*</span></Label>
+                    <Input
+                      placeholder="07XXXXXXXX"
+                      value={newCustomerForm.phone}
+                      onChange={(e) => setNewCustomerForm({...newCustomerForm, phone: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Email <span className="text-xs text-slate-400">(optional)</span></Label>
+                    <Input
+                      placeholder="john@example.com"
+                      value={newCustomerForm.email}
+                      onChange={(e) => setNewCustomerForm({...newCustomerForm, email: e.target.value})}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Email (Optional)</Label>
-                  <Input 
-                    type="text" 
-                    placeholder="john@example.com" 
-                    value={newCustomerForm.email}
-                    onChange={(e) => setNewCustomerForm({...newCustomerForm, email: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Phone Number *</Label>
-                  <Input 
-                    placeholder="07XXXXXXXX or 01XXXXXXXX" 
-                    value={newCustomerForm.phone}
-                    onChange={(e) => setNewCustomerForm({...newCustomerForm, phone: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Password *</Label>
-                  <Input 
+                <div className="space-y-1">
+                  <Label>Password <span className="text-red-500">*</span></Label>
+                  <Input
                     type="password"
-                    placeholder="Enter password" 
+                    placeholder="Enter password (also used as RADIUS password)"
                     value={newCustomerForm.password}
                     onChange={(e) => setNewCustomerForm({...newCustomerForm, password: e.target.value})}
                   />
+                  <p className="text-xs text-slate-500">Used for the customer portal login and PPPoE/Hotspot authentication.</p>
                 </div>
-                <div className="space-y-2">
-                  <Label>Connection Type</Label>
-                  <Select 
-                    value={newCustomerForm.connection_type}
-                    onValueChange={(value: "pppoe" | "static") => setNewCustomerForm({...newCustomerForm, connection_type: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pppoe">PPPoE (Auto-creates RADIUS credentials)</SelectItem>
-                      <SelectItem value="static">Static IP (Manual configuration)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Hotspot users connect via captive portal and are managed separately.
-                  </p>
+              </div>
+
+              {/* Connection Info */}
+              <div className="space-y-4 mt-4">
+                <h4 className="text-sm font-semibold text-slate-700 border-b pb-1">Connection Details</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>Connection Type</Label>
+                    <Select
+                      value={newCustomerForm.connection_type}
+                      onValueChange={(value: "pppoe" | "static") => setNewCustomerForm({...newCustomerForm, connection_type: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pppoe">PPPoE</SelectItem>
+                        <SelectItem value="static">Static IP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Plan <span className="text-xs text-slate-400">(optional)</span></Label>
+                    <Select
+                      value={newCustomerForm.plan_id || "none"}
+                      onValueChange={(value) => setNewCustomerForm({...newCustomerForm, plan_id: value === "none" ? "" : value})}
+                      disabled={plansLoading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={plansLoading ? "Loading..." : "Select plan"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Plan</SelectItem>
+                        {plans.map((plan) => (
+                          <SelectItem key={plan.id} value={String(plan.id)}>
+                            {plan.name} — KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Plan (Optional)</Label>
-                  <Select
-                    value={newCustomerForm.plan_id || "none"}
-                    onValueChange={(value) => setNewCustomerForm({...newCustomerForm, plan_id: value === "none" ? "" : value})}
-                    disabled={plansLoading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={plansLoading ? "Loading plans..." : "Select plan"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Plan</SelectItem>
-                      {plans.length === 0 && !plansLoading && (
-                        <SelectItem value="no-plans" disabled>
-                          No plans available - create plans first
-                        </SelectItem>
-                      )}
-                      {plans.map((plan) => (
-                        <SelectItem key={plan.id} value={String(plan.id)}>
-                          {plan.name} - KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
-                          {plan.download_speed && ` (${plan.download_speed}/${plan.upload_speed || plan.download_speed} Mbps)`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {plans.length === 0 && !plansLoading && (
-                    <p className="text-xs text-amber-600">
-                      No plans found. <a href="/admin/plans" className="underline hover:text-amber-700">Create plans</a> first.
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>Router</Label>
-                  <Select
-                    value={newCustomerForm.router_id || "none"}
-                    onValueChange={(value) => {
-                      const routerId = value === "none" ? "" : value
-                      setNewCustomerForm({...newCustomerForm, router_id: routerId, ip_pool: ""})
-                      setPoolsList([])
-                      if (routerId) {
-                        loadPoolsForRouter(routerId)
-                      }
-                    }}
-                    disabled={routersLoading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={routersLoading ? "Loading routers..." : "Select router"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Router</SelectItem>
-                      {routersList.map((r) => (
-                        <SelectItem key={r.id} value={String(r.id)}>
-                          {r.name} ({r.ip_address}) — {r.status}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Assigns this customer to a specific router for RADIUS authentication.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label>IP Pool (Framed-Pool)</Label>
-                  <Select
-                    value={newCustomerForm.ip_pool || "none"}
-                    onValueChange={(value) => setNewCustomerForm({...newCustomerForm, ip_pool: value === "none" ? "" : value})}
-                    disabled={!newCustomerForm.router_id || poolsLoading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={
-                        !newCustomerForm.router_id 
-                          ? "Select a router first" 
-                          : poolsLoading 
-                            ? "Loading pools..." 
-                            : "Select IP pool"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Pool (Router Default)</SelectItem>
-                      {poolsList.map((pool) => (
-                        <SelectItem key={pool.id} value={pool.name}>
-                          {pool.name} — {pool.start_ip}–{pool.end_ip} ({pool.available_ips} free)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    The pool name is sent as RADIUS Framed-Pool attribute. The router assigns an IP from this pool.
-                  </p>
+                <div className="space-y-1">
+                  <Label>IP Pool <span className="text-xs text-slate-400">(optional — Framed-Pool for router)</span></Label>
+                  <Input
+                    placeholder="e.g. pppoe-pool or leave blank"
+                    value={newCustomerForm.ip_pool}
+                    onChange={(e) => setNewCustomerForm({...newCustomerForm, ip_pool: e.target.value})}
+                  />
+                  <p className="text-xs text-slate-500">Sent as RADIUS Framed-Pool. Router assigns an IP from this pool.</p>
                 </div>
 
-                {/* Cloud-Led: Static IP Assignment */}
+                {/* Cloud-Led Static IP from plan's pool */}
                 {selectedPlanPool && (
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label>Assign Static IP (Cloud-Led)</Label>
-                    <div className="space-y-2">
+                  <div className="space-y-1">
+                    <Label>Assign Static IP <span className="text-xs text-slate-400">(Cloud-Led — optional)</span></Label>
+                    <div className="flex gap-2">
                       <Input
-                        placeholder="Search IP address..."
+                        placeholder="Search IP..."
                         value={ipSearchQuery}
                         onChange={(e) => {
                           setIpSearchQuery(e.target.value)
-                          if (selectedPlanPool) {
-                            loadAvailableIPs(selectedPlanPool, e.target.value || undefined)
-                          }
+                          if (selectedPlanPool) loadAvailableIPs(selectedPlanPool, e.target.value || undefined)
                         }}
-                        className="h-8 text-sm"
+                        className="w-40"
                       />
                       <Select
                         value={newCustomerForm.assigned_ip || "none"}
                         onValueChange={(value) => setNewCustomerForm({...newCustomerForm, assigned_ip: value === "none" ? "" : value})}
                         disabled={availableIPsLoading}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder={
-                            availableIPsLoading
-                              ? "Loading available IPs..."
-                              : `${availableIPs.length} IPs available — pick one`
-                          } />
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder={availableIPsLoading ? "Loading IPs..." : `${availableIPs.length} available`} />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          <SelectItem value="none">No Static IP (Pool Default)</SelectItem>
+                        <SelectContent>
+                          <SelectItem value="none">No Static IP</SelectItem>
                           {availableIPs.map((ip) => (
                             <SelectItem key={ip.id} value={String(ip.id)}>
                               <span className="font-mono">{ip.ip_address}</span>
                             </SelectItem>
                           ))}
-                          {!availableIPsLoading && availableIPs.length === 0 && (
-                            <div className="px-2 py-3 text-sm text-muted-foreground text-center">
-                              No available IPs in this pool
-                            </div>
-                          )}
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-muted-foreground">
-                        Select a specific IP for the customer. This sends RADIUS Framed-IP-Address instead of Framed-Pool.
-                      </p>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Billing Account Number — auto-generated, shown after creation */}
-              <div className="space-y-2 sm:col-span-2 mt-4">
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2 mb-1">
-                    <CreditCard className="w-4 h-4 text-blue-600" />
-                    <Label className="text-blue-900 font-medium">M-Pesa Paybill Account Number</Label>
-                  </div>
-                  <p className="text-xs text-blue-700">
-                    A unique account number (e.g. <strong>JOH-001</strong>) will be auto-generated 
-                    for this customer. They use this as the <em>Account Reference</em> when paying 
-                    via your Paybill shortcode. The number appears in the user details after creation.
+              {/* Billing Account Notice */}
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex items-start gap-2">
+                <CreditCard className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-blue-900">M-Pesa Paybill Account</p>
+                  <p className="text-xs text-blue-700 mt-0.5">
+                    A unique account number (e.g. <strong>JOH-001</strong>) is auto-generated. 
+                    The customer uses it as the account reference when paying via your Paybill shortcode.
+                    You can edit it after creation.
                   </p>
                 </div>
               </div>
 
-              <p className="text-xs text-muted-foreground mt-2">
-                * Required fields. PPPoE and Hotspot users will automatically get RADIUS credentials created.
-              </p>
-              
               {/* Activation Options */}
-              <div className="flex items-center gap-3 mt-3 p-3 bg-slate-50 rounded-lg border">
-                <Checkbox
-                  id="activate_now"
-                  checked={newCustomerForm.activate_now && newCustomerForm.activation_delay_minutes === 0}
-                  onCheckedChange={(checked) => setNewCustomerForm({...newCustomerForm, activate_now: checked as boolean, activation_delay_minutes: 0})}
-                />
-                <div>
-                  <Label htmlFor="activate_now" className="font-medium cursor-pointer">Activate Now</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Service will be activated immediately and expiration timer starts now.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3 mt-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                <Checkbox
-                  id="activate_delay_1hr"
-                  checked={newCustomerForm.activate_now && newCustomerForm.activation_delay_minutes === 60}
-                  onCheckedChange={(checked) => setNewCustomerForm({...newCustomerForm, activate_now: checked ? true : false, activation_delay_minutes: checked ? 60 : 0})}
-                />
-                <div>
-                  <Label htmlFor="activate_delay_1hr" className="font-medium cursor-pointer flex items-center gap-2">
-                    1 Hour Testing Delay
-                    <span className="text-[10px] font-bold bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">TEST</span>
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Service will auto-activate after exactly 1 hour. Use this to give customers a testing window before the plan timer starts.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3 mt-2 p-3 bg-slate-50 rounded-lg border">
-                <Checkbox
-                  id="activate_pending"
-                  checked={!newCustomerForm.activate_now}
-                  onCheckedChange={(checked) => setNewCustomerForm({...newCustomerForm, activate_now: !checked as boolean, activation_delay_minutes: 0})}
-                />
-                <div>
-                  <Label htmlFor="activate_pending" className="font-medium cursor-pointer">Save as Pending</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Service will be saved as PENDING. Activate later to start the expiration timer.
-                  </p>
+              <div className="space-y-2 mt-4">
+                <h4 className="text-sm font-semibold text-slate-700 border-b pb-1">Activation</h4>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: "Activate Now", activate: true, delay: 0, desc: "Starts timer immediately" },
+                    { label: "1hr Testing", activate: true, delay: 60, desc: "Auto-activates after 1 hour" },
+                    { label: "Save Pending", activate: false, delay: 0, desc: "Activate manually later" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      onClick={() => setNewCustomerForm({ ...newCustomerForm, activate_now: opt.activate, activation_delay_minutes: opt.delay })}
+                      className={`p-2.5 rounded-lg border text-left transition-all ${
+                        newCustomerForm.activate_now === opt.activate && newCustomerForm.activation_delay_minutes === opt.delay
+                          ? "bg-blue-50 border-blue-400 ring-1 ring-blue-400"
+                          : "bg-white border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      <p className="text-xs font-medium text-slate-900">{opt.label}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{opt.desc}</p>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Record Initial Payment Section */}
+              {/* Record Initial Payment */}
               {newCustomerForm.activate_now && (
-                <div className="space-y-3 mt-2 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex items-center gap-3">
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center gap-2">
                     <Checkbox
                       id="record_payment"
                       checked={newCustomerForm.record_initial_payment || false}
                       onCheckedChange={(checked) => setNewCustomerForm({
-                        ...newCustomerForm, 
+                        ...newCustomerForm,
                         record_initial_payment: checked as boolean,
-                        initial_payment_amount: checked 
+                        initial_payment_amount: checked
                           ? (plans.find(p => p.id === parseInt(newCustomerForm.plan_id || '0'))?.base_price || '')
                           : ''
                       })}
                     />
-                    <div>
-                      <Label htmlFor="record_payment" className="font-medium cursor-pointer">
-                        Record Initial Payment
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Mark the activation as paid and create a payment record.
-                      </p>
-                    </div>
+                    <Label htmlFor="record_payment" className="cursor-pointer text-sm">Record initial payment</Label>
                   </div>
-
                   {newCustomerForm.record_initial_payment && (
-                    <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div className="grid grid-cols-2 gap-3 pl-6">
                       <div className="space-y-1">
-                        <Label className="text-xs">Amount (KES)</Label>
+                        <Label className="text-xs">Amount (KES) <span className="text-red-500">*</span></Label>
                         <Input
                           type="number"
-                          placeholder={
-                            plans.find(p => p.id === parseInt(newCustomerForm.plan_id || '0'))?.base_price 
-                            || "0.00"
-                          }
+                          placeholder="0.00"
                           value={newCustomerForm.initial_payment_amount || ''}
-                          onChange={(e) => setNewCustomerForm({
-                            ...newCustomerForm, 
-                            initial_payment_amount: e.target.value
-                          })}
+                          onChange={(e) => setNewCustomerForm({...newCustomerForm, initial_payment_amount: e.target.value})}
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Reference (optional)</Label>
+                        <Label className="text-xs">Reference <span className="text-xs text-slate-400">(optional)</span></Label>
                         <Input
-                          placeholder="e.g. MPESA receipt"
+                          placeholder="MPESA receipt / auto"
                           value={newCustomerForm.initial_payment_reference || ''}
-                          onChange={(e) => setNewCustomerForm({
-                            ...newCustomerForm, 
-                            initial_payment_reference: e.target.value
-                          })}
+                          onChange={(e) => setNewCustomerForm({...newCustomerForm, initial_payment_reference: e.target.value})}
                         />
                       </div>
                     </div>
@@ -1465,19 +1394,12 @@ export default function UsersPage() {
                 </div>
               )}
 
-              <DialogFooter>
+              <DialogFooter className="mt-4">
                 <Button variant="outline" onClick={() => setShowAddUserDialog(false)} disabled={creating}>
                   Cancel
                 </Button>
                 <Button onClick={handleCreateCustomer} disabled={creating}>
-                  {creating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create User"
-                  )}
+                  {creating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : "Create Customer"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -2540,7 +2462,7 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              {/* Subscription Info - Enhanced with prominent billing account number */}
+              {/* Subscription Info - FIX 3: With editable billing account number */}
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <h3 className="font-semibold text-slate-900 mb-3">Subscription</h3>
                 <div className="space-y-2 text-sm">
@@ -2564,33 +2486,76 @@ export default function UsersPage() {
                       {selectedUser.plan === "No Plan" ? "Managed by Voucher" : new Date(selectedUser.expiryDate).toLocaleDateString()}
                     </span>
                   </div>
-                  {/* Prominent Billing Account Number section */}
-                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-blue-200">
-                    <span className="text-slate-600">Billing Account No.</span>
-                    <div className="flex items-center gap-1.5">
-                      {selectedUser.billingAccountNumber ? (
+                  {/* FIX 3: Billing Account Number — editable */}
+                  <div className="flex items-start justify-between gap-2 pt-1 border-t border-blue-200">
+                    <span className="text-slate-600 text-sm shrink-0">Billing Account No.</span>
+                    <div className="flex items-center gap-1.5 flex-1 justify-end">
+                      {editingBilling ? (
                         <>
-                          <code className="text-sm font-mono font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
-                            {selectedUser.billingAccountNumber}
-                          </code>
+                          <Input
+                            className="h-7 w-28 text-sm font-mono font-bold"
+                            value={billingNumberEdit}
+                            onChange={(e) => setBillingNumberEdit(e.target.value.toUpperCase())}
+                            maxLength={20}
+                            autoFocus
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-green-600"
+                            onClick={handleSaveBillingNumber}
+                            disabled={savingBilling}
+                          >
+                            {savingBilling ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2"
+                            onClick={() => setEditingBilling(false)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          {selectedUser.billingAccountNumber ? (
+                            <>
+                              <code className="text-sm font-mono font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
+                                {selectedUser.billingAccountNumber}
+                              </code>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => copyToClipboard(selectedUser.billingAccountNumber!, 'Billing account number')}
+                                title="Copy"
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          ) : (
+                            <span className="text-xs text-slate-400 italic">Not assigned</span>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7"
-                            onClick={() => copyToClipboard(selectedUser.billingAccountNumber!, 'Billing account number')}
-                            title="Copy — customer uses this as Paybill reference"
+                            onClick={() => {
+                              setBillingNumberEdit(selectedUser.billingAccountNumber || '')
+                              setEditingBilling(true)
+                            }}
+                            title="Edit"
                           >
-                            <Copy className="h-3.5 w-3.5" />
+                            <Edit className="h-3.5 w-3.5" />
                           </Button>
                         </>
-                      ) : (
-                        <span className="text-xs text-slate-400 italic">Not assigned</span>
                       )}
                     </div>
                   </div>
-                  {selectedUser.billingAccountNumber && (
+                  {selectedUser.billingAccountNumber && !editingBilling && (
                     <div className="mt-1 p-2 bg-blue-100 rounded text-xs text-blue-800">
-                      📱 Customer pays via Paybill → enters <strong>{selectedUser.billingAccountNumber}</strong> as account reference
+                      📱 Pay via Paybill → Account Ref: <strong>{selectedUser.billingAccountNumber}</strong>
                     </div>
                   )}
                 </div>

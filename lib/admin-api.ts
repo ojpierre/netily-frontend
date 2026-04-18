@@ -665,33 +665,40 @@ class AdminApiService {
   // CUSTOMER SERVICES
   // ------------------------------------------
 
-  async getCustomerServices(customerId: number): Promise<CustomerService[]> {
-    return this.request<CustomerService[]>(`/customers/${customerId}/services/`)
-  }
+async getCustomerServices(customerId: number): Promise<CustomerService[]> {
+  return this.request<CustomerService[]>(`/customers/${customerId}/services/`)
+}
 
-  async createCustomerService(customerId: number, data: Partial<CustomerService>): Promise<CustomerService> {
-    return this.request<CustomerService>(`/customers/${customerId}/services/`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  }
+async createCustomerService(customerId: number, data: Partial<CustomerService>): Promise<CustomerService> {
+  return this.request<CustomerService>(`/customers/${customerId}/services/`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
 
-  async activateService(
-    customerId: number, 
-    serviceId: number, 
-    paymentData?: {
-      record_payment?: boolean
-      payment_amount?: number
-      payment_method_id?: number
-      payment_reference?: string
-      payment_notes?: string
-    }
-  ): Promise<any> {
-    return this.request(`/customers/${customerId}/services/${serviceId}/activate/`, {
-      method: 'POST',
-      body: JSON.stringify(paymentData || {}),
-    })
+async updateCustomerService(customerId: number, serviceId: number, data: Record<string, any>): Promise<any> {
+  return this.request(`/customers/${customerId}/services/${serviceId}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+async activateService(
+  customerId: number, 
+  serviceId: number, 
+  paymentData?: {
+    record_payment?: boolean
+    payment_amount?: number
+    payment_method_id?: number
+    payment_reference?: string
+    payment_notes?: string
   }
+): Promise<any> {
+  return this.request(`/customers/${customerId}/services/${serviceId}/activate/`, {
+    method: 'POST',
+    body: JSON.stringify(paymentData || {}),
+  })
+}
 
   async suspendService(customerId: number, serviceId: number, reason?: string): Promise<void> {
     await this.request(`/customers/${customerId}/services/${serviceId}/suspend/`, {
