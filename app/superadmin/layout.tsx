@@ -22,6 +22,7 @@ import {
   Newspaper, // Added for Changelogs
   Megaphone, // Added for Platform Updates
   Lightbulb, // Added for Feature Roadmap
+  UserPlus, // Leads
 } from "lucide-react"
 import { SuperAdminAuthProvider, useSuperAdminAuth } from "./superadmin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -44,6 +45,7 @@ const navItems = [
   { name: "Plans", href: "/superadmin/plans", icon: Package },
   { name: "Users", href: "/superadmin/users", icon: Users },
   { name: "Payments", href: "/superadmin/payments", icon: CreditCard },
+  { name: "Leads", href: "/superadmin/leads", icon: UserPlus },
   { name: "Analytics", href: "/superadmin/analytics", icon: BarChart3 },
   { name: "Activity", href: "/superadmin/activity", icon: Activity },
   { name: "Audit Log", href: "/superadmin/audit-log", icon: ScrollText },

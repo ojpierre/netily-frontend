@@ -55,6 +55,8 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState("all")
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
+  const [activeCount, setActiveCount] = useState<number | null>(null)
+  const [inactiveCount, setInactiveCount] = useState<number | null>(null)
   const [selectedUser, setSelectedUser] = useState<PlatformUserDetail | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -74,6 +76,17 @@ export default function UsersPage() {
       setLoading(false)
     }
   }, [page, search, roleFilter])
+
+  // Fetch active/inactive counts (independent of table filters)
+  useEffect(() => {
+    Promise.all([
+      superadminApi.getUsers({ page: "1", page_size: "1", is_active: "true" }),
+      superadminApi.getUsers({ page: "1", page_size: "1", is_active: "false" }),
+    ]).then(([a, i]) => {
+      setActiveCount(a.count)
+      setInactiveCount(i.count)
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     const t = setTimeout(() => fetchUsers(), 300)
@@ -130,7 +143,35 @@ export default function UsersPage() {
           Platform Users
         </h1>
         <p className="text-sm text-slate-400 mt-1">
-          All users across every tenant — {total} total
+          All users across every tenant on the platform
+        </p>
+      </div>
+
+      {/* Platform stats cards */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card className="bg-slate-900 border-slate-800">
+          <CardContent className="p-4">
+            <p className="text-xs text-slate-500 mb-1">Total Platform Users</p>
+            <p className="text-2xl font-bold text-white">{total > 0 ? total.toLocaleString() : "—"}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-slate-900 border-slate-800">
+          <CardContent className="p-4">
+            <p className="text-xs text-slate-500 mb-1">Active</p>
+            <p className="text-2xl font-bold text-emerald-400">
+              {activeCount !== null ? activeCount.toLocaleString() : "—"}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-slate-900 border-slate-800">
+          <CardContent className="p-4">
+            <p className="text-xs text-slate-500 mb-1">Inactive</p>
+            <p className="text-2xl font-bold text-red-400">
+              {inactiveCount !== null ? inactiveCount.toLocaleString() : "—"}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
         </p>
       </div>
 
