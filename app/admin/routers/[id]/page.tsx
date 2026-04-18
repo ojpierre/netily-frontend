@@ -60,7 +60,7 @@ import {
   RouterInterfacesTab,
   RouterLogsTab,
   RouterWirelessTab,
-  RouterHotspotTab,
+  // RouterHotspotTab,  <-- REMOVED
   RouterHotspotIPConfigTab,
   RouterPortManagerTab,
   RouterPortalSettingsTab,
@@ -1044,10 +1044,7 @@ export default function RouterDetailPage() {
             <Wifi className="w-4 h-4" />
             <span className="hidden sm:inline">Wireless</span>
           </TabsTrigger>
-          <TabsTrigger value="hotspot" className="gap-2">
-            <Wifi className="w-4 h-4" />
-            <span className="hidden sm:inline">Hotspot</span>
-          </TabsTrigger>
+          {/* REMOVED: Hotspot Tab Trigger */}
           <TabsTrigger value="hotspot-ipconfig" className="gap-2">
             <Network className="w-4 h-4" />
             <span className="hidden sm:inline">Hotspot IP Config</span>
@@ -1342,10 +1339,7 @@ export default function RouterDetailPage() {
           <RouterWirelessTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
         </TabsContent>
 
-        {/* Hotspot Tab */}
-        <TabsContent value="hotspot" className="mt-6">
-          <RouterHotspotTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
-        </TabsContent>
+        {/* REMOVED: Hotspot Tab Content */}
 
         {/* Hotspot IP Config Tab */}
         <TabsContent value="hotspot-ipconfig" className="mt-6">
