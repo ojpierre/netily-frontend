@@ -398,6 +398,25 @@ export interface FeatureRequest {
   created_at: string;
 }
 
+// Lead Types
+export interface LeadItem {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  company_name: string;
+  message: string;
+  created_at: string;
+}
+
+export interface LeadStats {
+  total: number;
+  this_month: number;
+  last_30_days: number;
+  last_7_days: number;
+  trend: { month: string; count: number }[];
+}
+
 // ── API class ──────────────────────────────────────
 
 const TOKEN_KEY = "superadminToken"
@@ -824,6 +843,17 @@ class SuperadminApiService {
     a.download = "payments_export.csv"
     a.click()
     URL.revokeObjectURL(a.href)
+  }
+
+  // ── Leads ──
+
+  async getLeads(params?: Record<string, string>): Promise<PaginatedResponse<LeadItem>> {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
+    return this.request(`/superadmin/leads/${qs}`)
+  }
+
+  async getLeadStats(): Promise<LeadStats> {
+    return this.request("/superadmin/leads/stats/")
   }
 }
 

@@ -15,29 +15,63 @@ import {
   CheckCircle2,
   Clock,
   Ban,
+  Mail,
+  Phone,
+  BarChart3,
+  FileText,
+  ChevronRight,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { superadminApi, type DashboardKPI, type ActivityItem, type Tenant } from "@/lib/superadmin-api"
+import {
+  superadminApi,
+  type DashboardKPI,
+  type ActivityItem,
+  type Tenant,
+  type PaymentSummary,
+  type SubscriptionPayment,
+  type RevenueTrendItem,
+  type PlanDistribution,
+  type LeadItem,
+  type LeadStats,
+} from "@/lib/superadmin-api"
 
 export default function SuperAdminDashboardPage() {
   const [kpi, setKpi] = useState<DashboardKPI | null>(null)
   const [activity, setActivity] = useState<ActivityItem[]>([])
   const [tenants, setTenants] = useState<Tenant[]>([])
+  const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null)
+  const [recentPayments, setRecentPayments] = useState<SubscriptionPayment[]>([])
+  const [revenueTrend, setRevenueTrend] = useState<RevenueTrendItem[]>([])
+  const [planDist, setPlanDist] = useState<PlanDistribution[]>([])
+  const [leads, setLeads] = useState<LeadItem[]>([])
+  const [leadStats, setLeadStats] = useState<LeadStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [dashData, actData, tenantData] = await Promise.all([
+      const [dashData, actData, tenantData, paySummary, payData, trendData, planData, leadsData, leadStatsData] = await Promise.all([
         superadminApi.getDashboard(),
         superadminApi.getActivity(10),
         superadminApi.getTenants({ ordering: "-created_at" }),
+        superadminApi.getPaymentSummary().catch(() => null),
+        superadminApi.getPayments({ page_size: "5", ordering: "-created_at" }).catch(() => ({ results: [] })),
+        superadminApi.getRevenueTrend(6).catch(() => []),
+        superadminApi.getPlanDistribution().catch(() => []),
+        superadminApi.getLeads({ page_size: "5" }).catch(() => ({ results: [] })),
+        superadminApi.getLeadStats().catch(() => null),
       ])
       setKpi(dashData)
       setActivity(actData)
       setTenants(tenantData.slice(0, 5))
+      setPaymentSummary(paySummary)
+      setRecentPayments((payData as any).results || [])
+      setRevenueTrend(trendData as RevenueTrendItem[])
+      setPlanDist(planData as PlanDistribution[])
+      setLeads((leadsData as any).results || [])
+      setLeadStats(leadStatsData as LeadStats | null)
     } catch (err) {
       console.error("Dashboard fetch error:", err)
     } finally {
@@ -70,6 +104,8 @@ export default function SuperAdminDashboardPage() {
     }
   }
 
+  const kes = (v: number | string) => `KES ${Number(v || 0).toLocaleString()}`
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -96,14 +132,14 @@ export default function SuperAdminDashboardPage() {
         />
         <KPICard
           title="Total Revenue"
-          value={`KES ${Number(kpi?.total_revenue ?? 0).toLocaleString()}`}
+          value={kes(kpi?.total_revenue ?? 0)}
           icon={CreditCard}
           color="emerald"
           sub="All-time subscription payments"
         />
         <KPICard
           title="MRR"
-          value={`KES ${Number(kpi?.mrr ?? 0).toLocaleString()}`}
+          value={kes(kpi?.mrr ?? 0)}
           icon={TrendingUp}
           color="amber"
           sub="Monthly recurring revenue"
@@ -118,6 +154,196 @@ export default function SuperAdminDashboardPage() {
         <MiniStat label="Recent Signups" value={kpi?.recent_signups ?? 0} className="text-blue-400" />
       </div>
 
+      {/* Revenue Analytics Row */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Revenue Trend */}
+        <Card className="lg:col-span-2 bg-slate-900 border-slate-800">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-emerald-400" />
+                  Revenue Trend
+                </CardTitle>
+                <CardDescription className="text-slate-400">Last 6 months</CardDescription>
+              </div>
+              {paymentSummary && (
+                <div className="text-right">
+                  <p className="text-xs text-slate-500">This Month</p>
+                  <p className="text-lg font-bold text-emerald-400">{kes(paymentSummary.this_month)}</p>
+                  {paymentSummary.pct_change !== undefined && (
+                    <p className={`text-xs ${Number(paymentSummary.pct_change) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {Number(paymentSummary.pct_change) >= 0 ? '+' : ''}{paymentSummary.pct_change}% vs last month
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {revenueTrend.length > 0 ? (
+              <div className="flex items-end gap-2 h-40">
+                {revenueTrend.map((item, i) => {
+                  const max = Math.max(...revenueTrend.map(r => Number(r.revenue || 0)), 1)
+                  const height = (Number(item.revenue || 0) / max) * 100
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <span className="text-[10px] text-slate-400">{kes(item.revenue)}</span>
+                      <div
+                        className="w-full rounded-t-md bg-emerald-500/30 border border-emerald-500/50 transition-all"
+                        style={{ height: `${Math.max(height, 4)}%` }}
+                      />
+                      <span className="text-[10px] text-slate-500">{item.month}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 text-center py-8">No revenue data yet</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Plan Distribution */}
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-violet-400" />
+              Plan Distribution
+            </CardTitle>
+            <CardDescription className="text-slate-400">Subscribers by plan</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {planDist.length > 0 ? (
+              <div className="space-y-3">
+                {planDist.map((p, i) => {
+                  const total = planDist.reduce((s, d) => s + (d.count || 0), 0) || 1
+                  const pct = Math.round(((p.count || 0) / total) * 100)
+                  const colors = ['bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500']
+                  return (
+                    <div key={i}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-slate-300">{p.plan_name || p.name}</span>
+                        <span className="text-slate-400">{p.count} ({pct}%)</span>
+                      </div>
+                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${colors[i % colors.length]}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 text-center py-8">No plan data yet</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Payments & Leads Row */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Recent Payments */}
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-white flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-emerald-400" />
+                Recent Payments
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                {paymentSummary ? `${kes(paymentSummary.total)} total revenue` : 'Subscription payments'}
+              </CardDescription>
+            </div>
+            <Link href="/superadmin/payments">
+              <Button variant="ghost" size="sm" className="text-violet-400 hover:text-violet-300">
+                View All <ArrowUpRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {recentPayments.map((p) => (
+                <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50">
+                  <div>
+                    <p className="text-sm font-medium text-white">{p.company_name || 'Unknown'}</p>
+                    <p className="text-xs text-slate-500">{p.plan_name} · {p.method || 'M-Pesa'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-emerald-400">{kes(p.amount)}</p>
+                    <p className="text-[10px] text-slate-500">
+                      {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {recentPayments.length === 0 && (
+                <p className="text-sm text-slate-500 text-center py-8">No payments yet</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Leads */}
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-white flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-blue-400" />
+                Leads
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                {leadStats ? `${leadStats.total} total · ${leadStats.this_month} this month` : 'Landing page submissions'}
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Lead stats mini cards */}
+            {leadStats && (
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="bg-slate-800/50 rounded-lg p-2 text-center">
+                  <p className="text-lg font-bold text-blue-400">{leadStats.last_7_days}</p>
+                  <p className="text-[10px] text-slate-500">Last 7 days</p>
+                </div>
+                <div className="bg-slate-800/50 rounded-lg p-2 text-center">
+                  <p className="text-lg font-bold text-violet-400">{leadStats.last_30_days}</p>
+                  <p className="text-[10px] text-slate-500">Last 30 days</p>
+                </div>
+                <div className="bg-slate-800/50 rounded-lg p-2 text-center">
+                  <p className="text-lg font-bold text-emerald-400">{leadStats.total}</p>
+                  <p className="text-[10px] text-slate-500">All time</p>
+                </div>
+              </div>
+            )}
+            <div className="space-y-3">
+              {leads.map((l) => (
+                <div key={l.id} className="flex items-start justify-between p-3 rounded-lg bg-slate-800/50">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{l.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Mail className="w-3 h-3 text-slate-500" />
+                      <p className="text-xs text-slate-400 truncate">{l.email}</p>
+                    </div>
+                    {l.company_name && (
+                      <p className="text-xs text-slate-500 mt-0.5">{l.company_name}</p>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-500 shrink-0 ml-2">
+                    {new Date(l.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              ))}
+              {leads.length === 0 && (
+                <p className="text-sm text-slate-500 text-center py-8">No leads yet</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tenants & Activity Row */}
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Recent Tenants */}
         <Card className="lg:col-span-2 bg-slate-900 border-slate-800">

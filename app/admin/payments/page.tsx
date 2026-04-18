@@ -20,6 +20,8 @@ import {
   ArrowDownUp,
   AlertCircle,
   RotateCcw,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -167,6 +169,11 @@ export default function PaymentsPage() {
   const [methodFilter, setMethodFilter] = useState("all")
   const [activeTab, setActiveTab] = useState("all")
 
+  // Pagination
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const pageSize = 20
+
   // UI states
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isMpesaOpen, setIsMpesaOpen] = useState(false)
@@ -209,7 +216,7 @@ export default function PaymentsPage() {
   // Fetch data
   const fetchData = useCallback(async () => {
     try {
-      const params: Record<string, string> = { ordering: '-created_at' }
+      const params: Record<string, string> = { ordering: '-created_at', page: String(page), page_size: String(pageSize) }
       if (activeTab !== 'all') {
         params.status = activeTab.toUpperCase()
       }
@@ -226,6 +233,7 @@ export default function PaymentsPage() {
       ])
 
       setPayments(paymentsRes.results || [])
+      setTotalCount(paymentsRes.count || 0)
       if (statsRes) setStats(statsRes)
     } catch (error) {
       console.error('Failed to fetch payments:', error)
@@ -233,7 +241,7 @@ export default function PaymentsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [activeTab, methodFilter, searchQuery])
+  }, [activeTab, methodFilter, searchQuery, page])
 
   useEffect(() => {
     fetchData()
@@ -717,10 +725,10 @@ export default function PaymentsPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <CardTitle>Payment Transactions</CardTitle>
-              <CardDescription>{payments.length} total payments</CardDescription>
+              <CardDescription>{totalCount} total payments</CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1) }}>
                 <TabsList>
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="pending">Pending</TabsTrigger>
@@ -728,7 +736,7 @@ export default function PaymentsPage() {
                   <TabsTrigger value="failed">Failed</TabsTrigger>
                 </TabsList>
               </Tabs>
-              <Select value={methodFilter} onValueChange={setMethodFilter}>
+              <Select value={methodFilter} onValueChange={(v) => { setMethodFilter(v); setPage(1) }}>
                 <SelectTrigger className="w-[130px]">
                   <SelectValue placeholder="Method" />
                 </SelectTrigger>
@@ -745,7 +753,7 @@ export default function PaymentsPage() {
                 <Input
                   placeholder="Search..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
                   className="pl-9 w-[180px]"
                 />
               </div>
@@ -843,6 +851,38 @@ export default function PaymentsPage() {
               <CreditCard className="mx-auto h-12 w-12 text-muted-foreground" />
               <h3 className="mt-4 text-lg font-semibold">No payments found</h3>
               <p className="text-muted-foreground">Payments will appear here once processed.</p>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalCount > pageSize && (
+            <div className="flex items-center justify-between border-t px-4 py-3">
+              <p className="text-sm text-muted-foreground">
+                Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} of {totalCount}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <span className="text-sm font-medium px-2">
+                  Page {page} of {Math.ceil(totalCount / pageSize)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= Math.ceil(totalCount / pageSize)}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

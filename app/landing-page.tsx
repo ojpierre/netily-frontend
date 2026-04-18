@@ -826,21 +826,21 @@ export function LandingPage() {
                 <div className="relative z-10">
                   <div className="inline-flex items-center gap-2 bg-blue-600 text-white rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider mb-6">
                     <Shield className="w-3.5 h-3.5" />
-                    Lock in Overhead
+                    Fixed Plans
                   </div>
-                  <h3 className="text-2xl font-bold mb-1">Flat Tiers</h3>
-                  <p className="text-slate-500 mb-8">Predictable monthly costs. Scale without surprises.</p>
+                  <h3 className="text-2xl font-bold mb-1">Predictable Plans</h3>
+                  <p className="text-slate-500 mb-8">Lock in a fixed monthly rate. No billing surprises, ever.</p>
 
                   <div className="grid grid-cols-3 gap-3 mb-8">
                     {[
-                      { name: "Starter", price: "2,999" },
-                      { name: "Pro", price: "7,999" },
-                      { name: "Enterprise", price: "19,999" },
+                      { name: "Starter", desc: "Up to 200 subs", highlight: "Small ISPs" },
+                      { name: "Pro", desc: "Up to 1,000 subs", highlight: "Growing ISPs" },
+                      { name: "Enterprise", desc: "Unlimited", highlight: "Large ISPs" },
                     ].map((tier) => (
                       <div key={tier.name} className="text-center p-3 rounded-xl bg-slate-50 border border-slate-100">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{tier.name}</p>
-                        <p className="text-lg font-bold text-slate-900">{tier.price}</p>
-                        <p className="text-xs text-slate-400">KES/mo</p>
+                        <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">{tier.name}</p>
+                        <p className="text-sm font-bold text-slate-900">{tier.desc}</p>
+                        <p className="text-xs text-slate-400">{tier.highlight}</p>
                       </div>
                     ))}
                   </div>
@@ -851,6 +851,7 @@ export function LandingPage() {
                       "Priority email & phone support",
                       "Custom branding & white-label",
                       "Advanced analytics dashboard",
+                      "Only 3% transaction commission",
                       "Dedicated account manager (Enterprise)",
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-3 text-slate-700">
@@ -864,7 +865,7 @@ export function LandingPage() {
                     onClick={() => scrollTo("contact")}
                     className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-white transition-colors shadow-sm"
                   >
-                    Book a Demo
+                    Get a Custom Quote
                   </button>
                 </div>
               </div>
@@ -1041,12 +1042,16 @@ export function LandingPage() {
                     if (Object.keys(errors).length > 0) { setLeadFormErrors(errors); return }
                     setLeadSubmitting(true)
                     const ctrl = new AbortController()
-                    const timeout = setTimeout(() => ctrl.abort(), 10000)
+                    const timeout = setTimeout(() => ctrl.abort(), 15000)
                     try {
-                      await submitLead(leadForm)
+                      await submitLead(leadForm, ctrl.signal)
                       setLeadSubmitted(true)
-                    } catch {
-                      setLeadSubmitted(true)
+                    } catch (err: any) {
+                      if (err?.name === 'AbortError') {
+                        setLeadSubmitted(true) // Show success anyway — lead may have been saved
+                      } else {
+                        setLeadSubmitted(true)
+                      }
                     } finally {
                       clearTimeout(timeout)
                       setLeadSubmitting(false)
