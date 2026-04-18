@@ -676,9 +676,20 @@ class AdminApiService {
     })
   }
 
-  async activateService(customerId: number, serviceId: number): Promise<any> {
+  async activateService(
+    customerId: number, 
+    serviceId: number, 
+    paymentData?: {
+      record_payment?: boolean
+      payment_amount?: number
+      payment_method_id?: number
+      payment_reference?: string
+      payment_notes?: string
+    }
+  ): Promise<any> {
     return this.request(`/customers/${customerId}/services/${serviceId}/activate/`, {
       method: 'POST',
+      body: JSON.stringify(paymentData || {}),
     })
   }
 

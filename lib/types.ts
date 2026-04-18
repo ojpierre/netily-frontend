@@ -298,6 +298,8 @@ export interface CustomerService {
   upload_speed?: number
   created_at: string
   updated_at: string
+  billing_account_number?: string
+  mpesa_account_number?: string
 }
 
 export interface ServicePlan {

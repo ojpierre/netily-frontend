@@ -32,6 +32,7 @@ import {
   Power,
   Copy,
   Smartphone,
+  CreditCard,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
 import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession } from "@/lib/types"
@@ -238,7 +239,9 @@ const mapCustomerToUser = (customer: Customer): User => {
     id: customer.customer_number || `USR-${customer.id}`,
     customerId: customer.id,
     serviceId: primaryService?.id ?? null,
-    billingAccountNumber: customer.billing_account_number,
+    billingAccountNumber: primaryService?.billing_account_number 
+      || (customer as any).billing_account_number 
+      || null,
     name: customer.full_name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
     email: customer.email || 'No email',
     phone: customer.phone || 'No phone',
@@ -330,6 +333,7 @@ export default function UsersPage() {
     radius_password: "",
   })
 
+  // Updated newCustomerForm state with payment fields
   const [newCustomerForm, setNewCustomerForm] = useState({
     first_name: "",
     last_name: "",
@@ -343,6 +347,9 @@ export default function UsersPage() {
     assigned_ip: "" as string, 
     activate_now: true,
     activation_delay_minutes: 0,
+    record_initial_payment: false,
+    initial_payment_amount: '' as string | number,
+    initial_payment_reference: '',
   })
 
   const hasFetched = React.useRef(false)
@@ -487,6 +494,7 @@ export default function UsersPage() {
     setRefreshing(false)
   }
 
+  // Updated handleCreateCustomer with payment recording
   const handleCreateCustomer = async () => {
     if (!newCustomerForm.first_name || !newCustomerForm.last_name) {
       toast.error("First name and last name are required")
@@ -514,6 +522,7 @@ export default function UsersPage() {
 
       const newCustomer = await adminApi.createCustomer(customerData)
       
+      let newService = null
       if (newCustomerForm.connection_type) {
         try {
           const serviceData: Record<string, any> = {
@@ -549,10 +558,36 @@ export default function UsersPage() {
             }
           }
           
-          await adminApi.createCustomerService(newCustomer.id, serviceData)
+          newService = await adminApi.createCustomerService(newCustomer.id, serviceData)
         } catch (serviceError: any) {
           console.error('Service creation error:', serviceError)
           toast.error(serviceError.message || 'Failed to create service for customer')
+        }
+      }
+
+      // Handle activation with optional payment
+      if (newCustomerForm.activate_now && newService?.id) {
+        const activatePayload: Record<string, any> = {}
+        
+        if (newCustomerForm.record_initial_payment && newCustomerForm.initial_payment_amount) {
+          activatePayload.record_payment = true
+          activatePayload.payment_amount = parseFloat(String(newCustomerForm.initial_payment_amount))
+          activatePayload.payment_reference = newCustomerForm.initial_payment_reference || ''
+          activatePayload.payment_notes = 'Initial payment on service activation'
+        }
+        
+        try {
+          const activateResult = await adminApi.activateService(newCustomer.id, newService.id, activatePayload)
+          
+          // Show the billing account number prominently
+          if (activateResult?.billing_account_number) {
+            toast.success(
+              `✓ Service activated! Paybill Account: ${activateResult.billing_account_number}`,
+              { duration: 8000 }
+            )
+          }
+        } catch (e: any) {
+          console.warn('Activation failed:', e)
         }
       }
 
@@ -571,6 +606,9 @@ export default function UsersPage() {
         assigned_ip: "",
         activate_now: true,
         activation_delay_minutes: 0,
+        record_initial_payment: false,
+        initial_payment_amount: '',
+        initial_payment_reference: '',
       })
       setPoolsList([])
       setAvailableIPs([])
@@ -1303,9 +1341,27 @@ export default function UsersPage() {
                   </div>
                 )}
               </div>
+
+              {/* Billing Account Number — auto-generated, shown after creation */}
+              <div className="space-y-2 sm:col-span-2 mt-4">
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CreditCard className="w-4 h-4 text-blue-600" />
+                    <Label className="text-blue-900 font-medium">M-Pesa Paybill Account Number</Label>
+                  </div>
+                  <p className="text-xs text-blue-700">
+                    A unique account number (e.g. <strong>JOH-001</strong>) will be auto-generated 
+                    for this customer. They use this as the <em>Account Reference</em> when paying 
+                    via your Paybill shortcode. The number appears in the user details after creation.
+                  </p>
+                </div>
+              </div>
+
               <p className="text-xs text-muted-foreground mt-2">
                 * Required fields. PPPoE and Hotspot users will automatically get RADIUS credentials created.
               </p>
+              
+              {/* Activation Options */}
               <div className="flex items-center gap-3 mt-3 p-3 bg-slate-50 rounded-lg border">
                 <Checkbox
                   id="activate_now"
@@ -1319,6 +1375,7 @@ export default function UsersPage() {
                   </p>
                 </div>
               </div>
+              
               <div className="flex items-center gap-3 mt-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
                 <Checkbox
                   id="activate_delay_1hr"
@@ -1335,6 +1392,7 @@ export default function UsersPage() {
                   </p>
                 </div>
               </div>
+              
               <div className="flex items-center gap-3 mt-2 p-3 bg-slate-50 rounded-lg border">
                 <Checkbox
                   id="activate_pending"
@@ -1348,6 +1406,65 @@ export default function UsersPage() {
                   </p>
                 </div>
               </div>
+
+              {/* Record Initial Payment Section */}
+              {newCustomerForm.activate_now && (
+                <div className="space-y-3 mt-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id="record_payment"
+                      checked={newCustomerForm.record_initial_payment || false}
+                      onCheckedChange={(checked) => setNewCustomerForm({
+                        ...newCustomerForm, 
+                        record_initial_payment: checked as boolean,
+                        initial_payment_amount: checked 
+                          ? (plans.find(p => p.id === parseInt(newCustomerForm.plan_id || '0'))?.base_price || '')
+                          : ''
+                      })}
+                    />
+                    <div>
+                      <Label htmlFor="record_payment" className="font-medium cursor-pointer">
+                        Record Initial Payment
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Mark the activation as paid and create a payment record.
+                      </p>
+                    </div>
+                  </div>
+
+                  {newCustomerForm.record_initial_payment && (
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Amount (KES)</Label>
+                        <Input
+                          type="number"
+                          placeholder={
+                            plans.find(p => p.id === parseInt(newCustomerForm.plan_id || '0'))?.base_price 
+                            || "0.00"
+                          }
+                          value={newCustomerForm.initial_payment_amount || ''}
+                          onChange={(e) => setNewCustomerForm({
+                            ...newCustomerForm, 
+                            initial_payment_amount: e.target.value
+                          })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Reference (optional)</Label>
+                        <Input
+                          placeholder="e.g. MPESA receipt"
+                          value={newCustomerForm.initial_payment_reference || ''}
+                          onChange={(e) => setNewCustomerForm({
+                            ...newCustomerForm, 
+                            initial_payment_reference: e.target.value
+                          })}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowAddUserDialog(false)} disabled={creating}>
                   Cancel
@@ -2423,7 +2540,7 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              {/* Subscription Info */}
+              {/* Subscription Info - Enhanced with prominent billing account number */}
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <h3 className="font-semibold text-slate-900 mb-3">Subscription</h3>
                 <div className="space-y-2 text-sm">
@@ -2447,23 +2564,35 @@ export default function UsersPage() {
                       {selectedUser.plan === "No Plan" ? "Managed by Voucher" : new Date(selectedUser.expiryDate).toLocaleDateString()}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-slate-600">Billing Account Number</span>
+                  {/* Prominent Billing Account Number section */}
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-blue-200">
+                    <span className="text-slate-600">Billing Account No.</span>
                     <div className="flex items-center gap-1.5">
-                      <span className="font-medium">{selectedUser.billingAccountNumber || 'Not available'}</span>
-                      {selectedUser.billingAccountNumber && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => copyToClipboard(selectedUser.billingAccountNumber!, 'Billing account number')}
-                          title="Copy account number"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </Button>
+                      {selectedUser.billingAccountNumber ? (
+                        <>
+                          <code className="text-sm font-mono font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
+                            {selectedUser.billingAccountNumber}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => copyToClipboard(selectedUser.billingAccountNumber!, 'Billing account number')}
+                            title="Copy — customer uses this as Paybill reference"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">Not assigned</span>
                       )}
                     </div>
                   </div>
+                  {selectedUser.billingAccountNumber && (
+                    <div className="mt-1 p-2 bg-blue-100 rounded text-xs text-blue-800">
+                      📱 Customer pays via Paybill → enters <strong>{selectedUser.billingAccountNumber}</strong> as account reference
+                    </div>
+                  )}
                 </div>
               </div>
 
