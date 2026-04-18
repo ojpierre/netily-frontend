@@ -980,7 +980,7 @@ export default function PlansPage() {
     }
   }
 
-  // Hotspot quick-create from preset — updated to support 'all' routers
+  // Hotspot quick-create from preset — updated to support 'all' routers with is_global_template
   const handleHotspotPresetCreate = async (preset: HotspotPreset) => {
     if (!selectedRouterId) {
       toast.error('Please select a router first')
@@ -1004,6 +1004,8 @@ export default function PlansPage() {
           simultaneous_devices: preset.config.max_sessions || 1,
           is_active: true,
           is_popular: false,
+          // Mark as global template when "All Routers" was selected
+          is_global_template: selectedRouterId === 'all',
         } as any)
       }
       
@@ -1020,7 +1022,7 @@ export default function PlansPage() {
     }
   }
 
-  // Hotspot custom create handler — updated to support 'all' routers
+  // Hotspot custom create handler — updated to support 'all' routers with is_global_template
   const handleHotspotCustomCreate = async () => {
     if (!hotspotForm.name || !hotspotForm.price) {
       toast.error('Name and price are required')
@@ -1051,6 +1053,8 @@ export default function PlansPage() {
           simultaneous_devices: hotspotForm.max_sessions ? parseInt(hotspotForm.max_sessions) : 1,
           is_active: true,
           is_popular: false,
+          // Mark as global template when "All Routers" was selected
+          is_global_template: selectedRouterId === 'all',
         } as any)
       }
       
