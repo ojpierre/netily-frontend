@@ -1,15 +1,15 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Outfit } from "next/font/google"
 import { AuthProvider } from "./auth-context"
 import { AuthGuard } from "@/components/auth-guard"
 import { NavigationProgress } from "@/components/navigation-progress"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
+import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
-const geist = Geist({ subsets: ["latin"] })
-const geistMono = Geist_Mono({ subsets: ["latin"] })
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" })
 
 export const metadata: Metadata = {
   title: {
@@ -121,15 +121,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geist.className} ${geistMono.className}`} suppressHydrationWarning>
-        <NavigationProgress />
-        <AuthProvider>
-          <AuthGuard>
-            {children}
-            <Toaster />
-          </AuthGuard>
-        </AuthProvider>
-        <Analytics />
+      <body className={outfit.className} suppressHydrationWarning>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <NavigationProgress />
+          <AuthProvider>
+            <AuthGuard>
+              {children}
+              <Toaster />
+            </AuthGuard>
+          </AuthProvider>
+          <Analytics />
+        </ThemeProvider>
       </body>
     </html>
   )

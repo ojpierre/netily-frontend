@@ -88,9 +88,9 @@ class CustomerApiService {
   }
 
   private getAuthHeaders(): HeadersInit {
-    // Use access_token which is set by auth-context during login
+    // Use customerToken which is set by customer-auth-context during login
     const token = typeof window !== 'undefined' 
-      ? localStorage.getItem('access_token') 
+      ? localStorage.getItem('customerToken') 
       : null
     
     const headers: HeadersInit = {

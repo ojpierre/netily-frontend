@@ -33,6 +33,7 @@ import {
   BanknoteIcon,
 } from "lucide-react"
 import { useState, useEffect } from "react"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { submitLead } from "@/lib/api"
 
 // ─── Scroll-reveal wrapper ─────────────────────────────────────
@@ -328,6 +329,7 @@ export function LandingPage() {
 
             {/* Right side */}
             <div className="hidden md:flex items-center gap-4">
+              <ThemeToggle />
               <button
                 onClick={() => scrollTo("contact")}
                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm"
@@ -337,13 +339,16 @@ export function LandingPage() {
               </button>
             </div>
 
-            {/* Mobile hamburger */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 -mr-2 text-slate-600"
-            >
+            {/* Mobile controls */}
+            <div className="md:hidden flex items-center gap-1">
+              <ThemeToggle />
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 -mr-2 text-slate-600 dark:text-slate-300"
+              >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+              </button>
+            </div>
           </div>
         </div>
 

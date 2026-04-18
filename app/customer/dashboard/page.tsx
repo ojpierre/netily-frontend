@@ -17,9 +17,7 @@ import {
   AlertCircle,
   CreditCard,
   FileText,
-  LogOut,
   User,
-  Menu
 } from "lucide-react"
 import { customerApi } from "@/lib/customer-api"
 import { MpesaPaymentModal } from "@/components/mpesa-payment-modal"
@@ -62,32 +60,18 @@ export default function CustomerDashboardPage() {
     fetchDashboard()
   }, [router])
 
-  const handleLogout = () => {
-    localStorage.removeItem("customerToken")
-    localStorage.removeItem("customerRefreshToken")
-    router.push("/customer/login")
-  }
-
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <header className="bg-white border-b sticky top-0 z-10">
-          <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-8 w-24" />
-          </div>
-        </header>
-        <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-          <div className="grid md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <Card key={i} className="p-6">
-                <Skeleton className="h-4 w-24 mb-2" />
-                <Skeleton className="h-8 w-32" />
-              </Card>
-            ))}
-          </div>
-        </main>
+      <div className="space-y-6">
+        <div className="grid md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="p-6">
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-8 w-32" />
+            </Card>
+          ))}
+        </div>
       </div>
     )
   }
@@ -95,11 +79,11 @@ export default function CustomerDashboardPage() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <Card className="p-8 text-center max-w-md">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Error Loading Dashboard</h2>
-          <p className="text-slate-600 mb-4">{error}</p>
+          <h2 className="text-xl font-bold mb-2">Error Loading Dashboard</h2>
+          <p className="text-muted-foreground mb-4">{error}</p>
           <Button onClick={() => window.location.reload()}>Try Again</Button>
         </Card>
       </div>
@@ -112,30 +96,20 @@ export default function CustomerDashboardPage() {
   const daysRemaining = data.current_plan?.days_remaining ?? 0
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Wifi className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h1 className="font-bold text-slate-900">{data.customer.full_name}</h1>
-              <p className="text-xs text-slate-500">{data.customer.customer_code}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
+    <div className="space-y-6">
+      {/* Welcome Banner */}
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center">
+          <Wifi className="w-5 h-5 text-blue-600 dark:text-blue-400" />
         </div>
-      </header>
+        <div>
+          <h1 className="font-bold text-lg">Welcome, {data.customer.full_name}</h1>
+          <p className="text-xs text-muted-foreground">{data.customer.customer_code}</p>
+        </div>
+      </div>
 
       {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <div className="space-y-6">
         {/* Quick Stats */}
         <div className="grid md:grid-cols-4 gap-4">
           <Card className="p-5">
@@ -387,7 +361,7 @@ export default function CustomerDashboardPage() {
             </div>
           </Card>
         )}
-      </main>
+      </div>
 
       {/* M-Pesa Payment Modal */}
       {data.current_plan && (
@@ -399,7 +373,6 @@ export default function CustomerDashboardPage() {
           amount={data.current_plan.price}
           billingPeriod="monthly"
           onSuccess={() => {
-            // Refresh dashboard data
             window.location.reload()
           }}
         />

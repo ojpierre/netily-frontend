@@ -62,6 +62,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { TrialCountdown, TrialCountdownCompact } from "@/components/trial-countdown"
 import { TrialGuard } from "@/components/trial-guard"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 // Navigation organized by sections
 const navigationSections = [
@@ -340,7 +341,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         }`}
       >
         {/* Top navigation bar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-white px-4 lg:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-white dark:bg-slate-900 dark:border-slate-800 px-4 lg:px-6">
           {/* Mobile menu button */}
           <Button
             variant="ghost"
@@ -369,6 +370,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             <div className="hidden md:block">
               <TrialCountdown />
             </div>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
 
             {/* Notifications */}
             <Button variant="ghost" size="icon" className="relative">
