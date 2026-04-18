@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,64 +9,11 @@ import {
   Shield,
   Users,
   ArrowRight,
-  Loader2,
   Monitor,
   Smartphone,
 } from "lucide-react"
-import { adminApi } from "@/lib/admin-api"
-import { customerApi } from "@/lib/customer-api"
-import { toast } from "sonner"
-
-// Demo credentials — pre-configured on demo.netily.co.ke tenant
-const DEMO_ADMIN = {
-  email: "admin@demo.netily.co.ke",
-  password: "DemoAdmin2026!",
-}
-
-const DEMO_CUSTOMER = {
-  phone: "+254700000000",
-  password: "+254700000000",
-}
 
 export default function DemoPage() {
-  const router = useRouter()
-  const [adminLoading, setAdminLoading] = useState(false)
-  const [customerLoading, setCustomerLoading] = useState(false)
-
-  const handleAdminDemo = async () => {
-    try {
-      setAdminLoading(true)
-      const res = await adminApi.login(DEMO_ADMIN.email, DEMO_ADMIN.password)
-      if (res.access) {
-        localStorage.setItem("adminToken", res.access)
-        if (res.refresh) localStorage.setItem("adminRefreshToken", res.refresh)
-        toast.success("Welcome to the ISP Admin demo!")
-        router.push("/admin")
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Demo login failed. Please try again.")
-    } finally {
-      setAdminLoading(false)
-    }
-  }
-
-  const handleCustomerDemo = async () => {
-    try {
-      setCustomerLoading(true)
-      const res = await customerApi.login(DEMO_CUSTOMER.phone, DEMO_CUSTOMER.password)
-      if (res.access) {
-        localStorage.setItem("customerToken", res.access)
-        if (res.refresh) localStorage.setItem("customerRefreshToken", res.refresh)
-        toast.success("Welcome to the Customer Portal demo!")
-        router.push("/customer/dashboard")
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Demo login failed. Please try again.")
-    } finally {
-      setCustomerLoading(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-blue-950 flex flex-col">
       {/* Header */}
@@ -139,15 +85,12 @@ export default function DemoPage() {
                 <Button
                   className="w-full bg-blue-600 hover:bg-blue-700"
                   size="lg"
-                  onClick={handleAdminDemo}
-                  disabled={adminLoading || customerLoading}
+                  asChild
                 >
-                  {adminLoading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
+                  <Link href="/demo/admin">
                     <ArrowRight className="w-4 h-4 mr-2" />
-                  )}
-                  Enter ISP Dashboard
+                    Enter ISP Dashboard
+                  </Link>
                 </Button>
               </div>
             </Card>
@@ -186,15 +129,12 @@ export default function DemoPage() {
                 <Button
                   className="w-full bg-green-600 hover:bg-green-700"
                   size="lg"
-                  onClick={handleCustomerDemo}
-                  disabled={adminLoading || customerLoading}
+                  asChild
                 >
-                  {customerLoading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
+                  <Link href="/demo/customer">
                     <ArrowRight className="w-4 h-4 mr-2" />
-                  )}
-                  Enter Customer Portal
+                    Enter Customer Portal
+                  </Link>
                 </Button>
               </div>
             </Card>
