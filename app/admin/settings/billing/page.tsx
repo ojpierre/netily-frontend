@@ -356,6 +356,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
         {/* 1. CURRENT PLAN */}
         <TabsContent value="current">
           {subscription ? (
+            <>
             <Card className="border-slate-200 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="space-y-1">
@@ -547,6 +548,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                 </div>
               </DialogContent>
             </Dialog>
+            </>
           ) : (
             <div className="py-20 text-center border-2 border-dashed rounded-xl">
               <p className="text-slate-400">No active subscription found.</p>
