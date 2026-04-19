@@ -2200,6 +2200,7 @@ export interface CompanySubscription {
   plan_name?: string           // Flattened name from serializer
   status: SubscriptionStatus
   billing_period?: 'monthly' | 'yearly' // Billing cycle (monthly/yearly)
+  is_trial?: boolean
   trial_ends_at: string | null
   current_period_start: string
   current_period_end: string

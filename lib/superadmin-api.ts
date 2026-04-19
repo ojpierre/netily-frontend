@@ -417,6 +417,24 @@ export interface LeadStats {
   trend: { month: string; count: number }[];
 }
 
+// Tenant User Ledger (Immutable Audit Trail)
+export interface LedgerEntry {
+  id: number;
+  tenant: string;
+  tenant_name: string;
+  tenant_subdomain: string;
+  event: string;
+  user_type: string;
+  customer_code: string;
+  customer_name: string;
+  username: string;
+  phone_number: string;
+  plan_name: string;
+  pppoe_count_after: number;
+  hotspot_count_after: number;
+  created_at: string;
+}
+
 // ── API class ──────────────────────────────────────
 
 const TOKEN_KEY = "superadminToken"
@@ -854,6 +872,13 @@ class SuperadminApiService {
 
   async getLeadStats(): Promise<LeadStats> {
     return this.request("/superadmin/leads/stats/")
+  }
+
+  // ── Tenant User Ledger ──
+
+  async getUserLedger(params?: Record<string, string>): Promise<PaginatedResponse<LedgerEntry>> {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
+    return this.request(`/superadmin/user-ledger/${qs}`)
   }
 }
 

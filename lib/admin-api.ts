@@ -3240,6 +3240,7 @@ async activateService(
     phone_number?: string
     billing_period: 'monthly' | 'yearly'
     amount?: number  // Override amount (e.g. invoice total)
+    defer_billing_to_trial_end?: boolean  // If true, billing starts after trial ends
   }): Promise<{ 
     payment_id: string
     checkout_request_id: string

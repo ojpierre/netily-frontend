@@ -43,6 +43,12 @@ function BillingContent() {
   const [pendingPaymentId, setPendingPaymentId] = useState<string | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<string>("")
 
+  // Pay Now dialog state (for active metered subscription)
+  const [payNowOpen, setPayNowOpen] = useState(false)
+  const [payNowPhone, setPayNowPhone] = useState("")
+  const [payNowLoading, setPayNowLoading] = useState(false)
+  const [deferBilling, setDeferBilling] = useState(true) // default: billing starts after trial
+
   const loadBillingData = async (showSpinner = false) => {
     if (showSpinner) setIsLoading(true)
     try {
@@ -278,6 +284,37 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
     }
   }
 
+  // STK Push payment for Pay Now on active subscription (trial or active metered)
+  const handlePayNow = async () => {
+    if (!subscription?.plan) return
+    const phone = payNowPhone.trim()
+    if (!phone || phone.length < 10) {
+      toast.error("Please enter a valid phone number")
+      return
+    }
+    setPayNowLoading(true)
+    try {
+      const res = await adminApi.initiateSubscriptionPayment({
+        plan_id: subscription.plan.code,
+        payment_method: 'mpesa_stk',
+        phone_number: phone.startsWith('0') ? `254${phone.slice(1)}` : phone,
+        billing_period: subscription.billing_period || 'monthly',
+        defer_billing_to_trial_end: subscription.is_trial ? deferBilling : undefined,
+      })
+      toast.success("STK Push sent! Check your phone and enter your M-Pesa PIN.")
+      setPayNowOpen(false)
+      setPayNowPhone("")
+      if (res.payment_id) {
+        setPendingPaymentId(res.payment_id)
+        setPaymentStatus("Waiting for M-Pesa confirmation…")
+      }
+    } catch (error: any) {
+      toast.error(error?.message || "Payment initiation failed")
+    } finally {
+      setPayNowLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -400,7 +437,116 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   </ul>
                 </div>
               </CardContent>
+
+              {/* ─── Pay Now Section ─── */}
+              {subscription.plan?.is_metered && (subscription.status === 'active' || subscription.status === 'trialing' || subscription.is_trial) && (
+                <CardFooter className="flex flex-col items-stretch gap-4 pt-4 border-t border-slate-100">
+                  {/* Trial badge + days remaining */}
+                  {subscription.is_trial && subscription.trial_ends_at && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3">
+                      <Clock className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-800">
+                          Trial ends {new Date(subscription.trial_ends_at).toLocaleDateString('en-KE', { dateStyle: 'long' })}
+                        </p>
+                        <p className="text-xs text-amber-600 mt-0.5">
+                          {Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} days remaining — pay now to secure your subscription
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    className="w-full sm:w-auto bg-green-600 hover:bg-green-700 font-bold"
+                    onClick={() => {
+                      setPayNowOpen(true)
+                      setPayNowPhone("")
+                      setDeferBilling(!!subscription.is_trial) // default: defer if on trial
+                    }}
+                    disabled={!!pendingPaymentId}
+                  >
+                    <Phone className="w-4 h-4 mr-2" />
+                    {subscription.is_trial ? 'Pay Now — Activate Subscription' : 'Pay Now'}
+                  </Button>
+                </CardFooter>
+              )}
             </Card>
+
+            {/* ─── Pay Now Dialog ─── */}
+            <Dialog open={payNowOpen} onOpenChange={(open) => { if (!open) { setPayNowOpen(false); setPayNowPhone("") } }}>
+              <DialogContent className="sm:max-w-[440px]">
+                <DialogHeader>
+                  <DialogTitle>
+                    {subscription?.is_trial ? 'Activate Your Subscription' : 'Pay for Current Cycle'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {subscription?.plan?.is_metered
+                      ? `Base fee: ${kes(Number(subscription?.plan?.base_license_fee) || 0)} — metered usage will be added at cycle end`
+                      : `Amount: ${kes(Number(subscription?.plan?.price_monthly) || 0)}`
+                    }
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="mt-4 space-y-4">
+                  {/* Billing cycle start options — only shown during trial */}
+                  {subscription?.is_trial && subscription?.trial_ends_at && (
+                    <div className="space-y-3 bg-slate-50 rounded-lg p-4 border border-slate-200">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">When should billing start?</p>
+                      <label className="flex items-start gap-3 cursor-pointer group">
+                        <input
+                          type="radio"
+                          name="billing_start"
+                          checked={deferBilling}
+                          onChange={() => setDeferBilling(true)}
+                          className="mt-1 accent-green-600"
+                        />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800 group-hover:text-green-700">Start billing after trial ends</p>
+                          <p className="text-xs text-slate-500">
+                            Pay now, but your 30-day billing cycle starts on {new Date(subscription.trial_ends_at).toLocaleDateString('en-KE', { dateStyle: 'medium' })}. Continue using your trial until then.
+                          </p>
+                        </div>
+                      </label>
+                      <label className="flex items-start gap-3 cursor-pointer group">
+                        <input
+                          type="radio"
+                          name="billing_start"
+                          checked={!deferBilling}
+                          onChange={() => setDeferBilling(false)}
+                          className="mt-1 accent-blue-600"
+                        />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800 group-hover:text-blue-700">Start billing immediately</p>
+                          <p className="text-xs text-slate-500">
+                            Your 30-day paid billing cycle starts today. Trial ends immediately.
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 block mb-1.5">M-Pesa Phone Number</label>
+                    <Input
+                      placeholder="0712345678"
+                      value={payNowPhone}
+                      onChange={(e) => setPayNowPhone(e.target.value)}
+                      maxLength={13}
+                    />
+                    <p className="text-xs text-slate-400 mt-1">You&apos;ll receive an STK push prompt on this number</p>
+                  </div>
+                  <Button
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    disabled={payNowLoading || !payNowPhone.trim()}
+                    onClick={handlePayNow}
+                  >
+                    {payNowLoading
+                      ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                      : `Send STK Push — ${kes(Number(subscription?.plan?.base_license_fee) || Number(subscription?.plan?.price_monthly) || 0)}`
+                    }
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           ) : (
             <div className="py-20 text-center border-2 border-dashed rounded-xl">
               <p className="text-slate-400">No active subscription found.</p>
