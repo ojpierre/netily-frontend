@@ -140,18 +140,18 @@ export interface FupUsageWindowDto {
 // --- MAPPERS ---
 const getStatusBadge = (status: string) => {
   switch (status) {
-    case "ACTIVE": return <Badge className="bg-green-100 text-green-700">Active</Badge>
-    case "INACTIVE": return <Badge className="bg-gray-100 text-gray-700">Inactive</Badge>
-    case "DRAFT": return <Badge className="bg-yellow-100 text-yellow-700">Draft</Badge>
+    case "ACTIVE": return <Badge className="bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400">Active</Badge>
+    case "INACTIVE": return <Badge className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300">Inactive</Badge>
+    case "DRAFT": return <Badge className="bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300">Draft</Badge>
     default: return <Badge variant="outline">{status}</Badge>
   }
 }
 
 const getViolationBadge = (status: string) => {
   switch (status) {
-    case "OPEN": return <Badge className="bg-red-100 text-red-700">Open</Badge>
-    case "RESOLVED": return <Badge className="bg-green-100 text-green-700">Resolved</Badge>
-    case "ACKNOWLEDGED": return <Badge className="bg-blue-100 text-blue-700">Acknowledged</Badge>
+    case "OPEN": return <Badge className="bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400">Open</Badge>
+    case "RESOLVED": return <Badge className="bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400">Resolved</Badge>
+    case "ACKNOWLEDGED": return <Badge className="bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400">Acknowledged</Badge>
     default: return <Badge variant="outline">{status}</Badge>
   }
 }
@@ -683,11 +683,11 @@ export default function FUPPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm bg-slate-50 p-4 rounded-lg">
-                    <div><span className="text-slate-500 block">Data Limit</span><span className="font-semibold">{policy.data_limit_gb} GB / {policy.reset_period}</span></div>
-                    <div><span className="text-slate-500 block">Throttle Speed</span><span className="font-semibold">{policy.throttle_download_mbps}↓ / {policy.throttle_upload_mbps}↑ Mbps</span></div>
-                    <div><span className="text-slate-500 block">Linked Plans</span><span className="font-semibold">{policy.linked_plans_count || 0}</span></div>
-                    <div><span className="text-slate-500 block">Status Overview</span><span className="font-semibold">{policy.users_count || 0} Users • {policy.currently_throttled_count || 0} Throttled</span></div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm bg-slate-50 dark:bg-slate-900 p-4 rounded-lg">
+                    <div><span className="text-slate-500 dark:text-slate-400 block">Data Limit</span><span className="font-semibold">{policy.data_limit_gb} GB / {policy.reset_period}</span></div>
+                    <div><span className="text-slate-500 dark:text-slate-400 block">Throttle Speed</span><span className="font-semibold">{policy.throttle_download_mbps}↓ / {policy.throttle_upload_mbps}↑ Mbps</span></div>
+                    <div><span className="text-slate-500 dark:text-slate-400 block">Linked Plans</span><span className="font-semibold">{policy.linked_plans_count || 0}</span></div>
+                    <div><span className="text-slate-500 dark:text-slate-400 block">Status Overview</span><span className="font-semibold">{policy.users_count || 0} Users • {policy.currently_throttled_count || 0} Throttled</span></div>
                   </div>
                 </CardContent>
               </Card>

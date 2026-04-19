@@ -44,22 +44,22 @@ export default function PrivacyPage() {
     <main className="mx-auto max-w-4xl px-6 py-12">
       <div className="mb-8">
         <p className="text-sm text-slate-500">Last updated: {updated}</p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-900">Privacy Policy</h1>
-        <p className="mt-3 text-slate-600">
+        <h1 className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">Privacy Policy</h1>
+        <p className="mt-3 text-slate-600 dark:text-slate-400">
           This policy explains how Netily handles personal and operational data.
         </p>
       </div>
 
-      <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="space-y-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm">
         {sections.map((section) => (
           <section key={section.title}>
-            <h2 className="text-lg font-semibold text-slate-900">{section.title}</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-700">{section.content}</p>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{section.title}</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-300">{section.content}</p>
           </section>
         ))}
       </div>
 
-      <div className="mt-8 text-sm text-slate-600">
+      <div className="mt-8 text-sm text-slate-600 dark:text-slate-400">
         <Link href="/admin/register" className="text-blue-600 hover:underline">
           Back to registration
         </Link>

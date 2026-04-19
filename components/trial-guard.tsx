@@ -119,9 +119,9 @@ function ExpiredPage({ isPaidSubscription, planName, plans, loading = false }: E
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Header */}
-      <header className="bg-white border-b">
+      <header className="bg-white dark:bg-slate-900 border-b dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white">
@@ -139,17 +139,17 @@ function ExpiredPage({ isPaidSubscription, planName, plans, loading = false }: E
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 ${
-            isPaidSubscription ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
+            isPaidSubscription ? "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400" : "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400"
           }`}>
             <Lock className="w-4 h-4" />
             <span className="text-sm font-medium">
               {isPaidSubscription ? "Subscription Overdue" : "Free Trial Expired"}
             </span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
             {isPaidSubscription ? "Subscription Expired" : "Upgrade to Continue"}
           </h1>
-          <p className="text-xl text-slate-600 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-slate-600 dark:text-slate-400 mb-8 max-w-2xl mx-auto">
             {isPaidSubscription 
               ? `Your ${planName || "Starter"} subscription has ended. Choose a plan below to settle your account and restore your network management tools.`
               : "Your 14-day free trial has ended. Choose a plan below to continue managing your ISP business with Netily's powerful tools."}
@@ -228,23 +228,23 @@ function ExpiredPage({ isPaidSubscription, planName, plans, loading = false }: E
       </section>
 
       {/* Features Grid */}
-      <section className="py-16 px-4 bg-white">
+      <section className="py-16 px-4 bg-white dark:bg-slate-900">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold text-center mb-2">
             Everything You Need to Run Your ISP
           </h2>
-          <p className="text-slate-600 text-center mb-12">
+          <p className="text-slate-600 dark:text-slate-400 text-center mb-12">
             Powerful features designed specifically for Internet Service Providers
           </p>
           <div className="grid md:grid-cols-3 gap-8">
             {staticFeatures.map((feature) => (
               <div key={feature.title} className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <feature.icon className="w-5 h-5 text-blue-600" />
+                <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center flex-shrink-0">
+                  <feature.icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">{feature.title}</h3>
-                  <p className="text-sm text-slate-600">{feature.desc}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{feature.desc}</p>
                 </div>
               </div>
             ))}
@@ -284,13 +284,13 @@ function ExpiredPage({ isPaidSubscription, planName, plans, loading = false }: E
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-4 border-t bg-white">
+      <footer className="py-8 px-4 border-t dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-slate-600">© 2025 Netily. All rights reserved.</p>
-          <div className="flex items-center gap-6 text-sm text-slate-600">
-            <a href="#" className="hover:text-slate-900">Privacy Policy</a>
-            <a href="#" className="hover:text-slate-900">Terms of Service</a>
-            <a href="mailto:support@netily.io" className="hover:text-slate-900">support@netily.io</a>
+          <p className="text-sm text-slate-600 dark:text-slate-400">© 2025 Netily. All rights reserved.</p>
+          <div className="flex items-center gap-6 text-sm text-slate-600 dark:text-slate-400">
+            <a href="#" className="hover:text-slate-900 dark:hover:text-white">Privacy Policy</a>
+            <a href="#" className="hover:text-slate-900 dark:hover:text-white">Terms of Service</a>
+            <a href="mailto:support@netily.io" className="hover:text-slate-900 dark:hover:text-white">support@netily.io</a>
           </div>
         </div>
       </footer>

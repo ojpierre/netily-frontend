@@ -207,7 +207,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50" suppressHydrationWarning>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950" suppressHydrationWarning>
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -359,7 +359,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               <Input
                 type="search"
                 placeholder="Search users, routers, logs..."
-                className="pl-9 bg-slate-50 border-slate-200"
+                className="pl-9 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"
               />
             </div>
           </div>

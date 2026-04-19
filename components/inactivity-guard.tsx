@@ -124,19 +124,19 @@ export function InactivityGuard({ children, timeoutMinutes = 5 }: InactivityGuar
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
 
           {/* Modal */}
-          <div className="relative z-10 bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4">
+          <div className="relative z-10 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4">
             <div className="text-center mb-6">
-              <div className="mx-auto w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mb-4">
-                <ShieldAlert className="w-7 h-7 text-amber-600" />
+              <div className="mx-auto w-14 h-14 bg-amber-100 dark:bg-amber-950 rounded-full flex items-center justify-center mb-4">
+                <ShieldAlert className="w-7 h-7 text-amber-600 dark:text-amber-400" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-1">Session Timeout</h2>
-              <p className="text-sm text-slate-500">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Session Timeout</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 You&apos;ve been inactive for a while. For your security, please verify your identity to continue.
               </p>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+              <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
                 <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
