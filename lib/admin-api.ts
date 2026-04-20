@@ -318,6 +318,15 @@ class AdminApiService {
         detail: `Server error: ${response.status}` 
       }))
 
+      // Handle 402 Payment Required - don't block login flow, let TrialGuard handle it
+      if (response.status === 402) {
+        const paymentError = new Error(error.message || 'Payment required') as any
+        paymentError.status = 402
+        paymentError.code = error.code || 'SUBSCRIPTION_EXPIRED'
+        paymentError.isPaymentRequired = true
+        throw paymentError
+      }
+
       // Handle 409 Conflict - preserve full response data (e.g. payment_count)
       if (response.status === 409) {
         const conflictError = new Error(error.detail || 'Conflict') as any

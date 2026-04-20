@@ -90,7 +90,25 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
       // Verify token by getting current admin user
       console.log('loadUser: Fetching user from /core/users/me/...')
-      const userData = await adminApi.getCurrentAdmin() as any
+      let userData: any
+      try {
+        userData = await adminApi.getCurrentAdmin() as any
+      } catch (apiError: any) {
+        // If 402 Payment Required, user is valid but subscription expired
+        // Use cached user data so TrialGuard can show the payment wall
+        if (apiError?.status === 402 || apiError?.isPaymentRequired) {
+          console.log('loadUser: 402 Payment Required — subscription expired, using cached user')
+          const cachedUser = localStorage.getItem('adminUser') || sessionStorage.getItem('adminUser')
+          if (cachedUser) {
+            try {
+              const parsed = JSON.parse(cachedUser)
+              setUser(parsed)
+              return // Let TrialGuard handle the payment wall
+            } catch { /* fall through */ }
+          }
+        }
+        throw apiError // Re-throw non-402 errors
+      }
       
       console.log('loadUser: Received user data:', userData)
       
