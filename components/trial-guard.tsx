@@ -491,14 +491,17 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
       isCheckingNow = true
 
       try {
-        const plansData = await adminApi.getNetilyPlans() as any
-        const plansArray = Array.isArray(plansData) ? plansData : (plansData?.results || [])
+        // Fetch plans and subscription in parallel for faster load
+        const [plansData, subscription] = await Promise.all([
+          adminApi.getNetilyPlans().catch(() => []),
+          adminApi.getCurrentSubscription().catch(() => null),
+        ])
+
+        const plansArray = Array.isArray(plansData) ? plansData : ((plansData as any)?.results || [])
         setRealPlans(plansArray)
         setPlansLoading(false)
 
-        const subscription = await adminApi.getCurrentSubscription()
-
-        if (subscription) {
+        if (subscription && subscription.status) {
           if (subscription.trial_ends_at) {
             const trialEndDate = new Date(subscription.trial_ends_at)
             const trialStartDate = new Date(trialEndDate.getTime() - (trialDays * 24 * 60 * 60 * 1000))
@@ -546,21 +549,24 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
             isCheckingNow = false
             return
           }
-        }
-      } catch (error) {
-        console.error("TrialGuard error:", error)
-        setPlansLoading(false)
-      }
-
-      const cachedExpiry = localStorage.getItem("subscriptionExpiry")
-      if (cachedExpiry) {
-        const expiryDate = new Date(cachedExpiry)
-        if (!isNaN(expiryDate.getTime())) {
-          setIsExpired(checkDateExpired(expiryDate))
+        } else {
+          // No subscription record found — treat as expired (needs to subscribe)
+          console.warn("TrialGuard: No subscription found, showing payment dialog")
+          setIsExpired(true)
+          setSubscriptionType("trial")
           setIsChecking(false)
           isCheckingNow = false
           return
         }
+      } catch (error) {
+        console.error("TrialGuard error:", error)
+        setPlansLoading(false)
+        // On error, treat as expired to force payment dialog
+        setIsExpired(true)
+        setSubscriptionType("trial")
+        setIsChecking(false)
+        isCheckingNow = false
+        return
       }
 
       setIsChecking(false)
