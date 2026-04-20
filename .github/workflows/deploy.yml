@@ -34,6 +34,11 @@ jobs:
             git reset --hard origin/prod-frontend
             echo "  Commit: $(git log --oneline -1)"
 
+            echo "==> Freeing disk space before build..."
+            docker image prune -af --filter "until=24h"
+            docker builder prune -f --keep-storage=2GB
+            echo "  Disk after cleanup: $(df -h /var/lib/containerd 2>/dev/null || df -h / | tail -1)"
+
             echo "==> Building frontend container (BuildKit + layer cache)..."
             cd ~/netily_cloud/docker
             DOCKER_BUILDKIT=1 docker compose build frontend
@@ -60,7 +65,8 @@ jobs:
               sleep 5
             done
 
-            echo "==> Cleaning up dangling images..."
-            docker image prune -f
+            echo "==> Cleaning up dangling images and build cache..."
+            docker image prune -af --filter "until=24h"
+            docker builder prune -f --keep-storage=2GB
 
             echo "==> Frontend deployment complete!"
