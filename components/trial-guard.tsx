@@ -339,8 +339,8 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                     <span className="text-slate-400">Description: </span>
                     <span className="font-medium">
                       {isPaidSubscription
-                        ? `Renewal \u2014 ${selectedPlan.name} Plan`
-                        : `Activation \u2014 ${selectedPlan.name} Plan`}
+                        ? `Renewal ${selectedPlan.name} Plan`
+                        : `Activation ${selectedPlan.name} Plan`}
                     </span>
                   </div>
                 </div>
@@ -380,7 +380,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                     {payLoading ? (
                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending STK Push...</>
                     ) : (
-                      <><Phone className="w-4 h-4 mr-2" />Pay Now \u2014 {kes(getPlanAmount(selectedPlan))}</>
+                      <><Phone className="w-4 h-4 mr-2" />Pay Now — {kes(getPlanAmount(selectedPlan))}</>
                     )}
                   </Button>
                 </div>
@@ -423,7 +423,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                   </p>
                   {selectedPlan && (
                     <p className="text-xs text-slate-400 mt-1">
-                      Plan: <span className="font-semibold">{selectedPlan.name}</span> \u2014 {kes(getPlanAmount(selectedPlan))}/mo
+                      Plan: <span className="font-semibold">{selectedPlan.name}</span> — {kes(getPlanAmount(selectedPlan))}/mo
                     </p>
                   )}
                 </div>
