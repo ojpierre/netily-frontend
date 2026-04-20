@@ -38,6 +38,7 @@ jobs:
             docker image prune -af --filter "until=24h"
             docker builder prune -f --keep-storage=2GB
             echo "  Disk after cleanup: $(df -h /var/lib/containerd 2>/dev/null || df -h / | tail -1)"
+            echo "  NOTE: Never run docker system prune --volumes in production"
 
             echo "==> Building frontend container (BuildKit + layer cache)..."
             cd ~/netily_cloud/docker
