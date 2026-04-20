@@ -769,7 +769,6 @@ export default function CreatePlanPage() {
                   <SelectContent>
                     <SelectItem value="HOTSPOT">Hotspot</SelectItem>
                     <SelectItem value="PPPOE">PPPoE</SelectItem>
-                    <SelectItem value="STATIC">Static IP</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
