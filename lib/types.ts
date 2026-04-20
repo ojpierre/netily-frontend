@@ -2158,7 +2158,7 @@ export interface TicketReplyRequest {
 // ==========================================
 
 export type NetilyPlanCode = 'starter' | 'professional' | 'enterprise'
-export type SubscriptionStatus = 'trial' | 'active' | 'past_due' | 'cancelled' | 'expired'
+export type SubscriptionStatus = 'trial' | 'trialing' | 'active' | 'past_due' | 'cancelled' | 'expired'
 export type SettlementStatus = 'pending' | 'processing' | 'completed' | 'failed'
 export type PayoutMethod = 'mpesa' | 'bank'
 

@@ -545,9 +545,17 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
             return
           }
 
-          if (subscription.status === "trial") {
+          if (subscription.status === "trial" || subscription.status === "trialing") {
             localStorage.setItem("subscriptionStatus", "trial")
             setSubscriptionType("trial")
+
+            // trial_expired takes priority (backend computed property)
+            if (subscription.trial_expired === true) {
+              setIsExpired(true)
+              setIsChecking(false)
+              isCheckingNow = false
+              return
+            }
 
             if (subscription.trial_ends_at) {
               setIsExpired(checkDateExpired(new Date(subscription.trial_ends_at)))
