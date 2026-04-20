@@ -516,6 +516,23 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
             localStorage.setItem("subscriptionStatus", "active")
             setSubscriptionType("active")
 
+            // Check trial_expired flag first (backend property: trial_ends_at < now)
+            if (subscription.trial_expired === true) {
+              setIsExpired(true)
+              setIsChecking(false)
+              isCheckingNow = false
+              return
+            }
+
+            // Check trial_ends_at even for "active" status (trial on active plan)
+            if (subscription.trial_ends_at && checkDateExpired(new Date(subscription.trial_ends_at))) {
+              setIsExpired(true)
+              setIsChecking(false)
+              isCheckingNow = false
+              return
+            }
+
+            // Check billing period end
             if (subscription.current_period_end) {
               const expiryDate = new Date(subscription.current_period_end)
               setIsExpired(checkDateExpired(expiryDate))
