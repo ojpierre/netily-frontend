@@ -59,11 +59,13 @@ export default function CustomerProfilePage() {
     const fetchProfile = async () => {
       try {
         setIsLoading(true)
+        // Now this directly returns the perfect, flat profile object
         const data = await customerApi.getProfile()
+        
         setProfile(data)
         setForm({
-          first_name: data.first_name || data.full_name?.split(" ")[0] || "",
-          last_name: data.last_name || data.full_name?.split(" ").slice(1).join(" ") || "",
+          first_name: data.first_name || "",
+          last_name: data.last_name || "",
           email: data.email || "",
           address: data.address || "",
         })
