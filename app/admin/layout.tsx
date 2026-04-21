@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { MjengoFooter } from "@/components/mjengo-footer"
 import {
   LayoutDashboard,
   Users,
@@ -423,6 +424,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         {/* Page content */}
         <main className="p-4 lg:p-6">
           <TrialGuard>{children}</TrialGuard>
+          <MjengoFooter />
         </main>
       </div>
     </div>

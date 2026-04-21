@@ -234,7 +234,7 @@ export default function TenantsPage() {
                     <td className="p-4 hidden md:table-cell">
                       <code className="text-xs bg-slate-800 text-violet-300 px-2 py-0.5 rounded">{t.subdomain}</code>
                     </td>
-                    <td className="p-4">{statusBadge(t.status)}</td>
+                    <td className="p-4">{statusBadge(t.subscription_status || t.status)}</td>
                     
                     {/* NEW: Metered Usage Column */}
                     <td className="p-4">
@@ -310,7 +310,7 @@ export default function TenantsPage() {
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => window.open(`http://${t.subdomain}.localhost:3000/admin`, "_blank")}
+                            onClick={() => window.open(`https://${t.subdomain}.netily.co.ke/admin`, "_blank")}
                           >
                             <ExternalLink className="w-4 h-4 mr-2" /> Open Admin Panel
                           </DropdownMenuItem>

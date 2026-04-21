@@ -67,6 +67,7 @@ export interface Tenant {
   company_type: string
   company_logo: string | null
   subscription_plan: string
+  subscription_status: string | null   // from CompanySubscription (trialing / active / expired / past_due)
   days_left: number | null
   domains: TenantDomain[]
   is_active: boolean

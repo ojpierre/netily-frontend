@@ -1197,7 +1197,15 @@ export function LandingPage() {
             {/* Bottom bar */}
             <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
               <p className="text-sm text-slate-500">
-                &copy; {new Date().getFullYear()} Netily. All rights reserved.
+                &copy; {new Date().getFullYear()} Netily. All rights reserved. &nbsp;·&nbsp;{" "}
+                <a
+                  href="https://mjengo-tech.vercel.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  a product of Mjengo Corporate
+                </a>
               </p>
               <div className="flex items-center gap-6">
                 <a href="#" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">

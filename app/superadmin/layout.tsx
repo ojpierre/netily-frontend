@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { MjengoFooter } from "@/components/mjengo-footer"
 import {
   LayoutDashboard,
   Building2,
@@ -207,7 +208,10 @@ function SuperAdminLayoutContent({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 p-4 md:p-6 lg:p-8">
+          {children}
+          <MjengoFooter />
+        </main>
       </div>
     </div>
   )
