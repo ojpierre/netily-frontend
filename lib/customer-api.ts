@@ -250,7 +250,7 @@ class CustomerApiService {
    * Get current user profile
    */
   async getProfile(): Promise<any> {
-    return this.request('/self-service/dashboard/')
+    return this.request('/self-service/profile/') // <-- Changed from /dashboard/ to /profile/
   }
 
   /**
