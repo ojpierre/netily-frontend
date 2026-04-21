@@ -717,6 +717,11 @@ class SuperadminApiService {
     return this.request("/superadmin/payments/summary/")
   }
 
+  async getSubscriptionPayments(params?: Record<string, string>): Promise<PaginatedResponse<any>> {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
+    return this.request(`/superadmin/subscription-payments/${qs}`)
+  }
+
   // ── Analytics ──
 
   async getRevenueTrend(months?: number): Promise<RevenueTrendItem[]> {

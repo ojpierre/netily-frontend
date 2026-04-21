@@ -1123,7 +1123,6 @@ export default function PlansPage() {
             { value: "all", label: "All Plans", icon: Package, count: stats.total, activeBorder: "border-slate-500", activeBg: "bg-slate-50", activeIconBg: "bg-slate-100", activeIconColor: "text-slate-600", activeCountColor: "text-slate-600", inactiveIconBg: "bg-muted", bottomBar: "bg-slate-500" },
             { value: "hotspot", label: "Hotspot", icon: Wifi, count: stats.hotspot, activeBorder: "border-blue-500", activeBg: "bg-blue-50", activeIconBg: "bg-blue-100", activeIconColor: "text-blue-600", activeCountColor: "text-blue-600", inactiveIconBg: "bg-muted", bottomBar: "bg-blue-500" },
             { value: "pppoe", label: "PPPoE", icon: Globe, count: stats.pppoe, activeBorder: "border-purple-500", activeBg: "bg-purple-50", activeIconBg: "bg-purple-100", activeIconColor: "text-purple-600", activeCountColor: "text-purple-600", inactiveIconBg: "bg-muted", bottomBar: "bg-purple-500" },
-            { value: "static", label: "Static IP", icon: Server, count: stats.static, activeBorder: "border-orange-500", activeBg: "bg-orange-50", activeIconBg: "bg-orange-100", activeIconColor: "text-orange-600", activeCountColor: "text-orange-600", inactiveIconBg: "bg-muted", bottomBar: "bg-orange-500" },
           ] as const).map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.value
@@ -1195,9 +1194,7 @@ export default function PlansPage() {
             ? "Create Plan"
             : activeTab === "hotspot"
             ? "Create Hotspot Plan"
-            : activeTab === "pppoe"
-            ? "Create PPPoE Plan"
-            : "Create Static IP Plan"}
+            : "Create PPPoE Plan"}
         </Button>
       </div>
 
@@ -1214,7 +1211,6 @@ export default function PlansPage() {
             {[
               { type: "hotspot" as const, label: "Hotspot Plan", description: "Time-based WiFi access for captive portals", icon: Wifi, color: "bg-blue-500" },
               { type: "pppoe" as const, label: "PPPoE Plan", description: "Point-to-point subscriber connections", icon: Globe, color: "bg-purple-500" },
-              { type: "static" as const, label: "Static IP Plan", description: "Dedicated static IP allocations", icon: Server, color: "bg-orange-500" },
             ].map((opt) => {
               const Icon = opt.icon
               return (
@@ -1391,8 +1387,8 @@ export default function PlansPage() {
         </>
       )}
 
-      {/* ====== ALL / PPPoE / STATIC TABS — Standard Plan Card Grid ====== */}
-      {(activeTab === 'all' || activeTab === 'pppoe' || activeTab === 'static') && (
+      {/* ====== ALL / PPPoE TABS — Standard Plan Card Grid ====== */}
+      {(activeTab === 'all' || activeTab === 'pppoe') && (
         <>
           {filteredPlans.length === 0 ? (
             <Card>
@@ -1417,16 +1413,8 @@ export default function PlansPage() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {planForm.plan_type === 'STATIC' ? (
-                <Server className="w-5 h-5 text-orange-500" />
-              ) : (
-                <Globe className="w-5 h-5 text-purple-500" />
-              )}
-              {planForm.plan_type === 'PPPOE'
-                ? 'Create PPPoE Plan'
-                : planForm.plan_type === 'STATIC'
-                ? 'Create Static IP Plan'
-                : `Create ${planForm.plan_type} Plan`}
+              <Globe className="w-5 h-5 text-purple-500" />
+              Create PPPoE Plan
             </DialogTitle>
           </DialogHeader>
           
@@ -1740,7 +1728,6 @@ export default function PlansPage() {
                     <SelectContent>
                       <SelectItem value="HOTSPOT">Hotspot</SelectItem>
                       <SelectItem value="PPPOE">PPPoE</SelectItem>
-                      <SelectItem value="STATIC">Static IP</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

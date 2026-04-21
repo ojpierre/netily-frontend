@@ -61,7 +61,7 @@ function kes(amount: number | string): string {
 // PERSISTENT PAYMENT DIALOG
 // ==========================================
 
-type DialogStep = "plans" | "payment" | "polling" | "success" | "failed"
+type DialogStep = "plans" | "payment" | "polling" | "success" | "failed" | "pending_check"
 
 interface PaymentDialogProps {
   open: boolean
@@ -125,8 +125,8 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
     const poll = async () => {
       if (cancelled || attempts >= MAX_POLLS) {
         if (attempts >= MAX_POLLS) {
-          setStep("failed")
-          setPaymentError("Payment timeout. Check your M-Pesa messages and try again if not deducted.")
+          setStep("pending_check")
+          setPaymentError("STK push timed out. If you entered your PIN, your account may still activate. Click \"Check & Refresh\" below.")
         }
         return
       }
@@ -136,9 +136,11 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
         const res = await adminApi.checkSubscriptionPaymentStatus(pendingPaymentId)
         if (cancelled) return
         if (res.status === "completed") {
-          setStep("success")
           adminApi.invalidateSubscriptionCache()
           localStorage.setItem("mpesaPayPhone", phoneNumber)
+          setStep("success")
+          // Auto-reload after 2.5s so the subscription state refreshes
+          setTimeout(() => { if (!cancelled) window.location.reload() }, 2500)
           return
         }
         if (res.status === "failed" || res.status === "cancelled") {
@@ -431,6 +433,29 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                   Continue to Dashboard
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
+              </div>
+            )}
+
+            {/* STEP: PENDING_CHECK (timeout — payment may still be processing) */}
+            {step === "pending_check" && (
+              <div className="text-center py-8 space-y-4">
+                <div className="w-16 h-16 mx-auto rounded-full bg-yellow-100 dark:bg-yellow-950 flex items-center justify-center">
+                  <Smartphone className="w-10 h-10 text-yellow-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Still Checking...</h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {paymentError}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleReload}>
+                    <ArrowRight className="w-4 h-4 mr-2" />Check &amp; Refresh
+                  </Button>
+                  <Button variant="outline" onClick={handleRetry}>
+                    <Phone className="w-4 h-4 mr-2" />Try Again
+                  </Button>
+                </div>
               </div>
             )}
 
