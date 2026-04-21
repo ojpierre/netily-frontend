@@ -138,9 +138,10 @@ export function MpesaPaymentModal({
         plan_id: planId,
         phone_number: formattedPhone,
         billing_period: billingPeriod,
+        amount: amount, // <--- ADDED THIS LINE
       })
 
-      setTransactionId(response.transaction_id)
+      setTransactionId(response.transaction_id || response.checkout_request_id) // Fallback just in case
       setStatus("waiting")
       
       // Start polling after a short delay
