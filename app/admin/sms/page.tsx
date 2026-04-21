@@ -198,15 +198,15 @@ function TemplateEditor({
               <Select value={eventType} onValueChange={setEventType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="hotspot_welcome">Hotspot — Welcome</SelectItem>
-                  <SelectItem value="hotspot_expiry">Hotspot — Expiry Warning</SelectItem>
-                  <SelectItem value="hotspot_expired">Hotspot — Session Expired</SelectItem>
-                  <SelectItem value="pppoe_welcome">PPPoE — Welcome</SelectItem>
-                  <SelectItem value="pppoe_payment">PPPoE — Payment Confirmation</SelectItem>
-                  <SelectItem value="pppoe_expiry">PPPoE — Expiry Reminder</SelectItem>
-                  <SelectItem value="pppoe_suspended">PPPoE — Service Suspended</SelectItem>
-                  <SelectItem value="pppoe_resumed">PPPoE — Service Resumed</SelectItem>
-                  <SelectItem value="pppoe_plan_changed">PPPoE — Plan Changed</SelectItem>
+                  <SelectItem value="hotspot_welcome">Hotspot ï¿½ Welcome</SelectItem>
+                  <SelectItem value="hotspot_expiry">Hotspot ï¿½ Expiry Warning</SelectItem>
+                  <SelectItem value="hotspot_expired">Hotspot ï¿½ Session Expired</SelectItem>
+                  <SelectItem value="pppoe_welcome">PPPoE ï¿½ Welcome</SelectItem>
+                  <SelectItem value="pppoe_payment">PPPoE ï¿½ Payment Confirmation</SelectItem>
+                  <SelectItem value="pppoe_expiry">PPPoE ï¿½ Expiry Reminder</SelectItem>
+                  <SelectItem value="pppoe_suspended">PPPoE ï¿½ Service Suspended</SelectItem>
+                  <SelectItem value="pppoe_resumed">PPPoE ï¿½ Service Resumed</SelectItem>
+                  <SelectItem value="pppoe_plan_changed">PPPoE ï¿½ Plan Changed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -215,7 +215,7 @@ function TemplateEditor({
               <div className="flex items-center justify-between">
                 <Label>Message</Label>
                 <span className={`text-xs ${content.length > 160 ? 'text-amber-600 font-medium' : 'text-slate-400'}`}>
-                  {content.length} chars · {Math.ceil(content.length / 160)} SMS
+                  {content.length} chars ï¿½ {Math.ceil(content.length / 160)} SMS
                 </span>
               </div>
               <Textarea
@@ -251,7 +251,7 @@ function TemplateEditor({
               <div className="bg-[#1a2e1a] rounded-lg p-3 max-w-[220px] mx-auto">
                 <div className="text-[11px] text-slate-400 mb-1">SMS</div>
                 <div className="text-xs text-green-300 leading-relaxed whitespace-pre-wrap">
-                  {preview || <span className="text-slate-600">Preview appears here…</span>}
+                  {preview || <span className="text-slate-600">Preview appears hereï¿½</span>}
                 </div>
               </div>
             </div>
@@ -377,7 +377,7 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
             {customAmount && (
               <p className="text-xs text-slate-500">
                 {isCustomValid
-                  ? `˜ ${customUnits} units at KES 0.40/unit`
+                  ? `ï¿½ ${customUnits} units at KES 0.40/unit`
                   : 'Minimum amount is KES 10'}
               </p>
             )}
@@ -569,7 +569,7 @@ export default function SMSPage() {
         message: bulkMessage,
         name: bulkName || undefined,
       })
-      toast.success(`Campaign started — ${res.recipient_count} recipients`)
+      toast.success(`Campaign started ï¿½ ${res.recipient_count} recipients`)
       setBulkMessage('')
       setBulkName('')
       fetchAll()
@@ -738,7 +738,7 @@ export default function SMSPage() {
                 <div className="flex gap-2 mb-4">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                    <Input placeholder="Search messages…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-8 text-sm" />
+                    <Input placeholder="Search messagesï¿½" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-8 text-sm" />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-32 h-8 text-sm"><SelectValue /></SelectTrigger>
@@ -779,7 +779,7 @@ export default function SMSPage() {
                             <span className="text-xs capitalize text-slate-500">{m.type}</span>
                           </TableCell>
                           <TableCell className="hidden lg:table-cell text-xs text-slate-400">
-                            {m.sent_at ? new Date(m.sent_at).toLocaleString() : '—'}
+                            {m.sent_at ? new Date(m.sent_at).toLocaleString() : 'ï¿½'}
                           </TableCell>
                           <TableCell>
                             <DropdownMenu>
@@ -788,7 +788,7 @@ export default function SMSPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 {m.status === 'failed' && (
-                                  <DropdownMenuItem onClick={() => adminApi.retrySMS(m.id).then(() => toast.success('Retrying…'))}>
+                                  <DropdownMenuItem onClick={() => adminApi.retrySMS(m.id).then(() => toast.success('Retryingï¿½'))}>
                                     <RefreshCw className="w-4 h-4 mr-2" />Retry
                                   </DropdownMenuItem>
                                 )}
@@ -842,7 +842,7 @@ export default function SMSPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm">{t.name}</span>
-                            <span className="text-xs text-slate-400">Used {t.usage_count ?? 0}×</span>
+                            <span className="text-xs text-slate-400">Used {t.usage_count ?? 0}ï¿½</span>
                           </div>
                           <p className="text-sm text-slate-600 mt-1 line-clamp-2">{t.content}</p>
                           {t.variables?.length > 0 && (
@@ -904,10 +904,10 @@ export default function SMSPage() {
                     <div className="flex justify-between">
                       <Label>Message</Label>
                       <span className={`text-xs ${bulkMessage.length > 160 ? 'text-amber-600' : 'text-slate-400'}`}>
-                        {bulkMessage.length}/160 · {Math.ceil(Math.max(bulkMessage.length,1)/160)} unit(s)/recipient
+                        {bulkMessage.length}/160 ï¿½ {Math.ceil(Math.max(bulkMessage.length,1)/160)} unit(s)/recipient
                       </span>
                     </div>
-                    <Textarea rows={4} placeholder="Type your message…" value={bulkMessage}
+                    <Textarea rows={4} placeholder="Type your messageï¿½" value={bulkMessage}
                       onChange={e => setBulkMessage(e.target.value)} />
                   </div>
                   <Button className="w-full" disabled={!bulkMessage || bulkSending}
@@ -1176,7 +1176,7 @@ export default function SMSPage() {
                       </div>
                       <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-blue-100">
                         <span className="text-slate-500">API Keys</span>
-                        <span className="text-slate-400 italic text-xs">Managed by Netily — not required</span>
+                        <span className="text-slate-400 italic text-xs">Managed by Netily ï¿½ not required</span>
                       </div>
                       <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-blue-100">
                         <span className="text-slate-500">SMS Units</span>
@@ -1325,7 +1325,7 @@ export default function SMSPage() {
                 </CardContent>
               </Card>
 
-              {/* Live balance card — updated for inbuilt mode */}
+              {/* Live balance card ï¿½ updated for inbuilt mode */}
               <Card>
                 <CardHeader>
                   <CardTitle>Live Balance</CardTitle>
@@ -1345,7 +1345,7 @@ export default function SMSPage() {
                         ? `${Number(walletUnits).toLocaleString()} units`
                         : balance
                           ? `${balance.currency || 'KES'} ${Number(balance.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                          : '—'}
+                          : 'ï¿½'}
                     </p>
                     {!notifSettings.use_inbuilt_system && balance && (
                       <p className="text-xs text-slate-400 mt-1">{balance.provider}</p>
@@ -1387,7 +1387,7 @@ export default function SMSPage() {
                       <p className="text-sm text-slate-500">Available SMS Units</p>
                       <p className="text-4xl font-extrabold text-slate-900 dark:text-white mt-1">{Number(walletUnits).toLocaleString()}</p>
                       <p className="text-xs text-slate-400 mt-1">
-                        ˜ KES {(walletUnits * (wallet?.sell_price_per_unit ?? 0.6)).toFixed(0)} value
+                        ï¿½ KES {(walletUnits * (wallet?.sell_price_per_unit ?? 0.6)).toFixed(0)} value
                       </p>
                     </div>
                     <Button className="w-full" onClick={() => setIsTopupOpen(true)}>
@@ -1480,7 +1480,7 @@ export default function SMSPage() {
                   <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
                   <Input
                     className="pl-8 h-8 text-sm"
-                    placeholder="Name or phone…"
+                    placeholder="Name or phoneï¿½"
                     value={customerSearch}
                     onChange={e => setCustomerSearch(e.target.value)}
                   />
@@ -1522,7 +1522,7 @@ export default function SMSPage() {
                   const t = templates.find(x => String(x.id) === v)
                   setComposeForm(p => ({ ...p, template: v, message: t?.content ?? p.message }))
                 }}>
-                  <SelectTrigger><SelectValue placeholder="Select template…" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select templateï¿½" /></SelectTrigger>
                   <SelectContent>
                     {templates.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
                   </SelectContent>
@@ -1538,7 +1538,7 @@ export default function SMSPage() {
                 </div>
                 <Textarea
                   rows={4}
-                  placeholder="Type your message…"
+                  placeholder="Type your messageï¿½"
                   value={composeForm.message}
                   onChange={e => setComposeForm(p => ({ ...p, message: e.target.value }))}
                 />
