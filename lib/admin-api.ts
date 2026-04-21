@@ -2746,11 +2746,11 @@ async activateService(
   }
 
   async updateTicketStatus(id: number, status: string, resolution?: string): Promise<SupportTicket> {
-    return this.request<SupportTicket>(`/support/tickets/${id}/update_status/`, {
-      method: 'POST',
-      body: JSON.stringify({ status, resolution }),
-    })
-  }
+      return this.request<SupportTicket>(`/support/tickets/${id}/status/`, {
+        method: 'POST',
+        body: JSON.stringify({ status, resolution }),
+      })
+    }
 
   async replyToTicket(id: number, data: TicketReplyRequest): Promise<SupportTicketMessage> {
     return this.request<SupportTicketMessage>(`/support/tickets/${id}/reply/`, {

@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import {
   Ticket,
   Search,
-  Filter,
   Plus,
   MoreVertical,
   Eye,
@@ -15,16 +14,14 @@ import {
   XCircle,
   AlertCircle,
   RefreshCw,
-  ArrowUpDown,
   Send,
   Paperclip,
   ChevronRight,
-  Tag,
-  Calendar,
   Phone,
   Mail,
-  Building,
   BarChart3,
+  Loader2,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -60,7 +57,7 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -82,18 +79,26 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
-import type { 
-  SupportTicket, 
-  SupportTicketMessage, 
+import type {
+  SupportTicket,
+  SupportTicketMessage,
   SupportTicketStats,
   SupportTicketStatus,
   SupportTicketPriority,
   SupportTicketCategory,
+  Customer,
 } from "@/lib/types"
 
-// Local types for compatibility with UI
 type TicketStatus = SupportTicketStatus
 type TicketPriority = SupportTicketPriority
 type TicketCategory = SupportTicketCategory
@@ -112,65 +117,80 @@ const emptyStats: SupportTicketStats = {
   tickets_this_week: 0,
 }
 
+// ─── Customer search result shape ────────────────────────────────────────────
+interface CustomerSearchResult {
+  id: number
+  full_name: string
+  phone_number: string
+  customer_code: string
+  email: string
+}
+
 export default function TicketsPage() {
+  // ── Data state ───────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tickets, setTickets] = useState<SupportTicket[]>([])
   const [stats, setStats] = useState<SupportTicketStats>(emptyStats)
+  const [refreshing, setRefreshing] = useState(false)
+
+  // ── Filter state ─────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [priorityFilter, setPriorityFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+
+  // ── Ticket detail drawer ─────────────────────────────────────────────────
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [showNewTicketDialog, setShowNewTicketDialog] = useState(false)
   const [replyMessage, setReplyMessage] = useState("")
-  const [refreshing, setRefreshing] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
   const [sendingReply, setSendingReply] = useState(false)
+
+  // ── Create ticket dialog ─────────────────────────────────────────────────
+  const [showNewTicketDialog, setShowNewTicketDialog] = useState(false)
   const [creatingTicket, setCreatingTicket] = useState(false)
   const [newTicketData, setNewTicketData] = useState({
-    customer_id: "",
     subject: "",
     description: "",
     category: "technical" as TicketCategory,
     priority: "medium" as TicketPriority,
   })
-  const itemsPerPage = 10
 
-  // Fetch tickets and stats from API
+  // ── Customer search ──────────────────────────────────────────────────────
+  const [customerSearch, setCustomerSearch] = useState("")
+  const [customerResults, setCustomerResults] = useState<CustomerSearchResult[]>([])
+  const [searchingCustomers, setSearchingCustomers] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerSearchResult | null>(null)
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false)
+  const searchDebounceRef = useRef<NodeJS.Timeout>()
+
+  // ─── Fetch tickets + stats ───────────────────────────────────────────────
   const fetchTickets = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      
-      // Build filters based on active tab
+
       const filters: Record<string, string> = {}
-      if (activeTab !== "all") {
-        filters.status = activeTab
-      }
-      if (priorityFilter !== "all") {
-        filters.priority = priorityFilter
-      }
-      if (categoryFilter !== "all") {
-        filters.category = categoryFilter
-      }
-      if (searchQuery) {
-        filters.search = searchQuery
-      }
-      
-      const [ticketsData, statsData] = await Promise.all([
-        adminApi.getTickets(filters).catch(() => null),
-        adminApi.getTicketStats().catch(() => null),
+      if (activeTab !== "all") filters.status = activeTab
+      if (priorityFilter !== "all") filters.priority = priorityFilter
+      if (categoryFilter !== "all") filters.category = categoryFilter
+      if (searchQuery) filters.search = searchQuery
+
+      const [ticketsData, statsData] = await Promise.allSettled([
+        adminApi.getTickets(filters),
+        adminApi.getTicketStats(),
       ])
-      
-      if (ticketsData) {
-        const ticketsList = Array.isArray(ticketsData) ? ticketsData : (ticketsData.results || [])
-        setTickets(ticketsList)
+
+      if (ticketsData.status === "fulfilled" && ticketsData.value) {
+        const list = Array.isArray(ticketsData.value)
+          ? ticketsData.value
+          : ticketsData.value.results ?? []
+        setTickets(list)
       }
-      
-      if (statsData) {
-        setStats(statsData)
+      if (statsData.status === "fulfilled" && statsData.value) {
+        setStats(statsData.value)
       }
     } catch (err) {
       console.error("Error loading tickets:", err)
@@ -191,29 +211,50 @@ export default function TicketsPage() {
     toast.success("Tickets refreshed")
   }, [fetchTickets])
 
-  // Filter tickets (client-side filtering for additional refinement)
+  // ─── Customer search (debounced) ─────────────────────────────────────────
+  useEffect(() => {
+    if (!customerSearch.trim()) {
+      setCustomerResults([])
+      return
+    }
+    clearTimeout(searchDebounceRef.current)
+    searchDebounceRef.current = setTimeout(async () => {
+      setSearchingCustomers(true)
+      try {
+        const data = await adminApi.getCustomers({ search: customerSearch, page_size: "10" })
+        const results: CustomerSearchResult[] = (data.results ?? []).map((c: any) => ({
+          id: c.id,
+          full_name: c.full_name ?? `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim(),
+          phone_number: c.phone_number ?? c.phone ?? "",
+          customer_code: c.customer_code ?? c.customer_number ?? "",
+          email: c.email ?? "",
+        }))
+        setCustomerResults(results)
+      } catch {
+        setCustomerResults([])
+      } finally {
+        setSearchingCustomers(false)
+      }
+    }, 350)
+    return () => clearTimeout(searchDebounceRef.current)
+  }, [customerSearch])
+
+  // ─── Filtered + paginated tickets ────────────────────────────────────────
   const filteredTickets = useMemo(() => {
-    return tickets.filter(ticket => {
-      // Tab filter
-      const matchesTab = 
+    return tickets.filter((ticket) => {
+      const matchesTab =
         activeTab === "all" ||
-        (activeTab === "open" && ticket.status === "open") ||
-        (activeTab === "in_progress" && ticket.status === "in_progress") ||
-        (activeTab === "pending" && ticket.status === "pending") ||
+        ticket.status === activeTab ||
         (activeTab === "resolved" && (ticket.status === "resolved" || ticket.status === "closed"))
 
-      // Search filter - using ticket_number and customer_name
       const searchLower = searchQuery.toLowerCase()
-      const matchesSearch = 
+      const matchesSearch =
         !searchQuery ||
         ticket.subject.toLowerCase().includes(searchLower) ||
-        (ticket.ticket_number || "").toLowerCase().includes(searchLower) ||
-        (ticket.customer_name || "").toLowerCase().includes(searchLower)
+        (ticket.ticket_number ?? "").toLowerCase().includes(searchLower) ||
+        (ticket.customer_name ?? "").toLowerCase().includes(searchLower)
 
-      // Priority filter
       const matchesPriority = priorityFilter === "all" || ticket.priority === priorityFilter
-
-      // Category filter
       const matchesCategory = categoryFilter === "all" || ticket.category === categoryFilter
 
       return matchesTab && matchesSearch && matchesPriority && matchesCategory
@@ -226,40 +267,174 @@ export default function TicketsPage() {
   )
   const totalPages = Math.ceil(filteredTickets.length / itemsPerPage)
 
-  const getStatusBadge = (status: TicketStatus) => {
-    const config: Record<string, { class: string; icon: any }> = {
-      open: { class: "bg-blue-100 text-blue-700 border-blue-200", icon: AlertCircle },
-      in_progress: { class: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: Clock },
-      pending: { class: "bg-orange-100 text-orange-700 border-orange-200", icon: Clock },
-      resolved: { class: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle2 },
-      closed: { class: "bg-slate-100 text-slate-700 border-slate-200", icon: XCircle },
+  // ─── View ticket ─────────────────────────────────────────────────────────
+  const handleViewTicket = async (ticket: SupportTicket) => {
+    setSelectedTicket(ticket)
+    setDrawerOpen(true)
+    try {
+      const fresh = await adminApi.getTicket(ticket.id)
+      if (fresh) {
+        setSelectedTicket(fresh)
+        setTickets((prev) => prev.map((t) => (t.id === ticket.id ? fresh : t)))
+      }
+    } catch {
+      // keep cached data
     }
-    const statusConfig = config[status] || config.open
-    const Icon = statusConfig.icon
+  }
+
+  // ─── Send reply ───────────────────────────────────────────────────────────
+  const handleSendReply = async () => {
+    if (!replyMessage.trim() || !selectedTicket || sendingReply) return
+    setSendingReply(true)
+    try {
+      const message = await adminApi.replyToTicket(selectedTicket.id, {
+        message: replyMessage,
+        is_internal: false,
+      })
+      if (message) {
+        const updatedTicket: SupportTicket = {
+          ...selectedTicket,
+          messages: [...(selectedTicket.messages ?? []), message],
+          status:
+            selectedTicket.status === "open" ? "in_progress" : selectedTicket.status,
+          updated_at: new Date().toISOString(),
+        }
+        setSelectedTicket(updatedTicket)
+        setTickets((prev) => prev.map((t) => (t.id === selectedTicket.id ? updatedTicket : t)))
+        toast.success("Reply sent")
+        setReplyMessage("")
+      }
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to send reply")
+    } finally {
+      setSendingReply(false)
+    }
+  }
+
+  // ─── Update status ────────────────────────────────────────────────────────
+  const handleUpdateStatus = async (ticketId: number, newStatus: TicketStatus) => {
+    try {
+      await adminApi.updateTicketStatus(ticketId, newStatus)
+      const updater = (t: SupportTicket) =>
+        t.id === ticketId
+          ? { ...t, status: newStatus, updated_at: new Date().toISOString() }
+          : t
+      setTickets((prev) => prev.map(updater))
+      if (selectedTicket?.id === ticketId) {
+        setSelectedTicket((prev) => prev && { ...prev, status: newStatus })
+      }
+      toast.success(`Status updated to ${newStatus.replace("_", " ")}`)
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to update status")
+    }
+  }
+
+  // ─── Assign ticket ────────────────────────────────────────────────────────
+  const handleAssignTicket = async (ticketId: number, agentId: number) => {
+    try {
+      await adminApi.assignTicket(ticketId, agentId)
+      toast.success("Ticket assigned")
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to assign ticket")
+    }
+  }
+
+  // ─── Escalate ticket ──────────────────────────────────────────────────────
+  const handleEscalate = async (ticketId: number) => {
+    try {
+      await adminApi.escalateTicket(ticketId)
+      const updater = (t: SupportTicket) =>
+        t.id === ticketId ? { ...t, priority: "urgent" as TicketPriority } : t
+      setTickets((prev) => prev.map(updater))
+      if (selectedTicket?.id === ticketId) {
+        setSelectedTicket((prev) => prev && { ...prev, priority: "urgent" as TicketPriority })
+      }
+      toast.success("Ticket escalated to urgent")
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to escalate ticket")
+    }
+  }
+
+  // ─── Create ticket ────────────────────────────────────────────────────────
+  const handleCreateTicket = async () => {
+    if (!newTicketData.subject.trim()) {
+      toast.error("Subject is required")
+      return
+    }
+    if (!newTicketData.description.trim()) {
+      toast.error("Description is required")
+      return
+    }
+    if (!selectedCustomer) {
+      toast.error("Please select a customer")
+      return
+    }
+
+    setCreatingTicket(true)
+    try {
+      const ticket = await adminApi.createTicket({
+        customer_id: selectedCustomer.id,
+        subject: newTicketData.subject,
+        description: newTicketData.description,
+        category: newTicketData.category,
+        priority: newTicketData.priority,
+      })
+      setTickets((prev) => [ticket, ...prev])
+      setStats((prev) => ({ ...prev, total: prev.total + 1, open: prev.open + 1 }))
+      toast.success("Ticket created successfully")
+      // Reset form
+      setShowNewTicketDialog(false)
+      setNewTicketData({ subject: "", description: "", category: "technical", priority: "medium" })
+      setSelectedCustomer(null)
+      setCustomerSearch("")
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to create ticket")
+    } finally {
+      setCreatingTicket(false)
+    }
+  }
+
+  const resetCreateDialog = () => {
+    setNewTicketData({ subject: "", description: "", category: "technical", priority: "medium" })
+    setSelectedCustomer(null)
+    setCustomerSearch("")
+    setCustomerResults([])
+  }
+
+  // ─── Badge helpers ────────────────────────────────────────────────────────
+  const getStatusBadge = (status: TicketStatus) => {
+    const cfg: Record<string, { cls: string; Icon: React.ElementType }> = {
+      open: { cls: "bg-blue-100 text-blue-700 border-blue-200", Icon: AlertCircle },
+      in_progress: { cls: "bg-yellow-100 text-yellow-700 border-yellow-200", Icon: Clock },
+      pending: { cls: "bg-orange-100 text-orange-700 border-orange-200", Icon: Clock },
+      resolved: { cls: "bg-green-100 text-green-700 border-green-200", Icon: CheckCircle2 },
+      closed: { cls: "bg-slate-100 text-slate-700 border-slate-200", Icon: XCircle },
+    }
+    const c = cfg[status] ?? cfg.open
     return (
-      <Badge variant="outline" className={statusConfig.class}>
-        <Icon className="w-3 h-3 mr-1" />
-        {status.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase())}
+      <Badge variant="outline" className={c.cls}>
+        <c.Icon className="w-3 h-3 mr-1" />
+        {status.replace("_", " ").replace(/\b\w/g, (s) => s.toUpperCase())}
       </Badge>
     )
   }
 
   const getPriorityBadge = (priority: TicketPriority) => {
-    const config = {
+    const cfg: Record<string, string> = {
       low: "bg-slate-100 text-slate-600 border-slate-200",
       medium: "bg-blue-100 text-blue-600 border-blue-200",
       high: "bg-orange-100 text-orange-600 border-orange-200",
       urgent: "bg-red-100 text-red-600 border-red-200",
     }
     return (
-      <Badge variant="outline" className={config[priority]}>
+      <Badge variant="outline" className={cfg[priority] ?? cfg.medium}>
         {priority.charAt(0).toUpperCase() + priority.slice(1)}
       </Badge>
     )
   }
 
   const getCategoryBadge = (category: TicketCategory) => {
-    const config = {
+    const cfg: Record<string, string> = {
       technical: "bg-purple-100 text-purple-700",
       billing: "bg-emerald-100 text-emerald-700",
       account: "bg-blue-100 text-blue-700",
@@ -267,153 +442,23 @@ export default function TicketsPage() {
       other: "bg-slate-100 text-slate-700",
     }
     return (
-      <Badge variant="secondary" className={config[category]}>
+      <Badge variant="secondary" className={cfg[category] ?? cfg.other}>
         {category.charAt(0).toUpperCase() + category.slice(1)}
       </Badge>
     )
   }
 
   const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / (1000 * 60))
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    return `${diffDays}d ago`
+    const diffMs = Date.now() - new Date(dateString).getTime()
+    const mins = Math.floor(diffMs / 60000)
+    const hours = Math.floor(diffMs / 3600000)
+    const days = Math.floor(diffMs / 86400000)
+    if (mins < 60) return `${mins}m ago`
+    if (hours < 24) return `${hours}h ago`
+    return `${days}d ago`
   }
 
-  const handleViewTicket = async (ticket: SupportTicket) => {
-    setSelectedTicket(ticket)
-    setDrawerOpen(true)
-    
-    // Fetch fresh ticket data with messages
-    try {
-      const freshTicket = await adminApi.getTicket(ticket.id)
-      if (freshTicket) {
-        setSelectedTicket(freshTicket)
-        // Update in list too
-        setTickets(prev => prev.map(t => t.id === ticket.id ? freshTicket : t))
-      }
-    } catch (err) {
-      console.error("Error fetching ticket details:", err)
-      // Keep showing the cached ticket data
-    }
-  }
-
-  const handleSendReply = async () => {
-    if (!replyMessage.trim() || !selectedTicket || sendingReply) return
-    
-    try {
-      setSendingReply(true)
-      
-      // Try API first
-      const message = await adminApi.replyToTicket(selectedTicket.id, {
-        message: replyMessage,
-        is_internal: false,
-      }).catch(() => null)
-      
-      if (message) {
-        setSelectedTicket({
-          ...selectedTicket,
-          messages: [...(selectedTicket.messages || []), message],
-          status: selectedTicket.status === "open" ? "in_progress" : selectedTicket.status,
-          updated_at: new Date().toISOString(),
-        })
-        toast.success("Reply sent successfully")
-      } else {
-        toast.error("Failed to send reply")
-      }
-      
-      setReplyMessage("")
-    } catch (err) {
-      console.error("Error sending reply:", err)
-      toast.error("Failed to send reply")
-    } finally {
-      setSendingReply(false)
-    }
-  }
-
-  const handleUpdateStatus = async (ticketId: number, newStatus: TicketStatus) => {
-    try {
-      await adminApi.updateTicketStatus(ticketId, newStatus).catch(() => null)
-      
-      setTickets(tickets.map(t => 
-        t.id === ticketId ? { ...t, status: newStatus, updated_at: new Date().toISOString() } : t
-      ))
-      if (selectedTicket?.id === ticketId) {
-        setSelectedTicket({ ...selectedTicket, status: newStatus })
-      }
-      toast.success(`Ticket status updated to ${newStatus.replace("_", " ")}`)
-    } catch (err) {
-      console.error("Error updating status:", err)
-      toast.error("Failed to update status")
-    }
-  }
-  
-  const handleAssignTicket = async (ticketId: number, agentId: number | null) => {
-    try {
-      if (agentId) {
-        await adminApi.assignTicket(ticketId, agentId).catch(() => null)
-        toast.success("Ticket assigned successfully")
-      }
-      
-      // Update local state
-      setTickets(tickets.map(t => 
-        t.id === ticketId ? { ...t, assigned_to: agentId || undefined, updated_at: new Date().toISOString() } : t
-      ))
-      if (selectedTicket?.id === ticketId) {
-        setSelectedTicket({ ...selectedTicket, assigned_to: agentId || undefined })
-      }
-    } catch (err) {
-      console.error("Error assigning ticket:", err)
-      toast.error("Failed to assign ticket")
-    }
-  }
-  
-  const handleCreateTicket = async () => {
-    if (!newTicketData.subject || !newTicketData.description) {
-      toast.error("Please fill in all required fields")
-      return
-    }
-    
-    try {
-      setCreatingTicket(true)
-      
-      const ticket = await adminApi.createTicket({
-        customer_id: parseInt(newTicketData.customer_id) || undefined,
-        subject: newTicketData.subject,
-        description: newTicketData.description,
-        category: newTicketData.category,
-        priority: newTicketData.priority,
-      }).catch(() => null)
-      
-      if (ticket) {
-        setTickets(prev => [ticket, ...prev])
-        toast.success("Ticket created successfully")
-      } else {
-        toast.error("Failed to create ticket")
-      }
-      
-      setShowNewTicketDialog(false)
-      setNewTicketData({
-        customer_id: "",
-        subject: "",
-        description: "",
-        category: "technical",
-        priority: "medium",
-      })
-    } catch (err) {
-      console.error("Error creating ticket:", err)
-      toast.error("Failed to create ticket")
-    } finally {
-      setCreatingTicket(false)
-    }
-  }
-
+  // ─── Error state ──────────────────────────────────────────────────────────
   if (error) {
     return (
       <div className="space-y-6">
@@ -421,11 +466,12 @@ export default function TicketsPage() {
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-        <Button onClick={() => window.location.reload()}>Retry</Button>
+        <Button onClick={() => { setError(null); fetchTickets() }}>Retry</Button>
       </div>
     )
   }
 
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -439,7 +485,15 @@ export default function TicketsPage() {
             <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Dialog open={showNewTicketDialog} onOpenChange={setShowNewTicketDialog}>
+
+          {/* ── Create Ticket Dialog ── */}
+          <Dialog
+            open={showNewTicketDialog}
+            onOpenChange={(open) => {
+              setShowNewTicketDialog(open)
+              if (!open) resetCreateDialog()
+            }}
+          >
             <DialogTrigger asChild>
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
@@ -449,32 +503,124 @@ export default function TicketsPage() {
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>Create New Ticket</DialogTitle>
-                <DialogDescription>Create a ticket on behalf of a customer</DialogDescription>
+                <DialogDescription>Create a support ticket on behalf of a customer</DialogDescription>
               </DialogHeader>
+
               <div className="space-y-4">
+                {/* Customer Search */}
                 <div className="space-y-2">
-                  <Label>Customer</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="c1">Customer 1</SelectItem>
-                      <SelectItem value="c2">Customer 2</SelectItem>
-                      <SelectItem value="c3">Customer 3</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>
+                    Customer <span className="text-red-500">*</span>
+                  </Label>
+
+                  {selectedCustomer ? (
+                    <div className="flex items-center gap-3 p-3 border rounded-lg bg-slate-50 dark:bg-slate-800">
+                      <Avatar className="w-8 h-8">
+                        <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
+                          {selectedCustomer.full_name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{selectedCustomer.full_name}</p>
+                        <p className="text-xs text-slate-500">
+                          {selectedCustomer.customer_code} · {selectedCustomer.phone_number}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => {
+                          setSelectedCustomer(null)
+                          setCustomerSearch("")
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Input
+                          placeholder="Search by name, phone or customer code..."
+                          value={customerSearch}
+                          onChange={(e) => {
+                            setCustomerSearch(e.target.value)
+                            setCustomerDropdownOpen(true)
+                          }}
+                          onFocus={() => setCustomerDropdownOpen(true)}
+                          className="pl-9"
+                        />
+                        {searchingCustomers && (
+                          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-slate-400" />
+                        )}
+                      </div>
+
+                      {/* Results dropdown */}
+                      {customerDropdownOpen && customerSearch.trim() && (
+                        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                          {searchingCustomers ? (
+                            <div className="p-3 text-sm text-slate-500 text-center">Searching...</div>
+                          ) : customerResults.length === 0 ? (
+                            <div className="p-3 text-sm text-slate-500 text-center">No customers found</div>
+                          ) : (
+                            customerResults.map((c) => (
+                              <button
+                                key={c.id}
+                                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-left transition-colors"
+                                onClick={() => {
+                                  setSelectedCustomer(c)
+                                  setCustomerDropdownOpen(false)
+                                  setCustomerSearch("")
+                                }}
+                              >
+                                <Avatar className="w-7 h-7 shrink-0">
+                                  <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
+                                    {c.full_name.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">{c.full_name}</p>
+                                  <p className="text-xs text-slate-500">
+                                    {c.customer_code} · {c.phone_number}
+                                  </p>
+                                </div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
+
+                {/* Subject */}
                 <div className="space-y-2">
-                  <Label>Subject</Label>
-                  <Input placeholder="Brief description of the issue" />
+                  <Label>
+                    Subject <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    placeholder="Brief description of the issue"
+                    value={newTicketData.subject}
+                    onChange={(e) =>
+                      setNewTicketData((prev) => ({ ...prev, subject: e.target.value }))
+                    }
+                  />
                 </div>
+
+                {/* Category + Priority */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Category</Label>
-                    <Select>
+                    <Select
+                      value={newTicketData.category}
+                      onValueChange={(v) =>
+                        setNewTicketData((prev) => ({ ...prev, category: v as TicketCategory }))
+                      }
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select" />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="technical">Technical</SelectItem>
@@ -487,9 +633,14 @@ export default function TicketsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Priority</Label>
-                    <Select>
+                    <Select
+                      value={newTicketData.priority}
+                      onValueChange={(v) =>
+                        setNewTicketData((prev) => ({ ...prev, priority: v as TicketPriority }))
+                      }
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select" />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="low">Low</SelectItem>
@@ -500,15 +651,50 @@ export default function TicketsPage() {
                     </Select>
                   </div>
                 </div>
+
+                {/* Description */}
                 <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea placeholder="Detailed description of the issue..." rows={4} />
+                  <Label>
+                    Description <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    placeholder="Describe the issue in detail..."
+                    rows={4}
+                    value={newTicketData.description}
+                    onChange={(e) =>
+                      setNewTicketData((prev) => ({ ...prev, description: e.target.value }))
+                    }
+                  />
                 </div>
               </div>
+
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowNewTicketDialog(false)}>Cancel</Button>
-                <Button onClick={handleCreateTicket} disabled={creatingTicket}>
-                  {creatingTicket ? "Creating..." : "Create Ticket"}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowNewTicketDialog(false)
+                    resetCreateDialog()
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateTicket}
+                  disabled={
+                    creatingTicket ||
+                    !newTicketData.subject.trim() ||
+                    !newTicketData.description.trim() ||
+                    !selectedCustomer
+                  }
+                >
+                  {creatingTicket ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Ticket"
+                  )}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -518,75 +704,33 @@ export default function TicketsPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-        <Card className="cursor-pointer hover:shadow-md" onClick={() => setActiveTab("all")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-slate-100 rounded-lg">
-                <Ticket className="w-5 h-5 text-slate-600" />
+        {[
+          { label: "Total", value: stats.total, color: "slate", Icon: Ticket, tab: "all" },
+          { label: "Open", value: stats.open, color: "blue", Icon: AlertCircle, tab: "open" },
+          { label: "In Progress", value: stats.in_progress, color: "yellow", Icon: Clock, tab: "in_progress" },
+          { label: "Pending", value: stats.pending, color: "orange", Icon: Clock, tab: "pending" },
+          { label: "Resolved", value: stats.resolved + (stats.closed ?? 0), color: "green", Icon: CheckCircle2, tab: "resolved" },
+        ].map(({ label, value, color, Icon, tab }) => (
+          <Card
+            key={tab}
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setActiveTab(tab)}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 bg-${color}-100 rounded-lg`}>
+                  <Icon className={`w-5 h-5 text-${color}-600`} />
+                </div>
+                <div>
+                  <p className={`text-2xl font-bold ${color !== "slate" ? `text-${color}-600` : ""}`}>
+                    {value}
+                  </p>
+                  <p className="text-xs text-slate-500">{label}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-slate-500">Total</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md" onClick={() => setActiveTab("open")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-blue-600">{stats.open}</p>
-                <p className="text-xs text-slate-500">Open</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md" onClick={() => setActiveTab("in_progress")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-5 h-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-yellow-600">{stats.in_progress}</p>
-                <p className="text-xs text-slate-500">In Progress</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md" onClick={() => setActiveTab("pending")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Clock className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-orange-600">{stats.pending}</p>
-                <p className="text-xs text-slate-500">Pending</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md" onClick={() => setActiveTab("resolved")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-green-600">{stats.resolved + (stats.closed || 0)}</p>
-                <p className="text-xs text-slate-500">Resolved</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
 
         <Card>
           <CardContent className="p-4">
@@ -595,7 +739,9 @@ export default function TicketsPage() {
                 <Clock className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-lg font-bold text-purple-600">{stats.avg_response_time}</p>
+                <p className="text-sm font-bold text-purple-600 leading-tight">
+                  {stats.avg_response_time}
+                </p>
                 <p className="text-xs text-slate-500">Avg Response</p>
               </div>
             </div>
@@ -609,66 +755,69 @@ export default function TicketsPage() {
                 <BarChart3 className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-lg font-bold text-emerald-600">{stats.avg_resolution_time}</p>
-                <p className="text-xs text-slate-500">Avg Resolution</p>
+                <p className="text-sm font-bold text-emerald-600 leading-tight">
+                  {stats.sla_compliance_rate}%
+                </p>
+                <p className="text-xs text-slate-500">SLA Rate</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="all">All Tickets</TabsTrigger>
-          <TabsTrigger value="open">Open</TabsTrigger>
-          <TabsTrigger value="in_progress">In Progress</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="resolved">Resolved</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Tabs + Filters */}
+      <div className="flex flex-col gap-4">
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setCurrentPage(1) }}>
+          <TabsList>
+            <TabsTrigger value="all">All Tickets</TabsTrigger>
+            <TabsTrigger value="open">Open</TabsTrigger>
+            <TabsTrigger value="in_progress">In Progress</TabsTrigger>
+            <TabsTrigger value="pending">Pending</TabsTrigger>
+            <TabsTrigger value="resolved">Resolved</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="Search tickets by ID, subject, or customer..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  placeholder="Search by ticket ID, subject, or customer..."
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1) }}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={priorityFilter} onValueChange={(v) => { setPriorityFilter(v); setCurrentPage(1) }}>
+                <SelectTrigger className="w-full md:w-40">
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priority</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setCurrentPage(1) }}>
+                <SelectTrigger className="w-full md:w-40">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="technical">Technical</SelectItem>
+                  <SelectItem value="billing">Billing</SelectItem>
+                  <SelectItem value="account">Account</SelectItem>
+                  <SelectItem value="service">Service</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-full md:w-40">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priority</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full md:w-40">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="technical">Technical</SelectItem>
-                <SelectItem value="billing">Billing</SelectItem>
-                <SelectItem value="account">Account</SelectItem>
-                <SelectItem value="service">Service</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Tickets Table */}
       <Card>
@@ -681,7 +830,7 @@ export default function TicketsPage() {
         <CardContent>
           {loading ? (
             <div className="space-y-3">
-              {[1, 2, 3, 4, 5].map(i => (
+              {[1, 2, 3, 4, 5].map((i) => (
                 <Skeleton key={i} className="h-16 w-full" />
               ))}
             </div>
@@ -689,7 +838,7 @@ export default function TicketsPage() {
             <div className="text-center py-12">
               <Ticket className="w-12 h-12 mx-auto mb-4 text-slate-400" />
               <p className="text-slate-600 font-medium">No tickets found</p>
-              <p className="text-slate-500 text-sm mt-1">Try adjusting your filters</p>
+              <p className="text-slate-500 text-sm mt-1">Try adjusting your filters or create a new ticket</p>
             </div>
           ) : (
             <>
@@ -705,13 +854,13 @@ export default function TicketsPage() {
                       <TableHead>Status</TableHead>
                       <TableHead>Assigned To</TableHead>
                       <TableHead>Created</TableHead>
-                      <TableHead className="w-12"></TableHead>
+                      <TableHead className="w-12" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedTickets.map(ticket => (
-                      <TableRow 
-                        key={ticket.id} 
+                    {paginatedTickets.map((ticket) => (
+                      <TableRow
+                        key={ticket.id}
                         className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800"
                         onClick={() => handleViewTicket(ticket)}
                       >
@@ -722,21 +871,21 @@ export default function TicketsPage() {
                           <div className="max-w-xs">
                             <p className="font-medium truncate">{ticket.subject}</p>
                             <p className="text-xs text-slate-500 truncate">
-                              {(ticket.messages || []).length} message(s)
+                              {(ticket.messages ?? []).length} message(s)
                             </p>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium text-sm">{ticket.customer_name || "Unknown"}</p>
-                            <p className="text-xs text-slate-500">{ticket.customer_email || ""}</p>
+                            <p className="font-medium text-sm">{ticket.customer_name ?? "Unknown"}</p>
+                            <p className="text-xs text-slate-500">{ticket.customer_phone ?? ""}</p>
                           </div>
                         </TableCell>
                         <TableCell>{getCategoryBadge(ticket.category)}</TableCell>
                         <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
                         <TableCell>{getStatusBadge(ticket.status)}</TableCell>
                         <TableCell>
-                          <span className="text-sm">{ticket.assigned_to_name || "-"}</span>
+                          <span className="text-sm">{ticket.assigned_to_name ?? "—"}</span>
                         </TableCell>
                         <TableCell>
                           <span className="text-sm text-slate-500">{formatTimeAgo(ticket.created_at)}</span>
@@ -753,10 +902,6 @@ export default function TicketsPage() {
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <User className="w-4 h-4 mr-2" />
-                                Assign To...
-                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleUpdateStatus(ticket.id, "in_progress")}>
                                 <Clock className="w-4 h-4 mr-2" />
@@ -766,7 +911,15 @@ export default function TicketsPage() {
                                 <CheckCircle2 className="w-4 h-4 mr-2" />
                                 Mark Resolved
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleUpdateStatus(ticket.id, "closed")}>
+                              <DropdownMenuItem onClick={() => handleEscalate(ticket.id)}>
+                                <AlertCircle className="w-4 h-4 mr-2" />
+                                Escalate to Urgent
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => handleUpdateStatus(ticket.id, "closed")}
+                              >
                                 <XCircle className="w-4 h-4 mr-2" />
                                 Close Ticket
                               </DropdownMenuItem>
@@ -790,7 +943,7 @@ export default function TicketsPage() {
                       variant="outline"
                       size="sm"
                       disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(currentPage - 1)}
+                      onClick={() => setCurrentPage((p) => p - 1)}
                     >
                       Previous
                     </Button>
@@ -798,7 +951,7 @@ export default function TicketsPage() {
                       variant="outline"
                       size="sm"
                       disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage(currentPage + 1)}
+                      onClick={() => setCurrentPage((p) => p + 1)}
                     >
                       Next
                     </Button>
@@ -810,16 +963,18 @@ export default function TicketsPage() {
         </CardContent>
       </Card>
 
-      {/* Ticket Detail Drawer */}
+      {/* ── Ticket Detail Drawer ── */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent className="w-full sm:max-w-xl p-0 flex flex-col">
           <SheetHeader className="p-6 border-b">
-            <SheetTitle className="flex items-center gap-2">
-              <span className="font-mono text-sm text-slate-500">{selectedTicket?.ticket_number || `TKT-${selectedTicket?.id}`}</span>
+            <SheetTitle className="flex items-center gap-2 text-base">
+              <span className="font-mono text-sm text-slate-500">
+                {selectedTicket?.ticket_number || `TKT-${selectedTicket?.id}`}
+              </span>
               <ChevronRight className="w-4 h-4 text-slate-400" />
               <span className="truncate">{selectedTicket?.subject}</span>
             </SheetTitle>
-            <SheetDescription className="flex items-center gap-2 mt-2">
+            <SheetDescription className="flex items-center gap-2 mt-2 flex-wrap">
               {selectedTicket && (
                 <>
                   {getStatusBadge(selectedTicket.status)}
@@ -833,68 +988,107 @@ export default function TicketsPage() {
           {selectedTicket && (
             <>
               {/* Customer Info */}
-              <div className="p-4 bg-slate-50 dark:bg-slate-800 border-b dark:border-slate-700">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800 border-b">
                 <div className="flex items-center gap-3">
                   <Avatar className="w-10 h-10">
                     <AvatarFallback className="bg-blue-100 text-blue-700">
-                      {(selectedTicket.customer_name || "U").split(' ').map(n => n[0]).join('')}
+                      {(selectedTicket.customer_name ?? "U")
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex-1">
-                    <p className="font-medium">{selectedTicket.customer_name || "Unknown Customer"}</p>
-                    <p className="text-sm text-slate-500">{selectedTicket.customer_plan || "N/A"}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">
+                      {selectedTicket.customer_name ?? "Unknown Customer"}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {selectedTicket.customer_plan ?? "No plan"}
+                    </p>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => selectedTicket.customer_email && window.open(`mailto:${selectedTicket.customer_email}`)}>
-                      <Mail className="w-4 h-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => selectedTicket.customer_phone && window.open(`tel:${selectedTicket.customer_phone}`)}>
-                      <Phone className="w-4 h-4" />
-                    </Button>
+                  <div className="flex gap-1">
+                    {selectedTicket.customer_email && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`mailto:${selectedTicket.customer_email}`)}
+                      >
+                        <Mail className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {selectedTicket.customer_phone && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`tel:${selectedTicket.customer_phone}`)}
+                      >
+                        <Phone className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
-                  {(selectedTicket.messages || []).map(message => (
-                    <div 
-                      key={message.id} 
-                      className={`flex ${message.sender_type === "agent" ? "justify-end" : "justify-start"}`}
-                    >
-                      <div 
-                        className={`max-w-[80%] rounded-lg p-3 ${
-                          message.sender_type === "agent" 
-                            ? "bg-blue-500 text-white" 
-                            : "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white"
+                {(selectedTicket.messages ?? []).length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No messages yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {(selectedTicket.messages ?? []).map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${
+                          message.sender_type === "agent" ? "justify-end" : "justify-start"
                         }`}
                       >
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-xs font-medium ${
-                            message.sender_type === "agent" ? "text-blue-100" : "text-slate-500"
-                          }`}>
-                            {message.sender_name}
-                          </span>
-                          <span className={`text-xs ${
-                            message.sender_type === "agent" ? "text-blue-200" : "text-slate-400"
-                          }`}>
-                            {formatTimeAgo(message.created_at)}
-                          </span>
+                        <div
+                          className={`max-w-[80%] rounded-lg p-3 ${
+                            message.sender_type === "agent"
+                              ? "bg-blue-500 text-white"
+                              : "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span
+                              className={`text-xs font-medium ${
+                                message.sender_type === "agent"
+                                  ? "text-blue-100"
+                                  : "text-slate-500"
+                              }`}
+                            >
+                              {message.sender_name}
+                            </span>
+                            <span
+                              className={`text-xs ${
+                                message.sender_type === "agent"
+                                  ? "text-blue-200"
+                                  : "text-slate-400"
+                              }`}
+                            >
+                              {formatTimeAgo(message.created_at)}
+                            </span>
+                          </div>
+                          <p className="text-sm whitespace-pre-wrap">{message.message}</p>
                         </div>
-                        <p className="text-sm">{message.message}</p>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </ScrollArea>
 
-              {/* Reply Box */}
-              <div className="p-4 border-t dark:border-slate-700 bg-white dark:bg-slate-900">
+              {/* Reply + Status controls */}
+              <div className="p-4 border-t bg-white dark:bg-slate-900">
                 <div className="flex gap-2 mb-3">
-                  <Select 
-                    value={selectedTicket.status} 
-                    onValueChange={(v) => handleUpdateStatus(selectedTicket.id, v as TicketStatus)}
+                  <Select
+                    value={selectedTicket.status}
+                    onValueChange={(v) =>
+                      handleUpdateStatus(selectedTicket.id, v as TicketStatus)
+                    }
                   >
                     <SelectTrigger className="w-40">
                       <SelectValue />
@@ -907,34 +1101,48 @@ export default function TicketsPage() {
                       <SelectItem value="closed">Closed</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select onValueChange={(v) => handleAssignTicket(selectedTicket.id, parseInt(v) || null)}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder={selectedTicket.assigned_to_name || "Assign to..."} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">John Admin</SelectItem>
-                      <SelectItem value="2">Sarah Support</SelectItem>
-                      <SelectItem value="3">Mike Tech</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                    onClick={() => handleEscalate(selectedTicket.id)}
+                    disabled={selectedTicket.priority === "urgent"}
+                  >
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    Escalate
+                  </Button>
                 </div>
+
                 <div className="flex gap-2">
-                  <Textarea 
-                    placeholder="Type your reply..." 
+                  <Textarea
+                    placeholder="Type your reply..."
                     value={replyMessage}
                     onChange={(e) => setReplyMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && e.ctrlKey) handleSendReply()
+                    }}
                     rows={2}
-                    className="flex-1"
+                    className="flex-1 resize-none"
                   />
                   <div className="flex flex-col gap-2">
-                    <Button variant="outline" size="icon">
+                    <Button variant="outline" size="icon" disabled>
                       <Paperclip className="w-4 h-4" />
                     </Button>
-                    <Button size="icon" onClick={handleSendReply} disabled={sendingReply || !replyMessage.trim()}>
-                      <Send className="w-4 h-4" />
+                    <Button
+                      size="icon"
+                      onClick={handleSendReply}
+                      disabled={sendingReply || !replyMessage.trim()}
+                    >
+                      {sendingReply ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
+                <p className="text-xs text-slate-400 mt-1">Ctrl+Enter to send</p>
               </div>
             </>
           )}
