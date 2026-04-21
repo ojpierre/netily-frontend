@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect } from "react"
 import { ThumbsUp, MessageSquare, Plus, Filter, Loader2, Lightbulb } from "lucide-react"
@@ -73,11 +73,11 @@ export default function CommunityBoardPage() {
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = { 
-      pending: "bg-amber-100 text-amber-700",
-      planned: "bg-blue-100 text-blue-700", 
-      in_progress: "bg-amber-100 text-amber-700 animate-pulse", 
-      completed: "bg-emerald-100 text-emerald-700",
-      rejected: "bg-slate-100 text-slate-500" 
+      pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+      planned: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300", 
+      in_progress: "bg-amber-100 text-amber-700 animate-pulse dark:bg-amber-900/30 dark:text-amber-300", 
+      completed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+      rejected: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" 
     }
     return <Badge className={`capitalize border-none ${colors[status] || "bg-slate-100"}`}>{status.replace('_', ' ')}</Badge>
   }
@@ -89,7 +89,7 @@ export default function CommunityBoardPage() {
       hotspot: "bg-orange-100 text-orange-700",
       ui_ux: "bg-pink-100 text-pink-700",
       automation: "bg-indigo-100 text-indigo-700",
-      other: "bg-slate-100 text-slate-700"
+      other: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
     }
     return <Badge variant="outline" className={`text-[10px] uppercase font-bold ${colors[category] || "text-slate-400"}`}>{category.replace('_', ' ')}</Badge>
   }
@@ -106,7 +106,7 @@ export default function CommunityBoardPage() {
     <div className="max-w-5xl mx-auto p-6 space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Community Roadmap</h1>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Community Roadmap</h1>
           <p className="text-slate-500">Suggest new features and upvote ideas from other ISPs.</p>
         </div>
         
@@ -185,7 +185,7 @@ export default function CommunityBoardPage() {
                     {getStatusBadge(req.status)}
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{req.title}</h3>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{req.title}</h3>
                     <p className="text-slate-600 text-sm mt-1 line-clamp-2">{req.description}</p>
                   </div>
                   {req.admin_comment && (
@@ -204,7 +204,7 @@ export default function CommunityBoardPage() {
                 </div>
                 
                 <div className="md:w-32 bg-slate-50/50 md:border-l flex flex-col items-center justify-center p-6 gap-2">
-                  <span className="text-2xl font-black text-slate-900">{req.upvotes_count}</span>
+                  <span className="text-2xl font-black text-slate-900 dark:text-white">{req.upvotes_count}</span>
                   <Button 
                     variant={req.has_upvoted ? "default" : "outline"} 
                     size="sm" 

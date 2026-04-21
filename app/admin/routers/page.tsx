@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
@@ -391,7 +391,7 @@ export default function RoutersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Router Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Router Management</h1>
           <p className="text-slate-500 mt-1">
             Monitor and manage network access servers
           </p>

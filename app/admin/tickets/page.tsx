@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import {
@@ -431,7 +431,7 @@ export default function TicketsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Support Tickets</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Support Tickets</h1>
           <p className="text-slate-500 mt-1">Manage customer support requests</p>
         </div>
         <div className="flex gap-2">
@@ -712,7 +712,7 @@ export default function TicketsPage() {
                     {paginatedTickets.map(ticket => (
                       <TableRow 
                         key={ticket.id} 
-                        className="cursor-pointer hover:bg-slate-50"
+                        className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800"
                         onClick={() => handleViewTicket(ticket)}
                       >
                         <TableCell className="font-mono text-sm font-medium">
@@ -833,7 +833,7 @@ export default function TicketsPage() {
           {selectedTicket && (
             <>
               {/* Customer Info */}
-              <div className="p-4 bg-slate-50 border-b">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800 border-b dark:border-slate-700">
                 <div className="flex items-center gap-3">
                   <Avatar className="w-10 h-10">
                     <AvatarFallback className="bg-blue-100 text-blue-700">
@@ -867,7 +867,7 @@ export default function TicketsPage() {
                         className={`max-w-[80%] rounded-lg p-3 ${
                           message.sender_type === "agent" 
                             ? "bg-blue-500 text-white" 
-                            : "bg-slate-100 text-slate-900"
+                            : "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white"
                         }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
@@ -890,7 +890,7 @@ export default function TicketsPage() {
               </ScrollArea>
 
               {/* Reply Box */}
-              <div className="p-4 border-t bg-white">
+              <div className="p-4 border-t dark:border-slate-700 bg-white dark:bg-slate-900">
                 <div className="flex gap-2 mb-3">
                   <Select 
                     value={selectedTicket.status} 

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import {
@@ -223,7 +223,7 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Reports &amp; Analytics</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Reports &amp; Analytics</h1>
           <p className="text-slate-500 text-sm mt-0.5">Comprehensive insights into your ISP operations and performance</p>
         </div>
         <div className="flex gap-2">
@@ -535,7 +535,7 @@ export default function ReportsPage() {
                 <div className="flex items-center justify-between py-4 border-b bg-blue-50/50 -mx-6 px-6 rounded-t-lg">
                   <span className="text-sm font-medium text-slate-700">This Month</span>
                   <div className="text-right">
-                    <span className="text-lg font-bold text-slate-900">{fmtKshFull(f?.monthly_performance?.this_month?.amount ?? 0)}</span>
+                    <span className="text-lg font-bold text-slate-900 dark:text-white">{fmtKshFull(f?.monthly_performance?.this_month?.amount ?? 0)}</span>
                     <p className="text-xs text-muted-foreground">{f?.monthly_performance?.this_month?.transactions ?? 0} transactions</p>
                   </div>
                 </div>
@@ -753,7 +753,7 @@ export default function ReportsPage() {
 
                         {/* Name + badge */}
                         <div className="flex-1 min-w-0">
-                          <p className={`font-semibold truncate ${isTop3 ? "text-slate-900 text-base" : "text-slate-700 text-sm"}`}>
+                          <p className={`font-semibold truncate ${isTop3 ? "text-slate-900 dark:text-white text-base" : "text-slate-700 dark:text-slate-300 text-sm"}`}>
                             {c.display_name}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">

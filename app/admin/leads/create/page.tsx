@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -74,7 +74,7 @@ export default function CreateLeadPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-slate-900">Add New Lead</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Add New Lead</h1>
           <p className="text-slate-600 mt-1">Capture a new potential customer</p>
         </div>
       </div>

@@ -617,7 +617,7 @@ export default function UsersPage() {
           // Show the billing account number prominently
           if (activateResult?.billing_account_number) {
             toast.success(
-              `✓ Service activated! Paybill Account: ${activateResult.billing_account_number}`,
+              `? Service activated! Paybill Account: ${activateResult.billing_account_number}`,
               { duration: 8000 }
             )
           }
@@ -793,7 +793,7 @@ export default function UsersPage() {
     })
   }, [enrichedUsers, activeSearchQuery])
 
-  // NEW: Build a map of access_code → live usage string from RADIUS online sessions.
+  // NEW: Build a map of access_code ? live usage string from RADIUS online sessions.
   // Hotspot sessions use the access_code as the RADIUS username.
   // This lets us show live usage in the hotspot tab instead of the stale DB value.
   const hotspotLiveUsageMap = useMemo(() => {
@@ -1108,7 +1108,7 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Users Management</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Users Management</h1>
           <p className="text-slate-500 mt-1">Manage Hotspot, PPPoE, and Static IP users</p>
         </div>
         <div className="flex gap-2">
@@ -1261,7 +1261,7 @@ export default function UsersPage() {
                         <SelectItem value="none">No Plan</SelectItem>
                         {plans.map((plan) => (
                           <SelectItem key={plan.id} value={String(plan.id)}>
-                            {plan.name} — KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
+                            {plan.name} � KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1269,7 +1269,7 @@ export default function UsersPage() {
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <Label>IP Pool <span className="text-xs text-slate-400">(optional — Framed-Pool for router)</span></Label>
+                  <Label>IP Pool <span className="text-xs text-slate-400">(optional � Framed-Pool for router)</span></Label>
                   <Input
                     placeholder="e.g. pppoe-pool or leave blank"
                     value={newCustomerForm.ip_pool}
@@ -1281,7 +1281,7 @@ export default function UsersPage() {
                 {/* Cloud-Led Static IP from plan's pool */}
                 {selectedPlanPool && (
                   <div className="space-y-1">
-                    <Label>Assign Static IP <span className="text-xs text-slate-400">(Cloud-Led — optional)</span></Label>
+                    <Label>Assign Static IP <span className="text-xs text-slate-400">(Cloud-Led � optional)</span></Label>
                     <div className="flex gap-2">
                       <Input
                         placeholder="Search IP..."
@@ -1346,7 +1346,7 @@ export default function UsersPage() {
                           : "bg-white border-slate-200 hover:border-slate-300"
                       }`}
                     >
-                      <p className="text-xs font-medium text-slate-900">{opt.label}</p>
+                      <p className="text-xs font-medium text-slate-900 dark:text-white">{opt.label}</p>
                       <p className="text-[10px] text-slate-500 mt-0.5">{opt.desc}</p>
                     </button>
                   ))}
@@ -1717,7 +1717,7 @@ export default function UsersPage() {
       </Card>
       )}
 
-      {/* ── Online Sessions Tab ── UPDATED: Spinner only when IP is missing */}
+      {/* -- Online Sessions Tab -- UPDATED: Spinner only when IP is missing */}
       {activeTab === "online-sessions" && (
         <Card>
           <CardHeader>
@@ -1727,7 +1727,7 @@ export default function UsersPage() {
                   <Wifi className="w-5 h-5 text-emerald-600" />
                   Online Users ({filteredOnlineSessions.length})
                 </CardTitle>
-                <CardDescription>Users currently connected via RADIUS — real-time session data</CardDescription>
+                <CardDescription>Users currently connected via RADIUS � real-time session data</CardDescription>
               </div>
               <div className="flex items-center gap-2">
                 <div className="relative w-64">
@@ -1801,7 +1801,7 @@ export default function UsersPage() {
                                 .slice(0, 2) || 'HS'}
                             </div>
                             <div>
-                              <p className="font-medium text-slate-900">
+                              <p className="font-medium text-slate-900 dark:text-white">
                                 {(session as any).canonical_username
                                   ? (session as any).canonical_username
                                   : (session.full_name || session.username)}
@@ -1823,21 +1823,21 @@ export default function UsersPage() {
                             {session.service_type === 'PPPOE' ? 'PPPoE' : session.service_type === 'HOTSPOT' ? 'Hotspot' : session.service_type}
                           </Badge>
                         </TableCell>
-                        {/* FIX 1b: IP Address column - show "connecting…" only when accounting_pending AND no IP */}
+                        {/* FIX 1b: IP Address column - show "connecting�" only when accounting_pending AND no IP */}
                         <TableCell>
                           <span className="font-mono text-sm">
                             {session.ip_address
                               ? session.ip_address
                               : (session as any).accounting_pending && !session.ip_address
-                                ? <span className="text-amber-500 text-xs italic">router connecting…</span>
-                                : "—"}
+                                ? <span className="text-amber-500 text-xs italic">router connecting�</span>
+                                : "�"}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="font-mono text-xs text-slate-600">{session.mac_address || '—'}</span>
+                          <span className="font-mono text-xs text-slate-600">{session.mac_address || '�'}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm">{session.router || '—'}</span>
+                          <span className="text-sm">{session.router || '�'}</span>
                         </TableCell>
                         {/* FIX 1a: Uptime column - spinner only when accounting_pending AND IP missing */}
                         <TableCell>
@@ -1868,7 +1868,7 @@ export default function UsersPage() {
         </Card>
       )}
 
-      {/* ── Active Subscriptions Tab ── */}
+      {/* -- Active Subscriptions Tab -- */}
       {activeTab === "active-subs" && (
         <Card>
           <CardHeader>
@@ -1878,7 +1878,7 @@ export default function UsersPage() {
                   <CheckCircle2 className="w-5 h-5 text-green-600" />
                   Active Subscriptions ({activeSubscriptionUsers.length})
                 </CardTitle>
-                <CardDescription>Users with active or pending subscriptions — manage extensions and removals</CardDescription>
+                <CardDescription>Users with active or pending subscriptions � manage extensions and removals</CardDescription>
               </div>
               <div className="flex items-center gap-2">
                 <div className="relative w-64">
@@ -1940,7 +1940,7 @@ export default function UsersPage() {
                                 {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                               </div>
                               <div>
-                                <p className="font-medium text-slate-900">{user.name}</p>
+                                <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
                                 <p className="text-xs text-slate-500">{user.phone}</p>
                               </div>
                             </div>
@@ -1972,7 +1972,7 @@ export default function UsersPage() {
                           <TableCell>
                             {user.plan === "No Plan" ? (
                               <div>
-                                <p className="text-sm">—</p>
+                                <p className="text-sm">�</p>
                                 <p className="text-xs text-slate-500">Voucher</p>
                               </div>
                             ) : (
@@ -2068,7 +2068,7 @@ export default function UsersPage() {
         </Card>
       )}
 
-      {/* ── Hotspot Clients Tab ── UPDATED with live RADIUS usage */}
+      {/* -- Hotspot Clients Tab -- UPDATED with live RADIUS usage */}
       {activeTab === "hotspot" && (
         <Card>
           <CardHeader>
@@ -2127,7 +2127,7 @@ export default function UsersPage() {
                                 HS
                               </div>
                               <div>
-                                <p className="font-medium text-slate-900 font-mono">{item.canonical_username}</p>
+                                <p className="font-medium text-slate-900 dark:text-white font-mono">{item.canonical_username}</p>
                                 <p className="text-xs text-slate-500">{item.phone}</p>
                               </div>
                             </div>
@@ -2144,7 +2144,7 @@ export default function UsersPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <p className="text-sm font-medium">{item.router || '—'}</p>
+                            <p className="text-sm font-medium">{item.router || '�'}</p>
                             <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                               <Wifi className="w-3 h-3 text-pink-500" /> Hotspot
                             </p>
@@ -2157,7 +2157,7 @@ export default function UsersPage() {
                               {displayUsage}
                             </span>
                             {isLive && (
-                              <span className="block text-xs text-emerald-600">● Live</span>
+                              <span className="block text-xs text-emerald-600">? Live</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -2179,12 +2179,12 @@ export default function UsersPage() {
             {activeTab === "all" && "All Users"}
             {activeTab === "pppoe" && "PPPoE Users"}
             {activeTab === "static" && "Static IP Users"}
-            {statusFilter !== "all" && ` — ${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`}
+            {statusFilter !== "all" && ` � ${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`}
             {" "}({filteredUsers.length})
           </CardTitle>
           <CardDescription>
             Showing {paginatedUsers.length} of {filteredUsers.length} users
-            {statusFilter !== "all" && ` • Filtered by status: ${statusFilter}`}
+            {statusFilter !== "all" && ` � Filtered by status: ${statusFilter}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -2244,7 +2244,7 @@ export default function UsersPage() {
                               {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                             </div>
                             <div>
-                              <p className="font-medium text-slate-900">{user.name}</p>
+                              <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
                               <p className="text-xs text-slate-500">{user.phone}</p>
                             </div>
                           </div>
@@ -2271,7 +2271,7 @@ export default function UsersPage() {
                         <TableCell>
                           {user.plan === "No Plan" ? (
                             <div>
-                              <p className="text-sm">—</p>
+                              <p className="text-sm">�</p>
                               <p className="text-xs text-slate-500">Voucher</p>
                             </div>
                           ) : (
@@ -2407,7 +2407,7 @@ export default function UsersPage() {
                     {selectedUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                   </div>
                   <div>
-                    <p className="text-xl font-semibold text-slate-900">{selectedUser.name}</p>
+                    <p className="text-xl font-semibold text-slate-900 dark:text-white">{selectedUser.name}</p>
                     <p className="text-sm text-slate-500">{selectedUser.id}</p>
                   </div>
                 </div>
@@ -2415,18 +2415,18 @@ export default function UsersPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-medium text-slate-500">Email</label>
-                    <p className="text-sm text-slate-900">{selectedUser.email}</p>
+                    <p className="text-sm text-slate-900 dark:text-white">{selectedUser.email}</p>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-slate-500">Phone</label>
-                    <p className="text-sm text-slate-900">{selectedUser.phone}</p>
+                    <p className="text-sm text-slate-900 dark:text-white">{selectedUser.phone}</p>
                   </div>
                 </div>
               </div>
 
               {/* Connection Info */}
               <div className="p-4 bg-slate-50 rounded-lg border">
-                <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                   <Signal className="w-4 h-4" />
                   Connection Details
                 </h3>
@@ -2464,7 +2464,7 @@ export default function UsersPage() {
 
               {/* Subscription Info - FIX 3: With editable billing account number */}
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h3 className="font-semibold text-slate-900 mb-3">Subscription</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Subscription</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-600">Current Plan</span>
@@ -2486,7 +2486,7 @@ export default function UsersPage() {
                       {selectedUser.plan === "No Plan" ? "Managed by Voucher" : new Date(selectedUser.expiryDate).toLocaleDateString()}
                     </span>
                   </div>
-                  {/* FIX 3: Billing Account Number — editable */}
+                  {/* FIX 3: Billing Account Number � editable */}
                   <div className="flex items-start justify-between gap-2 pt-1 border-t border-blue-200">
                     <span className="text-slate-600 text-sm shrink-0">Billing Account No.</span>
                     <div className="flex items-center gap-1.5 flex-1 justify-end">
@@ -2555,7 +2555,7 @@ export default function UsersPage() {
                   </div>
                   {selectedUser.billingAccountNumber && !editingBilling && (
                     <div className="mt-1 p-2 bg-blue-100 rounded text-xs text-blue-800">
-                      📱 Pay via Paybill → Account Ref: <strong>{selectedUser.billingAccountNumber}</strong>
+                      ?? Pay via Paybill ? Account Ref: <strong>{selectedUser.billingAccountNumber}</strong>
                     </div>
                   )}
                 </div>
@@ -2564,7 +2564,7 @@ export default function UsersPage() {
               {/* RADIUS Network Credentials - Easy to copy for testing */}
               {selectedUser.serviceStatus === 'PENDING' && !selectedUser.radiusCredentials && (
                 <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                  <h3 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
                     <Wifi className="w-4 h-4 text-orange-600" />
                     Network Login (PPPoE/Hotspot)
                   </h3>
@@ -2576,7 +2576,7 @@ export default function UsersPage() {
               )}
               {selectedUser.radiusCredentials && (
                 <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                  <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                     <Wifi className="w-4 h-4 text-purple-600" />
                     Network Login (PPPoE/Hotspot)
                   </h3>
@@ -2600,7 +2600,7 @@ export default function UsersPage() {
                       <label className="text-xs font-medium text-slate-500">Password</label>
                       <div className="flex items-center gap-2">
                         <code className="flex-1 text-sm font-mono bg-white px-2 py-1 rounded border">
-                          {showPassword ? selectedUser.radiusCredentials.password : '••••••••'}
+                          {showPassword ? selectedUser.radiusCredentials.password : '��������'}
                         </code>
                         <Button 
                           variant="ghost" 
@@ -2676,7 +2676,7 @@ export default function UsersPage() {
                       </span>
                       {selectedUser.radiusCredentials.synced_to_radius && (
                         <Badge variant="outline" className="text-green-600 border-green-300">
-                          ✓ Synced
+                          ? Synced
                         </Badge>
                       )}
                     </div>
@@ -2686,7 +2686,7 @@ export default function UsersPage() {
 
               {/* Usage Stats */}
               <div className="p-4 bg-slate-50 rounded-lg border">
-                <h3 className="font-semibold text-slate-900 mb-3">Usage & Balance</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Usage & Balance</h3>
                 <div className="space-y-3">
                   <div>
                     <div className="flex justify-between text-sm mb-1">
@@ -2899,7 +2899,7 @@ export default function UsersPage() {
           </DialogHeader>
           {userToDelete && (
             <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-              <p className="font-medium text-slate-900">{userToDelete.name}</p>
+              <p className="font-medium text-slate-900 dark:text-white">{userToDelete.name}</p>
               <p className="text-sm text-slate-600">{userToDelete.email} &bull; {userToDelete.phone}</p>
               <p className="text-sm text-slate-600">Plan: {userToDelete.plan}</p>
             </div>
@@ -2933,7 +2933,7 @@ export default function UsersPage() {
             <DialogDescription>
               Add time to {userToExtend?.name}&apos;s subscription.
               {userToExtend?.expiryDate && new Date(userToExtend.expiryDate) < new Date()
-                ? " The subscription has expired — new time will start from now."
+                ? " The subscription has expired � new time will start from now."
                 : " Time will be added to the current expiration date."}
             </DialogDescription>
           </DialogHeader>

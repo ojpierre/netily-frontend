@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect, useCallback } from "react"
 import {
@@ -207,7 +207,7 @@ export default function UsagePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Usage & Accounting</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Usage & Accounting</h1>
           <p className="text-slate-500 mt-1">Monitor user sessions and data consumption</p>
         </div>
         <Button>

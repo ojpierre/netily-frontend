@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React from "react"
 import { useRouter } from "next/navigation"
@@ -85,7 +85,7 @@ export default function RevenueAnalyticsPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-slate-900">Revenue Analytics</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Revenue Analytics</h1>
           <p className="text-slate-600 mt-1">Detailed revenue breakdown and trends</p>
         </div>
         <Select defaultValue="30d">
@@ -108,7 +108,7 @@ export default function RevenueAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Total Revenue</p>
-                <p className="text-2xl font-bold text-slate-900">KSh {(revenueStats.total / 1000000).toFixed(2)}M</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {(revenueStats.total / 1000000).toFixed(2)}M</p>
                 <div className="flex items-center gap-1 mt-1">
                   <ArrowUpRight className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-green-600">+{revenueStats.growth}%</span>
@@ -126,7 +126,7 @@ export default function RevenueAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">MRR</p>
-                <p className="text-2xl font-bold text-slate-900">KSh {(revenueStats.mrr / 1000000).toFixed(2)}M</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {(revenueStats.mrr / 1000000).toFixed(2)}M</p>
                 <div className="flex items-center gap-1 mt-1">
                   <ArrowUpRight className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-green-600">+{revenueStats.mrrGrowth}%</span>
@@ -144,7 +144,7 @@ export default function RevenueAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">ARPU</p>
-                <p className="text-2xl font-bold text-slate-900">KSh {revenueStats.arpu.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {revenueStats.arpu.toLocaleString()}</p>
                 <div className="flex items-center gap-1 mt-1">
                   <ArrowUpRight className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-green-600">+{revenueStats.arpuGrowth}%</span>
@@ -162,7 +162,7 @@ export default function RevenueAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">ARR</p>
-                <p className="text-2xl font-bold text-slate-900">KSh {(revenueStats.arr / 1000000).toFixed(1)}M</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {(revenueStats.arr / 1000000).toFixed(1)}M</p>
                 <p className="text-xs text-slate-500 mt-1">Projected</p>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">

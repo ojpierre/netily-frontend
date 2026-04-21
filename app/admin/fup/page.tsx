@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useMemo, useEffect } from "react"
 import {
@@ -542,7 +542,7 @@ export default function FUPPage() {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4 text-slate-600" />
-        <h4 className="text-lg font-semibold text-slate-900">{title} ({plans.length})</h4>
+        <h4 className="text-lg font-semibold text-slate-900 dark:text-white">{title} ({plans.length})</h4>
       </div>
 
       {plans.length === 0 ? (
@@ -563,7 +563,7 @@ export default function FUPPage() {
     <div className="p-6 space-y-6">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div><h1 className="text-3xl font-bold text-slate-900">Fair Usage Policy</h1><p className="text-slate-600 mt-1">Monitor, enforce, and manage bandwidth rules</p></div>
+        <div><h1 className="text-3xl font-bold text-slate-900 dark:text-white">Fair Usage Policy</h1><p className="text-slate-600 dark:text-slate-400 mt-1">Monitor, enforce, and manage bandwidth rules</p></div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={fetchAllData} disabled={isLoading}><RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} /> Refresh</Button>
           <Button onClick={() => setIsCreateOpen(true)}><Plus className="w-4 h-4 mr-2" /> Create Policy</Button>

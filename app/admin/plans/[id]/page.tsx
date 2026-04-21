@@ -96,7 +96,7 @@ export default function PlanDetailPage() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-slate-900">{plan.name}</h1>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{plan.name}</h1>
             <Badge className={plan.status === "active" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-700"}>
               {plan.status}
             </Badge>
@@ -119,7 +119,7 @@ export default function PlanDetailPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Price</p>
-                <p className="text-2xl font-bold text-slate-900">KSh {plan.price.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {plan.price.toLocaleString()}</p>
                 <p className="text-xs text-slate-500">per {plan.validity} days</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
@@ -134,7 +134,7 @@ export default function PlanDetailPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Active Subscribers</p>
-                <p className="text-2xl font-bold text-slate-900">{plan.activeSubscribers}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{plan.activeSubscribers}</p>
                 <p className="text-xs text-green-600">+12 this month</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -149,7 +149,7 @@ export default function PlanDetailPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Monthly Revenue</p>
-                <p className="text-2xl font-bold text-slate-900">KSh {plan.totalRevenue.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {plan.totalRevenue.toLocaleString()}</p>
                 <p className="text-xs text-green-600">+5.4% from last month</p>
               </div>
               <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
@@ -164,7 +164,7 @@ export default function PlanDetailPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Churn Rate</p>
-                <p className="text-2xl font-bold text-slate-900">{plan.churnRate}%</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{plan.churnRate}%</p>
                 <p className="text-xs text-green-600">Below average</p>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">

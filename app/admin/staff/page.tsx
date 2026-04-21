@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
@@ -447,7 +447,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                     <div className="flex-1 min-w-0">
                       <p
                         className={`font-medium ${
-                          isSelected ? "text-blue-600" : "text-slate-900"
+                          isSelected ? "text-blue-600" : "text-slate-900 dark:text-white"
                         }`}
                       >
                         {role.label}
@@ -465,7 +465,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
 
           {/* Personal Information */}
           <div className="space-y-4">
-            <h4 className="font-medium text-slate-900">Personal Information</h4>
+            <h4 className="font-medium text-slate-900 dark:text-white">Personal Information</h4>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -540,7 +540,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
 
           {/* Password Section */}
           <div className="space-y-4">
-            <h4 className="font-medium text-slate-900">Login Credentials</h4>
+            <h4 className="font-medium text-slate-900 dark:text-white">Login Credentials</h4>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -790,7 +790,7 @@ export default function StaffManagementPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Staff Management</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Staff Management</h1>
           <p className="text-slate-600">
             Manage your ISP team members and their access roles
           </p>

@@ -34,9 +34,9 @@ import type {
 } from "@/lib/types"
 import { SMS_TEMPLATE_VARIABLES } from "@/lib/types"
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // CONSTANTS
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 // FIX 4c: Cast to any to avoid type conflict
 const EMPTY_STATS = {
@@ -86,9 +86,9 @@ const TOPUP_PACKAGES = [
   { units: 5000, label: '5,000 Units',  price: 1500, pricePerUnit: 0.30, badge: 'Best Value' },
 ]
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // SMALL HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -141,9 +141,9 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // TEMPLATE EDITOR
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 function TemplateEditor({
   open, onClose, onSave, initial,
@@ -198,15 +198,15 @@ function TemplateEditor({
               <Select value={eventType} onValueChange={setEventType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="hotspot_welcome">Hotspot — Welcome</SelectItem>
-                  <SelectItem value="hotspot_expiry">Hotspot — Expiry Warning</SelectItem>
-                  <SelectItem value="hotspot_expired">Hotspot — Session Expired</SelectItem>
-                  <SelectItem value="pppoe_welcome">PPPoE — Welcome</SelectItem>
-                  <SelectItem value="pppoe_payment">PPPoE — Payment Confirmation</SelectItem>
-                  <SelectItem value="pppoe_expiry">PPPoE — Expiry Reminder</SelectItem>
-                  <SelectItem value="pppoe_suspended">PPPoE — Service Suspended</SelectItem>
-                  <SelectItem value="pppoe_resumed">PPPoE — Service Resumed</SelectItem>
-                  <SelectItem value="pppoe_plan_changed">PPPoE — Plan Changed</SelectItem>
+                  <SelectItem value="hotspot_welcome">Hotspot � Welcome</SelectItem>
+                  <SelectItem value="hotspot_expiry">Hotspot � Expiry Warning</SelectItem>
+                  <SelectItem value="hotspot_expired">Hotspot � Session Expired</SelectItem>
+                  <SelectItem value="pppoe_welcome">PPPoE � Welcome</SelectItem>
+                  <SelectItem value="pppoe_payment">PPPoE � Payment Confirmation</SelectItem>
+                  <SelectItem value="pppoe_expiry">PPPoE � Expiry Reminder</SelectItem>
+                  <SelectItem value="pppoe_suspended">PPPoE � Service Suspended</SelectItem>
+                  <SelectItem value="pppoe_resumed">PPPoE � Service Resumed</SelectItem>
+                  <SelectItem value="pppoe_plan_changed">PPPoE � Plan Changed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -215,7 +215,7 @@ function TemplateEditor({
               <div className="flex items-center justify-between">
                 <Label>Message</Label>
                 <span className={`text-xs ${content.length > 160 ? 'text-amber-600 font-medium' : 'text-slate-400'}`}>
-                  {content.length} chars · {Math.ceil(content.length / 160)} SMS
+                  {content.length} chars � {Math.ceil(content.length / 160)} SMS
                 </span>
               </div>
               <Textarea
@@ -251,7 +251,7 @@ function TemplateEditor({
               <div className="bg-[#1a2e1a] rounded-lg p-3 max-w-[220px] mx-auto">
                 <div className="text-[11px] text-slate-400 mb-1">SMS</div>
                 <div className="text-xs text-green-300 leading-relaxed whitespace-pre-wrap">
-                  {preview || <span className="text-slate-600">Preview appears here…</span>}
+                  {preview || <span className="text-slate-600">Preview appears here�</span>}
                 </div>
               </div>
             </div>
@@ -281,9 +281,9 @@ function TemplateEditor({
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // TOPUP SHEET (UPDATED with custom amount input)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () => void; onSuccess: () => void }) {
   const [selected, setSelected] = useState<typeof TOPUP_PACKAGES[0] | null>(null)
@@ -353,7 +353,7 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
                   </span>
                 )}
                 <div className="text-lg font-bold text-slate-800">{pkg.label}</div>
-                <div className="text-2xl font-extrabold text-slate-900 mt-1">KES {pkg.price}</div>
+                <div className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">KES {pkg.price}</div>
                 <div className="text-xs text-slate-500 mt-0.5">{pkg.pricePerUnit.toFixed(2)}/unit</div>
               </button>
             ))}
@@ -377,7 +377,7 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
             {customAmount && (
               <p className="text-xs text-slate-500">
                 {isCustomValid
-                  ? `≈ ${customUnits} units at KES 0.40/unit`
+                  ? `� ${customUnits} units at KES 0.40/unit`
                   : 'Minimum amount is KES 10'}
               </p>
             )}
@@ -397,7 +397,7 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
           {(activeUnits || activePrice) && (
             <div className="rounded-lg bg-slate-50 border p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-slate-500">Units</span><span className="font-medium">{(activeUnits ?? 0).toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Total</span><span className="font-bold text-slate-900">KES {activePrice}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Total</span><span className="font-bold text-slate-900 dark:text-white">KES {activePrice}</span></div>
             </div>
           )}
 
@@ -415,9 +415,9 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // MAIN PAGE
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 export default function SMSPage() {
   const [activeTab, setActiveTab] = useState("history")
@@ -480,7 +480,7 @@ export default function SMSPage() {
     return () => clearTimeout(t)
   }, [customerSearch, recipientType])
 
-  // ── fetch ──────────────────────────────────────────────────────────────────
+  // -- fetch ------------------------------------------------------------------
   const fetchAll = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -526,7 +526,7 @@ export default function SMSPage() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  // ── derived ────────────────────────────────────────────────────────────────
+  // -- derived ----------------------------------------------------------------
   const filteredMessages = useMemo(() => messages.filter(m => {
     const q = searchQuery.toLowerCase()
     const matchQ = m.recipient.toLowerCase().includes(q) ||
@@ -536,7 +536,7 @@ export default function SMSPage() {
     return matchQ && matchS
   }), [messages, searchQuery, statusFilter])
 
-  // ── handlers ───────────────────────────────────────────────────────────────
+  // -- handlers ---------------------------------------------------------------
   const handleSend = async () => {
     const phones = selectedRecipients.map(r => r.phone)
     if (phones.length === 0 || !composeForm.message) {
@@ -569,7 +569,7 @@ export default function SMSPage() {
         message: bulkMessage,
         name: bulkName || undefined,
       })
-      toast.success(`Campaign started — ${res.recipient_count} recipients`)
+      toast.success(`Campaign started � ${res.recipient_count} recipients`)
       setBulkMessage('')
       setBulkName('')
       fetchAll()
@@ -655,15 +655,15 @@ export default function SMSPage() {
   const [composeForm, setComposeForm] = useState({ recipients: '', message: '', template: '' })
   const walletUnits = wallet?.sms_units ?? 0
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // -------------------------------------------------------------------------
   return (
     <TooltipProvider>
       <div className="p-6 space-y-6">
 
-        {/* ── Header ─────────────────────────────────────────────────────────── */}
+        {/* -- Header ----------------------------------------------------------- */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">SMS Management</h1>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">SMS Management</h1>
             <p className="text-slate-500 text-sm mt-1">Send messages, manage templates, and configure notifications</p>
           </div>
           <div className="flex items-center gap-2">
@@ -684,7 +684,7 @@ export default function SMSPage() {
           </div>
         </div>
 
-        {/* ── Stats row ──────────────────────────────────────────────────────── */}
+        {/* -- Stats row -------------------------------------------------------- */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
             { label: 'Total Sent', value: stats.total_sent, icon: MessageSquare, color: 'blue' },
@@ -701,7 +701,7 @@ export default function SMSPage() {
                   </div>
                   <div>
                     <p className="text-xs text-slate-500">{s.label}</p>
-                    <p className="text-xl font-bold text-slate-900">{s.value}</p>
+                    <p className="text-xl font-bold text-slate-900 dark:text-white">{s.value}</p>
                   </div>
                 </div>
               </CardContent>
@@ -709,7 +709,7 @@ export default function SMSPage() {
           ))}
         </div>
 
-        {/* ── Main tabs ──────────────────────────────────────────────────────── */}
+        {/* -- Main tabs -------------------------------------------------------- */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="h-9">
             <TabsTrigger value="history" className="text-xs"><History className="w-3.5 h-3.5 mr-1.5" />History</TabsTrigger>
@@ -722,7 +722,7 @@ export default function SMSPage() {
             )}
           </TabsList>
 
-          {/* ── HISTORY ──────────────────────────────────────────────────────── */}
+          {/* -- HISTORY -------------------------------------------------------- */}
           <TabsContent value="history" className="mt-4">
             <Card>
               <CardHeader className="pb-3">
@@ -738,7 +738,7 @@ export default function SMSPage() {
                 <div className="flex gap-2 mb-4">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                    <Input placeholder="Search messages…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-8 text-sm" />
+                    <Input placeholder="Search messages�" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-8 text-sm" />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-32 h-8 text-sm"><SelectValue /></SelectTrigger>
@@ -779,7 +779,7 @@ export default function SMSPage() {
                             <span className="text-xs capitalize text-slate-500">{m.type}</span>
                           </TableCell>
                           <TableCell className="hidden lg:table-cell text-xs text-slate-400">
-                            {m.sent_at ? new Date(m.sent_at).toLocaleString() : '—'}
+                            {m.sent_at ? new Date(m.sent_at).toLocaleString() : '�'}
                           </TableCell>
                           <TableCell>
                             <DropdownMenu>
@@ -788,7 +788,7 @@ export default function SMSPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 {m.status === 'failed' && (
-                                  <DropdownMenuItem onClick={() => adminApi.retrySMS(m.id).then(() => toast.success('Retrying…'))}>
+                                  <DropdownMenuItem onClick={() => adminApi.retrySMS(m.id).then(() => toast.success('Retrying�'))}>
                                     <RefreshCw className="w-4 h-4 mr-2" />Retry
                                   </DropdownMenuItem>
                                 )}
@@ -814,7 +814,7 @@ export default function SMSPage() {
             </Card>
           </TabsContent>
 
-          {/* ── TEMPLATES ────────────────────────────────────────────────────── */}
+          {/* -- TEMPLATES ------------------------------------------------------ */}
           <TabsContent value="templates" className="mt-4">
             <Card>
               <CardHeader>
@@ -842,7 +842,7 @@ export default function SMSPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm">{t.name}</span>
-                            <span className="text-xs text-slate-400">Used {t.usage_count ?? 0}×</span>
+                            <span className="text-xs text-slate-400">Used {t.usage_count ?? 0}�</span>
                           </div>
                           <p className="text-sm text-slate-600 mt-1 line-clamp-2">{t.content}</p>
                           {t.variables?.length > 0 && (
@@ -875,7 +875,7 @@ export default function SMSPage() {
             </Card>
           </TabsContent>
 
-          {/* ── CAMPAIGNS (UPDATED) ─────────────────────────────────────────── */}
+          {/* -- CAMPAIGNS (UPDATED) ------------------------------------------- */}
           <TabsContent value="campaigns" className="mt-4">
             <div className="grid lg:grid-cols-2 gap-4">
               {/* Send bulk card */}
@@ -904,10 +904,10 @@ export default function SMSPage() {
                     <div className="flex justify-between">
                       <Label>Message</Label>
                       <span className={`text-xs ${bulkMessage.length > 160 ? 'text-amber-600' : 'text-slate-400'}`}>
-                        {bulkMessage.length}/160 · {Math.ceil(Math.max(bulkMessage.length,1)/160)} unit(s)/recipient
+                        {bulkMessage.length}/160 � {Math.ceil(Math.max(bulkMessage.length,1)/160)} unit(s)/recipient
                       </span>
                     </div>
-                    <Textarea rows={4} placeholder="Type your message…" value={bulkMessage}
+                    <Textarea rows={4} placeholder="Type your message�" value={bulkMessage}
                       onChange={e => setBulkMessage(e.target.value)} />
                   </div>
                   <Button className="w-full" disabled={!bulkMessage || bulkSending}
@@ -931,8 +931,8 @@ export default function SMSPage() {
                         <TableRow className="bg-slate-50">
                           <TableHead className="text-xs">Name</TableHead>
                           <TableHead className="text-xs text-right">Recipients</TableHead>
-                          <TableHead className="text-xs text-right">Sent ✓</TableHead>
-                          <TableHead className="text-xs text-right">Failed ✗</TableHead>
+                          <TableHead className="text-xs text-right">Sent ?</TableHead>
+                          <TableHead className="text-xs text-right">Failed ?</TableHead>
                           <TableHead className="text-xs">Status</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -959,11 +959,11 @@ export default function SMSPage() {
             </div>
           </TabsContent>
 
-          {/* ── NOTIFICATIONS ────────────────────────────────────────────────── */}
+          {/* -- NOTIFICATIONS -------------------------------------------------- */}
           <TabsContent value="notifications" className="mt-4">
             <div className="grid lg:grid-cols-2 gap-4">
 
-              {/* ── Inbuilt toggle ──────────────────────────────────────── */}
+              {/* -- Inbuilt toggle ---------------------------------------- */}
               <Card className="lg:col-span-2">
                 <CardContent className="p-5">
                   <div className="flex items-start gap-4">
@@ -973,7 +973,7 @@ export default function SMSPage() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-semibold text-slate-900">Use Netily Inbuilt SMS System</h3>
+                          <h3 className="font-semibold text-slate-900 dark:text-white">Use Netily Inbuilt SMS System</h3>
                           <p className="text-sm text-slate-500 mt-0.5">
                             Route all automated SMS through Netily's Bytewave gateway. No need to configure your own provider.
                             Units are deducted from your wallet balance.
@@ -999,7 +999,7 @@ export default function SMSPage() {
                 </CardContent>
               </Card>
 
-              {/* ── Hotspot notifications ────────────────────────────── */}
+              {/* -- Hotspot notifications ------------------------------ */}
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2">
@@ -1059,7 +1059,7 @@ export default function SMSPage() {
                 </CardContent>
               </Card>
 
-              {/* ── PPPoE / Static notifications ─────────────────────── */}
+              {/* -- PPPoE / Static notifications ----------------------- */}
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2">
@@ -1142,7 +1142,7 @@ export default function SMSPage() {
             </div>
           </TabsContent>
 
-          {/* ── GATEWAY ─────────────────────────────────────────────────────── */}
+          {/* -- GATEWAY ------------------------------------------------------- */}
           <TabsContent value="gateway" className="mt-4">
             <div className="grid lg:grid-cols-2 gap-4">
               <Card>
@@ -1156,7 +1156,7 @@ export default function SMSPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
 
-                  {/* ── INBUILT MODE BANNER ─────────────────────────────── */}
+                  {/* -- INBUILT MODE BANNER ------------------------------- */}
                   {notifSettings.use_inbuilt_system ? (
                     <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-5 space-y-3">
                       <div className="flex items-center gap-3">
@@ -1176,7 +1176,7 @@ export default function SMSPage() {
                       </div>
                       <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-blue-100">
                         <span className="text-slate-500">API Keys</span>
-                        <span className="text-slate-400 italic text-xs">Managed by Netily — not required</span>
+                        <span className="text-slate-400 italic text-xs">Managed by Netily � not required</span>
                       </div>
                       <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-blue-100">
                         <span className="text-slate-500">SMS Units</span>
@@ -1197,7 +1197,7 @@ export default function SMSPage() {
                       </p>
                     </div>
                   ) : (
-                    /* ── CUSTOM PROVIDER FORM ──────────────────────────── */
+                    /* -- CUSTOM PROVIDER FORM ---------------------------- */
                     <>
                       <div className="space-y-1.5">
                         <Label>Provider</Label>
@@ -1325,7 +1325,7 @@ export default function SMSPage() {
                 </CardContent>
               </Card>
 
-              {/* Live balance card — updated for inbuilt mode */}
+              {/* Live balance card � updated for inbuilt mode */}
               <Card>
                 <CardHeader>
                   <CardTitle>Live Balance</CardTitle>
@@ -1345,7 +1345,7 @@ export default function SMSPage() {
                         ? `${Number(walletUnits).toLocaleString()} units`
                         : balance
                           ? `${balance.currency || 'KES'} ${Number(balance.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                          : '—'}
+                          : '�'}
                     </p>
                     {!notifSettings.use_inbuilt_system && balance && (
                       <p className="text-xs text-slate-400 mt-1">{balance.provider}</p>
@@ -1373,7 +1373,7 @@ export default function SMSPage() {
             </div>
           </TabsContent>
 
-          {/* ── WALLET ───────────────────────────────────────────────────────── */}
+          {/* -- WALLET --------------------------------------------------------- */}
           {notifSettings.use_inbuilt_system && (
             <TabsContent value="wallet" className="mt-4">
               <div className="grid lg:grid-cols-3 gap-4">
@@ -1385,9 +1385,9 @@ export default function SMSPage() {
                     </div>
                     <div>
                       <p className="text-sm text-slate-500">Available SMS Units</p>
-                      <p className="text-4xl font-extrabold text-slate-900 mt-1">{Number(walletUnits).toLocaleString()}</p>
+                      <p className="text-4xl font-extrabold text-slate-900 dark:text-white mt-1">{Number(walletUnits).toLocaleString()}</p>
                       <p className="text-xs text-slate-400 mt-1">
-                        ≈ KES {(walletUnits * (wallet?.sell_price_per_unit ?? 0.6)).toFixed(0)} value
+                        � KES {(walletUnits * (wallet?.sell_price_per_unit ?? 0.6)).toFixed(0)} value
                       </p>
                     </div>
                     <Button className="w-full" onClick={() => setIsTopupOpen(true)}>
@@ -1450,7 +1450,7 @@ export default function SMSPage() {
           )}
         </Tabs>
 
-        {/* ── COMPOSE DIALOG (UPDATED) ───────────────────────────────────────── */}
+        {/* -- COMPOSE DIALOG (UPDATED) ----------------------------------------- */}
         <Dialog open={isComposeOpen} onOpenChange={setIsComposeOpen}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
@@ -1480,7 +1480,7 @@ export default function SMSPage() {
                   <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
                   <Input
                     className="pl-8 h-8 text-sm"
-                    placeholder="Name or phone…"
+                    placeholder="Name or phone�"
                     value={customerSearch}
                     onChange={e => setCustomerSearch(e.target.value)}
                   />
@@ -1522,7 +1522,7 @@ export default function SMSPage() {
                   const t = templates.find(x => String(x.id) === v)
                   setComposeForm(p => ({ ...p, template: v, message: t?.content ?? p.message }))
                 }}>
-                  <SelectTrigger><SelectValue placeholder="Select template…" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select template�" /></SelectTrigger>
                   <SelectContent>
                     {templates.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
                   </SelectContent>
@@ -1538,7 +1538,7 @@ export default function SMSPage() {
                 </div>
                 <Textarea
                   rows={4}
-                  placeholder="Type your message…"
+                  placeholder="Type your message�"
                   value={composeForm.message}
                   onChange={e => setComposeForm(p => ({ ...p, message: e.target.value }))}
                 />
@@ -1554,7 +1554,7 @@ export default function SMSPage() {
           </DialogContent>
         </Dialog>
 
-        {/* ── TEMPLATE EDITOR ───────────────────────────────────────────────── */}
+        {/* -- TEMPLATE EDITOR ------------------------------------------------- */}
         <TemplateEditor
           open={isTemplateOpen}
           onClose={() => { setIsTemplateOpen(false); setEditingTemplate(null) }}
@@ -1562,7 +1562,7 @@ export default function SMSPage() {
           initial={editingTemplate}
         />
 
-        {/* ── TOPUP SHEET ───────────────────────────────────────────────────── */}
+        {/* -- TOPUP SHEET ----------------------------------------------------- */}
         <TopupSheet
           open={isTopupOpen}
           onClose={() => setIsTopupOpen(false)}

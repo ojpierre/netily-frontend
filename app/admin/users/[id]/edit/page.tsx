@@ -90,7 +90,7 @@ export default function EditUserPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-slate-900">Edit User</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Edit User</h1>
           <p className="text-slate-600 mt-1">Update user information and settings</p>
         </div>
       </div>

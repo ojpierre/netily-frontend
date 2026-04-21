@@ -406,7 +406,7 @@ export default function UserDetailPage() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-slate-900">{user.fullName}</h1>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{user.fullName}</h1>
             {getTypeBadge(user.type)}
             {getStatusBadge(user.status)}
           </div>

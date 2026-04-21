@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -142,7 +142,7 @@ export default function VouchersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Voucher Management</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Voucher Management</h1>
           <p className="text-slate-600 mt-1">Generate and manage prepaid vouchers</p>
         </div>
         <Dialog open={generateDialog} onOpenChange={setGenerateDialog}>
@@ -243,7 +243,7 @@ export default function VouchersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Total Vouchers</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.total}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <Ticket className="w-6 h-6 text-blue-600" />

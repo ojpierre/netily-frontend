@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useCallback } from "react"
 import {
@@ -139,7 +139,7 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Cable className="w-8 h-8 text-blue-600" />
           </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
             Port Manager
           </h3>
           <p className="text-slate-600 mb-6 max-w-md mx-auto">

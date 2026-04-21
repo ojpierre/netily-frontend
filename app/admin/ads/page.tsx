@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useMemo } from "react"
 import {
@@ -287,7 +287,7 @@ export default function AdsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Captive Portal Ads</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Captive Portal Ads</h1>
           <p className="text-slate-600 mt-1">Manage advertisements shown on hotspot login pages</p>
         </div>
         <div className="flex gap-2">
@@ -571,7 +571,7 @@ export default function AdsPage() {
             {filteredAds.length === 0 && (
               <div className="text-center py-12">
                 <Image className="w-12 h-12 mx-auto text-slate-400 mb-4" />
-                <h3 className="text-lg font-medium text-slate-900 mb-1">No ads found</h3>
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-1">No ads found</h3>
                 <p className="text-slate-500 mb-4">Get started by creating your first ad</p>
                 <Button onClick={() => setIsCreateOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />

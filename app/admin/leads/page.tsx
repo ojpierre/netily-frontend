@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect, useMemo } from "react"
 import {
@@ -325,7 +325,7 @@ export default function LeadsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Leads Management</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Leads Management</h1>
           <p className="text-slate-500 mt-1">Track and convert potential customers</p>
         </div>
         <div className="flex gap-2">

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
           <p className="text-slate-500 mt-1">Overview of your ISP operations</p>
         </div>
         <Alert variant="destructive">
@@ -216,7 +216,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
           <p className="text-slate-500 mt-1">
             Welcome back, {user?.first_name || user?.username || "Admin"}
           </p>
@@ -400,7 +400,7 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
                     <span className="text-sm font-medium">Online</span>
@@ -409,7 +409,7 @@ export default function AdminDashboard() {
                     {routers?.online_routers ?? 0}
                   </span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                     <span className="text-sm font-medium">Offline</span>
@@ -418,7 +418,7 @@ export default function AdminDashboard() {
                     {routers?.offline_routers ?? 0}
                   </span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                     <span className="text-sm font-medium">Warning / Maintenance</span>
@@ -541,21 +541,21 @@ export default function AdminDashboard() {
             ) : (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-red-50 rounded-lg text-center">
+                  <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg text-center">
                     <p className="text-2xl font-bold text-red-600">{tickets?.open ?? 0}</p>
                     <p className="text-xs text-slate-500">Open</p>
                   </div>
-                  <div className="p-3 bg-amber-50 rounded-lg text-center">
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-center">
                     <p className="text-2xl font-bold text-amber-600">{tickets?.in_progress ?? 0}</p>
                     <p className="text-xs text-slate-500">In Progress</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-green-50 rounded-lg text-center">
+                  <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-center">
                     <p className="text-2xl font-bold text-green-600">{tickets?.resolved ?? 0}</p>
                     <p className="text-xs text-slate-500">Resolved</p>
                   </div>
-                  <div className="p-3 bg-blue-50 rounded-lg text-center">
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
                     <p className="text-2xl font-bold text-blue-600">{tickets?.total ?? 0}</p>
                     <p className="text-xs text-slate-500">Total</p>
                   </div>
@@ -840,15 +840,15 @@ export default function AdminDashboard() {
                 {data.recentActivity.map((activity) => (
                   <div
                     key={activity.id}
-                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors"
+                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                   >
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-bold text-blue-600">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
                         {(activity.user__email || "?").charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
+                      <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
                         {activity.user__email || "System"}
                       </p>
                       <p className="text-xs text-slate-600">

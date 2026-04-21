@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -650,7 +650,7 @@ export default function CreatePlanPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-slate-900">Create Plan</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Create Plan</h1>
           <p className="text-slate-600 mt-1">Set up a new internet service plan</p>
         </div>
       </div>
@@ -709,7 +709,7 @@ export default function CreatePlanPage() {
                   <div className={`w-10 h-10 rounded-lg ${preset.color} flex items-center justify-center mb-3`}>
                     <Icon className="w-5 h-5 text-white" />
                   </div>
-                  <div className="font-semibold text-slate-900">{preset.name}</div>
+                  <div className="font-semibold text-slate-900 dark:text-white">{preset.name}</div>
                   <div className="text-xs text-slate-500 mt-1">{preset.description}</div>
                   <div className="text-sm font-bold text-primary mt-2">
                     KSh {preset.config.base_price.toLocaleString()}

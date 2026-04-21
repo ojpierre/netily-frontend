@@ -280,7 +280,7 @@ export default function LoyaltyPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
             <Trophy className="w-6 h-6 text-yellow-500" /> Loyalty Program
           </h1>
           <p className="text-slate-500 text-sm mt-1">
@@ -400,7 +400,7 @@ export default function LoyaltyPage() {
 
                         {/* Member info */}
                         <div className="flex-1 min-w-0">
-                          <p className={`font-semibold truncate ${isTop3 ? "text-slate-900 text-base" : "text-slate-700 text-sm"}`}>
+                          <p className={`font-semibold truncate ${isTop3 ? "text-slate-900 dark:text-white text-base" : "text-slate-700 dark:text-slate-300 text-sm"}`}>
                             {m.name}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
@@ -531,7 +531,7 @@ export default function LoyaltyPage() {
                          <Gift className="w-5 h-5" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-slate-900">{r.name}</p>
+                        <p className="font-semibold text-slate-900 dark:text-white">{r.name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0">{categoryLabels[r.category]}</Badge>
                           <Badge variant={r.status === "active" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 uppercase">{r.status}</Badge>
@@ -898,7 +898,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
         <div className="p-2 bg-slate-50 rounded-lg">{icon}</div>
         <div>
           <p className="text-xs text-slate-500">{label}</p>
-          <p className="font-black text-base text-slate-900 leading-tight">{value}</p>
+          <p className="font-black text-base text-slate-900 dark:text-white leading-tight">{value}</p>
         </div>
       </CardContent>
     </Card>
@@ -969,7 +969,7 @@ function LeaderboardSection({
 
                   {/* Name + badge */}
                   <div className="flex-1 min-w-0">
-                    <p className={`font-semibold truncate ${isTop3 ? "text-slate-900 text-base" : "text-slate-700 text-sm"}`}>
+                    <p className={`font-semibold truncate ${isTop3 ? "text-slate-900 dark:text-white text-base" : "text-slate-700 dark:text-slate-300 text-sm"}`}>
                       {m.name}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">

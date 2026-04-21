@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React from "react"
 import { useRouter } from "next/navigation"
@@ -88,7 +88,7 @@ export default function CustomerAnalyticsPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-slate-900">Customer Analytics</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Customer Analytics</h1>
           <p className="text-slate-600 mt-1">Customer growth, retention, and segmentation</p>
         </div>
         <Select defaultValue="30d">
@@ -111,7 +111,7 @@ export default function CustomerAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Total Customers</p>
-                <p className="text-2xl font-bold text-slate-900">{customerStats.total.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{customerStats.total.toLocaleString()}</p>
                 <div className="flex items-center gap-1 mt-1">
                   <ArrowUpRight className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-green-600">+{customerStats.growthRate}%</span>
@@ -159,7 +159,7 @@ export default function CustomerAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Retention Rate</p>
-                <p className="text-2xl font-bold text-slate-900">{customerStats.retentionRate}%</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{customerStats.retentionRate}%</p>
                 <p className="text-xs text-green-600 mt-1">Above target</p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
@@ -176,7 +176,7 @@ export default function CustomerAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Avg Customer Lifetime</p>
-                <p className="text-2xl font-bold text-slate-900">{customerStats.avgLifetime} months</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{customerStats.avgLifetime} months</p>
               </div>
               <Clock className="w-8 h-8 text-slate-400" />
             </div>
@@ -187,7 +187,7 @@ export default function CustomerAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Customer LTV</p>
-                <p className="text-2xl font-bold text-slate-900">KSh {customerStats.ltv.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {customerStats.ltv.toLocaleString()}</p>
               </div>
               <TrendingUp className="w-8 h-8 text-green-600" />
             </div>
