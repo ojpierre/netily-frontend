@@ -38,10 +38,10 @@ interface TicketRecord {
   priority: string
   created_at: string
   updated_at?: string
-  replies?: Array<{
+  messages?: Array<{
     id: number
     message: string
-    is_staff: boolean
+    sender_type: string  // 'customer', 'agent', or 'system'
     created_at: string
   }>
 }
@@ -64,6 +64,7 @@ export default function CustomerSupportPage() {
   const [selectedTicket, setSelectedTicket] = useState<TicketRecord | null>(null)
   const [replyText, setReplyText] = useState("")
   const [isSendingReply, setIsSendingReply] = useState(false)
+  const [isLoadingTicketDetail, setIsLoadingTicketDetail] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("customerToken")
@@ -86,6 +87,35 @@ export default function CustomerSupportPage() {
       }
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchTicketDetail = async (ticketId: number) => {
+    try {
+      setIsLoadingTicketDetail(true)
+      const data = await customerApi.getTicket(ticketId)
+      return data
+    } catch (err: any) {
+      console.error("Failed to fetch ticket detail:", err)
+      return null
+    } finally {
+      setIsLoadingTicketDetail(false)
+    }
+  }
+
+  const handleTicketClick = async (ticket: TicketRecord) => {
+    if (selectedTicket?.id === ticket.id) {
+      setSelectedTicket(null)
+      return
+    }
+    
+    // Fetch full ticket details including messages
+    const fullTicket = await fetchTicketDetail(ticket.id)
+    if (fullTicket) {
+      setSelectedTicket(fullTicket)
+    } else {
+      // Fallback to the list data if detail fetch fails
+      setSelectedTicket(ticket)
     }
   }
 
@@ -115,7 +145,12 @@ export default function CustomerSupportPage() {
       await customerApi.replyToTicket(selectedTicket.id, replyText)
       setReplyText("")
       toast.success("Reply sent")
-      fetchTickets()
+      // Refresh the ticket detail to show the new reply
+      const updatedTicket = await fetchTicketDetail(selectedTicket.id)
+      if (updatedTicket) {
+        setSelectedTicket(updatedTicket)
+      }
+      fetchTickets() // Also refresh the list
     } catch (err: any) {
       toast.error(err.message || "Failed to send reply")
     } finally {
@@ -217,7 +252,7 @@ export default function CustomerSupportPage() {
                   className={`p-4 cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
                     isSelected ? "ring-2 ring-blue-500" : ""
                   }`}
-                  onClick={() => setSelectedTicket(isSelected ? null : ticket)}
+                  onClick={() => handleTicketClick(ticket)}
                 >
                   <div className="flex items-start gap-3">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${config.bg}`}>
@@ -247,59 +282,72 @@ export default function CustomerSupportPage() {
                 {/* Expanded ticket view */}
                 {isSelected && (
                   <Card className="mt-1 p-4 border-l-4 border-l-blue-500">
-                    {ticket.description && (
-                      <p className="text-sm mb-4">{ticket.description}</p>
-                    )}
+                    {isLoadingTicketDetail ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                      </div>
+                    ) : (
+                      <>
+                        {selectedTicket.description && (
+                          <p className="text-sm mb-4">{selectedTicket.description}</p>
+                        )}
 
-                    {/* Replies */}
-                    {ticket.replies && ticket.replies.length > 0 && (
-                      <div className="space-y-3 mb-4">
-                        {ticket.replies.map((reply) => (
-                          <div
-                            key={reply.id}
-                            className={`p-3 rounded-lg text-sm ${
-                              reply.is_staff
-                                ? "bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800"
-                                : "bg-slate-50 dark:bg-slate-800"
-                            }`}
-                          >
-                            <div className="flex justify-between mb-1">
-                              <span className="font-medium text-xs">
-                                {reply.is_staff ? "Support Team" : "You"}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(reply.created_at).toLocaleDateString("en-KE", {
-                                  month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-                                })}
-                              </span>
-                            </div>
-                            <p>{reply.message}</p>
+                        {/* Replies - using 'messages' from backend */}
+                        {/* Note: The backend uses 'messages' instead of 'replies' */}
+                        {(selectedTicket as any).messages && (selectedTicket as any).messages.length > 0 && (
+                          <div className="space-y-3 mb-4">
+                            {(selectedTicket as any).messages.map((msg: any) => {
+                              const isStaff = msg.sender_type === 'agent' || msg.sender_type === 'system';
+                              return (
+                                <div
+                                  key={msg.id}
+                                  className={`p-3 rounded-lg text-sm ${
+                                    isStaff
+                                      ? "bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800"
+                                      : "bg-slate-50 dark:bg-slate-800"
+                                  }`}
+                                >
+                                  <div className="flex justify-between mb-1">
+                                    <span className="font-medium text-xs">
+                                      {isStaff ? "Support Team" : "You"}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(msg.created_at).toLocaleDateString("en-KE", {
+                                        month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                                      })}
+                                    </span>
+                                  </div>
+                                  <p>{msg.message}</p>
+                                </div>
+                              );
+                            })}
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        )}
 
-                    {/* Reply input */}
-                    {!["closed", "resolved"].includes(ticket.status) && (
-                      <div className="flex gap-2">
-                        <Input
-                          value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
-                          placeholder="Type a reply..."
-                          onKeyDown={(e) => e.key === "Enter" && handleReply()}
-                        />
-                        <Button
-                          size="icon"
-                          onClick={handleReply}
-                          disabled={isSendingReply || !replyText.trim()}
-                        >
-                          {isSendingReply ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Send className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
+                        {/* Reply input */}
+                        {!["closed", "resolved"].includes(selectedTicket.status) && (
+                          <div className="flex gap-2">
+                            <Input
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder="Type a reply..."
+                              onKeyDown={(e) => e.key === "Enter" && handleReply()}
+                            />
+                            <Button
+                              size="icon"
+                              onClick={handleReply}
+                              disabled={isSendingReply || !replyText.trim()}
+                            >
+                              {isSendingReply ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Send className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </Card>
                 )}
