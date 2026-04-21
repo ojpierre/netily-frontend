@@ -87,7 +87,10 @@ export function MpesaPaymentModal({
       try {
         const response = await customerApi.getPaymentStatus(transactionId)
         
-        if (response.status === "completed" || response.status === "success") {
+        // Ensure we force the status to lowercase to match perfectly
+        const backendStatus = String(response.status).toLowerCase()
+        
+        if (backendStatus === "completed" || backendStatus === "success") {
           setStatus("success")
           clearInterval(pollInterval)
           // Save phone for future use
@@ -96,7 +99,7 @@ export function MpesaPaymentModal({
             onSuccess?.()
             onClose()
           }, 2000)
-        } else if (response.status === "failed" || response.status === "cancelled") {
+        } else if (backendStatus === "failed" || backendStatus === "cancelled") {
           setStatus("failed")
           setError(response.message || "Payment failed")
           clearInterval(pollInterval)
@@ -138,10 +141,10 @@ export function MpesaPaymentModal({
         plan_id: planId,
         phone_number: formattedPhone,
         billing_period: billingPeriod,
-        amount: amount, // <--- ADDED THIS LINE
+        amount: amount,
       })
 
-      setTransactionId(response.transaction_id || response.checkout_request_id) // Fallback just in case
+      setTransactionId(response.transaction_id || response.checkout_request_id)
       setStatus("waiting")
       
       // Start polling after a short delay
