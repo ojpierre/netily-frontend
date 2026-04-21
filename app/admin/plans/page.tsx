@@ -372,10 +372,13 @@ export default function PlansPage() {
   // Hotspot quick-create state
   const [isHotspotCreateOpen, setIsHotspotCreateOpen] = useState(false)
   const [hotspotCreating, setHotspotCreating] = useState(false)
+  const [isEditingHotspot, setIsEditingHotspot] = useState(false)
+  const [editingHotspotPlan, setEditingHotspotPlan] = useState<Plan | null>(null)
   const [hotspotForm, setHotspotForm] = useState({
     name: '', price: '', download_speed: '', upload_speed: '',
     validity_type: 'HOURS' as string, duration_days: '1', validity_hours: '1', validity_minutes: '30',
     max_sessions: '1', description: '', features: '',
+    is_active: true, is_popular: false,
   })
 
   // Loading states
@@ -816,6 +819,30 @@ export default function PlansPage() {
 
   // Edit plan
   const openEditDialog = (plan: Plan) => {
+    const hp = plan as any
+    if (hp._isHotspotPlan) {
+      // Pre-populate hotspot form and open hotspot edit dialog
+      setSelectedPlan(plan)
+      setHotspotForm({
+        name: plan.name,
+        price: (plan.price ?? plan.base_price)?.toString() || '',
+        download_speed: plan.download_speed?.toString() || '',
+        upload_speed: plan.upload_speed?.toString() || '',
+        validity_type: plan.validity_type || 'HOURS',
+        duration_days: plan.duration_days?.toString() || '1',
+        validity_hours: plan.validity_hours?.toString() || '1',
+        validity_minutes: plan.validity_minutes?.toString() || '30',
+        max_sessions: plan.max_sessions?.toString() || '1',
+        description: plan.description || '',
+        features: plan.features?.join('\n') || '',
+        is_active: plan.is_active,
+        is_popular: plan.is_popular || false,
+      })
+      setEditingHotspotPlan(plan)
+      setIsEditingHotspot(true)
+      setIsHotspotCreateOpen(true)
+      return
+    }
     setSelectedPlan(plan)
     setPlanForm({
       name: plan.name,
@@ -1022,14 +1049,16 @@ export default function PlansPage() {
     }
   }
 
-  // Hotspot custom create handler — updated to support 'all' routers with is_global_template
+  const resetHotspotForm = () => {
+    setHotspotForm({ name: '', price: '', download_speed: '', upload_speed: '', validity_type: 'HOURS', duration_days: '1', validity_hours: '1', validity_minutes: '30', max_sessions: '1', description: '', features: '', is_active: true, is_popular: false })
+    setIsEditingHotspot(false)
+    setEditingHotspotPlan(null)
+  }
+
+  // Hotspot custom create/edit handler — supports 'all' routers for create, single router for edit
   const handleHotspotCustomCreate = async () => {
     if (!hotspotForm.name || !hotspotForm.price) {
       toast.error('Name and price are required')
-      return
-    }
-    if (!selectedRouterId) {
-      toast.error('Please select a router first')
       return
     }
     setHotspotCreating(true)
@@ -1039,34 +1068,45 @@ export default function PlansPage() {
                             validityType === 'HOURS' ? parseInt(hotspotForm.validity_hours) :
                             validityType === 'DAYS' ? parseInt(hotspotForm.duration_days) : 0
 
-      const targetRouters = selectedRouterId === 'all' ? routers : routers.filter(r => r.id === selectedRouterId)
+      const payload = {
+        name: hotspotForm.name,
+        description: hotspotForm.description || undefined,
+        price: hotspotForm.price,
+        validity_type: validityType,
+        validity_value: validityValue || 1,
+        download_speed: hotspotForm.download_speed ? parseInt(hotspotForm.download_speed) : 10,
+        upload_speed: hotspotForm.upload_speed ? parseInt(hotspotForm.upload_speed) : 5,
+        simultaneous_devices: hotspotForm.max_sessions ? parseInt(hotspotForm.max_sessions) : 1,
+        is_active: hotspotForm.is_active,
+        is_popular: hotspotForm.is_popular,
+      } as any
 
-      for (const router of targetRouters) {
-        await adminApi.createHotspotPlan(router.id, {
-          name: hotspotForm.name,
-          description: hotspotForm.description || undefined,
-          price: hotspotForm.price,
-          validity_type: validityType,
-          validity_value: validityValue || 1,
-          download_speed: hotspotForm.download_speed ? parseInt(hotspotForm.download_speed) : 10,
-          upload_speed: hotspotForm.upload_speed ? parseInt(hotspotForm.upload_speed) : 5,
-          simultaneous_devices: hotspotForm.max_sessions ? parseInt(hotspotForm.max_sessions) : 1,
-          is_active: true,
-          is_popular: false,
-          // Mark as global template when "All Routers" was selected
-          is_global_template: selectedRouterId === 'all',
-        } as any)
+      if (isEditingHotspot && editingHotspotPlan) {
+        // Update existing hotspot plan on its router
+        const hp = editingHotspotPlan as any
+        await adminApi.updateHotspotPlan(hp._routerId, hp._hotspotPlanId, payload)
+        toast.success('Hotspot plan updated!')
+      } else {
+        if (!selectedRouterId) {
+          toast.error('Please select a router first')
+          return
+        }
+        const targetRouters = selectedRouterId === 'all' ? routers : routers.filter(r => r.id === selectedRouterId)
+        for (const router of targetRouters) {
+          await adminApi.createHotspotPlan(router.id, { ...payload, is_global_template: selectedRouterId === 'all' })
+        }
+        const routerLabel = selectedRouterId === 'all' ? `all ${targetRouters.length} routers` : 'selected router'
+        toast.success(`Hotspot plan created for ${routerLabel}!`)
       }
-      
-      toast.success('Hotspot plan created!')
+
       setIsHotspotCreateOpen(false)
-      setHotspotForm({ name: '', price: '', download_speed: '', upload_speed: '', validity_type: 'HOURS', duration_days: '1', validity_hours: '1', validity_minutes: '30', max_sessions: '1', description: '', features: '' })
+      resetHotspotForm()
       fetchPlans()
       fetchDashboardStats()
       if (selectedRouterId === 'all') fetchAllHotspotPlans()
-      else fetchHotspotPlans(selectedRouterId as number)
+      else if (selectedRouterId) fetchHotspotPlans(selectedRouterId as number)
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create hotspot plan')
+      toast.error(error.message || 'Failed to save hotspot plan')
     } finally {
       setHotspotCreating(false)
     }
@@ -2045,29 +2085,31 @@ export default function PlansPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Hotspot Custom Create Dialog - Updated with router info */}
-      <Dialog open={isHotspotCreateOpen} onOpenChange={setIsHotspotCreateOpen}>
+      {/* Hotspot Create / Edit Dialog */}
+      <Dialog open={isHotspotCreateOpen} onOpenChange={(open) => { if (!open) { setIsHotspotCreateOpen(false); resetHotspotForm() } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Wifi className="w-5 h-5 text-blue-500" />
-              Create Custom Hotspot Plan
+              {isEditingHotspot ? 'Edit Hotspot Plan' : 'Create Custom Hotspot Plan'}
             </DialogTitle>
             <DialogDescription>
-              Creating plan for: <span className="font-semibold">
-                {selectedRouterId === 'all' 
-                  ? `all ${routers.length} routers`
-                  : routers.find(r => r.id === selectedRouterId)?.name || 'Unknown'}
-              </span>
+              {isEditingHotspot
+                ? <span>Editing <span className="font-semibold">{editingHotspotPlan?.name}</span>{(editingHotspotPlan as any)?._routerName ? ` · ${(editingHotspotPlan as any)._routerName}` : ''}</span>
+                : <span>Creating plan for: <span className="font-semibold">{selectedRouterId === 'all' ? `all ${routers.length} routers` : routers.find(r => r.id === selectedRouterId)?.name || 'Unknown'}</span></span>
+              }
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-4">
+            {/* Name */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Plan Name</Label>
+              <Label className="text-sm font-medium">Plan Name *</Label>
               <Input value={hotspotForm.name}
                 onChange={(e) => setHotspotForm({ ...hotspotForm, name: e.target.value })}
                 placeholder="e.g., Weekend Special 12hr" />
             </div>
+
+            {/* Validity */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Validity</Label>
@@ -2104,12 +2146,16 @@ export default function PlansPage() {
                 </Select>
               </div>
             </div>
+
+            {/* Price */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Price (KES)</Label>
+              <Label className="text-sm font-medium">Price (KES) *</Label>
               <Input type="number" value={hotspotForm.price}
                 onChange={(e) => setHotspotForm({ ...hotspotForm, price: e.target.value })}
                 placeholder="e.g., 100" />
             </div>
+
+            {/* Speed */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Download (Mbps)</Label>
@@ -2124,18 +2170,54 @@ export default function PlansPage() {
                   placeholder="5" />
               </div>
             </div>
+
+            {/* Max Devices */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Max Devices</Label>
               <Input type="number" min={1} value={hotspotForm.max_sessions}
                 onChange={(e) => setHotspotForm({ ...hotspotForm, max_sessions: e.target.value })}
                 placeholder="1" />
             </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Description</Label>
+              <Textarea rows={2} value={hotspotForm.description}
+                onChange={(e) => setHotspotForm({ ...hotspotForm, description: e.target.value })}
+                placeholder="Describe the plan benefits..." />
+            </div>
+
+            {/* Features */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Features (one per line)</Label>
+              <Textarea rows={3} value={hotspotForm.features}
+                onChange={(e) => setHotspotForm({ ...hotspotForm, features: e.target.value })}
+                placeholder={`e.g., 10 Mbps Speed\n1 Hour Access\nSingle Device`} />
+            </div>
+
+            {/* Active / Popular toggles */}
+            <div className="flex flex-wrap items-center gap-6 p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Switch checked={hotspotForm.is_active}
+                  onCheckedChange={(c) => setHotspotForm({ ...hotspotForm, is_active: c })} />
+                <Label className="text-sm">Active</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={hotspotForm.is_popular}
+                  onCheckedChange={(c) => setHotspotForm({ ...hotspotForm, is_popular: c })} />
+                <Label className="text-sm">
+                  <Zap className="w-3 h-3 inline mr-1 text-yellow-500" />
+                  Popular
+                </Label>
+              </div>
+            </div>
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsHotspotCreateOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setIsHotspotCreateOpen(false); resetHotspotForm() }}>Cancel</Button>
             <Button onClick={handleHotspotCustomCreate} disabled={hotspotCreating || !hotspotForm.name || !hotspotForm.price}>
               {hotspotCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Hotspot Plan
+              {isEditingHotspot ? 'Update Hotspot Plan' : 'Create Hotspot Plan'}
             </Button>
           </DialogFooter>
         </DialogContent>

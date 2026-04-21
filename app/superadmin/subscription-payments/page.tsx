@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from "react"
-import { superAdminApi } from "@/lib/superadmin-api"
+import { superadminApi } from "@/lib/superadmin-api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -70,7 +70,7 @@ export default function SubscriptionPaymentsPage() {
       if (search) params.search = search
       if (statusFilter && statusFilter !== "all") params.status = statusFilter
 
-      const data = await superAdminApi.getSubscriptionPayments(params)
+      const data = await superadminApi.getSubscriptionPayments(params)
       setPayments((data as any).results || [])
       setTotalPages((data as any).total_pages || 1)
       setTotal((data as any).count || 0)
