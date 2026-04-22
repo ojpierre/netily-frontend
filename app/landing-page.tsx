@@ -31,6 +31,7 @@ import {
   MessageSquare,
   ShieldCheck,
   BanknoteIcon,
+  CreditCard,
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -831,6 +832,149 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* ━━━ 4b. CUSTOMER PORTAL SHOWCASE ━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <Reveal>
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-50 dark:bg-cyan-950 border border-cyan-100 dark:border-cyan-800 rounded-full text-cyan-700 dark:text-cyan-300 text-xs font-semibold uppercase tracking-wider mb-4">
+                  Customer Self-Service Portal
+                </div>
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+                  Let your PPPoE clients manage themselves
+                </h2>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
+                  Give every subscriber — fiber, PPPoE, or hotspot — a branded self-service portal
+                  so they can renew, pay, and get help without calling you. Reduce support load
+                  while improving customer satisfaction.
+                </p>
+                <ul className="space-y-3">
+                  {[
+                    { icon: CreditCard, text: "Renew or upgrade plans via M-Pesa STK Push" },
+                    { icon: FileText, text: "Download invoices & payment receipts instantly" },
+                    { icon: MessageSquare, text: "Submit and track support tickets" },
+                    { icon: Activity, text: "View real-time bandwidth usage & session history" },
+                    { icon: Shield, text: "Self-serve password reset for PPPoE accounts" },
+                    { icon: Smartphone, text: "Mobile-first design — works on any phone" },
+                  ].map(({ icon: Icon, text }) => (
+                    <li key={text} className="flex items-start gap-3">
+                      <div className="w-5 h-5 mt-0.5 bg-cyan-100 dark:bg-cyan-900 rounded-md flex items-center justify-center shrink-0">
+                        <Icon className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                      </div>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">{text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => scrollTo("contact")}
+                  className="mt-8 inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
+                >
+                  Get the portal for your ISP
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </Reveal>
+            <Reveal delay={0.15}>
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-cyan-50 to-slate-50 dark:from-cyan-950/20 dark:to-slate-900 p-6 space-y-3">
+                {/* Mock portal UI */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">My Account</span>
+                  <span className="text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">Active</span>
+                </div>
+                {[
+                  { label: "Plan", value: "Fiber 20 Mbps" },
+                  { label: "Expires", value: "May 15, 2026" },
+                  { label: "Data Used", value: "142 GB / ∞" },
+                  { label: "Last Payment", value: "KES 2,500 · Apr 15" },
+                ].map((row) => (
+                  <div key={row.label} className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700 last:border-0">
+                    <span className="text-xs text-slate-500">{row.label}</span>
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{row.value}</span>
+                  </div>
+                ))}
+                <button className="w-full mt-2 py-2 bg-cyan-600 text-white text-xs font-semibold rounded-lg">
+                  Renew via M-Pesa →
+                </button>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ━━━ 4c. ADS & PROMOTIONS SHOWCASE ━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <Reveal delay={0.1} className="order-2 md:order-1">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-6 space-y-4">
+                {/* Mock ad banner preview */}
+                <div className="rounded-xl bg-gradient-to-r from-rose-500 to-orange-500 p-4 text-white text-center">
+                  <p className="text-xs font-bold uppercase tracking-wider mb-1">Limited Offer</p>
+                  <p className="text-lg font-extrabold">Upgrade to 50 Mbps</p>
+                  <p className="text-xs opacity-80">Only KES 500 more/month · Expires in 2 days</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  {[
+                    { label: "Impressions", value: "4,821" },
+                    { label: "Clicks", value: "312" },
+                    { label: "Conversions", value: "47" },
+                  ].map((stat) => (
+                    <div key={stat.label} className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
+                      <p className="text-base font-bold text-slate-900 dark:text-white">{stat.value}</p>
+                      <p className="text-xs text-slate-500">{stat.label}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                  Campaign &quot;Upgrade Push April&quot; · Running
+                </div>
+              </div>
+            </Reveal>
+            <Reveal className="order-1 md:order-2">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-rose-50 dark:bg-rose-950 border border-rose-100 dark:border-rose-800 rounded-full text-rose-700 dark:text-rose-300 text-xs font-semibold uppercase tracking-wider mb-4">
+                  Ads &amp; Promotions
+                </div>
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+                  Turn your captive portal into a revenue engine
+                </h2>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
+                  Run targeted promotions on your Wi-Fi captive portal, send SMS upgrade nudges,
+                  and reward loyal subscribers — all from one dashboard. Drive plan upgrades and
+                  reduce churn without lifting a finger.
+                </p>
+                <ul className="space-y-3">
+                  {[
+                    { icon: Globe, text: "Captive portal banner ads with click tracking" },
+                    { icon: TrendingUp, text: "Targeted plan upgrade campaigns by usage tier" },
+                    { icon: MessageSquare, text: "Bulk SMS promotions to subscriber segments" },
+                    { icon: Users, text: "Referral & loyalty reward programs" },
+                    { icon: BarChart3, text: "Campaign analytics — impressions, clicks, conversions" },
+                    { icon: Clock, text: "Schedule campaigns with expiry and auto-stop" },
+                  ].map(({ icon: Icon, text }) => (
+                    <li key={text} className="flex items-start gap-3">
+                      <div className="w-5 h-5 mt-0.5 bg-rose-100 dark:bg-rose-900 rounded-md flex items-center justify-center shrink-0">
+                        <Icon className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                      </div>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">{text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => scrollTo("contact")}
+                  className="mt-8 inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
+                >
+                  Start running ads on your portal
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
       {/* ━━━ 5. PRICING SECTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950">
         <div className="max-w-5xl mx-auto">
@@ -1255,7 +1399,6 @@ export function LandingPage() {
           </Reveal>
         </div>
 
-      </main>
         {/* Footer links */}
         <div className="relative z-10 border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
