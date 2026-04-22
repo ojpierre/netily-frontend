@@ -55,14 +55,38 @@ const getLogLevel = (action: string): LogEntry["level"] => {
 }
 
 /** Convert backend AuditLog to display LogEntry */
-const mapAuditLogToEntry = (log: AuditLog): LogEntry => ({
-  id: `LOG-${log.id}`,
-  timestamp: log.created_at,
-  level: getLogLevel(log.action),
-  category: log.model || "System",
-  message: `${log.action}${log.model ? ` on ${log.model}` : ""}${log.object_id ? ` #${log.object_id}` : ""}`,
-  source: log.user?.username || log.ip_address || "system",
-})
+const mapAuditLogToEntry = (log: any): LogEntry => {
+  // 1. Build a human-readable message using the rich backend data
+  let displayMessage = "";
+  const actor = log.user_full_name || log.user_email || "System";
+  const action = log.action_display || log.action;
+  const target = log.object_repr || log.model_name || `Item #${log.object_id}`;
+
+  if (log.action === "login") {
+    displayMessage = `${actor} logged in successfully.`;
+  } else if (log.action === "logout") {
+    displayMessage = `${actor} logged out.`;
+  } else if (log.action === "create") {
+    displayMessage = `${actor} created new ${log.model_name}: ${target}`;
+  } else if (log.action === "update") {
+    displayMessage = `${actor} updated ${log.model_name}: ${target}`;
+  } else if (log.action === "delete") {
+    displayMessage = `${actor} deleted ${log.model_name}: ${target}`;
+  } else if (log.action === "password_change") {
+    displayMessage = `${actor} changed their password.`;
+  } else {
+    displayMessage = `${actor} performed ${action} on ${target}`;
+  }
+
+  return {
+    id: `LOG-${String(log.id).substring(0, 8)}`, // Shorten ID for cleaner UI
+    timestamp: log.timestamp, // FIX: Backend uses 'timestamp', not 'created_at'
+    level: getLogLevel(log.action),
+    category: log.model_name || "System", // FIX: Backend uses 'model_name'
+    message: displayMessage,
+    source: log.ip_address || "system",
+  }
+}
 
 export default function LogsPage() {
   const [loading, setLoading] = useState(true)
