@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useEffect, useState, useMemo } from "react"
+import { use, useEffect, useState, useMemo, useRef } from "react"
 import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users, Ticket, Monitor, Smartphone } from "lucide-react"
 import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 
@@ -87,6 +87,25 @@ interface AutoLoginResponse {
     username: string
     password: string
   }
+}
+
+interface HotspotAd {
+  id: number
+  name: string
+  media_url: string
+  media_type: 'VIDEO' | 'IMAGE'
+  target_url: string
+  reward_enabled: boolean
+  reward_minutes: number
+}
+
+interface AdGrantResponse {
+  status: string
+  access_code: string
+  expires_at: string
+  reward_minutes: number
+  already_active?: boolean
+  error?: string
 }
 
 type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "timeout"
@@ -250,6 +269,37 @@ async function verifyTVCode(code: string, tenant: string) {
   return res.json()
 }
 
+// === AD API FUNCTIONS ===
+async function fetchServableAd(routerId: string, tenant: string): Promise<{ ad: HotspotAd | null }> {
+  try {
+    const res = await fetch(
+      `${getApiBase()}/hotspot/ads/serve/?router_id=${routerId}&tenant=${encodeURIComponent(tenant)}`,
+      { cache: 'no-store' }
+    )
+    if (!res.ok) return { ad: null }
+    return res.json()
+  } catch {
+    return { ad: null }
+  }
+}
+
+async function grantAdAccess(data: {
+  ad_id: number
+  mac_address: string
+  router_id: string
+  tenant: string
+}): Promise<AdGrantResponse> {
+  const res = await fetch(`${getApiBase()}/hotspot/ads/grant-access/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    cache: 'no-store',
+  })
+  const json = await res.json()
+  if (!res.ok && res.status !== 409) throw new Error(json.error || 'Failed to grant access')
+  return json
+}
+
 /**
  * "Return Trip" — submits RADIUS credentials back to MikroTik's login URL.
  * MikroTik -> Cloud Portal -> Payment -> RADIUS created -> Return Trip -> Internet
@@ -317,6 +367,17 @@ function getLoginUrl(): string {
     return params.get("login_url") || ""
   }
   return ""
+}
+
+// ==========================================
+// AUTO-COMPLETE IMAGE AD COMPONENT
+// ==========================================
+function AutoCompleteImage({ onComplete }: { onComplete: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onComplete, 5000)
+    return () => clearTimeout(t)
+  }, [onComplete])
+  return null
 }
 
 // ==========================================
@@ -767,6 +828,15 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const [voucherRedeeming, setVoucherRedeeming] = useState(false)
   const [voucherError, setVoucherError] = useState<string | null>(null)
 
+  // Ad state
+  const [availableAd, setAvailableAd] = useState<HotspotAd | null>(null)
+  const [showAdModal, setShowAdModal] = useState(false)
+  const [adVideoCountdown, setAdVideoCountdown] = useState(0)
+  const [adCompleted, setAdCompleted] = useState(false)
+  const [adGranting, setAdGranting] = useState(false)
+  const [adError, setAdError] = useState<string | null>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
   // === TV MODE STATES ===
   const [isTvDevice, setIsTvDevice] = useState(false)
   const [tvDisplayCode, setTvDisplayCode] = useState<string | null>(null)
@@ -884,7 +954,15 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       })
   }, [routerId, isTvDevice])
 
-  // ── Poll payment status (FIXED: Don't auto-login phone when paying for TV) ──
+  // ── Fetch available ad ──
+  useEffect(() => {
+    if (isTvDevice || loading) return
+    const tenant = getTenant()
+    if (!tenant) return
+    fetchServableAd(routerId, tenant).then(({ ad }) => setAvailableAd(ad))
+  }, [routerId, isTvDevice, loading])
+
+  // ── Poll payment status ──
   useEffect(() => {
     if (paymentStatus !== "waiting" || !sessionId) return
     const pollInterval = setInterval(async () => {
@@ -1097,7 +1175,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     setCountdown(120)
   }
 
-  // ── Redeem voucher (FIXED: Don't auto-login phone when paying for TV) ──
+  // ── Redeem voucher ──
   const handleVoucherRedeem = async () => {
     if (!voucherCode.trim()) {
       setVoucherError("Enter your voucher code")
@@ -1147,6 +1225,64 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       setVoucherError(err instanceof Error ? err.message : "Voucher redemption failed")
     } finally {
       setVoucherRedeeming(false)
+    }
+  }
+
+  // ── Ad video handlers ──
+  const handleAdVideoTimeUpdate = () => {
+    if (!videoRef.current) return
+    const remaining = Math.ceil(videoRef.current.duration - videoRef.current.currentTime)
+    setAdVideoCountdown(Math.max(0, remaining))
+  }
+
+  const handleAdVideoLoaded = () => {
+    if (!videoRef.current) return
+    setAdVideoCountdown(Math.ceil(videoRef.current.duration || 15))
+  }
+
+  const handleAdComplete = async () => {
+    if (!availableAd || adGranting) return
+    setAdCompleted(true)
+    setAdGranting(true)
+    setAdError(null)
+    try {
+      const result = await grantAdAccess({
+        ad_id: availableAd.id,
+        mac_address: getMacAddress(),
+        router_id: routerId,
+        tenant: getTenant(),
+      })
+      setAccessCode(result.access_code)
+      setExpiresAt(result.expires_at)
+      setSelectedPlan({
+        id: 'ad-sponsored',
+        name: `Ad-Sponsored (${result.reward_minutes} min free)`,
+        duration_display: `${result.reward_minutes} minutes`,
+        speed_display: '5 Mbps',
+        price: 0,
+        currency: 'KES',
+        validity_type: 'MINUTES',
+        validity_value: result.reward_minutes,
+        download_speed: 5,
+        upload_speed: 5,
+        speed_unit: 'MBPS',
+        limitation_type: 'UNLIMITED',
+        data_limit_value: null,
+        data_limit_unit: 'MB',
+        data_limit_display: 'Unlimited',
+      })
+      setShowAdModal(false)
+      setPaymentStatus('success')
+      // Auto-login via MikroTik if we have a login URL
+      if (loginUrl && result.access_code) {
+        setReturningToRouter(true)
+        const u = encodeURIComponent(result.access_code)
+        setTimeout(() => { window.location.href = `${loginUrl}?username=${u}&password=${u}` }, 1500)
+      }
+    } catch (err: any) {
+      setAdError(err.message || 'Could not grant access. Please try again.')
+      setAdGranting(false)
+      setAdCompleted(false)
     }
   }
 
@@ -1441,6 +1577,30 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
               <Megaphone className={`w-4 h-4 mt-0.5 flex-shrink-0 ${theme.annIcon}`} />
               <p className={`text-sm ${theme.annText}`}>{announcement}</p>
             </div>
+          )}
+
+          {/* Free Ad-Sponsored Access */}
+          {availableAd && availableAd.reward_enabled && availableAd.reward_minutes > 0 && (
+            <button
+              type="button"
+              onClick={() => { setShowAdModal(true); setAdCompleted(false); setAdError(null) }}
+              className="w-full mb-4 flex items-center justify-between px-4 py-3.5 rounded-xl border-2 border-dashed border-green-400 bg-green-50 hover:bg-green-100 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-green-800">Watch a 15s Ad — Get {availableAd.reward_minutes} Min FREE</p>
+                  <p className="text-xs text-green-600">No payment needed. Just watch the short ad.</p>
+                </div>
+              </div>
+              <svg className="w-5 h-5 text-green-500 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
           )}
 
           {/* DEVICE TARGET TOGGLE */}
@@ -1836,6 +1996,82 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             <p className={`text-center text-xs mt-3 ${theme.footerText}`}>
               By connecting, you agree to the terms of service
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* ━━━ AD VIDEO MODAL ━━━ */}
+      {showAdModal && availableAd && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black">
+          {/* Full-screen unskippable player */}
+          <div className="relative w-full h-full flex flex-col items-center justify-center">
+
+            {/* Video */}
+            {availableAd.media_type === 'VIDEO' ? (
+              <video
+                ref={videoRef}
+                src={availableAd.media_url}
+                className="w-full h-full object-contain max-h-[80vh]"
+                autoPlay
+                playsInline
+                muted={false}
+                disablePictureInPicture
+                controlsList="nodownload nofullscreen noremoteplayback"
+                onLoadedMetadata={handleAdVideoLoaded}
+                onTimeUpdate={handleAdVideoTimeUpdate}
+                onEnded={handleAdComplete}
+              />
+            ) : (
+              // Image ad with auto-complete after 5 seconds
+              <div className="relative w-full max-w-lg">
+                <img src={availableAd.media_url} alt={availableAd.name} className="w-full rounded-xl" />
+                <AutoCompleteImage onComplete={handleAdComplete} />
+              </div>
+            )}
+
+            {/* Countdown overlay — top-right */}
+            {!adCompleted && (
+              <div className="absolute top-4 right-4 bg-black/70 text-white text-sm font-semibold px-3 py-1.5 rounded-full flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                {adVideoCountdown > 0 ? `${adVideoCountdown}s` : 'Almost done...'}
+              </div>
+            )}
+
+            {/* Granting overlay */}
+            {adGranting && (
+              <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-4">
+                <Loader2 className="w-12 h-12 animate-spin text-green-400" />
+                <p className="text-white text-lg font-semibold">Unlocking your free access...</p>
+              </div>
+            )}
+
+            {/* Error */}
+            {adError && (
+              <div className="absolute bottom-8 left-4 right-4 bg-red-900/90 border border-red-500 text-white rounded-xl p-4 flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">{adError}</p>
+                  <button onClick={handleAdComplete} className="text-xs underline mt-1">Try again</button>
+                </div>
+              </div>
+            )}
+
+            {/* Skip button only after video ends (before granting) */}
+            {adCompleted && !adGranting && !adError && (
+              <div className="absolute bottom-8 left-4 right-4 text-center">
+                <p className="text-white text-sm opacity-70">Activating your free internet...</p>
+              </div>
+            )}
+
+            {/* "No thanks" — only before video starts */}
+            {adVideoCountdown === 0 && !adCompleted && (
+              <button
+                onClick={() => setShowAdModal(false)}
+                className="absolute top-4 left-4 text-white/50 hover:text-white text-xs px-2 py-1 rounded"
+              >
+                ✕ No thanks
+              </button>
+            )}
           </div>
         </div>
       )}
