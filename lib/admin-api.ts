@@ -3944,6 +3944,35 @@ async activateService(
       body: JSON.stringify(data),
     })
   }
+
+  // ------------------------------------------
+  // SYSTEM NOTIFICATIONS - /notifications/
+  // ------------------------------------------
+
+  async getSystemNotifications(params?: Record<string, string>): Promise<PaginatedResponse<any>> {
+    const query = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<any>>(`/notifications/notifications/${query}`)
+  }
+
+  async markNotificationRead(id: number): Promise<void> {
+    return this.request(`/notifications/notifications/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ read: true }),
+    })
+  }
+
+  async markAllNotificationsRead(): Promise<void> {
+    return this.request('/notifications/notifications/mark_all_read/', { method: 'POST' })
+  }
+
+  async getUnreadNotificationCount(): Promise<number> {
+    try {
+      const data = await this.request<PaginatedResponse<any>>('/notifications/notifications/?read=false&limit=1')
+      return data?.count ?? 0
+    } catch {
+      return 0
+    }
+  }
 }
 
 // Export singleton instance

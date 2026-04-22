@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2563eb"/>
+      <stop offset="100%" style="stop-color:#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="0" y="0" width="6" height="630" fill="url(#accent)"/>
+  <circle cx="1050" cy="100" r="220" fill="#1d4ed8" opacity="0.08"/>
+  <circle cx="150" cy="530" r="180" fill="#4f46e5" opacity="0.06"/>
+  <rect x="60" y="54" width="52" height="52" rx="14" fill="url(#accent)"/>
+  <text x="86" y="90" font-family="system-ui,sans-serif" font-size="28" font-weight="800" fill="white" text-anchor="middle">N</text>
+  <text x="130" y="91" font-family="system-ui,sans-serif" font-size="28" font-weight="800" fill="white">Netily</text>
+  <text x="60" y="220" font-family="system-ui,sans-serif" font-size="64" font-weight="900" fill="white">ISP Billing Software</text>
+  <text x="60" y="300" font-family="system-ui,sans-serif" font-size="64" font-weight="900" fill="url(#accent)">for Kenya &amp; East Africa</text>
+  <text x="60" y="380" font-family="system-ui,sans-serif" font-size="28" fill="#94a3b8">M-Pesa STK Push  ·  MikroTik PPPoE  ·  RADIUS  ·  Hotspot Billing</text>
+  <rect x="60" y="430" width="260" height="56" rx="12" fill="url(#accent)"/>
+  <text x="190" y="465" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="white" text-anchor="middle">Start Free 14-Day Trial</text>
+  <text x="60" y="560" font-family="system-ui,sans-serif" font-size="22" fill="#475569">netily.co.ke</text>
+  <text x="1140" y="560" font-family="system-ui,sans-serif" font-size="18" fill="#334155" text-anchor="end">Trusted by 100+ ISPs in Kenya</text>
+</svg>

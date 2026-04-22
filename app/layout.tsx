@@ -68,7 +68,7 @@ export const metadata: Metadata = {
       "Automate your ISP billing, M-Pesa payments, MikroTik provisioning, and hotspot management. Built for Kenyan & East African ISPs.",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.svg",
         width: 1200,
         height: 630,
         alt: "Netily — ISP Management Platform",
@@ -80,7 +80,7 @@ export const metadata: Metadata = {
     title: "Netily — ISP Management Platform",
     description:
       "Automate ISP billing, M-Pesa payments, and MikroTik provisioning. Built for Kenyan ISPs.",
-    images: ["/og-image.png"],
+    images: ["/og-image.svg"],
     creator: "@netily",
   },
   robots: {

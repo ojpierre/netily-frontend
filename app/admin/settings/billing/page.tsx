@@ -558,6 +558,33 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
 
         {/* 2. INVOICES - Now with correct dates and View Breakdown Modal */}
         <TabsContent value="invoices">
+          {/* ── Upcoming Invoice Banner (shows if renewal is within 5 days) ── */}
+          {(() => {
+            if (!subscription?.current_period_end) return null
+            const daysLeft = Math.ceil(
+              (new Date(subscription.current_period_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+            )
+            if (daysLeft < 0 || daysLeft > 5) return null
+            const dueDate = new Date(subscription.current_period_end).toLocaleDateString(undefined, {
+              day: "numeric", month: "long", year: "numeric",
+            })
+            const planAmount = subscription.plan?.base_price ?? subscription.plan?.price ?? null
+            return (
+              <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-4">
+                <span className="text-amber-500 mt-0.5">⏰</span>
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-800 dark:text-amber-200 text-sm">
+                    Upcoming Invoice — due in {daysLeft === 0 ? "today" : `${daysLeft} day${daysLeft !== 1 ? "s" : ""}`}
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                    Your next subscription invoice is due on <strong>{dueDate}</strong>
+                    {planAmount ? ` · Estimated KES ${Number(planAmount).toLocaleString()}` : ""}.
+                    Ensure your M-Pesa wallet is funded to avoid service interruption.
+                  </p>
+                </div>
+              </div>
+            )
+          })()}
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg">Billing History</CardTitle>

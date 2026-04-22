@@ -125,6 +125,7 @@ const navigationSections = [
   {
     title: "System",
     items: [
+      { name: "Notifications", href: "/admin/notifications", icon: Bell },
       { name: "Logs", href: "/admin/logs", icon: FileText },
       { name: "Settings", href: "/admin/settings", icon: Settings },
     ],
@@ -144,6 +145,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0)
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
@@ -155,6 +157,23 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Fetch unread notification count
+  useEffect(() => {
+    if (!mounted || !user) return
+    const fetchCount = async () => {
+      try {
+        const { adminApi } = await import("@/lib/admin-api")
+        const count = await adminApi.getUnreadNotificationCount()
+        setUnreadNotifCount(count)
+      } catch {
+        // silently ignore
+      }
+    }
+    fetchCount()
+    const interval = setInterval(fetchCount, 60_000)
+    return () => clearInterval(interval)
+  }, [mounted, user])
 
   // Debug logging
   useEffect(() => {
@@ -376,12 +395,16 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             <ThemeToggle />
 
             {/* Notifications */}
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="w-5 h-5" />
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-600 text-white text-xs">
-                3
-              </Badge>
-            </Button>
+            <Link href="/admin/notifications">
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="w-5 h-5" />
+                {unreadNotifCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-600 text-white text-xs">
+                    {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
 
             {/* User menu */}
             <DropdownMenu>

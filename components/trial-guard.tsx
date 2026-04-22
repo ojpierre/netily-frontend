@@ -233,9 +233,36 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
     setStep("payment")
   }
 
-  const handleCheckAndRefresh = () => {
-    adminApi.invalidateSubscriptionCache()
-    window.location.reload()
+  const handleCheckAndRefresh = async () => {
+    setPaymentStatus("sending")
+    try {
+      await adminApi.invalidateSubscriptionCache()
+      const subscription = await adminApi.getCurrentSubscription()
+
+      const isNowActive =
+        subscription?.status === "active" &&
+        subscription?.is_trial === false &&
+        subscription?.current_period_end &&
+        !checkDateExpired(new Date(subscription.current_period_end))
+
+      const trialStillValid =
+        (subscription?.status === "active" || subscription?.status === "trial") &&
+        subscription?.is_trial === true &&
+        subscription?.trial_ends_at &&
+        !checkDateExpired(new Date(subscription.trial_ends_at))
+
+      if (isNowActive || trialStillValid) {
+        window.location.reload()
+      } else {
+        toast.info(
+          "Payment not confirmed yet. If you entered your PIN, please wait a moment and try again."
+        )
+        setPaymentStatus("timeout")
+      }
+    } catch {
+      // On network error, attempt reload anyway
+      window.location.reload()
+    }
   }
 
   const progressPct = Math.max(0, Math.min(100, ((TIMEOUT_SECONDS - countdown) / TIMEOUT_SECONDS) * 100))

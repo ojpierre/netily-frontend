@@ -1,17 +1,24 @@
 ﻿import { LandingPage } from "./landing-page"
-import Script from "next/script"
 import type { Metadata } from "next"
 
-export const dynamic = "force-dynamic"
-
+// Static page — no per-request rendering needed; maximises caching and Core Web Vitals
 export const metadata: Metadata = {
-  title: "Netily — #1 ISP Management Platform in Kenya | Billing, M-Pesa & MikroTik",
+  title: "ISP Billing Software Kenya | M-Pesa, MikroTik & RADIUS — Netily",
   description:
-    "Netily automates ISP billing, M-Pesa STK Push payments, MikroTik router provisioning, hotspot management, and RADIUS authentication. Trusted by ISPs across Kenya and East Africa. Start your free trial today.",
+    "Netily is the leading ISP billing software for Kenya and East Africa. Automate M-Pesa STK Push, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and customer self-service. 14-day free trial.",
   alternates: {
     canonical: "https://netily.co.ke",
   },
+  openGraph: {
+    title: "ISP Billing Software Kenya | M-Pesa, MikroTik & RADIUS — Netily",
+    description:
+      "Automate ISP billing, M-Pesa STK Push, MikroTik PPPoE, hotspot management, and RADIUS. Built for Kenyan & East African ISPs. 14-day free trial.",
+    url: "https://netily.co.ke",
+    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "Netily — ISP Billing Software Kenya" }],
+  },
 }
+
+// ─── Structured Data (server-rendered in initial HTML) ────────────────────────
 
 const softwareSchema = {
   "@context": "https://schema.org",
@@ -21,18 +28,15 @@ const softwareSchema = {
   operatingSystem: "Web",
   url: "https://netily.co.ke",
   description:
-    "ISP management platform automating billing, M-Pesa payments, and MikroTik provisioning in Kenya.",
+    "ISP billing software for Kenya and East Africa. Automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and ISP management.",
   publisher: {
     "@type": "Organization",
     name: "Netily",
     url: "https://netily.co.ke",
-    location: {
-      "@type": "Place",
-      address: {
-        "@type": "PostalAddress",
-        addressLocality: "Nairobi",
-        addressCountry: "KE",
-      },
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Nairobi",
+      addressCountry: "KE",
     },
   },
   offers: {
@@ -42,11 +46,16 @@ const softwareSchema = {
     offerCount: "4",
     availability: "https://schema.org/InStock",
   },
-  aggregateRating: {
-    "@type": "AggregateRating",
-    ratingValue: "4.8",
-    ratingCount: "50",
-  },
+  featureList: [
+    "M-Pesa STK Push integration",
+    "MikroTik PPPoE auto-provisioning",
+    "RADIUS authentication",
+    "Hotspot billing and captive portal",
+    "ISP customer self-service portal",
+    "Automated invoicing",
+    "Bandwidth management",
+    "ISP management dashboard",
+  ],
   areaServed: [
     { "@type": "Country", name: "Kenya" },
     { "@type": "Country", name: "Tanzania" },
@@ -61,7 +70,12 @@ const orgSchema = {
   name: "Netily",
   url: "https://netily.co.ke",
   logo: "https://netily.co.ke/logo.png",
-  sameAs: [],
+  sameAs: [
+    "https://x.com/netily",
+    "https://linkedin.com/company/netily",
+    "https://facebook.com/netily",
+    "https://instagram.com/netily",
+  ],
   address: {
     "@type": "PostalAddress",
     addressLocality: "Nairobi",
@@ -75,20 +89,93 @@ const orgSchema = {
   },
 }
 
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Netily",
+  url: "https://netily.co.ke",
+  description: "ISP billing software and management platform for Kenya and East Africa",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: "https://netily.co.ke/?q={search_term_string}",
+    "query-input": "required name=search_term_string",
+  },
+}
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is Netily?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Netily is ISP billing software for Kenya and East Africa. It automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and customer self-service for internet service providers.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does Netily support M-Pesa STK Push?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Netily has native M-Pesa STK Push integration. When a subscriber pays, their internet service activates automatically within seconds — no manual reconciliation.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does Netily work with MikroTik routers?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Netily connects to MikroTik RouterOS via API for zero-touch PPPoE and Hotspot provisioning, subscriber management, and bandwidth control.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How long does setup take?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Most ISPs are fully operational on Netily within 24 hours. Setup includes MikroTik integration, M-Pesa STK Push configuration, and RADIUS authentication.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is there a free trial?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Netily offers a 14-day free trial. No credit card required. Start managing your ISP with full access to all features immediately.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does Netily support hotspot billing?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Netily supports hotspot billing with branded captive portals, M-Pesa payments, voucher management, and session management for Wi-Fi hotspot providers.",
+      },
+    },
+  ],
+}
+
 export default function Page() {
   return (
     <>
-      <Script
-        id="schema-software"
+      {/* JSON-LD schemas in initial server HTML — not afterInteractive */}
+      <script
         type="application/ld+json"
-        strategy="afterInteractive"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
       />
-      <Script
-        id="schema-org"
+      <script
         type="application/ld+json"
-        strategy="afterInteractive"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
       <LandingPage />
     </>

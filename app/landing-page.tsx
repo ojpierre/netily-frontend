@@ -296,6 +296,8 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased">
+      {/* Hidden SEO anchor — read by crawlers, invisible to users */}
+      <a href="#main-content" className="sr-only focus:not-sr-only">Skip to main content</a>
       {/* ━━━ 1. FLOATING HEADER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -382,6 +384,7 @@ export function LandingPage() {
       </header>
 
       {/* ━━━ 2. HERO SECTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <main id="main-content">
       <motion.section
         ref={heroRef}
         style={{ opacity: heroOpacity, scale: heroScale }}
@@ -398,30 +401,60 @@ export function LandingPage() {
           <Reveal>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950 border border-blue-100 dark:border-blue-800 rounded-full text-blue-700 dark:text-blue-300 text-sm font-medium mb-8">
               <Sparkles className="w-4 h-4" />
-              {/*<span>Automated 95% Daily M-Pesa Payouts</span>
-              */}
-              <span>Trusted by 100+ ISPs across Africa</span>
+              <span>Trusted by 100+ ISPs across Kenya &amp; East Africa</span>
               <span className="text-lg leading-none">✨</span>
             </div>
           </Reveal>
 
-          {/* Headline */}
+          {/* H1 — Search-intent targeted */}
           <Reveal delay={0.1}>
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6">
-              Run your ISP
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.08] mb-3">
+              ISP Billing Software
               <br />
               <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                while you sleep.
+                for Kenya &amp; East Africa
               </span>
             </h1>
           </Reveal>
 
-          {/* Sub-headline */}
-          <Reveal delay={0.2}>
-            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-              Stop chasing payments and manually resetting routers. Netily fully automates your billing,
-              provisioning, and customer support so you can focus on growing your network.
+          {/* Brand tagline below H1 */}
+          <Reveal delay={0.15}>
+            <p className="text-2xl sm:text-3xl font-bold text-slate-500 dark:text-slate-400 mb-6 tracking-tight">
+              Run your ISP while you sleep.
             </p>
+          </Reveal>
+
+          {/* Sub-headline — keyword-rich first 200 words */}
+          <Reveal delay={0.2}>
+            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-4 leading-relaxed">
+              Netily automates <strong className="text-slate-700 dark:text-slate-200">ISP billing</strong>,{" "}
+              <strong className="text-slate-700 dark:text-slate-200">M-Pesa STK Push</strong> payments,{" "}
+              <strong className="text-slate-700 dark:text-slate-200">MikroTik PPPoE provisioning</strong>,{" "}
+              <strong className="text-slate-700 dark:text-slate-200">RADIUS authentication</strong>,{" "}
+              <strong className="text-slate-700 dark:text-slate-200">hotspot billing</strong>, and customer
+              self-service — so Kenyan ISPs can stop chasing payments and start growing.
+            </p>
+          </Reveal>
+
+          {/* Use-case pills */}
+          <Reveal delay={0.25}>
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+              {[
+                "Fiber ISPs",
+                "Hotspot Providers",
+                "MikroTik PPPoE Networks",
+                "WISPs in Kenya",
+                "RADIUS Billing",
+              ].map((label) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-xs font-medium border border-slate-200 dark:border-slate-700"
+                >
+                  <Check className="w-3 h-3 text-blue-500" />
+                  {label}
+                </span>
+              ))}
+            </div>
           </Reveal>
 
           {/* CTA Buttons */}
@@ -431,10 +464,18 @@ export function LandingPage() {
                 onClick={() => scrollTo("contact")}
                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-xl transition-colors shadow-lg shadow-blue-600/25 text-lg"
               >
-                I&apos;m Interested
+                Start Free 14-Day Trial
                 <ArrowRight className="w-5 h-5" />
               </button>
+              <button
+                onClick={() => scrollTo("features")}
+                className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium px-4 py-4 text-lg transition-colors"
+              >
+                See features
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
+            <p className="text-xs text-slate-400 mt-3">No credit card required &bull; 14 days free &bull; Cancel anytime</p>
           </Reveal>
 
           {/* Dashboard mockup */}
@@ -476,6 +517,67 @@ export function LandingPage() {
                 </div>
               </Reveal>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ━━━ 3c. USE CASE BLOCK ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <section className="py-14 md:py-20 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
+        <div className="max-w-6xl mx-auto">
+          <Reveal>
+            <p className="text-xs text-slate-400 uppercase tracking-widest font-medium text-center mb-8">
+              Built for every type of Kenyan ISP
+            </p>
+          </Reveal>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {
+                title: "Fiber ISPs",
+                desc: "Automate PPPoE subscriptions, billing cycles, and M-Pesa collections for fiber broadband networks.",
+                icon: Wifi,
+                color: "blue",
+                href: "/isp-billing-software-kenya",
+              },
+              {
+                title: "Hotspot Providers",
+                desc: "Branded captive portals, M-Pesa micropayments, voucher management, and session control for Wi-Fi hotspots.",
+                icon: Globe,
+                color: "violet",
+                href: "/hotspot-billing-software-kenya",
+              },
+              {
+                title: "MikroTik PPPoE Networks",
+                desc: "Zero-touch MikroTik provisioning via API. Create, suspend, and resume PPPoE users automatically on payment.",
+                icon: Router,
+                color: "emerald",
+                href: "/mikrotik-billing-software",
+              },
+              {
+                title: "WISPs & Rural ISPs",
+                desc: "Affordable metered billing that scales with your subscriber count. Pay only for what you use.",
+                icon: TrendingUp,
+                color: "amber",
+                href: "/mpesa-isp-billing",
+              },
+            ].map((item, i) => {
+              const colorMap: Record<string, string> = {
+                blue: "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400",
+                violet: "bg-violet-50 dark:bg-violet-950 text-violet-600 dark:text-violet-400",
+                emerald: "bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400",
+                amber: "bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400",
+              }
+              return (
+                <Reveal key={item.title} delay={i * 0.1}>
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 h-full hover:shadow-md transition-shadow">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${colorMap[item.color]}`}>
+                      <item.icon className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 dark:text-white mb-2 text-base">{item.title}</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{item.desc}</p>
+                  </div>
+                </Reveal>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -680,6 +782,48 @@ export function LandingPage() {
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                     Payments reflect instantly. The moment a subscriber pays, their service activates in real time — no waiting, no manual intervention.
                   </p>
+                </div>
+              </div>
+            </Reveal>
+
+            {/* Card 10 — Customer Self-Service Portal */}
+            <Reveal delay={0.45}>
+              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
+                <div className="w-12 h-12 bg-cyan-100 dark:bg-cyan-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <Users className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Customer Self-Service Portal</h3>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                  Give subscribers a branded portal to renew plans, pay via M-Pesa, view invoices, raise tickets, and check usage — without calling you.
+                </p>
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700 space-y-2">
+                  {["Renew & top-up via M-Pesa", "Download invoices & receipts", "Submit support tickets", "Check bandwidth usage"].map((f) => (
+                    <div key={f} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                      <Check className="w-3 h-3 text-cyan-500 flex-shrink-0" />
+                      {f}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+
+            {/* Card 11 — Ads & Promotions */}
+            <Reveal delay={0.5}>
+              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
+                <div className="w-12 h-12 bg-rose-100 dark:bg-rose-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Ads &amp; Promotions</h3>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                  Run targeted promotions and display ads on your captive portal. Monetise your hotspot traffic or drive plan upgrades with smart campaigns.
+                </p>
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700 space-y-2">
+                  {["Captive portal ad banners", "Targeted SMS promotions", "Loyalty & referral rewards", "Plan upgrade nudges"].map((f) => (
+                    <div key={f} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                      <Check className="w-3 h-3 text-rose-500 flex-shrink-0" />
+                      {f}
+                    </div>
+                  ))}
                 </div>
               </div>
             </Reveal>
@@ -1077,6 +1221,7 @@ export function LandingPage() {
         </div>
       </section>
 
+      </main>
       {/* ━━━ 6. GIANT FOOTER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <footer className="relative bg-slate-900 text-white overflow-hidden">
         {/* Giant background typography */}
@@ -1103,12 +1248,14 @@ export function LandingPage() {
               onClick={() => scrollTo("contact")}
               className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-4 rounded-xl transition-colors shadow-lg shadow-blue-600/25 text-lg"
             >
-              Start Your Free Trial
+              Start Your 14-Day Free Trial
               <ArrowRight className="w-5 h-5" />
             </button>
+            <p className="text-sm text-slate-500 mt-4">No credit card required &bull; Full access &bull; Cancel anytime</p>
           </Reveal>
         </div>
 
+      </main>
         {/* Footer links */}
         <div className="relative z-10 border-t border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
