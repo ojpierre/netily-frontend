@@ -611,10 +611,13 @@ class SuperadminApiService {
     })
   }
 
-  async activateTenant(id: string, extendDays?: number): Promise<Tenant> {
+  async activateTenant(id: string, options?: { extendDays?: number; setExpiryDate?: string }): Promise<Tenant> {
     return this.request(`/superadmin/tenants/${id}/activate/`, {
       method: "POST",
-      body: JSON.stringify({ extend_days: extendDays }),
+      body: JSON.stringify({
+        extend_days: options?.extendDays,
+        set_expiry_date: options?.setExpiryDate,
+      }),
     })
   }
 

@@ -20,6 +20,8 @@ import {
   Filter,
   Plus,
   Download,
+  CalendarDays,
+  Wrench,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -50,6 +52,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { superadminApi, type Tenant } from "@/lib/superadmin-api"
 
@@ -66,6 +77,12 @@ export default function TenantsPage() {
     tenant: Tenant
   } | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+
+  // Manual Activation dialog
+  const [manualActivateTarget, setManualActivateTarget] = useState<Tenant | null>(null)
+  const [manualExtendDays, setManualExtendDays] = useState("30")
+  const [manualExpiryDate, setManualExpiryDate] = useState("")
+  const [manualActivateLoading, setManualActivateLoading] = useState(false)
 
   const fetchTenants = useCallback(async () => {
     setLoading(true)
@@ -86,6 +103,29 @@ export default function TenantsPage() {
     const t = setTimeout(fetchTenants, 300)
     return () => clearTimeout(t)
   }, [fetchTenants])
+
+  const handleManualActivate = async () => {
+    if (!manualActivateTarget) return
+    setManualActivateLoading(true)
+    try {
+      const options: { extendDays?: number; setExpiryDate?: string } = {}
+      if (manualExpiryDate) {
+        options.setExpiryDate = manualExpiryDate
+      } else if (manualExtendDays && parseInt(manualExtendDays) > 0) {
+        options.extendDays = parseInt(manualExtendDays)
+      }
+      await superadminApi.activateTenant(manualActivateTarget.id, options)
+      toast.success(`${manualActivateTarget.company_name} activated successfully`)
+      setManualActivateTarget(null)
+      setManualExtendDays("30")
+      setManualExpiryDate("")
+      fetchTenants()
+    } catch (err: any) {
+      toast.error(err.message || "Activation failed")
+    } finally {
+      setManualActivateLoading(false)
+    }
+  }
 
   const handleConfirmAction = async () => {
     if (!confirmAction) return
@@ -295,6 +335,31 @@ export default function TenantsPage() {
                       {new Date(t.created_at).toLocaleDateString()}
                     </td>
                     <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {/* Inline activate / suspend toggle */}
+                        {(t.status === "suspended" || t.subscription_status === "suspended") ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs border-emerald-700 text-emerald-400 hover:bg-emerald-500/10"
+                            onClick={() => {
+                              setManualActivateTarget(t)
+                              setManualExtendDays("30")
+                              setManualExpiryDate("")
+                            }}
+                          >
+                            <Play className="w-3 h-3 mr-1" />Activate
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs border-amber-700 text-amber-400 hover:bg-amber-500/10"
+                            onClick={() => setConfirmAction({ type: "suspend", tenant: t })}
+                          >
+                            <Pause className="w-3 h-3 mr-1" />Suspend
+                          </Button>
+                        )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white h-8 w-8">
@@ -337,8 +402,7 @@ export default function TenantsPage() {
                             <Trash2 className="w-4 h-4 mr-2" /> Delete Permanently
                           </DropdownMenuItem>
                         </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
+                      </DropdownMenu>                      </div>                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -346,6 +410,120 @@ export default function TenantsPage() {
           </div>
         </Card>
       )}
+
+      {/* Manual Activation Dialog */}
+      <Dialog
+        open={!!manualActivateTarget}
+        onOpenChange={(v) => {
+          if (!v && !manualActivateLoading) {
+            setManualActivateTarget(null)
+            setManualExtendDays("30")
+            setManualExpiryDate("")
+          }
+        }}
+      >
+        <DialogContent className="bg-slate-900 border-slate-700 text-white sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-950 flex items-center justify-center">
+                <Wrench className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <DialogTitle>Manual Activation</DialogTitle>
+                <DialogDescription className="text-slate-400 text-xs">
+                  {manualActivateTarget?.company_name}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Current expiry info */}
+            {manualActivateTarget?.subscription_expiry && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700">
+                <CalendarDays className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-slate-400">Current expiry</p>
+                  <p className="text-sm font-medium">
+                    {new Date(manualActivateTarget.subscription_expiry).toLocaleDateString("en-KE", {
+                      day: "2-digit", month: "short", year: "numeric",
+                    })}
+                    {manualActivateTarget.days_left !== null && (
+                      <span className={`ml-2 text-xs font-normal ${
+                        (manualActivateTarget.days_left ?? 0) < 0 ? "text-red-400" : "text-amber-400"
+                      }`}>
+                        ({manualActivateTarget.days_left}d)
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Override expiry date — takes priority */}
+            <div className="space-y-1.5">
+              <Label htmlFor="expiry-override" className="text-xs text-slate-300">
+                Override expiry date
+                <span className="ml-1 text-slate-500">(sets exact date, ignores days below)</span>
+              </Label>
+              <Input
+                id="expiry-override"
+                type="date"
+                value={manualExpiryDate}
+                onChange={(e) => setManualExpiryDate(e.target.value)}
+                className="bg-slate-800 border-slate-700 text-white"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-px bg-slate-700" />
+              <span className="text-xs text-slate-500">or</span>
+              <div className="flex-1 h-px bg-slate-700" />
+            </div>
+
+            {/* Extend by days */}
+            <div className="space-y-1.5">
+              <Label htmlFor="extend-days" className="text-xs text-slate-300">
+                Extend by days
+                <span className="ml-1 text-slate-500">(adds to current expiry or today)</span>
+              </Label>
+              <Input
+                id="extend-days"
+                type="number"
+                min="1"
+                max="3650"
+                value={manualExtendDays}
+                onChange={(e) => setManualExpiryDate("")} // clear override when typing days
+                onInput={(e) => setManualExtendDays((e.target as HTMLInputElement).value)}
+                disabled={!!manualExpiryDate}
+                className="bg-slate-800 border-slate-700 text-white disabled:opacity-40"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              className="border-slate-700 text-slate-300"
+              onClick={() => setManualActivateTarget(null)}
+              disabled={manualActivateLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-500 text-white"
+              onClick={handleManualActivate}
+              disabled={manualActivateLoading}
+            >
+              {manualActivateLoading ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Activating...</>
+              ) : (
+                <><Play className="w-4 h-4 mr-2" />Activate Tenant</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirm dialog */}
       <AlertDialog open={!!confirmAction} onOpenChange={(v) => !v && setConfirmAction(null)}>
