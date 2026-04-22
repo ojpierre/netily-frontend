@@ -836,6 +836,28 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const [adGranting, setAdGranting] = useState(false)
   const [adError, setAdError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const preloadVideoRef = useRef<HTMLVideoElement | null>(null)
+
+  // Preload video into browser cache as soon as ad data arrives
+  useEffect(() => {
+    if (!availableAd?.media_url || availableAd.media_type !== 'VIDEO') return
+
+    // Create a hidden video element to force browser to buffer the file
+    const video = document.createElement('video')
+    video.preload = 'auto'
+    video.muted = true
+    video.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none'
+    video.src = availableAd.media_url
+    video.load()
+    document.body.appendChild(video)
+    preloadVideoRef.current = video
+
+    return () => {
+      video.src = ''
+      video.remove()
+      preloadVideoRef.current = null
+    }
+  }, [availableAd?.media_url])
 
   // === TV MODE STATES ===
   const [isTvDevice, setIsTvDevice] = useState(false)
@@ -2011,6 +2033,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
               <video
                 ref={videoRef}
                 src={availableAd.media_url}
+                preload="auto"
                 className="w-full h-full object-contain max-h-[80vh]"
                 autoPlay
                 playsInline
