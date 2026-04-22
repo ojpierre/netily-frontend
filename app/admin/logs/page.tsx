@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import React, { useState, useEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import {
   FileText,
   Search,
@@ -73,6 +73,12 @@ export default function LogsPage() {
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [autoRefresh, setAutoRefresh] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Dynamically extract unique categories from the fetched logs
+  const logCategories = useMemo(() => {
+    const categories = new Set(logs.map(log => log.category))
+    return Array.from(categories).filter(Boolean).sort()
+  }, [logs])
 
   const fetchLogs = useCallback(async () => {
     try {
