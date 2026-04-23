@@ -986,9 +986,6 @@ export function LandingPage() {
                   Start running ads on your portal
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-                  Start running ads on your portal
-                  <ArrowRight className="w-4 h-4" />
-                </button>
               </div>
             </Reveal>
           </div>
