@@ -3,6 +3,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Remove X-Powered-By header (security hygiene)
+  poweredByHeader: false,
   images: {
     unoptimized: true,
   },

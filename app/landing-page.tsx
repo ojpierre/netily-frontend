@@ -346,14 +346,13 @@ export function LandingPage() {
             {/* Right side */}
             <div className="hidden md:flex items-center gap-4">
               <ThemeToggle />
-              <a
-                href="#contact"
-                onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
+              <Link
+                href="/register"
                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm"
               >
-                Get in Touch
+                Start Free Trial
                 <ArrowRight className="w-4 h-4" />
-              </a>
+              </Link>
             </div>
 
             {/* Mobile controls */}
@@ -444,12 +443,13 @@ export function LandingPage() {
           {/* Sub-headline — keyword-rich first 200 words */}
           <Reveal delay={0.2}>
             <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-4 leading-relaxed">
-              Netily automates <strong className="text-slate-700 dark:text-slate-200">ISP billing</strong>,{" "}
+              Netily is the <strong className="text-slate-700 dark:text-slate-200">ISP billing software</strong> built for{" "}
+              <strong className="text-slate-700 dark:text-slate-200">Kenya &amp; East Africa</strong> — automating{" "}
               <strong className="text-slate-700 dark:text-slate-200">M-Pesa STK Push</strong> payments,{" "}
               <strong className="text-slate-700 dark:text-slate-200">MikroTik PPPoE provisioning</strong>,{" "}
               <strong className="text-slate-700 dark:text-slate-200">RADIUS authentication</strong>,{" "}
               <strong className="text-slate-700 dark:text-slate-200">hotspot billing</strong>, and customer
-              self-service — so Kenyan ISPs can stop chasing payments and start growing.
+              self-service so Kenyan ISPs can stop chasing payments and start growing.
             </p>
           </Reveal>
 
@@ -590,7 +590,7 @@ export function LandingPage() {
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${colorMap[item.color]}`}>
                       <item.icon className="w-5 h-5" />
                     </div>
-                    <h3 className="font-bold text-slate-900 dark:text-white mb-2 text-base">{item.title}</h3>
+                    <p className="font-bold text-slate-900 dark:text-white mb-2 text-base">{item.title}</p>
                     <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{item.desc}</p>
                   </div>
                 </Reveal>
@@ -664,7 +664,7 @@ export function LandingPage() {
                 <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                   <Router className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Plug & Play Routers</h3>
+                <p className="text-xl font-bold mb-2">Plug &amp; Play Routers</p>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-5">
                   Zero-touch provisioning. Plug in a new MikroTik, and our cloud configures the client
                   instantly. No SSH, no scripts, no headaches.
@@ -695,7 +695,7 @@ export function LandingPage() {
                 <div className="w-12 h-12 bg-amber-100 dark:bg-amber-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                   <FileText className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Auto-Invoicing</h3>
+                <p className="text-xl font-bold mb-2">Auto-Invoicing</p>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-5">
                   Tax-ready PDF invoices generated and emailed automatically every month. Your accountant
                   will think you hired an assistant.
@@ -728,7 +728,7 @@ export function LandingPage() {
                   <Ghost className="w-6 h-6 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold mb-2">Ghost Records</h3>
+                  <p className="text-xl font-bold mb-2">Ghost Records</p>
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                     Never pay for dead accounts. Our system only bills you for exactly who connected this
                     month. Dormant subscribers cost you nothing.
@@ -743,7 +743,7 @@ export function LandingPage() {
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                   <Globe className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Customisable Captive Portals</h3>
+                <p className="text-xl font-bold mb-2">Customisable Captive Portals</p>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   Design branded hotspot login pages with your logo, colors, and messaging. Engage users before they connect.
                 </p>
@@ -756,7 +756,7 @@ export function LandingPage() {
                 <div className="w-12 h-12 bg-green-100 dark:bg-green-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                   <Lock className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Secure Payments</h3>
+                <p className="text-xl font-bold mb-2">Secure Payments</p>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   End-to-end encrypted transactions via M-Pesa STK Push. PCI-compliant processing with OTP verification for every action.
                 </p>
@@ -769,7 +769,7 @@ export function LandingPage() {
                 <div className="w-12 h-12 bg-orange-100 dark:bg-orange-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                   <MessageSquare className="w-6 h-6 text-orange-600 dark:text-orange-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Inbuilt SMS</h3>
+                <p className="text-xl font-bold mb-2">Inbuilt SMS</p>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   Send payment reminders, service alerts, and promotional messages directly from your dashboard. No third-party SMS gateway needed.
                 </p>
@@ -782,7 +782,7 @@ export function LandingPage() {
                 <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                   <ShieldCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Data Protection</h3>
+                <p className="text-xl font-bold mb-2">Data Protection</p>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   Fully compliant with the Kenya Data Protection Act. Encrypted storage, access controls, and audit trails for all customer data.
                 </p>
@@ -796,7 +796,7 @@ export function LandingPage() {
                   <BanknoteIcon className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold mb-2">Real Time Payments</h3>
+                  <p className="text-xl font-bold mb-2">Real Time Payments</p>
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                     Payments reflect instantly. The moment a subscriber pays, their service activates in real time — no waiting, no manual intervention.
                   </p>
@@ -810,7 +810,7 @@ export function LandingPage() {
                 <div className="w-12 h-12 bg-cyan-100 dark:bg-cyan-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                   <Users className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Customer Self-Service Portal</h3>
+                <p className="text-xl font-bold mb-2">Customer Self-Service Portal</p>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
                   Give subscribers a branded portal to renew plans, pay via M-Pesa, view invoices, raise tickets, and check usage — without calling you.
                 </p>
@@ -831,7 +831,7 @@ export function LandingPage() {
                 <div className="w-12 h-12 bg-rose-100 dark:bg-rose-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                   <TrendingUp className="w-6 h-6 text-rose-600 dark:text-rose-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Ads &amp; Promotions</h3>
+                <p className="text-xl font-bold mb-2">Ads &amp; Promotions</p>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
                   Run targeted promotions and display ads on your captive portal. Monetise your hotspot traffic or drive plan upgrades with smart campaigns.
                 </p>
@@ -1062,7 +1062,7 @@ export function LandingPage() {
               <Reveal key={item.step} delay={i * 0.15}>
                 <div className="relative">
                   <span className="text-5xl font-black text-slate-100 dark:text-slate-800">{item.step}</span>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-2 mb-2">{item.title}</h3>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white mt-2 mb-2">{item.title}</p>
                   <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{item.desc}</p>
                   {item.visual}
                 </div>
@@ -1184,7 +1184,7 @@ export function LandingPage() {
             </Reveal>
           </div>
 
-          {/* Callout box */}
+          {/* Callout box 
           <Reveal delay={0.2}>
             <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 p-8 md:p-10 text-white text-center md:text-left md:flex md:items-center md:justify-between gap-6">
               <div>
@@ -1205,7 +1205,7 @@ export function LandingPage() {
             </div>
           </Reveal>
         </div>
-      </section>
+      </section>*/}
 
       {/* ━━━ 6b. BILLING CALCULATOR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <BillingCalculator onGetStarted={() => scrollTo("contact")} />
@@ -1382,6 +1382,47 @@ export function LandingPage() {
               </div>
             )}
           </Reveal>
+        </div>
+      </section>
+
+      {/* ━━━ SOCIAL SHARE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <section className="py-10 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800">
+        <div className="max-w-2xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 shrink-0">
+            Share Netily with fellow ISP owners:
+          </p>
+          <div className="flex items-center gap-3">
+            <a
+              href="https://twitter.com/intent/tweet?text=Just%20found%20Netily%20—%20ISP%20billing%20software%20for%20Kenya%20with%20M-Pesa%20%26%20MikroTik%20automation.%20Worth%20checking%20out!&url=https%3A%2F%2Fnetily.co.ke"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Share on X (Twitter)"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white text-xs font-semibold hover:bg-slate-800 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              Share on X
+            </a>
+            <a
+              href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fnetily.co.ke"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Share on LinkedIn"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0077B5] text-white text-xs font-semibold hover:bg-[#005f8d] transition-colors"
+            >
+              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              Share on LinkedIn
+            </a>
+            <a
+              href="https://api.whatsapp.com/send?text=Check%20out%20Netily%20—%20ISP%20billing%20software%20for%20Kenya%20with%20M-Pesa%20automation%3A%20https%3A%2F%2Fnetily.co.ke"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Share on WhatsApp"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#25D366] text-white text-xs font-semibold hover:bg-[#1da851] transition-colors"
+            >
+              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              Share on WhatsApp
+            </a>
+          </div>
         </div>
       </section>
 

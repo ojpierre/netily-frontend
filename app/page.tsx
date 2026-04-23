@@ -5,7 +5,7 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   title: "ISP Billing Software Kenya | M-Pesa & MikroTik — Netily",
   description:
-    "Kenya's #1 ISP billing software. Automate M-Pesa STK Push, MikroTik PPPoE, RADIUS & hotspot billing — all from one dashboard. 14-day free trial. No card required.",
+    "Kenya's leading ISP billing software. Automate M-Pesa STK Push, MikroTik PPPoE & hotspot billing. 14-day free trial, no card required.",
   keywords: [
     "ISP billing software Kenya",
     "ISP management software Kenya 2026",
