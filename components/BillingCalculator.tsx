@@ -209,8 +209,6 @@ function PlanCard({
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
       className={`relative flex flex-col bg-white dark:bg-slate-900 rounded-2xl border-2 p-6 transition-shadow hover:shadow-lg ${
         highlighted ? "border-blue-600 shadow-blue-100 shadow-lg" : style.color
       }`}
@@ -297,8 +295,11 @@ export function BillingCalculator({ onGetStarted }: { onGetStarted: () => void }
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const [mounted, setMounted] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: "-80px" })
+
+  useEffect(() => { setMounted(true) }, [])
 
   const fetchEstimates = useCallback(async () => {
     setLoading(true)
@@ -346,8 +347,8 @@ export function BillingCalculator({ onGetStarted }: { onGetStarted: () => void }
       <div className="max-w-6xl mx-auto">
         {/* Heading */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          initial={mounted ? { opacity: 0, y: 30 } : false}
+          animate={mounted ? (isInView ? { opacity: 1, y: 0 } : {}) : undefined}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="text-center mb-10"
         >
@@ -365,8 +366,8 @@ export function BillingCalculator({ onGetStarted }: { onGetStarted: () => void }
 
         {/* Sliders panel */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          initial={mounted ? { opacity: 0, y: 20 } : false}
+          animate={mounted ? (isInView ? { opacity: 1, y: 0 } : {}) : undefined}
           transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm p-6 md:p-8 mb-8"
         >
@@ -457,8 +458,8 @@ export function BillingCalculator({ onGetStarted }: { onGetStarted: () => void }
         {/* Footnote */}
         {sorted.length > 0 && (
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : {}}
+            initial={mounted ? { opacity: 0 } : false}
+            animate={mounted ? (isInView ? { opacity: 1 } : {}) : undefined}
             transition={{ delay: 0.5 }}
             className="text-center text-xs text-slate-400 mt-8"
           >
