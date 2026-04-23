@@ -330,28 +330,30 @@ export function LandingPage() {
             </Link>
 
             {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center gap-8">
-              {["Features", "Pricing", "Calculator", "FAQs"].map((label) => (
-                <button
+            <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
+              {(["Features", "Pricing", "Calculator", "FAQs"] as const).map((label) => (
+                <a
                   key={label}
-                  onClick={() => scrollTo(label.toLowerCase())}
+                  href={`#${label.toLowerCase()}`}
+                  onClick={(e) => { e.preventDefault(); scrollTo(label.toLowerCase()) }}
                   className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
                 >
                   {label}
-                </button>
+                </a>
               ))}
             </nav>
 
             {/* Right side */}
             <div className="hidden md:flex items-center gap-4">
               <ThemeToggle />
-              <button
-                onClick={() => scrollTo("contact")}
+              <a
+                href="#contact"
+                onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm"
               >
                 Get in Touch
                 <ArrowRight className="w-4 h-4" />
-              </button>
+              </a>
             </div>
 
             {/* Mobile controls */}
@@ -375,22 +377,24 @@ export function LandingPage() {
             className="md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 px-4 pb-4"
           >
             <div className="flex flex-col gap-1 pt-2">
-              {["Features", "Pricing", "Calculator", "FAQs"].map((label) => (
-                <button
+              {(["Features", "Pricing", "Calculator", "FAQs"] as const).map((label) => (
+                <a
                   key={label}
-                  onClick={() => scrollTo(label.toLowerCase())}
+                  href={`#${label.toLowerCase()}`}
+                  onClick={(e) => { e.preventDefault(); scrollTo(label.toLowerCase()) }}
                   className="py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600"
                 >
                   {label}
-                </button>
+                </a>
               ))}
               <hr className="my-2 border-slate-200 dark:border-slate-700" />
-              <button
-                onClick={() => scrollTo("contact")}
-                className="mt-1 w-full bg-blue-600 text-white text-sm font-semibold py-3 rounded-lg"
+              <a
+                href="#contact"
+                onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
+                className="mt-1 w-full bg-blue-600 text-white text-sm font-semibold py-3 rounded-lg text-center"
               >
                 Get in Touch
-              </button>
+              </a>
             </div>
           </motion.div>
         )}
@@ -473,20 +477,21 @@ export function LandingPage() {
           {/* CTA Buttons */}
           <Reveal delay={0.3}>
             <div id="hero-cta" className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={() => scrollTo("contact")}
+              <Link
+                href="/register"
                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-xl transition-colors shadow-lg shadow-blue-600/25 text-lg"
               >
                 Start Free 14-Day Trial
                 <ArrowRight className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => scrollTo("features")}
+              </Link>
+              <a
+                href="#features"
+                onClick={(e) => { e.preventDefault(); scrollTo("features") }}
                 className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium px-4 py-4 text-lg transition-colors"
               >
                 See features
                 <ArrowRight className="w-4 h-4" />
-              </button>
+              </a>
             </div>
             <p className="text-xs text-slate-400 mt-3">No credit card required &bull; 14 days free &bull; Cancel anytime</p>
           </Reveal>
@@ -878,13 +883,13 @@ export function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <button
-                  onClick={() => scrollTo("contact")}
+                <Link
+                  href="/register"
                   className="mt-8 inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
                 >
                   Get the portal for your ISP
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </Link>
               </div>
             </Reveal>
             <Reveal delay={0.15}>
@@ -974,10 +979,13 @@ export function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <button
-                  onClick={() => scrollTo("contact")}
+                <Link
+                  href="/register"
                   className="mt-8 inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
                 >
+                  Start running ads on your portal
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
                   Start running ads on your portal
                   <ArrowRight className="w-4 h-4" />
                 </button>
@@ -1115,12 +1123,13 @@ export function LandingPage() {
                   </ul>
                 </div>
 
-                <button
-                  onClick={() => scrollTo("calculator")}
-                  className="w-full py-3.5 rounded-xl border-2 border-blue-300 dark:border-blue-700 font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors"
+                <a
+                  href="#calculator"
+                  onClick={(e) => { e.preventDefault(); scrollTo("calculator") }}
+                  className="w-full py-3.5 rounded-xl border-2 border-blue-300 dark:border-blue-700 font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors text-center block"
                 >
                   Calculate Your Cost &darr;
-                </button>
+                </a>
               </div>
             </Reveal>
 
@@ -1166,12 +1175,13 @@ export function LandingPage() {
                     ))}
                   </ul>
 
-                  <button
-                    onClick={() => scrollTo("contact")}
-                    className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-white transition-colors shadow-sm"
+                  <a
+                    href="#contact"
+                    onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
+                    className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-white transition-colors shadow-sm text-center block"
                   >
                     Get a Custom Quote
-                  </button>
+                  </a>
                 </div>
               </div>
             </Reveal>
@@ -1187,13 +1197,14 @@ export function LandingPage() {
                   to your B2C/Bank daily. You wake up to money in your account — every morning.
                 </p>
               </div>
-              <button
-                onClick={() => scrollTo("contact")}
+              <a
+                href="#contact"
+                onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
                 className="mt-4 md:mt-0 shrink-0 inline-flex items-center gap-2 bg-white text-blue-700 font-semibold px-6 py-3 rounded-xl hover:bg-blue-50 transition-colors shadow-sm"
               >
                 Learn More
                 <ArrowRight className="w-4 h-4" />
-              </button>
+              </a>
             </div>
           </Reveal>
         </div>
@@ -1400,13 +1411,13 @@ export function LandingPage() {
             </p>
           </Reveal>
           <Reveal delay={0.2}>
-            <button
-              onClick={() => scrollTo("contact")}
+            <Link
+              href="/register"
               className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-4 rounded-xl transition-colors shadow-lg shadow-blue-600/25 text-lg"
             >
               Start Your 14-Day Free Trial
               <ArrowRight className="w-5 h-5" />
-            </button>
+            </Link>
             <p className="text-sm text-slate-500 mt-4">No credit card required &bull; Full access &bull; Cancel anytime</p>
           </Reveal>
         </div>
@@ -1454,16 +1465,19 @@ export function LandingPage() {
               <div>
                 <h4 className="text-sm font-semibold text-white mb-4">Product</h4>
                 <ul className="space-y-2.5">
-                  {["Features", "Pricing", "Integrations", "Changelog"].map((item) => (
+                  {(["Features", "Pricing"] as const).map((item) => (
                     <li key={item}>
-                      <button
-                        onClick={() => scrollTo(item.toLowerCase())}
+                      <a
+                        href={`#${item.toLowerCase()}`}
+                        onClick={(e) => { e.preventDefault(); scrollTo(item.toLowerCase()) }}
                         className="text-sm text-slate-400 hover:text-white transition-colors"
                       >
                         {item}
-                      </button>
+                      </a>
                     </li>
                   ))}
+                  <li><Link href="/register" className="text-sm text-slate-400 hover:text-white transition-colors">Start Free Trial</Link></li>
+                  <li><Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors">Sign In</Link></li>
                 </ul>
               </div>
 
@@ -1485,13 +1499,10 @@ export function LandingPage() {
               <div>
                 <h4 className="text-sm font-semibold text-white mb-4">Company</h4>
                 <ul className="space-y-2.5">
-                  {["About", "Blog", "Careers", "Contact"].map((item) => (
-                    <li key={item}>
-                      <a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">
-                        {item}
-                      </a>
-                    </li>
-                  ))}
+                  <li><a href="#contact" onClick={(e) => { e.preventDefault(); scrollTo("contact") }} className="text-sm text-slate-400 hover:text-white transition-colors">Contact Us</a></li>
+                  <li><Link href="/privacy" className="text-sm text-slate-400 hover:text-white transition-colors">Privacy Policy</Link></li>
+                  <li><Link href="/terms" className="text-sm text-slate-400 hover:text-white transition-colors">Terms of Service</Link></li>
+                  <li><Link href="/register" className="text-sm text-slate-400 hover:text-white transition-colors">Get Started Free</Link></li>
                 </ul>
               </div>
             </div>
@@ -1510,12 +1521,9 @@ export function LandingPage() {
                 </a>
               </p>
               <div className="flex items-center gap-6">
-                <a href="#" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-                  Privacy Policy
-                </a>
-                <a href="#" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-                  Terms of Service
-                </a>
+                <Link href="/privacy" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">Privacy Policy</Link>
+                <Link href="/terms" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">Terms of Service</Link>
+                <Link href="/login" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">Sign In</Link>
               </div>
             </div>
           </div>
