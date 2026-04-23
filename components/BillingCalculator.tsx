@@ -341,7 +341,7 @@ export function BillingCalculator({ onGetStarted }: { onGetStarted: () => void }
     <section
       ref={ref}
       id="calculator"
-      className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-slate-50"
+      className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-slate-50 dark:from-slate-950 dark:to-slate-900"
     >
       <div className="max-w-6xl mx-auto">
         {/* Heading */}

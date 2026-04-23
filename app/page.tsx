@@ -8,6 +8,10 @@ export const metadata: Metadata = {
     "Netily is the leading ISP billing software for Kenya and East Africa. Automate M-Pesa STK Push, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and customer self-service. 14-day free trial.",
   alternates: {
     canonical: "https://netily.co.ke",
+    languages: {
+      "en-KE": "https://netily.co.ke",
+      "en": "https://netily.co.ke",
+    },
   },
   openGraph: {
     title: "ISP Billing Software Kenya | M-Pesa, MikroTik & RADIUS — Netily",

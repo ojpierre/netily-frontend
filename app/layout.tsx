@@ -55,9 +55,8 @@ export const metadata: Metadata = {
   creator: "Netily",
   publisher: "Netily",
   metadataBase: new URL("https://netily.co.ke"),
-  alternates: {
-    canonical: "/",
-  },
+  // NOTE: Do NOT set alternates.canonical here — each page sets its own canonical.
+  // A layout-level canonical would apply the same URL to every route.
   openGraph: {
     type: "website",
     locale: "en_KE",

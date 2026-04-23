@@ -38,6 +38,8 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { submitLead } from "@/lib/api"
 
 // ─── Scroll-reveal wrapper ─────────────────────────────────────
+// SSR-safe: content renders fully visible on server (Googlebot reads real HTML).
+// After hydration the motion animation takes over.
 function Reveal({
   children,
   className = "",
@@ -49,12 +51,22 @@ function Reveal({
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: "-80px" })
+  // `mounted` tracks client-side hydration. useState(false) means SSR
+  // always gets false → `initial` resolves to visible state.
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+      // Before hydration (SSR + first paint): render fully visible so
+      // Googlebot gets real content at opacity:1 in the initial HTML.
+      // After hydration: normal scroll-reveal behaviour.
+      initial={mounted ? { opacity: 0, y: 40 } : false}
+      animate={mounted ? (isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }) : undefined}
       transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
       className={className}
     >
