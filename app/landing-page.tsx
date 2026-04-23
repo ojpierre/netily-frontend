@@ -1204,8 +1204,9 @@ export function LandingPage() {
               </a>
             </div>
           </Reveal>
+          */}
         </div>
-      </section>*/}
+      </section>
 
       {/* ━━━ 6b. BILLING CALCULATOR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <BillingCalculator onGetStarted={() => scrollTo("contact")} />
