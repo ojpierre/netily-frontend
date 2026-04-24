@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import {
   Search,
   Filter,
@@ -282,6 +283,7 @@ const generateSimplePassword = (length: number = 8): string => {
 }
 
 export default function UsersPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [users, setUsers] = useState<User[]>([])
@@ -296,7 +298,6 @@ export default function UsersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [activeTab, setActiveTab] = useState("all")
   const [showAddUserDialog, setShowAddUserDialog] = useState(false)
-  const [showBulkImportDialog, setShowBulkImportDialog] = useState(false)
   const [showSmsDialog, setShowSmsDialog] = useState(false)
   const [showEditUserDialog, setShowEditUserDialog] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -1107,45 +1108,11 @@ export default function UsersPage() {
             <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Dialog open={showBulkImportDialog} onOpenChange={setShowBulkImportDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <FileUp className="w-4 h-4 mr-2" />
-                Bulk Import
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Bulk Import Users</DialogTitle>
-                <DialogDescription>
-                  Upload a CSV file to import multiple users at once
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-slate-200 rounded-lg p-8 text-center">
-                  <Upload className="w-10 h-10 mx-auto text-slate-400 mb-3" />
-                  <p className="text-sm text-slate-600 mb-2">
-                    Drag & drop your CSV file here, or click to browse
-                  </p>
-                  <Button variant="outline" size="sm">
-                    Choose File
-                  </Button>
-                </div>
-                <div className="text-xs text-slate-500">
-                  <p className="font-medium mb-1">CSV Format:</p>
-                  <code className="bg-slate-100 p-1 rounded">
-                    name,email,phone,type,plan
-                  </code>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowBulkImportDialog(false)}>
-                  Cancel
-                </Button>
-                <Button>Import Users</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          {/* 🔧 FIX: Navigate to import page instead of opening placeholder dialog */}
+          <Button variant="outline" onClick={() => router.push('/admin/users/import')}>
+            <FileUp className="w-4 h-4 mr-2" />
+            Bulk Import
+          </Button>
           <Dialog open={showAddUserDialog} onOpenChange={(open) => {
             setShowAddUserDialog(open)
             if (open) {
@@ -1251,7 +1218,7 @@ export default function UsersPage() {
                         <SelectItem value="none">No Plan</SelectItem>
                         {plans.map((plan) => (
                           <SelectItem key={plan.id} value={String(plan.id)}>
-                            {plan.name} � KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
+                            {plan.name} - KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1266,7 +1233,7 @@ export default function UsersPage() {
                 {/* Cloud-Led Static IP from plan's pool */}
                 {selectedPlanPool && (
                   <div className="space-y-1">
-                    <Label>Assign Static IP <span className="text-xs text-slate-400">(Cloud-Led � optional)</span></Label>
+                    <Label>Assign Static IP <span className="text-xs text-slate-400">(Cloud-Led - optional)</span></Label>
                     <div className="flex gap-2">
                       <Input
                         placeholder="Search IP..."
@@ -1473,7 +1440,6 @@ export default function UsersPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
-        {/* Stats cards remain the same - omitted for brevity but keep your existing code */}
         <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'all' && activeTab === 'all' ? 'ring-2 ring-slate-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("all"); }}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
@@ -1790,7 +1756,7 @@ export default function UsersPage() {
                   <Wifi className="w-5 h-5 text-emerald-600" />
                   Online Users ({filteredOnlineSessions.length})
                 </CardTitle>
-                <CardDescription>Users currently connected via RADIUS � real-time session data</CardDescription>
+                <CardDescription>Users currently connected via RADIUS - real-time session data</CardDescription>
               </div>
               <div className="flex items-center gap-2">
                 <div className="relative w-64">
@@ -1891,15 +1857,15 @@ export default function UsersPage() {
                             {session.ip_address
                               ? session.ip_address
                               : (session as any).accounting_pending && !session.ip_address
-                                ? <span className="text-amber-500 text-xs italic">router connecting�</span>
-                                : "�"}
+                                ? <span className="text-amber-500 text-xs italic">router connecting...</span>
+                                : "..."}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="font-mono text-xs text-slate-600">{session.mac_address || '�'}</span>
+                          <span className="font-mono text-xs text-slate-600">{session.mac_address || '...'}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm">{session.router || '�'}</span>
+                          <span className="text-sm">{session.router || '...'}</span>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5">
@@ -1939,7 +1905,7 @@ export default function UsersPage() {
                   <CheckCircle2 className="w-5 h-5 text-green-600" />
                   Active Subscriptions ({activeSubscriptionUsers.length})
                 </CardTitle>
-                <CardDescription>Users with active or pending subscriptions � manage extensions and removals</CardDescription>
+                <CardDescription>Users with active or pending subscriptions - manage extensions and removals</CardDescription>
               </div>
               <div className="flex items-center gap-2">
                 <div className="relative w-64">
@@ -2033,7 +1999,7 @@ export default function UsersPage() {
                           <TableCell>
                             {user.plan === "No Plan" ? (
                               <div>
-                                <p className="text-sm">�</p>
+                                <p className="text-sm">-</p>
                                 <p className="text-xs text-slate-500">Voucher</p>
                               </div>
                             ) : (
@@ -2204,7 +2170,7 @@ export default function UsersPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <p className="text-sm font-medium">{item.router || '�'}</p>
+                            <p className="text-sm font-medium">{item.router || '...'}</p>
                             <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                               <Wifi className="w-3 h-3 text-pink-500" /> Hotspot
                             </p>
@@ -2217,7 +2183,7 @@ export default function UsersPage() {
                               {displayUsage}
                             </span>
                             {isLive && (
-                              <span className="block text-xs text-emerald-600">� Live</span>
+                              <span className="block text-xs text-emerald-600">✓ Live</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -2239,12 +2205,12 @@ export default function UsersPage() {
             {activeTab === "all" && "All Users"}
             {activeTab === "pppoe" && "PPPoE Users"}
             {activeTab === "static" && "Static IP Users"}
-            {statusFilter !== "all" && ` � ${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`}
+            {statusFilter !== "all" && ` - ${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`}
             {" "}({filteredUsers.length})
           </CardTitle>
           <CardDescription>
             Showing {paginatedUsers.length} of {filteredUsers.length} users
-            {statusFilter !== "all" && ` � Filtered by status: ${statusFilter}`}
+            {statusFilter !== "all" && ` - Filtered by status: ${statusFilter}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -2331,7 +2297,7 @@ export default function UsersPage() {
                         <TableCell>
                           {user.plan === "No Plan" ? (
                             <div>
-                              <p className="text-sm">�</p>
+                              <p className="text-sm">-</p>
                               <p className="text-xs text-slate-500">Voucher</p>
                             </div>
                           ) : (
@@ -2614,7 +2580,7 @@ export default function UsersPage() {
                   </div>
                   {selectedUser.billingAccountNumber && !editingBilling && (
                     <div className="mt-1 p-2 bg-blue-100 rounded text-xs text-blue-800">
-                      ?? Pay via Paybill ? Account Ref: <strong>{selectedUser.billingAccountNumber}</strong>
+                      💡 Pay via Paybill ➜ Account Ref: <strong>{selectedUser.billingAccountNumber}</strong>
                     </div>
                   )}
                 </div>
@@ -2659,7 +2625,7 @@ export default function UsersPage() {
                       <label className="text-xs font-medium text-slate-500">Password</label>
                       <div className="flex items-center gap-2">
                         <code className="flex-1 text-sm font-mono bg-white px-2 py-1 rounded border">
-                          {showPassword ? selectedUser.radiusCredentials.password : '��������'}
+                          {showPassword ? selectedUser.radiusCredentials.password : '••••••••'}
                         </code>
                         <Button 
                           variant="ghost" 
@@ -2734,7 +2700,7 @@ export default function UsersPage() {
                       </span>
                       {selectedUser.radiusCredentials.synced_to_radius && (
                         <Badge variant="outline" className="text-green-600 border-green-300">
-                          ? Synced
+                          ✅ Synced
                         </Badge>
                       )}
                     </div>
@@ -2958,7 +2924,7 @@ export default function UsersPage() {
           {userToDelete && (
             <div className="p-3 bg-red-50 rounded-lg border border-red-200">
               <p className="font-medium text-slate-900 dark:text-white">{userToDelete.name}</p>
-              <p className="text-sm text-slate-600">{userToDelete.email} &bull; {userToDelete.phone}</p>
+              <p className="text-sm text-slate-600">{userToDelete.email} • {userToDelete.phone}</p>
               <p className="text-sm text-slate-600">Plan: {userToDelete.plan}</p>
             </div>
           )}
@@ -2991,7 +2957,7 @@ export default function UsersPage() {
             <DialogDescription>
               Add time to {userToExtend?.name}&apos;s subscription.
               {userToExtend?.expiryDate && new Date(userToExtend.expiryDate) < new Date()
-                ? " The subscription has expired � new time will start from now."
+                ? " The subscription has expired - new time will start from now."
                 : " Time will be added to the current expiration date."}
             </DialogDescription>
           </DialogHeader>
