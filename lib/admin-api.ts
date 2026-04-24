@@ -615,9 +615,15 @@ class AdminApiService {
   }
 
   async createCustomer(data: Partial<Customer>): Promise<Customer> {
+    // Map frontend 'phone' field to backend 'phone_number'
+    const payload: any = { ...data }
+    if (payload.phone && !payload.phone_number) {
+      payload.phone_number = payload.phone
+      delete payload.phone
+    }
     return this.request<Customer>('/customers/', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     })
   }
 
@@ -2394,7 +2400,7 @@ async activateService(
       const customer = await this.createCustomer({
         first_name: row.first_name,
         last_name: row.last_name,
-        phone: row.phone,
+        phone_number: row.phone,  // ← CHANGED: phone → phone_number
         email: row.email || undefined,
         password: row.password || row.phone,
         status: 'active' as const,
