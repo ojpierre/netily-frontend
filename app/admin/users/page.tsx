@@ -341,7 +341,7 @@ export default function UsersPage() {
     radius_password: "",
   })
 
-  // UPDATED: newCustomerForm state with RADIUS credentials fields
+  // UPDATED: newCustomerForm state with RADIUS credentials fields (router_id and ip_pool removed)
   const [newCustomerForm, setNewCustomerForm] = useState({
     first_name: "",
     last_name: "",
@@ -352,8 +352,6 @@ export default function UsersPage() {
     radius_password: "",        // explicit PPPoE password (blank = uses portal password)
     connection_type: "pppoe" as "pppoe" | "static",
     plan_id: "",
-    router_id: "",
-    ip_pool: "",
     assigned_ip: "" as string,
     activate_now: true,
     activation_delay_minutes: 0,
@@ -526,7 +524,7 @@ export default function UsersPage() {
     }
   }
 
-  // UPDATED: handleCreateCustomer with RADIUS credentials
+  // UPDATED: handleCreateCustomer with RADIUS credentials (router_id and ip_pool removed)
   const handleCreateCustomer = async () => {
     if (!newCustomerForm.first_name || !newCustomerForm.last_name) {
       toast.error("First name and last name are required")
@@ -572,13 +570,7 @@ export default function UsersPage() {
             serviceData.radius_username = newCustomerForm.radius_username
           }
 
-          if (newCustomerForm.router_id) {
-            serviceData.router = parseInt(newCustomerForm.router_id, 10)
-          }
-
-          if (newCustomerForm.ip_pool) {
-            serviceData.ip_pool = newCustomerForm.ip_pool
-          }
+          // router_id and ip_pool removed per user request
 
           if (newCustomerForm.assigned_ip) {
             serviceData.assigned_ip = parseInt(newCustomerForm.assigned_ip, 10)
@@ -630,7 +622,7 @@ export default function UsersPage() {
 
       toast.success(`Customer ${newCustomer.full_name} created successfully!`)
       
-      // Reset form including new RADIUS fields
+      // Reset form including new RADIUS fields (router_id and ip_pool removed)
       setNewCustomerForm({
         first_name: "",
         last_name: "",
@@ -641,8 +633,6 @@ export default function UsersPage() {
         radius_password: "",
         connection_type: "pppoe",
         plan_id: "",
-        router_id: "",
-        ip_pool: "",
         assigned_ip: "",
         activate_now: true,
         activation_delay_minutes: 0,
@@ -1268,40 +1258,10 @@ export default function UsersPage() {
                     </Select>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <Label>Router <span className="text-xs text-slate-400">(optional)</span></Label>
-                  <Select
-                    value={newCustomerForm.router_id}
-                    onValueChange={(value) => {
-                      const routerId = value === "none" ? "" : value
-                      setNewCustomerForm({...newCustomerForm, router_id: routerId, ip_pool: "", assigned_ip: ""})
-                      if (routerId) loadPoolsForRouter(routerId)
-                      else setPoolsList([])
-                    }}
-                    disabled={routersLoading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={routersLoading ? "Loading routers..." : "Select router"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Router</SelectItem>
-                      {routersList.map((router) => (
-                        <SelectItem key={router.id} value={String(router.id)}>
-                          {router.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>IP Pool <span className="text-xs text-slate-400">(optional � Framed-Pool for router)</span></Label>
-                  <Input
-                    placeholder="e.g. pppoe-pool or leave blank"
-                    value={newCustomerForm.ip_pool}
-                    onChange={(e) => setNewCustomerForm({...newCustomerForm, ip_pool: e.target.value})}
-                  />
-                  <p className="text-xs text-slate-500">Sent as RADIUS Framed-Pool. Router assigns an IP from this pool.</p>
-                </div>
+
+                {/* Router Selection - REMOVED per user request */}
+
+                {/* IP Pool (Framed-Pool) - REMOVED per user request */}
 
                 {/* Cloud-Led Static IP from plan's pool */}
                 {selectedPlanPool && (
