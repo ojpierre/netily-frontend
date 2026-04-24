@@ -143,6 +143,17 @@ export default function UsersImportPage() {
   const [loadingPlans, setLoadingPlans] = useState(false)
   const [currentRowLabel, setCurrentRowLabel] = useState("")
 
+  // 🔧 FIX 1: Prevent browser from opening/downloading dropped files globally
+  useEffect(() => {
+    const prevent = (e: DragEvent) => e.preventDefault()
+    document.addEventListener('dragover', prevent)
+    document.addEventListener('drop', prevent)
+    return () => {
+      document.removeEventListener('dragover', prevent)
+      document.removeEventListener('drop', prevent)
+    }
+  }, [])
+
   useEffect(() => {
     setLoadingPlans(true)
     Promise.all([
@@ -172,12 +183,6 @@ export default function UsersImportPage() {
     reader.readAsText(file)
   }
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault(); setIsDragging(false)
-    const file = e.dataTransfer.files[0]
-    if (file) handleFileSelect(file)
-  }
-
   // UPDATED: Pass pppoe_username and pppoe_password to importSingleUser
   const handleImport = async () => {
     setImportStatus("importing")
@@ -195,8 +200,8 @@ export default function UsersImportPage() {
         phone: row.phone,
         email: row.email || undefined,
         password: row.password || undefined,
-        radius_username: row.pppoe_username || undefined,   // ← ADDED
-        radius_password: row.pppoe_password || undefined,   // ← ADDED
+        radius_username: row.pppoe_username || undefined,
+        radius_password: row.pppoe_password || undefined,
         plan_id: row.plan_id,
         router_id: selectedRouterId ? parseInt(selectedRouterId) : undefined,
       })
@@ -299,7 +304,7 @@ export default function UsersImportPage() {
                   <p className="text-xs text-slate-500">Optional — applied to all imported users</p>
                 </div>
                 <Select 
-                  value={selectedRouterId} 
+                  value={selectedRouterId || "none"} 
                   onValueChange={(value) => setSelectedRouterId(value === "none" ? "" : value)}
                 >
                   <SelectTrigger className="w-64 bg-white">
@@ -316,22 +321,44 @@ export default function UsersImportPage() {
                 </Select>
               </div>
 
+              {/* 🔧 FIX 2: Replaced drag zone with proper label-based file picker */}
               <div
-                onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors ${
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true) }}
+                onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true) }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false) }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsDragging(false)
+                  const file = e.dataTransfer.files[0]
+                  if (file) handleFileSelect(file)
+                }}
+                className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors ${
                   isDragging
                     ? "border-blue-500 bg-blue-50"
                     : "border-slate-200 hover:border-blue-400 hover:bg-slate-50"
                 }`}
               >
                 <Upload className="w-10 h-10 mx-auto mb-3 text-slate-400" />
-                <p className="text-base font-medium text-slate-700">Drop CSV here, or click to browse</p>
-                <p className="text-sm text-slate-500 mt-1">One user per row</p>
-                <input ref={fileInputRef} type="file" accept=".csv" className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f) }} />
+                <p className="text-base font-medium text-slate-700">Drop CSV here, or</p>
+                <label
+                  htmlFor="csv-file-input"
+                  className="mt-2 inline-block cursor-pointer rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Choose File
+                </label>
+                <input
+                  id="csv-file-input"
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) handleFileSelect(f)
+                    e.target.value = "" // reset so same file can be re-selected
+                  }}
+                />
               </div>
 
               <Separator />
