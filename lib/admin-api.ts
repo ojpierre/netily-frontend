@@ -2389,24 +2389,25 @@ async activateService(
     phone: string
     email?: string
     password?: string
-    radius_username?: string    // ← ADD THIS
-    radius_password?: string    // ← ADD THIS
+    radius_username?: string
+    radius_password?: string
     plan_id?: number
     router_id?: number
     ip_pool?: string
+    expires_at?: string   // ← ADD (ISO string)
   }): Promise<{ success: boolean; customer?: Customer; error?: string; billing_account?: string }> {
     try {
       // Step 1: Create customer
       const customer = await this.createCustomer({
         first_name: row.first_name,
         last_name: row.last_name,
-        phone_number: row.phone,  // ← CHANGED: phone → phone_number
+        phone_number: row.phone,
         email: row.email || undefined,
         password: row.password || row.phone,
         status: 'active' as const,
       })
 
-      // Step 2: Create service (only if plan provided)
+      // Step 2: Create service
       if (row.plan_id) {
         const selectedPlan = await this.getPlan(row.plan_id).catch(() => null)
         const serviceData: Record<string, any> = {
@@ -2420,19 +2421,29 @@ async activateService(
           upload_speed: selectedPlan?.upload_speed || 5,
           monthly_price: selectedPlan?.base_price || 0,
         }
-        
-        // Pass explicit RADIUS username if provided in CSV
-        if (row.radius_username) {
-          serviceData.radius_username = row.radius_username
-        }
-        
+        if (row.radius_username) serviceData.radius_username = row.radius_username
         if (row.router_id) serviceData.router = row.router_id
         if (row.ip_pool) serviceData.ip_pool = row.ip_pool
 
         const service = await this.createCustomerService(customer.id, serviceData)
-
-        // Step 3: Activate (creates RADIUS creds)
         const activated = await this.activateService(customer.id, service.id).catch(() => null)
+
+        // ── Override expiry date if provided ────────────────────
+        if (row.expires_at) {
+          try {
+            // Fetch the just-created RADIUS credentials
+            const creds = await this.getRADIUSCredentials({ customer: String(customer.id), page_size: '1' })
+            const cred = creds.results?.[0]
+            if (cred) {
+              await this.updateRADIUSCredential(String(cred.id), {
+                expiration_date: row.expires_at,
+              } as any)
+            }
+          } catch (expiryErr) {
+            console.warn('Could not set custom expiry, plan default used:', expiryErr)
+          }
+        }
+        // ────────────────────────────────────────────────────────
 
         return {
           success: true,

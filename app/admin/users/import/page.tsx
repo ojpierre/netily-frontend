@@ -32,6 +32,8 @@ interface ParsedRow {
   plan_name: string
   pppoe_username: string
   pppoe_password: string
+  expires_at: string        // ← ADDED
+  expires_at_parsed?: Date  // ← ADDED
   plan_id?: number
   status: "valid" | "error" | "warning"
   errors: string[]
@@ -48,9 +50,9 @@ interface ImportResult {
   customer_code?: string
 }
 
-// UPDATED: Added pppoe_username and pppoe_password to optional headers
+// UPDATED: Added expires_at to optional headers
 const REQUIRED_HEADERS = ["first_name", "last_name", "phone"]
-const OPTIONAL_HEADERS = ["email", "password", "plan_name", "pppoe_username", "pppoe_password"]
+const OPTIONAL_HEADERS = ["email", "password", "plan_name", "pppoe_username", "pppoe_password", "expires_at"]
 const ALL_HEADERS = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS]
 
 function parseCSV(text: string): Record<string, string>[] {
@@ -71,7 +73,20 @@ function formatPhone(phone: string): string {
   return digits
 }
 
-// UPDATED: Extract pppoe_username and pppoe_password from raw row
+function parseExpiryDate(raw: string): Date | null {
+  if (!raw) return null
+  const trimmed = raw.trim()
+  // Accept: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (isoMatch) return new Date(`${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}T23:59:59Z`)
+
+  const dmy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/)
+  if (dmy) return new Date(`${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}T23:59:59Z`)
+
+  return null
+}
+
+// UPDATED: Extract expires_at from raw row
 function validateRow(raw: Record<string, string>, rowNum: number, plans: Plan[]): ParsedRow {
   const errors: string[] = []
   const warnings: string[] = []
@@ -84,6 +99,7 @@ function validateRow(raw: Record<string, string>, rowNum: number, plans: Plan[])
   const plan_name = raw.plan_name?.trim() || ""
   const pppoe_username = raw.pppoe_username?.trim() || ""
   const pppoe_password = raw.pppoe_password?.trim() || ""
+  const expires_at_raw = raw.expires_at?.trim() || ""          // ← ADDED
 
   if (!first_name) errors.push("first_name required")
   if (!last_name) errors.push("last_name required")
@@ -106,6 +122,21 @@ function validateRow(raw: Record<string, string>, rowNum: number, plans: Plan[])
     warnings.push("No plan_name — user will be created without a service")
   }
 
+  // ── Expiry date validation ──────────────────────────────────
+  let expires_at_parsed: Date | undefined
+  if (expires_at_raw) {
+    const parsed = parseExpiryDate(expires_at_raw)
+    if (!parsed || isNaN(parsed.getTime())) {
+      warnings.push(`expires_at "${expires_at_raw}" is not a valid date — plan default will be used`)
+    } else if (parsed < new Date()) {
+      warnings.push(`expires_at ${expires_at_raw} is in the past — user will be imported as expired`)
+      expires_at_parsed = parsed
+    } else {
+      expires_at_parsed = parsed
+    }
+  }
+  // ────────────────────────────────────────────────────────────
+
   // Optional: Validate PPPoE username format (should be alphanumeric, no spaces)
   if (pppoe_username && /\s/.test(pppoe_username)) {
     warnings.push(`PPPoE username "${pppoe_username}" contains spaces — will be trimmed`)
@@ -121,6 +152,8 @@ function validateRow(raw: Record<string, string>, rowNum: number, plans: Plan[])
     plan_name,
     pppoe_username,
     pppoe_password,
+    expires_at: expires_at_raw,
+    expires_at_parsed,
     plan_id,
     status: errors.length > 0 ? "error" : "valid",
     errors,
@@ -183,7 +216,7 @@ export default function UsersImportPage() {
     reader.readAsText(file)
   }
 
-  // UPDATED: Pass pppoe_username and pppoe_password to importSingleUser
+  // UPDATED: Pass expires_at to importSingleUser
   const handleImport = async () => {
     setImportStatus("importing")
     setProgress(0)
@@ -204,6 +237,7 @@ export default function UsersImportPage() {
         radius_password: row.pppoe_password || undefined,
         plan_id: row.plan_id,
         router_id: selectedRouterId ? parseInt(selectedRouterId) : undefined,
+        expires_at: row.expires_at_parsed?.toISOString(),   // ← ADDED
       })
 
       importResults.push({
@@ -234,13 +268,13 @@ export default function UsersImportPage() {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
-  // UPDATED: Template includes pppoe_username and pppoe_password columns
+  // UPDATED: Template includes expires_at column
   const downloadTemplate = () => {
     const csv = [
       ALL_HEADERS.join(","),
-      "John,Doe,0712345678,john@example.com,password123,Home Basic 20Mbps,712345678,mypassword",
-      "Jane,Smith,0723456789,,secretpass,Premium 50Mbps,,",   // no explicit RADIUS creds
-      "Bob,Kamau,0734567890,,,,,,",
+      "John,Doe,0712345678,john@example.com,password123,Home Basic 20Mbps,712345678,mypassword,2025-06-15",
+      "Jane,Smith,0723456789,,secretpass,Premium 50Mbps,,,2025-05-30",
+      "Bob,Kamau,0734567890,,,,,,",  // no expiry = use plan default
     ].join("\n")
     const blob = new Blob([csv], { type: "text/csv" })
     const url = URL.createObjectURL(blob)
@@ -293,6 +327,11 @@ export default function UsersImportPage() {
                 <span className="text-xs text-slate-500 mt-1 block">
                   <Wifi className="w-3 h-3 inline mr-1" />
                   <strong>pppoe_username/pppoe_password</strong>: Leave blank to auto-generate from phone number/portal password
+                </span>
+                <br />
+                <span className="text-xs text-slate-500 mt-1 block">
+                  <Calendar className="w-3 h-3 inline mr-1" />
+                  <strong>expires_at</strong>: Custom expiry date (YYYY-MM-DD) — overrides plan default
                 </span>
               </CardDescription>
             </CardHeader>
@@ -374,6 +413,9 @@ export default function UsersImportPage() {
                     <p className="text-xs text-purple-600 mt-1">
                       💡 <strong>New:</strong> Add pppoe_username and pppoe_password columns for custom RADIUS credentials
                     </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      📅 <strong>expires_at:</strong> Add custom expiry date (YYYY-MM-DD) to override plan default
+                    </p>
                   </div>
                 </div>
                 <Button variant="outline" size="sm" onClick={downloadTemplate}>
@@ -454,11 +496,11 @@ export default function UsersImportPage() {
             </div>
           )}
 
-          {/* UPDATED: Preview table with PPPoE credentials column */}
+          {/* UPDATED: Preview table with PPPoE credentials column AND Expires column */}
           <Card>
             <CardHeader>
               <CardTitle>Preview</CardTitle>
-              <CardDescription>Review before importing — PPPoE credentials show override status</CardDescription>
+              <CardDescription>Review before importing — PPPoE credentials and custom expiry dates</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -470,6 +512,7 @@ export default function UsersImportPage() {
                       <TableHead>Phone</TableHead>
                       <TableHead>Plan</TableHead>
                       <TableHead>PPPoE Creds</TableHead>
+                      <TableHead>Expires</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -503,15 +546,32 @@ export default function UsersImportPage() {
                                   pass: custom
                                 </Badge>
                               )}
-                              {!row.pppoe_username && !row.pppoe_password && (
-                                <span className="text-xs text-slate-400">auto (phone)</span>
-                              )}
                             </div>
                           ) : (
                             <span className="text-xs text-slate-400 flex items-center gap-1">
                               <Wifi className="w-3 h-3" />
                               auto-generate
                             </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {row.expires_at_parsed ? (
+                            <div>
+                              <Badge className={
+                                row.expires_at_parsed < new Date()
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-green-100 text-green-700"
+                              }>
+                                {row.expires_at_parsed.toLocaleDateString()}
+                              </Badge>
+                              {row.expires_at_parsed > new Date() && (
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                  {Math.ceil((row.expires_at_parsed.getTime() - Date.now()) / 86400000)}d left
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400">plan default</span>
                           )}
                         </TableCell>
                         <TableCell>
