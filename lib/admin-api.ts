@@ -2375,6 +2375,64 @@ async activateService(
     })
   }
 
+  // lib/admin-api.ts — add inside AdminApiService class
+
+  async importSingleUser(row: {
+    first_name: string
+    last_name: string
+    phone: string
+    email?: string
+    password?: string
+    plan_id?: number
+    router_id?: number
+    ip_pool?: string
+  }): Promise<{ success: boolean; customer?: Customer; error?: string; billing_account?: string }> {
+    try {
+      // Step 1: Create customer
+      const customer = await this.createCustomer({
+        first_name: row.first_name,
+        last_name: row.last_name,
+        phone: row.phone,
+        email: row.email || undefined,
+        password: row.password || row.phone,
+        status: 'active' as const,
+      })
+
+      // Step 2: Create service (only if plan provided)
+      if (row.plan_id) {
+        const selectedPlan = await this.getPlan(row.plan_id).catch(() => null)
+        const serviceData: Record<string, any> = {
+          service_type: 'INTERNET',
+          auth_connection_type: 'PPPOE',
+          status: 'ACTIVE',
+          activate_now: true,
+          plan: row.plan_id,
+          radius_password: row.password || row.phone,
+          download_speed: selectedPlan?.download_speed || 10,
+          upload_speed: selectedPlan?.upload_speed || 5,
+          monthly_price: selectedPlan?.base_price || 0,
+        }
+        if (row.router_id) serviceData.router = row.router_id
+        if (row.ip_pool) serviceData.ip_pool = row.ip_pool
+
+        const service = await this.createCustomerService(customer.id, serviceData)
+
+        // Step 3: Activate (creates RADIUS creds)
+        const activated = await this.activateService(customer.id, service.id).catch(() => null)
+
+        return {
+          success: true,
+          customer,
+          billing_account: activated?.billing_account_number || service.billing_account_number,
+        }
+      }
+
+      return { success: true, customer }
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Unknown error' }
+    }
+  }
+
   /**
    * Poll payment status - useful for async payments (Paybill, Bank, Till)
    */

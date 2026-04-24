@@ -1,135 +1,232 @@
+// app/admin/users/import/page.tsx
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
-  ArrowLeft,
-  Upload,
-  FileText,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Download,
-  Users,
-  RefreshCw,
-  ChevronRight,
+  ArrowLeft, Upload, FileText, CheckCircle, XCircle,
+  AlertTriangle, Download, Users, RefreshCw, ChevronRight, Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import { adminApi } from "@/lib/admin-api"
+import type { Plan, Router } from "@/lib/types"
 
 type ImportStatus = "idle" | "preview" | "importing" | "done"
 
-interface ImportRow {
+interface ParsedRow {
   row: number
-  fullName: string
-  email: string
+  first_name: string
+  last_name: string
   phone: string
-  plan: string
-  status: "valid" | "error"
-  error?: string
+  email: string
+  password: string
+  plan_name: string
+  plan_id?: number
+  status: "valid" | "error" | "warning"
+  errors: string[]
+  warnings: string[]
 }
 
-const TEMPLATE_HEADERS = ["full_name", "email", "phone", "plan_name", "address", "notes"]
+interface ImportResult {
+  row: number
+  name: string
+  phone: string
+  status: "success" | "failed"
+  error?: string
+  billing_account?: string
+  customer_code?: string
+}
 
-const SAMPLE_ROWS: ImportRow[] = [
-  { row: 1, fullName: "Jane Doe", email: "jane@example.com", phone: "0712345678", plan: "Premium 50Mbps", status: "valid" },
-  { row: 2, fullName: "John Mwangi", email: "john@example.com", phone: "0723456789", plan: "Basic 10Mbps", status: "valid" },
-  { row: 3, fullName: "Alice Njeri", email: "", phone: "0734567890", plan: "Basic 20Mbps", status: "error", error: "Email is required" },
-  { row: 4, fullName: "Peter Kamau", email: "peter@example.com", phone: "0745678901", plan: "Premium 100Mbps", status: "valid" },
-  { row: 5, fullName: "Grace Achieng", email: "grace@example.com", phone: "", plan: "Basic 10Mbps", status: "error", error: "Phone is required" },
-]
+const REQUIRED_HEADERS = ["first_name", "last_name", "phone"]
+const OPTIONAL_HEADERS = ["email", "password", "plan_name"]
+const ALL_HEADERS = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS]
+
+function parseCSV(text: string): Record<string, string>[] {
+  const lines = text.trim().split(/\r?\n/)
+  if (lines.length < 2) return []
+  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"))
+  return lines.slice(1).map((line) => {
+    const values = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""))
+    return Object.fromEntries(headers.map((h, i) => [h, values[i] || ""]))
+  })
+}
+
+function formatPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "")
+  if (digits.startsWith("0") && digits.length === 10) return "254" + digits.slice(1)
+  if (digits.startsWith("7") && digits.length === 9) return "254" + digits
+  if (digits.startsWith("254") && digits.length === 12) return digits
+  return digits
+}
+
+function validateRow(raw: Record<string, string>, rowNum: number, plans: Plan[]): ParsedRow {
+  const errors: string[] = []
+  const warnings: string[] = []
+
+  const first_name = raw.first_name?.trim() || ""
+  const last_name = raw.last_name?.trim() || ""
+  const phone = raw.phone?.trim() || ""
+  const email = raw.email?.trim() || ""
+  const password = raw.password?.trim() || ""
+  const plan_name = raw.plan_name?.trim() || ""
+
+  if (!first_name) errors.push("first_name required")
+  if (!last_name) errors.push("last_name required")
+  if (!phone) errors.push("phone required")
+
+  const formatted = phone ? formatPhone(phone) : ""
+  if (phone && formatted.length !== 12) errors.push("Invalid phone format (use 07XXXXXXXX)")
+
+  let plan_id: number | undefined
+  if (plan_name) {
+    const match = plans.find(
+      (p) => p.name.toLowerCase() === plan_name.toLowerCase() && p.is_active
+    )
+    if (match) {
+      plan_id = match.id
+    } else {
+      warnings.push(`Plan "${plan_name}" not found — user will be created without a plan`)
+    }
+  } else {
+    warnings.push("No plan_name — user will be created without a service")
+  }
+
+  return {
+    row: rowNum,
+    first_name,
+    last_name,
+    phone: formatted || phone,
+    email,
+    password,
+    plan_name,
+    plan_id,
+    status: errors.length > 0 ? "error" : "valid",
+    errors,
+    warnings,
+  }
+}
 
 export default function UsersImportPage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importStatus, setImportStatus] = useState<ImportStatus>("idle")
   const [fileName, setFileName] = useState<string | null>(null)
-  const [rows, setRows] = useState<ImportRow[]>([])
+  const [rows, setRows] = useState<ParsedRow[]>([])
   const [progress, setProgress] = useState(0)
-  const [imported, setImported] = useState(0)
-  const [failed, setFailed] = useState(0)
+  const [results, setResults] = useState<ImportResult[]>([])
   const [isDragging, setIsDragging] = useState(false)
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [routers, setRouters] = useState<Router[]>([])
+  const [selectedRouterId, setSelectedRouterId] = useState<string>("")
+  const [loadingPlans, setLoadingPlans] = useState(false)
+  const [currentRowLabel, setCurrentRowLabel] = useState("")
+
+  useEffect(() => {
+    setLoadingPlans(true)
+    Promise.all([
+      adminApi.getPlans({ is_active: "true", page_size: "200" }),
+      adminApi.getRouters({ page_size: "100" }),
+    ]).then(([plansRes, routersRes]) => {
+      setPlans(plansRes.results || [])
+      setRouters(routersRes.results || [])
+    }).finally(() => setLoadingPlans(false))
+  }, [])
 
   const validRows = rows.filter((r) => r.status === "valid")
   const errorRows = rows.filter((r) => r.status === "error")
+  const warningRows = rows.filter((r) => r.status === "valid" && r.warnings.length > 0)
 
   const handleFileSelect = (file: File) => {
-    if (!file.name.endsWith(".csv")) {
-      toast.error("Please upload a CSV file")
-      return
-    }
+    if (!file.name.endsWith(".csv")) { toast.error("Please upload a CSV file"); return }
     setFileName(file.name)
-    // Simulate parsing — in production this would parse the CSV
-    setRows(SAMPLE_ROWS)
-    setImportStatus("preview")
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = e.target?.result as string
+      const raw = parseCSV(text)
+      const parsed = raw.map((r, i) => validateRow(r, i + 1, plans))
+      setRows(parsed)
+      setImportStatus("preview")
+    }
+    reader.readAsText(file)
   }
 
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
+    e.preventDefault(); setIsDragging(false)
     const file = e.dataTransfer.files[0]
-    if (file) handleFileSelect(file)
-  }
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
     if (file) handleFileSelect(file)
   }
 
   const handleImport = async () => {
     setImportStatus("importing")
     setProgress(0)
-    // Simulate import progress
-    let done = 0
-    for (const row of validRows) {
-      await new Promise((res) => setTimeout(res, 300))
-      done++
-      setProgress(Math.round((done / validRows.length) * 100))
+    setResults([])
+    const importResults: ImportResult[] = []
+
+    for (let i = 0; i < validRows.length; i++) {
+      const row = validRows[i]
+      setCurrentRowLabel(`${row.first_name} ${row.last_name} (${row.phone})`)
+
+      const result = await adminApi.importSingleUser({
+        first_name: row.first_name,
+        last_name: row.last_name,
+        phone: row.phone,
+        email: row.email || undefined,
+        password: row.password || undefined,
+        plan_id: row.plan_id,
+        router_id: selectedRouterId ? parseInt(selectedRouterId) : undefined,
+      })
+
+      importResults.push({
+        row: row.row,
+        name: `${row.first_name} ${row.last_name}`,
+        phone: row.phone,
+        status: result.success ? "success" : "failed",
+        error: result.error,
+        billing_account: result.billing_account,
+        customer_code: (result.customer as any)?.customer_code,
+      })
+
+      setProgress(Math.round(((i + 1) / validRows.length) * 100))
+      setResults([...importResults])
+
+      // Small delay to avoid hammering the API
+      await new Promise((r) => setTimeout(r, 300))
     }
-    setImported(validRows.length)
-    setFailed(errorRows.length)
+
     setImportStatus("done")
-    toast.success(`${validRows.length} users imported successfully`)
+    const succeeded = importResults.filter((r) => r.status === "success").length
+    toast.success(`Import complete: ${succeeded}/${validRows.length} users created`)
   }
 
   const handleReset = () => {
-    setImportStatus("idle")
-    setFileName(null)
-    setRows([])
-    setProgress(0)
-    setImported(0)
-    setFailed(0)
+    setImportStatus("idle"); setFileName(null); setRows([])
+    setProgress(0); setResults([])
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   const downloadTemplate = () => {
-    const csv = TEMPLATE_HEADERS.join(",") + "\nJane Doe,jane@example.com,0712345678,Premium 50Mbps,Westlands,\n"
+    const csv = [
+      ALL_HEADERS.join(","),
+      "John,Doe,0712345678,john@example.com,password123,Home Basic 20Mbps",
+      "Jane,Smith,0723456789,,secretpass,Premium 50Mbps",
+      "Bob,Kamau,0734567890,,,", // no plan, no password → uses phone as password
+    ].join("\n")
     const blob = new Blob([csv], { type: "text/csv" })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "users_import_template.csv"
-    a.click()
-    URL.revokeObjectURL(url)
+    const a = document.createElement("a"); a.href = url; a.download = "users_import_template.csv"
+    a.click(); URL.revokeObjectURL(url)
   }
+
+  const successCount = results.filter((r) => r.status === "success").length
+  const failedCount = results.filter((r) => r.status === "failed").length
 
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
@@ -140,23 +237,23 @@ export default function UsersImportPage() {
         </Button>
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Import Users</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Bulk import customers from a CSV file</p>
+          <p className="text-slate-500 text-sm mt-1">Bulk import PPPoE customers from CSV</p>
         </div>
       </div>
 
-      {/* Steps indicator */}
+      {/* Steps */}
       <div className="flex items-center gap-2 text-sm">
-        <span className={`font-medium ${importStatus === "idle" ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`}>
-          1. Upload File
-        </span>
-        <ChevronRight className="w-4 h-4 text-slate-400" />
-        <span className={`font-medium ${importStatus === "preview" ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`}>
-          2. Preview & Validate
-        </span>
-        <ChevronRight className="w-4 h-4 text-slate-400" />
-        <span className={`font-medium ${importStatus === "importing" || importStatus === "done" ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`}>
-          3. Import
-        </span>
+        {["Upload File", "Preview & Validate", "Import"].map((step, i) => (
+          <React.Fragment key={step}>
+            <span className={`font-medium ${
+              (i === 0 && importStatus === "idle") ||
+              (i === 1 && importStatus === "preview") ||
+              (i === 2 && (importStatus === "importing" || importStatus === "done"))
+                ? "text-blue-600 dark:text-blue-400" : "text-slate-400"
+            }`}>{i + 1}. {step}</span>
+            {i < 2 && <ChevronRight className="w-4 h-4 text-slate-400" />}
+          </React.Fragment>
+        ))}
       </div>
 
       {/* Step 1 — Upload */}
@@ -166,11 +263,32 @@ export default function UsersImportPage() {
             <CardHeader>
               <CardTitle>Upload CSV File</CardTitle>
               <CardDescription>
-                Upload a CSV file with your customer data. Download the template below to get started.
+                CSV must include: <code className="bg-slate-100 px-1 rounded text-xs">{REQUIRED_HEADERS.join(", ")}</code>
+                {" "}Optional: <code className="bg-slate-100 px-1 rounded text-xs">{OPTIONAL_HEADERS.join(", ")}</code>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Drop zone */}
+              {/* Router selector */}
+              <div className="flex items-center gap-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex-1">
+                  <Label className="text-sm font-medium">Default Router (for IP pool assignment)</Label>
+                  <p className="text-xs text-slate-500">Optional — applied to all imported users</p>
+                </div>
+                <Select value={selectedRouterId} onValueChange={setSelectedRouterId}>
+                  <SelectTrigger className="w-64 bg-white">
+                    <SelectValue placeholder="No router selected" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No router</SelectItem>
+                    {routers.map((r) => (
+                      <SelectItem key={r.id} value={String(r.id)}>
+                        {r.name} ({r.ip_address})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
                 onDragLeave={() => setIsDragging(false)}
@@ -178,42 +296,53 @@ export default function UsersImportPage() {
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors ${
                   isDragging
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20"
-                    : "border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-slate-200 hover:border-blue-400 hover:bg-slate-50"
                 }`}
               >
-                <Upload className="w-10 h-10 mx-auto mb-3 text-slate-400 dark:text-slate-500" />
-                <p className="text-base font-medium text-slate-700 dark:text-slate-300">
-                  Drop your CSV file here, or click to browse
-                </p>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Supports .csv files up to 10MB</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={handleFileInputChange}
-                />
+                <Upload className="w-10 h-10 mx-auto mb-3 text-slate-400" />
+                <p className="text-base font-medium text-slate-700">Drop CSV here, or click to browse</p>
+                <p className="text-sm text-slate-500 mt-1">One user per row</p>
+                <input ref={fileInputRef} type="file" accept=".csv" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f) }} />
               </div>
 
               <Separator />
 
-              {/* Template download */}
-              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                  <FileText className="w-5 h-5 text-slate-500" />
                   <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">users_import_template.csv</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Required columns: {TEMPLATE_HEADERS.join(", ")}
+                    <p className="text-sm font-medium">users_import_template.csv</p>
+                    <p className="text-xs text-slate-500">
+                      Plans must match names exactly as they appear in your Plans page
                     </p>
                   </div>
                 </div>
                 <Button variant="outline" size="sm" onClick={downloadTemplate}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Template
+                  <Download className="w-4 h-4 mr-2" />Download Template
                 </Button>
               </div>
+
+              {loadingPlans && (
+                <p className="text-xs text-slate-500 text-center">
+                  <Loader2 className="w-3 h-3 inline animate-spin mr-1" />
+                  Loading {plans.length} plans…
+                </p>
+              )}
+
+              {plans.length > 0 && (
+                <details className="text-xs text-slate-500">
+                  <summary className="cursor-pointer hover:text-slate-700">
+                    Available plan names ({plans.length})
+                  </summary>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {plans.map((p) => (
+                      <code key={p.id} className="bg-slate-100 px-1.5 py-0.5 rounded">{p.name}</code>
+                    ))}
+                  </div>
+                </details>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -225,63 +354,53 @@ export default function UsersImportPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <FileText className="w-5 h-5 text-slate-500" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{fileName}</span>
+              <span className="text-sm font-medium">{fileName}</span>
               <Badge variant="outline">{rows.length} rows</Badge>
             </div>
             <Button variant="ghost" size="sm" onClick={handleReset}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Upload Different File
+              <RefreshCw className="w-4 h-4 mr-2" />Upload Different File
             </Button>
           </div>
 
-          {/* Summary */}
+          {/* Summary cards */}
           <div className="grid grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="pt-6 flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Total Rows</p>
-                  <p className="text-xl font-bold text-slate-900 dark:text-white">{rows.length}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6 flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Valid</p>
-                  <p className="text-xl font-bold text-slate-900 dark:text-white">{validRows.length}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6 flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-                  <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Errors</p>
-                  <p className="text-xl font-bold text-slate-900 dark:text-white">{errorRows.length}</p>
-                </div>
-              </CardContent>
-            </Card>
+            <Card><CardContent className="pt-6 flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-blue-600" />
+              </div>
+              <div><p className="text-xs text-slate-500">Total</p><p className="text-xl font-bold">{rows.length}</p></div>
+            </CardContent></Card>
+            <Card><CardContent className="pt-6 flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+              </div>
+              <div><p className="text-xs text-slate-500">Valid</p><p className="text-xl font-bold">{validRows.length}</p></div>
+            </CardContent></Card>
+            <Card><CardContent className="pt-6 flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <div><p className="text-xs text-slate-500">Errors</p><p className="text-xl font-bold">{errorRows.length}</p></div>
+            </CardContent></Card>
           </div>
 
           {errorRows.length > 0 && (
-            <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-700 dark:text-amber-300">
+            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
               <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>{errorRows.length} rows have errors and will be skipped. Only {validRows.length} valid rows will be imported.</span>
+              <span>{errorRows.length} rows have errors and will be skipped. {validRows.length} valid rows will be imported.</span>
+            </div>
+          )}
+          {warningRows.length > 0 && (
+            <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{warningRows.length} rows have warnings (e.g. plan not found) — they'll still be imported.</span>
             </div>
           )}
 
           <Card>
             <CardHeader>
               <CardTitle>Preview</CardTitle>
-              <CardDescription>Review the data before importing</CardDescription>
+              <CardDescription>Review before importing</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -289,7 +408,6 @@ export default function UsersImportPage() {
                   <TableRow>
                     <TableHead>Row</TableHead>
                     <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Plan</TableHead>
                     <TableHead>Status</TableHead>
@@ -297,22 +415,28 @@ export default function UsersImportPage() {
                 </TableHeader>
                 <TableBody>
                   {rows.map((row) => (
-                    <TableRow key={row.row} className={row.status === "error" ? "bg-red-50/50 dark:bg-red-950/10" : ""}>
+                    <TableRow key={row.row} className={row.status === "error" ? "bg-red-50/50" : ""}>
                       <TableCell className="text-slate-400 text-xs">{row.row}</TableCell>
-                      <TableCell className="font-medium">{row.fullName}</TableCell>
-                      <TableCell>{row.email || <span className="text-red-500 text-xs italic">missing</span>}</TableCell>
-                      <TableCell>{row.phone || <span className="text-red-500 text-xs italic">missing</span>}</TableCell>
-                      <TableCell>{row.plan}</TableCell>
+                      <TableCell className="font-medium">
+                        {row.first_name} {row.last_name}
+                        {row.email && <span className="block text-xs text-slate-400">{row.email}</span>}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">{row.phone || <span className="text-red-500 text-xs italic">missing</span>}</TableCell>
                       <TableCell>
-                        {row.status === "valid" ? (
-                          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                            <CheckCircle className="w-3 h-3 mr-1" /> Valid
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive" className="gap-1">
-                            <XCircle className="w-3 h-3" /> {row.error}
-                          </Badge>
-                        )}
+                        {row.plan_id
+                          ? <Badge className="bg-green-100 text-green-700 text-xs">{row.plan_name}</Badge>
+                          : row.plan_name
+                          ? <Badge className="bg-amber-100 text-amber-700 text-xs">{row.plan_name} (not found)</Badge>
+                          : <span className="text-slate-400 text-xs">no plan</span>
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {row.status === "valid"
+                          ? <Badge className="bg-green-100 text-green-700"><CheckCircle className="w-3 h-3 mr-1" />Valid</Badge>
+                          : <Badge variant="destructive" className="gap-1">
+                              <XCircle className="w-3 h-3" />{row.errors[0]}
+                            </Badge>
+                        }
                       </TableCell>
                     </TableRow>
                   ))}
@@ -333,47 +457,110 @@ export default function UsersImportPage() {
 
       {/* Step 3 — Importing */}
       {importStatus === "importing" && (
-        <Card>
-          <CardContent className="pt-10 pb-10 text-center space-y-4">
-            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto">
-              <RefreshCw className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin" />
-            </div>
-            <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2">Importing Users...</h3>
-            <p className="text-slate-500 dark:text-slate-400">Please wait while we import your users</p>
-            <div className="max-w-sm mx-auto space-y-2">
-              <Progress value={progress} className="h-2" />
-              <p className="text-sm text-slate-500 dark:text-slate-400">{progress}% complete</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <Card>
+            <CardContent className="pt-10 pb-10 text-center space-y-4">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+              </div>
+              <h3 className="text-2xl font-semibold">Importing Users...</h3>
+              <p className="text-slate-500 text-sm">{currentRowLabel}</p>
+              <div className="max-w-sm mx-auto space-y-2">
+                <Progress value={progress} className="h-2" />
+                <p className="text-sm text-slate-500">
+                  {results.length} / {validRows.length} — {progress}%
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Live results */}
+          {results.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Live Results</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {results.map((r) => (
+                    <div key={r.row} className={`flex items-center justify-between text-xs p-1.5 rounded ${
+                      r.status === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                    }`}>
+                      <span className="font-medium">{r.name} ({r.phone})</span>
+                      <span>
+                        {r.status === "success"
+                          ? `✓ ${r.customer_code || "created"} ${r.billing_account ? `· ${r.billing_account}` : ""}`
+                          : `✗ ${r.error}`
+                        }
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Step 3 — Done */}
       {importStatus === "done" && (
-        <Card>
-          <CardContent className="pt-10 pb-10 text-center space-y-4">
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-            </div>
-            <h3 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2">Import Complete!</h3>
-            <p className="text-slate-500 dark:text-slate-400">
-              Successfully imported <span className="font-bold text-green-600 dark:text-green-400">{imported}</span> users.
-              {failed > 0 && (
-                <> <span className="font-bold text-red-500">{failed}</span> rows were skipped due to errors.</>
-              )}
-            </p>
-            <div className="flex justify-center gap-3 pt-2">
-              <Button variant="outline" onClick={handleReset}>
-                <Upload className="w-4 h-4 mr-2" />
-                Import More
-              </Button>
-              <Button onClick={() => router.push("/admin/users")}>
-                <Users className="w-4 h-4 mr-2" />
-                View Users
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <Card>
+            <CardContent className="pt-10 pb-10 text-center space-y-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-2xl font-semibold">Import Complete!</h3>
+              <p className="text-slate-500">
+                <span className="font-bold text-green-600">{successCount}</span> created
+                {failedCount > 0 && <>, <span className="font-bold text-red-500">{failedCount}</span> failed</>}
+              </p>
+              <div className="flex justify-center gap-3 pt-2">
+                <Button variant="outline" onClick={handleReset}><Upload className="w-4 h-4 mr-2" />Import More</Button>
+                <Button onClick={() => router.push("/admin/users")}><Users className="w-4 h-4 mr-2" />View Users</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Full results table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Import Results</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Customer Code</TableHead>
+                    <TableHead>Billing Account</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {results.map((r) => (
+                    <TableRow key={r.row}>
+                      <TableCell className="font-medium">{r.name}</TableCell>
+                      <TableCell className="font-mono text-sm">{r.phone}</TableCell>
+                      <TableCell>{r.customer_code || "—"}</TableCell>
+                      <TableCell>
+                        {r.billing_account
+                          ? <code className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-xs font-mono">{r.billing_account}</code>
+                          : "—"
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {r.status === "success"
+                          ? <Badge className="bg-green-100 text-green-700">Created</Badge>
+                          : <Badge variant="destructive" className="text-xs">{r.error}</Badge>
+                        }
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   )
