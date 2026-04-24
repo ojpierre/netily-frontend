@@ -1272,14 +1272,19 @@ export default function UsersPage() {
                   <Label>Router <span className="text-xs text-slate-400">(optional)</span></Label>
                   <Select
                     value={newCustomerForm.router_id}
-                    onValueChange={(value) => setNewCustomerForm({...newCustomerForm, router_id: value, ip_pool: "", assigned_ip: ""})}
+                    onValueChange={(value) => {
+                      const routerId = value === "none" ? "" : value
+                      setNewCustomerForm({...newCustomerForm, router_id: routerId, ip_pool: "", assigned_ip: ""})
+                      if (routerId) loadPoolsForRouter(routerId)
+                      else setPoolsList([])
+                    }}
                     disabled={routersLoading}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={routersLoading ? "Loading routers..." : "Select router"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No Router</SelectItem>
+                      <SelectItem value="none">No Router</SelectItem>
                       {routersList.map((router) => (
                         <SelectItem key={router.id} value={String(router.id)}>
                           {router.name}

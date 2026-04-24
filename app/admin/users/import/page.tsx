@@ -298,12 +298,15 @@ export default function UsersImportPage() {
                   <Label className="text-sm font-medium">Default Router (for IP pool assignment)</Label>
                   <p className="text-xs text-slate-500">Optional — applied to all imported users</p>
                 </div>
-                <Select value={selectedRouterId} onValueChange={setSelectedRouterId}>
+                <Select 
+                  value={selectedRouterId} 
+                  onValueChange={(value) => setSelectedRouterId(value === "none" ? "" : value)}
+                >
                   <SelectTrigger className="w-64 bg-white">
                     <SelectValue placeholder="No router selected" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No router</SelectItem>
+                    <SelectItem value="none">No router</SelectItem>
                     {routers.map((r) => (
                       <SelectItem key={r.id} value={String(r.id)}>
                         {r.name} ({r.ip_address})
