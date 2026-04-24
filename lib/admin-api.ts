@@ -2383,6 +2383,8 @@ async activateService(
     phone: string
     email?: string
     password?: string
+    radius_username?: string    // ← ADD THIS
+    radius_password?: string    // ← ADD THIS
     plan_id?: number
     router_id?: number
     ip_pool?: string
@@ -2407,11 +2409,17 @@ async activateService(
           status: 'ACTIVE',
           activate_now: true,
           plan: row.plan_id,
-          radius_password: row.password || row.phone,
+          radius_password: row.radius_password || row.password || row.phone,
           download_speed: selectedPlan?.download_speed || 10,
           upload_speed: selectedPlan?.upload_speed || 5,
           monthly_price: selectedPlan?.base_price || 0,
         }
+        
+        // Pass explicit RADIUS username if provided in CSV
+        if (row.radius_username) {
+          serviceData.radius_username = row.radius_username
+        }
+        
         if (row.router_id) serviceData.router = row.router_id
         if (row.ip_pool) serviceData.ip_pool = row.ip_pool
 

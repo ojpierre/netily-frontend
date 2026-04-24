@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import {
   ArrowLeft, Upload, FileText, CheckCircle, XCircle,
   AlertTriangle, Download, Users, RefreshCw, ChevronRight, Loader2,
+  Wifi,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +30,8 @@ interface ParsedRow {
   email: string
   password: string
   plan_name: string
+  pppoe_username: string
+  pppoe_password: string
   plan_id?: number
   status: "valid" | "error" | "warning"
   errors: string[]
@@ -45,8 +48,9 @@ interface ImportResult {
   customer_code?: string
 }
 
+// UPDATED: Added pppoe_username and pppoe_password to optional headers
 const REQUIRED_HEADERS = ["first_name", "last_name", "phone"]
-const OPTIONAL_HEADERS = ["email", "password", "plan_name"]
+const OPTIONAL_HEADERS = ["email", "password", "plan_name", "pppoe_username", "pppoe_password"]
 const ALL_HEADERS = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS]
 
 function parseCSV(text: string): Record<string, string>[] {
@@ -67,6 +71,7 @@ function formatPhone(phone: string): string {
   return digits
 }
 
+// UPDATED: Extract pppoe_username and pppoe_password from raw row
 function validateRow(raw: Record<string, string>, rowNum: number, plans: Plan[]): ParsedRow {
   const errors: string[] = []
   const warnings: string[] = []
@@ -77,6 +82,8 @@ function validateRow(raw: Record<string, string>, rowNum: number, plans: Plan[])
   const email = raw.email?.trim() || ""
   const password = raw.password?.trim() || ""
   const plan_name = raw.plan_name?.trim() || ""
+  const pppoe_username = raw.pppoe_username?.trim() || ""
+  const pppoe_password = raw.pppoe_password?.trim() || ""
 
   if (!first_name) errors.push("first_name required")
   if (!last_name) errors.push("last_name required")
@@ -99,6 +106,11 @@ function validateRow(raw: Record<string, string>, rowNum: number, plans: Plan[])
     warnings.push("No plan_name — user will be created without a service")
   }
 
+  // Optional: Validate PPPoE username format (should be alphanumeric, no spaces)
+  if (pppoe_username && /\s/.test(pppoe_username)) {
+    warnings.push(`PPPoE username "${pppoe_username}" contains spaces — will be trimmed`)
+  }
+
   return {
     row: rowNum,
     first_name,
@@ -107,6 +119,8 @@ function validateRow(raw: Record<string, string>, rowNum: number, plans: Plan[])
     email,
     password,
     plan_name,
+    pppoe_username,
+    pppoe_password,
     plan_id,
     status: errors.length > 0 ? "error" : "valid",
     errors,
@@ -164,6 +178,7 @@ export default function UsersImportPage() {
     if (file) handleFileSelect(file)
   }
 
+  // UPDATED: Pass pppoe_username and pppoe_password to importSingleUser
   const handleImport = async () => {
     setImportStatus("importing")
     setProgress(0)
@@ -180,6 +195,8 @@ export default function UsersImportPage() {
         phone: row.phone,
         email: row.email || undefined,
         password: row.password || undefined,
+        radius_username: row.pppoe_username || undefined,   // ← ADDED
+        radius_password: row.pppoe_password || undefined,   // ← ADDED
         plan_id: row.plan_id,
         router_id: selectedRouterId ? parseInt(selectedRouterId) : undefined,
       })
@@ -212,12 +229,13 @@ export default function UsersImportPage() {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
+  // UPDATED: Template includes pppoe_username and pppoe_password columns
   const downloadTemplate = () => {
     const csv = [
       ALL_HEADERS.join(","),
-      "John,Doe,0712345678,john@example.com,password123,Home Basic 20Mbps",
-      "Jane,Smith,0723456789,,secretpass,Premium 50Mbps",
-      "Bob,Kamau,0734567890,,,", // no plan, no password → uses phone as password
+      "John,Doe,0712345678,john@example.com,password123,Home Basic 20Mbps,712345678,mypassword",
+      "Jane,Smith,0723456789,,secretpass,Premium 50Mbps,,",   // no explicit RADIUS creds
+      "Bob,Kamau,0734567890,,,,,,",
     ].join("\n")
     const blob = new Blob([csv], { type: "text/csv" })
     const url = URL.createObjectURL(blob)
@@ -263,8 +281,14 @@ export default function UsersImportPage() {
             <CardHeader>
               <CardTitle>Upload CSV File</CardTitle>
               <CardDescription>
-                CSV must include: <code className="bg-slate-100 px-1 rounded text-xs">{REQUIRED_HEADERS.join(", ")}</code>
-                {" "}Optional: <code className="bg-slate-100 px-1 rounded text-xs">{OPTIONAL_HEADERS.join(", ")}</code>
+                <span className="text-red-500">*</span> Required: <code className="bg-slate-100 px-1 rounded text-xs">{REQUIRED_HEADERS.join(", ")}</code>
+                <br />
+                Optional: <code className="bg-slate-100 px-1 rounded text-xs">{OPTIONAL_HEADERS.join(", ")}</code>
+                <br />
+                <span className="text-xs text-slate-500 mt-1 block">
+                  <Wifi className="w-3 h-3 inline mr-1" />
+                  <strong>pppoe_username/pppoe_password</strong>: Leave blank to auto-generate from phone number/portal password
+                </span>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -316,6 +340,9 @@ export default function UsersImportPage() {
                     <p className="text-sm font-medium">users_import_template.csv</p>
                     <p className="text-xs text-slate-500">
                       Plans must match names exactly as they appear in your Plans page
+                    </p>
+                    <p className="text-xs text-purple-600 mt-1">
+                      💡 <strong>New:</strong> Add pppoe_username and pppoe_password columns for custom RADIUS credentials
                     </p>
                   </div>
                 </div>
@@ -397,51 +424,79 @@ export default function UsersImportPage() {
             </div>
           )}
 
+          {/* UPDATED: Preview table with PPPoE credentials column */}
           <Card>
             <CardHeader>
               <CardTitle>Preview</CardTitle>
-              <CardDescription>Review before importing</CardDescription>
+              <CardDescription>Review before importing — PPPoE credentials show override status</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Row</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row) => (
-                    <TableRow key={row.row} className={row.status === "error" ? "bg-red-50/50" : ""}>
-                      <TableCell className="text-slate-400 text-xs">{row.row}</TableCell>
-                      <TableCell className="font-medium">
-                        {row.first_name} {row.last_name}
-                        {row.email && <span className="block text-xs text-slate-400">{row.email}</span>}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{row.phone || <span className="text-red-500 text-xs italic">missing</span>}</TableCell>
-                      <TableCell>
-                        {row.plan_id
-                          ? <Badge className="bg-green-100 text-green-700 text-xs">{row.plan_name}</Badge>
-                          : row.plan_name
-                          ? <Badge className="bg-amber-100 text-amber-700 text-xs">{row.plan_name} (not found)</Badge>
-                          : <span className="text-slate-400 text-xs">no plan</span>
-                        }
-                      </TableCell>
-                      <TableCell>
-                        {row.status === "valid"
-                          ? <Badge className="bg-green-100 text-green-700"><CheckCircle className="w-3 h-3 mr-1" />Valid</Badge>
-                          : <Badge variant="destructive" className="gap-1">
-                              <XCircle className="w-3 h-3" />{row.errors[0]}
-                            </Badge>
-                        }
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Row</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>PPPoE Creds</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.row} className={row.status === "error" ? "bg-red-50/50" : ""}>
+                        <TableCell className="text-slate-400 text-xs">{row.row}</TableCell>
+                        <TableCell className="font-medium">
+                          {row.first_name} {row.last_name}
+                          {row.email && <span className="block text-xs text-slate-400">{row.email}</span>}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{row.phone || <span className="text-red-500 text-xs italic">missing</span>}</TableCell>
+                        <TableCell>
+                          {row.plan_id
+                            ? <Badge className="bg-green-100 text-green-700 text-xs">{row.plan_name}</Badge>
+                            : row.plan_name
+                            ? <Badge className="bg-amber-100 text-amber-700 text-xs">{row.plan_name} (not found)</Badge>
+                            : <span className="text-slate-400 text-xs">no plan</span>
+                          }
+                        </TableCell>
+                        <TableCell>
+                          {row.pppoe_username || row.pppoe_password ? (
+                            <div className="space-y-0.5">
+                              {row.pppoe_username && (
+                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                                  user: {row.pppoe_username}
+                                </Badge>
+                              )}
+                              {row.pppoe_password && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs ml-1">
+                                  pass: custom
+                                </Badge>
+                              )}
+                              {!row.pppoe_username && !row.pppoe_password && (
+                                <span className="text-xs text-slate-400">auto (phone)</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400 flex items-center gap-1">
+                              <Wifi className="w-3 h-3" />
+                              auto-generate
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {row.status === "valid"
+                            ? <Badge className="bg-green-100 text-green-700"><CheckCircle className="w-3 h-3 mr-1" />Valid</Badge>
+                            : <Badge variant="destructive" className="gap-1">
+                                <XCircle className="w-3 h-3" />{row.errors[0]}
+                              </Badge>
+                          }
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
 
@@ -526,38 +581,40 @@ export default function UsersImportPage() {
               <CardTitle className="text-sm">Import Results</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Customer Code</TableHead>
-                    <TableHead>Billing Account</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {results.map((r) => (
-                    <TableRow key={r.row}>
-                      <TableCell className="font-medium">{r.name}</TableCell>
-                      <TableCell className="font-mono text-sm">{r.phone}</TableCell>
-                      <TableCell>{r.customer_code || "—"}</TableCell>
-                      <TableCell>
-                        {r.billing_account
-                          ? <code className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-xs font-mono">{r.billing_account}</code>
-                          : "—"
-                        }
-                      </TableCell>
-                      <TableCell>
-                        {r.status === "success"
-                          ? <Badge className="bg-green-100 text-green-700">Created</Badge>
-                          : <Badge variant="destructive" className="text-xs">{r.error}</Badge>
-                        }
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Customer Code</TableHead>
+                      <TableHead>Billing Account</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {results.map((r) => (
+                      <TableRow key={r.row}>
+                        <TableCell className="font-medium">{r.name}</TableCell>
+                        <TableCell className="font-mono text-sm">{r.phone}</TableCell>
+                        <TableCell>{r.customer_code || "—"}</TableCell>
+                        <TableCell>
+                          {r.billing_account
+                            ? <code className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-xs font-mono">{r.billing_account}</code>
+                            : "—"
+                          }
+                        </TableCell>
+                        <TableCell>
+                          {r.status === "success"
+                            ? <Badge className="bg-green-100 text-green-700">Created</Badge>
+                            : <Badge variant="destructive" className="text-xs">{r.error}</Badge>
+                          }
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </div>

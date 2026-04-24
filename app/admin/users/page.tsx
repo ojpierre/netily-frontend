@@ -195,7 +195,6 @@ interface UserStats {
 }
 
 // Helper: Map backend Customer to frontend User display type
-// FIX 1: Updated to properly extract billing account number from all services
 const mapCustomerToUser = (customer: Customer): User => {
   const primaryService = customer.services?.[0]
   const isOnline = primaryService?.is_online ?? false
@@ -240,7 +239,6 @@ const mapCustomerToUser = (customer: Customer): User => {
     id: customer.customer_number || `USR-${customer.id}`,
     customerId: customer.id,
     serviceId: primaryService?.id ?? null,
-    // FIX 1: Check all services for billing_account_number
     billingAccountNumber: (() => {
       const serviceWithBilling = customer.services?.find(s => s.billing_account_number)
       return serviceWithBilling?.billing_account_number 
@@ -329,7 +327,6 @@ export default function UsersPage() {
   const [onlineSearchQuery, setOnlineSearchQuery] = useState("")
   const [onlineServiceFilter, setOnlineServiceFilter] = useState("all")
   const [activeSearchQuery, setActiveSearchQuery] = useState("")
-  // FIX 3: State for editing billing account number
   const [editingBilling, setEditingBilling] = useState(false)
   const [billingNumberEdit, setBillingNumberEdit] = useState("")
   const [savingBilling, setSavingBilling] = useState(false)
@@ -344,18 +341,20 @@ export default function UsersPage() {
     radius_password: "",
   })
 
-  // Updated newCustomerForm state with payment fields
+  // UPDATED: newCustomerForm state with RADIUS credentials fields
   const [newCustomerForm, setNewCustomerForm] = useState({
     first_name: "",
     last_name: "",
     email: "",
     phone: "",
     password: "",
+    radius_username: "",        // explicit PPPoE username (blank = auto-generate from phone)
+    radius_password: "",        // explicit PPPoE password (blank = uses portal password)
     connection_type: "pppoe" as "pppoe" | "static",
     plan_id: "",
     router_id: "",
     ip_pool: "",
-    assigned_ip: "" as string, 
+    assigned_ip: "" as string,
     activate_now: true,
     activation_delay_minutes: 0,
     record_initial_payment: false,
@@ -411,7 +410,6 @@ export default function UsersPage() {
     }
   }
 
-  // NEW: Load active subscriptions from the unified endpoint
   const loadActiveSubscriptions = async () => {
     try {
       setHotspotLoading(true)
@@ -505,7 +503,6 @@ export default function UsersPage() {
     setRefreshing(false)
   }
 
-  // FIX 3: Handler for saving billing account number
   const handleSaveBillingNumber = async () => {
     if (!selectedUser || !billingNumberEdit.trim()) return
     try {
@@ -529,7 +526,7 @@ export default function UsersPage() {
     }
   }
 
-  // Updated handleCreateCustomer with payment recording
+  // UPDATED: handleCreateCustomer with RADIUS credentials
   const handleCreateCustomer = async () => {
     if (!newCustomerForm.first_name || !newCustomerForm.last_name) {
       toast.error("First name and last name are required")
@@ -550,7 +547,7 @@ export default function UsersPage() {
         first_name: newCustomerForm.first_name,
         last_name: newCustomerForm.last_name,
         email: newCustomerForm.email || undefined,
-        phone_number: newCustomerForm.phone, 
+        phone: newCustomerForm.phone, 
         password: newCustomerForm.password,
         status: 'active' as const,
       }
@@ -566,7 +563,13 @@ export default function UsersPage() {
             status: newCustomerForm.activate_now ? 'ACTIVE' : 'PENDING',
             activate_now: newCustomerForm.activate_now,
             activation_delay_minutes: newCustomerForm.activation_delay_minutes || 0,
-            radius_password: newCustomerForm.password,
+            // RADIUS credentials — pass explicit values or fall back to portal password
+            radius_password: newCustomerForm.radius_password || newCustomerForm.password,
+          }
+
+          // Pass explicit RADIUS username if provided
+          if (newCustomerForm.radius_username) {
+            serviceData.radius_username = newCustomerForm.radius_username
           }
 
           if (newCustomerForm.router_id) {
@@ -614,10 +617,9 @@ export default function UsersPage() {
         try {
           const activateResult = await adminApi.activateService(newCustomer.id, newService.id, activatePayload)
           
-          // Show the billing account number prominently
           if (activateResult?.billing_account_number) {
             toast.success(
-              `? Service activated! Paybill Account: ${activateResult.billing_account_number}`,
+              `✅ Service activated! Paybill Account: ${activateResult.billing_account_number}`,
               { duration: 8000 }
             )
           }
@@ -628,12 +630,15 @@ export default function UsersPage() {
 
       toast.success(`Customer ${newCustomer.full_name} created successfully!`)
       
+      // Reset form including new RADIUS fields
       setNewCustomerForm({
         first_name: "",
         last_name: "",
         email: "",
         phone: "",
         password: "",
+        radius_username: "",
+        radius_password: "",
         connection_type: "pppoe",
         plan_id: "",
         router_id: "",
@@ -658,6 +663,14 @@ export default function UsersPage() {
     } finally {
       setCreating(false)
     }
+  }
+
+  // Helper function to generate username from phone number
+  const generateUsernameFromPhone = (phone: string) => {
+    const digits = phone.replace(/\D/g, '')
+    let username = digits.startsWith('254') ? digits.slice(3) : 
+                   digits.startsWith('0') ? digits.slice(1) : digits
+    return username.slice(-9)
   }
 
   const enrichedUsers = useMemo(() => {
@@ -698,24 +711,17 @@ export default function UsersPage() {
     })
   }, [users, onlineSessions])
 
-  // FIXED: Removed expiry check - trust the API's status field
   const activeHotspotClients = useMemo(() => {
     return hotspotClients.filter(client => {
       if (!client.current_session) return false;
-      // Only check status - backend already knows if it's active/paid
       return client.current_session.status === 'active' || 
              client.current_session.status === 'paid';
     });
   }, [hotspotClients]);
 
-  // FIXED: stats.online now uses onlineSessions.length (true online count from RADIUS)
-  // Added activeSubscriptions.total for the new card
   const stats: UserStats = useMemo(() => {
-    // Use the new active subscriptions endpoint for hotspot count
     const hotspotCount = activeSubscriptions.hotspot?.length || 0;
     const pppoeCount = activeSubscriptions.pppoe?.length || 0;
-    
-    // FIXED: Online count uses onlineSessions.length (includes both PPPoE and Hotspot)
     const onlineCount = onlineSessions.length;
     
     return {
@@ -724,10 +730,10 @@ export default function UsersPage() {
       pending: enrichedUsers.filter(u => u.status === "pending").length,
       suspended: enrichedUsers.filter(u => u.status === "suspended").length,
       expired: enrichedUsers.filter(u => u.status === "expired").length,
-      online: onlineCount,  // FIXED: Now uses actual online sessions
+      online: onlineCount,
       pppoe: enrichedUsers.filter(u => u.type === "pppoe").length,
       static: enrichedUsers.filter(u => u.type === "static").length,
-      hotspot: hotspotCount + pppoeCount, // Combined active subscriptions count
+      hotspot: hotspotCount + pppoeCount,
     }
   }, [enrichedUsers, activeSubscriptions, onlineSessions])
 
@@ -793,13 +799,9 @@ export default function UsersPage() {
     })
   }, [enrichedUsers, activeSearchQuery])
 
-  // NEW: Build a map of access_code ? live usage string from RADIUS online sessions.
-  // Hotspot sessions use the access_code as the RADIUS username.
-  // This lets us show live usage in the hotspot tab instead of the stale DB value.
   const hotspotLiveUsageMap = useMemo(() => {
     const map = new Map<string, string>()
     for (const session of onlineSessions) {
-      // Hotspot sessions have canonical_username set (PPPoE sessions do not)
       if ((session as any).canonical_username && session.usage) {
         map.set(session.username, session.usage)
       }
@@ -1028,7 +1030,7 @@ export default function UsersPage() {
         first_name: editForm.first_name,
         last_name: editForm.last_name,
         email: editForm.email,
-        phone_number: editForm.phone,
+        phone: editForm.phone,
       })
       
       const radiusUpdate: { password?: string; username?: string } = {}
@@ -1088,7 +1090,6 @@ export default function UsersPage() {
     toast.success(`${label} copied to clipboard`)
   }
 
-  // Calculate total active subscriptions (PPPoE + Hotspot from activeSubscriptions)
   const totalActiveSubscriptions = (activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0)
 
   if (error) {
@@ -1168,7 +1169,6 @@ export default function UsersPage() {
                 Add User
               </Button>
             </DialogTrigger>
-            {/* FIX 2: Updated Add User Dialog content with improved layout */}
             <DialogContent className="max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Customer</DialogTitle>
@@ -1217,18 +1217,18 @@ export default function UsersPage() {
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <Label>Password <span className="text-red-500">*</span></Label>
+                  <Label>Portal Password <span className="text-red-500">*</span></Label>
                   <Input
                     type="password"
-                    placeholder="Enter password (also used as RADIUS password)"
+                    placeholder="Enter password for customer portal"
                     value={newCustomerForm.password}
                     onChange={(e) => setNewCustomerForm({...newCustomerForm, password: e.target.value})}
                   />
-                  <p className="text-xs text-slate-500">Used for the customer portal login and PPPoE/Hotspot authentication.</p>
+                  <p className="text-xs text-slate-500">Used for customer portal login. Also used as RADIUS password if not specified below.</p>
                 </div>
               </div>
 
-              {/* Connection Info */}
+              {/* Connection Details */}
               <div className="space-y-4 mt-4">
                 <h4 className="text-sm font-semibold text-slate-700 border-b pb-1">Connection Details</h4>
                 <div className="grid grid-cols-2 gap-3">
@@ -1267,6 +1267,26 @@ export default function UsersPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+                <div className="space-y-1">
+                  <Label>Router <span className="text-xs text-slate-400">(optional)</span></Label>
+                  <Select
+                    value={newCustomerForm.router_id}
+                    onValueChange={(value) => setNewCustomerForm({...newCustomerForm, router_id: value, ip_pool: "", assigned_ip: ""})}
+                    disabled={routersLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={routersLoading ? "Loading routers..." : "Select router"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No Router</SelectItem>
+                      {routersList.map((router) => (
+                        <SelectItem key={router.id} value={String(router.id)}>
+                          {router.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <Label>IP Pool <span className="text-xs text-slate-400">(optional � Framed-Pool for router)</span></Label>
@@ -1312,6 +1332,85 @@ export default function UsersPage() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* NEW: RADIUS / PPPoE Credentials Section */}
+              <div className="space-y-4 mt-4">
+                <h4 className="text-sm font-semibold text-slate-700 border-b pb-1 flex items-center gap-2">
+                  <Wifi className="w-4 h-4" />
+                  PPPoE / RADIUS Credentials
+                </h4>
+                <p className="text-xs text-slate-500">
+                  Leave blank to auto-generate from phone number. 
+                  Username defaults to last 9 digits of phone, password defaults to portal password.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>PPPoE Username <span className="text-xs text-slate-400">(optional)</span></Label>
+                    <div className="flex gap-1">
+                      <Input
+                        placeholder="Auto from phone"
+                        value={newCustomerForm.radius_username}
+                        onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_username: e.target.value})}
+                        className="font-mono text-sm"
+                      />
+                      {newCustomerForm.phone && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          title="Use phone number"
+                          onClick={() => {
+                            const username = generateUsernameFromPhone(newCustomerForm.phone)
+                            setNewCustomerForm({...newCustomerForm, radius_username: username})
+                          }}
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>PPPoE Password <span className="text-xs text-slate-400">(optional)</span></Label>
+                    <div className="flex gap-1">
+                      <Input
+                        placeholder="Auto from portal password"
+                        type="password"
+                        value={newCustomerForm.radius_password}
+                        onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_password: e.target.value})}
+                        className="font-mono text-sm"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        title="Generate random password"
+                        onClick={() => {
+                          const pwd = generateSimplePassword(8)
+                          setNewCustomerForm({...newCustomerForm, radius_password: pwd})
+                        }}
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                {/* Preview of what will be used */}
+                <div className="p-2 bg-purple-50 border border-purple-200 rounded text-xs font-mono space-y-1">
+                  <div className="flex gap-2">
+                    <span className="text-purple-500 w-20">Username:</span>
+                    <span className="text-purple-900 font-semibold">
+                      {newCustomerForm.radius_username || 
+                        (newCustomerForm.phone ? `(auto: ${generateUsernameFromPhone(newCustomerForm.phone)})` : '(waiting for phone)')}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-purple-500 w-20">Password:</span>
+                    <span className="text-purple-900 font-semibold">
+                      {newCustomerForm.radius_password ? '(custom)' : '(auto: same as portal password)'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Billing Account Notice */}
@@ -1407,8 +1506,9 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Stats Cards - Updated with new Online vs Active Subs card and grid layout */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
+        {/* Stats cards remain the same - omitted for brevity but keep your existing code */}
         <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'all' && activeTab === 'all' ? 'ring-2 ring-slate-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("all"); }}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
@@ -1521,7 +1621,6 @@ export default function UsersPage() {
           </CardContent>
         </Card>
 
-        {/* Hotspot Card */}
         <Card className={`cursor-pointer hover:shadow-md transition-shadow ${activeTab === 'hotspot' ? 'ring-2 ring-pink-400' : ''}`} onClick={() => { setActiveTab("hotspot"); setStatusFilter("all"); }}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
@@ -1536,7 +1635,6 @@ export default function UsersPage() {
           </CardContent>
         </Card>
 
-        {/* NEW: Online vs Active Subs Card */}
         <Card className="col-span-2 md:col-span-2 cursor-pointer hover:shadow-md transition-shadow border-2 border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50" onClick={() => { setActiveTab("online-sessions"); setStatusFilter("all"); }}>
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
@@ -1717,7 +1815,7 @@ export default function UsersPage() {
       </Card>
       )}
 
-      {/* -- Online Sessions Tab -- UPDATED: Spinner only when IP is missing */}
+      {/* -- Online Sessions Tab -- */}
       {activeTab === "online-sessions" && (
         <Card>
           <CardHeader>
@@ -1823,7 +1921,6 @@ export default function UsersPage() {
                             {session.service_type === 'PPPOE' ? 'PPPoE' : session.service_type === 'HOTSPOT' ? 'Hotspot' : session.service_type}
                           </Badge>
                         </TableCell>
-                        {/* FIX 1b: IP Address column - show "connecting�" only when accounting_pending AND no IP */}
                         <TableCell>
                           <span className="font-mono text-sm">
                             {session.ip_address
@@ -1839,7 +1936,6 @@ export default function UsersPage() {
                         <TableCell>
                           <span className="text-sm">{session.router || '�'}</span>
                         </TableCell>
-                        {/* FIX 1a: Uptime column - spinner only when accounting_pending AND IP missing */}
                         <TableCell>
                           <div className="flex items-center gap-1.5">
                             {(session as any).accounting_pending && !session.ip_address ? (
@@ -2068,7 +2164,7 @@ export default function UsersPage() {
         </Card>
       )}
 
-      {/* -- Hotspot Clients Tab -- UPDATED with live RADIUS usage */}
+      {/* -- Hotspot Clients Tab -- */}
       {activeTab === "hotspot" && (
         <Card>
           <CardHeader>
@@ -2114,7 +2210,6 @@ export default function UsersPage() {
                           ? `${(dataUsedMb / 1024).toFixed(2)} GB` 
                           : `${dataUsedMb.toFixed(2)} MB`;
 
-                      // Get live usage from RADIUS if available
                       const liveUsage = hotspotLiveUsageMap.get(item.canonical_username);
                       const displayUsage = liveUsage ?? dataUsedDisplay;
                       const isLive = !!liveUsage;
@@ -2157,7 +2252,7 @@ export default function UsersPage() {
                               {displayUsage}
                             </span>
                             {isLive && (
-                              <span className="block text-xs text-emerald-600">? Live</span>
+                              <span className="block text-xs text-emerald-600">� Live</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -2462,7 +2557,7 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              {/* Subscription Info - FIX 3: With editable billing account number */}
+              {/* Subscription Info with editable billing account number */}
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Subscription</h3>
                 <div className="space-y-2 text-sm">
@@ -2486,7 +2581,6 @@ export default function UsersPage() {
                       {selectedUser.plan === "No Plan" ? "Managed by Voucher" : new Date(selectedUser.expiryDate).toLocaleDateString()}
                     </span>
                   </div>
-                  {/* FIX 3: Billing Account Number � editable */}
                   <div className="flex items-start justify-between gap-2 pt-1 border-t border-blue-200">
                     <span className="text-slate-600 text-sm shrink-0">Billing Account No.</span>
                     <div className="flex items-center gap-1.5 flex-1 justify-end">
@@ -2561,7 +2655,7 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              {/* RADIUS Network Credentials - Easy to copy for testing */}
+              {/* RADIUS Network Credentials */}
               {selectedUser.serviceStatus === 'PENDING' && !selectedUser.radiusCredentials && (
                 <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
                   <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
@@ -2618,7 +2712,6 @@ export default function UsersPage() {
                         </Button>
                       </div>
                     </div>
-                    {/* Expiration Info */}
                     <div>
                       <label className="text-xs font-medium text-slate-500">Subscription Status</label>
                       <div className="flex items-center gap-2 mt-1">
