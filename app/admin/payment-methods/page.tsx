@@ -467,84 +467,6 @@ export default function PaymentMethodsPage() {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // FIRST-TIME ONBOARDING
-  // ═══════════════════════════════════════════════════════════════════
-  if (isFirstTime) {
-    return (
-      <div className="flex flex-col gap-6 p-6 animate-in fade-in duration-300">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Payment Methods</h1>
-          <p className="text-sm text-muted-foreground mt-1">Set up how your customers pay you.</p>
-        </div>
-
-        <div className="max-w-2xl">
-          {/* Welcome card */}
-          <Card className="border-dashed border-2 mb-6">
-            <CardContent className="pt-8 pb-8">
-              <div className="text-center space-y-4">
-                <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-                  <Sparkles className="h-8 w-8 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold">Welcome! Let&apos;s set up your first payment method</h2>
-                  <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                    Add a collection channel so your customers can start paying. Each method you add becomes
-                    available on invoices and the customer portal.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Step-by-step guide */}
-          <div className="space-y-3 mb-8">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">How it works</h3>
-            {[
-              { step: 1, title: "Add a payment method", desc: "Choose M-Pesa, Bank Transfer, or a payment link — whatever your customers prefer." },
-              { step: 2, title: "Configure the details", desc: "Enter your Paybill, Till number, or bank account. We'll handle the rest via Tuma." },
-              { step: 3, title: "Start collecting", desc: "The method appears on invoices immediately. Payments reconcile automatically." },
-            ].map((s) => (
-              <div key={s.step} className="flex items-start gap-4 p-4 rounded-xl border bg-card">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-bold text-primary">{s.step}</span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{s.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Primary CTA */}
-          <Button onClick={openAdd} size="lg" className="w-full">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Your First Payment Method
-          </Button>
-          <p className="text-center text-xs text-muted-foreground mt-3">
-            Powered by <a href="https://tuma.co.ke" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">Tuma</a> — M-Pesa, Kenyan banks &amp; more
-          </p>
-        </div>
-
-        {/* Dialog still needs to be available */}
-        <AddEditDialog
-          open={dlgOpen}
-          onOpenChange={setDlgOpen}
-          dlgStep={dlgStep}
-          setDlgStep={setDlgStep}
-          editing={editing}
-          form={form}
-          setForm={setForm}
-          saving={saving}
-          onSave={handleSave}
-          onPickType={pickType}
-          renderFields={renderFields}
-        />
-      </div>
-    )
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
   // MAIN VIEW — analytics + card grid
   // ═══════════════════════════════════════════════════════════════════
   const totalCollected = stats ? parseFloat(stats.amount_this_month || stats.total_amount || "0") : 0
@@ -586,201 +508,232 @@ export default function PaymentMethodsPage() {
 
         {/* ─── TAB 1: Netily ─── */}
         <TabsContent value="netily" className="space-y-6 mt-4">
-          <div className="flex items-center justify-between">
-            <div />
-            <Button onClick={openAdd} disabled={methods.length >= MAX_METHODS}>
-              <Plus className="h-4 w-4 mr-1.5" />{methods.length >= MAX_METHODS ? `Limit (${MAX_METHODS})` : "Add Method"}
-            </Button>
-          </div>
-
-      {/* Error banner */}
-      {methodsError && (
-        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/30 p-4">
-          <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-          <p className="text-sm font-medium text-red-800 dark:text-red-300 flex-1">{methodsError}</p>
-          <Button variant="outline" size="sm" onClick={() => { setMethodsLoading(true); fetchMethods() }}>
-            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Retry
-          </Button>
-        </div>
-      )}
-
-      {/* ─── Analytics Summary Cards ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Collected This Month"
-          value={statsLoading ? "—" : `KES ${totalCollected.toLocaleString()}`}
-          icon={CircleDollarSign}
-          iconColor="text-emerald-600"
-          iconBg="bg-emerald-50 dark:bg-emerald-950/30"
-          sub={stats?.payments_this_month ? `${stats.payments_this_month} transactions` : undefined}
-        />
-        <StatCard
-          title="Today"
-          value={statsLoading ? "—" : `KES ${todayAmount.toLocaleString()}`}
-          icon={TrendingUp}
-          iconColor="text-blue-600"
-          iconBg="bg-blue-50 dark:bg-blue-950/30"
-          sub={stats?.payments_today ? `${stats.payments_today} payments` : undefined}
-        />
-        <StatCard
-          title="Success Rate"
-          value={statsLoading ? "—" : `${successRate}%`}
-          icon={CheckCircle2}
-          iconColor="text-emerald-600"
-          iconBg="bg-emerald-50 dark:bg-emerald-950/30"
-          sub={stats ? `${stats.completed_payments} completed · ${stats.failed_payments} failed` : undefined}
-          progress={statsLoading ? undefined : successRate}
-        />
-        <StatCard
-          title="Active Channels"
-          value={`${activeMethods.length} / ${methods.length}`}
-          icon={Zap}
-          iconColor="text-amber-600"
-          iconBg="bg-amber-50 dark:bg-amber-950/30"
-          sub={`${methods.length} total configured`}
-        />
-      </div>
-
-      {/* ─── Payment Method Cards Grid ─── */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Collection Channels</h2>
-          <p className="text-xs text-muted-foreground">{activeMethods.length} active</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {methods.map((m) => {
-            const Icon = iconFor(m.method_type)
-            const c = colorFor(m.method_type)
-            const colors = colorMap[c]
-            const summary = configSummary(m)
-
-            return (
-              <Card
-                key={m.id}
-                className={`relative overflow-hidden transition-all duration-200 ${
-                  m.is_active
-                    ? "hover:shadow-md"
-                    : "opacity-50 grayscale"
-                }`}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-xl ${colors.bg} ring-1 ${colors.ring}`}>
-                        <Icon className={`h-5 w-5 ${colors.icon}`} />
-                      </div>
-                      <div className="min-w-0">
-                        <CardTitle className="text-sm font-semibold truncate">{m.name}</CardTitle>
-                        <CardDescription className="text-xs">{labelFor(m.method_type)}</CardDescription>
-                      </div>
+          {isFirstTime ? (
+            /* ─── NEW USER ONBOARDING (ONLY SHOWS IN NETILY TAB) ─── */
+            <div className="max-w-2xl mt-4 animate-in fade-in duration-300">
+              <Card className="border-dashed border-2 mb-6">
+                <CardContent className="pt-8 pb-8">
+                  <div className="text-center space-y-4">
+                    <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                      <Sparkles className="h-8 w-8 text-white" />
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 -mr-2 -mt-1">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEdit(m)}>
-                          <Pencil className="h-3.5 w-3.5 mr-2" />Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {m.is_active ? (
-                          <DropdownMenuItem onClick={() => confirmToggle(m, 'deactivate')}>
-                            <XCircle className="h-3.5 w-3.5 mr-2" />Deactivate
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem onClick={() => confirmToggle(m, 'activate')}>
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-2" />Activate
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600" onClick={() => setDeleteTarget(m)}>
-                          <Trash2 className="h-3.5 w-3.5 mr-2" />Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="pb-4 space-y-3">
-                  {/* Config summary */}
-                  {summary && (
-                    <div className={`text-xs font-mono px-3 py-2 rounded-lg ${colors.bg} ${colors.text} truncate`}>
-                      {summary}
+                    <div>
+                      <h2 className="text-xl font-bold">Welcome! Let&apos;s set up Netily Payments</h2>
+                      <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                        Add a collection channel so your customers can start paying. Tuma will automatically process your funds.
+                      </p>
                     </div>
-                  )}
-
-                  {/* Provider badge */}
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    {(m as any).mpesa_configuration_details?.business_shortcode ? (
-                      <Badge variant="outline" className="text-[10px] border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-400">
-                        Direct M-Pesa · {(m as any).mpesa_configuration_details.business_shortcode}
-                      </Badge>
-                    ) : (m.method_type?.startsWith('MPESA') || m.method_type === 'MOBILE_MONEY') ? (
-                      <Badge variant="outline" className="text-[10px]">Netily</Badge>
-                    ) : null}
-                  </div>
-
-                  {/* Method breakdown from stats */}
-                  {stats?.payment_methods_breakdown && (() => {
-                    const breakdown = stats.payment_methods_breakdown?.find(
-                      (b) => b.method === m.method_type || b.method === m.code
-                    )
-                    if (!breakdown) return null
-                    return (
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{breakdown.count} transactions</span>
-                        <span className="font-medium text-foreground">KES {parseFloat(breakdown.amount).toLocaleString()}</span>
-                      </div>
-                    )
-                  })()}
-
-                  {/* Footer: status + toggle */}
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <div className="flex items-center gap-1.5">
-                      {m.is_active ? (
-                        <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-0 text-[10px] gap-1">
-                          <CheckCircle2 className="h-3 w-3" />Active
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-[10px] gap-1">
-                          <XCircle className="h-3 w-3" />Inactive
-                        </Badge>
-                      )}
-                      {m.is_default && (
-                        <Badge variant="outline" className="text-[10px]">Default</Badge>
-                      )}
-                    </div>
-                    <Switch
-                      checked={m.is_active}
-                      onCheckedChange={() => confirmToggle(m, m.is_active ? 'deactivate' : 'activate')}
-                      className="scale-90"
-                    />
                   </div>
                 </CardContent>
               </Card>
-            )
-          })}
+              <Button onClick={openAdd} size="lg" className="w-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Payment Method
+              </Button>
+              <p className="text-center text-xs text-muted-foreground mt-3">
+                Powered by <a href="https://tuma.co.ke" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">Tuma</a>
+              </p>
+            </div>
+          ) : (
+            /* ─── EXISTING USER DASHBOARD (SHOWS WHEN THEY HAVE METHODS) ─── */
+            <>
+              <div className="flex items-center justify-between">
+                <div />
+                <Button onClick={openAdd} disabled={methods.length >= MAX_METHODS}>
+                  <Plus className="h-4 w-4 mr-1.5" />{methods.length >= MAX_METHODS ? `Limit (${MAX_METHODS})` : "Add Method"}
+                </Button>
+              </div>
 
-          {/* Add new card */}
-          {methods.length < MAX_METHODS && (
-            <button
-              onClick={openAdd}
-              className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-muted-foreground/20 p-8 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all duration-200 min-h-[200px] cursor-pointer group"
-            >
-              <div className="w-12 h-12 rounded-xl bg-muted/50 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
-                <Plus className="h-6 w-6" />
+              {/* Error banner */}
+              {methodsError && (
+                <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/30 p-4">
+                  <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                  <p className="text-sm font-medium text-red-800 dark:text-red-300 flex-1">{methodsError}</p>
+                  <Button variant="outline" size="sm" onClick={() => { setMethodsLoading(true); fetchMethods() }}>
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Retry
+                  </Button>
+                </div>
+              )}
+
+              {/* ─── Analytics Summary Cards ─── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  title="Collected This Month"
+                  value={statsLoading ? "—" : `KES ${totalCollected.toLocaleString()}`}
+                  icon={CircleDollarSign}
+                  iconColor="text-emerald-600"
+                  iconBg="bg-emerald-50 dark:bg-emerald-950/30"
+                  sub={stats?.payments_this_month ? `${stats.payments_this_month} transactions` : undefined}
+                />
+                <StatCard
+                  title="Today"
+                  value={statsLoading ? "—" : `KES ${todayAmount.toLocaleString()}`}
+                  icon={TrendingUp}
+                  iconColor="text-blue-600"
+                  iconBg="bg-blue-50 dark:bg-blue-950/30"
+                  sub={stats?.payments_today ? `${stats.payments_today} payments` : undefined}
+                />
+                <StatCard
+                  title="Success Rate"
+                  value={statsLoading ? "—" : `${successRate}%`}
+                  icon={CheckCircle2}
+                  iconColor="text-emerald-600"
+                  iconBg="bg-emerald-50 dark:bg-emerald-950/30"
+                  sub={stats ? `${stats.completed_payments} completed · ${stats.failed_payments} failed` : undefined}
+                  progress={statsLoading ? undefined : successRate}
+                />
+                <StatCard
+                  title="Active Channels"
+                  value={`${activeMethods.length} / ${methods.length}`}
+                  icon={Zap}
+                  iconColor="text-amber-600"
+                  iconBg="bg-amber-50 dark:bg-amber-950/30"
+                  sub={`${methods.length} total configured`}
+                />
               </div>
-              <div className="text-center">
-                <p className="text-sm font-medium">Add Collection Channel</p>
-                <p className="text-xs mt-0.5">M-Pesa, Bank, or Link</p>
+
+              {/* ─── Payment Method Cards Grid ─── */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">Collection Channels</h2>
+                  <p className="text-xs text-muted-foreground">{activeMethods.length} active</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {methods.map((m) => {
+                    const Icon = iconFor(m.method_type)
+                    const c = colorFor(m.method_type)
+                    const colors = colorMap[c]
+                    const summary = configSummary(m)
+
+                    return (
+                      <Card
+                        key={m.id}
+                        className={`relative overflow-hidden transition-all duration-200 ${
+                          m.is_active
+                            ? "hover:shadow-md"
+                            : "opacity-50 grayscale"
+                        }`}
+                      >
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2.5 rounded-xl ${colors.bg} ring-1 ${colors.ring}`}>
+                                <Icon className={`h-5 w-5 ${colors.icon}`} />
+                              </div>
+                              <div className="min-w-0">
+                                <CardTitle className="text-sm font-semibold truncate">{m.name}</CardTitle>
+                                <CardDescription className="text-xs">{labelFor(m.method_type)}</CardDescription>
+                              </div>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 -mr-2 -mt-1">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openEdit(m)}>
+                                  <Pencil className="h-3.5 w-3.5 mr-2" />Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                {m.is_active ? (
+                                  <DropdownMenuItem onClick={() => confirmToggle(m, 'deactivate')}>
+                                    <XCircle className="h-3.5 w-3.5 mr-2" />Deactivate
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem onClick={() => confirmToggle(m, 'activate')}>
+                                    <CheckCircle2 className="h-3.5 w-3.5 mr-2" />Activate
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-red-600" onClick={() => setDeleteTarget(m)}>
+                                  <Trash2 className="h-3.5 w-3.5 mr-2" />Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </CardHeader>
+
+                        <CardContent className="pb-4 space-y-3">
+                          {/* Config summary */}
+                          {summary && (
+                            <div className={`text-xs font-mono px-3 py-2 rounded-lg ${colors.bg} ${colors.text} truncate`}>
+                              {summary}
+                            </div>
+                          )}
+
+                          {/* Provider badge */}
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            {(m as any).mpesa_configuration_details?.business_shortcode ? (
+                              <Badge variant="outline" className="text-[10px] border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-400">
+                                Direct M-Pesa · {(m as any).mpesa_configuration_details.business_shortcode}
+                              </Badge>
+                            ) : (m.method_type?.startsWith('MPESA') || m.method_type === 'MOBILE_MONEY') ? (
+                              <Badge variant="outline" className="text-[10px]">Netily</Badge>
+                            ) : null}
+                          </div>
+
+                          {/* Method breakdown from stats */}
+                          {stats?.payment_methods_breakdown && (() => {
+                            const breakdown = stats.payment_methods_breakdown?.find(
+                              (b) => b.method === m.method_type || b.method === m.code
+                            )
+                            if (!breakdown) return null
+                            return (
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>{breakdown.count} transactions</span>
+                                <span className="font-medium text-foreground">KES {parseFloat(breakdown.amount).toLocaleString()}</span>
+                              </div>
+                            )
+                          })()}
+
+                          {/* Footer: status + toggle */}
+                          <div className="flex items-center justify-between pt-2 border-t">
+                            <div className="flex items-center gap-1.5">
+                              {m.is_active ? (
+                                <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-0 text-[10px] gap-1">
+                                  <CheckCircle2 className="h-3 w-3" />Active
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="text-[10px] gap-1">
+                                  <XCircle className="h-3 w-3" />Inactive
+                                </Badge>
+                              )}
+                              {m.is_default && (
+                                <Badge variant="outline" className="text-[10px]">Default</Badge>
+                              )}
+                            </div>
+                            <Switch
+                              checked={m.is_active}
+                              onCheckedChange={() => confirmToggle(m, m.is_active ? 'deactivate' : 'activate')}
+                              className="scale-90"
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+
+                  {/* Add new card */}
+                  {methods.length < MAX_METHODS && (
+                    <button
+                      onClick={openAdd}
+                      className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-muted-foreground/20 p-8 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all duration-200 min-h-[200px] cursor-pointer group"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-muted/50 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
+                        <Plus className="h-6 w-6" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium">Add Collection Channel</p>
+                        <p className="text-xs mt-0.5">M-Pesa, Bank, or Link</p>
+                      </div>
+                    </button>
+                  )}
+                </div>
               </div>
-            </button>
+            </>
           )}
-        </div>
-      </div>
         </TabsContent>
 
         {/* ─── TAB 2: M-Pesa Daraja (Own Keys) ─── */}
