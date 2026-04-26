@@ -288,7 +288,13 @@ function PlanCard({
 // ──────────────────────────────────────────────────────
 // Main export
 // ──────────────────────────────────────────────────────
-export function BillingCalculator({ onGetStarted }: { onGetStarted: () => void }) {
+export function BillingCalculator({
+  onGetStarted,
+  onContactSales,
+}: {
+  onGetStarted: () => void
+  onContactSales?: () => void
+}) {
   const [pppoeClients, setPppoeClients] = useState(30)
   const [hotspotRevenue, setHotspotRevenue] = useState(5000)
   const [plans, setPlans] = useState<CalcResult>([])
@@ -482,12 +488,12 @@ export function BillingCalculator({ onGetStarted }: { onGetStarted: () => void }
                 ))}
               </ul>
 
-              <a
-                href="mailto:sales@netily.co.ke?subject=Enterprise%20Plan%20Enquiry"
+              <button
+                onClick={onContactSales ?? onGetStarted}
                 className="mt-auto w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-sm text-center transition-colors"
               >
                 Contact Sales →
-              </a>
+              </button>
             </motion.div>
           </motion.div>
         )}

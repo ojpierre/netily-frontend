@@ -1322,7 +1322,16 @@ export function LandingPage() {
       </section>
 
       {/* ━━━ 6b. BILLING CALCULATOR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <BillingCalculator onGetStarted={() => scrollTo("contact")} />
+      <BillingCalculator
+        onGetStarted={() => scrollTo("contact")}
+        onContactSales={() => {
+          setLeadForm((prev) => ({
+            ...prev,
+            message: "Hi, I'm interested in the Enterprise / Custom plan. Please send me a quote.",
+          }))
+          scrollTo("contact")
+        }}
+      />
 
       {/* ━━━ 5b. FAQs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section id="faqs" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8">
