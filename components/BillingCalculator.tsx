@@ -288,7 +288,13 @@ function PlanCard({
 // ──────────────────────────────────────────────────────
 // Main export
 // ──────────────────────────────────────────────────────
-export function BillingCalculator({ onGetStarted }: { onGetStarted: () => void }) {
+export function BillingCalculator({
+  onGetStarted,
+  onContactSales,
+}: {
+  onGetStarted: () => void
+  onContactSales?: () => void
+}) {
   const [pppoeClients, setPppoeClients] = useState(30)
   const [hotspotRevenue, setHotspotRevenue] = useState(5000)
   const [plans, setPlans] = useState<CalcResult>([])
@@ -329,13 +335,13 @@ export function BillingCalculator({ onGetStarted }: { onGetStarted: () => void }
     return () => clearTimeout(t)
   }, [fetchEstimates])
 
-  // Sort: metered first, then by estimated cost ascending
-  const sorted = [...plans].sort((a, b) => {
-    if (a.is_metered !== b.is_metered) return a.is_metered ? -1 : 1
-    return a.estimated_monthly - b.estimated_monthly
-  })
+  // Only show the metered plan in the calculator — non-metered plans are
+  // represented by the static Enterprise card with a Contact Sales CTA.
+  const sorted = [...plans]
+    .filter((p) => p.is_metered)
+    .sort((a, b) => a.estimated_monthly - b.estimated_monthly)
 
-  // Cheapest plan for highlight
+  // Highlight the (only) metered plan
   const cheapestId = sorted[0]?.plan_id
 
   return (
@@ -424,26 +430,19 @@ export function BillingCalculator({ onGetStarted }: { onGetStarted: () => void }
         )}
 
         {loading && plans.length === 0 && (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[1, 2, 3, 4].map((n) => (
-              <div key={n} className="h-80 bg-slate-100 rounded-2xl animate-pulse" />
+          <div className="grid sm:grid-cols-2 max-w-2xl mx-auto gap-5">
+            {[1, 2].map((n) => (
+              <div key={n} className="h-80 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
             ))}
           </div>
         )}
 
-        {!error && sorted.length > 0 && (
+        {!error && (
           <motion.div
             layout
-            className={`grid gap-5 ${
-              sorted.length === 1
-                ? "max-w-xs mx-auto"
-                : sorted.length === 2
-                ? "sm:grid-cols-2 max-w-2xl mx-auto"
-                : sorted.length === 3
-                ? "sm:grid-cols-3"
-                : "sm:grid-cols-2 lg:grid-cols-4"
-            }`}
+            className="grid sm:grid-cols-2 max-w-2xl mx-auto gap-5"
           >
+            {/* Metered plan — driven by calculator API */}
             {sorted.map((plan) => (
               <PlanCard
                 key={plan.plan_id}
@@ -452,6 +451,50 @@ export function BillingCalculator({ onGetStarted }: { onGetStarted: () => void }
                 highlighted={plan.plan_id === cheapestId}
               />
             ))}
+
+            {/* Enterprise & Custom — static card, always visible */}
+            <motion.div
+              layout
+              className="rounded-2xl bg-gradient-to-br from-slate-900 to-blue-950 border border-blue-700/50 p-6 shadow-xl flex flex-col"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-1.5 rounded-lg bg-blue-500/20">
+                  <Shield className="w-4 h-4 text-blue-400" />
+                </div>
+                <span className="text-xs font-semibold text-blue-300 uppercase tracking-wider">
+                  Enterprise &amp; Custom
+                </span>
+              </div>
+
+              <h3 className="text-xl font-bold text-white mb-1">Scale Without Limits</h3>
+              <p className="text-slate-400 text-sm mb-6">White-label, SLA guarantee, and pricing built around your ISP.</p>
+
+              <div className="text-3xl font-extrabold text-white mb-1">Custom</div>
+              <p className="text-sm text-slate-400 mb-6">Tailored to your subscriber count &amp; growth stage</p>
+
+              <ul className="space-y-2 mb-6 flex-1">
+                {[
+                  "Everything in Metered",
+                  "Full white-label support",
+                  "Dedicated account manager",
+                  "99.9% uptime SLA",
+                  "Custom payment integrations",
+                  "Priority 24/7 support",
+                ].map((f) => (
+                  <li key={f} className="flex items-center gap-2 text-slate-300 text-sm">
+                    <Check className="w-4 h-4 text-blue-400 shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={onContactSales ?? onGetStarted}
+                className="mt-auto w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-sm text-center transition-colors"
+              >
+                Contact Sales →
+              </button>
+            </motion.div>
           </motion.div>
         )}
 
