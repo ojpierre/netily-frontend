@@ -84,12 +84,11 @@ const TUMA_BANKS = [
   "Mayfair CIB Bank", "Access Bank", "UBA Kenya",
 ]
 
+// Removed MOBILE_MONEY and PAYMENT_LINK from METHOD_TYPES
 const METHOD_TYPES: { value: string; label: string; icon: typeof CreditCard; desc: string; color: string }[] = [
-  { value: "MOBILE_MONEY", label: "Mobile Money", icon: Smartphone, desc: "M-Pesa, Airtel Money, or Telkom T-Kash — receive payments directly to your mobile wallet", color: "emerald" },
   { value: "MPESA_PAYBILL", label: "M-Pesa Paybill", icon: Smartphone, desc: "Customer sends money to your Paybill number", color: "emerald" },
   { value: "MPESA_TILL", label: "M-Pesa Till (Buy Goods)", icon: Smartphone, desc: "Customer pays via Till / Buy Goods number", color: "emerald" },
   { value: "BANK_TRANSFER", label: "Bank Transfer", icon: Landmark, desc: "Direct EFT or bank deposit via supported banks", color: "blue" },
-  { value: "PAYMENT_LINK", label: "Payment Link", icon: Link2, desc: "Custom payment URL for online payments", color: "violet" },
 ]
 
 const MOBILE_PROVIDERS = [
@@ -105,24 +104,23 @@ const MAX_METHODS = 3
 // =============================================================================
 function iconFor(type: string) {
   const m: Record<string, typeof CreditCard> = {
-    MOBILE_MONEY: Smartphone, MPESA_NUMBER: Smartphone, MPESA: Smartphone, MPESA_STK: Smartphone,
+    MPESA_NUMBER: Smartphone, MPESA: Smartphone, MPESA_STK: Smartphone,
     MPESA_PAYBILL: Smartphone, MPESA_TILL: Smartphone, AIRTEL_MONEY: Smartphone,
     BANK: Landmark, BANK_TRANSFER: Landmark, CARD: CreditCard,
-    CREDIT_CARD: CreditCard, DEBIT_CARD: CreditCard, PAYMENT_LINK: Link2,
+    CREDIT_CARD: CreditCard, DEBIT_CARD: CreditCard,
   }
   return m[type] || CreditCard
 }
 
 function colorFor(type: string): string {
-  if (type.startsWith("MPESA") || type === "MOBILE_MONEY" || type === "AIRTEL_MONEY") return "emerald"
+  if (type.startsWith("MPESA")) return "emerald"
   if (type === "BANK" || type === "BANK_TRANSFER") return "blue"
-  if (type === "PAYMENT_LINK") return "violet"
   return "slate"
 }
 
 function labelFor(type: string): string {
   return METHOD_TYPES.find((m) => m.value === type)?.label ??
-    ({ MPESA_STK: "M-Pesa STK Push", MOBILE_MONEY: "Mobile Money", AIRTEL_MONEY: "Airtel Money" }[type] ?? type)
+    ({ MPESA_STK: "M-Pesa STK Push" }[type] ?? type)
 }
 
 function configSummary(m: PaymentMethod): string {
@@ -284,7 +282,7 @@ export default function PaymentMethodsPage() {
         await adminApi.createPaymentMethod(payload)
         toast.success("Payment method created", {
           description: isFirst
-            ? "Active via Tuma gateway. Link Daraja keys in the M-Pesa Daraja tab if needed."
+            ? "Active via Netily gateway. Link Daraja keys in the M-Pesa Daraja tab if needed."
             : "Added as inactive — activate to switch.",
         })
       }
@@ -437,7 +435,7 @@ export default function PaymentMethodsPage() {
                 {TUMA_BANKS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Banks supported by Tuma payment gateway</p>
+            <p className="text-xs text-muted-foreground">Banks supported by Netily payment gateway</p>
           </div>
           <Field label="Account Number" required ph="e.g. 0112345678" value={c.account_number} onChange={(v) => set("account_number", v)} />
         </>
@@ -518,9 +516,9 @@ export default function PaymentMethodsPage() {
                       <Sparkles className="h-8 w-8 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold">Welcome! Let&apos;s set up Netily Payments</h2>
+                      <h2 className="text-xl font-bold">Welcome! Let&apos;s set up payments methods with no APIs</h2>
                       <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                        Add a collection channel so your customers can start paying. Tuma will automatically process your funds.
+                        Add collection wallets e.g. Paybills, Tills and any bank account. Funds land instantly when clients pay.
                       </p>
                     </div>
                   </div>
@@ -531,7 +529,7 @@ export default function PaymentMethodsPage() {
                 Add Your First Payment Method
               </Button>
               <p className="text-center text-xs text-muted-foreground mt-3">
-                Powered by <a href="https://tuma.co.ke" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">Tuma</a>
+                Powered by <a href="https://netily.co.ke" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">Netily</a>
               </p>
             </div>
           ) : (
@@ -669,7 +667,7 @@ export default function PaymentMethodsPage() {
                               <Badge variant="outline" className="text-[10px] border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-400">
                                 Direct M-Pesa · {(m as any).mpesa_configuration_details.business_shortcode}
                               </Badge>
-                            ) : (m.method_type?.startsWith('MPESA') || m.method_type === 'MOBILE_MONEY') ? (
+                            ) : (m.method_type?.startsWith('MPESA')) ? (
                               <Badge variant="outline" className="text-[10px]">Netily</Badge>
                             ) : null}
                           </div>
@@ -726,7 +724,7 @@ export default function PaymentMethodsPage() {
                       </div>
                       <div className="text-center">
                         <p className="text-sm font-medium">Add Collection Channel</p>
-                        <p className="text-xs mt-0.5">M-Pesa, Bank, or Link</p>
+                        <p className="text-xs mt-0.5">M-Pesa or Bank</p>
                       </div>
                     </button>
                   )}
