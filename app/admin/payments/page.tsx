@@ -151,6 +151,22 @@ const getMethodBadge = (method: string) => {
   )
 }
 
+// Helper function to get service type badge styling
+const getServiceTypeBadge = (serviceType: string | undefined) => {
+  const type = serviceType || 'Other'
+  const config: Record<string, { label: string; class: string }> = {
+    Hotspot: { label: 'Hotspot WiFi', class: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400' },
+    PPPoE: { label: 'Fiber / DSL', class: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400' },
+    Other: { label: 'Other', class: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-950/30 dark:text-gray-400' },
+  }
+  const c = config[type] || config.Other
+  return (
+    <Badge variant="outline" className={c.class}>
+      {c.label}
+    </Badge>
+  )
+}
+
 export default function PaymentsPage() {
   // Data states
   const [payments, setPayments] = useState<Payment[]>([])
@@ -767,6 +783,7 @@ export default function PaymentsPage() {
                 <TableHead>Reference</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Method</TableHead>
+                <TableHead>Service</TableHead> {/* NEW COLUMN */}
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Date</TableHead>
@@ -778,11 +795,22 @@ export default function PaymentsPage() {
                 <TableRow key={payment.id}>
                   <TableCell>
                     <code className="font-mono text-sm bg-muted px-2 py-1 rounded">
-                      {payment.reference || payment.transaction_id || `PAY-${payment.id}`}
+                      {payment.reference || payment.transaction_id || payment.payment_number}
                     </code>
                   </TableCell>
-                  <TableCell>{payment.customer_name || '-'}</TableCell>
-                  <TableCell>{getMethodBadge(payment.payment_method)}</TableCell>
+                  
+                  {/* Updated Customer Cell */}
+                  <TableCell className="font-medium">
+                    {payment.customer_name || 'Anonymous Client'}
+                  </TableCell>
+                  
+                  <TableCell>{getMethodBadge(payment.payment_method as string || "Unknown")}</TableCell>
+                  
+                  {/* NEW Service Cell */}
+                  <TableCell>
+                    {getServiceTypeBadge(payment.service_type)}
+                  </TableCell>
+
                   <TableCell className="text-right font-medium">
                     {formatCurrency(payment.amount)}
                   </TableCell>
@@ -899,9 +927,10 @@ export default function PaymentsPage() {
           </SheetHeader>
           {selectedPayment && (
             <div className="mt-6 space-y-6">
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {getStatusBadge(selectedPayment.status)}
-                {getMethodBadge(selectedPayment.payment_method)}
+                {getMethodBadge(selectedPayment.payment_method as string)}
+                {getServiceTypeBadge(selectedPayment.service_type)}
               </div>
 
               <div className="text-center py-6 bg-muted rounded-lg">

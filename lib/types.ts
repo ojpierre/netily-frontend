@@ -819,27 +819,35 @@ export interface InvoiceItem {
 export interface Payment {
   id: number
   payment_number: string
-  customer: number
-  customer_name: string
-  invoice?: number
+  customer: number | null  // Can be null for Hotspot payments
+  customer_name: string     // Now handles null customers (returns "Hotspot Client" or payer_name)
+  customer_code?: string    // Customer code for PPPoE customers
+  invoice?: number | null
   invoice_number?: string
   amount: string
-  payment_method: 'mpesa' | 'bank' | 'cash' | 'card' | 'voucher' | 'paybill' | 'till' | 'payhero'
+  currency?: string         // Currency code (e.g., "KES")
+  payment_method: number | string  // Can be ID or method name string from backend
+  payment_method_name?: string     // New field: friendly payment method name
+  service_type?: 'Hotspot' | 'PPPoE' | 'Other'  // NEW FIELD - determines service type
   payment_date: string
   reference_number?: string
-  reference?: string  // Alias for reference_number
-  transaction_id?: string  // Transaction ID from payment gateway
+  reference?: string        // Alias for reference_number (from payment_reference)
+  transaction_id?: string   // Transaction ID from payment gateway
   external_reference?: string
   mpesa_receipt?: string
-  notes?: string  // Payment notes/description
+  notes?: string            // Payment notes/description
+  // Hotspot specific fields (now exposed in serializer)
+  payer_name?: string       // Name of person making payment (Hotspot)
+  payer_phone?: string      // Phone number of payer (Hotspot)
   // PayHero integration fields
   payhero_reference?: string
   payhero_checkout_id?: string
   payhero_response?: PayHeroResponse
   channel_id?: number
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled'
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | 'CANCELLED' | 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled'
   created_at: string
   updated_at?: string
+  created_by_name?: string  // Name of staff who created the payment
   // Refund fields
   refund_amount?: string
   refund_reason?: string
@@ -848,6 +856,62 @@ export interface Payment {
   reconciled?: boolean
   reconciled_at?: string
   reconciled_by?: number
+}
+
+// ==========================================
+// PAYMENT HELPER TYPES & UTILITIES
+// ==========================================
+
+// Service type for payments (helps distinguish between Hotspot and PPPoE)
+export type PaymentServiceType = 'Hotspot' | 'PPPoE' | 'Other'
+
+// Simplified payment list item (matches PaymentListSerializer from backend)
+export interface PaymentListItem {
+  id: number
+  payment_number: string
+  customer_name: string       // Handles both PPPoE and Hotspot
+  customer_code?: string
+  amount: string
+  payment_method_name: string
+  service_type: PaymentServiceType
+  status: Payment['status']
+  transaction_id?: string
+  mpesa_receipt?: string
+  payment_date: string
+  created_at: string
+}
+
+// Detailed payment view with full related objects
+export interface PaymentDetail extends Payment {
+  customer_details?: Customer    // Full customer object when available
+  invoice_details?: Invoice      // Full invoice object when available
+  mpesa_transaction_details?: MpesaTransaction  // M-Pesa transaction details
+}
+
+// Helper function to get display text for service type
+export function getServiceTypeDisplay(serviceType: PaymentServiceType | string | undefined): string {
+  if (!serviceType) return 'Other'
+  switch (serviceType) {
+    case 'Hotspot':
+      return 'Hotspot WiFi'
+    case 'PPPoE':
+      return 'Fiber / DSL'
+    default:
+      return 'Other'
+  }
+}
+
+// Helper function to get badge variant for service type
+export function getServiceTypeBadgeVariant(serviceType: PaymentServiceType | string | undefined): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (!serviceType) return 'outline'
+  switch (serviceType) {
+    case 'Hotspot':
+      return 'secondary'
+    case 'PPPoE':
+      return 'default'
+    default:
+      return 'outline'
+  }
 }
 
 // PayHero response structure
