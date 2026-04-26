@@ -1206,7 +1206,7 @@ export default function UsersPage() {
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label>Plan <span className="text-xs text-slate-400">(optional)</span></Label>
+                    <Label>Plan <span className="text-red-500 text-xs">*</span></Label>
                     <Select
                       value={newCustomerForm.plan_id || "none"}
                       onValueChange={(value) => setNewCustomerForm({...newCustomerForm, plan_id: value === "none" ? "" : value})}
