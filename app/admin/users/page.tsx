@@ -249,7 +249,8 @@ const mapCustomerToUser = (customer: Customer): User => {
         || null
     })(),
     name: customer.full_name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
-    email: customer.email || 'No email',
+    // FIX: Use empty string instead of 'No email' to prevent validation issues
+    email: customer.email || '',
     phone: customer.phone || 'No phone',
     status: mapStatus(customer.status),
     serviceStatus: serviceStatus || null,
@@ -342,15 +343,14 @@ export default function UsersPage() {
     radius_password: "",
   })
 
-  // UPDATED: newCustomerForm state with RADIUS credentials fields (router_id and ip_pool removed)
   const [newCustomerForm, setNewCustomerForm] = useState({
     first_name: "",
     last_name: "",
     email: "",
     phone: "",
     password: "",
-    radius_username: "",        // explicit PPPoE username (blank = auto-generate from phone)
-    radius_password: "",        // explicit PPPoE password (blank = uses portal password)
+    radius_username: "",
+    radius_password: "",
     connection_type: "pppoe" as "pppoe" | "static",
     plan_id: "",
     assigned_ip: "" as string,
@@ -481,11 +481,12 @@ export default function UsersPage() {
     setIpSearchQuery("")
   }, [selectedPlanPool])
 
+  // FIX: Pass page_size to fetch more than default 20 users
   const loadUsers = async () => {
     try {
       setLoading(true)
       setError(null)
-      const response = await adminApi.getCustomers()
+      const response = await adminApi.getCustomers({ page_size: "500" })
       const mappedUsers = response.results.map(mapCustomerToUser)
       setUsers(mappedUsers)
     } catch (err) {
@@ -525,7 +526,6 @@ export default function UsersPage() {
     }
   }
 
-  // UPDATED: handleCreateCustomer with RADIUS credentials (router_id and ip_pool removed)
   const handleCreateCustomer = async () => {
     if (!newCustomerForm.first_name || !newCustomerForm.last_name) {
       toast.error("First name and last name are required")
@@ -562,16 +562,12 @@ export default function UsersPage() {
             status: newCustomerForm.activate_now ? 'ACTIVE' : 'PENDING',
             activate_now: newCustomerForm.activate_now,
             activation_delay_minutes: newCustomerForm.activation_delay_minutes || 0,
-            // RADIUS credentials — pass explicit values or fall back to portal password
             radius_password: newCustomerForm.radius_password || newCustomerForm.password,
           }
 
-          // Pass explicit RADIUS username if provided
           if (newCustomerForm.radius_username) {
             serviceData.radius_username = newCustomerForm.radius_username
           }
-
-          // router_id and ip_pool removed per user request
 
           if (newCustomerForm.assigned_ip) {
             serviceData.assigned_ip = parseInt(newCustomerForm.assigned_ip, 10)
@@ -596,14 +592,12 @@ export default function UsersPage() {
         }
       }
 
-      // Handle activation with optional payment
       if (newCustomerForm.activate_now && newService?.id) {
         const activatePayload: Record<string, any> = {}
         
         if (newCustomerForm.record_initial_payment && newCustomerForm.initial_payment_amount) {
           activatePayload.record_payment = true
           activatePayload.payment_amount = parseFloat(String(newCustomerForm.initial_payment_amount))
-          // CHANGE: Use 'MANUAL' as default when reference is empty
           activatePayload.payment_reference = newCustomerForm.initial_payment_reference || 'MANUAL'
           activatePayload.payment_notes = 'Initial payment on service activation'
         }
@@ -624,7 +618,6 @@ export default function UsersPage() {
 
       toast.success(`Customer ${newCustomer.full_name} created successfully!`)
       
-      // Reset form including new RADIUS fields (router_id and ip_pool removed)
       setNewCustomerForm({
         first_name: "",
         last_name: "",
@@ -657,7 +650,6 @@ export default function UsersPage() {
     }
   }
 
-  // Helper function to generate username from phone number
   const generateUsernameFromPhone = (phone: string) => {
     const digits = phone.replace(/\D/g, '')
     let username = digits.startsWith('254') ? digits.slice(3) : 
@@ -711,17 +703,28 @@ export default function UsersPage() {
     });
   }, [hotspotClients]);
 
+  // FIX: Fixed expired count to also check expiry date
   const stats: UserStats = useMemo(() => {
+    const now = new Date()
     const hotspotCount = activeSubscriptions.hotspot?.length || 0;
     const pppoeCount = activeSubscriptions.pppoe?.length || 0;
     const onlineCount = onlineSessions.length;
     
+    const isEffectivelyExpired = (u: User) => {
+      if (u.status === "expired") return true
+      // Customer is still "active" in backend but their service date has passed
+      if ((u.status === "active" || u.status === "inactive") && u.plan !== "No Plan") {
+        return new Date(u.expiryDate) <= now
+      }
+      return false
+    }
+    
     return {
       total: enrichedUsers.length,
-      active: enrichedUsers.filter(u => u.status === "active").length,
+      active: enrichedUsers.filter(u => u.status === "active" && !isEffectivelyExpired(u)).length,
       pending: enrichedUsers.filter(u => u.status === "pending").length,
       suspended: enrichedUsers.filter(u => u.status === "suspended").length,
-      expired: enrichedUsers.filter(u => u.status === "expired").length,
+      expired: enrichedUsers.filter(isEffectivelyExpired).length,
       online: onlineCount,
       pppoe: enrichedUsers.filter(u => u.type === "pppoe").length,
       static: enrichedUsers.filter(u => u.type === "static").length,
@@ -999,12 +1002,13 @@ export default function UsersPage() {
     }
   }
 
+  // FIX: Guard to safely strip any stale "No email" value
   const handleEditUser = (user: User) => {
     setEditForm({
       first_name: user.name.split(' ')[0] || '',
       last_name: user.name.split(' ').slice(1).join(' ') || '',
-      email: user.email,
-      phone: user.phone,
+      email: (user.email === 'No email' || user.email === 'no email') ? '' : (user.email || ''),
+      phone: user.phone === 'No phone' ? '' : (user.phone || ''),
       radius_username: user.radiusCredentials?.username || '',
       radius_password: user.radiusCredentials?.password || '',
     })
@@ -1109,7 +1113,6 @@ export default function UsersPage() {
             <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          {/* 🔧 FIX: Navigate to import page instead of opening placeholder dialog */}
           <Button variant="outline" onClick={() => router.push('/admin/users/import')}>
             <FileUp className="w-4 h-4 mr-2" />
             Bulk Import
@@ -1226,10 +1229,6 @@ export default function UsersPage() {
                     </Select>
                   </div>
                 </div>
-
-                {/* Router Selection - REMOVED per user request */}
-
-                {/* IP Pool (Framed-Pool) - REMOVED per user request */}
 
                 {/* Cloud-Led Static IP from plan's pool */}
                 {selectedPlanPool && (
@@ -1681,6 +1680,8 @@ export default function UsersPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
+                  autoComplete="off"
+                  name="users-search"
                 />
               </div>
             </div>
@@ -2442,7 +2443,10 @@ export default function UsersPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-medium text-slate-500">Email</label>
-                    <p className="text-sm text-slate-900 dark:text-white">{selectedUser.email}</p>
+                    {/* FIX: Handle empty email gracefully in drawer */}
+                    <p className="text-sm text-slate-900 dark:text-white">
+                      {selectedUser.email || <span className="text-slate-400 italic">No email</span>}
+                    </p>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-slate-500">Phone</label>
