@@ -739,7 +739,8 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
         {/* 3. AVAILABLE PLANS - Added Array check to prevent k.map crash */}
         <TabsContent value="plans">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {Array.isArray(apiPlans) && apiPlans.map((plan) => (
+            {/* Metered plan */}
+            {Array.isArray(apiPlans) && apiPlans.filter((p) => p.is_metered).map((plan) => (
               <Card 
                 key={plan.id} 
                 className={`${
@@ -778,13 +779,11 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                       {(plan as any).max_staff || plan.max_staff_users || 'Unlimited'} Staff Accounts
                     </div>
                   </div>
-                  {plan.is_metered && (
-                    <div className="bg-blue-50 p-3 rounded-lg">
-                      <p className="text-xs text-blue-700 font-medium">
-                        Metered billing: Pay only for what you use beyond base limits
-                      </p>
-                    </div>
-                  )}
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <p className="text-xs text-blue-700 font-medium">
+                      Pay only for what you use beyond base limits
+                    </p>
+                  </div>
                 </CardContent>
                 <CardFooter>
                   {plan.code === subscription?.plan?.code ? (
@@ -799,6 +798,48 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                 </CardFooter>
               </Card>
             ))}
+
+            {/* Enterprise & Custom — single card for all non-metered plans */}
+            <Card className="border-slate-800 bg-gradient-to-br from-slate-900 to-blue-950 text-white transition-all hover:shadow-xl col-span-1 sm:col-span-1 lg:col-span-2">
+              <CardHeader>
+                <div className="flex justify-between items-start mb-2">
+                  <CardTitle className="text-lg text-white flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-blue-400" />
+                    Enterprise &amp; Custom Plans
+                  </CardTitle>
+                  <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px]">CUSTOM PRICING</Badge>
+                </div>
+                <CardDescription className="text-slate-400 text-xs">
+                  White-label, dedicated infrastructure, custom integrations, SLA guarantee, and a pricing model built around your ISP.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-0">
+                <Separator className="bg-slate-700" />
+                <div className="grid sm:grid-cols-2 gap-3 text-sm text-slate-300">
+                  {[
+                    "Everything in Metered",
+                    "Full white-label support",
+                    "Dedicated account manager",
+                    "99.9% uptime SLA",
+                    "Custom payment integrations",
+                    "Priority 24/7 phone support",
+                  ].map((f) => (
+                    <div key={f} className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-blue-400 shrink-0" />
+                      <span>{f}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter>
+                <a
+                  href="mailto:sales@netily.co.ke?subject=Enterprise%20Plan%20Enquiry"
+                  className="w-full inline-flex items-center justify-center gap-2 h-10 rounded-lg bg-blue-600 hover:bg-blue-500 font-bold text-white text-sm transition-colors"
+                >
+                  Contact Sales →
+                </a>
+              </CardFooter>
+            </Card>
           </div>
 
           {/* Single shared dialog for plan selection � lives outside the map to avoid controlled/uncontrolled conflicts */}

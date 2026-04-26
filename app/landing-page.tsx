@@ -36,6 +36,7 @@ import {
 import { useState, useEffect } from "react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { submitLead } from "@/lib/api"
+import { useGeo } from "@/hooks/use-geo"
 
 // ─── Scroll-reveal wrapper ─────────────────────────────────────
 // SSR-safe: content renders fully visible on server (Googlebot reads real HTML).
@@ -290,6 +291,15 @@ export function LandingPage() {
   const [leadFormErrors, setLeadFormErrors] = useState<{ name?: string; email?: string }>({})
   const [leadSubmitting, setLeadSubmitting] = useState(false)
   const [leadSubmitted, setLeadSubmitted] = useState(false)
+
+  // Enterprise inline lead form (pricing card)
+  const [entForm, setEntForm] = useState({ name: "", email: "", company: "", subscribers: "" })
+  const [entErrors, setEntErrors] = useState<{ name?: string; email?: string }>({})
+  const [entSubmitting, setEntSubmitting] = useState(false)
+  const [entSubmitted, setEntSubmitted] = useState(false)
+
+  // Geolocation — auto-detects East African country for local currency display
+  const { geo, fmt, setCountry, GEO_TABLE } = useGeo()
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -1086,6 +1096,34 @@ export function LandingPage() {
             </div>
           </Reveal>
 
+          {/* ── Geo currency banner ── */}
+          {geo.countryCode !== "KE" && (
+            <div className="flex items-center justify-between gap-3 mb-6 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-sm">
+              <span className="text-blue-700 dark:text-blue-300">
+                {geo.flag} Showing estimated prices in <strong>{geo.currency}</strong> for {geo.countryName}.
+                {" "}Billing is processed in KES.
+              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-blue-500 dark:text-blue-400 text-xs">Switch:</span>
+                {Object.values(GEO_TABLE)
+                  .filter((g) => ["KE", "UG", "TZ", "RW"].includes(g.countryCode))
+                  .map((g) => (
+                    <button
+                      key={g.countryCode}
+                      onClick={() => setCountry(g.countryCode)}
+                      className={`text-xs px-2 py-1 rounded-lg font-semibold transition-colors ${
+                        geo.countryCode === g.countryCode
+                          ? "bg-blue-600 text-white"
+                          : "bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900"
+                      }`}
+                    >
+                      {g.flag} {g.currency}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid lg:grid-cols-2 gap-6 mb-8">
             {/* Metered — links to calculator */}
             <Reveal>
@@ -1100,15 +1138,20 @@ export function LandingPage() {
 
                   <div className="mb-8">
                     <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-4xl font-extrabold">500</span>
-                      <span className="text-slate-500 dark:text-slate-400 font-medium">KES/mo base</span>
+                      <span className="text-4xl font-extrabold">{fmt(500)}</span>
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">/mo base</span>
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">+ 20 KES per PPPoE user + 3% hotspot share</p>
+                    {geo.rateFromKES !== 1 && (
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">≈ KSh 500/mo · estimated in {geo.currency}</p>
+                    )}
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      + {fmt(20)} per PPPoE user · 3% hotspot share
+                    </p>
                   </div>
 
                   <ul className="space-y-3 mb-8">
                     {[
-                      "Free M-Pesa STK Push integration",
+                      `Free ${geo.paymentCopy} integration`,
                       "MikroTik auto-provisioning",
                       "Unlimited routers",
                     ].map((item) => (
@@ -1130,55 +1173,125 @@ export function LandingPage() {
               </div>
             </Reveal>
 
-            {/* Flat Tiers */}
+            {/* Enterprise & Custom — replaces old flat-tier grid */}
             <Reveal delay={0.15}>
-              <div className="h-full rounded-2xl bg-white dark:bg-slate-900 border-2 border-blue-600 p-8 md:p-10 shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-blue-50 dark:bg-blue-950 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
-                <div className="relative z-10">
-                  <div className="inline-flex items-center gap-2 bg-blue-600 text-white rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider mb-6">
+              <div className="h-full rounded-2xl bg-gradient-to-br from-slate-900 to-blue-950 border border-blue-700/50 p-8 md:p-10 shadow-xl relative overflow-hidden flex flex-col">
+                {/* Decorative glow */}
+                <div className="absolute top-0 right-0 w-56 h-56 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/4 translate-x-1/4 pointer-events-none" />
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="inline-flex items-center gap-2 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider mb-6 w-fit">
                     <Shield className="w-3.5 h-3.5" />
-                    Fixed Plans
+                    Enterprise &amp; Custom
                   </div>
-                  <h3 className="text-2xl font-bold mb-1">Predictable Plans</h3>
-                  <p className="text-slate-500 dark:text-slate-400 mb-8">Lock in a fixed monthly rate. No billing surprises, ever.</p>
+                  <h3 className="text-2xl font-bold mb-1 text-white">Scale Without Limits</h3>
+                  <p className="text-slate-400 mb-6 text-sm">White-label, dedicated infrastructure, SLA guarantee, and a pricing model built around your ISP&apos;s actual shape.</p>
 
-                  <div className="grid grid-cols-3 gap-3 mb-8">
+                  <ul className="space-y-2.5 mb-6">
                     {[
-                      { name: "Starter", desc: "Up to 200 subs", highlight: "Small ISPs" },
-                      { name: "Pro", desc: "Up to 1,000 subs", highlight: "Growing ISPs" },
-                      { name: "Enterprise", desc: "Unlimited", highlight: "Large ISPs" },
-                    ].map((tier) => (
-                      <div key={tier.name} className="text-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-                        <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">{tier.name}</p>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">{tier.desc}</p>
-                        <p className="text-xs text-slate-400">{tier.highlight}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <ul className="space-y-3 mb-8">
-                    {[
-                      "All Metered features included",
-                      "Priority email & phone support",
-                      "Custom branding & white-label",
-                      "Advanced analytics dashboard",
-                      "Only 3% transaction commission",
-                      "Dedicated account manager (Enterprise)",
+                      "Everything in Metered, included",
+                      "Full white-label: your logo, your domain",
+                      "Dedicated account manager",
+                      "99.9% uptime SLA",
+                      "Custom {payment} integrations".replace("{payment}", geo.paymentCopy),
+                      "Priority 24/7 phone support",
                     ].map((item) => (
-                      <li key={item} className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
-                        <Check className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                      <li key={item} className="flex items-start gap-3 text-slate-300 text-sm">
+                        <Check className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
                         <span>{item}</span>
                       </li>
                     ))}
                   </ul>
 
-                  <a
-                    href="#contact"
-                    onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
-                    className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-white transition-colors shadow-sm text-center block"
-                  >
-                    Get a Custom Quote
-                  </a>
+                  {/* Inline contact form */}
+                  <div className="mt-auto">
+                    {entSubmitted ? (
+                      <div className="rounded-xl bg-emerald-900/40 border border-emerald-700/50 p-5 text-center">
+                        <Check className="w-6 h-6 text-emerald-400 mx-auto mb-2" />
+                        <p className="text-emerald-300 font-semibold text-sm">Request received!</p>
+                        <p className="text-slate-400 text-xs mt-1">Our team will reach you within 24 hours.</p>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl bg-white/5 border border-white/10 p-5 space-y-3">
+                        <p className="text-xs font-semibold text-blue-300 uppercase tracking-wider">Get a custom quote — no obligation</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="Your name *"
+                              value={entForm.name}
+                              onChange={(e) => { setEntForm({ ...entForm, name: e.target.value }); if (entErrors.name) setEntErrors((p) => ({ ...p, name: undefined })) }}
+                              className={`w-full h-10 px-3 rounded-lg text-sm bg-slate-800 border text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${ entErrors.name ? "border-red-500" : "border-slate-600" }`}
+                            />
+                            {entErrors.name && <p className="text-xs text-red-400 mt-1">{entErrors.name}</p>}
+                          </div>
+                          <div>
+                            <input
+                              type="email"
+                              placeholder="Work email *"
+                              value={entForm.email}
+                              onChange={(e) => { setEntForm({ ...entForm, email: e.target.value }); if (entErrors.email) setEntErrors((p) => ({ ...p, email: undefined })) }}
+                              className={`w-full h-10 px-3 rounded-lg text-sm bg-slate-800 border text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${ entErrors.email ? "border-red-500" : "border-slate-600" }`}
+                            />
+                            {entErrors.email && <p className="text-xs text-red-400 mt-1">{entErrors.email}</p>}
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Company / ISP name"
+                            value={entForm.company}
+                            onChange={(e) => setEntForm({ ...entForm, company: e.target.value })}
+                            className="w-full h-10 px-3 rounded-lg text-sm bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Est. subscribers"
+                            min="0"
+                            value={entForm.subscribers}
+                            onChange={(e) => setEntForm({ ...entForm, subscribers: e.target.value })}
+                            className="w-full h-10 px-3 rounded-lg text-sm bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <button
+                          disabled={entSubmitting}
+                          onClick={async () => {
+                            // Validate
+                            const errs: { name?: string; email?: string } = {}
+                            if (!entForm.name.trim()) errs.name = "Required"
+                            if (!entForm.email.trim() || !/^[^@]+@[^@]+\.[^@]+$/.test(entForm.email)) errs.email = "Valid email required"
+                            if (Object.keys(errs).length) { setEntErrors(errs); return }
+                            setEntSubmitting(true)
+                            try {
+                              await submitLead({
+                                name: entForm.name.trim(),
+                                email: entForm.email.trim(),
+                                phone: "",
+                                company: entForm.company.trim(),
+                                message: `Enterprise enquiry from ${geo.countryName}. Est. subscribers: ${entForm.subscribers || "not specified"}.`,
+                              })
+                              setEntSubmitted(true)
+                            } catch {
+                              // silently succeed — don't block the UX on API errors
+                              setEntSubmitted(true)
+                            } finally {
+                              setEntSubmitting(false)
+                            }
+                          }}
+                          className="w-full h-10 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-60 font-semibold text-white text-sm transition-colors flex items-center justify-center gap-2"
+                        >
+                          {entSubmitting ? (
+                            <>
+                              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-4 h-4" />
+                              Request Enterprise Quote
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </Reveal>
