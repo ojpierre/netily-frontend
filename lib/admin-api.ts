@@ -2278,6 +2278,32 @@ async activateService(
     })
   }
 
+  // ============================================================
+  // NEW: Daraja Gateway Activation/Deactivation
+  // ============================================================
+
+  async activateDarajaAsPrimary(id: number): Promise<{
+    status: string
+    message: string
+    payment_method_id: number
+    gateway: 'daraja' | 'tuma' | 'none'
+  }> {
+    return this.request(`/billing/mpesa-config/${id}/activate-as-primary/`, {
+      method: 'POST',
+    })
+  }
+
+  async deactivateDaraja(id: number): Promise<{
+    status: string
+    message: string
+    tuma_restored: boolean
+    gateway: 'daraja' | 'tuma' | 'none'
+  }> {
+    return this.request(`/billing/mpesa-config/${id}/deactivate-daraja/`, {
+      method: 'POST',
+    })
+  }
+
   async getBillingMpesaTransactions(params?: Record<string, string>): Promise<PaginatedResponse<MpesaTransaction>> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
     return this.request<PaginatedResponse<MpesaTransaction>>(`/billing/mpesa-transactions/${queryString}`)

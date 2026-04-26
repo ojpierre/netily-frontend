@@ -1,7 +1,10 @@
 "use client"
 
 import React, { useCallback, useEffect, useMemo, useState } from "react"
-import { CheckCircle2, Copy, Loader2, Plus, RefreshCw, Settings2, ShieldCheck, TestTube2, Trash2 } from "lucide-react"
+import { 
+  AlertCircle, CheckCircle2, Copy, Loader2, Plus, 
+  RefreshCw, Settings2, ShieldCheck, TestTube2, Trash2, Zap 
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { adminApi } from "@/lib/admin-api"
@@ -10,37 +13,21 @@ import type { MpesaConfiguration, MpesaTransaction } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow,
 } from "@/components/ui/table"
 
 interface MpesaFormState {
@@ -87,6 +74,10 @@ export function MpesaSettingsPanel() {
   const [saving, setSaving] = useState(false)
   const [actionId, setActionId] = useState<number | null>(null)
 
+  // ── NEW: Gateway state ──
+  const [activeDarajaId, setActiveDarajaId] = useState<number | null>(null)
+  const [activating, setActivating] = useState(false)
+
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<MpesaConfiguration | null>(null)
   const [form, setForm] = useState<MpesaFormState>(initialForm)
@@ -103,7 +94,6 @@ export function MpesaSettingsPanel() {
       setConfigs(cfgRes.results || [])
       setTransactions(txRes.results || [])
     } catch (error: any) {
-      console.error("Failed to fetch M-Pesa data", error)
       toast.error(error?.message || "Failed to load M-Pesa settings")
     } finally {
       setLoading(false)
@@ -111,9 +101,13 @@ export function MpesaSettingsPanel() {
     }
   }, [])
 
+  useEffect(() => { fetchData() }, [fetchData])
+
+  // ── NEW: Detect which config is active as primary gateway ──
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    const active = configs.find(c => c.is_active && c.is_default)
+    setActiveDarajaId(active?.id ?? null)
+  }, [configs])
 
   const hasDefault = useMemo(() => configs.some(c => c.is_default), [configs])
 
@@ -165,7 +159,6 @@ export function MpesaSettingsPanel() {
 
   const onSave = async () => {
     if (!validateForm()) return
-
     setSaving(true)
     try {
       const payload: Partial<MpesaConfiguration> = {
@@ -175,7 +168,6 @@ export function MpesaSettingsPanel() {
         is_sandbox: form.is_sandbox,
         is_active: form.is_active,
       }
-
       if (form.consumer_secret) payload.consumer_secret = form.consumer_secret
       if (form.passkey) payload.passkey = form.passkey
 
@@ -192,7 +184,6 @@ export function MpesaSettingsPanel() {
       setForm(initialForm)
       await fetchData()
     } catch (error: any) {
-      console.error("Failed to save configuration", error)
       toast.error(error?.message || "Failed to save configuration")
     } finally {
       setSaving(false)
@@ -201,14 +192,12 @@ export function MpesaSettingsPanel() {
 
   const onDelete = async (config: MpesaConfiguration) => {
     if (!confirm(`Delete configuration ${config.business_shortcode}?`)) return
-
     try {
       setActionId(config.id)
       await adminApi.deleteMpesaConfiguration(config.id)
       toast.success("Configuration deleted")
       await fetchData()
     } catch (error: any) {
-      console.error("Failed to delete configuration", error)
       toast.error(error?.message || "Delete failed")
     } finally {
       setActionId(null)
@@ -225,7 +214,6 @@ export function MpesaSettingsPanel() {
       toast.success(result?.message || "Credentials test successful")
       await fetchData()
     } catch (error: any) {
-      console.error("Failed to test configuration", error)
       toast.error(error?.message || "Credentials test failed")
     } finally {
       setActionId(null)
@@ -239,7 +227,6 @@ export function MpesaSettingsPanel() {
       toast.success(result?.message || "URLs registered successfully")
       await fetchData()
     } catch (error: any) {
-      console.error("Failed to register URLs", error)
       toast.error(error?.message || "URL registration failed")
     } finally {
       setActionId(null)
@@ -253,7 +240,6 @@ export function MpesaSettingsPanel() {
       toast.success(result?.message || "Set as default")
       await fetchData()
     } catch (error: any) {
-      console.error("Failed to set default", error)
       toast.error(error?.message || "Failed to set default")
     } finally {
       setActionId(null)
@@ -267,10 +253,43 @@ export function MpesaSettingsPanel() {
       toast.success(result?.message || "Status updated")
       await fetchData()
     } catch (error: any) {
-      console.error("Failed to toggle active", error)
       toast.error(error?.message || "Failed to update status")
     } finally {
       setActionId(null)
+    }
+  }
+
+  // ── NEW: Activate Daraja as primary gateway ──
+  const handleActivateDaraja = async (configId: number) => {
+    setActivating(true)
+    try {
+      const result = await adminApi.activateDarajaAsPrimary(configId)
+      toast.success("Daraja activated as primary gateway", {
+        description: result.message,
+      })
+      setActiveDarajaId(configId)
+      await fetchData()
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to activate Daraja")
+    } finally {
+      setActivating(false)
+    }
+  }
+
+  // ── NEW: Deactivate Daraja, restore Tuma ──
+  const handleDeactivateDaraja = async (configId: number) => {
+    setActivating(true)
+    try {
+      const result = await adminApi.deactivateDaraja(configId)
+      toast.success("Daraja deactivated", {
+        description: result.message,
+      })
+      setActiveDarajaId(null)
+      await fetchData()
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to deactivate Daraja")
+    } finally {
+      setActivating(false)
     }
   }
 
@@ -282,16 +301,45 @@ export function MpesaSettingsPanel() {
 
   return (
     <div className="space-y-6">
+
+      {/* ── NEW: Gateway Status Banner ── */}
+      <div className={`flex items-center gap-3 rounded-lg border p-4 ${
+        activeDarajaId
+          ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30"
+          : "border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30"
+      }`}>
+        <div className={`p-2 rounded-full ${
+          activeDarajaId ? "bg-emerald-100 dark:bg-emerald-900" : "bg-amber-100 dark:bg-amber-900"
+        }`}>
+          {activeDarajaId
+            ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            : <AlertCircle className="h-4 w-4 text-amber-600" />
+          }
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold">
+            {activeDarajaId
+              ? "Active Gateway: Daraja (Your Own Keys)"
+              : "Active Gateway: Netily (Tuma)"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {activeDarajaId
+              ? "All hotspot and PPPoE payments route through your Safaricom Daraja credentials."
+              : "Payments route through Netily's gateway. Add a Daraja config below and activate it to switch."}
+          </p>
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Settings2 className="h-5 w-5 text-green-600" />
-                M-Pesa Settings
+                M-Pesa Daraja Settings
               </CardTitle>
               <CardDescription>
-                Configure Daraja credentials, test access, then register callback URLs.
+                Configure your own Daraja credentials. Once validated, activate as primary to replace Netily gateway.
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -301,7 +349,7 @@ export function MpesaSettingsPanel() {
               </Button>
               <Button onClick={openCreate}>
                 <Plus className="mr-2 h-4 w-4" />
-                Add M-Pesa Config
+                Add Daraja Config
               </Button>
             </div>
           </div>
@@ -329,22 +377,37 @@ export function MpesaSettingsPanel() {
           </div>
 
           {loading ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">Loading M-Pesa configurations...</div>
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              Loading M-Pesa configurations...
+            </div>
           ) : configs.length === 0 ? (
             <div className="rounded-lg border border-dashed p-8 text-center">
-              <p className="font-medium">No M-Pesa configuration yet</p>
-              <p className="text-sm text-muted-foreground">Create one to start receiving Paybill/Till payments.</p>
+              <p className="font-medium">No Daraja configuration yet</p>
+              <p className="text-sm text-muted-foreground">
+                Create one to use your own Safaricom keys instead of Netily gateway.
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
               {configs.map((config) => (
-                <div key={config.id} className="rounded-lg border p-4">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div
+                  key={config.id}
+                  className={`rounded-lg border p-4 transition-colors ${
+                    activeDarajaId === config.id
+                      ? "border-emerald-300 bg-emerald-50/50 dark:border-emerald-700 dark:bg-emerald-950/20"
+                      : ""
+                  }`}
+                >
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline">{config.shortcode_type}</Badge>
                         <Badge variant="secondary">{config.business_shortcode}</Badge>
-                        <Badge className={config.is_sandbox ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}>
+                        <Badge className={
+                          config.is_sandbox
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-emerald-100 text-emerald-700"
+                        }>
                           {config.is_sandbox ? "Sandbox" : "Production"}
                         </Badge>
                         {config.is_default && (
@@ -357,31 +420,104 @@ export function MpesaSettingsPanel() {
                           {config.is_active ? "Active" : "Inactive"}
                         </Badge>
                         {config.validation_status && (
-                          <Badge variant="outline">Validation: {config.validation_status}</Badge>
+                          <Badge variant="outline">
+                            Validation: {config.validation_status}
+                          </Badge>
+                        )}
+                        {/* ── NEW: Primary gateway indicator ── */}
+                        {activeDarajaId === config.id && (
+                          <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                            <Zap className="mr-1 h-3 w-3" />
+                            Primary Gateway
+                          </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground">Last validated: {formatDate(config.last_validated_at)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Last validated: {formatDate(config.last_validated_at)}
+                      </p>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" disabled={actionId === config.id} onClick={() => onTest(config)}>
-                        {actionId === config.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <TestTube2 className="mr-2 h-4 w-4" />}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={actionId === config.id}
+                        onClick={() => onTest(config)}
+                      >
+                        {actionId === config.id
+                          ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          : <TestTube2 className="mr-2 h-4 w-4" />
+                        }
                         Test
                       </Button>
-                      <Button size="sm" variant="outline" disabled={actionId === config.id} onClick={() => onRegisterUrls(config)}>
-                        {actionId === config.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={actionId === config.id}
+                        onClick={() => onRegisterUrls(config)}
+                      >
+                        {actionId === config.id
+                          ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          : <CheckCircle2 className="mr-2 h-4 w-4" />
+                        }
                         Register URLs
                       </Button>
-                      <Button size="sm" variant="outline" disabled={actionId === config.id || config.is_default} onClick={() => onSetDefault(config)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={actionId === config.id || config.is_default}
+                        onClick={() => onSetDefault(config)}
+                      >
                         Set Default
                       </Button>
-                      <Button size="sm" variant="outline" disabled={actionId === config.id} onClick={() => onToggleActive(config)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={actionId === config.id}
+                        onClick={() => onToggleActive(config)}
+                      >
                         {config.is_active ? "Deactivate" : "Activate"}
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => openEdit(config)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openEdit(config)}
+                      >
                         Edit
                       </Button>
-                      <Button size="sm" variant="destructive" disabled={actionId === config.id} onClick={() => onDelete(config)}>
+
+                      {/* ── NEW: Primary gateway toggle button ── */}
+                      {activeDarajaId === config.id ? (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={activating}
+                          onClick={() => handleDeactivateDaraja(config.id)}
+                        >
+                          {activating && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                          Switch to Tuma
+                        </Button>
+                      ) : (
+                        config.validation_status === "VALID" && (
+                          <Button
+                            size="sm"
+                            disabled={activating}
+                            onClick={() => handleActivateDaraja(config.id)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                          >
+                            {activating && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                            <Zap className="mr-1 h-3 w-3" />
+                            Use as Gateway
+                          </Button>
+                        )
+                      )}
+
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={actionId === config.id}
+                        onClick={() => onDelete(config)}
+                      >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
                       </Button>
@@ -393,15 +529,20 @@ export function MpesaSettingsPanel() {
           )}
 
           {!hasDefault && configs.length > 0 && (
-            <p className="text-xs text-amber-700">No default M-Pesa configuration is set yet. Pick one configuration and click Set Default.</p>
+            <p className="text-xs text-amber-700">
+              No default config set. Test your credentials first, then click "Use as Gateway" to activate.
+            </p>
           )}
         </CardContent>
       </Card>
 
+      {/* Transaction logs — unchanged */}
       <Card>
         <CardHeader>
           <CardTitle>M-Pesa Transaction Logs</CardTitle>
-          <CardDescription>Track receipts, account references, and failed payment reasons.</CardDescription>
+          <CardDescription>
+            Track receipts, account references, and failed payment reasons.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -440,7 +581,11 @@ export function MpesaSettingsPanel() {
                   <TableCell>
                     <Badge
                       variant={String(tx.status).toUpperCase() === "COMPLETED" ? "default" : "secondary"}
-                      className={String(tx.status).toUpperCase() === "FAILED" ? "bg-red-100 text-red-700" : undefined}
+                      className={
+                        String(tx.status).toUpperCase() === "FAILED"
+                          ? "bg-red-100 text-red-700"
+                          : undefined
+                      }
                     >
                       {String(tx.status).toUpperCase()}
                     </Badge>
@@ -459,12 +604,15 @@ export function MpesaSettingsPanel() {
         </CardContent>
       </Card>
 
+      {/* Create/Edit dialog — unchanged */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit M-Pesa Configuration" : "Create M-Pesa Configuration"}</DialogTitle>
+            <DialogTitle>
+              {editing ? "Edit M-Pesa Configuration" : "Create M-Pesa Configuration"}
+            </DialogTitle>
             <DialogDescription>
-              Save Daraja credentials, then use Test and Register URLs actions from the configuration list.
+              Save Daraja credentials, test them, then click "Use as Gateway" to activate.
             </DialogDescription>
           </DialogHeader>
 
@@ -473,11 +621,11 @@ export function MpesaSettingsPanel() {
               <Label htmlFor="shortcode_type">Shortcode Type</Label>
               <Select
                 value={form.shortcode_type}
-                onValueChange={(value) => setForm(prev => ({ ...prev, shortcode_type: value as "PAYBILL" | "TILL" }))}
+                onValueChange={(value) =>
+                  setForm(prev => ({ ...prev, shortcode_type: value as "PAYBILL" | "TILL" }))
+                }
               >
-                <SelectTrigger id="shortcode_type">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger id="shortcode_type"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="PAYBILL">PAYBILL</SelectItem>
                   <SelectItem value="TILL">TILL</SelectItem>
@@ -506,7 +654,9 @@ export function MpesaSettingsPanel() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="consumer_secret">Consumer Secret {editing ? "(leave blank to keep existing)" : ""}</Label>
+              <Label htmlFor="consumer_secret">
+                Consumer Secret {editing ? "(leave blank to keep existing)" : ""}
+              </Label>
               <Input
                 id="consumer_secret"
                 type="password"
@@ -517,7 +667,9 @@ export function MpesaSettingsPanel() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="passkey">Passkey {editing ? "(leave blank to keep existing)" : ""}</Label>
+              <Label htmlFor="passkey">
+                Passkey {editing ? "(leave blank to keep existing)" : ""}
+              </Label>
               <Input
                 id="passkey"
                 type="password"
@@ -538,7 +690,6 @@ export function MpesaSettingsPanel() {
                   onCheckedChange={(checked) => setForm(prev => ({ ...prev, is_sandbox: checked }))}
                 />
               </div>
-
               <div className="flex items-center justify-between rounded-md border p-3">
                 <div>
                   <p className="text-sm font-medium">Active</p>
@@ -553,7 +704,9 @@ export function MpesaSettingsPanel() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
             <Button onClick={onSave} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editing ? "Update" : "Create"}
