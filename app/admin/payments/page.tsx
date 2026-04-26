@@ -780,13 +780,13 @@ export default function PaymentsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Reference</TableHead>
+                <TableHead>Transaction ID</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Method</TableHead>
-                <TableHead>Service</TableHead> {/* NEW COLUMN */}
+                <TableHead>Service</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead>Date & Time</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -794,9 +794,14 @@ export default function PaymentsPage() {
               {payments.map((payment) => (
                 <TableRow key={payment.id}>
                   <TableCell>
-                    <code className="font-mono text-sm bg-muted px-2 py-1 rounded">
-                      {payment.reference || payment.transaction_id || payment.payment_number}
-                    </code>
+                    <div>
+                      <code className="font-mono text-sm bg-muted px-2 py-1 rounded">
+                        {payment.transaction_id || payment.mpesa_receipt || '—'}
+                      </code>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatDateTime(payment.payment_date || payment.created_at)}
+                      </p>
+                    </div>
                   </TableCell>
                   
                   {/* Updated Customer Cell */}
@@ -806,7 +811,7 @@ export default function PaymentsPage() {
                   
                   <TableCell>{getMethodBadge(payment.payment_method as string || "Unknown")}</TableCell>
                   
-                  {/* NEW Service Cell */}
+                  {/* Service Cell */}
                   <TableCell>
                     {getServiceTypeBadge(payment.service_type)}
                   </TableCell>
@@ -815,7 +820,7 @@ export default function PaymentsPage() {
                     {formatCurrency(payment.amount)}
                   </TableCell>
                   <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                  <TableCell>{formatDate(payment.created_at)}</TableCell>
+                  <TableCell>{formatDateTime(payment.created_at)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

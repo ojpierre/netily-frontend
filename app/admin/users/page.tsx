@@ -603,7 +603,8 @@ export default function UsersPage() {
         if (newCustomerForm.record_initial_payment && newCustomerForm.initial_payment_amount) {
           activatePayload.record_payment = true
           activatePayload.payment_amount = parseFloat(String(newCustomerForm.initial_payment_amount))
-          activatePayload.payment_reference = newCustomerForm.initial_payment_reference || ''
+          // CHANGE: Use 'MANUAL' as default when reference is empty
+          activatePayload.payment_reference = newCustomerForm.initial_payment_reference || 'MANUAL'
           activatePayload.payment_notes = 'Initial payment on service activation'
         }
         
