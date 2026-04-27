@@ -1,5 +1,6 @@
 ﻿import { LandingPage } from "./landing-page"
 import type { Metadata } from "next"
+import { blogPosts } from "@/lib/blog-data"
 
 // Static page — no per-request rendering needed; maximises caching and Core Web Vitals
 export const metadata: Metadata = {
@@ -265,6 +266,25 @@ const faqSchema = {
 }
 
 export default function Page() {
+  // Blog list schema — helps Google understand the content cluster
+  const blogListSchema = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "Netily ISP Blog",
+    url: "https://netily.co.ke/blog",
+    description: "Expert guides on ISP billing software, MikroTik automation, and M-Pesa integration for Kenyan ISPs",
+    blogPost: blogPosts.map((post) => ({
+      "@type": "BlogPosting",
+      headline: post.title,
+      description: post.metaDescription,
+      url: `https://netily.co.ke/blog/${post.slug}`,
+      datePublished: post.publishedAt,
+      dateModified: post.updatedAt,
+      author: { "@type": "Person", name: post.author.name },
+      keywords: post.keywords.join(", "),
+    })),
+  }
+
   return (
     <>
       {/* JSON-LD schemas in initial server HTML — not afterInteractive */}
@@ -283,6 +303,10 @@ export default function Page() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogListSchema) }}
       />
       <LandingPage />
     </>

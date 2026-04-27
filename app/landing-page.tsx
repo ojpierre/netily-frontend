@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { motion, useInView, useScroll, useTransform } from "framer-motion"
 import { BillingCalculator } from "@/components/BillingCalculator"
+import { blogPosts } from "@/lib/blog-data"
 import {
   ArrowRight,
   Zap,
@@ -351,6 +352,12 @@ export function LandingPage() {
                   {label}
                 </a>
               ))}
+              <Link
+                href="/blog"
+                className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
+              >
+                Blog
+              </Link>
             </nav>
 
             {/* Right side */}
@@ -396,6 +403,12 @@ export function LandingPage() {
                   {label}
                 </a>
               ))}
+              <Link
+                href="/blog"
+                className="py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600"
+              >
+                Blog
+              </Link>
               <hr className="my-2 border-slate-200 dark:border-slate-700" />
               <a
                 href="#contact"
@@ -1381,6 +1394,100 @@ export function LandingPage() {
               ))}
             </div>
           </Reveal>
+        </div>
+      </section>
+
+      {/* ━━━ BLOG SNIPPETS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <section className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
+        <div className="max-w-6xl mx-auto">
+          <Reveal>
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-14">
+              <div>
+                <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-3">
+                  From the Blog
+                </p>
+                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                  Guides for Kenyan ISP Owners
+                </h2>
+                <p className="mt-3 text-lg text-slate-600 dark:text-slate-400 max-w-xl">
+                  In-depth resources on ISP billing software, MikroTik automation, and growing your ISP business.
+                </p>
+              </div>
+              <Link
+                href="/blog"
+                className="shrink-0 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                View all articles
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </Reveal>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
+            {blogPosts.map((post, i) => {
+              const gradients: Record<string, string> = {
+                blue: "from-blue-600 via-indigo-600 to-purple-700",
+                emerald: "from-emerald-500 via-teal-600 to-cyan-700",
+                orange: "from-orange-500 via-rose-500 to-pink-600",
+                purple: "from-purple-600 via-violet-600 to-indigo-700",
+              }
+              const badgeColors: Record<string, string> = {
+                blue: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+                emerald: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+                orange: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+                purple: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
+              }
+              const gradient = gradients[post.categoryColor] ?? gradients.blue
+              const badge = badgeColors[post.categoryColor] ?? badgeColors.blue
+              return (
+                <Reveal key={post.slug} delay={i * 0.1}>
+                  <article className="group flex flex-col bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full">
+                    {/* Gradient card header */}
+                    <div className={`h-36 bg-gradient-to-br ${gradient} relative overflow-hidden flex items-end p-5`}>
+                      <div className="absolute inset-0 opacity-20">
+                        <div className="absolute top-3 right-3 w-20 h-20 border border-white/40 rounded-full" />
+                        <div className="absolute -bottom-6 -left-6 w-32 h-32 border border-white/20 rounded-full" />
+                      </div>
+                      <span className="relative text-xs font-semibold px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white border border-white/30">
+                        {post.category}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col flex-1 p-5">
+                      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-3">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{post.readTime} min read</span>
+                      </div>
+
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug mb-2.5 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-3">
+                        {post.title}
+                      </h3>
+
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3 flex-1 mb-5">
+                        {post.excerpt}
+                      </p>
+
+                      <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-6 h-6 rounded-full ${post.author.avatarBg} flex items-center justify-center text-white text-[10px] font-bold`}>
+                            {post.author.initials}
+                          </div>
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{post.author.name}</span>
+                        </div>
+                        <Link
+                          href={`/blog/${post.slug}`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:gap-2 transition-all"
+                        >
+                          Read
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                </Reveal>
+              )
+            })}
+          </div>
         </div>
       </section>
 
