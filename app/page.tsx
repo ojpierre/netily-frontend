@@ -221,6 +221,46 @@ const faqSchema = {
         text: "Yes. Netily supports hotspot billing with branded captive portals, M-Pesa payments, voucher management, and session management for Wi-Fi hotspot providers.",
       },
     },
+    {
+      "@type": "Question",
+      name: "What is the best ISP billing software in Kenya?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Netily is widely regarded as the best ISP billing software in Kenya for small and medium ISPs. It natively supports M-Pesa STK Push, MikroTik PPPoE auto-provisioning, RADIUS authentication, and hotspot billing — all priced in KES with a 14-day free trial.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is there free ISP billing software?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Netily offers a 14-day free trial with no credit card required — giving ISPs full access to billing, M-Pesa integration, and MikroTik provisioning before committing. After the trial, pricing starts at KES 500/month. Open-source alternatives like ZAL ISP Management System exist but require self-hosting and technical setup.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is an ISP management system?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "An ISP management system is software that helps internet service providers manage subscribers, billing, payments, router provisioning, and network access. Netily is an ISP management system built for Kenya and East Africa, integrating M-Pesa payments and MikroTik routers natively.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does Netily work with MikroTik routers?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Netily integrates with MikroTik RouterOS via the RouterOS API for zero-touch PPPoE and Hotspot provisioning, automatic subscriber suspension and reactivation, and bandwidth policy enforcement.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How does Netily compare to Splynx?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Netily is built specifically for Kenyan and East African ISPs. Unlike Splynx, Netily has native M-Pesa STK Push integration, is priced in KES, and is significantly more affordable for small and medium ISPs. Splynx is a European product that does not natively support M-Pesa.",
+      },
+    },
   ],
 }
 

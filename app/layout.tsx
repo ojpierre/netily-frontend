@@ -211,6 +211,8 @@ export const metadata: Metadata = {
     "geo.placename": "Nairobi",
     "geo.position": "-1.286389;36.817223",
     "ICBM": "-1.286389, 36.817223",
+    // LLM / AI crawler discovery — points to llms.txt
+    "llms": "https://netily.co.ke/llms.txt",
   },
 }
 
