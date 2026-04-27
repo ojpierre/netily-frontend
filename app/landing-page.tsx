@@ -453,7 +453,8 @@ export function LandingPage() {
           {/* Sub-headline — keyword-rich first 200 words */}
           <Reveal delay={0.2}>
             <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-4 leading-relaxed">
-              Netily is the <strong className="text-slate-700 dark:text-slate-200">ISP billing software</strong> built for{" "}
+              Netily is the <strong className="text-slate-700 dark:text-slate-200">ISP billing software</strong> and{" "}
+              <strong className="text-slate-700 dark:text-slate-200">ISP management system</strong> built for{" "}
               <strong className="text-slate-700 dark:text-slate-200">Kenya &amp; East Africa</strong> — automating{" "}
               <strong className="text-slate-700 dark:text-slate-200">M-Pesa STK Push</strong> payments,{" "}
               <strong className="text-slate-700 dark:text-slate-200">MikroTik PPPoE provisioning</strong>,{" "}
@@ -472,6 +473,7 @@ export function LandingPage() {
                 "MikroTik PPPoE Networks",
                 "WISPs in Kenya",
                 "RADIUS Billing",
+                "ISP Management System",
               ].map((label) => (
                 <span
                   key={label}
