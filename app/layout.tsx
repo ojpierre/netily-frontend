@@ -22,6 +22,7 @@ export const metadata: Metadata = {
   keywords: [
     // ── Core product ──────────────────────────────────
     "ISP management software Kenya 2026",
+    "ISP Billing Software Kenya",
     "ISP billing system Kenya",
     "ISP management platform Africa",
     "internet service provider software Kenya",
