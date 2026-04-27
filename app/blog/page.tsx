@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { blogPosts } from "@/lib/blog-data"
+import BlogLeadModal from "@/components/blog-lead-modal"
 
 export const metadata: Metadata = {
   title: "ISP Billing & Management Blog — Guides for Kenyan ISPs | Netily",
@@ -149,23 +150,18 @@ export default function BlogPage() {
           })}
         </div>
 
-        {/* Newsletter / CTA strip */}
+        {/* CTA strip */}
         <div className="mt-20 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 md:p-12 text-white text-center">
           <h2 className="text-2xl md:text-3xl font-extrabold mb-3">Run a Better ISP</h2>
           <p className="text-blue-100 mb-8 max-w-xl mx-auto">
-            Start your 14-day free trial of Netily — ISP billing software built for Kenya and East Africa. M-Pesa
-            native, MikroTik integrated, no credit card required.
+            Get started with Netily — ISP billing software built for Kenya and East Africa. M-Pesa
+            native, MikroTik integrated. We onboard you personally.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-2 bg-white text-blue-700 font-semibold text-sm px-7 py-3 rounded-xl hover:bg-blue-50 transition-colors shadow-lg"
-            >
-              Start Free Trial
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </Link>
+            <BlogLeadModal
+              triggerLabel="Get in Touch"
+              triggerClassName="inline-flex items-center gap-2 bg-white text-blue-700 font-semibold text-sm px-7 py-3 rounded-xl hover:bg-blue-50 transition-colors shadow-lg"
+            />
             <Link
               href="/demo"
               className="inline-flex items-center gap-2 border border-white/40 text-white font-semibold text-sm px-7 py-3 rounded-xl hover:bg-white/10 transition-colors"

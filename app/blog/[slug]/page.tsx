@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { getBlogPost, getRelatedPosts, blogPosts, type ContentBlock } from "@/lib/blog-data"
+import BlogLeadModal from "@/components/blog-lead-modal"
 
 // ─── Static params for build-time generation ──────────────────────────────
 export function generateStaticParams() {
@@ -206,15 +207,10 @@ function ContentRenderer({ block }: { block: ContentBlock }) {
             credit card required.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-2 bg-white text-blue-700 font-semibold text-sm px-7 py-3 rounded-xl hover:bg-blue-50 transition-colors shadow-lg"
-            >
-              Start Free Trial
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </Link>
+            <BlogLeadModal
+              triggerLabel="Get in Touch"
+              triggerClassName="inline-flex items-center gap-2 bg-white text-blue-700 font-semibold text-sm px-7 py-3 rounded-xl hover:bg-blue-50 transition-colors shadow-lg"
+            />
             <Link
               href="/demo"
               className="inline-flex items-center gap-2 border border-white/40 text-white font-semibold text-sm px-7 py-3 rounded-xl hover:bg-white/10 transition-colors"
@@ -348,14 +344,13 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
 
                   {/* Mini CTA in sidebar */}
                   <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl">
-                    <p className="text-xs font-bold text-blue-800 dark:text-blue-300 mb-2">Try Netily Free</p>
-                    <p className="text-xs text-blue-700 dark:text-blue-400 mb-3">14-day trial. No credit card.</p>
-                    <Link
-                      href="/register"
-                      className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2.5 rounded-lg transition-colors"
-                    >
-                      Start Free Trial →
-                    </Link>
+                    <p className="text-xs font-bold text-blue-800 dark:text-blue-300 mb-2">Get Started with Netily</p>
+                    <p className="text-xs text-blue-700 dark:text-blue-400 mb-3">We onboard you personally. No self-signup.</p>
+                    <BlogLeadModal
+                      triggerLabel="Get in Touch →"
+                      triggerClassName="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2.5 rounded-lg transition-colors"
+                      showArrow={false}
+                    />
                   </div>
                 </div>
               </aside>
