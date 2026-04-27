@@ -749,6 +749,18 @@ async activateService(
     })
   }
 
+  // ADD THIS METHOD RIGHT HERE ↓↓↓
+  async changeServiceIP(
+    customerId: number,
+    serviceId: number,
+    assignedIpId: number
+  ): Promise<{ status: string; old_ip: string | null; new_ip: string; message: string }> {
+    return this.request(`/customers/${customerId}/services/${serviceId}/change_ip/`, {
+      method: 'POST',
+      body: JSON.stringify({ assigned_ip_id: assignedIpId }),
+    })
+  }
+
   /** P5: Toggle RADIUS access (disable/enable) without deleting the customer */
   async toggleRadius(
     customerId: number,

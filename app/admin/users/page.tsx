@@ -336,6 +336,15 @@ export default function UsersPage() {
   const [savingBilling, setSavingBilling] = useState(false)
   const itemsPerPage = 10
 
+  // Edit IP Dialog State
+  const [showEditIPDialog, setShowEditIPDialog] = useState(false)
+  const [userToEditIP, setUserToEditIP] = useState<User | null>(null)
+  const [editIPAvailableIPs, setEditIPAvailableIPs] = useState<AvailableIP[]>([])
+  const [editIPLoading, setEditIPLoading] = useState(false)
+  const [selectedNewIPId, setSelectedNewIPId] = useState<string>("")
+  const [editIPSearchQuery, setEditIPSearchQuery] = useState("")
+  const [savingIP, setSavingIP] = useState(false)
+
   const [editForm, setEditForm] = useState({
     first_name: "",
     last_name: "",
@@ -890,6 +899,62 @@ export default function UsersPage() {
       await Promise.all([loadUsers(), loadOnlineSessions()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to disconnect user')
+    }
+  }
+
+  // Edit IP Handler
+  const handleEditIP = async (user: User) => {
+    setUserToEditIP(user)
+    setSelectedNewIPId("")
+    setEditIPSearchQuery("")
+    setEditIPAvailableIPs([])
+    setShowEditIPDialog(true)
+
+    // Load the plan to find its ip_pool
+    if (!user.serviceId) {
+      toast.error("No service found for this user")
+      return
+    }
+    try {
+      setEditIPLoading(true)
+      const services = await adminApi.getCustomerServices(user.customerId)
+      const svc = services.find(s => s.id === user.serviceId) || services[0]
+      const poolId = svc?.plan?.ip_pool
+      if (poolId && typeof poolId === 'number') {
+        const resp = await adminApi.getIPPoolAvailableIPs(poolId)
+        setEditIPAvailableIPs(resp.results || [])
+      } else {
+        toast.error("No IP pool assigned to this user's plan")
+      }
+    } catch (err) {
+      console.error('Failed to load IPs for edit:', err)
+      toast.error('Could not load available IPs for this plan')
+    } finally {
+      setEditIPLoading(false)
+    }
+  }
+
+  const confirmEditIP = async () => {
+    if (!userToEditIP || !userToEditIP.serviceId || !selectedNewIPId) {
+      toast.error('Please select an IP address')
+      return
+    }
+    try {
+      setSavingIP(true)
+      const result = await adminApi.changeServiceIP(
+        userToEditIP.customerId,
+        userToEditIP.serviceId,
+        parseInt(selectedNewIPId, 10)
+      )
+      toast.success(result.message || 'IP address updated successfully')
+      setShowEditIPDialog(false)
+      setUserToEditIP(null)
+      await loadUsers()
+      await loadOnlineSessions()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to change IP address')
+    } finally {
+      setSavingIP(false)
     }
   }
 
@@ -2077,6 +2142,12 @@ export default function UsersPage() {
                                   <Edit className="w-4 h-4 mr-2" />
                                   Edit User
                                 </DropdownMenuItem>
+                                {(user.type === "pppoe" || user.type === "static") && (
+                                  <DropdownMenuItem onClick={() => handleEditIP(user)}>
+                                    <Server className="w-4 h-4 mr-2" />
+                                    Edit IP Address
+                                  </DropdownMenuItem>
+                                )}
                                 {user.status === "pending" && (
                                   <DropdownMenuItem 
                                     onClick={() => handleActivateUser(user)}
@@ -2364,6 +2435,12 @@ export default function UsersPage() {
                                 <Calendar className="w-4 h-4 mr-2" />
                                 Extend Subscription
                               </DropdownMenuItem>
+                              {(user.type === "pppoe" || user.type === "static") && (
+                                <DropdownMenuItem onClick={() => handleEditIP(user)}>
+                                  <Server className="w-4 h-4 mr-2" />
+                                  Edit IP Address
+                                </DropdownMenuItem>
+                              )}
                               {user.status === "pending" && (
                                 <DropdownMenuItem 
                                   onClick={() => handleActivateUser(user)}
@@ -2781,6 +2858,12 @@ export default function UsersPage() {
                     Extend
                   </Button>
                 </div>
+                {(selectedUser.type === "pppoe" || selectedUser.type === "static") ? (
+                  <Button variant="outline" className="flex-1 w-full" onClick={() => handleEditIP(selectedUser)}>
+                    <Server className="w-4 h-4 mr-2" />
+                    Edit IP
+                  </Button>
+                ) : null}
                 {selectedUser.status === "pending" && (
                   <Button 
                     className="w-full bg-green-600 hover:bg-green-700" 
@@ -3123,6 +3206,89 @@ export default function UsersPage() {
                   <Calendar className="w-4 h-4 mr-2" />
                   Extend Subscription
                 </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit IP Dialog */}
+      <Dialog open={showEditIPDialog} onOpenChange={setShowEditIPDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change IP Address</DialogTitle>
+            <DialogDescription>
+              Select a new IP from the pool attached to this user's plan.
+              The current IP will be released back to the pool.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Current IP */}
+            {userToEditIP?.ipAddress && (
+              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+                <Server className="w-4 h-4 text-amber-600 shrink-0" />
+                <span className="text-amber-800">
+                  Current IP: <code className="font-mono font-bold">{userToEditIP.ipAddress}</code>
+                </span>
+              </div>
+            )}
+
+            {editIPLoading ? (
+              <div className="flex items-center justify-center py-6 gap-2 text-slate-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading available IPs...
+              </div>
+            ) : editIPAvailableIPs.length === 0 ? (
+              <div className="text-center py-6 text-slate-500 text-sm">
+                No available IPs in this plan's pool.<br />
+                <span className="text-xs">Ensure the plan has an IP pool assigned.</span>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Available IPs ({editIPAvailableIPs.length})</Label>
+                <Input
+                  placeholder="Search IP..."
+                  value={editIPSearchQuery}
+                  onChange={(e) => setEditIPSearchQuery(e.target.value)}
+                />
+                <Select
+                  value={selectedNewIPId || "none"}
+                  onValueChange={(val) => setSelectedNewIPId(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an IP address" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Select IP —</SelectItem>
+                    {editIPAvailableIPs
+                      .filter(ip =>
+                        !editIPSearchQuery ||
+                        ip.ip_address.includes(editIPSearchQuery)
+                      )
+                      .map(ip => (
+                        <SelectItem key={ip.id} value={String(ip.id)}>
+                          <span className="font-mono">{ip.ip_address}</span>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditIPDialog(false)} disabled={savingIP}>
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmEditIP}
+              disabled={savingIP || !selectedNewIPId || editIPAvailableIPs.length === 0}
+            >
+              {savingIP ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Changing...</>
+              ) : (
+                <><Server className="w-4 h-4 mr-2" />Change IP</>
               )}
             </Button>
           </DialogFooter>
