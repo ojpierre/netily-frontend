@@ -1436,6 +1436,7 @@ export function LandingPage() {
 
       {/* ━━━ 6b. BILLING CALCULATOR ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <BillingCalculator
+        geo={geo}
         onGetStarted={() => scrollTo("contact")}
         onContactSales={() => {
           setLeadForm((prev) => ({

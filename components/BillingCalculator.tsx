@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, useInView } from "framer-motion"
 import { Check, Users, Wifi, TrendingUp, Zap, Shield, Star } from "lucide-react"
+import type { GeoInfo } from "@/hooks/use-geo"
 
 // ──────────────────────────────────────────────────────
 // Types
@@ -40,8 +41,26 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://api.netily.co.ke/api/v1"
 
+// Plain number formatter (used for non-currency values like client counts)
 function fmt(n: number) {
   return n.toLocaleString("en-KE", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+}
+
+// Currency formatter: converts KES amount → local currency, prefixes with symbol
+// The API always returns amounts in KES; we convert for display only.
+const KES_FALLBACK: GeoInfo = {
+  countryCode: "KE",
+  countryName: "Kenya",
+  currency: "KES",
+  currencySymbol: "KSh",
+  rateFromKES: 1,
+  paymentCopy: "M-Pesa",
+  flag: "🇰🇪",
+}
+
+function fmtCurrency(kesAmount: number, geo: GeoInfo): string {
+  const local = Math.round(kesAmount * geo.rateFromKES)
+  return `${geo.currencySymbol} ${local.toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
 // ──────────────────────────────────────────────────────
@@ -177,33 +196,35 @@ function PlanCard({
   plan,
   onGetStarted,
   highlighted,
+  geo,
 }: {
   plan: PlanEstimate
   onGetStarted: () => void
   highlighted: boolean
+  geo: GeoInfo
 }) {
   const style = defaultStyle(plan.plan_code)
   const Icon = style.icon
 
-  // Cost rows
+  // Cost rows — amounts are in KES from API, converted to local currency for display
   const rows = [
     ...(plan.is_metered
       ? [
-          { label: "Base license fee", value: `KES ${fmt(plan.base_fee)}/mo` },
+          { label: "Base license fee", value: `${fmtCurrency(plan.base_fee, geo)}/mo` },
           {
-            label: `${fmt(plan.billable_pppoe_clients)} PPPoE clients × KES ${fmt(plan.pppoe_unit_price)}`,
-            value: `KES ${fmt(plan.pppoe_charge)}`,
+            label: `${fmt(plan.billable_pppoe_clients)} PPPoE clients × ${fmtCurrency(plan.pppoe_unit_price, geo)}`,
+            value: fmtCurrency(plan.pppoe_charge, geo),
           },
           ...(plan.hotspot_share > 0
             ? [
                 {
-                  label: `${plan.hotspot_share_pct}% hotspot share on KES ${fmt(plan.input_hotspot_revenue)}`,
-                  value: `KES ${fmt(plan.hotspot_share)}`,
+                  label: `${plan.hotspot_share_pct}% hotspot share on ${fmtCurrency(plan.input_hotspot_revenue, geo)}`,
+                  value: fmtCurrency(plan.hotspot_share, geo),
                 },
               ]
             : []),
         ]
-      : [{ label: "Flat monthly fee", value: `KES ${fmt(plan.base_fee)}/mo` }]),
+      : [{ label: "Flat monthly fee", value: `${fmtCurrency(plan.base_fee, geo)}/mo` }]),
   ]
 
   return (
@@ -236,9 +257,9 @@ function PlanCard({
       <div className="mb-5">
         <div className="flex items-baseline gap-1">
           <span className={`text-4xl font-extrabold ${style.accent}`}>
-            {fmt(plan.estimated_monthly)}
+            {fmtCurrency(plan.estimated_monthly, geo)}
           </span>
-          <span className="text-slate-500 text-sm font-medium">KES/mo</span>
+          <span className="text-slate-500 text-sm font-medium">/mo</span>
         </div>
         <p className="text-[11px] text-slate-400 mt-0.5">Based on your inputs</p>
       </div>
@@ -254,7 +275,7 @@ function PlanCard({
         ))}
         <div className="border-t border-slate-200 dark:border-slate-700 pt-2 flex items-center justify-between text-sm">
           <span className="font-semibold text-slate-700 dark:text-slate-300">Total</span>
-          <span className={`font-bold ${style.accent}`}>KES {fmt(plan.estimated_monthly)}/mo</span>
+          <span className={`font-bold ${style.accent}`}>{fmtCurrency(plan.estimated_monthly, geo)}/mo</span>
         </div>
       </div>
 
@@ -291,10 +312,13 @@ function PlanCard({
 export function BillingCalculator({
   onGetStarted,
   onContactSales,
+  geo: geoProp,
 }: {
   onGetStarted: () => void
   onContactSales?: () => void
+  geo?: GeoInfo
 }) {
+  const geo = geoProp ?? KES_FALLBACK
   const [pppoeClients, setPppoeClients] = useState(30)
   const [hotspotRevenue, setHotspotRevenue] = useState(5000)
   const [plans, setPlans] = useState<CalcResult>([])
@@ -395,7 +419,7 @@ export function BillingCalculator({
               max={100000}
               step={500}
               onChange={setHotspotRevenue}
-              formatValue={(v) => `KES ${fmt(v)}`}
+              formatValue={(v) => fmtCurrency(v, geo)}
               icon={Wifi}
             />
           </div>
@@ -404,10 +428,10 @@ export function BillingCalculator({
           <div className="mt-6 flex flex-wrap gap-2 justify-center">
             <p className="w-full text-center text-xs text-slate-400 mb-1 font-medium">Quick presets</p>
             {[
-              { label: "Starter (15 PPPoE, 0 hotspot)", pppoe: 15, hotspot: 0 },
-              { label: "Growing (50 PPPoE, KES 10K hotspot)", pppoe: 50, hotspot: 10000 },
-              { label: "Large (150 PPPoE, KES 30K hotspot)", pppoe: 150, hotspot: 30000 },
-              { label: "Enterprise (300 PPPoE, KES 80K hotspot)", pppoe: 300, hotspot: 80000 },
+              { label: `Starter (15 PPPoE, no hotspot)`, pppoe: 15, hotspot: 0 },
+              { label: `Growing (50 PPPoE, ${fmtCurrency(10000, geo)} hotspot)`, pppoe: 50, hotspot: 10000 },
+              { label: `Large (150 PPPoE, ${fmtCurrency(30000, geo)} hotspot)`, pppoe: 150, hotspot: 30000 },
+              { label: `Enterprise (300 PPPoE, ${fmtCurrency(80000, geo)} hotspot)`, pppoe: 300, hotspot: 80000 },
             ].map((p) => (
               <button
                 key={p.label}
@@ -449,6 +473,7 @@ export function BillingCalculator({
                 plan={plan}
                 onGetStarted={onGetStarted}
                 highlighted={plan.plan_id === cheapestId}
+                geo={geo}
               />
             ))}
 
@@ -506,7 +531,7 @@ export function BillingCalculator({
             transition={{ delay: 0.5 }}
             className="text-center text-xs text-slate-400 mt-8"
           >
-            Estimates shown in KES. Actuals depend on active users per billing cycle. No credit card required to start.
+            Estimates shown in {geo.currency}{geo.countryCode !== "KE" ? ` (converted from KES at approx. 1 KES = ${geo.rateFromKES} ${geo.currency})` : ""}. Actuals depend on active users per billing cycle. No credit card required to start.
           </motion.p>
         )}
       </div>
