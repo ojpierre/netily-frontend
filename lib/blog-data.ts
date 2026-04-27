@@ -605,7 +605,358 @@ export const blogPosts: BlogPost[] = [
       { type: "cta" },
     ],
   },
+
+  // ── Article 4: ISP Growth Strategies — Mark Mutinda — 2026-04-07 ─────────
+  {
+    slug: "how-to-grow-isp-business-kenya",
+    title: "How to Grow Your ISP Business in Kenya: 7 Proven Strategies for 2026",
+    excerpt:
+      "Kenya's internet penetration is still under 50% — the market is massive. But most ISPs stagnate after their first 200 subscribers. These are the seven strategies that actually work for growing an ISP in Kenya's competitive market.",
+    coverGradient: "from-violet-600 via-purple-600 to-indigo-700",
+    category: "Growth",
+    categoryColor: "purple",
+    readTime: 8,
+    publishedAt: "2026-04-07",
+    updatedAt: "2026-04-27",
+    author: {
+      name: "Mark Mutinda",
+      role: "ISP Business Consultant",
+      initials: "MM",
+      avatarBg: "bg-violet-600",
+    },
+    tags: ["ISP Growth", "Kenya", "Business Strategy", "Subscriber Acquisition", "Churn"],
+    metaTitle: "How to Grow Your ISP Business in Kenya 2026: 7 Proven Strategies | Netily",
+    metaDescription:
+      "Struggling to grow your ISP beyond 200 subscribers? These 7 data-backed strategies help Kenyan ISPs acquire new subscribers, reduce churn, and increase revenue per user in 2026.",
+    keywords: [
+      "how to grow isp business kenya",
+      "isp business kenya",
+      "grow isp subscribers kenya",
+      "isp marketing kenya",
+      "reduce isp churn kenya",
+      "isp revenue kenya",
+      "kenya internet provider business",
+      "wisp business kenya",
+    ],
+    toc: [
+      { id: "market-opportunity", text: "Kenya's ISP Market Opportunity in 2026" },
+      { id: "reduce-churn", text: "Strategy 1: Eliminate Billing Friction to Cut Churn" },
+      { id: "referral-program", text: "Strategy 2: Build a Referral Programme That Works" },
+      { id: "tiered-plans", text: "Strategy 3: Create Plan Tiers That Upsell Naturally" },
+      { id: "self-service", text: "Strategy 4: Deploy a Customer Self-Service Portal" },
+      { id: "b2b-enterprise", text: "Strategy 5: Target SME and Enterprise Accounts" },
+      { id: "hotspot-expansion", text: "Strategy 6: Add Hotspot Revenue in High-Traffic Areas" },
+      { id: "loyalty", text: "Strategy 7: Retain Subscribers with a Loyalty Programme" },
+    ],
+    content: [
+      {
+        type: "p",
+        html: "Kenya has over 55 million people. Fixed internet penetration is still well below 50%. The market is enormous — and yet most ISPs I speak to have been stuck between 150 and 400 subscribers for two or three years. The problem is almost never the product. It's the systems.",
+      },
+      {
+        type: "p",
+        html: "Most Kenyan ISPs lose as many subscribers every month as they acquire. They're running on manual billing that breaks under volume. They have no referral engine, no self-service portal, no upsell path. The seven strategies below address the root causes of ISP stagnation — in order of the ROI I've seen them deliver.",
+      },
+
+      { type: "h2", text: "Kenya's ISP Market Opportunity in 2026", id: "market-opportunity" },
+      {
+        type: "p",
+        html: "According to CA Kenya's Q3 2025 sector statistics, Kenya has approximately 12.4 million fixed and mobile broadband subscribers. However, <strong>fixed home broadband penetration remains low in secondary towns and peri-urban areas</strong> — exactly where most small and medium ISPs operate.",
+      },
+      {
+        type: "p",
+        html: "The key dynamic: <strong>mobile data (bundles) and fixed broadband are increasingly competitive</strong>. An ISP that can offer faster, more reliable, and cheaper connectivity than Safaricom Home Fibre or Airtel 5G home broadband — especially outside Nairobi — has a significant window of opportunity. Winning that window requires operational excellence, not just coverage.",
+      },
+      {
+        type: "callout",
+        variant: "info",
+        title: "The churn-acquisition trap",
+        text: "Most ISPs focus almost entirely on subscriber acquisition while ignoring churn. If your monthly churn rate is 5%, you need to add 50 new subscribers every month just to stay at 1,000. Fix churn first — then growth compounds.",
+      },
+
+      { type: "h2", text: "Strategy 1: Eliminate Billing Friction to Cut Churn", id: "reduce-churn" },
+      {
+        type: "p",
+        html: "The single most common reason subscribers churn is not because they found a better ISP. It's because <strong>their internet expired, renewal was inconvenient, and they didn't bother</strong>. In Kenya, where M-Pesa makes every other purchase instant, waiting for an operator to manually activate your internet after paying is enough friction to lose a subscriber.",
+      },
+      {
+        type: "ol",
+        items: [
+          "<strong>Automate M-Pesa STK Push renewal reminders</strong> — Send reminders 3 days before expiry, the day before, and the day of. Each reminder should include a one-tap payment link or prompt an STK Push directly. ISPs using automated reminders report 20–35% lower churn.",
+          "<strong>Auto-reactivate on payment</strong> — The moment a subscriber pays, their internet should activate within 10 seconds via MikroTik API. Every minute of delay increases the chance they call to complain or decide not to renew.",
+          "<strong>Offer auto-renew via standing order</strong> — Let subscribers pre-authorise a monthly M-Pesa debit. Those who opt in churn at 3–5x lower rates than manual payers.",
+        ],
+      },
+
+      { type: "h2", text: "Strategy 2: Build a Referral Programme That Works", id: "referral-program" },
+      {
+        type: "p",
+        html: "In Kenyan communities — whether in Kisumu, Nakuru, or a Nairobi estate — word of mouth is still the primary driver of new ISP subscribers. A structured referral programme converts informal recommendations into a systematic acquisition channel.",
+      },
+      {
+        type: "p",
+        html: "<strong>The mechanics that work:</strong> Give existing subscribers a unique referral code. When they refer a new subscriber who activates and pays their first month, the existing subscriber gets one free month (or a data top-up). The new subscriber gets 15% off their first month. Track this via your billing platform — not via a WhatsApp group.",
+      },
+      {
+        type: "ul",
+        items: [
+          "Cost: roughly KES 2,000–3,000 per referred subscriber (one free month)",
+          "Comparison: paid ads and signage in Nairobi cost KES 5,000–15,000 per acquired subscriber",
+          "Retention: referred subscribers churn 30–40% less than cold-acquired subscribers (they came via social proof)",
+          "Self-reinforcing: a 500-subscriber ISP running this programme adds 15–25 new subscribers per month from referrals alone",
+        ],
+      },
+
+      { type: "h2", text: "Strategy 3: Create Plan Tiers That Upsell Naturally", id: "tiered-plans" },
+      {
+        type: "p",
+        html: "Most ISPs offer one or two plans. This is a significant revenue leak. <strong>Plan tiering is one of the highest-ROI changes you can make to your revenue model</strong> — it costs nothing to implement and increases average revenue per subscriber (ARPU) by 20–40%.",
+      },
+      {
+        type: "table",
+        headers: ["Tier", "Speed", "Price", "Target Household"],
+        rows: [
+          ["Basic", "5 Mbps", "KES 1,500/mo", "Single user, light browsing"],
+          ["Home", "15 Mbps", "KES 2,500/mo", "2–3 users, streaming + social"],
+          ["Home Plus", "30 Mbps", "KES 3,500/mo", "3–5 users, gaming + video calls"],
+          ["Power", "50 Mbps", "KES 5,000/mo", "Heavy users, home office, 4K streaming"],
+          ["Business", "100 Mbps static IP", "KES 8,000–15,000/mo", "SME offices, CCTV, remote work"],
+        ],
+      },
+      {
+        type: "p",
+        html: "The key: <strong>make the middle tiers the obvious choice</strong>. Price Basic slightly too low to be satisfying and Home Plus as the clear best value. Most subscribers will anchor to the middle two tiers, lifting ARPU without raising prices for anyone.",
+      },
+
+      { type: "h2", text: "Strategy 4: Deploy a Customer Self-Service Portal", id: "self-service" },
+      {
+        type: "p",
+        html: "Every subscriber who calls your support line to pay or check their account status is costing you time and money. A customer self-service portal eliminates this entirely — and it's a competitive differentiator that builds trust.",
+      },
+      {
+        type: "p",
+        html: "What the portal must do: let subscribers pay via M-Pesa (STK Push directly from the portal), see their current plan and expiry date, check their data usage, upgrade their plan, and download invoices. ISPs that deploy a proper self-service portal report <strong>60–80% reduction in billing-related support calls</strong>.",
+      },
+
+      { type: "h2", text: "Strategy 5: Target SME and Enterprise Accounts for Higher ARPU", id: "b2b-enterprise" },
+      {
+        type: "p",
+        html: "A single SME customer paying KES 8,000–15,000/month is equivalent to 4–7 residential subscribers. Small businesses — shops, restaurants, salons, medical clinics, schools — are underserved by Safaricom and Airtel in most Kenyan secondary towns, and they value reliability and local support over price.",
+      },
+      {
+        type: "p",
+        html: "<strong>How to win SME accounts:</strong> offer a static IP address, SLA-backed uptime (99.5% minimum), a dedicated support line, and a business invoice for VAT. Many businesses will pay 2–3x the residential rate for these additions. Target estates, shopping centres, and trading areas in your coverage zone.",
+      },
+
+      { type: "h2", text: "Strategy 6: Add Hotspot Revenue in High-Traffic Areas", id: "hotspot-expansion" },
+      {
+        type: "p",
+        html: "If your infrastructure covers any high-traffic public area — a market, bus terminal, shopping centre, hospital, or school — deploying a paid Wi-Fi hotspot is an incremental revenue stream with low marginal cost.",
+      },
+      {
+        type: "p",
+        html: "With a billing platform that supports hotspot captive portals (like Netily), you can deploy a branded Wi-Fi hotspot with M-Pesa payment in under a day. Users pay per session or buy a daily/weekly voucher. Revenue depends heavily on location — a well-placed hotspot at a Nairobi market or matatu stage can generate KES 10,000–50,000/month.",
+      },
+
+      { type: "h2", text: "Strategy 7: Retain Subscribers with a Loyalty Programme", id: "loyalty" },
+      {
+        type: "p",
+        html: "Subscriber tenure is the highest predictor of profitability. A subscriber who has been with you for 18+ months has recovered their acquisition cost many times over — and they're far less likely to churn than a subscriber in their first three months.",
+      },
+      {
+        type: "ul",
+        items: [
+          "<strong>Points for on-time payment:</strong> Subscribers earn points for every month they renew on or before their expiry date",
+          "<strong>Milestones:</strong> At 3, 6, 12, and 24 months, award a free upgrade, bonus data, or a free month",
+          "<strong>Referral multiplier:</strong> Subscribers with 12+ months tenure earn double referral rewards",
+          "<strong>Priority support:</strong> Tenure-based subscribers get a dedicated support channel — costs you nothing, feels premium to them",
+        ],
+      },
+      {
+        type: "p",
+        html: "Even a simple loyalty programme — tracking tenure and sending a 'thank you' message at the 12-month mark with a free week of internet — meaningfully improves retention. <strong>The ISPs I've seen implement loyalty programmes reduce annual churn by 8–15 percentage points</strong>.",
+      },
+
+      { type: "hr" },
+      { type: "cta" },
+    ],
+  },
+
+  // ── Article 5: ISP Customer Service — Mark Mutinda — 2026-04-20 ──────────
+  {
+    slug: "isp-customer-service-kenya-best-practices",
+    title: "ISP Customer Service in Kenya: How to Build a Support Operation That Retains Subscribers",
+    excerpt:
+      "Poor customer service is the silent churn driver that no ISP owner wants to admit. This practical guide covers exactly how Kenyan ISPs should structure their support operation — from ticketing to WhatsApp — to keep subscribers loyal.",
+    coverGradient: "from-cyan-500 via-sky-600 to-blue-700",
+    category: "Operations",
+    categoryColor: "blue",
+    readTime: 7,
+    publishedAt: "2026-04-20",
+    updatedAt: "2026-04-27",
+    author: {
+      name: "Mark Mutinda",
+      role: "ISP Business Consultant",
+      initials: "MM",
+      avatarBg: "bg-sky-600",
+    },
+    tags: ["Customer Service", "Kenya", "ISP Operations", "Churn Reduction", "Support"],
+    metaTitle: "ISP Customer Service Kenya 2026: Best Practices for Subscriber Retention | Netily",
+    metaDescription:
+      "Customer service is the most under-invested area in Kenyan ISP operations. This guide shows you exactly how to structure support, use ticketing, and automate notifications to retain more subscribers.",
+    keywords: [
+      "isp customer service kenya",
+      "isp subscriber retention kenya",
+      "isp support operation kenya",
+      "internet provider customer service",
+      "isp churn reduction kenya",
+      "isp ticketing system kenya",
+      "subscriber support kenya isp",
+    ],
+    toc: [
+      { id: "why-support-matters", text: "Why Customer Support Drives Churn More Than Price" },
+      { id: "support-channels", text: "Building the Right Support Channel Mix" },
+      { id: "ticketing", text: "Implementing a Ticketing System" },
+      { id: "proactive-comms", text: "Proactive Communication: The Biggest Lever" },
+      { id: "self-service-support", text: "Self-Service Support to Cut Volume" },
+      { id: "support-metrics", text: "The 4 Support Metrics Every ISP Should Track" },
+    ],
+    content: [
+      {
+        type: "p",
+        html: "When I audit ISP businesses across Kenya, the pattern is almost always the same: the owner has spent months optimising network infrastructure, negotiating backbone bandwidth, and closing subscriber deals — but the support operation is a WhatsApp group and a personal phone number that rings at 11pm.",
+      },
+      {
+        type: "p",
+        html: "This is a serious business problem. <strong>In Kenya's ISP market, most subscriber churn is triggered by a service experience, not by a competitor's offer</strong>. The subscriber who leaves usually had two or three unresolved issues before they made the call. This guide addresses that directly.",
+      },
+
+      { type: "h2", text: "Why Customer Support Drives Churn More Than Price", id: "why-support-matters" },
+      {
+        type: "p",
+        html: "Research across telecom markets consistently shows that subscribers who experience a resolved support issue are <strong>more loyal than subscribers who never had an issue at all</strong>. The corollary is also true: subscribers whose issues go unresolved — or who can't even reach support — churn at 3–5x the baseline rate.",
+      },
+      {
+        type: "p",
+        html: "In the Kenyan market, two support scenarios cause the most churn:",
+      },
+      {
+        type: "ul",
+        items: [
+          "<strong>Payment paid, internet not restored</strong> — A subscriber pays via M-Pesa but their connection isn't activated within minutes. They call support, no one answers, and they spend the evening without internet. Next month, they're gone.",
+          "<strong>Network outage with no communication</strong> — A tower goes down affecting 50 subscribers. None of them receive any notification. They all call independently, get no answer, and assume the ISP is unreliable. Churn rate for that cohort jumps 30–50% in the following month.",
+        ],
+      },
+      {
+        type: "callout",
+        variant: "warning",
+        title: "The silent churn driver",
+        text: "Most subscribers who churn due to poor service never complain. They simply don't renew. You'll never know why unless you track support response times and cross-reference them with churn data.",
+      },
+
+      { type: "h2", text: "Building the Right Support Channel Mix for a Kenyan ISP", id: "support-channels" },
+      {
+        type: "p",
+        html: "The right channel mix for a Kenyan ISP in 2026 is not what it was three years ago. Here's the priority order:",
+      },
+      {
+        type: "ol",
+        items: [
+          "<strong>WhatsApp Business (primary)</strong> — Most Kenyan subscribers default to WhatsApp for everything. Set up a WhatsApp Business account with a greeting message, away message with expected response time, and quick replies for the 5 most common queries. Do not use your personal number.",
+          "<strong>In-app/portal support</strong> — If you have a customer self-service portal, add a support ticket form. Subscribers who can submit a ticket and track its status have much higher patience than those who feel they're shouting into the void.",
+          "<strong>SMS for urgent outages</strong> — When a significant outage affects 20+ subscribers, broadcast an SMS notification immediately. 'Network maintenance in your area. Expected restoration: 2 hours. We apologise for the inconvenience.' This one message prevents 50 inbound calls.",
+          "<strong>Phone (backup only)</strong> — A phone line for escalations and enterprise accounts. Not your personal number. Route through a virtual number that can be forwarded to on-call staff.",
+          "<strong>Email for billing queries</strong> — Subscribers who need VAT invoices or formal billing documentation prefer email. It also creates an audit trail.",
+        ],
+      },
+
+      { type: "h2", text: "Implementing a Ticketing System for Your ISP", id: "ticketing" },
+      {
+        type: "p",
+        html: "A ticketing system is not optional at 200+ subscribers. Without it, support requests fall through the cracks, issues get resolved twice (or not at all), and you have no data on support volume or resolution time.",
+      },
+      {
+        type: "p",
+        html: "For a Kenyan ISP, you don't need an enterprise ticketing platform. You need a system that:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Creates a ticket automatically from WhatsApp, portal form, or email",
+          "Assigns tickets to a staff member and tracks resolution status",
+          "Sends the subscriber an automatic acknowledgement with a ticket reference number",
+          "Escalates unresolved tickets after a defined time (e.g., 4 hours for connectivity issues)",
+          "Generates a weekly report of ticket volume, resolution time, and repeat issues",
+        ],
+      },
+      {
+        type: "p",
+        html: "Netily's support module includes an integrated ticketing system built specifically for ISP support workflows. Tickets created from the customer portal are linked directly to the subscriber's account, giving your support team instant access to their plan, payment history, and device details.",
+      },
+
+      { type: "h2", text: "Proactive Communication: The Biggest Support Lever", id: "proactive-comms" },
+      {
+        type: "p",
+        html: "The most cost-effective customer service improvement any ISP can make is to <strong>communicate before subscribers ask</strong>. Every inbound support contact you prevent saves 10–15 minutes of staff time and — more importantly — prevents the frustration that drives churn.",
+      },
+      {
+        type: "table",
+        headers: ["Event", "Message Timing", "Channel", "Result"],
+        rows: [
+          ["Subscription expiry approaching", "3 days, 1 day before", "SMS + STK Push", "Prevents lapsed subscribers calling to ask why internet stopped"],
+          ["Payment received", "Within 60 seconds", "SMS", "Prevents 'did you receive my payment?' calls"],
+          ["Account suspended", "Immediately on suspension", "SMS", "Subscriber knows why and can pay immediately"],
+          ["Network maintenance planned", "24 hours notice", "SMS + WhatsApp broadcast", "Prevents outage-related support calls"],
+          ["Unplanned outage", "Within 15 minutes of detection", "SMS + WhatsApp broadcast", "Prevents 50 simultaneous 'is the internet down?' calls"],
+          ["Account reactivated after payment", "Within 60 seconds", "SMS", "Confirms internet is back — eliminates post-payment confusion calls"],
+        ],
+      },
+
+      { type: "h2", text: "Self-Service Support to Cut Inbound Volume by 60%", id: "self-service-support" },
+      {
+        type: "p",
+        html: "The highest-volume support queries for most Kenyan ISPs are entirely self-serviceable:",
+      },
+      {
+        type: "ul",
+        items: [
+          "<strong>\"How do I pay?\"</strong> — Covered by an STK Push prompt in the self-service portal",
+          "<strong>\"When does my subscription expire?\"</strong> — Visible on the subscriber portal dashboard",
+          "<strong>\"I paid but my internet isn't working\"</strong> — Auto-resolved by M-Pesa + MikroTik automation; if not, a portal status indicator shows the issue",
+          "<strong>\"Can I get my invoice?\"</strong> — Downloadable directly from the portal",
+          "<strong>\"What plan am I on?\"</strong> — Visible on the portal dashboard with upgrade options",
+        ],
+      },
+      {
+        type: "p",
+        html: "ISPs that deploy a full self-service portal — with payment, usage, invoicing, and plan management — typically see a <strong>60–80% reduction in billing-related support calls within the first 60 days</strong>.",
+      },
+
+      { type: "h2", text: "The 4 Support Metrics Every Kenyan ISP Should Track", id: "support-metrics" },
+      {
+        type: "ol",
+        items: [
+          "<strong>First Response Time (FRT)</strong> — How long from ticket creation to first staff reply? Target: under 2 hours during business hours, under 4 hours on weekends. Every hour of delay increases churn probability.",
+          "<strong>Resolution Time</strong> — How long from ticket creation to closure? Target: under 24 hours for billing issues, under 4 hours for connectivity outages. Track by category to identify systemic problems.",
+          "<strong>Ticket Recurrence Rate</strong> — What percentage of subscribers open more than one ticket per month? High recurrence indicates an unresolved systemic issue (network problem, billing bug, or recurring payment failure).",
+          "<strong>Support-to-Churn Correlation</strong> — Monthly: compare churn data against support history for churned subscribers. If 60%+ of churned subscribers had an unresolved ticket in the 30 days before leaving, that's your primary retention problem.",
+        ],
+      },
+      {
+        type: "callout",
+        variant: "tip",
+        title: "Start with WhatsApp Business today",
+        text: "You don't need expensive software to improve your support operation immediately. Setting up WhatsApp Business with a professional greeting, away message, and quick replies takes 30 minutes and immediately improves the subscriber experience. Do it today.",
+      },
+
+      { type: "hr" },
+      { type: "cta" },
+    ],
+  },
 ]
+
+// ─── Sort by most recent first ─────────────────────────────────────────────
+blogPosts.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 

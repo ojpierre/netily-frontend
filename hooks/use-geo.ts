@@ -85,7 +85,41 @@ const GEO_TABLE: Record<string, GeoInfo> = {
 }
 
 const FALLBACK: GeoInfo = GEO_TABLE["KE"]
-const SESSION_KEY = "netily_geo"
+const STORAGE_KEY = "netily_geo_v2"
+// localStorage: persists across sessions so the IP lookup only fires once per device
+// Falls back to sessionStorage if localStorage is unavailable (e.g. incognito + blocked)
+function readStorage(): GeoInfo | null {
+  for (const store of [
+    typeof localStorage !== "undefined" ? localStorage : null,
+    typeof sessionStorage !== "undefined" ? sessionStorage : null,
+  ]) {
+    try {
+      const raw = store?.getItem(STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw) as GeoInfo
+        if (parsed?.countryCode) return parsed
+      }
+    } catch {
+      // blocked or parse error — try next
+    }
+  }
+  return null
+}
+
+function writeStorage(value: GeoInfo): void {
+  const json = JSON.stringify(value)
+  for (const store of [
+    typeof localStorage !== "undefined" ? localStorage : null,
+    typeof sessionStorage !== "undefined" ? sessionStorage : null,
+  ]) {
+    try {
+      store?.setItem(STORAGE_KEY, json)
+      return // written successfully
+    } catch {
+      // quota exceeded or blocked — try next
+    }
+  }
+}
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 export function useGeo() {
@@ -94,36 +128,27 @@ export function useGeo() {
   const [overridden, setOverridden] = useState(false)
 
   useEffect(() => {
-    // 1. Check sessionStorage first (avoid hammering the API on every render)
-    try {
-      const cached = sessionStorage.getItem(SESSION_KEY)
-      if (cached) {
-        const parsed = JSON.parse(cached)
-        if (parsed && parsed.countryCode) {
-          setGeoState(parsed)
-          return
-        }
-      }
-    } catch {
-      // sessionStorage blocked (private mode etc) — fall through
+    // 1. Check persistent storage first — skip IP lookup if we have a saved preference
+    const cached = readStorage()
+    if (cached) {
+      setGeoState(cached)
+      return
     }
 
-    // 2. Detect via ipapi.co — free, no API key required, 1k req/day
+    // 2. Detect via ipapi.co with trial token (1,000 req/day)
     setLoading(true)
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 4000)
 
-    fetch("https://ipapi.co/json/", { signal: controller.signal })
+    fetch("https://ipapi.co/json/?token=0S9rn0ymMuzq4gISESx3lztbI8h0jKHJpPiiVK0WukzKrvI50D", {
+      signal: controller.signal,
+    })
       .then((r) => r.json())
       .then((data: { country_code?: string }) => {
         const code = (data.country_code || "KE").toUpperCase()
         const resolved = GEO_TABLE[code] ?? FALLBACK
         setGeoState(resolved)
-        try {
-          sessionStorage.setItem(SESSION_KEY, JSON.stringify(resolved))
-        } catch {
-          // ignore
-        }
+        writeStorage(resolved)
       })
       .catch(() => {
         // Network error or abort — stay with fallback (KE)
@@ -150,16 +175,12 @@ export function useGeo() {
     return showDisclaimer ? `≈ ${base}` : base
   }
 
-  /** Override the auto-detected country manually */
+  /** Override the auto-detected country manually — persists to localStorage */
   const setCountry = (code: string) => {
     const resolved = GEO_TABLE[code.toUpperCase()] ?? FALLBACK
     setGeoState(resolved)
     setOverridden(true)
-    try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(resolved))
-    } catch {
-      // ignore
-    }
+    writeStorage(resolved)
   }
 
   const isEastAfrica = geo.countryCode !== "KE" && !!GEO_TABLE[geo.countryCode]

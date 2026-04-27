@@ -301,6 +301,12 @@ export function LandingPage() {
 
   // Geolocation — auto-detects East African country for local currency display
   const { geo, fmt, setCountry, GEO_TABLE } = useGeo()
+  const [countrySwitcherOpen, setCountrySwitcherOpen] = useState(false)
+
+  // Ordered list of supported countries for the switcher
+  const SUPPORTED_COUNTRIES = ["KE", "UG", "TZ", "RW", "ET", "BI", "SS"].filter(
+    (c) => !!GEO_TABLE[c],
+  )
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -361,7 +367,67 @@ export function LandingPage() {
             </nav>
 
             {/* Right side */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-3">
+              {/* Country switcher */}
+              <div className="relative">
+                <button
+                  onClick={() => setCountrySwitcherOpen(!countrySwitcherOpen)}
+                  aria-label="Switch country / currency"
+                  aria-expanded={countrySwitcherOpen}
+                  className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-lg transition-colors select-none"
+                >
+                  <span className="text-base leading-none">{geo.flag}</span>
+                  <span className="text-xs font-semibold tracking-wide">{geo.currency}</span>
+                  <ChevronDown
+                    className={`w-3 h-3 transition-transform duration-200 ${countrySwitcherOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {countrySwitcherOpen && (
+                  <>
+                    {/* Backdrop */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setCountrySwitcherOpen(false)}
+                    />
+                    {/* Dropdown */}
+                    <div className="absolute right-0 top-full mt-2 z-50 w-48 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
+                      <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                          Show prices in
+                        </p>
+                      </div>
+                      {SUPPORTED_COUNTRIES.map((code) => {
+                        const g = GEO_TABLE[code]!
+                        const isActive = geo.countryCode === code
+                        return (
+                          <button
+                            key={code}
+                            onClick={() => { setCountry(code); setCountrySwitcherOpen(false) }}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left transition-colors ${
+                              isActive
+                                ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"
+                                : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            }`}
+                          >
+                            <span className="text-base">{g.flag}</span>
+                            <span className="flex-1 font-medium">{g.countryName}</span>
+                            <span className={`text-xs font-semibold ${isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`}>
+                              {g.currency}
+                            </span>
+                            {isActive && (
+                              <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+
               <ThemeToggle />
               <Link
                 href="/register"
@@ -409,6 +475,38 @@ export function LandingPage() {
               >
                 Blog
               </Link>
+              <hr className="my-2 border-slate-200 dark:border-slate-700" />
+              {/* Mobile country switcher */}
+              <div className="py-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">
+                  Show prices in
+                </p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {SUPPORTED_COUNTRIES.map((code) => {
+                    const g = GEO_TABLE[code]!
+                    const isActive = geo.countryCode === code
+                    return (
+                      <button
+                        key={code}
+                        onClick={() => { setCountry(code); setMobileMenuOpen(false) }}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors ${
+                          isActive
+                            ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold"
+                            : "text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700"
+                        }`}
+                      >
+                        <span>{g.flag}</span>
+                        <span className="font-medium">{g.countryName}</span>
+                        {isActive && (
+                          <svg className="w-3 h-3 text-blue-600 dark:text-blue-400 ml-auto shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
               <hr className="my-2 border-slate-200 dark:border-slate-700" />
               <a
                 href="#contact"
