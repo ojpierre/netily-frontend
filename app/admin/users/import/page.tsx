@@ -32,8 +32,8 @@ interface ParsedRow {
   plan_name: string
   pppoe_username: string
   pppoe_password: string
-  expires_at: string        // ← ADDED
-  expires_at_parsed?: Date  // ← ADDED
+  expires_at: string
+  expires_at_parsed?: Date
   plan_id?: number
   status: "valid" | "error" | "warning"
   errors: string[]
@@ -73,15 +73,39 @@ function formatPhone(phone: string): string {
   return digits
 }
 
+// FIX: Improved date parsing that handles US format (M/DD/YYYY) correctly
 function parseExpiryDate(raw: string): Date | null {
   if (!raw) return null
   const trimmed = raw.trim()
-  // Accept: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY
+  
+  // ISO: YYYY-MM-DD
   const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-  if (isoMatch) return new Date(`${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}T23:59:59Z`)
+  if (isoMatch) {
+    const date = new Date(`${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}T23:59:59Z`)
+    return isNaN(date.getTime()) ? null : date
+  }
 
-  const dmy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/)
-  if (dmy) return new Date(`${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}T23:59:59Z`)
+  // DD/MM/YYYY or DD-MM-YYYY or M/DD/YYYY or MM/DD/YYYY
+  const slashMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/)
+  if (slashMatch) {
+    let first = parseInt(slashMatch[1], 10)
+    let second = parseInt(slashMatch[2], 10)
+    const year = slashMatch[3]
+    
+    // Case 1: First part > 12 → It MUST be day (DD/MM/YYYY format)
+    if (first > 12) {
+      return new Date(`${year}-${String(second).padStart(2, '0')}-${String(first).padStart(2, '0')}T23:59:59Z`)
+    }
+    
+    // Case 2: Second part > 12 → It MUST be day (M/DD/YYYY or MM/DD/YYYY US format)
+    if (second > 12) {
+      return new Date(`${year}-${String(first).padStart(2, '0')}-${String(second).padStart(2, '0')}T23:59:59Z`)
+    }
+    
+    // Case 3: Both parts ≤ 12 → Ambiguous. Default to US format (month/day/year)
+    // because the CSV source uses M/DD/YYYY style (e.g., 5/17/2026)
+    return new Date(`${year}-${String(first).padStart(2, '0')}-${String(second).padStart(2, '0')}T23:59:59Z`)
+  }
 
   return null
 }
@@ -99,7 +123,7 @@ function validateRow(raw: Record<string, string>, rowNum: number, plans: Plan[])
   const plan_name = raw.plan_name?.trim() || ""
   const pppoe_username = raw.pppoe_username?.trim() || ""
   const pppoe_password = raw.pppoe_password?.trim() || ""
-  const expires_at_raw = raw.expires_at?.trim() || ""          // ← ADDED
+  const expires_at_raw = raw.expires_at?.trim() || ""
 
   if (!first_name) errors.push("first_name required")
   if (!last_name) errors.push("last_name required")
@@ -122,7 +146,7 @@ function validateRow(raw: Record<string, string>, rowNum: number, plans: Plan[])
     warnings.push("No plan_name — user will be created without a service")
   }
 
-  // ── Expiry date validation ──────────────────────────────────
+  // ── Expiry date validation with improved US format support ──
   let expires_at_parsed: Date | undefined
   if (expires_at_raw) {
     const parsed = parseExpiryDate(expires_at_raw)
@@ -176,7 +200,7 @@ export default function UsersImportPage() {
   const [loadingPlans, setLoadingPlans] = useState(false)
   const [currentRowLabel, setCurrentRowLabel] = useState("")
 
-  // 🔧 FIX 1: Prevent browser from opening/downloading dropped files globally
+  // Prevent browser from opening/downloading dropped files globally
   useEffect(() => {
     const prevent = (e: DragEvent) => e.preventDefault()
     document.addEventListener('dragover', prevent)
@@ -237,7 +261,7 @@ export default function UsersImportPage() {
         radius_password: row.pppoe_password || undefined,
         plan_id: row.plan_id,
         router_id: selectedRouterId ? parseInt(selectedRouterId) : undefined,
-        expires_at: row.expires_at_parsed?.toISOString(),   // ← ADDED
+        expires_at: row.expires_at_parsed?.toISOString(),
       })
 
       importResults.push({
@@ -268,13 +292,14 @@ export default function UsersImportPage() {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
-  // UPDATED: Template includes expires_at column
+  // UPDATED: Template includes expires_at column with US date format example
   const downloadTemplate = () => {
     const csv = [
       ALL_HEADERS.join(","),
-      "John,Doe,0712345678,john@example.com,password123,Home Basic 20Mbps,712345678,mypassword,2025-06-15",
-      "Jane,Smith,0723456789,,secretpass,Premium 50Mbps,,,2025-05-30",
-      "Bob,Kamau,0734567890,,,,,,",  // no expiry = use plan default
+      "John,Doe,0712345678,john@example.com,password123,Home Basic 20Mbps,712345678,mypassword,5/15/2026",
+      "Jane,Smith,0723456789,,secretpass,Premium 50Mbps,,,5/30/2025",
+      "Bob,Kamau,0734567890,,,,,,,",  // no expiry = use plan default
+      "Alice,Wangari,0745678900,alice@example.com,pass456,Student Basic 10Mbps,alice123,,6/1/2026",
     ].join("\n")
     const blob = new Blob([csv], { type: "text/csv" })
     const url = URL.createObjectURL(blob)
@@ -331,7 +356,7 @@ export default function UsersImportPage() {
                 <br />
                 <span className="text-xs text-slate-500 mt-1 block">
                   <Calendar className="w-3 h-3 inline mr-1" />
-                  <strong>expires_at</strong>: Custom expiry date (YYYY-MM-DD) — overrides plan default
+                  <strong>expires_at</strong>: Custom expiry date (supports M/DD/YYYY, DD/MM/YYYY, or YYYY-MM-DD) — overrides plan default
                 </span>
               </CardDescription>
             </CardHeader>
@@ -360,7 +385,7 @@ export default function UsersImportPage() {
                 </Select>
               </div>
 
-              {/* 🔧 FIX 2: Replaced drag zone with proper label-based file picker */}
+              {/* Drag and drop zone */}
               <div
                 onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true) }}
                 onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true) }}
@@ -395,7 +420,7 @@ export default function UsersImportPage() {
                   onChange={(e) => {
                     const f = e.target.files?.[0]
                     if (f) handleFileSelect(f)
-                    e.target.value = "" // reset so same file can be re-selected
+                    e.target.value = ""
                   }}
                 />
               </div>
@@ -414,7 +439,10 @@ export default function UsersImportPage() {
                       💡 <strong>New:</strong> Add pppoe_username and pppoe_password columns for custom RADIUS credentials
                     </p>
                     <p className="text-xs text-blue-600 mt-1">
-                      📅 <strong>expires_at:</strong> Add custom expiry date (YYYY-MM-DD) to override plan default
+                      📅 <strong>expires_at:</strong> Add custom expiry date (M/DD/YYYY, DD/MM/YYYY, or YYYY-MM-DD) to override plan default
+                    </p>
+                    <p className="text-xs text-green-600 mt-1">
+                      ✅ <strong>Example:</strong> 5/17/2026 = May 17, 2026 (US format supported)
                     </p>
                   </div>
                 </div>
@@ -496,7 +524,7 @@ export default function UsersImportPage() {
             </div>
           )}
 
-          {/* UPDATED: Preview table with PPPoE credentials column AND Expires column */}
+          {/* Preview table with PPPoE credentials column AND Expires column */}
           <Card>
             <CardHeader>
               <CardTitle>Preview</CardTitle>

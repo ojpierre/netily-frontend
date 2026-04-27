@@ -249,7 +249,6 @@ const mapCustomerToUser = (customer: Customer): User => {
         || null
     })(),
     name: customer.full_name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
-    // FIX: Use empty string instead of 'No email' to prevent validation issues
     email: customer.email || '',
     phone: customer.phone || 'No phone',
     status: mapStatus(customer.status),
@@ -309,6 +308,9 @@ export default function UsersPage() {
   const [userToExtend, setUserToExtend] = useState<User | null>(null)
   const [extending, setExtending] = useState(false)
   const [extendForm, setExtendForm] = useState({ duration_amount: 1, duration_unit: 'DAYS' as 'MINUTES' | 'HOURS' | 'DAYS', plan_id: '' })
+  // ADD: New state for date picker extension
+  const [extendManualDate, setExtendManualDate] = useState<string>("")
+  const [extendMode, setExtendMode] = useState<"duration" | "date">("duration")
   const [activating, setActivating] = useState(false)
   const [togglingRadius, setTogglingRadius] = useState(false)
   const [smsMessage, setSmsMessage] = useState("")
@@ -481,7 +483,6 @@ export default function UsersPage() {
     setIpSearchQuery("")
   }, [selectedPlanPool])
 
-  // FIX: Pass page_size to fetch more than default 20 users
   const loadUsers = async () => {
     try {
       setLoading(true)
@@ -703,7 +704,6 @@ export default function UsersPage() {
     });
   }, [hotspotClients]);
 
-  // FIX: Fixed expired count to also check expiry date
   const stats: UserStats = useMemo(() => {
     const now = new Date()
     const hotspotCount = activeSubscriptions.hotspot?.length || 0;
@@ -712,7 +712,6 @@ export default function UsersPage() {
     
     const isEffectivelyExpired = (u: User) => {
       if (u.status === "expired") return true
-      // Customer is still "active" in backend but their service date has passed
       if ((u.status === "active" || u.status === "inactive") && u.plan !== "No Plan") {
         return new Date(u.expiryDate) <= now
       }
@@ -894,13 +893,17 @@ export default function UsersPage() {
     }
   }
 
+  // UPDATED: Reset the new state when opening extend dialog
   const handleExtendSubscription = (user: User) => {
     setUserToExtend(user)
     setExtendForm({ duration_amount: 1, duration_unit: 'DAYS', plan_id: '' })
+    setExtendManualDate("")
+    setExtendMode("duration")
     loadPlans()
     setShowExtendDialog(true)
   }
 
+  // UPDATED: confirmExtendSubscription with date mode support
   const confirmExtendSubscription = async () => {
     if (!userToExtend || !userToExtend.serviceId) {
       toast.error("No active service to extend")
@@ -908,17 +911,45 @@ export default function UsersPage() {
     }
     try {
       setExtending(true)
-      await adminApi.extendService(
-        userToExtend.customerId,
-        userToExtend.serviceId,
-        extendForm.duration_amount,
-        extendForm.duration_unit,
-        extendForm.plan_id ? parseInt(extendForm.plan_id, 10) : undefined
-      )
-      const planNote = extendForm.plan_id ? ' (plan changed)' : ''
-      toast.success(`Subscription extended by ${extendForm.duration_amount} ${extendForm.duration_unit.toLowerCase()}${planNote}`)
+      
+      if (extendMode === "date" && extendManualDate) {
+        // Calculate duration from now (or current expiry) to selected date
+        const targetDate = new Date(extendManualDate + "T23:59:59Z")
+        const baseDate = userToExtend.expiryDate && new Date(userToExtend.expiryDate) > new Date()
+          ? new Date(userToExtend.expiryDate)
+          : new Date()
+        const diffMs = targetDate.getTime() - baseDate.getTime()
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+        if (diffDays <= 0) {
+          toast.error("Selected date must be in the future")
+          return
+        }
+        await adminApi.extendService(
+          userToExtend.customerId,
+          userToExtend.serviceId,
+          diffDays,
+          'DAYS',
+          extendForm.plan_id ? parseInt(extendForm.plan_id, 10) : undefined
+        )
+        toast.success(
+          `Subscription set to expire on ${new Date(extendManualDate).toLocaleDateString()}${extendForm.plan_id ? ' (plan changed)' : ''}`
+        )
+      } else {
+        await adminApi.extendService(
+          userToExtend.customerId,
+          userToExtend.serviceId,
+          extendForm.duration_amount,
+          extendForm.duration_unit,
+          extendForm.plan_id ? parseInt(extendForm.plan_id, 10) : undefined
+        )
+        const planNote = extendForm.plan_id ? ' (plan changed)' : ''
+        toast.success(`Subscription extended by ${extendForm.duration_amount} ${extendForm.duration_unit.toLowerCase()}${planNote}`)
+      }
+      
       setShowExtendDialog(false)
       setUserToExtend(null)
+      setExtendManualDate("")
+      setExtendMode("duration")
       await loadUsers()
     } catch (err: any) {
       toast.error(err.message || 'Failed to extend subscription')
@@ -1002,7 +1033,6 @@ export default function UsersPage() {
     }
   }
 
-  // FIX: Guard to safely strip any stale "No email" value
   const handleEditUser = (user: User) => {
     setEditForm({
       first_name: user.name.split(' ')[0] || '',
@@ -2443,7 +2473,6 @@ export default function UsersPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-medium text-slate-500">Email</label>
-                    {/* FIX: Handle empty email gracefully in drawer */}
                     <p className="text-sm text-slate-900 dark:text-white">
                       {selectedUser.email || <span className="text-slate-400 italic">No email</span>}
                     </p>
@@ -2954,72 +2983,129 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Extend Subscription Dialog */}
+      {/* Extend Subscription Dialog - UPDATED with date picker */}
       <Dialog open={showExtendDialog} onOpenChange={setShowExtendDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Extend Subscription</DialogTitle>
             <DialogDescription>
-              Add time to {userToExtend?.name}&apos;s subscription.
               {userToExtend?.expiryDate && new Date(userToExtend.expiryDate) < new Date()
-                ? " The subscription has expired - new time will start from now."
-                : " Time will be added to the current expiration date."}
+                ? "The subscription has expired - new time will start from now."
+                : "Choose duration or set a specific expiry date."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Duration Amount</Label>
-              <Input
-                type="number"
-                min={1}
-                value={extendForm.duration_amount}
-                onChange={(e) => setExtendForm({ ...extendForm, duration_amount: parseInt(e.target.value) || 1 })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Duration Unit</Label>
-              <Select
-                value={extendForm.duration_unit}
-                onValueChange={(value: 'MINUTES' | 'HOURS' | 'DAYS') => setExtendForm({ ...extendForm, duration_unit: value })}
+            {/* Mode Toggle */}
+            <div className="flex rounded-lg border overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setExtendMode("duration")}
+                className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                  extendMode === "duration"
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-slate-600 hover:bg-slate-50"
+                }`}
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="MINUTES">Minutes</SelectItem>
-                  <SelectItem value="HOURS">Hours</SelectItem>
-                  <SelectItem value="DAYS">Days</SelectItem>
-                </SelectContent>
-              </Select>
+                Add Duration
+              </button>
+              <button
+                type="button"
+                onClick={() => setExtendMode("date")}
+                className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                  extendMode === "date"
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                Set Expiry Date
+              </button>
             </div>
-            {/* Optional plan change */}
-            <div className="space-y-2">
-              <Label>Change Plan (Optional)</Label>
+
+            {extendMode === "duration" ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Duration Amount</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={extendForm.duration_amount}
+                    onChange={(e) => setExtendForm({ ...extendForm, duration_amount: parseInt(e.target.value) || 1 })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Duration Unit</Label>
+                  <Select
+                    value={extendForm.duration_unit}
+                    onValueChange={(value: 'MINUTES' | 'HOURS' | 'DAYS') => setExtendForm({ ...extendForm, duration_unit: value })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MINUTES">Minutes</SelectItem>
+                      <SelectItem value="HOURS">Hours</SelectItem>
+                      <SelectItem value="DAYS">Days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Quick presets */}
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 1, duration_unit: 'HOURS' })}>+1 Hour</Button>
+                  <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 1, duration_unit: 'DAYS' })}>+1 Day</Button>
+                  <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 7, duration_unit: 'DAYS' })}>+7 Days</Button>
+                  <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 30, duration_unit: 'DAYS' })}>+30 Days</Button>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <Label>New Expiry Date</Label>
+                {/* Current expiry info */}
+                {userToExtend?.expiryDate && userToExtend.plan !== "No Plan" && (
+                  <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm">
+                    <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span className="text-amber-800">
+                      Current expiry: <strong>{new Date(userToExtend.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+                    </span>
+                  </div>
+                )}
+                <input
+                  type="date"
+                  value={extendManualDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setExtendManualDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  style={{ colorScheme: 'light' }}
+                />
+                {extendManualDate && (
+                  <div className="p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
+                    <CheckCircle2 className="w-4 h-4 inline mr-1 text-green-600" />
+                    Will expire on: <strong>{new Date(extendManualDate + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</strong>
+                    {userToExtend?.expiryDate && userToExtend.plan !== "No Plan" && (() => {
+                      const base = new Date(userToExtend.expiryDate) > new Date() ? new Date(userToExtend.expiryDate) : new Date()
+                      const target = new Date(extendManualDate + 'T23:59:59Z')
+                      const days = Math.ceil((target.getTime() - base.getTime()) / (1000 * 60 * 60 * 24))
+                      return days > 0 ? <span className="text-green-700"> (+{days} days)</span> : null
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Optional plan change - shown in both modes */}
+            <div className="space-y-2 pt-2 border-t">
+              <Label>Change Plan <span className="text-xs text-slate-400 font-normal">(Optional)</span></Label>
               <Select
                 value={extendForm.plan_id || "keep"}
                 onValueChange={(value) => setExtendForm({ ...extendForm, plan_id: value === "keep" ? "" : value })}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Keep current plan" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Keep current plan" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="keep">Keep current plan</SelectItem>
                   {plans.map((plan) => (
                     <SelectItem key={plan.id} value={String(plan.id)}>
-                      {plan.name} - KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
-                      {plan.download_speed && ` (${plan.download_speed}/${plan.upload_speed || plan.download_speed} Mbps)`}
+                      {plan.name} — KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Optionally switch to a different plan while extending.</p>
-            </div>
-            {/* Quick presets */}
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 1, duration_unit: 'HOURS' })}>+1 Hour</Button>
-              <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 1, duration_unit: 'DAYS' })}>+1 Day</Button>
-              <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 7, duration_unit: 'DAYS' })}>+7 Days</Button>
-              <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 30, duration_unit: 'DAYS' })}>+30 Days</Button>
             </div>
           </div>
           <DialogFooter>
