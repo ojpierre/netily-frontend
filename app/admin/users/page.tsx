@@ -917,11 +917,18 @@ export default function UsersPage() {
     try {
       setEditIPLoading(true)
 
-      const services = await adminApi.getCustomerServices(user.customerId)
+      const rawServices = await adminApi.getCustomerServices(user.customerId)
       console.log("=== EDIT IP DEBUG ===")
-      console.log("All services:", JSON.stringify(services, null, 2))
+      console.log("Raw services response:", JSON.stringify(rawServices, null, 2))
 
-      const svc = services.find(s => s.id === user.serviceId) || services[0]
+      // Handle paginated response - extract results array
+      const services: CustomerService[] = Array.isArray(rawServices)
+        ? rawServices
+        : ((rawServices as any)?.results ?? [])
+      
+      console.log("Extracted services array:", JSON.stringify(services, null, 2))
+
+      const svc = services.find((s: CustomerService) => s.id === user.serviceId) || services[0]
       console.log("Matched service:", JSON.stringify(svc, null, 2))
       console.log("Plan:", JSON.stringify(svc?.plan, null, 2))
       console.log("ip_pool from nested plan:", svc?.plan?.ip_pool)
@@ -958,7 +965,7 @@ export default function UsersPage() {
       setEditIPLoading(false)
     }
   }
-
+  
   const confirmEditIP = async () => {
     if (!userToEditIP || !userToEditIP.serviceId || !selectedNewIPId) {
       toast.error('Please select an IP address')
