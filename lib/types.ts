@@ -2582,6 +2582,7 @@ export type SMSProvider =
   | 'advanta'
   | 'hubtel'
   | 'bytewave'
+  | 'blessedtexts'
 
 export interface SMSGatewayConfig {
   id: number
