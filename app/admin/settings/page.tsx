@@ -325,20 +325,23 @@ function AccountSettingsTab() {
                 try {
                   const formData = new FormData()
                   formData.append('logo', logoFile)
-                  await fetch(`/api/core/companies/${companyId}/`, {
+                  const token = getAdminToken()
+                  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+                  const res = await fetch(`${apiBase}/core/companies/${companyId}/`, {
                     method: 'PATCH',
                     headers: {
-                      'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') || '' : ''}`,
+                      'Authorization': `Bearer ${token || ''}`,
                     },
                     body: formData,
-                  }).then(async (res) => {
-                    if (!res.ok) throw new Error('Upload failed')
-                    const data = await res.json()
-                    setCompanyLogo(data.logo || logoPreview)
-                    setLogoFile(null)
-                    setLogoPreview("")
-                    toast.success("Company logo updated")
                   })
+                  if (!res.ok) throw new Error('Upload failed')
+                  const data = await res.json()
+                  const savedLogoUrl = data.logo || logoPreview
+                  setCompanyLogo(savedLogoUrl)
+                  localStorage.setItem("netily_company_logo", savedLogoUrl)
+                  setLogoFile(null)
+                  setLogoPreview("")
+                  toast.success("Company logo updated")
                 } catch (error) {
                   console.error("Failed to upload logo:", error)
                   toast.error("Failed to upload logo")

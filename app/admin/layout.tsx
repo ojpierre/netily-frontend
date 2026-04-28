@@ -146,6 +146,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [unreadNotifCount, setUnreadNotifCount] = useState(0)
+  const [companyLogo, setCompanyLogo] = useState<string>("")
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
@@ -156,6 +157,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   // Handle hydration
   useEffect(() => {
     setMounted(true)
+  }, [])
+
+  // Load and watch company logo from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("netily_company_logo")
+    if (saved) setCompanyLogo(saved)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "netily_company_logo") setCompanyLogo(e.newValue || "")
+    }
+    window.addEventListener("storage", handleStorage)
+    return () => window.removeEventListener("storage", handleStorage)
   }, [])
 
   // Fetch unread notification count
@@ -246,9 +258,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         <div className="flex h-16 items-center justify-between px-4 border-b border-slate-100 dark:border-slate-800">
           {!sidebarCollapsed && (
             <Link href="/admin" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-sm">
-                N
-              </div>
+              {companyLogo ? (
+                <img src={companyLogo} alt="Company Logo" className="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200" />
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-sm">
+                  N
+                </div>
+              )}
               <span className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">Netily Admin</span>
             </Link>
           )}

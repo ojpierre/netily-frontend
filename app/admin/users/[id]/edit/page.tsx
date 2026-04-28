@@ -125,12 +125,15 @@ export default function EditUserPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">
+                  Email <span className="text-slate-400 font-normal text-xs">(optional)</span>
+                </Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleChange("email", e.target.value)}
+                  placeholder="Leave blank if not available"
                 />
               </div>
               <div className="space-y-2">
