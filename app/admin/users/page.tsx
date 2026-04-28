@@ -910,25 +910,50 @@ export default function UsersPage() {
     setEditIPAvailableIPs([])
     setShowEditIPDialog(true)
 
-    // Load the plan to find its ip_pool
     if (!user.serviceId) {
       toast.error("No service found for this user")
       return
     }
     try {
       setEditIPLoading(true)
+
       const services = await adminApi.getCustomerServices(user.customerId)
+      console.log("=== EDIT IP DEBUG ===")
+      console.log("All services:", JSON.stringify(services, null, 2))
+
       const svc = services.find(s => s.id === user.serviceId) || services[0]
-      const poolId = svc?.plan?.ip_pool
-      if (poolId && typeof poolId === 'number') {
-        const resp = await adminApi.getIPPoolAvailableIPs(poolId)
-        setEditIPAvailableIPs(resp.results || [])
-      } else {
-        toast.error("No IP pool assigned to this user's plan")
+      console.log("Matched service:", JSON.stringify(svc, null, 2))
+      console.log("Plan:", JSON.stringify(svc?.plan, null, 2))
+      console.log("ip_pool from nested plan:", svc?.plan?.ip_pool)
+
+      let poolId: number | null = null
+
+      if (svc?.plan?.ip_pool && typeof svc.plan.ip_pool === 'number') {
+        poolId = svc.plan.ip_pool
+        console.log("Pool ID from nested plan:", poolId)
+      } else if (svc?.plan?.id) {
+        console.log("Fetching full plan for id:", svc.plan.id)
+        const fullPlan = await adminApi.getPlan(svc.plan.id)
+        console.log("Full plan response:", JSON.stringify(fullPlan, null, 2))
+        poolId = typeof fullPlan?.ip_pool === 'number' ? fullPlan.ip_pool : null
+        console.log("Pool ID from full plan:", poolId)
       }
-    } catch (err) {
-      console.error('Failed to load IPs for edit:', err)
-      toast.error('Could not load available IPs for this plan')
+
+      if (poolId) {
+        console.log("Fetching IPs for pool:", poolId)
+        const resp = await adminApi.getIPPoolAvailableIPs(poolId)
+        console.log("Available IPs response:", JSON.stringify(resp, null, 2))
+        setEditIPAvailableIPs(resp.results || [])
+        if (!resp.results?.length) {
+          toast.error("No available IPs in this pool — all IPs may be assigned")
+        }
+      } else {
+        console.log("No pool ID found — plan has no ip_pool assigned")
+        toast.error("No IP pool assigned to this user's plan. Assign an IP pool to the plan first.")
+      }
+    } catch (err: any) {
+      console.error("handleEditIP error:", err)
+      toast.error(err.message || 'Could not load available IPs for this plan')
     } finally {
       setEditIPLoading(false)
     }

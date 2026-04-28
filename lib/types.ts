@@ -315,6 +315,7 @@ export interface ServicePlan {
   connection_type: ConnectionType
   is_active: boolean
   features?: string[]
+  ip_pool?: number | null  // ← ADD THIS LINE
   created_at: string
 }
 
@@ -1637,7 +1638,7 @@ export interface Plan {
   burst_threshold?: number  // KB
   burst_time?: number  // seconds
   // IP Pool linkage
-  ip_pool?: number | null  // FK to IPPool
+  ip_pool?: number | null  // ← ADD THIS LINE (if not already present)
   ip_pool_name?: string    // Pool name (read-only)
   ip_pool_range?: string   // Pool IP range (read-only)
   // Fair Usage Policy
