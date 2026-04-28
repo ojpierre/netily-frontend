@@ -1152,7 +1152,7 @@ export default function UsersPage() {
       await adminApi.updateCustomer(selectedUser.customerId, {
         first_name: editForm.first_name,
         last_name: editForm.last_name,
-        email: editForm.email,
+        ...(editForm.email.trim() ? { email: editForm.email.trim() } : {}),
         phone: editForm.phone,
       })
       
