@@ -65,7 +65,7 @@ const PROVIDER_OPTIONS: { value: SMSProvider; label: string }[] = [
   { value: 'advanta', label: 'Advanta SMS' },
   { value: 'hubtel', label: 'Hubtel' },
   { value: 'bytewave', label: 'Bytewave (Netily)' },
-  { value: 'blessedtexts', label: 'BlessedTexts' },  // ← ADDED
+  { value: 'blessedtexts', label: 'BlessedTexts' },
 ]
 
 const PROVIDER_FIELDS: Record<SMSProvider, { key: string; label: string; type?: string }[]> = {
@@ -77,7 +77,7 @@ const PROVIDER_FIELDS: Record<SMSProvider, { key: string; label: string; type?: 
   advanta: [{ key: 'api_key', label: 'API Key', type: 'password' }, { key: 'sender_id', label: 'Short Code' }],
   hubtel: [{ key: 'api_key', label: 'Client ID', type: 'password' }, { key: 'api_secret', label: 'Client Secret', type: 'password' }, { key: 'sender_id', label: 'Sender ID' }],
   bytewave: [{ key: 'api_key', label: 'API Token', type: 'password' }, { key: 'sender_id', label: 'Sender ID' }],
-  blessedtexts: [  // ← ADDED
+  blessedtexts: [
     { key: 'api_key', label: 'API Key', type: 'password' },
     { key: 'sender_id', label: 'Sender ID' },
   ],
@@ -510,13 +510,20 @@ export default function SMSPage() {
 
       const gwList = (Array.isArray(gws) ? gws : []) as SMSGatewayConfig[]
       setGatewayConfigs(gwList)
+      
+      // Reset editing state — don't pre-select old IDs that may not exist
+      setGwEditing(null)
+      
       const active = gwList.find(g => g.is_active)
       if (active) {
         setGwEditing(active.id)
         setGwForm({
-          provider: active.provider, is_active: active.is_active,
+          provider: active.provider,
+          is_active: active.is_active,
+          use_inbuilt_system: (active as any).use_inbuilt_system ?? false,
           api_key: '', api_secret: '',
-          username: active.username, sender_id: active.sender_id,
+          username: active.username,
+          sender_id: active.sender_id,
           extra_config: active.extra_config ?? {},
           auto_payment_confirmation: active.auto_payment_confirmation,
           auto_expiry_reminder: active.auto_expiry_reminder,
@@ -624,6 +631,7 @@ export default function SMSPage() {
     handleSaveNotifSettings(patch)
   }
 
+  // UPDATED: handleGatewaySave with 404 fallback
   const handleGatewaySave = async () => {
     setGwSaving(true)
     try {
@@ -636,15 +644,33 @@ export default function SMSPage() {
         if (!payload.api_key) delete payload.api_key
         if (!payload.api_secret) delete payload.api_secret
       }
+
       let res: SMSGatewayConfig
-      if (gwEditing) res = await adminApi.updateSMSGatewayConfig(gwEditing, payload)
-      else res = await adminApi.createSMSGatewayConfig(payload as SMSGatewayConfigWrite)
+      if (gwEditing) {
+        try {
+          res = await adminApi.updateSMSGatewayConfig(gwEditing, payload)
+        } catch (err: any) {
+          // Record doesn't exist in this tenant — reset and create fresh
+          if (err.message?.includes('Not found') || err.message?.includes('404')) {
+            setGwEditing(null)
+            res = await adminApi.createSMSGatewayConfig(payload as SMSGatewayConfigWrite)
+          } else {
+            throw err
+          }
+        }
+      } else {
+        res = await adminApi.createSMSGatewayConfig(payload as SMSGatewayConfigWrite)
+      }
+
       const updated = await adminApi.getSMSGatewayConfigs().catch(() => [])
       setGatewayConfigs(updated)
       setGwEditing(res.id)
       toast.success('Gateway saved')
-    } catch (e: any) { toast.error(e?.message ?? 'Failed') }
-    finally { setGwSaving(false) }
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Failed')
+    } finally {
+      setGwSaving(false)
+    }
   }
 
   const handleGatewayTest = async () => {
@@ -653,8 +679,11 @@ export default function SMSPage() {
     try {
       const r = await adminApi.testSMSGateway(gwEditing)
       r.success ? toast.success(`Connected! Balance: ${JSON.stringify(r.balance)}`) : toast.error(`Failed: ${r.error}`)
-    } catch (e: any) { toast.error(e?.message ?? 'Test failed') }
-    finally { setGwTesting(false) }
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Test failed')
+    } finally {
+      setGwTesting(false)
+    }
   }
 
   const [composeForm, setComposeForm] = useState({ recipients: '', message: '', template: '' })
