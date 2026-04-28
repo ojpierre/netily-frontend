@@ -469,7 +469,7 @@ export default function PaymentMethodsPage() {
   // ═══════════════════════════════════════════════════════════════════
   const totalCollected = stats ? parseFloat(stats.amount_this_month || stats.total_amount || "0") : 0
   const todayAmount = stats ? parseFloat(stats.amount_today || "0") : 0
-  const successRate = stats ? Math.round((stats.completed_payments / Math.max(stats.total_payments, 1)) * 100) : 0
+  const successRate = stats ? Math.round((Number(stats.completed_payments || 0) / Math.max(Number(stats.total_payments || 0), 1)) * 100) : 0
 
   return (
     <InactivityGuard timeoutMinutes={5}>
@@ -577,7 +577,7 @@ export default function PaymentMethodsPage() {
                   icon={CheckCircle2}
                   iconColor="text-emerald-600"
                   iconBg="bg-emerald-50 dark:bg-emerald-950/30"
-                  sub={stats ? `${stats.completed_payments} completed · ${stats.failed_payments} failed` : undefined}
+                  sub={stats ? `${Number(stats.completed_payments ?? 0)} completed · ${Number(stats.failed_payments ?? 0)} failed` : undefined}
                   progress={statsLoading ? undefined : successRate}
                 />
                 <StatCard

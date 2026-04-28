@@ -320,7 +320,7 @@ export function MpesaSettingsPanel() {
           <p className="text-sm font-semibold">
             {activeDarajaId
               ? "Active Gateway: Daraja (Your Own Keys)"
-              : "Active Gateway: Netily (Tuma)"}
+              : "Active Gateway: Netily Gateway"}
           </p>
           <p className="text-xs text-muted-foreground">
             {activeDarajaId
@@ -495,7 +495,7 @@ export function MpesaSettingsPanel() {
                           onClick={() => handleDeactivateDaraja(config.id)}
                         >
                           {activating && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-                          Switch to Tuma
+                          Switch to Netily
                         </Button>
                       ) : (
                         config.validation_status === "VALID" && (

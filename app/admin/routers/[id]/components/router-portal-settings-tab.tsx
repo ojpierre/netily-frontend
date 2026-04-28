@@ -257,7 +257,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
           formData.append(key, String(value))
         })
         formData.append('logo', logoFile)
-        await adminApi.updateRouter(routerId, formData as any)
+        await adminApi.updateRouterWithFormData(routerId, formData)
       } else {
         console.log("[PortalSettings] Saving payload:", payload, "to router:", routerId)
         await adminApi.updateRouter(routerId, payload as any)
@@ -517,8 +517,8 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                       onChange={(e) => {
                         const file = e.target.files?.[0]
                         if (!file) return
-                        if (file.size > 2 * 1024 * 1024) {
-                          toast.error("Logo must be smaller than 2 MB")
+                        if (file.size > 5 * 1024 * 1024) {
+                          toast.error("Logo must be smaller than 5 MB")
                           return
                         }
                         setLogoFile(file)
@@ -526,7 +526,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                       }}
                     />
                     <p className="text-xs text-muted-foreground mt-1.5">
-                      PNG, JPG, SVG or WebP. Max 2 MB. Displayed on the captive portal header.
+                      PNG, JPG, SVG or WebP. Max 5 MB. Displayed on the captive portal header.
                     </p>
                   </div>
                 </div>

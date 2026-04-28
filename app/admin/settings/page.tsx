@@ -303,8 +303,8 @@ function AccountSettingsTab() {
                   onChange={(e) => {
                     const file = e.target.files?.[0]
                     if (!file) return
-                    if (file.size > 2 * 1024 * 1024) {
-                      toast.error("Logo must be smaller than 2 MB")
+                    if (file.size > 5 * 1024 * 1024) {
+                      toast.error("Logo must be smaller than 5 MB")
                       return
                     }
                     setLogoFile(file)
@@ -312,59 +312,76 @@ function AccountSettingsTab() {
                   }}
                 />
               </div>
-              <p className="text-xs text-slate-500">PNG, JPG, SVG or WebP. Max 2 MB.</p>
+              <p className="text-xs text-slate-500">PNG, JPG, SVG or WebP. Max 5 MB.</p>
             </div>
           </div>
         </CardContent>
-        {logoFile && (
-          <CardFooter>
-            <Button
-              onClick={async () => {
-                if (!companyId || !logoFile) return
-                setLogoSaving(true)
-                try {
-                  const formData = new FormData()
-                  formData.append('logo', logoFile)
-                  const token = getAdminToken()
-                  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
-                  const res = await fetch(`${apiBase}/core/companies/${companyId}/`, {
-                    method: 'PATCH',
-                    headers: {
-                      'Authorization': `Bearer ${token || ''}`,
-                    },
-                    body: formData,
-                  })
-                  if (!res.ok) throw new Error('Upload failed')
-                  const data = await res.json()
-                  const savedLogoUrl = data.logo || logoPreview
-                  setCompanyLogo(savedLogoUrl)
-                  localStorage.setItem("netily_company_logo", savedLogoUrl)
-                  setLogoFile(null)
-                  setLogoPreview("")
-                  toast.success("Company logo updated")
-                } catch (error) {
-                  console.error("Failed to upload logo:", error)
-                  toast.error("Failed to upload logo")
-                } finally {
-                  setLogoSaving(false)
+        <CardFooter>
+          <Button
+            onClick={async () => {
+              if (!logoFile) {
+                toast.error("Please select a logo file first")
+                return
+              }
+              setLogoSaving(true)
+              try {
+                // Resolve company ID on-demand if not yet loaded
+                let cId = companyId
+                if (!cId) {
+                  try {
+                    const user = await adminApi.getCurrentUser()
+                    cId = (user as any).company_id || (user as any).company?.id || null
+                    if (cId) setCompanyId(cId)
+                  } catch { /* ignore */ }
                 }
-              }}
-              disabled={logoSaving}
-            >
-              {logoSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Logo
-                </>
-              )}
-            </Button>
-          </CardFooter>
-        )}
+                if (!cId) {
+                  toast.error("Company not found — please contact support")
+                  return
+                }
+                const formData = new FormData()
+                formData.append('logo', logoFile)
+                const token = getAdminToken()
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+                const res = await fetch(`${apiBase}/core/companies/${cId}/`, {
+                  method: 'PATCH',
+                  headers: {
+                    'Authorization': `Bearer ${token || ''}`,
+                  },
+                  body: formData,
+                })
+                if (!res.ok) throw new Error(`Upload failed (${res.status})`)
+                const data = await res.json()
+                const savedLogoUrl = data.logo || logoPreview
+                setCompanyLogo(savedLogoUrl)
+                localStorage.setItem("netily_company_logo", savedLogoUrl)
+                setLogoFile(null)
+                setLogoPreview("")
+                toast.success("Company logo updated")
+              } catch (error: any) {
+                console.error("Failed to upload logo:", error)
+                toast.error(error?.message || "Failed to upload logo")
+              } finally {
+                setLogoSaving(false)
+              }
+            }}
+            disabled={logoSaving || !logoFile}
+          >
+            {logoSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Save Logo
+              </>
+            )}
+          </Button>
+          {!logoFile && (
+            <p className="ml-3 text-xs text-slate-400">Select a logo file above to enable save</p>
+          )}
+        </CardFooter>
       </Card>
 
       {/* Password Card */}

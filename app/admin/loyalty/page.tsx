@@ -621,7 +621,11 @@ export default function LoyaltyPage() {
             icon={<Star className="w-4 h-4" />}
             description="Ranked by lifetime points earned"
             color="violet"
-            members={leaderboard.top_points}
+            members={(
+              leaderboard.top_points.length > 0
+                ? leaderboard.top_points
+                : [...members].sort((a, b) => b.lifetime_points - a.lifetime_points)
+            ).slice(0, 10)}
             valueKey="lifetime_points"
             valueFormat={v => fmtPts(v)}
             onAward={(id) => { setAwardMemberId(String(id)); setAwardDialog(true) }}
@@ -632,7 +636,11 @@ export default function LoyaltyPage() {
             icon={<TrendingUp className="w-4 h-4" />}
             description="Ranked by total amount spent on services"
             color="green"
-            members={leaderboard.highest_spending}
+            members={(
+              leaderboard.highest_spending.length > 0
+                ? leaderboard.highest_spending
+                : [...members].sort((a, b) => b.total_spent - a.total_spent)
+            ).slice(0, 10)}
             valueKey="total_spent"
             valueFormat={v => kes(v)}
             onAward={(id) => { setAwardMemberId(String(id)); setAwardDialog(true) }}
@@ -643,7 +651,11 @@ export default function LoyaltyPage() {
             icon={<Crown className="w-4 h-4" />}
             description="Ranked by total completed payments"
             color="purple"
-            members={leaderboard.most_returning}
+            members={(
+              leaderboard.most_returning.length > 0
+                ? leaderboard.most_returning
+                : [...members].sort((a, b) => b.total_payments - a.total_payments)
+            ).slice(0, 10)}
             valueKey="total_payments"
             valueFormat={v => v + " payments"}
             onAward={(id) => { setAwardMemberId(String(id)); setAwardDialog(true) }}
@@ -983,6 +995,9 @@ function LeaderboardSection({
                   {/* Stats */}
                   <div className="text-right shrink-0 hidden sm:block">
                     <p className="text-xs text-muted-foreground">{m.total_payments} payments</p>
+                    {m.redemptions_count > 0 && (
+                      <p className="text-[10px] text-muted-foreground">{m.redemptions_count} redeemed</p>
+                    )}
                   </div>
 
                   {/* Value */}
@@ -990,7 +1005,13 @@ function LeaderboardSection({
                     <p className={`font-bold ${isTop3 ? `${c.value} text-base` : "text-slate-700 text-sm"}`}>
                       {valueFormat(Number(m[valueKey]))}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">lifetime</p>
+                    {valueKey === "lifetime_points" ? (
+                      <p className="text-[10px] text-muted-foreground">
+                        {fmtPts(m.current_points)} avail
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">lifetime</p>
+                    )}
                   </div>
 
                   {/* Quick actions */}

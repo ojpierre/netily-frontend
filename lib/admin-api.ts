@@ -899,6 +899,19 @@ async activateService(
     })
   }
 
+  async updateRouterWithFormData(id: number, formData: FormData): Promise<Router> {
+    const token = this.getAdminToken()
+    const response = await fetch(`${this.baseUrl}/network/routers/${id}/`, {
+      method: 'PATCH',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // No Content-Type — let browser set multipart boundary automatically
+      },
+      body: formData,
+    })
+    return this.handleResponse<Router>(response)
+  }
+
   async deleteRouter(id: number): Promise<void> {
     await this.request(`/network/routers/${id}/`, {
       method: 'DELETE',
