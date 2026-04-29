@@ -681,46 +681,51 @@ export default function RoutersPage() {
                     )
                   })()}
 
-                  {/* Premium CPU + Memory mini metrics */}
-                  {r.metrics && r.status === 'online' && (
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-                      {[
-                        { label: "CPU", value: r.metrics.cpu_usage },
-                        { label: "RAM", value: r.metrics.memory_usage },
-                      ].map(({ label, value }) => {
-                        const color = value > 80 ? "red" : value > 60 ? "amber" : "blue"
-                        const barClass = value > 80 ? "bg-red-500" : value > 60 ? "bg-amber-500" : "bg-blue-500"
-                        const textClass = value > 80 ? "text-red-600" : value > 60 ? "text-amber-600" : "text-slate-600"
-                        const bgClass = value > 80 ? "bg-red-50" : value > 60 ? "bg-amber-50" : "bg-blue-50"
-                        const R = 11; const circ = 2 * Math.PI * R
-                        const dash = (value / 100) * circ
-                        return (
-                          <div key={label} className={`rounded-lg p-2 ${bgClass} flex items-center gap-2`}>
-                            {/* Micro ring */}
-                            <svg width="28" height="28" className="-rotate-90 flex-shrink-0">
-                              <circle cx="14" cy="14" r={R} fill="none" stroke="#e2e8f0" strokeWidth="3" />
-                              <circle
-                                cx="14" cy="14" r={R} fill="none"
-                                stroke={value > 80 ? "#ef4444" : value > 60 ? "#f59e0b" : "#3b82f6"}
-                                strokeWidth="3"
-                                strokeDasharray={`${dash} ${circ}`}
-                                strokeLinecap="round"
+                  {/* Premium CPU + Memory mini metrics - Always visible */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                    {[
+                      { label: "CPU", value: r.metrics?.cpu_usage ?? null },
+                      { label: "RAM", value: r.metrics?.memory_usage ?? null },
+                    ].map(({ label, value }) => {
+                      const isOffline = r.status !== 'online'
+                      const displayValue = isOffline ? 0 : (value ?? 0)
+                      const barClass = isOffline ? "bg-slate-300" : displayValue > 80 ? "bg-red-500" : displayValue > 60 ? "bg-amber-500" : "bg-blue-500"
+                      const textClass = isOffline ? "text-slate-400" : displayValue > 80 ? "text-red-600" : displayValue > 60 ? "text-amber-600" : "text-blue-600"
+                      const bgClass = isOffline ? "bg-slate-50" : displayValue > 80 ? "bg-red-50" : displayValue > 60 ? "bg-amber-50" : "bg-blue-50"
+                      const strokeColor = isOffline ? "#cbd5e1" : displayValue > 80 ? "#ef4444" : displayValue > 60 ? "#f59e0b" : "#3b82f6"
+                      const R = 11; const circ = 2 * Math.PI * R
+                      const dash = (displayValue / 100) * circ
+                      return (
+                        <div key={label} className={`rounded-lg p-2 ${bgClass} flex items-center gap-2`}>
+                          <svg width="28" height="28" className="-rotate-90 flex-shrink-0">
+                            <circle cx="14" cy="14" r={R} fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                            <circle
+                              cx="14" cy="14" r={R} fill="none"
+                              stroke={strokeColor}
+                              strokeWidth="3"
+                              strokeDasharray={`${dash} ${circ}`}
+                              strokeLinecap="round"
+                              style={{ transition: "stroke-dasharray 0.6s ease" }}
+                            />
+                          </svg>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-baseline">
+                              <span className="text-[11px] font-medium text-slate-500">{label}</span>
+                              <span className={`text-xs font-bold ${textClass}`}>
+                                {isOffline ? "—" : value != null ? `${displayValue}%` : "—"}
+                              </span>
+                            </div>
+                            <div className="mt-0.5 h-1 bg-white/70 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${barClass} transition-all duration-500`}
+                                style={{ width: `${displayValue}%` }}
                               />
-                            </svg>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-baseline">
-                                <span className="text-[11px] font-medium text-slate-500">{label}</span>
-                                <span className={`text-xs font-bold ${textClass}`}>{value}%</span>
-                              </div>
-                              <div className="mt-0.5 h-1 bg-white/70 rounded-full overflow-hidden">
-                                <div className={`h-full rounded-full ${barClass} transition-all duration-500`} style={{ width: `${value}%` }} />
-                              </div>
                             </div>
                           </div>
-                        )
-                      })}
-                    </div>
-                  )}
+                        </div>
+                      )
+                    })}
+                  </div>
 
                   {/* Tags */}
                   {r.tags && r.tags.length > 0 && (
@@ -760,6 +765,8 @@ export default function RoutersPage() {
                     <TableHead>Users</TableHead>
                     <TableHead>Uptime</TableHead>
                     <TableHead>SLA</TableHead>
+                    <TableHead>CPU</TableHead>
+                    <TableHead>RAM</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -781,6 +788,40 @@ export default function RoutersPage() {
                         <span className={(r.uptime_percentage || 0) >= (r.sla_target || 99) ? "text-green-600" : "text-red-600"}>
                           {Number(r.uptime_percentage || 0).toFixed(1)}%
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        {r.metrics?.cpu_usage != null && r.status === 'online' ? (
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${r.metrics.cpu_usage > 80 ? 'bg-red-500' : r.metrics.cpu_usage > 60 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                                style={{ width: `${r.metrics.cpu_usage}%` }}
+                              />
+                            </div>
+                            <span className={`text-xs font-medium ${r.metrics.cpu_usage > 80 ? 'text-red-600' : r.metrics.cpu_usage > 60 ? 'text-amber-600' : 'text-slate-600'}`}>
+                              {r.metrics.cpu_usage}%
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {r.metrics?.memory_usage != null && r.status === 'online' ? (
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${r.metrics.memory_usage > 80 ? 'bg-red-500' : r.metrics.memory_usage > 60 ? 'bg-amber-500' : 'bg-purple-500'}`}
+                                style={{ width: `${r.metrics.memory_usage}%` }}
+                              />
+                            </div>
+                            <span className={`text-xs font-medium ${r.metrics.memory_usage > 80 ? 'text-red-600' : r.metrics.memory_usage > 60 ? 'text-amber-600' : 'text-slate-600'}`}>
+                              {r.metrics.memory_usage}%
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
