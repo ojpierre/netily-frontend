@@ -2658,6 +2658,9 @@ export interface SMSNotificationSettings {
   pppoe_plan_changed: boolean
   pppoe_renewal_confirmation: boolean
   pppoe_new_subscription: boolean
+  // ── NEW: Router offline alerts ──────────────────────────
+  router_offline_enabled: boolean
+  router_offline_numbers: string[]
   updated_at?: string
 }
 
