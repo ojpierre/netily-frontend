@@ -430,7 +430,8 @@ export function LandingPage() {
 
               <ThemeToggle />
               <Link
-                href="/register"
+                href="#contact"
+                onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm"
               >
                 Start Free Trial
@@ -601,7 +602,8 @@ export function LandingPage() {
           <Reveal delay={0.3}>
             <div id="hero-cta" className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/register"
+                href="#contact"
+                onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-xl transition-colors shadow-lg shadow-blue-600/25 text-lg"
               >
                 Start Free 14-Day Trial
@@ -1007,7 +1009,8 @@ export function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/register"
+                  href="#contact"
+                  onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
                   className="mt-8 inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
                 >
                   Get the portal for your ISP
@@ -1103,7 +1106,8 @@ export function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/register"
+                  href="#contact"
+                onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
                   className="mt-8 inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
                 >
                   Start running ads on your portal
@@ -1781,7 +1785,8 @@ export function LandingPage() {
           </Reveal>
           <Reveal delay={0.2}>
             <Link
-              href="/register"
+              href="#contact"
+              onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
               className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-4 rounded-xl transition-colors shadow-lg shadow-blue-600/25 text-lg"
             >
               Start Your 14-Day Free Trial
@@ -1845,8 +1850,8 @@ export function LandingPage() {
                       </a>
                     </li>
                   ))}
-                  <li><Link href="/register" className="text-sm text-slate-400 hover:text-white transition-colors">Start Free Trial</Link></li>
-                  <li><Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors">Sign In</Link></li>
+                  <li><Link href="#contact" onClick={(e) => { e.preventDefault(); scrollTo("contact") }} className="text-sm text-slate-400 hover:text-white transition-colors">Start Free Trial</Link></li>
+                  <li><Link href="#contact" onClick={(e) => { e.preventDefault(); scrollTo("contact") }} className="text-sm text-slate-400 hover:text-white transition-colors">Sign In</Link></li>
                 </ul>
               </div>
 
@@ -1871,7 +1876,7 @@ export function LandingPage() {
                   <li><a href="#contact" onClick={(e) => { e.preventDefault(); scrollTo("contact") }} className="text-sm text-slate-400 hover:text-white transition-colors">Contact Us</a></li>
                   <li><Link href="/privacy" className="text-sm text-slate-400 hover:text-white transition-colors">Privacy Policy</Link></li>
                   <li><Link href="/terms" className="text-sm text-slate-400 hover:text-white transition-colors">Terms of Service</Link></li>
-                  <li><Link href="/register" className="text-sm text-slate-400 hover:text-white transition-colors">Get Started Free</Link></li>
+                  <li><Link href="#contact" onClick={(e) => { e.preventDefault(); scrollTo("contact") }} className="text-sm text-slate-400 hover:text-white transition-colors">Get Started Free</Link></li>
                 </ul>
               </div>
             </div>
@@ -1892,7 +1897,7 @@ export function LandingPage() {
               <div className="flex items-center gap-6">
                 <Link href="/privacy" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">Privacy Policy</Link>
                 <Link href="/terms" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">Terms of Service</Link>
-                <Link href="/login" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">Sign In</Link>
+                <Link href="#contact" onClick={(e) => { e.preventDefault(); scrollTo("contact") }} className="text-sm text-slate-500 hover:text-slate-300 transition-colors">Sign In</Link>
               </div>
             </div>
           </div>
