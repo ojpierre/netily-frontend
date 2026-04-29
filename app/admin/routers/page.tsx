@@ -681,33 +681,44 @@ export default function RoutersPage() {
                     )
                   })()}
 
-                  {/* CPU + Memory mini metrics */}
+                  {/* Premium CPU + Memory mini metrics */}
                   {r.metrics && r.status === 'online' && (
-                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-                      <div>
-                        <div className="flex justify-between text-xs mb-0.5">
-                          <span className="text-slate-400">CPU</span>
-                          <span className={r.metrics.cpu_usage > 80 ? "text-red-600 font-medium" : r.metrics.cpu_usage > 60 ? "text-amber-600" : "text-slate-600"}>
-                            {r.metrics.cpu_usage}%
-                          </span>
-                        </div>
-                        <Progress
-                          value={r.metrics.cpu_usage}
-                          className={`h-1.5 ${r.metrics.cpu_usage > 80 ? "[&>div]:bg-red-500" : r.metrics.cpu_usage > 60 ? "[&>div]:bg-amber-500" : ""}`}
-                        />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-xs mb-0.5">
-                          <span className="text-slate-400">RAM</span>
-                          <span className={r.metrics.memory_usage > 80 ? "text-red-600 font-medium" : r.metrics.memory_usage > 60 ? "text-amber-600" : "text-slate-600"}>
-                            {r.metrics.memory_usage}%
-                          </span>
-                        </div>
-                        <Progress
-                          value={r.metrics.memory_usage}
-                          className={`h-1.5 ${r.metrics.memory_usage > 80 ? "[&>div]:bg-red-500" : r.metrics.memory_usage > 60 ? "[&>div]:bg-amber-500" : ""}`}
-                        />
-                      </div>
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                      {[
+                        { label: "CPU", value: r.metrics.cpu_usage },
+                        { label: "RAM", value: r.metrics.memory_usage },
+                      ].map(({ label, value }) => {
+                        const color = value > 80 ? "red" : value > 60 ? "amber" : "blue"
+                        const barClass = value > 80 ? "bg-red-500" : value > 60 ? "bg-amber-500" : "bg-blue-500"
+                        const textClass = value > 80 ? "text-red-600" : value > 60 ? "text-amber-600" : "text-slate-600"
+                        const bgClass = value > 80 ? "bg-red-50" : value > 60 ? "bg-amber-50" : "bg-blue-50"
+                        const R = 11; const circ = 2 * Math.PI * R
+                        const dash = (value / 100) * circ
+                        return (
+                          <div key={label} className={`rounded-lg p-2 ${bgClass} flex items-center gap-2`}>
+                            {/* Micro ring */}
+                            <svg width="28" height="28" className="-rotate-90 flex-shrink-0">
+                              <circle cx="14" cy="14" r={R} fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                              <circle
+                                cx="14" cy="14" r={R} fill="none"
+                                stroke={value > 80 ? "#ef4444" : value > 60 ? "#f59e0b" : "#3b82f6"}
+                                strokeWidth="3"
+                                strokeDasharray={`${dash} ${circ}`}
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-baseline">
+                                <span className="text-[11px] font-medium text-slate-500">{label}</span>
+                                <span className={`text-xs font-bold ${textClass}`}>{value}%</span>
+                              </div>
+                              <div className="mt-0.5 h-1 bg-white/70 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${barClass} transition-all duration-500`} style={{ width: `${value}%` }} />
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
 

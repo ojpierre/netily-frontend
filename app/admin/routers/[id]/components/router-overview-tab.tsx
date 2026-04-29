@@ -47,6 +47,139 @@ const DEMO_LIVE_STATUS: RouterLiveStatus = {
   architecture: "arm",
 }
 
+// ── Premium Gauge Card ────────────────────────────────────────────────────────
+function PremiumGaugeCard({
+  title,
+  value,
+  icon: Icon,
+  detail,
+}: {
+  title: string
+  value: number
+  icon: React.ComponentType<{ className?: string }>
+  detail?: string
+}) {
+  const clampedValue = Math.min(100, Math.max(0, value))
+
+  const theme = clampedValue >= 85
+    ? { color: "#ef4444", shadow: "shadow-red-500/20", badge: "bg-red-100 text-red-700 border-red-200", label: "Critical", bar: "bg-red-500", ring: "text-red-500", glow: "bg-red-500/10" }
+    : clampedValue >= 65
+    ? { color: "#f59e0b", shadow: "shadow-amber-500/20", badge: "bg-amber-100 text-amber-700 border-amber-200", label: "High", bar: "bg-amber-500", ring: "text-amber-500", glow: "bg-amber-500/10" }
+    : { color: "#3b82f6", shadow: "shadow-blue-500/20", badge: "bg-blue-100 text-blue-700 border-blue-200", label: "Normal", bar: "bg-blue-500", ring: "text-blue-500", glow: "bg-blue-500/10" }
+
+  const R = 44
+  const circ = 2 * Math.PI * R
+  const dash = (clampedValue / 100) * circ
+
+  return (
+    <div className={`rounded-2xl border bg-white shadow-lg ${theme.shadow} overflow-hidden`}>
+      {/* Gradient accent strip */}
+      <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${theme.color}88, ${theme.color})` }} />
+
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className={`p-1.5 rounded-lg ${theme.glow}`}>
+              <Icon className={`w-4 h-4 ${theme.ring}`} />
+            </div>
+            <span className="font-semibold text-slate-700 text-sm">{title}</span>
+          </div>
+          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${theme.badge}`}>
+            {theme.label}
+          </span>
+        </div>
+
+        {/* Gauge + stats row */}
+        <div className="flex items-center gap-5">
+          {/* SVG Arc Gauge */}
+          <div className="relative flex-shrink-0 w-[100px] h-[100px]">
+            {/* Subtle glow ring */}
+            <div className={`absolute inset-2 rounded-full blur-xl opacity-30 ${theme.glow}`} />
+            <svg width="100" height="100" className="relative -rotate-90">
+              {/* Track */}
+              <circle cx="50" cy="50" r={R} fill="none" stroke="#f1f5f9" strokeWidth="10" />
+              {/* Progress */}
+              <circle
+                cx="50" cy="50" r={R}
+                fill="none"
+                stroke={theme.color}
+                strokeWidth="10"
+                strokeDasharray={`${dash} ${circ}`}
+                strokeLinecap="round"
+                style={{ transition: "stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)" }}
+              />
+              {/* Inner glow ring */}
+              <circle
+                cx="50" cy="50" r={R}
+                fill="none"
+                stroke={theme.color}
+                strokeWidth="2"
+                strokeDasharray={`${dash} ${circ}`}
+                strokeLinecap="round"
+                opacity="0.3"
+                style={{ transition: "stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)" }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-2xl font-bold text-slate-800 leading-none">
+                {Math.round(clampedValue)}
+              </span>
+              <span className="text-[11px] text-slate-400 font-medium">%</span>
+            </div>
+          </div>
+
+          {/* Right side info */}
+          <div className="flex-1 min-w-0 space-y-3">
+            {/* Large percent echo */}
+            <div>
+              <div className="text-3xl font-black text-slate-800 leading-none">
+                {Math.round(clampedValue)}<span className="text-lg font-normal text-slate-400">%</span>
+              </div>
+              {detail && <p className="text-xs text-slate-400 mt-0.5 truncate">{detail}</p>}
+            </div>
+
+            {/* Segmented bar */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-[10px] text-slate-400">
+                <span>0%</span>
+                <span>50%</span>
+                <span>100%</span>
+              </div>
+              <div className="relative h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                {/* Tick marks */}
+                <div className="absolute inset-0 flex">
+                  {[25, 50, 75].map(tick => (
+                    <div key={tick} className="absolute top-0 bottom-0 w-px bg-white/60" style={{ left: `${tick}%` }} />
+                  ))}
+                </div>
+                <div
+                  className={`h-full rounded-full ${theme.bar} transition-all duration-700 ease-out`}
+                  style={{ width: `${clampedValue}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Threshold indicators */}
+            <div className="flex gap-2">
+              {[
+                { label: "OK", max: 65, color: "bg-blue-400" },
+                { label: "High", max: 85, color: "bg-amber-400" },
+                { label: "Crit", max: 100, color: "bg-red-400" },
+              ].map(({ label, color }) => (
+                <div key={label} className="flex items-center gap-1">
+                  <div className={`w-1.5 h-1.5 rounded-full ${color}`} />
+                  <span className="text-[10px] text-slate-400">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTabProps) {
   const [liveStatus, setLiveStatus] = useState<RouterLiveStatus | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -212,47 +345,20 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
         </Card>
       </div>
 
-      {/* Resource Usage */}
+      {/* Premium Resource Usage */}
       <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Cpu className="w-4 h-4" />
-              CPU Usage
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-3xl font-bold">{cpuLoad}%</span>
-                <Badge variant={cpuLoad > 80 ? "destructive" : cpuLoad > 50 ? "secondary" : "default"}>
-                  {cpuLoad > 80 ? "High" : cpuLoad > 50 ? "Medium" : "Normal"}
-                </Badge>
-              </div>
-              <Progress value={cpuLoad} className="h-3" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <HardDrive className="w-4 h-4" />
-              Memory Usage
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-3xl font-bold">{memory.usedPercent.toFixed(0)}%</span>
-                <span className="text-sm text-slate-500">
-                  {memory.freeMB} MB free of {memory.totalMB} MB
-                </span>
-              </div>
-              <Progress value={memory.usedPercent} className="h-3" />
-            </div>
-          </CardContent>
-        </Card>
+        <PremiumGaugeCard
+          title="CPU Usage"
+          value={cpuLoad}
+          icon={Cpu}
+          detail={`${cpuLoad}% utilization`}
+        />
+        <PremiumGaugeCard
+          title="Memory Usage"
+          value={memory.usedPercent}
+          icon={HardDrive}
+          detail={`${memory.freeMB} MB free of ${memory.totalMB} MB`}
+        />
       </div>
 
       {/* Additional Info */}
