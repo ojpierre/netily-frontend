@@ -2639,16 +2639,15 @@ export interface SMSGatewayConfig {
   updated_at: string
 }
 
+
 export interface SMSNotificationSettings {
   use_inbuilt_system: boolean
-  // hotspot
   hotspot_new_subscription: boolean
   hotspot_welcome: boolean
   hotspot_session_expiry: boolean
   hotspot_expiry_minutes_before: number
   hotspot_payment_failed: boolean
   hotspot_session_expired: boolean
-  // pppoe
   pppoe_welcome: boolean
   pppoe_payment_confirmation: boolean
   pppoe_expiry_reminder: boolean
@@ -2658,9 +2657,9 @@ export interface SMSNotificationSettings {
   pppoe_plan_changed: boolean
   pppoe_renewal_confirmation: boolean
   pppoe_new_subscription: boolean
-  // ── NEW: Router offline alerts ──────────────────────────
-  router_offline_enabled: boolean
-  router_offline_numbers: string[]
+  // Backend field names (DO NOT rename these)
+  system_router_offline: boolean
+  system_alert_phone: string
   updated_at?: string
 }
 

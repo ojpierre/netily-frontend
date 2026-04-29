@@ -44,6 +44,7 @@ const EMPTY_STATS = {
   delivery_rate: 0, total_cost: 0, messages_today: 0, messages_this_week: 0,
 } as any
 
+// FIX 1: Updated EMPTY_NOTIF_SETTINGS with correct backend field names
 const EMPTY_NOTIF_SETTINGS: SMSNotificationSettings = {
   use_inbuilt_system: false,
   hotspot_new_subscription: true, hotspot_welcome: true,
@@ -54,9 +55,8 @@ const EMPTY_NOTIF_SETTINGS: SMSNotificationSettings = {
   pppoe_service_suspended: true, pppoe_service_resumed: true,
   pppoe_plan_changed: true, pppoe_renewal_confirmation: true,
   pppoe_new_subscription: true,
-  // ── NEW ──
-  router_offline_enabled: false,
-  router_offline_numbers: [],
+  system_router_offline: false,
+  system_alert_phone: '',
 }
 
 const PROVIDER_OPTIONS: { value: SMSProvider; label: string }[] = [
@@ -475,9 +475,14 @@ export default function SMSPage() {
   const [bulkMessage, setBulkMessage] = useState('')
   const [bulkSending, setBulkSending] = useState(false)
 
-  // ── NEW: Router offline alert state ──
+  // FIX 2: Router offline alert state with derived list
   const [routerPhoneInput, setRouterPhoneInput] = useState('')
   const [routerPhoneError, setRouterPhoneError] = useState('')
+  
+  // Parse the comma-separated system_alert_phone into an array for display
+  const routerPhoneList = notifSettings.system_alert_phone
+    ? notifSettings.system_alert_phone.split(',').map(s => s.trim()).filter(Boolean)
+    : []
 
   // Debounced search
   useEffect(() => {
@@ -622,12 +627,11 @@ export default function SMSPage() {
     toast.success('Template deleted')
   }
 
-  // FIXED: handleSaveNotifSettings now merges API response with existing state
   const handleSaveNotifSettings = async (patch: Partial<SMSNotificationSettings>) => {
     setIsSavingNotif(true)
     try {
       const updated = await adminApi.updateSMSNotificationSettings(patch)
-      // Merge, not replace — prevents router_offline_enabled from being lost if backend doesn't echo it
+      // Merge, not replace — preserves all fields
       setNotifSettings(prev => ({ ...prev, ...updated }))
       toast.success('Notification settings saved')
     } catch (e: any) { toast.error(e?.message ?? 'Failed to save') }
@@ -640,12 +644,11 @@ export default function SMSPage() {
     handleSaveNotifSettings(patch)
   }
 
-  // ── NEW: Router number handlers ──
+  // FIX 3: Router number handlers using correct backend fields
   const handleAddRouterNumber = async () => {
     const num = routerPhoneInput.trim()
     if (!num) return
 
-    // Accept: 07XXXXXXXX, +2547XXXXXXXX, or generic international
     const isValid = /^(?:0[17]\d{8}|\+2547\d{8}|\+\d{9,15})$/.test(num)
     if (!isValid) {
       setRouterPhoneError('Invalid format. Use 07XXXXXXXX or +2547XXXXXXXX')
@@ -653,23 +656,22 @@ export default function SMSPage() {
     }
     setRouterPhoneError('')
 
-    const current = notifSettings.router_offline_numbers ?? []
-    if (current.includes(num)) {
+    if (routerPhoneList.includes(num)) {
       setRouterPhoneError('Number already in list')
       return
     }
 
-    const updated = [...current, num]
+    const updated = [...routerPhoneList, num].join(',')
     setRouterPhoneInput('')
-    const patch = { router_offline_numbers: updated }
+    const patch = { system_alert_phone: updated }
     setNotifSettings(p => ({ ...p, ...patch }))
     await handleSaveNotifSettings(patch)
     toast.success(`${num} added to alert list`)
   }
 
   const handleRemoveRouterNumber = async (num: string) => {
-    const updated = (notifSettings.router_offline_numbers ?? []).filter(n => n !== num)
-    const patch = { router_offline_numbers: updated }
+    const updated = routerPhoneList.filter(n => n !== num).join(',')
+    const patch = { system_alert_phone: updated }
     setNotifSettings(p => ({ ...p, ...patch }))
     await handleSaveNotifSettings(patch)
     toast.success('Number removed')
@@ -1218,7 +1220,7 @@ export default function SMSPage() {
                 </CardContent>
               </Card>
 
-              {/* ── ROUTER OFFLINE ALERTS ───────────────────────────────── */}
+              {/* FIX 4: ROUTER OFFLINE ALERTS CARD - Updated with correct backend fields */}
               <Card className="lg:col-span-2 border-orange-100 bg-white">
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
@@ -1233,8 +1235,8 @@ export default function SMSPage() {
                     </div>
                     <div className="ml-auto">
                       <Switch
-                        checked={notifSettings.router_offline_enabled}
-                        onCheckedChange={v => handleToggleNotif('router_offline_enabled', v)}
+                        checked={notifSettings.system_router_offline}
+                        onCheckedChange={v => handleToggleNotif('system_router_offline', v)}
                       />
                     </div>
                   </div>
@@ -1243,19 +1245,19 @@ export default function SMSPage() {
                 <CardContent className="space-y-5">
                   {/* Status banner */}
                   <div className={`flex items-center gap-3 rounded-xl p-3 text-sm ${
-                    notifSettings.router_offline_enabled
+                    notifSettings.system_router_offline
                       ? 'bg-orange-50 border border-orange-200 text-orange-800'
                       : 'bg-slate-50 border border-slate-100 text-slate-500'
                   }`}>
                     <div className={`w-2 h-2 rounded-full shrink-0 ${
-                      notifSettings.router_offline_enabled ? 'bg-orange-500 animate-pulse' : 'bg-slate-300'
+                      notifSettings.system_router_offline ? 'bg-orange-500 animate-pulse' : 'bg-slate-300'
                     }`} />
-                    {notifSettings.router_offline_enabled
-                      ? `Active — ${(notifSettings.router_offline_numbers ?? []).length} recipient(s) configured`
+                    {notifSettings.system_router_offline
+                      ? `Active — ${routerPhoneList.length} recipient(s) configured`
                       : 'Disabled — toggle on to configure recipients'}
                   </div>
 
-                  {notifSettings.router_offline_enabled && (
+                  {notifSettings.system_router_offline && (
                     <>
                       <Separator />
 
@@ -1299,7 +1301,7 @@ export default function SMSPage() {
                       </div>
 
                       {/* Number chips */}
-                      {(notifSettings.router_offline_numbers ?? []).length === 0 ? (
+                      {routerPhoneList.length === 0 ? (
                         <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-orange-100 bg-orange-50/50 py-8 text-center">
                           <Phone className="w-8 h-8 text-orange-200" />
                           <p className="text-sm font-medium text-orange-700">No recipients yet</p>
@@ -1308,10 +1310,10 @@ export default function SMSPage() {
                       ) : (
                         <div className="space-y-2">
                           <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-                            {(notifSettings.router_offline_numbers ?? []).length} recipient(s)
+                            {routerPhoneList.length} recipient(s)
                           </p>
                           <div className="flex flex-wrap gap-2">
-                            {(notifSettings.router_offline_numbers ?? []).map((num, i) => (
+                            {routerPhoneList.map((num, i) => (
                               <div
                                 key={num}
                                 className="group flex items-center gap-2 bg-white border border-orange-200 rounded-full px-3 py-1.5 shadow-sm hover:border-orange-400 transition-all"
