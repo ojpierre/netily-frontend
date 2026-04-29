@@ -622,11 +622,13 @@ export default function SMSPage() {
     toast.success('Template deleted')
   }
 
+  // FIXED: handleSaveNotifSettings now merges API response with existing state
   const handleSaveNotifSettings = async (patch: Partial<SMSNotificationSettings>) => {
     setIsSavingNotif(true)
     try {
       const updated = await adminApi.updateSMSNotificationSettings(patch)
-      setNotifSettings(updated)
+      // Merge, not replace — prevents router_offline_enabled from being lost if backend doesn't echo it
+      setNotifSettings(prev => ({ ...prev, ...updated }))
       toast.success('Notification settings saved')
     } catch (e: any) { toast.error(e?.message ?? 'Failed to save') }
     finally { setIsSavingNotif(false) }
@@ -1334,7 +1336,7 @@ export default function SMSPage() {
                             <p className="text-xs text-slate-400 mb-1.5">Preview — SMS they will receive:</p>
                             <div className="bg-[#1a2e1a] rounded-lg px-3 py-2 max-w-xs">
                               <p className="text-xs text-green-300 leading-relaxed">
-                                ⚠️ ALERT: Router &apos;Site A Router&apos; has gone OFFLINE. Please check your network immediately.
+                                ⚠️ ALERT: Router 'Site A Router' has gone OFFLINE. Please check your network immediately.
                               </p>
                             </div>
                           </div>
