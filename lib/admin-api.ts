@@ -163,6 +163,8 @@ import type {
   VoucherGenerateResponse,
   VoucherListResponse,
   ActiveSubscriptionsResponse,
+  CustomerAvailablePlansResponse,
+  CustomerPlanChangeResponse,
   // Loyalty types
   LoyaltySettings,
   LoyaltyTier,
@@ -695,6 +697,26 @@ async updateCustomerService(customerId: number, serviceId: number, data: Record<
   return this.request(`/customers/${customerId}/services/${serviceId}/`, {
     method: 'PATCH',
     body: JSON.stringify(data),
+  })
+}
+
+async getCustomerAvailablePlans(customerId: number, serviceId?: number | null): Promise<CustomerAvailablePlansResponse> {
+  const query = serviceId ? `?service_id=${serviceId}` : ''
+  return this.request<CustomerAvailablePlansResponse>(`/customers/${customerId}/available_plans/${query}`)
+}
+
+async changeCustomerPlan(
+  customerId: number,
+  planId: number,
+  serviceId?: number | null
+): Promise<CustomerPlanChangeResponse> {
+  const body: Record<string, any> = { plan_id: planId }
+  if (serviceId) {
+    body.service_id = serviceId
+  }
+  return this.request<CustomerPlanChangeResponse>(`/customers/${customerId}/change_plan/`, {
+    method: 'POST',
+    body: JSON.stringify(body),
   })
 }
 

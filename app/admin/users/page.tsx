@@ -34,9 +34,10 @@ import {
   Copy,
   Smartphone,
   CreditCard,
+  ArrowRightLeft,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
-import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession } from "@/lib/types"
+import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession, ActiveSubscriptionsResponse, CustomerAvailablePlanOption, CustomerAvailablePlansResponse } from "@/lib/types"
 
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -157,30 +158,6 @@ interface HotspotClientData {
     mpesa_receipt: string | null;
     data_used_mb: number;
   } | null;
-}
-
-interface ActiveSubscription {
-  id: number;
-  username: string;
-  canonical_username: string;
-  phone: string;
-  full_name: string;
-  plan_name: string;
-  plan_price: string;
-  expiry_date: string;
-  hours_left: number;
-  days_left: number;
-  router: string;
-  mac_address: string | null;
-  session_id: string | null;
-  data_used_mb: number;
-  service_type: "PPPOE" | "HOTSPOT" | "STATIC";
-}
-
-interface ActiveSubscriptionsResponse {
-  pppoe: ActiveSubscription[];
-  hotspot: ActiveSubscription[];
-  total: number;
 }
 
 interface UserStats {
@@ -304,6 +281,15 @@ export default function UsersPage() {
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [showChangePlanDialog, setShowChangePlanDialog] = useState(false)
+  const [userToChangePlan, setUserToChangePlan] = useState<User | null>(null)
+  const [changePlanOptions, setChangePlanOptions] = useState<CustomerAvailablePlanOption[]>([])
+  const [changePlanServiceId, setChangePlanServiceId] = useState<number | null>(null)
+  const [currentPlanId, setCurrentPlanId] = useState<number | null>(null)
+  const [currentPlanName, setCurrentPlanName] = useState<string | null>(null)
+  const [selectedChangePlanId, setSelectedChangePlanId] = useState<string>("")
+  const [changePlanLoading, setChangePlanLoading] = useState(false)
+  const [changePlanSaving, setChangePlanSaving] = useState(false)
   const [showExtendDialog, setShowExtendDialog] = useState(false)
   const [userToExtend, setUserToExtend] = useState<User | null>(null)
   const [extending, setExtending] = useState(false)
@@ -963,6 +949,72 @@ export default function UsersPage() {
       toast.error(err.message || 'Could not load available IPs for this plan')
     } finally {
       setEditIPLoading(false)
+    }
+  }
+
+  const handleOpenChangePlan = async (user: User) => {
+    try {
+      setUserToChangePlan(user)
+      setShowChangePlanDialog(true)
+      setChangePlanLoading(true)
+      setChangePlanOptions([])
+      setSelectedChangePlanId("")
+
+      const payload: CustomerAvailablePlansResponse = await adminApi.getCustomerAvailablePlans(user.customerId, user.serviceId)
+      setChangePlanOptions(payload.plans || [])
+      setChangePlanServiceId(payload.service_id ?? user.serviceId ?? null)
+      setCurrentPlanId(payload.current_plan_id ?? null)
+      setCurrentPlanName(payload.current_plan_name ?? user.plan ?? null)
+      setSelectedChangePlanId(payload.current_plan_id ? String(payload.current_plan_id) : "")
+    } catch (err: any) {
+      console.error("Failed to load available plans:", err)
+      toast.error(err.message || "Failed to load available plans")
+      setShowChangePlanDialog(false)
+      setUserToChangePlan(null)
+    } finally {
+      setChangePlanLoading(false)
+    }
+  }
+
+  const handleConfirmChangePlan = async () => {
+    if (!userToChangePlan || !selectedChangePlanId) {
+      toast.error("Select a plan to continue")
+      return
+    }
+
+    try {
+      setChangePlanSaving(true)
+      const result = await adminApi.changeCustomerPlan(
+        userToChangePlan.customerId,
+        parseInt(selectedChangePlanId, 10),
+        changePlanServiceId
+      )
+
+      toast.success(result?.message || "Plan changed successfully")
+
+      if (selectedUser?.customerId === userToChangePlan.customerId) {
+        const selectedPlan = changePlanOptions.find((plan) => plan.id === parseInt(selectedChangePlanId, 10))
+        if (selectedPlan) {
+          setSelectedUser({
+            ...selectedUser,
+            plan: selectedPlan.name,
+            planPrice: parseFloat(selectedPlan.price || "0"),
+            serviceId: result?.service?.id ?? selectedUser.serviceId,
+            downloadSpeed: result?.service?.download_speed ?? selectedUser.downloadSpeed,
+            uploadSpeed: result?.service?.upload_speed ?? selectedUser.uploadSpeed,
+            dataLimit: result?.service?.data_cap ?? selectedUser.dataLimit,
+          })
+        }
+      }
+
+      setShowChangePlanDialog(false)
+      setUserToChangePlan(null)
+      await loadUsers()
+    } catch (err: any) {
+      console.error("Failed to change plan:", err)
+      toast.error(err.message || "Failed to change plan")
+    } finally {
+      setChangePlanSaving(false)
     }
   }
   
@@ -2170,6 +2222,10 @@ export default function UsersPage() {
                                   <Calendar className="w-4 h-4 mr-2" />
                                   Extend Subscription
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenChangePlan(user)}>
+                                  <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                  Change Plan
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleEditUser(user)}>
                                   <Edit className="w-4 h-4 mr-2" />
                                   Edit User
@@ -2271,25 +2327,28 @@ export default function UsersPage() {
                   </TableHeader>
                   <TableBody>
                     {activeSubscriptions.hotspot.map((item) => {
-                      const dataUsedMb = item.data_used_mb ?? 0;
-                      const dataUsedDisplay = dataUsedMb >= 1024 
-                          ? `${(dataUsedMb / 1024).toFixed(2)} GB` 
-                          : `${dataUsedMb.toFixed(2)} MB`;
-
-                      const liveUsage = hotspotLiveUsageMap.get(item.canonical_username);
-                      const displayUsage = liveUsage ?? dataUsedDisplay;
+                      const historicalSpend = item.client_total_spend ?? 0;
+                      const historicalUsageDisplay = `KES ${historicalSpend.toLocaleString()}`;
+                      const liveUsage = item.canonical_username
+                        ? hotspotLiveUsageMap.get(item.canonical_username)
+                        : undefined;
+                      const displayUsage = liveUsage ?? historicalUsageDisplay;
                       const isLive = !!liveUsage;
+                      const hotspotIdentifier = item.canonical_username || item.username || item.display_name || "Hotspot";
+                      const expiryLabel = item.expiry_date
+                        ? new Date(item.expiry_date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+                        : 'Unlimited';
 
                       return (
-                        <TableRow key={item.id}>
+                        <TableRow key={`${hotspotIdentifier}-${item.session_id || item.subscribed_at || item.plan_name}`}>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-white font-medium text-xs">
                                 HS
                               </div>
                               <div>
-                                <p className="font-medium text-slate-900 dark:text-white font-mono">{item.canonical_username}</p>
-                                <p className="text-xs text-slate-500">{item.phone}</p>
+                                <p className="font-medium text-slate-900 dark:text-white font-mono">{hotspotIdentifier}</p>
+                                <p className="text-xs text-slate-500">{item.phone || item.email || item.display_name}</p>
                               </div>
                             </div>
                           </TableCell>
@@ -2300,8 +2359,10 @@ export default function UsersPage() {
                           </TableCell>
                           <TableCell>
                             <div className="space-y-1">
-                              <p className="text-sm font-medium text-amber-600">{item.hours_left}h left</p>
-                              <p className="text-xs text-slate-500">Expires: {new Date(item.expiry_date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
+                              <p className="text-sm font-medium text-amber-600">
+                                {item.is_unlimited ? "Unlimited" : `${item.hours_left}h left`}
+                              </p>
+                              <p className="text-xs text-slate-500">Expires: {expiryLabel}</p>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -2466,6 +2527,10 @@ export default function UsersPage() {
                               <DropdownMenuItem onClick={() => handleExtendSubscription(user)}>
                                 <Calendar className="w-4 h-4 mr-2" />
                                 Extend Subscription
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenChangePlan(user)}>
+                                <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                Change Plan
                               </DropdownMenuItem>
                               {(user.type === "pppoe" || user.type === "static") && (
                                 <DropdownMenuItem onClick={() => handleEditIP(user)}>
@@ -3238,6 +3303,108 @@ export default function UsersPage() {
                   <Calendar className="w-4 h-4 mr-2" />
                   Extend Subscription
                 </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showChangePlanDialog}
+        onOpenChange={(open) => {
+          setShowChangePlanDialog(open)
+          if (!open) {
+            setUserToChangePlan(null)
+            setChangePlanOptions([])
+            setChangePlanServiceId(null)
+            setCurrentPlanId(null)
+            setCurrentPlanName(null)
+            setSelectedChangePlanId("")
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Change Plan</DialogTitle>
+            <DialogDescription>
+              {userToChangePlan
+                ? `Choose a new plan for ${userToChangePlan.name}.`
+                : "Choose a new plan for this user."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-slate-50 p-3 text-sm">
+              <p className="font-medium text-slate-900">Current plan</p>
+              <p className="mt-1 text-slate-600">{currentPlanName || "No active plan"}</p>
+            </div>
+
+            {changePlanLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : changePlanOptions.length === 0 ? (
+              <Alert>
+                <AlertDescription>No compatible plans are available for this user.</AlertDescription>
+              </Alert>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="change-plan-select">Available plans</Label>
+                <Select value={selectedChangePlanId || "none"} onValueChange={(value) => setSelectedChangePlanId(value === "none" ? "" : value)}>
+                  <SelectTrigger id="change-plan-select">
+                    <SelectValue placeholder="Select a plan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none" disabled>Select a plan</SelectItem>
+                    {changePlanOptions.map((plan) => (
+                      <SelectItem key={plan.id} value={String(plan.id)}>
+                        {plan.name} - KES {parseFloat(plan.price || "0").toLocaleString()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {selectedChangePlanId && (
+                  <div className="rounded-lg border p-3 text-sm">
+                    {(() => {
+                      const selectedPlan = changePlanOptions.find((plan) => plan.id === parseInt(selectedChangePlanId, 10))
+                      if (!selectedPlan) return null
+                      return (
+                        <div className="space-y-1 text-slate-600">
+                          <p><span className="font-medium text-slate-900">Type:</span> {selectedPlan.plan_type}</p>
+                          <p><span className="font-medium text-slate-900">Speed:</span> {selectedPlan.download_speed || 0} / {selectedPlan.upload_speed || 0} Mbps</p>
+                          <p><span className="font-medium text-slate-900">Data limit:</span> {selectedPlan.data_limit ? `${selectedPlan.data_limit} GB` : "Unlimited"}</p>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowChangePlanDialog(false)} disabled={changePlanSaving}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmChangePlan}
+              disabled={
+                changePlanLoading ||
+                changePlanSaving ||
+                !selectedChangePlanId ||
+                selectedChangePlanId === String(currentPlanId || "")
+              }
+            >
+              {changePlanSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Changing...
+                </>
+              ) : (
+                "Change Plan"
               )}
             </Button>
           </DialogFooter>

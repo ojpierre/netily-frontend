@@ -319,6 +319,42 @@ export interface ServicePlan {
   created_at: string
 }
 
+export interface CustomerAvailablePlanOption {
+  id: number
+  name: string
+  code: string
+  plan_type: string
+  price: string
+  download_speed?: number | null
+  upload_speed?: number | null
+  data_limit?: number | null
+  is_public?: boolean
+  is_popular?: boolean
+}
+
+export interface CustomerAvailablePlansResponse {
+  customer_id: number
+  service_id: number | null
+  current_plan_id: number | null
+  current_plan_name: string | null
+  plans: CustomerAvailablePlanOption[]
+}
+
+export interface CustomerPlanChangeResponse {
+  status: string
+  message: string
+  service: {
+    id: number
+    plan_id: number | null
+    plan_name: string | null
+    monthly_price: string
+    download_speed: number
+    upload_speed: number
+    data_cap: number | null
+    auth_connection_type: string
+  }
+}
+
 export interface OnboardingWizardData {
   // Step 1: Personal Info
   first_name: string
