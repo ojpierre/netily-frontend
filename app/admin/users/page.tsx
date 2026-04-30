@@ -726,6 +726,7 @@ export default function UsersPage() {
     }
   }, [enrichedUsers, activeSubscriptions, onlineSessions])
 
+  // FIX 1: Added radius_username to search bar for All/PPPoE/Static tabs
   const filteredUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
       const matchesTab = 
@@ -737,7 +738,9 @@ export default function UsersPage() {
         (user.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
         (user.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
         (user.phone || '').includes(searchQuery) ||
-        (user.id?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+        (user.id?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        // ADDED: Search by RADIUS username
+        (user.radiusCredentials?.username?.toLowerCase() || '').includes(searchQuery.toLowerCase())
       )
 
       const matchesStatus = statusFilter === "all" || user.status === statusFilter
@@ -767,6 +770,7 @@ export default function UsersPage() {
     })
   }, [onlineSessions, onlineSearchQuery, onlineServiceFilter])
 
+  // FIX 1: Added radius_username to search bar for Active Subscriptions tab
   const activeSubscriptionUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
       const expiryDate = new Date(user.expiryDate)
@@ -782,7 +786,9 @@ export default function UsersPage() {
         (user.email?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
         (user.phone || '').includes(activeSearchQuery) ||
         (user.id?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
-        (user.plan?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase())
+        (user.plan?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
+        // ADDED: Search by RADIUS username
+        (user.radiusCredentials?.username?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase())
       )
       return isActive && matchesSearch
     })
@@ -1855,7 +1861,7 @@ export default function UsersPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
-                  placeholder="Search by name, email, phone, or ID..."
+                  placeholder="Search by name, email, phone, username, or ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
@@ -2092,7 +2098,7 @@ export default function UsersPage() {
                 <div className="relative w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
-                    placeholder="Search name, plan, phone..."
+                    placeholder="Search name, plan, phone, username..."
                     value={activeSearchQuery}
                     onChange={(e) => setActiveSearchQuery(e.target.value)}
                     className="pl-9"
@@ -2327,8 +2333,11 @@ export default function UsersPage() {
                   </TableHeader>
                   <TableBody>
                     {activeSubscriptions.hotspot.map((item) => {
-                      const historicalSpend = item.client_total_spend ?? 0;
-                      const historicalUsageDisplay = `KES ${historicalSpend.toLocaleString()}`;
+                      // FIX 2: Fixed hotspot offline usage showing money instead of "Offline"
+                      // REPLACED: const historicalSpend = item.client_total_spend ?? 0;
+                      // REPLACED: const historicalUsageDisplay = `KES ${historicalSpend.toLocaleString()}`;
+                      // WITH:
+                      const historicalUsageDisplay = "Offline";
                       const liveUsage = item.canonical_username
                         ? hotspotLiveUsageMap.get(item.canonical_username)
                         : undefined;
