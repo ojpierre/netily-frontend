@@ -8,7 +8,6 @@ import {
   RefreshCw,
   Plus,
   MoreVertical,
-  Trash2,
   Pencil,
   Smartphone,
   Landmark,
@@ -168,11 +167,6 @@ export default function PaymentMethodsPage() {
     cfg: {} as Record<string, string>,
   })
   const [saving, setSaving] = useState(false)
-
-  /* ── Delete ── */
-  const [deleteTarget, setDeleteTarget] = useState<PaymentMethod | null>(null)
-  const [deleting, setDeleting] = useState(false)
-  const [forceDeleteInfo, setForceDeleteInfo] = useState<{ method: PaymentMethod; paymentCount: number } | null>(null)
 
   /* ── Activate / Deactivate ── */
   const [toggleTarget, setToggleTarget] = useState<{ method: PaymentMethod; action: 'activate' | 'deactivate' } | null>(null)
@@ -336,45 +330,6 @@ export default function PaymentMethodsPage() {
       toast.error(err?.message || `Failed to ${action}`)
     } finally {
       setToggling(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    const target = forceDeleteInfo?.method || deleteTarget
-    if (!target) return
-    setDeleting(true)
-    try {
-      const isForce = !!forceDeleteInfo
-      const result = await adminApi.deletePaymentMethod(target.id, isForce)
-
-      // Build descriptive toast based on what happened
-      let description: string | undefined
-      if (result?.tuma_action === 'business_deleted') {
-        description = 'Payment profile removed — no payment methods remain.'
-      } else if (result?.tuma_action === 'deactivated') {
-        description = 'Settlement paused — activate another method to resume collections.'
-      } else if (isForce) {
-        description = `${forceDeleteInfo!.paymentCount} payment(s) were unlinked from this method.`
-      }
-
-      toast.success(`${target.name} deleted`, { description })
-      setDeleteTarget(null)
-      setForceDeleteInfo(null)
-      fetchMethods()
-      fetchStats()
-    } catch (err: any) {
-      if (err?.status === 409 && !forceDeleteInfo) {
-        // First attempt returned 409 — show the force-delete dialog
-        setDeleteTarget(null)
-        setForceDeleteInfo({
-          method: target,
-          paymentCount: err.data?.payment_count || 0,
-        })
-      } else {
-        toast.error(err?.message || "Delete failed")
-      }
-    } finally {
-      setDeleting(false)
     }
   }
 
@@ -644,10 +599,6 @@ export default function PaymentMethodsPage() {
                                     <CheckCircle2 className="h-3.5 w-3.5 mr-2" />Activate
                                   </DropdownMenuItem>
                                 )}
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600" onClick={() => setDeleteTarget(m)}>
-                                  <Trash2 className="h-3.5 w-3.5 mr-2" />Delete
-                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -761,44 +712,6 @@ export default function PaymentMethodsPage() {
         onPickType={pickType}
         renderFields={renderFields}
       />
-
-      {/* Delete confirm */}
-      <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null) }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete Payment Method?</DialogTitle>
-            <DialogDescription>
-              This will permanently remove <span className="font-medium">{deleteTarget?.name}</span>. Customers will no longer see this option.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Force Delete confirm (shown after 409 — has linked payments) */}
-      <Dialog open={!!forceDeleteInfo} onOpenChange={(o) => { if (!o) setForceDeleteInfo(null) }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-destructive">Delete With Linked Payments?</DialogTitle>
-            <DialogDescription>
-              <span className="font-medium">{forceDeleteInfo?.method.name}</span> has{' '}
-              <span className="font-semibold">{forceDeleteInfo?.paymentCount}</span> payment(s) linked to it.
-              Deleting will unlink those payments (they won&apos;t be lost, just no longer associated with this method).
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setForceDeleteInfo(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Delete Anyway
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Activate / Deactivate confirm */}
       <Dialog open={!!toggleTarget} onOpenChange={(o) => { if (!o) setToggleTarget(null) }}>
