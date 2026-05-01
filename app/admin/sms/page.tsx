@@ -57,6 +57,7 @@ const EMPTY_NOTIF_SETTINGS: SMSNotificationSettings = {
   pppoe_new_subscription: true,
   system_router_offline: false,
   system_alert_phone: '',
+  router_offline_numbers: [],
 }
 
 const PROVIDER_OPTIONS: { value: SMSProvider; label: string }[] = [
@@ -475,14 +476,22 @@ export default function SMSPage() {
   const [bulkMessage, setBulkMessage] = useState('')
   const [bulkSending, setBulkSending] = useState(false)
 
-  // FIX 2: Router offline alert state with derived list
+  // FIX 2: Router offline alert state with derived list from router_offline_numbers JSONField
   const [routerPhoneInput, setRouterPhoneInput] = useState('')
   const [routerPhoneError, setRouterPhoneError] = useState('')
   
-  // Parse the comma-separated system_alert_phone into an array for display
-  const routerPhoneList = notifSettings.system_alert_phone
-    ? notifSettings.system_alert_phone.split(',').map(s => s.trim()).filter(Boolean)
-    : []
+  // Parse router_offline_numbers JSON array or fallback to legacy system_alert_phone
+  const routerPhoneList: string[] = useMemo(() => {
+    const fromJson = (notifSettings as any).router_offline_numbers
+    if (Array.isArray(fromJson) && fromJson.length > 0) {
+      return fromJson.filter(Boolean)
+    }
+    // Fallback: legacy comma-separated system_alert_phone
+    if (notifSettings.system_alert_phone) {
+      return notifSettings.system_alert_phone.split(',').map((s: string) => s.trim()).filter(Boolean)
+    }
+    return []
+  }, [(notifSettings as any).router_offline_numbers, notifSettings.system_alert_phone])
 
   // Debounced search
   useEffect(() => {
@@ -644,7 +653,7 @@ export default function SMSPage() {
     handleSaveNotifSettings(patch)
   }
 
-  // FIX 3: Router number handlers using correct backend fields
+  // FIX 3: Router number handlers using correct backend JSON field
   const handleAddRouterNumber = async () => {
     const num = routerPhoneInput.trim()
     if (!num) return
@@ -661,18 +670,19 @@ export default function SMSPage() {
       return
     }
 
-    const updated = [...routerPhoneList, num].join(',')
+    const updated = [...routerPhoneList, num]
     setRouterPhoneInput('')
-    const patch = { system_alert_phone: updated }
-    setNotifSettings(p => ({ ...p, ...patch }))
+    // Save as JSON array to router_offline_numbers
+    const patch = { router_offline_numbers: updated } as any
+    setNotifSettings(p => ({ ...p, router_offline_numbers: updated } as any))
     await handleSaveNotifSettings(patch)
     toast.success(`${num} added to alert list`)
   }
 
   const handleRemoveRouterNumber = async (num: string) => {
-    const updated = routerPhoneList.filter(n => n !== num).join(',')
-    const patch = { system_alert_phone: updated }
-    setNotifSettings(p => ({ ...p, ...patch }))
+    const updated = routerPhoneList.filter(n => n !== num)
+    const patch = { router_offline_numbers: updated } as any
+    setNotifSettings(p => ({ ...p, router_offline_numbers: updated } as any))
     await handleSaveNotifSettings(patch)
     toast.success('Number removed')
   }
@@ -1220,7 +1230,7 @@ export default function SMSPage() {
                 </CardContent>
               </Card>
 
-              {/* FIX 4: ROUTER OFFLINE ALERTS CARD - Updated with correct backend fields */}
+              {/* FIX 4: ROUTER OFFLINE ALERTS CARD - Updated to use JSON array field */}
               <Card className="lg:col-span-2 border-orange-100 bg-white">
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
@@ -1228,9 +1238,9 @@ export default function SMSPage() {
                       <WifiOff className="w-4 h-4 text-white" />
                     </div>
                     <div>
-                      <CardTitle className="text-base">MikroTik Router Offline Alerts</CardTitle>
+                      <CardTitle className="text-base">MikroTik Router Offline/Online Alerts</CardTitle>
                       <CardDescription>
-                        Instant SMS the moment any router transitions Online → Offline
+                        Instant SMS when any router transitions Online ↔ Offline
                       </CardDescription>
                     </div>
                     <div className="ml-auto">
@@ -1267,7 +1277,7 @@ export default function SMSPage() {
                           Alert Recipients
                         </Label>
                         <p className="text-xs text-slate-500">
-                          All numbers below receive an SMS the moment a router goes offline.
+                          All numbers below receive an SMS the moment a router goes offline or comes back online.
                           Accepts Kenyan (07XXXXXXXX) or international (+2547XXXXXXXX) formats.
                         </p>
 
@@ -1333,13 +1343,20 @@ export default function SMSPage() {
                             ))}
                           </div>
 
-                          {/* Example SMS preview */}
-                          <div className="mt-4 rounded-xl bg-slate-800 p-3">
-                            <p className="text-xs text-slate-400 mb-1.5">Preview — SMS they will receive:</p>
-                            <div className="bg-[#1a2e1a] rounded-lg px-3 py-2 max-w-xs">
-                              <p className="text-xs text-green-300 leading-relaxed">
-                                ⚠️ ALERT: Router 'Site A Router' has gone OFFLINE. Please check your network immediately.
-                              </p>
+                          {/* Example SMS preview - both offline and online */}
+                          <div className="mt-4 space-y-2">
+                            <p className="text-xs font-semibold text-slate-500">Preview — SMS they will receive:</p>
+                            <div className="rounded-xl bg-slate-800 p-3 space-y-2">
+                              <div className="bg-[#1a2e1a] rounded-lg px-3 py-2">
+                                <p className="text-xs text-green-300 leading-relaxed">
+                                  ⚠️ ALERT: Router 'Site A Router' has gone OFFLINE. Please check your network immediately.
+                                </p>
+                              </div>
+                              <div className="bg-[#1a2e1a] rounded-lg px-3 py-2">
+                                <p className="text-xs text-green-300 leading-relaxed">
+                                  ✅ RESTORED: Router 'Site A Router' is back ONLINE. Network connectivity has been restored.
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
