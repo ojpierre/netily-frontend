@@ -88,6 +88,7 @@ function AccountSettingsTab() {
   
   // Company logo state
   const [companyId, setCompanyId] = useState<number | null>(null)
+  const [companyName, setCompanyName] = useState<string>("")
   const [companyLogo, setCompanyLogo] = useState<string>("")
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string>("")
@@ -112,15 +113,16 @@ function AccountSettingsTab() {
           email: user.email || "",
           phone_number: user.phone_number || "",
         })
-        // Load company logo if user has a company
-        const cId = (user as any).company_id || (user as any).company?.id
-        if (cId) {
-          setCompanyId(cId)
-          try {
-            const company = await adminApi.getCompany(cId)
+        // Load company logo if companies exist
+        try {
+          const companies = await adminApi.getCompanies()
+          if (companies && companies.length > 0) {
+            const company = companies[0] // Use first company
+            setCompanyId(company.id)
+            setCompanyName(company.name || "")
             setCompanyLogo(company.logo || "")
-          } catch { /* non-critical */ }
-        }
+          }
+        } catch { /* non-critical */ }
       } catch (error) {
         console.error("Failed to load profile:", error)
         toast.error("Failed to load profile")
@@ -325,19 +327,25 @@ function AccountSettingsTab() {
               }
               setLogoSaving(true)
               try {
-                // Resolve company ID on-demand if not yet loaded
+                // Try to find company ID - first check if we already have it
                 let cId = companyId
                 if (!cId) {
                   try {
-                    const user = await adminApi.getCurrentUser()
-                    cId = (user as any).company_id || (user as any).company?.id || null
-                    if (cId) setCompanyId(cId)
+                    // Try to get companies list
+                    const companies = await adminApi.getCompanies()
+                    if (companies && companies.length > 0) {
+                      // Use the first company (most common case)
+                      cId = companies[0].id
+                      setCompanyId(cId)
+                    }
                   } catch { /* ignore */ }
                 }
+                
                 if (!cId) {
-                  toast.error("Company not found — please contact support")
+                  toast.error("No company found. Please create a company profile first in the Company section below.")
                   return
                 }
+                
                 const formData = new FormData()
                 formData.append('logo', logoFile)
                 const token = getAdminToken()
@@ -356,10 +364,10 @@ function AccountSettingsTab() {
                 localStorage.setItem("netily_company_logo", savedLogoUrl)
                 setLogoFile(null)
                 setLogoPreview("")
-                toast.success("Company logo updated")
+                toast.success("Company logo updated successfully!")
               } catch (error: any) {
                 console.error("Failed to upload logo:", error)
-                toast.error(error?.message || "Failed to upload logo")
+                toast.error(error?.message || "Failed to upload logo. Please try again.")
               } finally {
                 setLogoSaving(false)
               }
@@ -381,6 +389,101 @@ function AccountSettingsTab() {
           {!logoFile && (
             <p className="ml-3 text-xs text-slate-400">Select a logo file above to enable save</p>
           )}
+        </CardFooter>
+      </Card>
+
+      {/* Company Name Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Company Information</CardTitle>
+          <CardDescription>Set your company name and basic details</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="company_name">Company Name</Label>
+            <Input
+              id="company_name"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder="Enter your company name"
+            />
+            <p className="text-xs text-slate-500">This name will appear on invoices and customer communications</p>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button
+            onClick={async () => {
+              if (!companyName.trim()) {
+                toast.error("Please enter a company name")
+                return
+              }
+              setLogoSaving(true) // Reuse the loading state
+              try {
+                let cId = companyId
+                if (!cId) {
+                  // Try to get existing companies first
+                  try {
+                    const companies = await adminApi.getCompanies()
+                    if (companies && companies.length > 0) {
+                      cId = companies[0].id
+                    }
+                  } catch { /* ignore */ }
+                }
+
+                const token = getAdminToken()
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+                
+                if (cId) {
+                  // Update existing company
+                  const res = await fetch(`${apiBase}/core/companies/${cId}/`, {
+                    method: 'PATCH',
+                    headers: {
+                      'Authorization': `Bearer ${token || ''}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name: companyName.trim() }),
+                  })
+                  if (!res.ok) throw new Error(`Update failed (${res.status})`)
+                  const data = await res.json()
+                  setCompanyName(data.name || companyName)
+                } else {
+                  // Create new company
+                  const res = await fetch(`${apiBase}/core/companies/`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${token || ''}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name: companyName.trim() }),
+                  })
+                  if (!res.ok) throw new Error(`Creation failed (${res.status})`)
+                  const data = await res.json()
+                  setCompanyId(data.id)
+                  setCompanyName(data.name || companyName)
+                }
+                
+                toast.success("Company information saved successfully!")
+              } catch (error: any) {
+                console.error("Failed to save company:", error)
+                toast.error(error?.message || "Failed to save company information")
+              } finally {
+                setLogoSaving(false)
+              }
+            }}
+            disabled={logoSaving || !companyName.trim()}
+          >
+            {logoSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Save Company
+              </>
+            )}
+          </Button>
         </CardFooter>
       </Card>
 
