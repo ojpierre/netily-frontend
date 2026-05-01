@@ -125,7 +125,7 @@ export default function AdminDashboard() {
   })
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [weekView, setWeekView] = useState<"this" | "last">("this")
-  const [yearView, setYearView] = useState<"this" | "last">("this")
+  const [yearView, setYearView] = useState<"this" | "last">("last")
   
   // State for live online sessions and active subscriptions
   const [onlineSessions, setOnlineSessions] = useState<any[]>([])
@@ -135,12 +135,15 @@ export default function AdminDashboard() {
     total: 0 
   })
 
+  // State for expired customers count (derived from customers endpoint)
+  const [expiredCount, setExpiredCount] = useState<number>(0)
+
   const fetchDashboardData = useCallback(async () => {
     try {
       setError(null)
 
-      // Fetch all dashboard data in parallel
-      const [coreRes, routerRes, paymentRes, ticketRes, reportsRes, sessionsRes, activeSubsRes] = await Promise.allSettled([
+      // Fetch all dashboard data in parallel including expired customers
+      const [coreRes, routerRes, paymentRes, ticketRes, reportsRes, sessionsRes, activeSubsRes, expiredCustomersRes] = await Promise.allSettled([
         adminApi.getDashboard(),
         adminApi.getRouterDashboardStats(),
         adminApi.getPaymentDashboardStats(),
@@ -148,6 +151,7 @@ export default function AdminDashboard() {
         adminApi.getReportsData("30d"),
         adminApi.getOnlineSessions(),
         adminApi.getActiveSubscriptions?.(),
+        adminApi.getCustomers({ status: 'inactive', page_size: '1' }),
       ])
 
       setData({
@@ -168,6 +172,11 @@ export default function AdminDashboard() {
       }
       if (activeSubsRes.status === "fulfilled") {
         setActiveSubscriptions(activeSubsRes.value || { pppoe: [], hotspot: [], total: 0 })
+      }
+
+      // Set expired count from customers endpoint (mirrors users page logic)
+      if (expiredCustomersRes.status === "fulfilled") {
+        setExpiredCount(expiredCustomersRes.value?.count ?? 0)
       }
     } catch (err: any) {
       console.error("Dashboard fetch error:", err)
@@ -281,7 +290,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Expired Customers */}
+        {/* Expired Customers - FIXED: Uses expiredCount from customers endpoint */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Expired</CardTitle>
@@ -293,7 +302,7 @@ export default function AdminDashboard() {
             ) : (
               <>
                 <div className="text-2xl font-bold text-red-600">
-                  {(core?.expired_customers ?? 0).toLocaleString()}
+                  {(expiredCount || core?.expired_customers || 0).toLocaleString()}
                 </div>
                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                   <TrendingDown className="w-3 h-3 text-red-600" />

@@ -1211,7 +1211,7 @@ export default function UsersPage() {
         first_name: editForm.first_name,
         last_name: editForm.last_name,
         ...(editForm.email.trim() ? { email: editForm.email.trim() } : {}),
-        phone: editForm.phone,
+        phone_number: editForm.phone,
       })
       
       const radiusUpdate: { password?: string; username?: string } = {}
