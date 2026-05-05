@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { useAdminAuth } from "@/app/admin/admin-auth-context"
-import { adminApi } from "@/lib/admin-api"
+import { adminApi, type AdminLoginChallengeResponse, type AdminLoginResponse } from "@/lib/admin-api"
 
 // Check if using mock mode
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
@@ -30,7 +30,7 @@ interface LoginFormData {
 
 export default function AdminLoginPage() {
   const router = useRouter()
-  const { login, user, loading: authLoading } = useAdminAuth()
+  const { establishSession, user, loading: authLoading } = useAdminAuth()
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
@@ -44,6 +44,10 @@ export default function AdminLoginPage() {
   const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""])
   const [otpMaskedEmail, setOtpMaskedEmail] = useState("")
   const [otpResendCooldown, setOtpResendCooldown] = useState(0)
+  const [otpExpiresIn, setOtpExpiresIn] = useState(0)
+  const [otpResendCount, setOtpResendCount] = useState(0)
+  const [otpMaxResends, setOtpMaxResends] = useState(5)
+  const [challengeId, setChallengeId] = useState("")
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   // Redirect if already logged in
@@ -59,6 +63,12 @@ export default function AdminLoginPage() {
     const timer = setTimeout(() => setOtpResendCooldown(otpResendCooldown - 1), 1000)
     return () => clearTimeout(timer)
   }, [otpResendCooldown])
+
+  useEffect(() => {
+    if (otpExpiresIn <= 0) return
+    const timer = setTimeout(() => setOtpExpiresIn(otpExpiresIn - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [otpExpiresIn])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -108,27 +118,34 @@ export default function AdminLoginPage() {
         throw new Error("Please fill in all fields")
       }
 
-      // First login to get tokens
-      await login(formData.email, formData.password, formData.rememberMe)
-
-      // If mock mode, skip OTP
       if (USE_MOCK) {
+        const mockLoginResponse = await adminApi.login(formData.email, formData.password)
+        if ((mockLoginResponse as any).requires_otp) {
+          throw new Error("Mock mode is not configured for OTP challenge responses.")
+        }
+        establishSession(mockLoginResponse as AdminLoginResponse, formData.rememberMe)
         window.location.href = "/admin"
         return
       }
 
-      // Send OTP after successful credential auth
-      try {
-        const otpRes = await adminApi.sendOTP()
-        setOtpMaskedEmail(otpRes.email || "your email")
+      const response = await adminApi.login(formData.email, formData.password)
+
+      if ((response as AdminLoginChallengeResponse).requires_otp) {
+        const challenge = response as AdminLoginChallengeResponse
+        setChallengeId(challenge.challenge_id)
+        setOtpMaskedEmail(challenge.email || "your email")
+        setOtpResendCooldown(Math.max(0, challenge.resend_available_in || 60))
+        setOtpExpiresIn(Math.max(0, challenge.expires_in || 600))
+        setOtpResendCount(0)
+        setOtpMaxResends(challenge.max_resends || 5)
         setStep("otp")
-        setOtpResendCooldown(60)
         setTimeout(() => otpInputRefs.current[0]?.focus(), 100)
-      } catch (otpError: any) {
-        // If OTP send fails, still allow login (graceful degradation)
-        console.warn("OTP send failed, proceeding without OTP:", otpError)
-        window.location.href = "/admin"
+        return
       }
+
+      const success = response as AdminLoginResponse
+      establishSession(success, formData.rememberMe)
+      window.location.href = "/admin"
     } catch (err: any) {
       setError(err.message || "Login failed")
     } finally {
@@ -147,7 +164,17 @@ export default function AdminLoginPage() {
     setError(null)
 
     try {
-      await adminApi.verifyOTP(otp)
+      if (!challengeId) {
+        throw new Error("Your login session expired. Please sign in again.")
+      }
+      const response = await adminApi.login(formData.email, formData.password, {
+        challenge_id: challengeId,
+        otp_code: otp,
+      })
+      if ((response as AdminLoginChallengeResponse).requires_otp) {
+        throw new Error("OTP verification not completed. Please try again.")
+      }
+      establishSession(response as AdminLoginResponse, formData.rememberMe)
       window.location.href = "/admin"
     } catch (err: any) {
       setError(err.message || "Invalid OTP")
@@ -163,9 +190,17 @@ export default function AdminLoginPage() {
     setError(null)
 
     try {
-      const otpRes = await adminApi.sendOTP()
+      if (!challengeId) {
+        throw new Error("Login challenge expired. Please sign in again.")
+      }
+      const otpRes = await adminApi.resendLoginOtp(formData.email, formData.password, challengeId)
       setOtpMaskedEmail(otpRes.email || "your email")
-      setOtpResendCooldown(60)
+      setOtpResendCooldown(Math.max(0, otpRes.resend_available_in || 60))
+      setOtpExpiresIn(Math.max(0, otpRes.expires_in || otpExpiresIn))
+      setOtpResendCount(otpRes.resend_count || 0)
+      setOtpMaxResends(otpRes.max_resends || otpMaxResends)
+      setOtpValues(["", "", "", "", "", ""])
+      otpInputRefs.current[0]?.focus()
     } catch (err: any) {
       setError(err.message || "Failed to resend OTP")
     }
@@ -341,15 +376,30 @@ export default function AdminLoginPage() {
                 ) : (
                   <button
                     onClick={handleResendOtp}
+                    disabled={otpResendCount >= otpMaxResends}
                     className="text-blue-600 hover:underline font-medium"
                   >
                     Resend OTP
                   </button>
                 )}
               </div>
+              <div className="text-center text-xs text-slate-400">
+                {otpExpiresIn > 0 ? `Code expires in ${otpExpiresIn}s` : "Code expired. Resend to continue."}
+              </div>
+              <div className="text-center text-xs text-slate-400">
+                Resends used: {otpResendCount}/{otpMaxResends}
+              </div>
 
               <button
-                onClick={() => { setStep("credentials"); setError(null); setOtpValues(["", "", "", "", "", ""]) }}
+                onClick={() => {
+                  setStep("credentials")
+                  setError(null)
+                  setChallengeId("")
+                  setOtpValues(["", "", "", "", "", ""])
+                  setOtpResendCooldown(0)
+                  setOtpExpiresIn(0)
+                  setOtpResendCount(0)
+                }}
                 className="w-full text-sm text-slate-400 hover:text-slate-600 transition-colors"
               >
                 Back to login

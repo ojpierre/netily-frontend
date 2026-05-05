@@ -183,6 +183,25 @@ export type { Customer }
 export interface AdminLoginResponse extends LoginResponse {
   user: User
 }
+export interface AdminLoginChallengeResponse {
+  requires_otp: true
+  challenge_id: string
+  email: string
+  message: string
+  expires_in: number
+  resend_available_in: number
+  max_resends: number
+}
+export interface AdminLoginOtpResendResponse {
+  requires_otp: true
+  challenge_id: string
+  email: string
+  message: string
+  expires_in: number
+  resend_available_in: number
+  resend_count: number
+  max_resends: number
+}
 
 export interface AdminUser extends User {}
 
@@ -475,25 +494,52 @@ class AdminApiService {
   // AUTHENTICATION - /core/auth/
   // ------------------------------------------
 
-  async login(email: string, password: string): Promise<AdminLoginResponse> {
+  private getSessionId(): string {
+    if (typeof window === 'undefined') return 'server'
+    const key = 'adminSessionId'
+    let id = sessionStorage.getItem(key)
+    if (!id) {
+      id = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+        ? crypto.randomUUID()
+        : `sess_${Date.now()}_${Math.random().toString(36).slice(2)}`
+      sessionStorage.setItem(key, id)
+    }
+    return id
+  }
+
+  async login(
+    email: string,
+    password: string,
+    otp?: { challenge_id: string; otp_code: string }
+  ): Promise<AdminLoginResponse | AdminLoginChallengeResponse> {
     const loginUrl = `${this.baseUrl}/core/auth/login/`
     console.log('AdminAPI login: Attempting to fetch:', loginUrl)
     
     const response = await fetch(loginUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Session-ID': this.getSessionId(),
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        ...(otp ? { challenge_id: otp.challenge_id, otp_code: otp.otp_code } : {}),
+      }),
       credentials: 'include',
     })
     
-    const data = await this.handleResponse<AdminLoginResponse>(response)
+    const data = await this.handleResponse<AdminLoginResponse | AdminLoginChallengeResponse>(response)
+    if ((data as AdminLoginChallengeResponse).requires_otp) {
+      return data as AdminLoginChallengeResponse
+    }
     
     // Debug: log the user data to see what fields are returned
-    console.log('Login response user:', data.user)
+    console.log('Login response user:', (data as AdminLoginResponse).user)
     
     // Check for admin privileges - support multiple field formats
     // Backend may use role field or is_staff/is_superuser
-    const user = data.user as any
+    const user = (data as AdminLoginResponse).user as any
     const allowedRoles = ['admin', 'staff', 'accountant', 'support', 'superadmin']
     const hasAdminRole = user?.role && allowedRoles.includes(user.role.toLowerCase())
     const isStaffOrSuper = user?.is_staff || user?.is_superuser
@@ -503,7 +549,21 @@ class AdminApiService {
       throw new Error('Access denied. Admin privileges required.')
     }
     
-    return data
+    return data as AdminLoginResponse
+  }
+
+  async resendLoginOtp(
+    email: string,
+    password: string,
+    challenge_id: string
+  ): Promise<AdminLoginOtpResendResponse> {
+    return this.request<AdminLoginOtpResendResponse>('/core/auth/login/otp/resend/', {
+      method: 'POST',
+      headers: {
+        'X-Session-ID': this.getSessionId(),
+      },
+      body: JSON.stringify({ email, password, challenge_id }),
+    })
   }
 
   async refreshToken(refresh: string): Promise<{ access: string }> {

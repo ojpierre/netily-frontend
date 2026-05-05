@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { adminApi } from "@/lib/admin-api"
 import type { User } from "@/lib/types"
+import type { AdminLoginResponse } from "@/lib/admin-api"
 
 // ==========================================
 // CONFIGURATION
@@ -32,6 +33,7 @@ interface AdminAuthContextType {
   user: AdminUser | null
   loading: boolean
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>
+  establishSession: (response: AdminLoginResponse, rememberMe?: boolean) => void
   logout: () => void
   refreshAuth: () => Promise<void>
   refreshToken: () => Promise<boolean>
@@ -172,22 +174,29 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       console.log('login: Calling API with email:', email)
       const response = await adminApi.login(email, password)
       console.log('login: API response:', response)
+
+      if ((response as any).requires_otp) {
+        // OTP challenge flow is handled by login page.
+        setLoading(false)
+        throw new Error("OTP_CHALLENGE_REQUIRED")
+      }
       
       // Store both access and refresh tokens
       const storage = rememberMe ? localStorage : sessionStorage
       console.log('login: Using storage:', rememberMe ? 'localStorage' : 'sessionStorage')
       
-      storage.setItem("adminToken", response.access)
-      storage.setItem("adminRefreshToken", response.refresh)
-      storage.setItem("adminUser", JSON.stringify(response.user))
+      const resolved = response as AdminLoginResponse
+      storage.setItem("adminToken", resolved.access)
+      storage.setItem("adminRefreshToken", resolved.refresh)
+      storage.setItem("adminUser", JSON.stringify(resolved.user))
       
       // Verify tokens were saved
       console.log('login: Token saved?', !!storage.getItem("adminToken"))
       
       // Sync access token to cookies for middleware
-      document.cookie = `adminToken=${response.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
+      document.cookie = `adminToken=${resolved.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
       
-      setUser(response.user)
+      setUser(resolved.user)
       console.log('login: User set, login complete')
     } catch (error: any) {
       setLoading(false)
@@ -195,6 +204,15 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const establishSession = (response: AdminLoginResponse, rememberMe: boolean = true) => {
+    const storage = rememberMe ? localStorage : sessionStorage
+    storage.setItem("adminToken", response.access)
+    storage.setItem("adminRefreshToken", response.refresh)
+    storage.setItem("adminUser", JSON.stringify(response.user))
+    document.cookie = `adminToken=${response.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
+    setUser(response.user as any)
   }
 
   // Refresh the access token using the refresh token
@@ -251,7 +269,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AdminAuthContext.Provider value={{ user, loading, login, logout, refreshAuth, refreshToken }}>
+    <AdminAuthContext.Provider value={{ user, loading, login, establishSession, logout, refreshAuth, refreshToken }}>
       {children}
     </AdminAuthContext.Provider>
   )
