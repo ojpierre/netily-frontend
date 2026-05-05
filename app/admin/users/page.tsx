@@ -178,8 +178,19 @@ const mapCustomerToUser = (customer: Customer): User => {
   const isOnline = primaryService?.is_online ?? false
   const serviceStatus = (primaryService?.status || '').toUpperCase()
   
+  // FIX: Check RADIUS expiration date and set status to 'expired' if necessary
   const mapStatus = (status: CustomerStatus): UserStatus => {
     if (serviceStatus === 'PENDING') return 'pending'
+    if (serviceStatus === 'SUSPENDED') return 'suspended'
+    if (serviceStatus === 'TERMINATED') return 'inactive'
+    
+    // Check RADIUS expiration date
+    const radiusCreds = (customer as any).radius_credentials
+    if (radiusCreds?.expiration_date) {
+      const expiry = new Date(radiusCreds.expiration_date)
+      if (expiry <= new Date()) return 'expired'
+    }
+    
     switch (status) {
       case 'active': return 'active'
       case 'inactive': return 'expired'
@@ -699,19 +710,14 @@ export default function UsersPage() {
     });
   }, [hotspotClients]);
 
+  // FIX: Simplified isEffectivelyExpired to just check the status, which is now correctly set during mapping
   const stats: UserStats = useMemo(() => {
     const now = new Date()
     const hotspotCount = activeSubscriptions.hotspot?.length || 0;
     const pppoeCount = activeSubscriptions.pppoe?.length || 0;
     const onlineCount = onlineSessions.length;
     
-    const isEffectivelyExpired = (u: User) => {
-      if (u.status === "expired") return true
-      if ((u.status === "active" || u.status === "inactive") && u.plan !== "No Plan") {
-        return new Date(u.expiryDate) <= now
-      }
-      return false
-    }
+    const isEffectivelyExpired = (u: User) => u.status === "expired"
     
     return {
       total: enrichedUsers.length,
