@@ -17,6 +17,7 @@ export function InactivityGuard({ children, timeoutMinutes = 5 }: InactivityGuar
   const [showOverlay, setShowOverlay] = useState(false)
   const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""])
   const [otpSent, setOtpSent] = useState(false)
+  const [otpId, setOtpId] = useState<string>("")
   const [maskedEmail, setMaskedEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -57,7 +58,16 @@ export function InactivityGuard({ children, timeoutMinutes = 5 }: InactivityGuar
     setError(null)
     try {
       const res = await adminApi.sendOTP()
+      if (res.bypass || res.verified) {
+        setShowOverlay(false)
+        setOtpSent(false)
+        setOtpValues(["", "", "", "", "", ""])
+        setError(null)
+        resetTimer()
+        return
+      }
       setMaskedEmail(res.email || "your email")
+      setOtpId(res.otp_id || "")
       setOtpSent(true)
       setCooldown(60)
       setTimeout(() => inputRefs.current[0]?.focus(), 100)
@@ -98,7 +108,7 @@ export function InactivityGuard({ children, timeoutMinutes = 5 }: InactivityGuar
     setLoading(true)
     setError(null)
     try {
-      await adminApi.verifyOTP(otp)
+      await adminApi.verifyOTP(otp, otpId || undefined)
       setShowOverlay(false)
       setOtpSent(false)
       setOtpValues(["", "", "", "", "", ""])

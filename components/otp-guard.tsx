@@ -23,6 +23,7 @@ export function OtpGuard({ children, title = "Verification Required", descriptio
   const [error, setError] = useState<string | null>(null)
   const [cooldown, setCooldown] = useState(0)
   const [otpSent, setOtpSent] = useState(false)
+  const [otpId, setOtpId] = useState<string>("")
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
@@ -36,7 +37,12 @@ export function OtpGuard({ children, title = "Verification Required", descriptio
     setError(null)
     try {
       const res = await adminApi.sendOTP()
+      if (res.bypass || res.verified) {
+        setVerified(true)
+        return
+      }
       setMaskedEmail(res.email || "your email")
+      setOtpId(res.otp_id || "")
       setOtpSent(true)
       setCooldown(60)
       setTimeout(() => inputRefs.current[0]?.focus(), 100)
@@ -77,7 +83,7 @@ export function OtpGuard({ children, title = "Verification Required", descriptio
     setLoading(true)
     setError(null)
     try {
-      await adminApi.verifyOTP(otp)
+      await adminApi.verifyOTP(otp, otpId || undefined)
       setVerified(true)
     } catch (err: any) {
       setError(err.message || "Invalid code")

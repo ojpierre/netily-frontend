@@ -573,16 +573,16 @@ class AdminApiService {
     })
   }
 
-  async sendOTP(): Promise<{ message: string; email: string }> {
-    return this.request<{ message: string; email: string }>('/core/auth/otp/send/', {
+  async sendOTP(): Promise<{ message: string; email: string; verified?: boolean; bypass?: boolean; otp_id?: string; purpose?: string }> {
+    return this.request<{ message: string; email: string; verified?: boolean; bypass?: boolean; otp_id?: string; purpose?: string }>('/core/auth/otp/send/', {
       method: 'POST',
     })
   }
 
-  async verifyOTP(otp: string): Promise<{ message: string; verified: boolean }> {
-    return this.request<{ message: string; verified: boolean }>('/core/auth/otp/verify/', {
+  async verifyOTP(otp: string, otpId?: string): Promise<{ message: string; verified: boolean; bypass?: boolean }> {
+    return this.request<{ message: string; verified: boolean; bypass?: boolean }>('/core/auth/otp/verify/', {
       method: 'POST',
-      body: JSON.stringify({ otp }),
+      body: JSON.stringify({ otp, ...(otpId ? { otp_id: otpId } : {}) }),
     })
   }
 

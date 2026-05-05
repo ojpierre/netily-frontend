@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { InactivityGuard } from "@/components/inactivity-guard"
+import { OtpGuard } from "@/components/otp-guard"
 import {
   Card,
   CardContent,
@@ -428,6 +429,10 @@ export default function PaymentMethodsPage() {
 
   return (
     <InactivityGuard timeoutMinutes={5}>
+    <OtpGuard
+      title="Payment Methods Verification"
+      description="Verify your identity before managing payment methods and settlement channels."
+    >
     <div className="flex flex-col gap-6 p-6 animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -747,6 +752,7 @@ export default function PaymentMethodsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </OtpGuard>
     </InactivityGuard>
   )
 }
