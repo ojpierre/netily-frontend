@@ -107,6 +107,13 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const readCookie = (name: string): string | null => {
+    if (typeof document === "undefined") return null
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`))
+    return match ? decodeURIComponent(match[1]) : null
+  }
+
   const pickTokenStorage = (): Storage | null => {
     if (typeof window === "undefined") return null
     const tokenKey = hostScopedKey("adminToken")
@@ -150,22 +157,29 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const storage = pickTokenStorage()
-      if (!storage) {
+      let token = storage
+        ? (storage.getItem(hostScopedKey("adminToken")) || storage.getItem("adminToken"))
+        : null
+
+      // Fallback: recover from auth cookie if storage got cleared by browser/privacy settings.
+      if (!token) {
+        const cookieToken = readCookie("adminToken")
+        if (cookieToken) {
+          const preferredStorage = localStorage
+          preferredStorage.setItem(hostScopedKey("adminToken"), cookieToken)
+          token = cookieToken
+        }
+      }
+
+      if (!token) {
         console.log('loadUser: No token found in storage. Aborting auth check and clearing cookies.')
         setUser(null)
         clearAuthCookies()
         return
       }
-      const token = storage.getItem("adminToken")
       
       console.log('loadUser: Token found?', !!token)
       
-      if (!token) {
-        setUser(null)
-        clearAuthCookies()
-        return
-      }
-
       // Verify token by getting current admin user
       console.log('loadUser: Fetching user from /core/users/me/...')
       let userData: any
@@ -176,7 +190,11 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         // Use cached user data so TrialGuard can show the payment wall
         if (apiError?.status === 402 || apiError?.isPaymentRequired) {
           console.log('loadUser: 402 Payment Required — subscription expired, using cached user')
-          const cachedUser = localStorage.getItem('adminUser') || sessionStorage.getItem('adminUser')
+          const cachedUser =
+            localStorage.getItem(hostScopedKey("adminUser")) ||
+            sessionStorage.getItem(hostScopedKey("adminUser")) ||
+            localStorage.getItem('adminUser') ||
+            sessionStorage.getItem('adminUser')
           if (cachedUser) {
             try {
               const parsed = JSON.parse(cachedUser)
