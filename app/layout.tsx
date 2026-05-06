@@ -222,6 +222,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const enableVercelAnalytics =
+    process.env.NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS === "true" || process.env.VERCEL === "1"
+
   return (
     <html lang="en">
       <body className={outfit.className} suppressHydrationWarning>
@@ -246,7 +249,7 @@ export default function RootLayout({
               <Toaster />
             </AuthGuard>
           </AuthProvider>
-          <Analytics />
+          {enableVercelAnalytics ? <Analytics /> : null}
         </ThemeProvider>
       </body>
     </html>

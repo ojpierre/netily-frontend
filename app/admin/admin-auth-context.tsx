@@ -13,6 +13,11 @@ import type { AdminLoginResponse } from "@/lib/admin-api"
 // Toggle this to switch between mock and real backend
 // Set NEXT_PUBLIC_USE_MOCK=true in .env.local to use mock data
 const USE_MOCK_AUTH = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
+const ADMIN_ALLOWED_ROLES = ["admin", "staff", "accountant", "support", "superadmin"]
+const PLATFORM_ADMIN_EMAILS = String(process.env.NEXT_PUBLIC_PLATFORM_ADMIN_EMAILS || "")
+  .split(",")
+  .map((v) => v.trim().toLowerCase())
+  .filter(Boolean)
 
 // ==========================================
 // TYPES
@@ -84,7 +89,8 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const u = JSON.parse(raw)
       const role = String(u?.role || "").toLowerCase()
-      return ["admin", "staff", "accountant", "support", "superadmin"].includes(role) || !!u?.is_staff || !!u?.is_superuser
+      const isPlatformAdminEmail = !!u?.email && PLATFORM_ADMIN_EMAILS.includes(String(u.email).toLowerCase())
+      return ADMIN_ALLOWED_ROLES.includes(role) || !!u?.is_staff || !!u?.is_superuser || isPlatformAdminEmail
     } catch {
       return false
     }
@@ -172,13 +178,13 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       console.log('loadUser: Received user data:', userData)
       
       // Check for admin privileges - support multiple field formats
-      const allowedRoles = ['admin', 'staff', 'accountant', 'support', 'superadmin']
-      const hasAdminRole = userData?.role && allowedRoles.includes(userData.role.toLowerCase())
+      const hasAdminRole = userData?.role && ADMIN_ALLOWED_ROLES.includes(userData.role.toLowerCase())
       const isStaffOrSuper = userData?.is_staff || userData?.is_superuser
+      const isPlatformAdminEmail = !!userData?.email && PLATFORM_ADMIN_EMAILS.includes(String(userData.email).toLowerCase())
       
-      console.log('loadUser: Privilege check:', { role: userData?.role, hasAdminRole, isStaffOrSuper })
+      console.log('loadUser: Privilege check:', { role: userData?.role, hasAdminRole, isStaffOrSuper, isPlatformAdminEmail })
       
-      if (!hasAdminRole && !isStaffOrSuper) {
+      if (!hasAdminRole && !isStaffOrSuper && !isPlatformAdminEmail) {
         console.log('loadUser: User does not have admin privileges')
         throw new Error("Not an admin user")
       }

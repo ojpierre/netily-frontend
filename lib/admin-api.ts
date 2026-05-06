@@ -207,6 +207,14 @@ export interface AdminUser extends User {}
 
 export interface AdminStats extends DashboardStats {}
 
+const ADMIN_ALLOWED_ROLES = ['admin', 'staff', 'accountant', 'support', 'superadmin']
+
+const getPlatformAdminEmails = (): string[] =>
+  String(process.env.NEXT_PUBLIC_PLATFORM_ADMIN_EMAILS || '')
+    .split(',')
+    .map((v) => v.trim().toLowerCase())
+    .filter(Boolean)
+
 // ==========================================
 // CONFIGURATION
 // ==========================================
@@ -314,6 +322,28 @@ class AdminApiService {
       return storage?.getItem('adminToken') || null
     }
     return null
+  }
+
+  private isPlatformAdminEmail(email?: string | null): boolean {
+    if (!email) return false
+    return getPlatformAdminEmails().includes(String(email).toLowerCase())
+  }
+
+  private isAdminLikeUser(user: any): boolean {
+    const role = String(user?.role || '').toLowerCase()
+    const hasAdminRole = ADMIN_ALLOWED_ROLES.includes(role)
+    const isStaffOrSuper = !!user?.is_staff || !!user?.is_superuser
+    return hasAdminRole || isStaffOrSuper || this.isPlatformAdminEmail(user?.email)
+  }
+
+  private tokenLooksAdmin(token: string | null): boolean {
+    if (!token) return false
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1] || ''))
+      return this.isAdminLikeUser(payload)
+    } catch {
+      return false
+    }
   }
 
   private getRefreshToken(): string | null {
@@ -555,11 +585,7 @@ class AdminApiService {
     // Check for admin privileges - support multiple field formats
     // Backend may use role field or is_staff/is_superuser
     const user = (data as AdminLoginResponse).user as any
-    const allowedRoles = ['admin', 'staff', 'accountant', 'support', 'superadmin']
-    const hasAdminRole = user?.role && allowedRoles.includes(user.role.toLowerCase())
-    const isStaffOrSuper = user?.is_staff || user?.is_superuser
-    
-    if (!hasAdminRole && !isStaffOrSuper) {
+    if (!this.isAdminLikeUser(user)) {
       console.log('Access check failed:', { role: user?.role, is_staff: user?.is_staff, is_superuser: user?.is_superuser })
       throw new Error('Access denied. Admin privileges required.')
     }
@@ -4211,8 +4237,7 @@ async activateService(
     if (!raw) return false
     try {
       const u = JSON.parse(raw)
-      const role = String(u?.role || '').toLowerCase()
-      return ['admin', 'staff', 'accountant', 'support', 'superadmin'].includes(role) || !!u?.is_staff || !!u?.is_superuser
+      return this.isAdminLikeUser(u)
     } catch {
       return false
     }
@@ -4230,6 +4255,13 @@ async activateService(
     const sessionIsAdmin = this.hasAdminLikeRole(sessionStorage.getItem('adminUser'))
     if (sessionIsAdmin && !localIsAdmin) return sessionStorage
     if (localIsAdmin && !sessionIsAdmin) return localStorage
+
+    // If cached user is ambiguous/stale, prefer token claims that look admin-like.
+    const localTokenLooksAdmin = this.tokenLooksAdmin(localToken)
+    const sessionTokenLooksAdmin = this.tokenLooksAdmin(sessionToken)
+    if (localTokenLooksAdmin && !sessionTokenLooksAdmin) return localStorage
+    if (sessionTokenLooksAdmin && !localTokenLooksAdmin) return sessionStorage
+
     return sessionStorage
   }
 }

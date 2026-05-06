@@ -28,6 +28,12 @@ interface LoginFormData {
   rememberMe: boolean
 }
 
+const formatDuration = (totalSeconds: number): string => {
+  const mins = Math.floor(totalSeconds / 60)
+  const secs = totalSeconds % 60
+  return `${mins}:${String(secs).padStart(2, "0")}`
+}
+
 export default function AdminLoginPage() {
   const router = useRouter()
   const { establishSession, user, loading: authLoading } = useAdminAuth()
@@ -160,7 +166,7 @@ export default function AdminLoginPage() {
         setChallengeId(challenge.challenge_id)
         setOtpMaskedEmail(challenge.email || "your email")
         setOtpResendCooldown(Math.max(0, challenge.resend_available_in || 60))
-        setOtpExpiresIn(Math.max(0, challenge.expires_in || 600))
+        setOtpExpiresIn(Math.max(0, challenge.expires_in || 300))
         setOtpResendCount(0)
         setOtpMaxResends(challenge.max_resends || 5)
         setStep("otp")
@@ -397,7 +403,7 @@ export default function AdminLoginPage() {
               <div className="text-center text-sm text-slate-500">
                 Didn't receive the code?{" "}
                 {otpResendCooldown > 0 ? (
-                  <span className="text-slate-400">Resend in {otpResendCooldown}s</span>
+                  <span className="text-slate-400">Resend in {formatDuration(otpResendCooldown)}</span>
                 ) : (
                   <button
                     onClick={handleResendOtp}
@@ -409,7 +415,7 @@ export default function AdminLoginPage() {
                 )}
               </div>
               <div className="text-center text-xs text-slate-400">
-                {otpExpiresIn > 0 ? `Code expires in ${otpExpiresIn}s` : "Code expired. Resend to continue."}
+                {otpExpiresIn > 0 ? `Code expires in ${formatDuration(otpExpiresIn)}` : "Code expired. Resend to continue."}
               </div>
               <div className="text-center text-xs text-slate-400">
                 Resends used: {otpResendCount}/{otpMaxResends}

@@ -710,6 +710,16 @@ export default function SettingsPage() {
     adminEmail: "",
     smsGateway: "africastalking",
   })
+  const [securitySettings, setSecuritySettings] = useState({
+    adminOtpEnabled: false,
+  })
+  const [supportsOtpToggleField, setSupportsOtpToggleField] = useState(false)
+
+  const getTenantSecurityStorageKey = (): string => {
+    if (typeof window === "undefined") return "tenant_security_settings_default"
+    const host = window.location.hostname || "default"
+    return `tenant_security_settings_${host}`
+  }
 
   // Helper to toggle secret visibility
   const toggleSecretVisibility = (key: string) => {
@@ -806,6 +816,17 @@ export default function SettingsPage() {
           adminEmail: data.admin_email || "",
           smsGateway: data.sms_gateway || "africastalking",
         })
+
+        const hasServerOtpField = typeof data.admin_email_otp_enabled === "boolean"
+        setSupportsOtpToggleField(hasServerOtpField)
+
+        const localRaw = localStorage.getItem(getTenantSecurityStorageKey())
+        const localOtpEnabled = localRaw ? !!JSON.parse(localRaw)?.adminOtpEnabled : null
+        setSecuritySettings({
+          adminOtpEnabled: hasServerOtpField
+            ? !!data.admin_email_otp_enabled
+            : (localOtpEnabled ?? false),
+        })
       } catch (err: any) {
         console.error("Failed to load settings:", err)
         setError(err.message || "Failed to load settings")
@@ -871,6 +892,10 @@ const handleSaveSettings = async () => {
         sms_gateway: notificationSettings.smsGateway,
       }
 
+      if (supportsOtpToggleField) {
+        ;(payload as any).admin_email_otp_enabled = securitySettings.adminOtpEnabled
+      }
+
       const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
       const res = await fetch(`${apiBase}/core/settings/`, {
         method: "PATCH",
@@ -885,6 +910,10 @@ const handleSaveSettings = async () => {
         const errorData = await res.json().catch(() => ({}))
         throw new Error(errorData.detail || "Failed to save")
       }
+
+      localStorage.setItem(getTenantSecurityStorageKey(), JSON.stringify({
+        adminOtpEnabled: securitySettings.adminOtpEnabled,
+      }))
 
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
@@ -951,7 +980,10 @@ const handleSaveSettings = async () => {
               <User className="w-4 h-4" />
               <span className="hidden sm:inline">Account</span>
             </TabsTrigger>
-            {/* TODO: radius | mpesa | sms | email | api | automation | notifications | security — coming soon */}
+            <TabsTrigger value="security" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              <span className="hidden sm:inline">Security</span>
+            </TabsTrigger>
           </TabsList>
         </ScrollArea>
 
@@ -995,9 +1027,39 @@ const handleSaveSettings = async () => {
           <ComingSoonTab label="Notifications" />
         </TabsContent>
 
-        {/* Security Settings — TODO: coming soon */}
         <TabsContent value="security" className="space-y-6">
-          <ComingSoonTab label="Security" />
+          <Card>
+            <CardHeader>
+              <CardTitle>Admin Login Security</CardTitle>
+              <CardDescription>
+                Tenant-specific 2FA policy for admin sign-ins. OTP is disabled by default and can be enabled anytime.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                <div>
+                  <p className="font-medium text-slate-900 dark:text-slate-100">Email OTP for Admin Login</p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    When enabled, admins must enter a one-time code after password login.
+                  </p>
+                  <p className="text-xs text-slate-400 mt-2">
+                    Applies to this tenant domain only.
+                  </p>
+                </div>
+                <Switch
+                  checked={securitySettings.adminOtpEnabled}
+                  onCheckedChange={(checked) => setSecuritySettings((prev) => ({ ...prev, adminOtpEnabled: checked }))}
+                />
+              </div>
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Default policy</AlertTitle>
+                <AlertDescription>
+                  New and existing tenants start with OTP disabled until an admin enables it here.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
