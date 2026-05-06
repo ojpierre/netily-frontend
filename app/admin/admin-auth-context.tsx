@@ -69,6 +69,22 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     loadUser()
   }, [])
 
+  const clearAuthCookies = () => {
+    if (typeof window === "undefined") return
+    const host = window.location.hostname
+    const hostParts = host.split(".")
+    const baseDomain = hostParts.length >= 2 ? `.${hostParts.slice(-2).join(".")}` : ""
+    const expire = (name: string, domain?: string) => {
+      document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax${domain ? `; domain=${domain}` : ""}`
+    }
+    expire("adminToken")
+    expire("adminRefreshToken")
+    if (baseDomain) {
+      expire("adminToken", baseDomain)
+      expire("adminRefreshToken", baseDomain)
+    }
+  }
+
   const loadUser = async () => {
     if (USE_MOCK_AUTH) {
       setUser(MOCK_ADMIN)
@@ -85,8 +101,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       if (!token) {
         console.log('loadUser: No token found in storage. Aborting auth check and clearing cookies.')
         setUser(null)
-        // THE CRITICAL FIX: Kill the ghost cookie so Middleware allows us to stay on the Login page
-        document.cookie = "adminToken=; path=/; max-age=0; SameSite=Lax"
+        clearAuthCookies()
         return // Exit the try block early, dropping straight to the finally block
       }
 
@@ -139,8 +154,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.removeItem("adminToken")
       sessionStorage.removeItem("adminRefreshToken")
       sessionStorage.removeItem("adminUser")
-      // Clear cookies
-      document.cookie = "adminToken=; path=/; max-age=0; SameSite=Lax"
+      clearAuthCookies()
     } finally {
       // This will ALWAYS run, even if we return early
       setLoading(false)
@@ -257,8 +271,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.removeItem("adminRefreshToken")
     sessionStorage.removeItem("adminUser")
     
-    // Clear cookies
-    document.cookie = "adminToken=; path=/; max-age=0; SameSite=Lax"
+    clearAuthCookies()
     
     setUser(null)
     router.push("/admin/login")

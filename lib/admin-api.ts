@@ -441,15 +441,28 @@ class AdminApiService {
 
   private clearTokensAndRedirect(): void {
     if (typeof window !== 'undefined') {
+      const clearAuthCookies = () => {
+        const host = window.location.hostname
+        const hostParts = host.split('.')
+        const baseDomain = hostParts.length >= 2 ? `.${hostParts.slice(-2).join('.')}` : ''
+        const expire = (name: string, domain?: string) => {
+          document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax${domain ? `; domain=${domain}` : ''}`
+        }
+        expire('adminToken')
+        expire('adminRefreshToken')
+        if (baseDomain) {
+          expire('adminToken', baseDomain)
+          expire('adminRefreshToken', baseDomain)
+        }
+      }
+
       // Clear all auth tokens
       localStorage.removeItem('adminToken')
       localStorage.removeItem('adminRefreshToken')
       sessionStorage.removeItem('adminToken')
       sessionStorage.removeItem('adminRefreshToken')
       
-      // Clear cookies
-      document.cookie = 'adminToken=; path=/; max-age=0'
-      document.cookie = 'adminRefreshToken=; path=/; max-age=0'
+      clearAuthCookies()
       
       // Redirect to login page
       window.location.href = '/admin/login'
