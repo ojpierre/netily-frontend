@@ -691,7 +691,7 @@ class AdminApiService {
     return this.request<Customer>(`/customers/${id}/`)
   }
 
-  async createCustomer(data: Partial<Customer>): Promise<Customer> {
+  async createCustomer(data: Partial<Customer> & { phone_number?: string; password?: string; status?: string }): Promise<Customer> {
     // Map frontend 'phone' field to backend 'phone_number'
     const payload: any = { ...data }
     if (payload.phone && !payload.phone_number) {
@@ -1261,8 +1261,14 @@ async activateService(
   // ROUTER DHCP MANAGEMENT
   // ------------------------------------------
 
-  async getDHCPLeases(id: number): Promise<DHCPLease[]> {
-    return this.request<DHCPLease[]>(`/network/routers/${id}/dhcp_leases/`)
+  async getDHCPLeases(id: number): Promise<DHCPLease[]>
+  async getDHCPLeases(params?: Record<string, string>): Promise<PaginatedResponse<DHCPLease>>
+  async getDHCPLeases(idOrParams?: number | Record<string, string>): Promise<DHCPLease[] | PaginatedResponse<DHCPLease>> {
+    if (typeof idOrParams === 'number') {
+      return this.request<DHCPLease[]>(`/network/routers/${idOrParams}/dhcp_leases/`)
+    }
+    const queryString = idOrParams ? '?' + new URLSearchParams(idOrParams).toString() : ''
+    return this.request<PaginatedResponse<DHCPLease>>(`/network/dhcp-ranges/${queryString}`)
   }
 
   // ------------------------------------------
@@ -1612,10 +1618,7 @@ async activateService(
     })
   }
 
-  async getDHCPLeases(params?: Record<string, string>): Promise<PaginatedResponse<DHCPLease>> {
-    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<PaginatedResponse<DHCPLease>>(`/network/dhcp-ranges/${queryString}`)
-  }
+  
 
   // ------------------------------------------
   // IP Pools - /network/ip-pools/
@@ -4204,13 +4207,6 @@ async activateService(
       return 0
     }
   }
-}
-
-// Export singleton instance
-export const adminApi = new AdminApiService()
-
-// Export class for testing/extension
-export { AdminApiService }
   private hasAdminLikeRole(raw: string | null): boolean {
     if (!raw) return false
     try {
@@ -4236,3 +4232,10 @@ export { AdminApiService }
     if (localIsAdmin && !sessionIsAdmin) return localStorage
     return sessionStorage
   }
+}
+
+// Export singleton instance
+export const adminApi = new AdminApiService()
+
+// Export class for testing/extension
+export { AdminApiService }

@@ -20,7 +20,7 @@ const USE_MOCK_AUTH = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
 
 interface AdminUser {
   id: number
-  username: string
+  username?: string
   email: string
   first_name?: string
   last_name?: string
@@ -56,6 +56,16 @@ const MOCK_ADMIN: AdminUser = {
   is_active: true,
 }
 
+const normalizeAdminUser = (user: any): AdminUser => ({
+  id: user?.id,
+  username: user?.username || user?.email?.split("@")[0] || "admin",
+  email: user?.email,
+  first_name: user?.first_name,
+  last_name: user?.last_name,
+  is_staff: !!user?.is_staff,
+  is_superuser: !!user?.is_superuser,
+  is_active: user?.is_active,
+})
 // ==========================================
 // ADMIN AUTH PROVIDER
 // ==========================================
@@ -151,7 +161,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
           if (cachedUser) {
             try {
               const parsed = JSON.parse(cachedUser)
-              setUser(parsed)
+              setUser(normalizeAdminUser(parsed))
               return // Let TrialGuard handle the payment wall
             } catch { /* fall through */ }
           }
@@ -174,7 +184,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       console.log('loadUser: Setting user successfully')
-      setUser(userData)
+      setUser(normalizeAdminUser(userData))
       
     } catch (error) {
       console.error("loadUser: Failed to load admin user:", error)
@@ -245,7 +255,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       // Sync access token to cookies for middleware
       document.cookie = `adminToken=${resolved.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
       
-      setUser(resolved.user)
+      setUser(normalizeAdminUser(resolved.user))
       console.log('login: User set, login complete')
     } catch (error: any) {
       setLoading(false)
@@ -265,7 +275,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     storage.setItem("adminRefreshToken", response.refresh)
     storage.setItem("adminUser", JSON.stringify(response.user))
     document.cookie = `adminToken=${response.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
-    setUser(response.user as any)
+    setUser(normalizeAdminUser(response.user))
   }
 
   // Refresh the access token using the refresh token
