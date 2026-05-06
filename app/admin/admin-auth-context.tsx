@@ -71,6 +71,12 @@ const normalizeAdminUser = (user: any): AdminUser => ({
   is_superuser: !!user?.is_superuser,
   is_active: user?.is_active,
 })
+
+const isAllowedAdminUser = (user: any): boolean => {
+  const role = String(user?.role || "").toLowerCase()
+  const isPlatformAdminEmail = !!user?.email && PLATFORM_ADMIN_EMAILS.includes(String(user.email).toLowerCase())
+  return ADMIN_ALLOWED_ROLES.includes(role) || !!user?.is_staff || !!user?.is_superuser || isPlatformAdminEmail
+}
 // ==========================================
 // ADMIN AUTH PROVIDER
 // ==========================================
@@ -251,6 +257,10 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       other.removeItem("adminRefreshToken")
       other.removeItem("adminUser")
       const resolved = response as AdminLoginResponse
+      if (!isAllowedAdminUser(resolved.user)) {
+        clearAuthCookies()
+        throw new Error("Access denied. This account is not an admin user.")
+      }
       storage.setItem("adminToken", resolved.access)
       storage.setItem("adminRefreshToken", resolved.refresh)
       storage.setItem("adminUser", JSON.stringify(resolved.user))
@@ -272,6 +282,10 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const establishSession = (response: AdminLoginResponse, rememberMe: boolean = true) => {
+    if (!isAllowedAdminUser(response.user)) {
+      clearAuthCookies()
+      throw new Error("Access denied. This account is not an admin user.")
+    }
     const storage = rememberMe ? localStorage : sessionStorage
     const other = rememberMe ? sessionStorage : localStorage
     other.removeItem("adminToken")
