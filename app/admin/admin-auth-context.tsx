@@ -69,6 +69,33 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     loadUser()
   }, [])
 
+  const hasAdminLikeRole = (raw: string | null): boolean => {
+    if (!raw) return false
+    try {
+      const u = JSON.parse(raw)
+      const role = String(u?.role || "").toLowerCase()
+      return ["admin", "staff", "accountant", "support", "superadmin"].includes(role) || !!u?.is_staff || !!u?.is_superuser
+    } catch {
+      return false
+    }
+  }
+
+  const pickTokenStorage = (): Storage | null => {
+    if (typeof window === "undefined") return null
+    const localToken = localStorage.getItem("adminToken")
+    const sessionToken = sessionStorage.getItem("adminToken")
+    if (!localToken && !sessionToken) return null
+    if (localToken && !sessionToken) return localStorage
+    if (!localToken && sessionToken) return sessionStorage
+
+    const localIsAdmin = hasAdminLikeRole(localStorage.getItem("adminUser"))
+    const sessionIsAdmin = hasAdminLikeRole(sessionStorage.getItem("adminUser"))
+    if (sessionIsAdmin && !localIsAdmin) return sessionStorage
+    if (localIsAdmin && !sessionIsAdmin) return localStorage
+    // If both exist and ambiguous, prefer session as it's usually the latest interactive login.
+    return sessionStorage
+  }
+
   const clearAuthCookies = () => {
     if (typeof window === "undefined") return
     const host = window.location.hostname
@@ -93,16 +120,21 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const storage = localStorage.getItem("adminToken") ? localStorage : sessionStorage
+      const storage = pickTokenStorage()
+      if (!storage) {
+        console.log('loadUser: No token found in storage. Aborting auth check and clearing cookies.')
+        setUser(null)
+        clearAuthCookies()
+        return
+      }
       const token = storage.getItem("adminToken")
       
       console.log('loadUser: Token found?', !!token)
       
       if (!token) {
-        console.log('loadUser: No token found in storage. Aborting auth check and clearing cookies.')
         setUser(null)
         clearAuthCookies()
-        return // Exit the try block early, dropping straight to the finally block
+        return
       }
 
       // Verify token by getting current admin user
@@ -197,8 +229,11 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       
       // Store both access and refresh tokens
       const storage = rememberMe ? localStorage : sessionStorage
+      const other = rememberMe ? sessionStorage : localStorage
       console.log('login: Using storage:', rememberMe ? 'localStorage' : 'sessionStorage')
-      
+      other.removeItem("adminToken")
+      other.removeItem("adminRefreshToken")
+      other.removeItem("adminUser")
       const resolved = response as AdminLoginResponse
       storage.setItem("adminToken", resolved.access)
       storage.setItem("adminRefreshToken", resolved.refresh)
@@ -222,6 +257,10 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
   const establishSession = (response: AdminLoginResponse, rememberMe: boolean = true) => {
     const storage = rememberMe ? localStorage : sessionStorage
+    const other = rememberMe ? sessionStorage : localStorage
+    other.removeItem("adminToken")
+    other.removeItem("adminRefreshToken")
+    other.removeItem("adminUser")
     storage.setItem("adminToken", response.access)
     storage.setItem("adminRefreshToken", response.refresh)
     storage.setItem("adminUser", JSON.stringify(response.user))
