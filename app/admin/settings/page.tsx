@@ -714,11 +714,42 @@ export default function SettingsPage() {
     adminOtpEnabled: false,
   })
   const [supportsOtpToggleField, setSupportsOtpToggleField] = useState(false)
+  const [otpToggleFieldName, setOtpToggleFieldName] = useState<string | null>(null)
 
   const getTenantSecurityStorageKey = (): string => {
     if (typeof window === "undefined") return "tenant_security_settings_default"
     const host = window.location.hostname || "default"
     return `tenant_security_settings_${host}`
+  }
+
+  const coerceBoolean = (value: unknown): boolean | null => {
+    if (typeof value === "boolean") return value
+    if (typeof value === "number") return value === 1
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase()
+      if (["true", "1", "yes", "on", "enabled"].includes(normalized)) return true
+      if (["false", "0", "no", "off", "disabled"].includes(normalized)) return false
+    }
+    return null
+  }
+
+  const detectOtpToggleField = (data: Record<string, any>): { field: string | null; value: boolean | null } => {
+    const candidates = [
+      "admin_email_otp_enabled",
+      "admin_otp_enabled",
+      "otp_enabled",
+      "two_factor_enabled",
+      "enable_admin_otp",
+      "require_admin_otp",
+      "login_otp_enabled",
+    ]
+    for (const key of candidates) {
+      const maybe = coerceBoolean(data?.[key])
+      if (maybe !== null) {
+        return { field: key, value: maybe }
+      }
+    }
+    return { field: null, value: null }
   }
 
   // Helper to toggle secret visibility
@@ -817,14 +848,16 @@ export default function SettingsPage() {
           smsGateway: data.sms_gateway || "africastalking",
         })
 
-        const hasServerOtpField = typeof data.admin_email_otp_enabled === "boolean"
+        const detectedOtp = detectOtpToggleField(data)
+        const hasServerOtpField = !!detectedOtp.field
         setSupportsOtpToggleField(hasServerOtpField)
+        setOtpToggleFieldName(detectedOtp.field)
 
         const localRaw = localStorage.getItem(getTenantSecurityStorageKey())
         const localOtpEnabled = localRaw ? !!JSON.parse(localRaw)?.adminOtpEnabled : null
         setSecuritySettings({
           adminOtpEnabled: hasServerOtpField
-            ? !!data.admin_email_otp_enabled
+            ? !!detectedOtp.value
             : (localOtpEnabled ?? false),
         })
       } catch (err: any) {
@@ -849,16 +882,6 @@ const handleSaveSettings = async () => {
       return
     }
 
-    // Optional: decode token to check is_staff
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      if (!payload.is_staff) {
-        setError("You must be an admin to save settings")
-        return
-      }
-    } catch (e) {
-      console.log("Token decode failed, continuing...")
-    }
       const payload = {
         // RADIUS
         primary_server: radiusSettings.primaryServer,
@@ -892,8 +915,8 @@ const handleSaveSettings = async () => {
         sms_gateway: notificationSettings.smsGateway,
       }
 
-      if (supportsOtpToggleField) {
-        ;(payload as any).admin_email_otp_enabled = securitySettings.adminOtpEnabled
+      if (supportsOtpToggleField && otpToggleFieldName) {
+        ;(payload as any)[otpToggleFieldName] = securitySettings.adminOtpEnabled
       }
 
       const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
