@@ -778,7 +778,13 @@ export default function SettingsPage() {
   // Helper function to get admin token
   const getAdminToken = (): string | null => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
+      const key = `adminToken:${window.location.hostname}`
+      return (
+        localStorage.getItem(key) ||
+        sessionStorage.getItem(key) ||
+        localStorage.getItem('adminToken') ||
+        sessionStorage.getItem('adminToken')
+      )
     }
     return null
   }

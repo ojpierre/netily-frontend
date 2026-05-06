@@ -463,9 +463,10 @@ export default function AdminRegisterPage() {
       const response = await registerCompany(submitData)
 
       // Store tokens for auto-login
-      localStorage.setItem("adminToken", response.access)
-      localStorage.setItem("adminRefreshToken", response.refresh)
-      localStorage.setItem("adminUser", JSON.stringify(response.user))
+      const scoped = (k: string) => `${k}:${window.location.hostname}`
+      localStorage.setItem(scoped("adminToken"), response.access)
+      localStorage.setItem(scoped("adminRefreshToken"), response.refresh)
+      localStorage.setItem(scoped("adminUser"), JSON.stringify(response.user))
 
       // Set cookie for middleware auth check
       document.cookie = `adminToken=${response.access}; path=/; max-age=${86400 * 7}; SameSite=Lax`

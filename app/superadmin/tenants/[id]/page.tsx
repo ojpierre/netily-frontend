@@ -164,8 +164,14 @@ export default function TenantDetailPage() {
     setImpersonating(true)
     try {
       const result = await superadminApi.impersonateTenant(id)
-      localStorage.setItem("adminToken", result.access)
-      localStorage.setItem("adminRefreshToken", result.refresh)
+      try {
+        const targetHost = new URL(result.panel_url).hostname
+        localStorage.setItem(`adminToken:${targetHost}`, result.access)
+        localStorage.setItem(`adminRefreshToken:${targetHost}`, result.refresh)
+      } catch {
+        localStorage.setItem("adminToken", result.access)
+        localStorage.setItem("adminRefreshToken", result.refresh)
+      }
       window.open(result.panel_url, "_blank")
       toast.success(`Impersonating ${result.tenant.company_name} as ${result.user.email}`)
     } catch (err: any) {

@@ -316,10 +316,15 @@ class AdminApiService {
     return headers
   }
 
+  private hostScopedKey(base: string): string {
+    if (typeof window === 'undefined') return base
+    return `${base}:${window.location.hostname}`
+  }
+
   private getAdminToken(): string | null {
     if (typeof window !== 'undefined') {
       const storage = this.pickTokenStorage()
-      return storage?.getItem('adminToken') || null
+      return storage?.getItem(this.hostScopedKey('adminToken')) || storage?.getItem('adminToken') || null
     }
     return null
   }
@@ -349,7 +354,7 @@ class AdminApiService {
   private getRefreshToken(): string | null {
     if (typeof window !== 'undefined') {
       const storage = this.pickTokenStorage()
-      return storage?.getItem('adminRefreshToken') || null
+      return storage?.getItem(this.hostScopedKey('adminRefreshToken')) || storage?.getItem('adminRefreshToken') || null
     }
     return null
   }
@@ -459,8 +464,9 @@ class AdminApiService {
       }
       
       const data = await response.json()
-      const storage = localStorage.getItem('adminRefreshToken') ? localStorage : sessionStorage
-      storage.setItem('adminToken', data.access)
+      const refreshKey = this.hostScopedKey('adminRefreshToken')
+      const storage = localStorage.getItem(refreshKey) ? localStorage : sessionStorage
+      storage.setItem(this.hostScopedKey('adminToken'), data.access)
       document.cookie = `adminToken=${data.access}; path=/; max-age=3600; SameSite=Lax`
       
       return true
@@ -489,6 +495,12 @@ class AdminApiService {
       }
 
       // Clear all auth tokens
+      localStorage.removeItem(this.hostScopedKey('adminToken'))
+      localStorage.removeItem(this.hostScopedKey('adminRefreshToken'))
+      localStorage.removeItem(this.hostScopedKey('adminUser'))
+      sessionStorage.removeItem(this.hostScopedKey('adminToken'))
+      sessionStorage.removeItem(this.hostScopedKey('adminRefreshToken'))
+      sessionStorage.removeItem(this.hostScopedKey('adminUser'))
       localStorage.removeItem('adminToken')
       localStorage.removeItem('adminRefreshToken')
       sessionStorage.removeItem('adminToken')
@@ -4245,14 +4257,16 @@ async activateService(
 
   private pickTokenStorage(): Storage | null {
     if (typeof window === 'undefined') return null
-    const localToken = localStorage.getItem('adminToken')
-    const sessionToken = sessionStorage.getItem('adminToken')
+    const tokenKey = this.hostScopedKey('adminToken')
+    const userKey = this.hostScopedKey('adminUser')
+    const localToken = localStorage.getItem(tokenKey) || localStorage.getItem('adminToken')
+    const sessionToken = sessionStorage.getItem(tokenKey) || sessionStorage.getItem('adminToken')
     if (!localToken && !sessionToken) return null
     if (localToken && !sessionToken) return localStorage
     if (!localToken && sessionToken) return sessionStorage
 
-    const localIsAdmin = this.hasAdminLikeRole(localStorage.getItem('adminUser'))
-    const sessionIsAdmin = this.hasAdminLikeRole(sessionStorage.getItem('adminUser'))
+    const localIsAdmin = this.hasAdminLikeRole(localStorage.getItem(userKey) || localStorage.getItem('adminUser'))
+    const sessionIsAdmin = this.hasAdminLikeRole(sessionStorage.getItem(userKey) || sessionStorage.getItem('adminUser'))
     if (sessionIsAdmin && !localIsAdmin) return sessionStorage
     if (localIsAdmin && !sessionIsAdmin) return localStorage
 

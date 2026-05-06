@@ -77,6 +77,11 @@ const isAllowedAdminUser = (user: any): boolean => {
   const isPlatformAdminEmail = !!user?.email && PLATFORM_ADMIN_EMAILS.includes(String(user.email).toLowerCase())
   return ADMIN_ALLOWED_ROLES.includes(role) || !!user?.is_staff || !!user?.is_superuser || isPlatformAdminEmail
 }
+
+const hostScopedKey = (base: string): string => {
+  if (typeof window === "undefined") return base
+  return `${base}:${window.location.hostname}`
+}
 // ==========================================
 // ADMIN AUTH PROVIDER
 // ==========================================
@@ -104,14 +109,16 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
   const pickTokenStorage = (): Storage | null => {
     if (typeof window === "undefined") return null
-    const localToken = localStorage.getItem("adminToken")
-    const sessionToken = sessionStorage.getItem("adminToken")
+    const tokenKey = hostScopedKey("adminToken")
+    const userKey = hostScopedKey("adminUser")
+    const localToken = localStorage.getItem(tokenKey) || localStorage.getItem("adminToken")
+    const sessionToken = sessionStorage.getItem(tokenKey) || sessionStorage.getItem("adminToken")
     if (!localToken && !sessionToken) return null
     if (localToken && !sessionToken) return localStorage
     if (!localToken && sessionToken) return sessionStorage
 
-    const localIsAdmin = hasAdminLikeRole(localStorage.getItem("adminUser"))
-    const sessionIsAdmin = hasAdminLikeRole(sessionStorage.getItem("adminUser"))
+    const localIsAdmin = hasAdminLikeRole(localStorage.getItem(userKey) || localStorage.getItem("adminUser"))
+    const sessionIsAdmin = hasAdminLikeRole(sessionStorage.getItem(userKey) || sessionStorage.getItem("adminUser"))
     if (sessionIsAdmin && !localIsAdmin) return sessionStorage
     if (localIsAdmin && !sessionIsAdmin) return localStorage
     // If both exist and ambiguous, prefer session as it's usually the latest interactive login.
@@ -202,6 +209,12 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       console.error("loadUser: Failed to load admin user:", error)
       // Clear invalid tokens
       setUser(null) // Ensure user is null on failure
+      localStorage.removeItem(hostScopedKey("adminToken"))
+      localStorage.removeItem(hostScopedKey("adminRefreshToken"))
+      localStorage.removeItem(hostScopedKey("adminUser"))
+      sessionStorage.removeItem(hostScopedKey("adminToken"))
+      sessionStorage.removeItem(hostScopedKey("adminRefreshToken"))
+      sessionStorage.removeItem(hostScopedKey("adminUser"))
       localStorage.removeItem("adminToken")
       localStorage.removeItem("adminRefreshToken")
       localStorage.removeItem("adminUser")
@@ -253,6 +266,9 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       const storage = rememberMe ? localStorage : sessionStorage
       const other = rememberMe ? sessionStorage : localStorage
       console.log('login: Using storage:', rememberMe ? 'localStorage' : 'sessionStorage')
+      other.removeItem(hostScopedKey("adminToken"))
+      other.removeItem(hostScopedKey("adminRefreshToken"))
+      other.removeItem(hostScopedKey("adminUser"))
       other.removeItem("adminToken")
       other.removeItem("adminRefreshToken")
       other.removeItem("adminUser")
@@ -261,9 +277,9 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         clearAuthCookies()
         throw new Error("Access denied. This account is not an admin user.")
       }
-      storage.setItem("adminToken", resolved.access)
-      storage.setItem("adminRefreshToken", resolved.refresh)
-      storage.setItem("adminUser", JSON.stringify(resolved.user))
+      storage.setItem(hostScopedKey("adminToken"), resolved.access)
+      storage.setItem(hostScopedKey("adminRefreshToken"), resolved.refresh)
+      storage.setItem(hostScopedKey("adminUser"), JSON.stringify(resolved.user))
       
       // Verify tokens were saved
       console.log('login: Token saved?', !!storage.getItem("adminToken"))
@@ -288,12 +304,15 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     }
     const storage = rememberMe ? localStorage : sessionStorage
     const other = rememberMe ? sessionStorage : localStorage
+    other.removeItem(hostScopedKey("adminToken"))
+    other.removeItem(hostScopedKey("adminRefreshToken"))
+    other.removeItem(hostScopedKey("adminUser"))
     other.removeItem("adminToken")
     other.removeItem("adminRefreshToken")
     other.removeItem("adminUser")
-    storage.setItem("adminToken", response.access)
-    storage.setItem("adminRefreshToken", response.refresh)
-    storage.setItem("adminUser", JSON.stringify(response.user))
+    storage.setItem(hostScopedKey("adminToken"), response.access)
+    storage.setItem(hostScopedKey("adminRefreshToken"), response.refresh)
+    storage.setItem(hostScopedKey("adminUser"), JSON.stringify(response.user))
     document.cookie = `adminToken=${response.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
     setUser(normalizeAdminUser(response.user))
   }
@@ -301,8 +320,9 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   // Refresh the access token using the refresh token
   const refreshToken = async (): Promise<boolean> => {
     try {
-      const storage = localStorage.getItem("adminRefreshToken") ? localStorage : sessionStorage
-      const refresh = storage.getItem("adminRefreshToken")
+      const refreshKey = hostScopedKey("adminRefreshToken")
+      const storage = localStorage.getItem(refreshKey) ? localStorage : sessionStorage
+      const refresh = storage.getItem(refreshKey) || storage.getItem("adminRefreshToken")
       
       if (!refresh) {
         return false
@@ -311,7 +331,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       const response = await adminApi.refreshToken(refresh)
       
       // Update the access token
-      storage.setItem("adminToken", response.access)
+      storage.setItem(hostScopedKey("adminToken"), response.access)
       document.cookie = `adminToken=${response.access}; path=/; max-age=3600; SameSite=Lax`
       
       return true
@@ -333,6 +353,12 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     }
     
     // Clear all storage
+    localStorage.removeItem(hostScopedKey("adminToken"))
+    localStorage.removeItem(hostScopedKey("adminRefreshToken"))
+    localStorage.removeItem(hostScopedKey("adminUser"))
+    sessionStorage.removeItem(hostScopedKey("adminToken"))
+    sessionStorage.removeItem(hostScopedKey("adminRefreshToken"))
+    sessionStorage.removeItem(hostScopedKey("adminUser"))
     localStorage.removeItem("adminToken")
     localStorage.removeItem("adminRefreshToken")
     localStorage.removeItem("adminUser")

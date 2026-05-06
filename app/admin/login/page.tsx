@@ -57,6 +57,13 @@ export default function AdminLoginPage() {
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   const clearStaleAdminAuth = () => {
+    const scoped = (k: string) => `${k}:${window.location.hostname}`
+    localStorage.removeItem(scoped("adminToken"))
+    localStorage.removeItem(scoped("adminRefreshToken"))
+    localStorage.removeItem(scoped("adminUser"))
+    sessionStorage.removeItem(scoped("adminToken"))
+    sessionStorage.removeItem(scoped("adminRefreshToken"))
+    sessionStorage.removeItem(scoped("adminUser"))
     localStorage.removeItem("adminToken")
     localStorage.removeItem("adminRefreshToken")
     localStorage.removeItem("adminUser")
