@@ -298,6 +298,10 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       storage.setItem(hostScopedKey("adminToken"), resolved.access)
       storage.setItem(hostScopedKey("adminRefreshToken"), resolved.refresh)
       storage.setItem(hostScopedKey("adminUser"), JSON.stringify(resolved.user))
+      // Backward compatibility for older readers that still use legacy keys.
+      storage.setItem("adminToken", resolved.access)
+      storage.setItem("adminRefreshToken", resolved.refresh)
+      storage.setItem("adminUser", JSON.stringify(resolved.user))
       
       // Verify tokens were saved
       console.log('login: Token saved?', !!storage.getItem("adminToken"))
@@ -331,6 +335,9 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     storage.setItem(hostScopedKey("adminToken"), response.access)
     storage.setItem(hostScopedKey("adminRefreshToken"), response.refresh)
     storage.setItem(hostScopedKey("adminUser"), JSON.stringify(response.user))
+    storage.setItem("adminToken", response.access)
+    storage.setItem("adminRefreshToken", response.refresh)
+    storage.setItem("adminUser", JSON.stringify(response.user))
     document.cookie = `adminToken=${response.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
     setUser(normalizeAdminUser(response.user))
   }
@@ -350,6 +357,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       
       // Update the access token
       storage.setItem(hostScopedKey("adminToken"), response.access)
+      storage.setItem("adminToken", response.access)
       document.cookie = `adminToken=${response.access}; path=/; max-age=3600; SameSite=Lax`
       
       return true

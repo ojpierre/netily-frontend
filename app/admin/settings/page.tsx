@@ -789,6 +789,21 @@ export default function SettingsPage() {
     return null
   }
 
+  const getAdminSettingsApiBase = (): string => {
+    if (typeof window === "undefined") {
+      return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
+    }
+    const { protocol, hostname } = window.location
+    const knownDomains = ["netily.co.ke"]
+    const isTenantSubdomain = knownDomains.some(
+      (d) => hostname.endsWith(`.${d}`) && hostname !== `www.${d}` && hostname !== `api.${d}`
+    )
+    if (isTenantSubdomain) {
+      return `${protocol}//${hostname}/api/v1`
+    }
+    return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
+  }
+
   // Load settings from backend
   useEffect(() => {
     const fetchSettings = async () => {
@@ -803,7 +818,7 @@ export default function SettingsPage() {
           return
         }
 
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+        const apiBase = getAdminSettingsApiBase()
         const res = await fetch(`${apiBase}/core/settings/`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -925,7 +940,7 @@ const handleSaveSettings = async () => {
         ;(payload as any)[otpToggleFieldName] = securitySettings.adminOtpEnabled
       }
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+      const apiBase = getAdminSettingsApiBase()
       const res = await fetch(`${apiBase}/core/settings/`, {
         method: "PATCH",
         headers: {
