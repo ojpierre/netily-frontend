@@ -50,6 +50,28 @@ export default function AdminLoginPage() {
   const [challengeId, setChallengeId] = useState("")
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([])
 
+  const clearStaleAdminAuth = () => {
+    localStorage.removeItem("adminToken")
+    localStorage.removeItem("adminRefreshToken")
+    localStorage.removeItem("adminUser")
+    sessionStorage.removeItem("adminToken")
+    sessionStorage.removeItem("adminRefreshToken")
+    sessionStorage.removeItem("adminUser")
+
+    const host = window.location.hostname
+    const hostParts = host.split(".")
+    const baseDomain = hostParts.length >= 2 ? `.${hostParts.slice(-2).join(".")}` : ""
+    const expire = (name: string, domain?: string) => {
+      document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax${domain ? `; domain=${domain}` : ""}`
+    }
+    expire("adminToken")
+    expire("adminRefreshToken")
+    if (baseDomain) {
+      expire("adminToken", baseDomain)
+      expire("adminRefreshToken", baseDomain)
+    }
+  }
+
   // Redirect if already logged in
   useEffect(() => {
     if (user && !authLoading) {
@@ -117,6 +139,9 @@ export default function AdminLoginPage() {
       if (!formData.email || !formData.password) {
         throw new Error("Please fill in all fields")
       }
+
+      // Always start from a clean auth slate to avoid stale customer/admin token collisions.
+      clearStaleAdminAuth()
 
       if (USE_MOCK) {
         const mockLoginResponse = await adminApi.login(formData.email, formData.password)

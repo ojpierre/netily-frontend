@@ -34,10 +34,9 @@ export function proxy(request: NextRequest) {
   if (pathname.startsWith('/admin')) {
     // Allow access to admin login and register pages
     if (pathname === '/admin/login' || pathname === '/admin/register') {
-      // Redirect to dashboard if already logged in
-      if (adminToken) {
-        return NextResponse.redirect(new URL('/admin', request.url))
-      }
+      // Do NOT force redirect by cookie presence alone.
+      // Cookies can be stale or belong to a non-admin account; client-side auth
+      // validation will decide whether to route to /admin or stay on login.
       return NextResponse.next()
     }
 

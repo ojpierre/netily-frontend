@@ -310,14 +310,16 @@ class AdminApiService {
 
   private getAdminToken(): string | null {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken')
+      const storage = this.pickTokenStorage()
+      return storage?.getItem('adminToken') || null
     }
     return null
   }
 
   private getRefreshToken(): string | null {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('adminRefreshToken') || sessionStorage.getItem('adminRefreshToken')
+      const storage = this.pickTokenStorage()
+      return storage?.getItem('adminRefreshToken') || null
     }
     return null
   }
@@ -4209,3 +4211,28 @@ export const adminApi = new AdminApiService()
 
 // Export class for testing/extension
 export { AdminApiService }
+  private hasAdminLikeRole(raw: string | null): boolean {
+    if (!raw) return false
+    try {
+      const u = JSON.parse(raw)
+      const role = String(u?.role || '').toLowerCase()
+      return ['admin', 'staff', 'accountant', 'support', 'superadmin'].includes(role) || !!u?.is_staff || !!u?.is_superuser
+    } catch {
+      return false
+    }
+  }
+
+  private pickTokenStorage(): Storage | null {
+    if (typeof window === 'undefined') return null
+    const localToken = localStorage.getItem('adminToken')
+    const sessionToken = sessionStorage.getItem('adminToken')
+    if (!localToken && !sessionToken) return null
+    if (localToken && !sessionToken) return localStorage
+    if (!localToken && sessionToken) return sessionStorage
+
+    const localIsAdmin = this.hasAdminLikeRole(localStorage.getItem('adminUser'))
+    const sessionIsAdmin = this.hasAdminLikeRole(sessionStorage.getItem('adminUser'))
+    if (sessionIsAdmin && !localIsAdmin) return sessionStorage
+    if (localIsAdmin && !sessionIsAdmin) return localStorage
+    return sessionStorage
+  }
