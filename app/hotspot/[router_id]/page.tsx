@@ -822,8 +822,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const [autoLoginChecked, setAutoLoginChecked] = useState(false)
   const [returningToRouter, setReturningToRouter] = useState(false)
 
-  // Payment mode toggle
-  const [paymentMode, setPaymentMode] = useState<"mpesa" | "voucher">("mpesa")
+  // Voucher state (now on main page)
   const [voucherCode, setVoucherCode] = useState("")
   const [voucherRedeeming, setVoucherRedeeming] = useState(false)
   const [voucherError, setVoucherError] = useState<string | null>(null)
@@ -1145,7 +1144,6 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     setSelectedPlan(plan)
     setShowPaymentModal(true)
     setPhoneError(null)
-    setVoucherError(null)
     setError(null)
   }
 
@@ -1197,7 +1195,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     setCountdown(120)
   }
 
-  // ── Redeem voucher ──
+  // ── Redeem voucher (now top-level) ──
   const handleVoucherRedeem = async () => {
     if (!voucherCode.trim()) {
       setVoucherError("Enter your voucher code")
@@ -1220,6 +1218,9 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
         finalMac = verifiedTV.mac_address
         if (verifiedTV.router_id) finalRouter = String(verifiedTV.router_id)
     }
+
+    // If voucher redemption succeeds, we treat it as a successful "payment"
+    setShowPaymentModal(false)
 
     try {
       const result = await redeemVoucher({
@@ -1601,6 +1602,40 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             </div>
           )}
 
+          {/* ── Voucher Redemption — top level, always visible ── */}
+          <div className="mb-5">
+            <div className={`flex rounded-xl border ${theme.inputBorder} overflow-hidden`}>
+              <div className="relative flex-1">
+                <Ticket className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${theme.mutedText}`} />
+                <input
+                  type="text"
+                  placeholder="Have a voucher code? Enter here"
+                  value={voucherCode}
+                  onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError(null) }}
+                  className={`w-full pl-9 pr-3 py-3 text-sm border-0 outline-none ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder}`}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!voucherCode.trim()) { setVoucherError("Enter your voucher code"); return }
+                  setShowPaymentModal(false)
+                  handleVoucherRedeem()
+                }}
+                disabled={!voucherCode.trim() || voucherRedeeming}
+                className={`px-4 py-3 text-sm font-semibold transition-colors disabled:opacity-50 ${theme.ctaBg} ${theme.ctaText}`}
+                style={brandingCtaStyle}
+              >
+                {voucherRedeeming ? <Loader2 className="w-4 h-4 animate-spin" /> : "Redeem"}
+              </button>
+            </div>
+            {voucherError && (
+              <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />{voucherError}
+              </p>
+            )}
+          </div>
+
           {/* Free Ad-Sponsored Access */}
           {availableAd && availableAd.reward_enabled && availableAd.reward_minutes > 0 && (
             <button
@@ -1670,16 +1705,6 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           <p className={`${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"} mb-6 ${theme.bodyText}`}>
             {welcomeMessage || "Select a plan and pay with M-Pesa to get connected"}
           </p>
-
-          {/* Phone Number Input — shown before plans for certain templates */}
-          {theme.showPhoneBeforePlans && paymentMode === "mpesa" && (
-            <PhoneInput
-              phoneNumber={phoneNumber}
-              phoneError={phoneError}
-              onPhoneChange={handlePhoneChange}
-              theme={theme}
-            />
-          )}
 
           {/* Plan Cards - Layout varies by theme */}
           <div className={`mb-6 ${
@@ -1875,7 +1900,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
         </div>
       </div>
 
-      {/* ━━━ PAYMENT MODAL ━━━ */}
+      {/* ━━━ PAYMENT MODAL (M-Pesa only) ━━━ */}
       {showPaymentModal && selectedPlan && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           {/* Backdrop */}
@@ -1909,75 +1934,12 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             </div>
 
             {/* Phone Number Input */}
-            {paymentMode === "mpesa" && (
-              <PhoneInput
-                phoneNumber={phoneNumber}
-                phoneError={phoneError}
-                onPhoneChange={handlePhoneChange}
-                theme={theme}
-              />
-            )}
-
-            {/* Payment Mode Toggle */}
-            <div className="mb-4">
-              <div className={`flex rounded-lg border ${theme.inputBorder} overflow-hidden`}>
-                <button
-                  type="button"
-                  onClick={() => { setPaymentMode("mpesa"); setVoucherError(null) }}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
-                    paymentMode === "mpesa"
-                      ? `${theme.ctaBg} ${theme.ctaText}`
-                      : `${theme.planBg} ${theme.mutedText} hover:opacity-80`
-                  }`}
-                  style={paymentMode === "mpesa" ? brandingCtaStyle : undefined}
-                >
-                  <Phone className="w-4 h-4" />
-                  M-Pesa
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setPaymentMode("voucher"); setPhoneError(null) }}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors ${
-                    paymentMode === "voucher"
-                      ? `${theme.ctaBg} ${theme.ctaText}`
-                      : `${theme.planBg} ${theme.mutedText} hover:opacity-80`
-                  }`}
-                  style={paymentMode === "voucher" ? brandingCtaStyle : undefined}
-                >
-                  <Ticket className="w-4 h-4" />
-                  Voucher
-                </button>
-              </div>
-            </div>
-
-            {/* Voucher Input */}
-            {paymentMode === "voucher" && (
-              <div className="mb-4 space-y-3">
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${theme.planTitle}`}>
-                    Voucher Code
-                  </label>
-                  <div className="relative">
-                    <Ticket className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.mutedText}`} />
-                    <input
-                      type="text"
-                      placeholder="Enter voucher code"
-                      value={voucherCode}
-                      onChange={(e) => { setVoucherCode(e.target.value.toUpperCase()); setVoucherError(null) }}
-                      className={`w-full pl-10 pr-4 py-3 border ${theme.cardShape} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} font-mono tracking-wider text-lg ${
-                        voucherError ? "!border-red-400 !ring-red-500" : ""
-                      }`}
-                    />
-                  </div>
-                </div>
-                {voucherError && (
-                  <div className={`p-3 rounded-lg border flex items-center gap-2 ${theme.errorBg}`}>
-                    <AlertCircle className={`w-5 h-5 flex-shrink-0 ${theme.errorText}`} />
-                    <span className={`text-sm ${theme.errorText}`}>{voucherError}</span>
-                  </div>
-                )}
-              </div>
-            )}
+            <PhoneInput
+              phoneNumber={phoneNumber}
+              phoneError={phoneError}
+              onPhoneChange={handlePhoneChange}
+              theme={theme}
+            />
 
             {/* Inline Error */}
             {error && (
@@ -1988,32 +1950,14 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             )}
 
             {/* CTA Button */}
-            {paymentMode === "mpesa" ? (
-              <button
-                onClick={handlePay}
-                disabled={!phoneNumber || !!phoneError || (targetDevice === "tv" && !verifiedTV)}
-                className={`w-full py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg rounded-xl ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover}`}
-                style={brandingCtaStyle}
-              >
-                Pay {selectedPlan.currency || "KES"} {selectedPlan.price} with M-Pesa
-              </button>
-            ) : (
-              <button
-                onClick={handleVoucherRedeem}
-                disabled={!voucherCode.trim() || voucherRedeeming || (targetDevice === "tv" && !verifiedTV)}
-                className={`w-full py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg rounded-xl flex items-center justify-center gap-2 ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover}`}
-                style={brandingCtaStyle}
-              >
-                {voucherRedeeming ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Redeeming...
-                  </>
-                ) : (
-                  "Redeem Voucher"
-                )}
-              </button>
-            )}
+            <button
+              onClick={handlePay}
+              disabled={!phoneNumber || !!phoneError || (targetDevice === "tv" && !verifiedTV)}
+              className={`w-full py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg rounded-xl ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover}`}
+              style={brandingCtaStyle}
+            >
+              Pay {selectedPlan.currency || "KES"} {selectedPlan.price} with M-Pesa
+            </button>
 
             <p className={`text-center text-xs mt-3 ${theme.footerText}`}>
               By connecting, you agree to the terms of service
