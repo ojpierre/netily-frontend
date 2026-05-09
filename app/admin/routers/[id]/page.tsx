@@ -51,6 +51,7 @@ import {
   Unlink,
   Cable,
   Palette,
+  DollarSign,
 } from "lucide-react"
 import {
   RouterOverviewTab,
@@ -284,6 +285,9 @@ export default function RouterDetailPage() {
   const [backups, setBackups] = useState<Backup[]>([])
   const [scripts, setScripts] = useState<RouterScript[]>([])
   
+  // ADDED: Router Income State
+  const [routerIncome, setRouterIncome] = useState<number | null>(null)
+  
   // Action states
   const [isSaving, setIsSaving] = useState(false)
   const [isRebooting, setIsRebooting] = useState(false)
@@ -413,7 +417,13 @@ export default function RouterDetailPage() {
         if (live?.online) setLiveStatusData(live)
       })
       .catch(() => {}) // silently ignore — live status is best-effort
+    
+    // ADDED: Fetch router income data
+    adminApi.getRouterIncome(parseInt(routerId))
+      .then(data => setRouterIncome(data.total_income))
+      .catch(() => setRouterIncome(null))
   }, [fetchData, routerId])
+  
   // Handler to copy script
   const handleCopyAuthScript = () => {
     if (authScript) {
@@ -425,6 +435,10 @@ export default function RouterDetailPage() {
   const handleRefresh = async () => {
     setIsLoading(true)
     await fetchData()
+    // Also refresh income data
+    adminApi.getRouterIncome(parseInt(routerId))
+      .then(data => setRouterIncome(data.total_income))
+      .catch(() => setRouterIncome(null))
     toast.success("Data refreshed")
   }
 
@@ -941,15 +955,20 @@ export default function RouterDetailPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* REPLACED: Active Users Card with Total Income Card */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="w-5 h-5 text-blue-600" />
+              <div className="p-2 bg-green-100 rounded-lg">
+                <DollarSign className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{routerData.active_users}</p>
-                <p className="text-xs text-slate-500">Active Users</p>
+                <p className="text-2xl font-bold text-green-700">
+                  {routerIncome !== null
+                    ? `KES ${routerIncome.toLocaleString('en-KE', { minimumFractionDigits: 0 })}`
+                    : '—'}
+                </p>
+                <p className="text-xs text-slate-500">Total Income</p>
               </div>
             </div>
           </CardContent>

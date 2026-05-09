@@ -4092,7 +4092,13 @@ async activateService(
   async getActiveSubscriptions(): Promise<ActiveSubscriptionsResponse> {
     return this.request<ActiveSubscriptionsResponse>('/hotspot/admin/active-subscriptions/')
   }
-
+  
+  async getRouterIncome(routerId: number): Promise<{ total_income: number; hotspot_income: number; pppoe_income: number }> {
+    return this.request<{ total_income: number; hotspot_income: number; pppoe_income: number }>(
+      `/hotspot/admin/routers/${routerId}/income/`
+    )
+  }
+  
   // ------------------------------------------
   // FAIR USAGE POLICY (FUP) - /fup/
   // ------------------------------------------
