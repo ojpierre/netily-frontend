@@ -265,7 +265,14 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
       setHotspotName(values.hotspot_name)
       setSupportPhone(values.support_phone)
       setAnnouncementText(values.announcement_text)
-      setExistingLogo((router as any).logo || "")
+      
+      // Fix logo URL resolution - handle relative paths from backend
+      const rawLogo = (router as any).logo || ""
+      const apiBase = typeof window !== 'undefined' 
+        ? window.location.origin 
+        : (process.env.NEXT_PUBLIC_API_URL || '').replace('/api/v1', '')
+      setExistingLogo(rawLogo && !rawLogo.startsWith('http') ? `${apiBase}${rawLogo}` : rawLogo)
+      
       setOriginal({
         template_id: baseTemplateId,
         hotspot_name: values.hotspot_name,
@@ -309,13 +316,11 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     setSaving(true)
     setError(null)
 
-    // Build only changed fields to avoid overwriting unrelated Router data
-    const payload: Record<string, unknown> = {}
-    
     const encodedTemplateId = planLayout === "list" ? templateId + 100 : templateId
-    if (templateId !== original.template_id || planLayout !== original._planLayout) {
-      payload.template_id = encodedTemplateId
-    }
+    const currentEncoded = original._planLayout === "list" ? original.template_id + 100 : original.template_id
+
+    const payload: Record<string, unknown> = {}
+    if (encodedTemplateId !== currentEncoded) payload.template_id = encodedTemplateId
     if (hotspotName !== original.hotspot_name) payload.hotspot_name = hotspotName
     if (supportPhone !== original.support_phone) payload.support_phone = supportPhone
     if (announcementText !== original.announcement_text) payload.announcement_text = announcementText
@@ -327,19 +332,15 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     }
 
     try {
-      // If logo file is being uploaded, use FormData for multipart upload
       if (logoFile) {
         const formData = new FormData()
-        Object.entries(payload).forEach(([key, value]) => {
-          formData.append(key, String(value))
-        })
+        Object.entries(payload).forEach(([key, value]) => formData.append(key, String(value)))
         formData.append('logo', logoFile)
         await adminApi.updateRouterWithFormData(routerId, formData)
       } else {
         console.log("[PortalSettings] Saving payload:", payload, "to router:", routerId)
         await adminApi.updateRouter(routerId, payload as any)
       }
-      // Update originals to match current values so dirty resets
       setOriginal({
         template_id: templateId,
         hotspot_name: hotspotName,
@@ -514,7 +515,6 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                       <CheckCircle2 className="w-4 h-4 text-primary" />
                     </div>
                   )}
-                  {/* Grid preview */}
                   <div className="grid grid-cols-2 gap-1 mb-3 opacity-60">
                     {[1,2,3,4].map(i => (
                       <div key={i} className="h-6 rounded bg-slate-200" />
@@ -536,7 +536,6 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                       <CheckCircle2 className="w-4 h-4 text-primary" />
                     </div>
                   )}
-                  {/* List preview */}
                   <div className="space-y-1 mb-3 opacity-60">
                     {[1,2,3].map(i => (
                       <div key={i} className="h-5 rounded bg-slate-200" />
@@ -768,7 +767,13 @@ function PortalPreview({
                 />
               </div>
             ) : (
-              <Wifi className={`w-8 h-8 mx-auto mb-2 ${styles.headerIcon}`} />
+              <div className="flex justify-center mb-2">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  styles.headerBg === 'bg-white border-b' ? 'bg-blue-100' : 'bg-white/20'
+                }`}>
+                  <Wifi className={`w-6 h-6 ${styles.headerIcon}`} />
+                </div>
+              </div>
             )}
             <h3 className={`text-base font-bold ${styles.headerText}`}>{displayName}</h3>
             {supportPhone && (

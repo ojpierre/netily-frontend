@@ -1090,6 +1090,12 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const supportPhone = branding?.support_phone || portalConfig?.support_phone || ""
   const announcement = portalConfig?.announcement_text || ""
 
+  // Fix logo URL resolution - handle relative paths from backend
+  const apiBaseUrl = getApiBase().replace('/api/v1', '')
+  const logoUrl = branding?.logo_url 
+    ? (branding.logo_url.startsWith('http') ? branding.logo_url : `${apiBaseUrl}${branding.logo_url}`)
+    : null
+
   // Branding-derived inline style overrides (hex colours from admin panel)
   const brandingHeaderStyle: React.CSSProperties | undefined = branding?.primary_color
     ? { backgroundColor: branding.primary_color }
@@ -1779,10 +1785,10 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           } ${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"}`}
           style={brandingHeaderStyle}
         >
-          {branding?.logo_url ? (
+          {logoUrl ? (
             <div className={`flex ${theme.headerStyle === "left-aligned" ? "justify-start" : "justify-center"} mb-3`}>
               <img
-                src={branding.logo_url}
+                src={logoUrl}
                 alt={displayName}
                 className={`object-contain ${theme.headerStyle === "large-hero" ? "h-16 max-w-[180px]" : "h-12 max-w-[140px]"}`}
                 style={{
