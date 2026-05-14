@@ -142,6 +142,66 @@ const TEMPLATES: TemplateOption[] = [
       text: "text-white",
     },
   },
+  {
+    id: 8,
+    name: "Neon Noir",
+    description: "Dark background with electric neon accents — gaming café vibes",
+    icon: <Zap className="w-5 h-5" />,
+    preview: {
+      bg: "bg-gray-950",
+      card: "bg-gray-900 border border-violet-500/30",
+      accent: "bg-violet-500",
+      text: "text-violet-400",
+    },
+  },
+  {
+    id: 9,
+    name: "Safari Warmth",
+    description: "Earthy terracotta tones — warm, welcoming, local feel",
+    icon: <Globe className="w-5 h-5" />,
+    preview: {
+      bg: "bg-amber-50",
+      card: "bg-white",
+      accent: "bg-amber-700",
+      text: "text-amber-700",
+    },
+  },
+  {
+    id: 10,
+    name: "Ocean Breeze",
+    description: "Crisp coastal teal with white sand — resort & hotel ready",
+    icon: <Wifi className="w-5 h-5" />,
+    preview: {
+      bg: "bg-gradient-to-b from-sky-400 to-teal-500",
+      card: "bg-white/95",
+      accent: "bg-teal-500",
+      text: "text-teal-600",
+    },
+  },
+  {
+    id: 11,
+    name: "Midnight Luxury",
+    description: "Deep navy with gold accents — premium hotels & lounges",
+    icon: <Building2 className="w-5 h-5" />,
+    preview: {
+      bg: "bg-slate-900",
+      card: "bg-slate-800 border border-yellow-500/20",
+      accent: "bg-yellow-500",
+      text: "text-yellow-400",
+    },
+  },
+  {
+    id: 12,
+    name: "Blossom",
+    description: "Soft pink & mint — salons, boutiques, feminine spaces",
+    icon: <Sparkles className="w-5 h-5" />,
+    preview: {
+      bg: "bg-pink-50",
+      card: "bg-white",
+      accent: "bg-pink-400",
+      text: "text-pink-500",
+    },
+  },
 ]
 
 // ==========================================
@@ -166,6 +226,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string>("")
   const [existingLogo, setExistingLogo] = useState<string>("")
+  const [planLayout, setPlanLayout] = useState<"grid" | "list">("grid")
 
   // UI state
   const [loading, setLoading] = useState(true)
@@ -181,6 +242,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     hotspot_name: "",
     support_phone: "",
     announcement_text: "",
+    _planLayout: "grid" as "grid" | "list",
   })
 
   // ── Load current values from router ──
@@ -190,18 +252,28 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     setLoadFailed(false)
     try {
       const router = await adminApi.getRouter(routerId)
+      const rawTemplateId = router.template_id ?? 1
+      const isListLayout = rawTemplateId > 100
+      const baseTemplateId = isListLayout ? rawTemplateId - 100 : rawTemplateId
       const values = {
-        template_id: router.template_id ?? 1,
+        template_id: baseTemplateId,
         hotspot_name: router.hotspot_name ?? "",
         support_phone: router.support_phone ?? "",
         announcement_text: router.announcement_text ?? "",
       }
-      setTemplateId(values.template_id)
+      setTemplateId(baseTemplateId)
       setHotspotName(values.hotspot_name)
       setSupportPhone(values.support_phone)
       setAnnouncementText(values.announcement_text)
       setExistingLogo((router as any).logo || "")
-      setOriginal(values)
+      setOriginal({
+        template_id: baseTemplateId,
+        hotspot_name: values.hotspot_name,
+        support_phone: values.support_phone,
+        announcement_text: values.announcement_text,
+        _planLayout: isListLayout ? "list" : "grid",
+      })
+      setPlanLayout(isListLayout ? "list" : "grid")
       setDirty(false)
     } catch (err: any) {
       console.error("[PortalSettings] Load failed:", err)
@@ -220,12 +292,13 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   useEffect(() => {
     const isDirty =
       templateId !== original.template_id ||
+      planLayout !== original._planLayout ||
       hotspotName !== original.hotspot_name ||
       supportPhone !== original.support_phone ||
       announcementText !== original.announcement_text ||
       logoFile !== null
     setDirty(isDirty)
-  }, [templateId, hotspotName, supportPhone, announcementText, original, logoFile])
+  }, [templateId, hotspotName, supportPhone, announcementText, original, logoFile, planLayout])
 
   // ── Save — PATCH only changed fields ──
   const handleSave = async () => {
@@ -238,7 +311,11 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
 
     // Build only changed fields to avoid overwriting unrelated Router data
     const payload: Record<string, unknown> = {}
-    if (templateId !== original.template_id) payload.template_id = templateId
+    
+    const encodedTemplateId = planLayout === "list" ? templateId + 100 : templateId
+    if (templateId !== original.template_id || planLayout !== original._planLayout) {
+      payload.template_id = encodedTemplateId
+    }
     if (hotspotName !== original.hotspot_name) payload.hotspot_name = hotspotName
     if (supportPhone !== original.support_phone) payload.support_phone = supportPhone
     if (announcementText !== original.announcement_text) payload.announcement_text = announcementText
@@ -268,6 +345,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
         hotspot_name: hotspotName,
         support_phone: supportPhone,
         announcement_text: announcementText,
+        _planLayout: planLayout,
       })
       setDirty(false)
       if (logoFile) {
@@ -410,6 +488,67 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
             </CardContent>
           </Card>
 
+          {/* Layout Toggle */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Layers className="w-5 h-5" />
+                Plan Layout
+              </CardTitle>
+              <CardDescription>
+                How pricing plans are displayed to customers
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setPlanLayout("grid")}
+                  className={`relative rounded-xl border-2 p-4 transition-all text-left ${
+                    planLayout === "grid"
+                      ? "border-primary ring-2 ring-primary/20 shadow-md"
+                      : "border-border hover:border-muted-foreground/30"
+                  }`}
+                >
+                  {planLayout === "grid" && (
+                    <div className="absolute top-2 right-2">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                    </div>
+                  )}
+                  {/* Grid preview */}
+                  <div className="grid grid-cols-2 gap-1 mb-3 opacity-60">
+                    {[1,2,3,4].map(i => (
+                      <div key={i} className="h-6 rounded bg-slate-200" />
+                    ))}
+                  </div>
+                  <p className="text-sm font-semibold">Grid</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">2-column card grid</p>
+                </button>
+                <button
+                  onClick={() => setPlanLayout("list")}
+                  className={`relative rounded-xl border-2 p-4 transition-all text-left ${
+                    planLayout === "list"
+                      ? "border-primary ring-2 ring-primary/20 shadow-md"
+                      : "border-border hover:border-muted-foreground/30"
+                  }`}
+                >
+                  {planLayout === "list" && (
+                    <div className="absolute top-2 right-2">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                    </div>
+                  )}
+                  {/* List preview */}
+                  <div className="space-y-1 mb-3 opacity-60">
+                    {[1,2,3].map(i => (
+                      <div key={i} className="h-5 rounded bg-slate-200" />
+                    ))}
+                  </div>
+                  <p className="text-sm font-semibold">List</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Full-width rows</p>
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Branding Fields */}
           <Card>
             <CardHeader>
@@ -517,8 +656,8 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                       onChange={(e) => {
                         const file = e.target.files?.[0]
                         if (!file) return
-                        if (file.size > 5 * 1024 * 1024) {
-                          toast.error("Logo must be smaller than 5 MB")
+                        if (file.size > 1 * 1024 * 1024) {
+                          toast.error("Logo must be smaller than 1 MB")
                           return
                         }
                         setLogoFile(file)
@@ -526,7 +665,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                       }}
                     />
                     <p className="text-xs text-muted-foreground mt-1.5">
-                      PNG, JPG, SVG or WebP. Max 5 MB. Displayed on the captive portal header.
+                      PNG, JPG, SVG or WebP. Max 1 MB. Displayed on the captive portal header.
                     </p>
                   </div>
                 </div>
@@ -553,6 +692,8 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                 hotspotName={hotspotName}
                 supportPhone={supportPhone}
                 announcementText={announcementText}
+                logoPreview={logoPreview}
+                existingLogo={existingLogo}
               />
             </CardContent>
           </Card>
@@ -590,14 +731,19 @@ function PortalPreview({
   hotspotName,
   supportPhone,
   announcementText,
+  logoPreview,
+  existingLogo,
 }: {
   templateId: number
   hotspotName: string
   supportPhone: string
   announcementText: string
+  logoPreview: string
+  existingLogo: string
 }) {
   const template = TEMPLATES.find((t) => t.id === templateId) || TEMPLATES[0]
   const displayName = hotspotName || "WiFi Hotspot"
+  const logoSrc = logoPreview || existingLogo || null
 
   // Template-specific styles
   const styles = getTemplateStyles(templateId)
@@ -609,7 +755,21 @@ function PortalPreview({
         <div className={`w-full max-w-[280px] rounded-2xl shadow-2xl overflow-hidden ${styles.cardBg}`}>
           {/* Header */}
           <div className={`p-4 text-center ${styles.headerBg}`}>
-            <Wifi className={`w-8 h-8 mx-auto mb-2 ${styles.headerIcon}`} />
+            {logoSrc ? (
+              <div className="flex justify-center mb-2">
+                <img
+                  src={logoSrc}
+                  alt={displayName}
+                  className="h-12 w-auto object-contain"
+                  style={{
+                    filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.15))",
+                    maxWidth: "120px",
+                  }}
+                />
+              </div>
+            ) : (
+              <Wifi className={`w-8 h-8 mx-auto mb-2 ${styles.headerIcon}`} />
+            )}
             <h3 className={`text-base font-bold ${styles.headerText}`}>{displayName}</h3>
             {supportPhone && (
               <p className={`text-xs mt-0.5 ${styles.headerSubtext}`}>
@@ -814,6 +974,106 @@ function getTemplateStyles(id: number): TemplateStyles {
         inputStyles: "border-white/20 bg-white/10 text-white/80 placeholder:text-white/40",
         ctaStyles: "bg-white text-teal-700 font-bold hover:bg-white/90",
         footer: "text-white/40",
+      }
+    case 8: // Neon Noir
+      return {
+        containerBg: "bg-gray-950",
+        cardBg: "bg-gray-900 border border-violet-500/30",
+        headerBg: "bg-gradient-to-r from-violet-600 to-fuchsia-600",
+        headerIcon: "text-white",
+        headerText: "text-white",
+        headerSubtext: "text-violet-200",
+        announcementBg: "bg-violet-950/50 border border-violet-500/30",
+        announcementIcon: "text-violet-400",
+        announcementText: "text-violet-300",
+        planSelected: "border-violet-500 bg-violet-950/30 text-white",
+        planNormal: "border-gray-700 text-gray-300 hover:border-violet-500/30",
+        planTitle: "text-white",
+        planSub: "text-gray-400",
+        planPrice: "text-violet-400",
+        inputStyles: "border-gray-700 bg-gray-800 text-gray-300",
+        ctaStyles: "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-90",
+        footer: "text-gray-500",
+      }
+    case 9: // Safari Warmth
+      return {
+        containerBg: "bg-amber-50",
+        cardBg: "bg-white shadow-xl",
+        headerBg: "bg-amber-700",
+        headerIcon: "text-white",
+        headerText: "text-white",
+        headerSubtext: "text-amber-100",
+        announcementBg: "bg-amber-100 border border-amber-200",
+        announcementIcon: "text-amber-600",
+        announcementText: "text-amber-800",
+        planSelected: "border-amber-700 bg-amber-50",
+        planNormal: "border-gray-200 hover:border-amber-300",
+        planTitle: "text-gray-900",
+        planSub: "text-gray-500",
+        planPrice: "text-amber-700",
+        inputStyles: "border-gray-200 bg-white text-gray-700",
+        ctaStyles: "bg-amber-700 text-white hover:bg-amber-800",
+        footer: "text-gray-400",
+      }
+    case 10: // Ocean Breeze
+      return {
+        containerBg: "bg-gradient-to-b from-sky-400 to-teal-500",
+        cardBg: "bg-white/95 backdrop-blur-sm",
+        headerBg: "bg-gradient-to-r from-sky-600 to-teal-600",
+        headerIcon: "text-white",
+        headerText: "text-white",
+        headerSubtext: "text-sky-100",
+        announcementBg: "bg-sky-50 border border-sky-200",
+        announcementIcon: "text-sky-500",
+        announcementText: "text-sky-700",
+        planSelected: "border-teal-500 bg-teal-50",
+        planNormal: "border-gray-200 hover:border-sky-300",
+        planTitle: "text-gray-900",
+        planSub: "text-gray-500",
+        planPrice: "text-teal-600",
+        inputStyles: "border-gray-200 bg-white text-gray-700",
+        ctaStyles: "bg-teal-500 text-white hover:bg-teal-600",
+        footer: "text-gray-400",
+      }
+    case 11: // Midnight Luxury
+      return {
+        containerBg: "bg-slate-900",
+        cardBg: "bg-slate-800 border border-yellow-500/20",
+        headerBg: "bg-gradient-to-r from-slate-800 to-slate-700 border-b border-yellow-500/30",
+        headerIcon: "text-yellow-400",
+        headerText: "text-yellow-400",
+        headerSubtext: "text-yellow-500/70",
+        announcementBg: "bg-yellow-950/30 border border-yellow-500/20",
+        announcementIcon: "text-yellow-400",
+        announcementText: "text-yellow-300",
+        planSelected: "border-yellow-500 bg-yellow-950/20 text-white",
+        planNormal: "border-slate-700 text-gray-300 hover:border-yellow-500/30",
+        planTitle: "text-white",
+        planSub: "text-gray-400",
+        planPrice: "text-yellow-400",
+        inputStyles: "border-slate-700 bg-slate-800 text-gray-300",
+        ctaStyles: "bg-yellow-500 text-slate-900 font-bold hover:bg-yellow-400",
+        footer: "text-gray-500",
+      }
+    case 12: // Blossom
+      return {
+        containerBg: "bg-pink-50",
+        cardBg: "bg-white shadow-lg",
+        headerBg: "bg-gradient-to-r from-pink-400 to-rose-400",
+        headerIcon: "text-white",
+        headerText: "text-white",
+        headerSubtext: "text-pink-100",
+        announcementBg: "bg-pink-100 border border-pink-200",
+        announcementIcon: "text-pink-500",
+        announcementText: "text-pink-700",
+        planSelected: "border-pink-400 bg-pink-50",
+        planNormal: "border-gray-200 hover:border-pink-300",
+        planTitle: "text-gray-900",
+        planSub: "text-gray-500",
+        planPrice: "text-pink-500",
+        inputStyles: "border-gray-200 bg-white text-gray-700",
+        ctaStyles: "bg-pink-400 text-white hover:bg-pink-500",
+        footer: "text-gray-400",
       }
     default: // Classic (1)
       return {

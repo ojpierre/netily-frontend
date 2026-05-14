@@ -420,7 +420,7 @@ function isSmartTV(): boolean {
 }
 
 // ==========================================
-// TEMPLATE STYLE ENGINE  (7 themes)
+// TEMPLATE STYLE ENGINE (12 themes)
 // ==========================================
 
 interface ThemeStyles {
@@ -707,6 +707,206 @@ function getTheme(id: number): ThemeStyles {
         successBg: "bg-emerald-500/20",
         successPageBg: "min-h-screen bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600",
       }
+    case 8: // Neon Noir
+      return {
+        layoutType: "grid",
+        headerStyle: "centered",
+        cardShape: "rounded-2xl",
+        ctaStyle: "full-width",
+        showPhoneBeforePlans: false,
+        showWifiIcon: true,
+        pageBg: "min-h-screen bg-gray-950",
+        cardClass: "bg-gray-900 border border-violet-500/20 rounded-2xl shadow-2xl shadow-violet-900/20",
+        headerBg: "bg-gradient-to-r from-violet-900 to-purple-900",
+        headerText: "text-white",
+        headerSub: "text-violet-300/70",
+        annBg: "bg-violet-950/50 border border-violet-700/30",
+        annText: "text-violet-200",
+        annIcon: "text-violet-400",
+        planSelectedBorder: "border-violet-500",
+        planSelectedBg: "bg-violet-950/40",
+        planBorder: "border-gray-700/50",
+        planBg: "bg-gray-800/60",
+        planTitle: "text-white",
+        planSub: "text-gray-400",
+        planPrice: "text-violet-400",
+        planPopularBg: "bg-violet-500",
+        planPopularText: "text-white",
+        inputBorder: "border-gray-700",
+        inputBg: "bg-gray-800",
+        inputText: "text-white",
+        inputPlaceholder: "placeholder:text-gray-600",
+        ctaBg: "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500",
+        ctaText: "text-white",
+        ctaHover: "hover:shadow-violet-500/30",
+        bodyText: "text-gray-300",
+        mutedText: "text-gray-500",
+        footerText: "text-gray-700",
+        errorBg: "bg-red-950/40 border-red-700/30",
+        errorText: "text-red-400",
+        successBg: "bg-violet-950/40",
+        successPageBg: "min-h-screen bg-gray-950",
+      }
+    case 9: // Safari Warmth
+      return {
+        layoutType: "list",
+        headerStyle: "left-aligned",
+        cardShape: "rounded-2xl",
+        ctaStyle: "full-width",
+        showPhoneBeforePlans: false,
+        showWifiIcon: false,
+        pageBg: "min-h-screen bg-amber-50",
+        cardClass: "bg-white rounded-2xl shadow-lg border border-amber-100",
+        headerBg: "bg-amber-800",
+        headerText: "text-amber-50",
+        headerSub: "text-amber-200",
+        annBg: "bg-amber-100 border border-amber-300",
+        annText: "text-amber-900",
+        annIcon: "text-amber-700",
+        planSelectedBorder: "border-amber-700",
+        planSelectedBg: "bg-amber-50",
+        planBorder: "border-amber-100",
+        planBg: "bg-white",
+        planTitle: "text-gray-900",
+        planSub: "text-amber-700",
+        planPrice: "text-amber-800",
+        planPopularBg: "bg-amber-700",
+        planPopularText: "text-white",
+        inputBorder: "border-amber-200",
+        inputBg: "bg-white",
+        inputText: "text-gray-900",
+        inputPlaceholder: "placeholder:text-amber-300",
+        ctaBg: "bg-amber-700 hover:bg-amber-800",
+        ctaText: "text-white",
+        ctaHover: "",
+        bodyText: "text-gray-700",
+        mutedText: "text-amber-600",
+        footerText: "text-amber-300",
+        errorBg: "bg-red-50 border-red-200",
+        errorText: "text-red-700",
+        successBg: "bg-green-50",
+        successPageBg: "min-h-screen bg-amber-50",
+      }
+    case 10: // Ocean Breeze
+      return {
+        layoutType: "grid",
+        headerStyle: "large-hero",
+        cardShape: "rounded-2xl",
+        ctaStyle: "pill",
+        showPhoneBeforePlans: false,
+        showWifiIcon: true,
+        pageBg: "min-h-screen bg-gradient-to-b from-sky-400 to-teal-500",
+        cardClass: "bg-white/95 rounded-2xl shadow-2xl",
+        headerBg: "bg-gradient-to-r from-sky-500 to-teal-500",
+        headerText: "text-white",
+        headerSub: "text-sky-100",
+        annBg: "bg-sky-50 border border-sky-200",
+        annText: "text-sky-800",
+        annIcon: "text-sky-500",
+        planSelectedBorder: "border-teal-500",
+        planSelectedBg: "bg-teal-50",
+        planBorder: "border-gray-200",
+        planBg: "bg-white",
+        planTitle: "text-gray-900",
+        planSub: "text-gray-500",
+        planPrice: "text-teal-600",
+        planPopularBg: "bg-teal-500",
+        planPopularText: "text-white",
+        inputBorder: "border-gray-200",
+        inputBg: "bg-white",
+        inputText: "text-gray-900",
+        inputPlaceholder: "placeholder:text-gray-400",
+        ctaBg: "bg-teal-500 hover:bg-teal-600",
+        ctaText: "text-white",
+        ctaHover: "hover:shadow-teal-500/25",
+        bodyText: "text-gray-700",
+        mutedText: "text-gray-500",
+        footerText: "text-gray-400",
+        errorBg: "bg-red-50 border-red-200",
+        errorText: "text-red-700",
+        successBg: "bg-teal-50",
+        successPageBg: "min-h-screen bg-gradient-to-b from-sky-400 to-teal-500",
+      }
+    case 11: // Midnight Luxury
+      return {
+        layoutType: "featured",
+        headerStyle: "centered",
+        cardShape: "rounded-2xl",
+        ctaStyle: "full-width",
+        showPhoneBeforePlans: true,
+        showWifiIcon: false,
+        pageBg: "min-h-screen bg-slate-900",
+        cardClass: "bg-slate-800 border border-yellow-500/10 rounded-2xl shadow-2xl",
+        headerBg: "bg-gradient-to-r from-slate-900 to-slate-800 border-b border-yellow-500/20",
+        headerText: "text-yellow-400",
+        headerSub: "text-slate-400",
+        annBg: "bg-yellow-950/30 border border-yellow-700/30",
+        annText: "text-yellow-200",
+        annIcon: "text-yellow-500",
+        planSelectedBorder: "border-yellow-500",
+        planSelectedBg: "bg-yellow-950/20",
+        planBorder: "border-slate-700",
+        planBg: "bg-slate-700/50",
+        planTitle: "text-white",
+        planSub: "text-slate-400",
+        planPrice: "text-yellow-400",
+        planPopularBg: "bg-yellow-500",
+        planPopularText: "text-slate-900",
+        inputBorder: "border-slate-600",
+        inputBg: "bg-slate-700",
+        inputText: "text-white",
+        inputPlaceholder: "placeholder:text-slate-500",
+        ctaBg: "bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400",
+        ctaText: "text-slate-900 font-bold",
+        ctaHover: "hover:shadow-yellow-500/20",
+        bodyText: "text-slate-300",
+        mutedText: "text-slate-500",
+        footerText: "text-slate-700",
+        errorBg: "bg-red-950/40 border-red-700/30",
+        errorText: "text-red-400",
+        successBg: "bg-yellow-950/30",
+        successPageBg: "min-h-screen bg-slate-900",
+      }
+    case 12: // Blossom
+      return {
+        layoutType: "list",
+        headerStyle: "centered",
+        cardShape: "rounded-3xl",
+        ctaStyle: "pill",
+        showPhoneBeforePlans: false,
+        showWifiIcon: true,
+        pageBg: "min-h-screen bg-gradient-to-br from-rose-50 to-pink-100",
+        cardClass: "bg-white rounded-3xl shadow-xl border border-pink-100",
+        headerBg: "bg-gradient-to-r from-pink-400 to-rose-400",
+        headerText: "text-white",
+        headerSub: "text-pink-100",
+        annBg: "bg-pink-50 border border-pink-200",
+        annText: "text-pink-700",
+        annIcon: "text-pink-400",
+        planSelectedBorder: "border-pink-400",
+        planSelectedBg: "bg-pink-50",
+        planBorder: "border-pink-100",
+        planBg: "bg-white",
+        planTitle: "text-gray-900",
+        planSub: "text-gray-400",
+        planPrice: "text-pink-500",
+        planPopularBg: "bg-pink-400",
+        planPopularText: "text-white",
+        inputBorder: "border-pink-200",
+        inputBg: "bg-white",
+        inputText: "text-gray-900",
+        inputPlaceholder: "placeholder:text-pink-300",
+        ctaBg: "bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500",
+        ctaText: "text-white",
+        ctaHover: "hover:shadow-pink-400/25",
+        bodyText: "text-gray-700",
+        mutedText: "text-gray-400",
+        footerText: "text-pink-200",
+        errorBg: "bg-red-50 border-red-200",
+        errorText: "text-red-700",
+        successBg: "bg-pink-50",
+        successPageBg: "min-h-screen bg-gradient-to-br from-rose-50 to-pink-100",
+      }
     default: // Classic (1) - Grid Layout (Professional, ISP standard)
       return {
         layoutType: "grid",
@@ -873,9 +1073,17 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const [tvVerifyError, setTvVerifyError] = useState<string | null>(null)
   // ==========================================
 
-  // Theme derived from portal_config
-  const templateId = portalConfig?.template_id ?? 1
-  const theme = useMemo(() => getTheme(templateId), [templateId])
+  // Theme derived from portal_config — handle encoded template_id (IDs > 100 = list layout override)
+  const rawTemplateId = portalConfig?.template_id ?? 1
+  const isListOverride = rawTemplateId > 100
+  const templateId = isListOverride ? rawTemplateId - 100 : rawTemplateId
+  const theme = useMemo(() => {
+    const base = getTheme(templateId)
+    if (isListOverride) {
+      return { ...base, layoutType: "list" as const }
+    }
+    return base
+  }, [templateId, isListOverride])
   const displayName = branding?.company_name || portalConfig?.hotspot_name || "WiFi Hotspot"
   const welcomeTitle = branding?.welcome_title || ""
   const welcomeMessage = branding?.welcome_message || ""
@@ -1572,11 +1780,37 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           style={brandingHeaderStyle}
         >
           {branding?.logo_url ? (
-            <img
-              src={branding.logo_url}
-              alt={displayName}
-              className={`${theme.headerStyle === "large-hero" ? "h-16" : "h-12"} ${theme.headerStyle === "left-aligned" ? "" : "mx-auto"} mb-3 object-contain`}
-            />
+            <div className={`flex ${theme.headerStyle === "left-aligned" ? "justify-start" : "justify-center"} mb-3`}>
+              <img
+                src={branding.logo_url}
+                alt={displayName}
+                className={`object-contain ${theme.headerStyle === "large-hero" ? "h-16 max-w-[180px]" : "h-12 max-w-[140px]"}`}
+                style={{
+                  filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.2))",
+                  mixBlendMode: "luminosity" as const,
+                }}
+                onError={(e) => {
+                  // Fallback to wifi icon if logo fails to load
+                  const parent = (e.target as HTMLImageElement).parentElement
+                  if (parent) {
+                    // Replace with wifi icon
+                    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+                    svg.setAttribute("class", `${theme.headerStyle === "large-hero" ? "w-16 h-16" : "w-12 h-12"} ${theme.headerText}`)
+                    svg.setAttribute("fill", "none")
+                    svg.setAttribute("viewBox", "0 0 24 24")
+                    svg.setAttribute("stroke", "currentColor")
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
+                    path.setAttribute("stroke-linecap", "round")
+                    path.setAttribute("stroke-linejoin", "round")
+                    path.setAttribute("stroke-width", "2")
+                    path.setAttribute("d", "M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0")
+                    svg.appendChild(path)
+                    parent.innerHTML = ""
+                    parent.appendChild(svg)
+                  }
+                }}
+              />
+            </div>
           ) : theme.showWifiIcon ? (
             <Wifi className={`${theme.headerStyle === "large-hero" ? "w-16 h-16" : "w-12 h-12"} ${theme.headerStyle === "left-aligned" ? "" : "mx-auto"} mb-3 ${theme.headerText}`} />
           ) : null}
