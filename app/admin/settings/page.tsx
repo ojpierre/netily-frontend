@@ -27,6 +27,10 @@ import {
   User,
   Camera,
   Loader2,
+  WifiOff,
+  Phone,
+  Plus,
+  XCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -598,6 +602,35 @@ function AccountSettingsTab() {
   )
 }
 
+// Helper function to get admin token
+const getAdminToken = (): string | null => {
+  if (typeof window !== 'undefined') {
+    const key = `adminToken:${window.location.hostname}`
+    return (
+      localStorage.getItem(key) ||
+      sessionStorage.getItem(key) ||
+      localStorage.getItem('adminToken') ||
+      sessionStorage.getItem('adminToken')
+    )
+  }
+  return null
+}
+
+const getAdminSettingsApiBase = (): string => {
+  if (typeof window === "undefined") {
+    return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
+  }
+  const { protocol, hostname } = window.location
+  const knownDomains = ["netily.co.ke"]
+  const isTenantSubdomain = knownDomains.some(
+    (d) => hostname.endsWith(`.${d}`) && hostname !== `www.${d}` && hostname !== `api.${d}`
+  )
+  if (isTenantSubdomain) {
+    return `${protocol}//${hostname}/api/v1`
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
+}
+
 export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -605,6 +638,14 @@ export default function SettingsPage() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({})
   const [testingConnection, setTestingConnection] = useState<string | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<Record<string, "success" | "error" | null>>({})
+
+  // Router Alert State
+  const [routerAlertEnabled, setRouterAlertEnabled] = useState(false)
+  const [routerPhoneInput, setRouterPhoneInput] = useState('')
+  const [routerPhoneError, setRouterPhoneError] = useState('')
+  const [routerPhoneList, setRouterPhoneList] = useState<string[]>([])
+  const [routerAlertLoading, setRouterAlertLoading] = useState(false)
+  const [smsGatewayConfigured, setSmsGatewayConfigured] = useState(false)
 
   // RADIUS Settings State
   const [radiusSettings, setRadiusSettings] = useState({
@@ -775,35 +816,6 @@ export default function SettingsPage() {
     setTestingConnection(null)
   }
 
-  // Helper function to get admin token
-  const getAdminToken = (): string | null => {
-    if (typeof window !== 'undefined') {
-      const key = `adminToken:${window.location.hostname}`
-      return (
-        localStorage.getItem(key) ||
-        sessionStorage.getItem(key) ||
-        localStorage.getItem('adminToken') ||
-        sessionStorage.getItem('adminToken')
-      )
-    }
-    return null
-  }
-
-  const getAdminSettingsApiBase = (): string => {
-    if (typeof window === "undefined") {
-      return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
-    }
-    const { protocol, hostname } = window.location
-    const knownDomains = ["netily.co.ke"]
-    const isTenantSubdomain = knownDomains.some(
-      (d) => hostname.endsWith(`.${d}`) && hostname !== `www.${d}` && hostname !== `api.${d}`
-    )
-    if (isTenantSubdomain) {
-      return `${protocol}//${hostname}/api/v1`
-    }
-    return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"
-  }
-
   // Load settings from backend
   useEffect(() => {
     const fetchSettings = async () => {
@@ -819,6 +831,36 @@ export default function SettingsPage() {
         }
 
         const apiBase = getAdminSettingsApiBase()
+        
+        // Check if SMS gateway is configured
+        try {
+          const gwRes = await fetch(`${apiBase}/messaging/gateway/`, {
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+          })
+          if (gwRes.ok) {
+            const gwData = await gwRes.json()
+            const gateways = Array.isArray(gwData) ? gwData : (gwData.results ?? [])
+            setSmsGatewayConfigured(gateways.some((g: any) => g.is_active))
+          }
+        } catch { /* non-critical */ }
+
+        // Load router alert settings from notification settings endpoint
+        try {
+          const nsRes = await fetch(`${apiBase}/messaging/notification-settings/`, {
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+          })
+          if (nsRes.ok) {
+            const ns = await nsRes.json()
+            setRouterAlertEnabled(!!ns.system_router_offline)
+            const phones = Array.isArray(ns.router_offline_numbers) && ns.router_offline_numbers.length > 0
+              ? ns.router_offline_numbers
+              : ns.system_alert_phone
+                ? ns.system_alert_phone.split(',').map((s: string) => s.trim()).filter(Boolean)
+                : []
+            setRouterPhoneList(phones)
+          }
+        } catch { /* non-critical */ }
+
         const res = await fetch(`${apiBase}/core/settings/`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -892,16 +934,16 @@ export default function SettingsPage() {
     fetchSettings()
   }, [])
 
-const handleSaveSettings = async () => {
-  try {
-    setIsLoading(true)
-    setError(null)
+  const handleSaveSettings = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
 
-    const token = getAdminToken()
-    if (!token) {
-      setError("No access token — please log in again")
-      return
-    }
+      const token = getAdminToken()
+      if (!token) {
+        setError("No access token — please log in again")
+        return
+      }
 
       const payload = {
         // RADIUS
@@ -975,6 +1017,54 @@ const handleSaveSettings = async () => {
     }
   }
 
+  // Router Alert Handlers
+  const handleAddRouterNumber = async () => {
+    if (!smsGatewayConfigured) {
+      toast.error('Configure an SMS gateway first (SMS → Gateway tab) before adding alert recipients.')
+      return
+    }
+    const num = routerPhoneInput.trim()
+    if (!num) return
+    const isValid = /^(?:0[17]\d{8}|\+2547\d{8}|\+\d{9,15})$/.test(num)
+    if (!isValid) { setRouterPhoneError('Invalid format. Use 07XXXXXXXX or +2547XXXXXXXX'); return }
+    if (routerPhoneList.includes(num)) { setRouterPhoneError('Number already in list'); return }
+    setRouterPhoneError('')
+    const updated = [...routerPhoneList, num]
+    setRouterPhoneList(updated)
+    setRouterPhoneInput('')
+    await saveRouterAlertSettings(routerAlertEnabled, updated)
+  }
+
+  const handleRemoveRouterNumber = async (num: string) => {
+    const updated = routerPhoneList.filter(n => n !== num)
+    setRouterPhoneList(updated)
+    await saveRouterAlertSettings(routerAlertEnabled, updated)
+  }
+
+  const handleToggleRouterAlert = async (val: boolean) => {
+    if (val && !smsGatewayConfigured) {
+      toast.error('Configure an SMS gateway first (SMS → Gateway tab) before enabling router alerts.')
+      return
+    }
+    setRouterAlertEnabled(val)
+    await saveRouterAlertSettings(val, routerPhoneList)
+  }
+
+  const saveRouterAlertSettings = async (enabled: boolean, phones: string[]) => {
+    setRouterAlertLoading(true)
+    try {
+      const token = getAdminToken()
+      const apiBase = getAdminSettingsApiBase()
+      await fetch(`${apiBase}/messaging/notification-settings/`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system_router_offline: enabled, router_offline_numbers: phones })
+      })
+      toast.success('Router alert settings saved')
+    } catch { toast.error('Failed to save router alert settings') }
+    finally { setRouterAlertLoading(false) }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -1028,12 +1118,112 @@ const handleSaveSettings = async () => {
               <Shield className="w-4 h-4" />
               <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
+            <TabsTrigger value="system-notifications" className="flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              <span className="hidden sm:inline">Notifications</span>
+            </TabsTrigger>
           </TabsList>
         </ScrollArea>
 
         {/* Account Settings */}
         <TabsContent value="account" className="space-y-6">
           <AccountSettingsTab />
+        </TabsContent>
+
+        {/* System Notifications Tab */}
+        <TabsContent value="system-notifications" className="space-y-6">
+          {!smsGatewayConfigured && (
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800">SMS Gateway Required</AlertTitle>
+              <AlertDescription className="text-amber-700">
+                You must configure an SMS gateway (your own provider or Netily Inbuilt) in the{' '}
+                <a href="/admin/sms" className="underline font-medium">SMS → Gateway tab</a>{' '}
+                before enabling system notifications.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Card className={!smsGatewayConfigured ? 'opacity-60 pointer-events-none' : ''}>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center">
+                  <WifiOff className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1">
+                  <CardTitle className="text-base">MikroTik Router Offline/Online Alerts</CardTitle>
+                  <CardDescription>Instant SMS when any router transitions Online ↔ Offline</CardDescription>
+                </div>
+                <Switch
+                  checked={routerAlertEnabled}
+                  onCheckedChange={handleToggleRouterAlert}
+                  disabled={routerAlertLoading || !smsGatewayConfigured}
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className={`flex items-center gap-3 rounded-xl p-3 text-sm ${
+                routerAlertEnabled ? 'bg-orange-50 border border-orange-200 text-orange-800' : 'bg-slate-50 border border-slate-100 text-slate-500'
+              }`}>
+                <div className={`w-2 h-2 rounded-full shrink-0 ${routerAlertEnabled ? 'bg-orange-500 animate-pulse' : 'bg-slate-300'}`} />
+                {routerAlertEnabled
+                  ? `Active — ${routerPhoneList.length} recipient(s) configured`
+                  : 'Disabled — toggle on to configure recipients'}
+              </div>
+
+              {routerAlertEnabled && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-slate-700">Alert Recipients</Label>
+                    <p className="text-xs text-slate-500">Accepts Kenyan (07XXXXXXXX) or international (+2547XXXXXXXX) formats.</p>
+                    <div className="flex gap-2 mt-2">
+                      <div className="flex-1 relative">
+                        <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <Input
+                          className={`pl-8 h-9 text-sm ${routerPhoneError ? 'border-red-400' : ''}`}
+                          placeholder="0712 345 678"
+                          value={routerPhoneInput}
+                          onChange={e => { setRouterPhoneInput(e.target.value); setRouterPhoneError('') }}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddRouterNumber() } }}
+                        />
+                      </div>
+                      <Button size="sm" className="h-9 bg-orange-500 hover:bg-orange-600 text-white" onClick={handleAddRouterNumber} disabled={routerAlertLoading}>
+                        <Plus className="w-3.5 h-3.5 mr-1" />Add
+                      </Button>
+                    </div>
+                    {routerPhoneError && (
+                      <p className="flex items-center gap-1 text-xs text-red-500">
+                        <AlertCircle className="w-3 h-3" />{routerPhoneError}
+                      </p>
+                    )}
+                  </div>
+
+                  {routerPhoneList.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-orange-100 bg-orange-50/50 py-8 text-center">
+                      <Phone className="w-8 h-8 text-orange-200" />
+                      <p className="text-sm font-medium text-orange-700">No recipients yet</p>
+                      <p className="text-xs text-orange-400">Add a number above to start receiving alerts</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {routerPhoneList.map((num, i) => (
+                        <div key={num} className="group flex items-center gap-2 bg-white border border-orange-200 rounded-full px-3 py-1.5 shadow-sm hover:border-orange-400 transition-all">
+                          <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                            <span className="text-[10px] font-bold text-orange-600">{i + 1}</span>
+                          </div>
+                          <span className="text-sm font-medium text-slate-700 tabular-nums">{num}</span>
+                          <button onClick={() => handleRemoveRouterNumber(num)} className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 text-slate-300 hover:text-red-500">
+                            <XCircle className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* RADIUS Settings — TODO: coming soon */}

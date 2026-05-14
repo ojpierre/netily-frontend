@@ -6,7 +6,7 @@ import {
   XCircle, Clock, MoreVertical, Download, Trash2, Eye, Zap, TrendingUp,
   Calendar, History, FileText, Settings, Wallet, Bell, Wifi, Router,
   ChevronDown, ChevronRight, Copy, AlertCircle, Package, CreditCard,
-  Phone, Smartphone, ToggleLeft, ToggleRight, Info, WifiOff,
+  Phone, Smartphone, ToggleLeft, ToggleRight, Info,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -476,23 +476,6 @@ export default function SMSPage() {
   const [bulkMessage, setBulkMessage] = useState('')
   const [bulkSending, setBulkSending] = useState(false)
 
-  // FIX 2: Router offline alert state with derived list from router_offline_numbers JSONField
-  const [routerPhoneInput, setRouterPhoneInput] = useState('')
-  const [routerPhoneError, setRouterPhoneError] = useState('')
-  
-  // Parse router_offline_numbers JSON array or fallback to legacy system_alert_phone
-  const routerPhoneList: string[] = useMemo(() => {
-    const fromJson = (notifSettings as any).router_offline_numbers
-    if (Array.isArray(fromJson) && fromJson.length > 0) {
-      return fromJson.filter(Boolean)
-    }
-    // Fallback: legacy comma-separated system_alert_phone
-    if (notifSettings.system_alert_phone) {
-      return notifSettings.system_alert_phone.split(',').map((s: string) => s.trim()).filter(Boolean)
-    }
-    return []
-  }, [(notifSettings as any).router_offline_numbers, notifSettings.system_alert_phone])
-
   // Debounced search
   useEffect(() => {
     if (customerSearch.length < 2) { setCustomerResults([]); return }
@@ -651,40 +634,6 @@ export default function SMSPage() {
     const patch = { [key]: value } as Partial<SMSNotificationSettings>
     setNotifSettings(p => ({ ...p, ...patch }))
     handleSaveNotifSettings(patch)
-  }
-
-  // FIX 3: Router number handlers using correct backend JSON field
-  const handleAddRouterNumber = async () => {
-    const num = routerPhoneInput.trim()
-    if (!num) return
-
-    const isValid = /^(?:0[17]\d{8}|\+2547\d{8}|\+\d{9,15})$/.test(num)
-    if (!isValid) {
-      setRouterPhoneError('Invalid format. Use 07XXXXXXXX or +2547XXXXXXXX')
-      return
-    }
-    setRouterPhoneError('')
-
-    if (routerPhoneList.includes(num)) {
-      setRouterPhoneError('Number already in list')
-      return
-    }
-
-    const updated = [...routerPhoneList, num]
-    setRouterPhoneInput('')
-    // Save as JSON array to router_offline_numbers
-    const patch = { router_offline_numbers: updated } as any
-    setNotifSettings(p => ({ ...p, router_offline_numbers: updated } as any))
-    await handleSaveNotifSettings(patch)
-    toast.success(`${num} added to alert list`)
-  }
-
-  const handleRemoveRouterNumber = async (num: string) => {
-    const updated = routerPhoneList.filter(n => n !== num)
-    const patch = { router_offline_numbers: updated } as any
-    setNotifSettings(p => ({ ...p, router_offline_numbers: updated } as any))
-    await handleSaveNotifSettings(patch)
-    toast.success('Number removed')
   }
 
   // UPDATED: handleGatewaySave with 404 fallback
@@ -1229,143 +1178,6 @@ export default function SMSPage() {
                   />
                 </CardContent>
               </Card>
-
-              {/* FIX 4: ROUTER OFFLINE ALERTS CARD - Updated to use JSON array field */}
-              <Card className="lg:col-span-2 border-orange-100 bg-white">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center shadow-sm">
-                      <WifiOff className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">MikroTik Router Offline/Online Alerts</CardTitle>
-                      <CardDescription>
-                        Instant SMS when any router transitions Online ↔ Offline
-                      </CardDescription>
-                    </div>
-                    <div className="ml-auto">
-                      <Switch
-                        checked={notifSettings.system_router_offline}
-                        onCheckedChange={v => handleToggleNotif('system_router_offline', v)}
-                      />
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-5">
-                  {/* Status banner */}
-                  <div className={`flex items-center gap-3 rounded-xl p-3 text-sm ${
-                    notifSettings.system_router_offline
-                      ? 'bg-orange-50 border border-orange-200 text-orange-800'
-                      : 'bg-slate-50 border border-slate-100 text-slate-500'
-                  }`}>
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${
-                      notifSettings.system_router_offline ? 'bg-orange-500 animate-pulse' : 'bg-slate-300'
-                    }`} />
-                    {notifSettings.system_router_offline
-                      ? `Active — ${routerPhoneList.length} recipient(s) configured`
-                      : 'Disabled — toggle on to configure recipients'}
-                  </div>
-
-                  {notifSettings.system_router_offline && (
-                    <>
-                      <Separator />
-
-                      {/* Number input */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-semibold text-slate-700">
-                          Alert Recipients
-                        </Label>
-                        <p className="text-xs text-slate-500">
-                          All numbers below receive an SMS the moment a router goes offline or comes back online.
-                          Accepts Kenyan (07XXXXXXXX) or international (+2547XXXXXXXX) formats.
-                        </p>
-
-                        <div className="flex gap-2 mt-2">
-                          <div className="flex-1 relative">
-                            <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                            <Input
-                              className={`pl-8 h-9 text-sm ${routerPhoneError ? 'border-red-400 focus-visible:ring-red-300' : ''}`}
-                              placeholder="0712 345 678"
-                              value={routerPhoneInput}
-                              onChange={e => { setRouterPhoneInput(e.target.value); setRouterPhoneError('') }}
-                              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddRouterNumber() } }}
-                            />
-                          </div>
-                          <Button
-                            size="sm"
-                            className="h-9 bg-orange-500 hover:bg-orange-600 text-white shadow-sm"
-                            onClick={handleAddRouterNumber}
-                          >
-                            <Plus className="w-3.5 h-3.5 mr-1" />
-                            Add
-                          </Button>
-                        </div>
-
-                        {routerPhoneError && (
-                          <p className="flex items-center gap-1 text-xs text-red-500 mt-1">
-                            <AlertCircle className="w-3 h-3" />
-                            {routerPhoneError}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Number chips */}
-                      {routerPhoneList.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-orange-100 bg-orange-50/50 py-8 text-center">
-                          <Phone className="w-8 h-8 text-orange-200" />
-                          <p className="text-sm font-medium text-orange-700">No recipients yet</p>
-                          <p className="text-xs text-orange-400">Add a number above to start receiving alerts</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-                            {routerPhoneList.length} recipient(s)
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {routerPhoneList.map((num, i) => (
-                              <div
-                                key={num}
-                                className="group flex items-center gap-2 bg-white border border-orange-200 rounded-full px-3 py-1.5 shadow-sm hover:border-orange-400 transition-all"
-                              >
-                                <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-                                  <span className="text-[10px] font-bold text-orange-600">{i + 1}</span>
-                                </div>
-                                <span className="text-sm font-medium text-slate-700 tabular-nums">{num}</span>
-                                <button
-                                  onClick={() => handleRemoveRouterNumber(num)}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 text-slate-300 hover:text-red-500"
-                                  title={`Remove ${num}`}
-                                >
-                                  <XCircle className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Example SMS preview - both offline and online */}
-                          <div className="mt-4 space-y-2">
-                            <p className="text-xs font-semibold text-slate-500">Preview — SMS they will receive:</p>
-                            <div className="rounded-xl bg-slate-800 p-3 space-y-2">
-                              <div className="bg-[#1a2e1a] rounded-lg px-3 py-2">
-                                <p className="text-xs text-green-300 leading-relaxed">
-                                  ⚠️ ALERT: Router 'Site A Router' has gone OFFLINE. Please check your network immediately.
-                                </p>
-                              </div>
-                              <div className="bg-[#1a2e1a] rounded-lg px-3 py-2">
-                                <p className="text-xs text-green-300 leading-relaxed">
-                                  ✅ RESTORED: Router 'Site A Router' is back ONLINE. Network connectivity has been restored.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-              {/* ──────────────────────────────────────────────────────────── */}
             </div>
           </TabsContent>
 
