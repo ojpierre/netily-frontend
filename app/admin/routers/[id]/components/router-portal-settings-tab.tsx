@@ -226,7 +226,8 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string>("")
   const [existingLogo, setExistingLogo] = useState<string>("")
-  const [planLayout, setPlanLayout] = useState<"grid" | "list">("grid")
+  // FIX #2: Update planLayout state type to include "default"
+  const [planLayout, setPlanLayout] = useState<"grid" | "list" | "default">("default")
 
   // UI state
   const [loading, setLoading] = useState(true)
@@ -237,15 +238,17 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   const [loadFailed, setLoadFailed] = useState(false)
 
   // Original values for dirty-check (ref avoids stale-closure issues)
+  // FIX #2: Update original state type to include _planLayout with "default"
   const [original, setOriginal] = useState({
     template_id: 1,
     hotspot_name: "",
     support_phone: "",
     announcement_text: "",
-    _planLayout: "grid" as "grid" | "list",
+    _planLayout: "default" as "grid" | "list" | "default",
   })
 
   // ── Load current values from router ──
+  // FIX #2: Update loadSettings to decode the new encoding (grid = >200, list = 101-200)
   const loadSettings = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -253,8 +256,15 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     try {
       const router = await adminApi.getRouter(routerId)
       const rawTemplateId = router.template_id ?? 1
-      const isListLayout = rawTemplateId > 100
-      const baseTemplateId = isListLayout ? rawTemplateId - 100 : rawTemplateId
+      // Decode: >200 = grid, 101-200 = list, 1-100 = default
+      const isGridLayout = rawTemplateId > 200
+      const isListLayout = rawTemplateId > 100 && rawTemplateId <= 200
+      const baseTemplateId = isGridLayout 
+        ? rawTemplateId - 200 
+        : isListLayout 
+        ? rawTemplateId - 100 
+        : rawTemplateId
+      
       const values = {
         template_id: baseTemplateId,
         hotspot_name: router.hotspot_name ?? "",
@@ -278,9 +288,9 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
         hotspot_name: values.hotspot_name,
         support_phone: values.support_phone,
         announcement_text: values.announcement_text,
-        _planLayout: isListLayout ? "list" : "grid",
+        _planLayout: isGridLayout ? "grid" : isListLayout ? "list" : "default",
       })
-      setPlanLayout(isListLayout ? "list" : "grid")
+      setPlanLayout(isGridLayout ? "grid" : isListLayout ? "list" : "default")
       setDirty(false)
     } catch (err: any) {
       console.error("[PortalSettings] Load failed:", err)
@@ -308,6 +318,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   }, [templateId, hotspotName, supportPhone, announcementText, original, logoFile, planLayout])
 
   // ── Save — PATCH only changed fields ──
+  // FIX #2: Update handleSave encoding logic to support grid override (templateId + 200)
   const handleSave = async () => {
     if (isDemo) {
       toast.info("Demo mode — changes are not saved")
@@ -316,8 +327,18 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     setSaving(true)
     setError(null)
 
-    const encodedTemplateId = planLayout === "list" ? templateId + 100 : templateId
-    const currentEncoded = original._planLayout === "list" ? original.template_id + 100 : original.template_id
+    // Encode template_id based on layout selection
+    const encodedTemplateId = planLayout === "list" 
+      ? templateId + 100 
+      : planLayout === "grid" 
+      ? templateId + 200 
+      : templateId
+    
+    const currentEncoded = original._planLayout === "list" 
+      ? original.template_id + 100 
+      : original._planLayout === "grid" 
+      ? original.template_id + 200 
+      : original.template_id
 
     const payload: Record<string, unknown> = {}
     if (encodedTemplateId !== currentEncoded) payload.template_id = encodedTemplateId
@@ -489,7 +510,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
             </CardContent>
           </Card>
 
-          {/* Layout Toggle */}
+          {/* Layout Toggle — FIX #2: Add "Default" option */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -501,7 +522,28 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => setPlanLayout("default")}
+                  className={`relative rounded-xl border-2 p-4 transition-all text-left ${
+                    planLayout === "default"
+                      ? "border-primary ring-2 ring-primary/20 shadow-md"
+                      : "border-border hover:border-muted-foreground/30"
+                  }`}
+                >
+                  {planLayout === "default" && (
+                    <div className="absolute top-2 right-2">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                    </div>
+                  )}
+                  <div className="space-y-1 mb-3 opacity-60">
+                    {[1,2].map(i => (
+                      <div key={i} className="h-5 rounded bg-slate-200" />
+                    ))}
+                  </div>
+                  <p className="text-sm font-semibold">Default</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Theme default</p>
+                </button>
                 <button
                   onClick={() => setPlanLayout("grid")}
                   className={`relative rounded-xl border-2 p-4 transition-all text-left ${
@@ -521,7 +563,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                     ))}
                   </div>
                   <p className="text-sm font-semibold">Grid</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">2-column card grid</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">2-column cards</p>
                 </button>
                 <button
                   onClick={() => setPlanLayout("list")}
@@ -693,6 +735,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                 announcementText={announcementText}
                 logoPreview={logoPreview}
                 existingLogo={existingLogo}
+                planLayout={planLayout}
               />
             </CardContent>
           </Card>
@@ -732,6 +775,7 @@ function PortalPreview({
   announcementText,
   logoPreview,
   existingLogo,
+  planLayout,
 }: {
   templateId: number
   hotspotName: string
@@ -739,6 +783,7 @@ function PortalPreview({
   announcementText: string
   logoPreview: string
   existingLogo: string
+  planLayout: "grid" | "list" | "default"
 }) {
   const template = TEMPLATES.find((t) => t.id === templateId) || TEMPLATES[0]
   const displayName = hotspotName || "WiFi Hotspot"
@@ -746,6 +791,11 @@ function PortalPreview({
 
   // Template-specific styles
   const styles = getTemplateStyles(templateId)
+
+  // FIX #3: Determine effective layout for preview
+  const effectiveLayout = planLayout === "default" 
+    ? (templateId % 3 === 0 ? "list" : "grid")  // rough default approximation for preview
+    : planLayout
 
   return (
     <div className={`rounded-xl overflow-hidden border ${styles.containerBg} transition-all duration-300`} style={{ minHeight: 420 }}>
@@ -792,33 +842,35 @@ function PortalPreview({
             </div>
           )}
 
-          {/* Mock plans */}
-          <div className="p-3 space-y-2">
+          {/* FIX #3: Mock plans with layout-aware rendering */}
+          <div className={`p-3 ${effectiveLayout === "grid" ? "grid grid-cols-2 gap-2" : "space-y-2"}`}>
             <div className={`rounded-lg border-2 p-2.5 ${styles.planSelected}`}>
-              <div className="flex justify-between items-center">
+              <div className={effectiveLayout === "grid" ? "flex flex-col" : "flex justify-between items-center"}>
                 <div>
                   <div className={`text-xs font-semibold ${styles.planTitle}`}>1 Hour</div>
                   <div className={`text-[10px] ${styles.planSub}`}>5Mbps • 500MB</div>
                 </div>
-                <div className={`text-sm font-bold ${styles.planPrice}`}>KES 20</div>
+                <div className={`text-sm font-bold ${styles.planPrice} ${effectiveLayout === "grid" ? "mt-1" : ""}`}>KES 20</div>
               </div>
             </div>
             <div className={`rounded-lg border p-2.5 ${styles.planNormal}`}>
-              <div className="flex justify-between items-center">
+              <div className={effectiveLayout === "grid" ? "flex flex-col" : "flex justify-between items-center"}>
                 <div>
                   <div className={`text-xs font-semibold ${styles.planTitle}`}>24 Hours</div>
                   <div className={`text-[10px] ${styles.planSub}`}>10Mbps • 2GB</div>
                 </div>
-                <div className={`text-sm font-bold ${styles.planPrice}`}>KES 100</div>
+                <div className={`text-sm font-bold ${styles.planPrice} ${effectiveLayout === "grid" ? "mt-1" : ""}`}>KES 100</div>
               </div>
             </div>
+          </div>
 
-            {/* Mock phone input */}
-            <div className={`rounded-lg border px-3 py-2 text-xs ${styles.inputStyles}`}>
-              0712 345 678
-            </div>
+          {/* Mock phone input */}
+          <div className={`mx-3 mb-2 rounded-lg border px-3 py-2 text-xs ${styles.inputStyles}`}>
+            0712 345 678
+          </div>
 
-            {/* Mock CTA */}
+          {/* Mock CTA */}
+          <div className="mx-3 mb-3">
             <button className={`w-full py-2.5 rounded-lg text-xs font-semibold ${styles.ctaStyles}`}>
               Pay KES 20 with M-Pesa
             </button>

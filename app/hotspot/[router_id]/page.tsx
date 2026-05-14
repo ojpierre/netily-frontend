@@ -1073,17 +1073,23 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const [tvVerifyError, setTvVerifyError] = useState<string | null>(null)
   // ==========================================
 
-  // Theme derived from portal_config — handle encoded template_id (IDs > 100 = list layout override)
+  // FIX #2: Theme derived from portal_config — handle encoded template_id
+  // IDs 101-200: list layout override (101 = template 1 with list layout, etc.)
+  // IDs 201-300: grid layout override (201 = template 1 with grid layout, etc.)
   const rawTemplateId = portalConfig?.template_id ?? 1
-  const isListOverride = rawTemplateId > 100
-  const templateId = isListOverride ? rawTemplateId - 100 : rawTemplateId
+  const isListOverride = rawTemplateId > 100 && rawTemplateId <= 200
+  const isGridOverride = rawTemplateId > 200
+  const templateId = isGridOverride ? rawTemplateId - 200 : isListOverride ? rawTemplateId - 100 : rawTemplateId
   const theme = useMemo(() => {
     const base = getTheme(templateId)
     if (isListOverride) {
       return { ...base, layoutType: "list" as const }
     }
+    if (isGridOverride) {
+      return { ...base, layoutType: "grid" as const }
+    }
     return base
-  }, [templateId, isListOverride])
+  }, [templateId, isListOverride, isGridOverride])
   const displayName = branding?.company_name || portalConfig?.hotspot_name || "WiFi Hotspot"
   const welcomeTitle = branding?.welcome_title || ""
   const welcomeMessage = branding?.welcome_message || ""
@@ -1974,7 +1980,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                         className={`text-xs font-bold px-2 py-1 rounded-full ${theme.planPopularBg} ${theme.planPopularText}`}
                         style={branding?.primary_color ? { backgroundColor: branding.primary_color } : undefined}
                       >
-                        ★ BEST VALUE
+                        ★ POPULAR
                       </span>
                       {selectedPlan?.id === plan.id && <CheckCircle2 className="w-5 h-5 text-green-500" />}
                     </div>
