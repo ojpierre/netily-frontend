@@ -1261,6 +1261,7 @@ export default function SettingsPage() {
           <ComingSoonTab label="Notifications" />
         </TabsContent>
 
+        {/* Security Tab - Complete Replacement */}
         <TabsContent value="security" className="space-y-6">
           <Card>
             <CardHeader>
@@ -1282,7 +1283,9 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={securitySettings.adminOtpEnabled}
-                  onCheckedChange={(checked) => setSecuritySettings((prev) => ({ ...prev, adminOtpEnabled: checked }))}
+                  onCheckedChange={(checked) =>
+                    setSecuritySettings((prev) => ({ ...prev, adminOtpEnabled: checked }))
+                  }
                 />
               </div>
               <Alert>
@@ -1293,6 +1296,39 @@ export default function SettingsPage() {
                 </AlertDescription>
               </Alert>
             </CardContent>
+            <CardFooter>
+              <Button
+                onClick={async () => {
+                  const token = getAdminToken()
+                  if (!token) { toast.error("Not authenticated"); return }
+                  const apiBase = getAdminSettingsApiBase()
+                  try {
+                    const res = await fetch(`${apiBase}/core/settings/`, {
+                      method: "PATCH",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({
+                        admin_email_otp_enabled: securitySettings.adminOtpEnabled,
+                      }),
+                    })
+                    if (!res.ok) throw new Error("Save failed")
+                    toast.success(
+                      securitySettings.adminOtpEnabled
+                        ? "OTP login enabled. Admins will need to verify via email."
+                        : "OTP login disabled. Admins can log in with password only."
+                    )
+                  } catch (e: any) {
+                    toast.error(e.message || "Failed to save security settings")
+                  }
+                }}
+                disabled={isLoading}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Security Settings
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
