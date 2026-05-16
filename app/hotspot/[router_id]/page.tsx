@@ -40,6 +40,7 @@ interface PortalConfig {
   support_phone: string
   announcement_text: string
   gateway_ip: string
+  router_logo_url?: string | null  // ← NEW
 }
 
 interface BrandingConfig {
@@ -1096,11 +1097,13 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const supportPhone = branding?.support_phone || portalConfig?.support_phone || ""
   const announcement = portalConfig?.announcement_text || ""
 
-  // Fix logo URL resolution - handle relative paths from backend
+  // Fix logo URL resolution - check both branding logo and portal_config router_logo_url as fallback
   const apiBaseUrl = getApiBase().replace('/api/v1', '')
-  const logoUrl = branding?.logo_url 
-    ? (branding.logo_url.startsWith('http') ? branding.logo_url : `${apiBaseUrl}${branding.logo_url}`)
-    : null
+  const logoUrl = (() => {
+    const raw = branding?.logo_url || portalConfig?.router_logo_url || null
+    if (!raw) return null
+    return raw.startsWith('http') ? raw : `${apiBaseUrl}${raw}`
+  })()
 
   // Branding-derived inline style overrides (hex colours from admin panel)
   const brandingHeaderStyle: React.CSSProperties | undefined = branding?.primary_color
