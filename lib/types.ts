@@ -481,6 +481,14 @@ export interface Router {
   hotspot_name?: string
   support_phone?: string
   announcement_text?: string
+  // Remote Access (HAProxy managed)
+  winbox_remote_port?: number | null
+  api_remote_port?: number | null
+  remote_access_url?: {
+    winbox: string
+    api: string
+    instructions: string
+  } | null
   created_at: string
   updated_at?: string
 }

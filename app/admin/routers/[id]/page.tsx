@@ -109,6 +109,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import type { Router as RouterData, RouterType, RouterStatus, RouterEvent, RouterVPNStatus } from "@/lib/types"
+import { Separator } from "@/components/ui/separator"
 
 // Demo data generator
 const generateDemoRouterData = (id: string): RouterData => {
@@ -1499,6 +1500,104 @@ export default function RouterDetailPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Remote Access Card */}
+            {routerData.remote_access_url && (
+              <Card className="border-2 border-green-200 bg-green-50/30">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <MonitorSpeaker className="w-6 h-6 text-green-600" />
+                      <div>
+                        <CardTitle>Remote Access</CardTitle>
+                        <CardDescription>
+                          Connect to this router remotely via Winbox or API from anywhere
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <Badge className="bg-green-600 gap-1">
+                      <CheckCircle className="w-3 h-3" /> Active
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Winbox */}
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Winbox Address
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-slate-900 text-green-400 font-mono text-sm px-4 py-2.5 rounded-lg">
+                        {(routerData.remote_access_url as any).winbox}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={() => {
+                          navigator.clipboard.writeText((routerData.remote_access_url as any).winbox)
+                          toast.success("Winbox address copied!")
+                        }}
+                      >
+                        <Copy className="w-4 h-4 mr-1.5" />
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      Open Winbox → paste in the <strong>Connect To</strong> field → enter your router credentials
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  {/* API */}
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      API Address
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-slate-900 text-blue-400 font-mono text-sm px-4 py-2.5 rounded-lg">
+                        {(routerData.remote_access_url as any).api}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={() => {
+                          navigator.clipboard.writeText((routerData.remote_access_url as any).api)
+                          toast.success("API address copied!")
+                        }}
+                      >
+                        <Copy className="w-4 h-4 mr-1.5" />
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      Use for RouterOS scripting, Netily API, or any tool that connects to port 8728
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  {/* Quick instructions */}
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-1.5">
+                    <p className="text-xs font-semibold text-slate-600">How to connect with Winbox</p>
+                    <ol className="text-xs text-slate-500 space-y-0.5 list-decimal list-inside">
+                      <li>Download Winbox from <span className="font-mono">mikrotik.com/download</span></li>
+                      <li>
+                        Paste{" "}
+                        <span className="font-mono text-slate-700 bg-slate-100 px-1 rounded">
+                          {(routerData.remote_access_url as any).winbox}
+                        </span>{" "}
+                        into the Connect To field
+                      </li>
+                      <li>Enter your router API username and password</li>
+                      <li>Click Connect</li>
+                    </ol>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Cloud Provision Script Card */}
             <Card className="border-2 border-blue-200 bg-blue-50/50">
