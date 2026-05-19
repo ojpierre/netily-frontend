@@ -127,6 +127,39 @@ export interface TenantCreatePayload {
   county?: string
 }
 
+export interface TenantDeletionJob {
+  id: string
+  tenant_id: string | null
+  company_name: string
+  subdomain: string
+  schema_name: string
+  status: "queued" | "running" | "completed" | "failed"
+  current_step:
+    | "queued"
+    | "revoking_access"
+    | "cleaning_storage"
+    | "cleaning_integrations"
+    | "dropping_schema"
+    | "deleting_records"
+    | "completed"
+    | "failed"
+  progress_percent: number
+  status_message: string
+  error_message: string
+  requested_options: Record<string, unknown>
+  cleanup_summary: Record<string, unknown>
+  step_history: Array<{
+    step: string
+    status: string
+    message: string
+    timestamp: string
+  }>
+  created_at: string | null
+  updated_at: string | null
+  started_at: string | null
+  finished_at: string | null
+}
+
 export interface PlatformUser {
   id: number
   email: string
@@ -630,8 +663,15 @@ class SuperadminApiService {
     })
   }
 
-  async deleteTenant(id: string): Promise<void> {
-    await this.request(`/superadmin/tenants/${id}/`, { method: "DELETE" })
+  async requestTenantDeletion(id: string, confirmationName: string): Promise<TenantDeletionJob> {
+    return this.request(`/superadmin/tenants/${id}/delete-request/`, {
+      method: "POST",
+      body: JSON.stringify({ confirmation_name: confirmationName }),
+    })
+  }
+
+  async getTenantDeletionJob(jobId: string): Promise<TenantDeletionJob> {
+    return this.request(`/superadmin/tenant-deletion-jobs/${jobId}/`)
   }
 
   async suspendTenant(id: string, reason?: string): Promise<{ detail: string }> {

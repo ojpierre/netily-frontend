@@ -21,7 +21,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialog, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
@@ -29,7 +29,7 @@ import {
   superadminApi,
   type Tenant, type TenantStats, type TenantUpdatePayload,
   type TenantRouter, type PPPoEUser, type HotspotUser,
-  type InventoryItem, type AuditLogEntry, type PaginatedResponse,
+  type InventoryItem, type AuditLogEntry, type PaginatedResponse, type TenantDeletionJob,
 } from "@/lib/superadmin-api"
 import { TenantBillingTab } from "./components/tenant-billing-tab"
 
@@ -99,6 +99,8 @@ export default function TenantDetailPage() {
   // Confirm dialogs
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState("")
+  const [deletionJob, setDeletionJob] = useState<TenantDeletionJob | null>(null)
   const [impersonating, setImpersonating] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -125,6 +127,37 @@ export default function TenantDetailPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  useEffect(() => {
+    if (!confirmDelete) {
+      setDeleteConfirmation("")
+      setDeletionJob(null)
+    }
+  }, [confirmDelete])
+
+  useEffect(() => {
+    if (!deletionJob || deletionJob.status === "completed" || deletionJob.status === "failed") {
+      return
+    }
+
+    const interval = setInterval(async () => {
+      try {
+        const nextJob = await superadminApi.getTenantDeletionJob(deletionJob.id)
+        setDeletionJob(nextJob)
+
+        if (nextJob.status === "completed") {
+          toast.success("Tenant permanently deleted")
+          router.push("/superadmin/tenants")
+        } else if (nextJob.status === "failed") {
+          toast.error(nextJob.error_message || "Delete failed")
+        }
+      } catch (err: any) {
+        toast.error(err.message || "Failed to refresh deletion status")
+      }
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [deletionJob, router])
+
   const handleSave = async () => {
     setSaving(true)
     try {
@@ -149,14 +182,13 @@ export default function TenantDetailPage() {
   const handleDelete = async () => {
     setDeleting(true)
     try {
-      await superadminApi.deleteTenant(id)
-      toast.success("Tenant permanently deleted")
-      router.push("/superadmin/tenants")
+      const job = await superadminApi.requestTenantDeletion(id, deleteConfirmation)
+      setDeletionJob(job)
+      toast.success("Tenant deletion queued")
     } catch (err: any) {
       toast.error(err.message || "Delete failed")
     } finally {
       setDeleting(false)
-      setConfirmDelete(false)
     }
   }
 
@@ -197,6 +229,9 @@ export default function TenantDetailPage() {
     tenant?.subscription_status ||
     tenant?.status ||
     "Unknown"
+  const deleteTargetName = tenant?.company_name || ""
+  const deleteMatch = deleteConfirmation.trim() === deleteTargetName.trim()
+  const deletionProgress = deletionJob?.progress_percent ?? 0
 
   if (loading || !tenant) {
     return (
@@ -524,16 +559,78 @@ export default function TenantDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Permanently Delete Tenant?</AlertDialogTitle>
             <AlertDialogDescription className="text-slate-400">
-              This will <span className="text-red-400 font-semibold">irreversibly destroy</span>{" "}
-              the database schema and all data for <strong className="text-white">{tenant.company_name}</strong>.
+              {deletionJob ? (
+                <div className="space-y-4 pt-2">
+                  <div className="rounded-2xl border border-slate-700 bg-slate-950/70 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-white">{deletionJob.status_message}</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          Step: {deletionJob.current_step.replaceAll("_", " ")}
+                        </p>
+                      </div>
+                      <span className="text-sm font-semibold text-blue-300">{deletionProgress}%</span>
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          deletionJob.status === "failed" ? "bg-red-500" : "bg-blue-500"
+                        }`}
+                        style={{ width: `${deletionProgress}%` }}
+                      />
+                    </div>
+                    {deletionJob.error_message ? (
+                      <p className="mt-3 text-xs text-red-300">{deletionJob.error_message}</p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 pt-2">
+                  <p>
+                    This will <span className="text-red-400 font-semibold">irreversibly destroy</span>{" "}
+                    the database schema and all data for <strong className="text-white">{tenant.company_name}</strong>.
+                  </p>
+                  <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-100">
+                    Access will be revoked immediately before storage, router indexes, shared integrations, and schema data are removed in the background.
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="delete-confirm-tenant" className="text-slate-200">
+                      Type <span className="font-semibold text-white">{deleteTargetName}</span> to confirm
+                    </Label>
+                    <Input
+                      id="delete-confirm-tenant"
+                      value={deleteConfirmation}
+                      onChange={(e) => setDeleteConfirmation(e.target.value)}
+                      placeholder={deleteTargetName}
+                      className="border-slate-700 bg-slate-950 text-white"
+                    />
+                  </div>
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-slate-800 text-slate-300 border-slate-700">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-red-600 hover:bg-red-500 text-white">
+            <Button
+              variant="outline"
+              className="bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white"
+              onClick={() => setConfirmDelete(false)}
+            >
+              {deletionJob ? "Hide" : "Cancel"}
+            </Button>
+            <Button
+              onClick={handleDelete}
+              disabled={deleting || !deleteMatch || deletionJob?.status === "queued" || deletionJob?.status === "running"}
+              className="bg-red-600 hover:bg-red-500 text-white"
+            >
               {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Delete Forever
-            </AlertDialogAction>
+              {deletionJob
+                ? deletionJob.status === "failed"
+                  ? "Deletion Failed"
+                  : deletionJob.status === "completed"
+                  ? "Deleted"
+                  : "Deletion Running"
+                : "Queue Permanent Delete"}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

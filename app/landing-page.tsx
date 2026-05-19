@@ -255,55 +255,62 @@ function AnimatedCounter({ value, suffix = "" }: { value: number; suffix?: strin
 // ─── Dashboard mockup (hero visual) ───────────────────────────
 function DashboardMockup() {
   return (
-    <div className="relative mx-auto max-w-5xl mt-12 md:mt-16">
-      {/* Glow behind */}
-      <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-purple-500/20 rounded-3xl blur-3xl opacity-60" />
-
-      <div className="absolute -left-6 top-10 hidden w-52 rounded-[28px] border border-white/70 bg-white/90 p-3 shadow-2xl shadow-slate-900/10 backdrop-blur lg:block dark:border-slate-700 dark:bg-slate-900/85">
-        <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-2xl">
-          <Image
-            src={HERO_SUPPORT_PHOTO}
-            alt="Support desk setup for internet service operations"
-            fill
-            sizes="208px"
-            className="object-cover"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
-            <ShieldCheck className="h-4 w-4" />
+    <div className="relative mx-auto mt-12 max-w-6xl">
+      <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-purple-500/20 blur-3xl opacity-60" />
+      <div className="mb-6 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="rounded-[28px] border border-white/70 bg-white/90 p-4 shadow-2xl shadow-slate-900/10 backdrop-blur dark:border-slate-700 dark:bg-slate-900/85">
+          <div className="grid gap-4 sm:grid-cols-[168px_1fr] sm:items-center">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
+              <Image
+                src={HERO_SUPPORT_PHOTO}
+                alt="Support desk setup for internet service operations"
+                fill
+                sizes="(min-width: 640px) 168px, 100vw"
+                className="object-cover"
+              />
+            </div>
+            <div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">Live support visibility</p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                Tickets, follow-ups, outages, and customer callbacks stay visible without leaving the operating dashboard.
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-semibold text-slate-900 dark:text-white">Live support visibility</p>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">Tickets, follow-ups, and outages in one place</p>
+        </div>
+        <div className="rounded-[28px] border border-white/70 bg-slate-950/92 p-4 text-white shadow-2xl shadow-blue-950/20 backdrop-blur dark:border-slate-700">
+          <div className="grid gap-4 sm:grid-cols-[152px_1fr] sm:items-center">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
+              <Image
+                src={HERO_NETWORK_PHOTO}
+                alt="Network infrastructure and wireless internet equipment"
+                fill
+                sizes="(min-width: 640px) 152px, 100vw"
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-slate-950/30" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Network health snapshot</p>
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-300">
+                  <span>Routers online</span>
+                  <span className="font-semibold text-emerald-300">89 / 92</span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full w-[97%] rounded-full bg-gradient-to-r from-blue-400 to-emerald-400" />
+                </div>
+                <p className="text-xs leading-relaxed text-slate-400">
+                  Provisioning, session enforcement, and cash collection stay aligned across the live network.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="absolute -right-4 bottom-12 hidden w-48 rounded-[28px] border border-white/70 bg-slate-950/92 p-3 text-white shadow-2xl shadow-blue-950/20 backdrop-blur lg:block">
-        <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-2xl">
-          <Image
-            src={HERO_NETWORK_PHOTO}
-            alt="Network infrastructure and wireless internet equipment"
-            fill
-            sizes="192px"
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-slate-950/30" />
-        </div>
-        <p className="text-xs font-semibold text-white">Network health snapshot</p>
-        <div className="mt-2 space-y-2">
-          <div className="flex items-center justify-between text-[11px] text-slate-300">
-            <span>Routers online</span>
-            <span className="font-semibold text-emerald-300">89 / 92</span>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-            <div className="h-full w-[97%] rounded-full bg-gradient-to-r from-blue-400 to-emerald-400" />
-          </div>
-        </div>
-      </div>
-
-      {/* Browser chrome */}
       <div className="relative rounded-2xl border border-slate-200/60 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xl shadow-slate-900/10 overflow-hidden">
         {/* Title bar */}
         <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200/60 dark:border-slate-700">
@@ -666,7 +673,7 @@ export function LandingPage() {
       <motion.section
         ref={heroRef}
         style={{ opacity: heroOpacity, scale: heroScale }}
-        className="relative pt-32 md:pt-40 pb-32 md:pb-44 px-4 sm:px-6 lg:px-8 overflow-hidden"
+        className="relative flex min-h-[100svh] items-center px-4 pb-20 pt-28 sm:px-6 md:pt-32 lg:px-8 overflow-hidden"
       >
         <div className="absolute inset-0 -z-20">
           <Image
@@ -675,9 +682,9 @@ export function LandingPage() {
             fill
             priority
             sizes="100vw"
-            className="object-cover object-center opacity-[0.28]"
+            className="object-cover object-center opacity-[0.42]"
           />
-          <div className="absolute inset-0 bg-white/80 dark:bg-slate-950/78" />
+          <div className="absolute inset-0 bg-white/70 dark:bg-slate-950/72" />
         </div>
         {/* Background gradient orbs */}
         <div className="absolute inset-0 overflow-hidden -z-10">
@@ -685,7 +692,7 @@ export function LandingPage() {
           <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-[128px] opacity-50" />
         </div>
 
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="mx-auto w-full max-w-6xl text-center">
           {/* Badge */}
           <Reveal>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950 border border-blue-100 dark:border-blue-800 rounded-full text-blue-700 dark:text-blue-300 text-sm font-medium mb-8">

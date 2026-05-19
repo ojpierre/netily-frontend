@@ -47,11 +47,8 @@ import {
 } from "@/components/ui/collapsible"
 import { toast } from "sonner"
 import { 
-  getApiBaseUrl, 
-  getSubdomainInfo, 
   getTenantFrontendUrl, 
   slugifyCompanyName,
-  isTenantDomain 
 } from "@/lib/subdomain"
 
 // ==========================================
@@ -161,24 +158,8 @@ const validatePassword = (password: string): { valid: boolean; errors: string[] 
 // API SERVICE
 // ==========================================
 
-function getRegistrationApiBase(): string {
-  // Use explicit env var if set (should include /api/v1 already)
-  const envUrl = process.env.NEXT_PUBLIC_API_URL
-  if (envUrl) {
-    // Ensure it ends with /api/v1 regardless of what was set
-    const cleaned = envUrl.replace(/\/+$/, '')
-    return cleaned.endsWith('/api/v1') ? cleaned : `${cleaned}/api/v1`
-  }
-  // Fallback: use subdomain-aware detection (shared with rest of app)
-  if (typeof window !== 'undefined') {
-    return getApiBaseUrl()
-  }
-  return 'http://127.0.0.1:8000/api/v1'
-}
-
 async function registerCompany(data: Omit<RegisterFormData, "admin_password_confirm">) {
-  const apiBase = getRegistrationApiBase()
-  const response = await fetch(`${apiBase}/core/companies/register/`, {
+  const response = await fetch("/api/public/core/companies/register/", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

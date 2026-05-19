@@ -5,22 +5,23 @@ const REMOTE_API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") ||
   "https://api.netily.co.ke/api/v1"
 
-export async function GET(request: NextRequest) {
-  const search = request.nextUrl.search || ""
-
+export async function POST(request: NextRequest) {
   try {
-    const upstream = await fetch(`${REMOTE_API_BASE}/subscriptions/calculator/${search}`, {
-      method: "GET",
+    const body = await request.text()
+    const upstream = await fetch(`${REMOTE_API_BASE}/core/companies/register/`, {
+      method: "POST",
       headers: {
         Accept: "application/json",
+        "Content-Type": "application/json",
       },
+      body,
       cache: "no-store",
     })
 
     const contentType = upstream.headers.get("content-type") || "application/json"
-    const body = await upstream.text()
+    const responseBody = await upstream.text()
 
-    return new NextResponse(body, {
+    return new NextResponse(responseBody, {
       status: upstream.status,
       headers: {
         "Content-Type": contentType,
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
   } catch {
     return NextResponse.json(
       {
-        detail: "Calculator service is temporarily unavailable.",
+        detail: "Registration service is temporarily unavailable.",
       },
       { status: 502 },
     )
