@@ -39,6 +39,15 @@ const nextConfig = {
   },
 
   // ── Security headers (removes X-Powered-By, server version leak) ─────────
+  async rewrites() {
+    return [
+      {
+        source: '/api/public/:path*',
+        destination: 'https://api.netily.co.ke/api/v1/:path*',
+      },
+    ]
+  },
+
   async headers() {
     return [
       {

@@ -38,8 +38,9 @@ type CalcResult = PlanEstimate[]
 // Utility
 // ──────────────────────────────────────────────────────
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://api.netily.co.ke/api/v1"
+  typeof window !== "undefined"
+    ? "/api/public"
+    : process.env.NEXT_PUBLIC_API_URL || "https://api.netily.co.ke/api/v1"
 
 // Plain number formatter (used for non-currency values like client counts)
 function fmt(n: number) {
@@ -335,13 +336,13 @@ export function BillingCalculator({
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`${API_BASE}/subscriptions/calculator/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pppoe_clients: pppoeClients,
-          monthly_hotspot_revenue: hotspotRevenue,
-        }),
+      const params = new URLSearchParams({
+        pppoe_clients: String(pppoeClients),
+        monthly_hotspot_revenue: String(hotspotRevenue),
+      })
+      const res = await fetch(`${API_BASE}/subscriptions/calculator/?${params.toString()}`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
       })
       if (!res.ok) throw new Error(`Server responded with ${res.status}`)
       const data = await res.json()

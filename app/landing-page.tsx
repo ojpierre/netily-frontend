@@ -80,30 +80,75 @@ function Reveal({
 // ─── Marquee component ─────────────────────────────────────────
 function InfiniteMarquee() {
   const items = [
-    "M-Pesa STK Push",
-    "MikroTik RouterOS",
-    "PayHero",
-    "FreeRADIUS",
-    "PPPoE",
-    "Hotspot Billing",
-    "Cloud Provisioning",
-    "Auto-Invoicing",
+    {
+      name: "M-Pesa STK Push",
+      detail: "Collect payments instantly from subscriber phones",
+      icon: Smartphone,
+      accent: "from-emerald-500/20 to-emerald-500/5 text-emerald-300",
+    },
+    {
+      name: "MikroTik RouterOS",
+      detail: "Provision, suspend, and restore users automatically",
+      icon: Router,
+      accent: "from-sky-500/20 to-sky-500/5 text-sky-300",
+    },
+    {
+      name: "FreeRADIUS",
+      detail: "Keep authentication and accounting in sync",
+      icon: ShieldCheck,
+      accent: "from-violet-500/20 to-violet-500/5 text-violet-300",
+    },
+    {
+      name: "PayHero",
+      detail: "Support more payment collection flows when needed",
+      icon: CreditCard,
+      accent: "from-amber-500/20 to-amber-500/5 text-amber-300",
+    },
+    {
+      name: "Customer Messaging",
+      detail: "Trigger reminders, receipts, and support updates",
+      icon: MessageSquare,
+      accent: "from-rose-500/20 to-rose-500/5 text-rose-300",
+    },
+    {
+      name: "Cloud Provisioning",
+      detail: "Run a modern hosted billing stack without the guesswork",
+      icon: Globe,
+      accent: "from-blue-500/20 to-blue-500/5 text-blue-300",
+    },
+    {
+      name: "Hotspot Billing",
+      detail: "Handle vouchers, session control, and revenue sharing",
+      icon: Wifi,
+      accent: "from-cyan-500/20 to-cyan-500/5 text-cyan-300",
+    },
+    {
+      name: "Auto-Invoicing",
+      detail: "Generate recurring bills and collection nudges automatically",
+      icon: FileText,
+      accent: "from-slate-500/20 to-slate-500/5 text-slate-200",
+    },
   ]
   return (
-    <div className="overflow-hidden whitespace-nowrap">
+    <div className="overflow-hidden">
       <motion.div
-        className="inline-flex gap-12"
+        className="flex w-max gap-4 py-1"
         animate={{ x: ["0%", "-50%"] }}
-        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+        transition={{ duration: 34, repeat: Infinity, ease: "linear" }}
       >
         {[...items, ...items].map((item, i) => (
-          <span
+          <article
             key={i}
-            className="text-slate-400 font-medium text-sm tracking-wide uppercase flex items-center gap-2"
+            className="flex w-[260px] shrink-0 items-start gap-3 rounded-2xl border border-slate-200/80 bg-white/90 p-4 text-left shadow-sm shadow-slate-900/5 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500/60" />
-            {item}
-          </span>
+            <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${item.accent}`}>
+              <item.icon className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">{item.name}</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{item.detail}</p>
+            </div>
+          </article>
         ))}
       </motion.div>
     </div>
@@ -166,6 +211,50 @@ function DashboardMockup() {
     <div className="relative mx-auto max-w-5xl mt-16 md:mt-20">
       {/* Glow behind */}
       <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-purple-500/20 rounded-3xl blur-3xl opacity-60" />
+
+      <div className="absolute -left-6 top-10 hidden w-52 rounded-[28px] border border-white/70 bg-white/90 p-3 shadow-2xl shadow-slate-900/10 backdrop-blur lg:block dark:border-slate-700 dark:bg-slate-900/85">
+        <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-2xl">
+          <Image
+            src={HERO_SUPPORT_PHOTO}
+            alt="Support desk setup for internet service operations"
+            fill
+            sizes="208px"
+            className="object-cover"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
+            <ShieldCheck className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-900 dark:text-white">Live support visibility</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Tickets, follow-ups, and outages in one place</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute -right-4 bottom-12 hidden w-48 rounded-[28px] border border-white/70 bg-slate-950/92 p-3 text-white shadow-2xl shadow-blue-950/20 backdrop-blur lg:block">
+        <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-2xl">
+          <Image
+            src={HERO_NETWORK_PHOTO}
+            alt="Network infrastructure and wireless internet equipment"
+            fill
+            sizes="192px"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-slate-950/30" />
+        </div>
+        <p className="text-xs font-semibold text-white">Network health snapshot</p>
+        <div className="mt-2 space-y-2">
+          <div className="flex items-center justify-between text-[11px] text-slate-300">
+            <span>Routers online</span>
+            <span className="font-semibold text-emerald-300">89 / 92</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full w-[97%] rounded-full bg-gradient-to-r from-blue-400 to-emerald-400" />
+          </div>
+        </div>
+      </div>
 
       {/* Browser chrome */}
       <div className="relative rounded-2xl border border-slate-200/60 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xl shadow-slate-900/10 overflow-hidden">
@@ -535,9 +624,9 @@ export function LandingPage() {
             fill
             priority
             sizes="100vw"
-            className="object-cover object-center opacity-[0.18]"
+            className="object-cover object-center opacity-[0.28]"
           />
-          <div className="absolute inset-0 bg-white/88 dark:bg-slate-950/84" />
+          <div className="absolute inset-0 bg-white/80 dark:bg-slate-950/78" />
         </div>
         {/* Background gradient orbs */}
         <div className="absolute inset-0 overflow-hidden -z-10">
@@ -632,6 +721,44 @@ export function LandingPage() {
             <p className="text-xs text-slate-400 mt-3">No credit card required &bull; 14 days free &bull; Cancel anytime</p>
           </Reveal>
 
+          <Reveal delay={0.38}>
+            <div className="mx-auto mt-8 grid max-w-4xl gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-white/70 bg-white/85 px-4 py-4 text-left shadow-lg shadow-slate-900/5 backdrop-blur dark:border-slate-800 dark:bg-slate-900/75">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
+                    <CircleDollarSign className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Payment to provisioning</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Collect, confirm, and reconnect without manual chasing.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/70 bg-white/85 px-4 py-4 text-left shadow-lg shadow-slate-900/5 backdrop-blur dark:border-slate-800 dark:bg-slate-900/75">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-600 dark:text-sky-300">
+                    <Router className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">MikroTik-aware workflows</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Built for PPPoE, hotspot, and subscriber state changes.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/70 bg-white/85 px-4 py-4 text-left shadow-lg shadow-slate-900/5 backdrop-blur dark:border-slate-800 dark:bg-slate-900/75">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-600 dark:text-violet-300">
+                    <Activity className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Daily operational clarity</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">See collections, uptime, and support movement at a glance.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+
           {/* Dashboard mockup */}
           <Reveal delay={0.5}>
             <DashboardMockup />
@@ -640,34 +767,88 @@ export function LandingPage() {
       </motion.section>
 
       {/* ━━━ 3. TRUST MARQUEE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section className="border-y border-slate-200 dark:border-slate-800 py-5 bg-slate-50/50 dark:bg-slate-900/50">
+      <section className="border-y border-slate-200 dark:border-slate-800 py-10 bg-slate-50/60 dark:bg-slate-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-xs text-slate-400 uppercase tracking-widest font-medium text-center mb-4">
-            Natively integrated with
-          </p>
+          <div className="mb-6 flex flex-col items-center text-center">
+            <p className="text-xs text-slate-400 uppercase tracking-widest font-medium">
+              Natively integrated with
+            </p>
+            <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Payments, provisioning, and subscriber ops in one workflow
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+              Netily does more than connect logos. Each integration powers a real step in how Kenyan ISPs bill, authenticate, notify, and support subscribers.
+            </p>
+          </div>
           <InfiniteMarquee />
         </div>
       </section>
 
       {/* ━━━ 3b. SOCIAL-PROOF STATS ━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section className="py-14 md:py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-center">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-8 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">Operational proof</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Numbers that map to what an ISP owner actually cares about
+            </h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[
-              { value: 500, suffix: "+", label: "ISPs onboarded", icon: Wifi },
-              { value: 50000, suffix: "+", label: "Active subscribers", icon: Users },
-              { value: 95, suffix: "%", label: "Daily M-Pesa payout", icon: CircleDollarSign },
-              { value: 99, suffix: ".9%", label: "Platform uptime", icon: Activity },
+              {
+                value: 500,
+                suffix: "+",
+                label: "ISPs onboarded",
+                icon: Wifi,
+                eyebrow: "Regional footprint",
+                detail: "Built for fiber operators, hotspot providers, and fast-growing rural WISPs.",
+              },
+              {
+                value: 50000,
+                suffix: "+",
+                label: "Active subscribers",
+                icon: Users,
+                eyebrow: "Subscriber scale",
+                detail: "Customer records, billing status, and access changes stay in one operating system.",
+              },
+              {
+                value: 95,
+                suffix: "%",
+                label: "Daily M-Pesa payout",
+                icon: CircleDollarSign,
+                eyebrow: "Cash collection flow",
+                detail: "Keep payment confirmation close to service activation and collection follow-up.",
+              },
+              {
+                value: 99,
+                suffix: ".9%",
+                label: "Platform uptime",
+                icon: Activity,
+                eyebrow: "Reliability target",
+                detail: "The platform is designed to support day-to-day operations without becoming the bottleneck.",
+              },
             ].map((stat, i) => (
               <Reveal key={stat.label} delay={i * 0.1}>
-                <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center mb-3">
-                    <stat.icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <div className="group h-full rounded-[28px] border border-slate-200/80 bg-white/95 p-6 text-left shadow-sm shadow-slate-900/5 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 dark:border-slate-800 dark:bg-slate-900/90">
+                  <div className="flex items-center justify-between">
+                    <div className="rounded-2xl bg-blue-50 p-3 text-blue-600 dark:bg-blue-950 dark:text-blue-300">
+                      <stat.icon className="h-5 w-5" />
+                    </div>
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                      {stat.eyebrow}
+                    </span>
                   </div>
-                  <p className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-1">
+                  <p className="mt-6 text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
                     <AnimatedCounter value={stat.value} suffix={stat.suffix} />
                   </p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{stat.label}</p>
+                  <p className="mt-2 text-base font-semibold text-slate-900 dark:text-white">{stat.label}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{stat.detail}</p>
+                  <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-blue-500 via-sky-500 to-emerald-400"
+                      style={{ width: `${Math.min(stat.value, 100)}%` }}
+                    />
+                  </div>
                 </div>
               </Reveal>
             ))}
@@ -1944,6 +2125,12 @@ export function LandingPage() {
     </div>
   )
 }
+
+const HERO_SUPPORT_PHOTO =
+  "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=900&q=80"
+
+const HERO_NETWORK_PHOTO =
+  "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=900&q=80"
 
 const HERO_PHOTO =
   "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1800&q=80"
