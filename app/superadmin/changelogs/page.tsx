@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Plus, Trash2, Loader2, Save, Megaphone } from "lucide-react"
+import { Plus, Trash2, Loader2, Save, Megaphone, BellRing, Mail, MessageSquareText, LayoutDashboard } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { superadminApi } from "@/lib/superadmin-api"
+import { Checkbox } from "@/components/ui/checkbox"
+import { superadminApi, type ChangelogCreatePayload } from "@/lib/superadmin-api"
 import type { PlatformChangelog } from "@/lib/types"
 
 export default function SuperadminChangelogsPage() {
@@ -21,18 +22,15 @@ export default function SuperadminChangelogsPage() {
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formData, setFormData] = useState<{
-    title: string;
-    version: string;
-    update_type: 'feature' | 'improvement' | 'bugfix' | 'maintenance';
-    content: string;
-    is_published: boolean;
-  }>({
+  const [formData, setFormData] = useState<ChangelogCreatePayload>({
     title: "",
     version: "",
     update_type: "feature",
     content: "",
-    is_published: true
+    is_published: true,
+    notify_email: true,
+    notify_sms: false,
+    notify_in_app: true,
   })
 
   useEffect(() => {
@@ -66,8 +64,13 @@ export default function SuperadminChangelogsPage() {
     e.preventDefault()
     setIsSubmitting(true)
     try {
-      await superadminApi.createChangelog(formData)
-      toast.success("Release published successfully!")
+      const created = await superadminApi.createChangelog(formData)
+      const channels = created.notification_request?.channels ?? []
+      if (created.notification_request?.queued && channels.length > 0) {
+        toast.success(`Release published. Notifications queued via ${channels.join(", ")}.`)
+      } else {
+        toast.success("Release published successfully!")
+      }
       setIsModalOpen(false)
       // Reset form
       setFormData({
@@ -75,7 +78,10 @@ export default function SuperadminChangelogsPage() {
         version: "",
         update_type: "feature",
         content: "",
-        is_published: true
+        is_published: true,
+        notify_email: true,
+        notify_sms: false,
+        notify_in_app: true,
       })
       loadLogs()
     } catch (error) {
@@ -92,6 +98,19 @@ export default function SuperadminChangelogsPage() {
       case 'bugfix': return 'bg-rose-500/20 text-rose-300 border-rose-500/30'
       case 'maintenance': return 'bg-violet-500/20 text-violet-300 border-violet-500/30'
       default: return 'bg-slate-700/40 text-slate-300 border-slate-600/50'
+    }
+  }
+
+  const getChannelBadge = (channel: string) => {
+    switch(channel) {
+      case "email":
+        return <Badge key={channel} variant="outline" className="border-sky-500/30 bg-sky-500/10 text-sky-200"><Mail className="mr-1 h-3 w-3" />Email</Badge>
+      case "sms":
+        return <Badge key={channel} variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-200"><MessageSquareText className="mr-1 h-3 w-3" />SMS</Badge>
+      case "in_app":
+        return <Badge key={channel} variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-200"><LayoutDashboard className="mr-1 h-3 w-3" />Dashboard</Badge>
+      default:
+        return <Badge key={channel} variant="outline">{channel}</Badge>
     }
   }
 
@@ -126,7 +145,7 @@ export default function SuperadminChangelogsPage() {
               <DialogHeader className="pb-4 border-b border-slate-800">
                 <DialogTitle className="text-xl font-bold text-white">Publish a New Release</DialogTitle>
                 <DialogDescription className="text-slate-400">
-                  This will immediately appear in the "What's New" timeline for all active ISPs.
+                  Publish once, then choose whether tenants should receive the update in their dashboard, email inbox, or SMS feed.
                 </DialogDescription>
               </DialogHeader>
               
@@ -195,6 +214,48 @@ export default function SuperadminChangelogsPage() {
                     Publish immediately to all ISPs
                   </Label>
                 </div>
+
+                <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+                  <div className="mb-3">
+                    <p className="text-sm font-semibold text-white">Tenant notifications</p>
+                    <p className="text-xs text-slate-400">Choose where this release should be delivered after publishing.</p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <label className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+                      <Checkbox
+                        checked={!!formData.notify_in_app}
+                        onCheckedChange={(checked) => setFormData({ ...formData, notify_in_app: Boolean(checked) })}
+                        className="mt-0.5 data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500"
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold text-slate-100">Dashboard</span>
+                        <span className="block text-xs text-slate-400">In-app alert inside tenant admin panels.</span>
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+                      <Checkbox
+                        checked={!!formData.notify_email}
+                        onCheckedChange={(checked) => setFormData({ ...formData, notify_email: Boolean(checked) })}
+                        className="mt-0.5 data-[state=checked]:border-sky-500 data-[state=checked]:bg-sky-500"
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold text-slate-100">Email</span>
+                        <span className="block text-xs text-slate-400">Best for full release notes and rollout details.</span>
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900/70 p-3">
+                      <Checkbox
+                        checked={!!formData.notify_sms}
+                        onCheckedChange={(checked) => setFormData({ ...formData, notify_sms: Boolean(checked) })}
+                        className="mt-0.5 data-[state=checked]:border-amber-500 data-[state=checked]:bg-amber-500"
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold text-slate-100">SMS</span>
+                        <span className="block text-xs text-slate-400">Use only for short, urgent product updates.</span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <DialogFooter className="pt-4 border-t border-slate-800">
@@ -209,6 +270,42 @@ export default function SuperadminChangelogsPage() {
         </Dialog>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="border-slate-800 bg-slate-900/90">
+          <CardContent className="flex items-center gap-3 p-5">
+            <div className="rounded-2xl bg-violet-500/15 p-3 text-violet-300">
+              <Megaphone className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Releases</p>
+              <p className="text-2xl font-black text-white">{logs.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-800 bg-slate-900/90">
+          <CardContent className="flex items-center gap-3 p-5">
+            <div className="rounded-2xl bg-emerald-500/15 p-3 text-emerald-300">
+              <BellRing className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Notifications Sent</p>
+              <p className="text-2xl font-black text-white">{logs.reduce((sum, log) => sum + (log.notification_summary?.notifications_sent ?? 0), 0)}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-800 bg-slate-900/90">
+          <CardContent className="flex items-center gap-3 p-5">
+            <div className="rounded-2xl bg-sky-500/15 p-3 text-sky-300">
+              <Mail className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Tenants Reached</p>
+              <p className="text-2xl font-black text-white">{logs.reduce((sum, log) => sum + (log.notification_summary?.tenants_processed ?? 0), 0)}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Main Table Card */}
       <Card className="bg-slate-900 border-slate-800 overflow-hidden">
         <CardContent className="p-0">
@@ -220,6 +317,7 @@ export default function SuperadminChangelogsPage() {
                 <TableHead className="font-bold text-slate-400">Title</TableHead>
                 <TableHead className="font-bold text-slate-400">Type</TableHead>
                 <TableHead className="font-bold text-slate-400">Status</TableHead>
+                <TableHead className="font-bold text-slate-400">Delivery</TableHead>
                 <TableHead className="text-right font-bold text-slate-400">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -243,6 +341,22 @@ export default function SuperadminChangelogsPage() {
                       <Badge variant="secondary" className="bg-slate-700/40 text-slate-300 font-semibold border border-slate-600/50">Draft</Badge>
                     )}
                   </TableCell>
+                  <TableCell>
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        {(log.notification_channels?.length ? log.notification_channels : ["in_app"]).map(getChannelBadge)}
+                      </div>
+                      {log.notification_summary?.notifications_sent ? (
+                        <p className="text-xs text-slate-400">
+                          {log.notification_summary.notifications_sent} sent to {log.notification_summary.tenants_processed ?? 0} tenants
+                        </p>
+                      ) : log.notification_request?.queued ? (
+                        <p className="text-xs text-sky-300">Queued for delivery</p>
+                      ) : (
+                        <p className="text-xs text-slate-500">No send summary yet</p>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors" onClick={() => handleDelete(log.id)}>
                       <Trash2 className="w-4 h-4" />
@@ -252,7 +366,7 @@ export default function SuperadminChangelogsPage() {
               ))}
               {logs.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-16 text-slate-400">
+                  <TableCell colSpan={7} className="text-center py-16 text-slate-400">
                     <div className="flex flex-col items-center justify-center">
                       <Megaphone className="w-10 h-10 text-slate-600 mb-3" />
                       <p className="font-medium text-slate-300">No changelogs created yet.</p>

@@ -67,7 +67,10 @@ export interface Tenant {
   company_type: string
   company_logo: string | null
   subscription_plan: string
-  subscription_status: string | null   // from CompanySubscription (trialing / active / expired / past_due)
+  subscription_status: string | null
+  subscription_status_code?: string | null
+  subscription_status_display?: string | null
+  tenant_status_display?: string | null
   days_left: number | null
   domains: TenantDomain[]
   is_active: boolean
@@ -382,7 +385,34 @@ export interface PlatformChangelog {
   update_type: 'feature' | 'improvement' | 'bugfix' | 'maintenance';
   is_published: boolean;
   release_date: string;
+  notification_channels?: string[];
+  notification_sent_at?: string | null;
+  notification_summary?: {
+    channels?: string[];
+    tenants_total?: number;
+    tenants_processed?: number;
+    users_targeted?: number;
+    notifications_created?: number;
+    notifications_sent?: number;
+    notifications_failed?: number;
+    errors?: Array<{ tenant: string; error: string }>;
+  };
+  notification_request?: {
+    channels: string[];
+    queued: boolean;
+  };
   created_at: string;
+}
+
+export interface ChangelogCreatePayload {
+  title: string;
+  version: string;
+  update_type: 'feature' | 'improvement' | 'bugfix' | 'maintenance';
+  content: string;
+  is_published: boolean;
+  notify_email?: boolean;
+  notify_sms?: boolean;
+  notify_in_app?: boolean;
 }
 
 // Feature Request Types
@@ -787,7 +817,7 @@ class SuperadminApiService {
     return response;
   }
 
-  async createChangelog(data: Partial<PlatformChangelog>): Promise<PlatformChangelog> {
+  async createChangelog(data: ChangelogCreatePayload): Promise<PlatformChangelog> {
     const response = await this.request<PlatformChangelog>('/superadmin/changelogs/', {
       method: 'POST',
       body: JSON.stringify(data),

@@ -16,6 +16,8 @@ export interface BlogPost {
   title: string
   excerpt: string
   coverGradient: string
+  coverImage: string
+  coverImageAlt: string
   category: string
   categoryColor: "blue" | "emerald" | "orange" | "purple"
   readTime: number
@@ -45,6 +47,8 @@ export const blogPosts: BlogPost[] = [
     excerpt:
       "Choosing ISP billing software in Kenya is harder than it looks. Most options weren't built for M-Pesa or MikroTik. This guide compares every serious option and tells you exactly what to look for before you buy.",
     coverGradient: "from-blue-600 via-indigo-600 to-purple-700",
+    coverImage: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1400&q=80",
+    coverImageAlt: "Kenyan professional reviewing network operations on a laptop",
     category: "Buyer's Guide",
     categoryColor: "blue",
     readTime: 9,
@@ -236,6 +240,8 @@ export const blogPosts: BlogPost[] = [
     excerpt:
       "Most Kenyan ISPs run on MikroTik. Most subscribers pay via M-Pesa. Yet most ISPs still reconcile these manually every day. Here's exactly how to automate the entire billing pipeline — and what it's worth to your business.",
     coverGradient: "from-emerald-500 via-teal-600 to-cyan-700",
+    coverImage: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1400&q=80",
+    coverImageAlt: "Network team collaborating around connected devices",
     category: "Tutorial",
     categoryColor: "emerald",
     readTime: 8,
@@ -424,6 +430,8 @@ export const blogPosts: BlogPost[] = [
     excerpt:
       "Free ISP billing software sounds excellent until you actually run an ISP and discover what 'free' really costs. An honest, detailed breakdown of every free option — and the real numbers you need to make the right decision.",
     coverGradient: "from-orange-500 via-rose-500 to-pink-600",
+    coverImage: "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1400&q=80",
+    coverImageAlt: "Hands using a laptop and notebook for business cost analysis",
     category: "Analysis",
     categoryColor: "orange",
     readTime: 7,
@@ -613,6 +621,8 @@ export const blogPosts: BlogPost[] = [
     excerpt:
       "Kenya's internet penetration is still under 50% — the market is massive. But most ISPs stagnate after their first 200 subscribers. These are the seven strategies that actually work for growing an ISP in Kenya's competitive market.",
     coverGradient: "from-violet-600 via-purple-600 to-indigo-700",
+    coverImage: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1400&q=80",
+    coverImageAlt: "Business team planning growth strategy around a table",
     category: "Growth",
     categoryColor: "purple",
     readTime: 8,
@@ -789,6 +799,8 @@ export const blogPosts: BlogPost[] = [
     excerpt:
       "Poor customer service is the silent churn driver that no ISP owner wants to admit. This practical guide covers exactly how Kenyan ISPs should structure their support operation — from ticketing to WhatsApp — to keep subscribers loyal.",
     coverGradient: "from-cyan-500 via-sky-600 to-blue-700",
+    coverImage: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1400&q=80",
+    coverImageAlt: "Support team working together at computers in a modern office",
     category: "Operations",
     categoryColor: "blue",
     readTime: 7,

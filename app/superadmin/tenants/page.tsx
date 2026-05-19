@@ -165,6 +165,34 @@ export default function TenantsPage() {
     }
   }
 
+  const resolveTenantStatus = (tenant: Tenant) =>
+    tenant.tenant_status_display ||
+    tenant.subscription_status_display ||
+    tenant.subscription_status ||
+    tenant.status
+
+  const formatExpiry = (tenant: Tenant) => {
+    if (!tenant.subscription_expiry) {
+      if (tenant.status === "trial" || tenant.subscription_status === "trialing") {
+        return "Trial date pending sync"
+      }
+      return "No expiry date"
+    }
+
+    return new Date(tenant.subscription_expiry).toLocaleDateString("en-KE", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    })
+  }
+
+  const resolveExpiryTone = (tenant: Tenant) => {
+    if (tenant.days_left === null || tenant.days_left === undefined) return "text-slate-400"
+    if (tenant.days_left < 0) return "text-red-400"
+    if (tenant.days_left <= 7) return "text-amber-400"
+    return "text-emerald-400"
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -274,7 +302,14 @@ export default function TenantsPage() {
                     <td className="p-4 hidden md:table-cell">
                       <code className="text-xs bg-slate-800 text-violet-300 px-2 py-0.5 rounded">{t.subdomain}</code>
                     </td>
-                    <td className="p-4">{statusBadge(t.subscription_status || t.status)}</td>
+                    <td className="p-4">
+                      <div className="space-y-1">
+                        {statusBadge(t.status)}
+                        <p className="text-xs font-medium text-slate-400">
+                          Billing: {resolveTenantStatus(t)}
+                        </p>
+                      </div>
+                    </td>
                     
                     {/* NEW: Metered Usage Column */}
                     <td className="p-4">
@@ -291,7 +326,7 @@ export default function TenantsPage() {
                         </div>
                         
                         <div className="flex items-end gap-1">
-                          <span className="text-lg font-black text-slate-900 leading-none">
+                          <span className="text-lg font-black text-white leading-none">
                             {t.raw_active_pppoe_count ?? 0}
                           </span>
                           <span className="text-xs font-bold text-slate-400 pb-0.5">
@@ -319,24 +354,44 @@ export default function TenantsPage() {
                       </div>
                     </td>
                     
-                    <td className="p-4 hidden lg:table-cell text-slate-300 capitalize">{t.subscription_plan || "—"}</td>
+                    <td className="p-4 hidden lg:table-cell">
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-slate-200 capitalize">
+                          {t.subscription_plan || "No plan"}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {t.subscription_status_display || "Billing status unavailable"}
+                        </p>
+                      </div>
+                    </td>
                     <td className="p-4 hidden lg:table-cell text-slate-300">
                       KES {Number(t.monthly_rate).toLocaleString()}
                     </td>
-                    <td className="p-4 hidden xl:table-cell text-slate-400 text-xs">
-                      {t.subscription_expiry
-                        ? new Date(t.subscription_expiry).toLocaleDateString()
-                        : "—"}
-                      {t.days_left !== null && t.days_left <= 7 && t.days_left >= 0 && (
-                        <span className="ml-1 text-amber-400">({t.days_left}d left)</span>
-                      )}
+                    <td className="p-4 hidden xl:table-cell">
+                      <div className="space-y-1">
+                        <p className={`text-xs font-semibold ${resolveExpiryTone(t)}`}>
+                          {formatExpiry(t)}
+                        </p>
+                        {t.days_left !== null && t.days_left !== undefined ? (
+                          <p className={`text-[11px] ${resolveExpiryTone(t)}`}>
+                            {t.days_left < 0
+                              ? `${Math.abs(t.days_left)}d overdue`
+                              : t.days_left === 0
+                              ? "Expires today"
+                              : `${t.days_left}d left`}
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-slate-500">
+                            Waiting for subscription schedule
+                          </p>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4 hidden xl:table-cell text-slate-400 text-xs">
                       {new Date(t.created_at).toLocaleDateString()}
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* Inline activate / suspend toggle */}
                         {(t.status === "suspended" || t.subscription_status === "suspended") ? (
                           <Button
                             size="sm"

@@ -528,6 +528,17 @@ export function LandingPage() {
         style={{ opacity: heroOpacity, scale: heroScale }}
         className="relative pt-28 md:pt-36 pb-20 md:pb-28 px-4 sm:px-6 lg:px-8 overflow-hidden"
       >
+        <div className="absolute inset-0 -z-20">
+          <Image
+            src={HERO_PHOTO}
+            alt="Team using laptops to manage an internet service provider platform"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center opacity-[0.18]"
+          />
+          <div className="absolute inset-0 bg-white/88 dark:bg-slate-950/84" />
+        </div>
         {/* Background gradient orbs */}
         <div className="absolute inset-0 overflow-hidden -z-10">
           <div className="absolute top-20 left-1/4 w-[600px] h-[600px] bg-blue-100 rounded-full blur-[128px] opacity-60" />
@@ -1544,12 +1555,15 @@ export function LandingPage() {
               return (
                 <Reveal key={post.slug} delay={i * 0.1}>
                   <article className="group flex flex-col bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full">
-                    {/* Gradient card header */}
                     <div className={`h-36 bg-gradient-to-br ${gradient} relative overflow-hidden flex items-end p-5`}>
-                      <div className="absolute inset-0 opacity-20">
-                        <div className="absolute top-3 right-3 w-20 h-20 border border-white/40 rounded-full" />
-                        <div className="absolute -bottom-6 -left-6 w-32 h-32 border border-white/20 rounded-full" />
-                      </div>
+                      <Image
+                        src={post.coverImage}
+                        alt={post.coverImageAlt}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                        className="object-cover opacity-70 transition duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-900/35 to-slate-900/10" />
                       <span className="relative text-xs font-semibold px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white border border-white/30">
                         {post.category}
                       </span>
@@ -1930,3 +1944,6 @@ export function LandingPage() {
     </div>
   )
 }
+
+const HERO_PHOTO =
+  "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1800&q=80"

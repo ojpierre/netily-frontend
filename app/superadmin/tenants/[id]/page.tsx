@@ -191,6 +191,13 @@ export default function TenantDetailPage() {
     return map[s] || <Badge variant="outline" className="text-slate-400">{s}</Badge>
   }
 
+  const billingStatusText =
+    tenant?.subscription_status_display ||
+    tenant?.subscription_status_code ||
+    tenant?.subscription_status ||
+    tenant?.status ||
+    "Unknown"
+
   if (loading || !tenant) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -214,6 +221,9 @@ export default function TenantDetailPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold text-white">{tenant.company_name}</h1>
             {tenantStatusBadge(tenant.status)}
+            <Badge variant="outline" className="border-slate-700 bg-slate-900/70 text-slate-300">
+              Billing: {billingStatusText}
+            </Badge>
           </div>
           <p className="text-sm text-slate-400 mt-0.5">
             <code className="text-violet-300">{tenant.subdomain}</code> · Schema: <code className="text-slate-500">{tenant.schema_name}</code>
@@ -419,6 +429,9 @@ export default function TenantDetailPage() {
                   <div className="space-y-2">
                     <Label className="text-slate-300">Subscription Expiry</Label>
                     <Input type="date" value={subscriptionExpiry} onChange={(e) => setSubscriptionExpiry(e.target.value)} className="bg-slate-800 border-slate-700 text-white" />
+                    <p className="text-xs text-slate-500">
+                      Use this only when you need to intentionally override the subscription-derived expiry date.
+                    </p>
                   </div>
                 </div>
                 <Separator className="bg-slate-800" />

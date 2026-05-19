@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import Image from "next/image"
 import { blogPosts } from "@/lib/blog-data"
 import BlogLeadModal from "@/components/blog-lead-modal"
 
@@ -82,10 +83,14 @@ export default function BlogPage() {
               >
                 {/* Gradient hero */}
                 <div className={`h-44 bg-gradient-to-br ${post.coverGradient} relative overflow-hidden flex items-end p-5`}>
-                  <div className="absolute inset-0 opacity-20">
-                    <div className="absolute top-4 right-4 w-24 h-24 border-2 border-white/30 rounded-full" />
-                    <div className="absolute -bottom-8 -left-8 w-40 h-40 border-2 border-white/20 rounded-full" />
-                  </div>
+                  <Image
+                    src={post.coverImage}
+                    alt={post.coverImageAlt}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover opacity-70 transition duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-900/35 to-slate-900/10" />
                   <span className={`relative inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white border border-white/30`}>
                     <span className={`w-1.5 h-1.5 rounded-full bg-white`} />
                     {post.category}

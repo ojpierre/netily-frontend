@@ -7,6 +7,12 @@ const nextConfig = {
   poweredByHeader: false,
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+    ],
   },
   // Standalone output for Docker deployment
   output: 'standalone',

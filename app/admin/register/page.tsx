@@ -208,12 +208,16 @@ function CreatingAccountOverlay({
   currentStep, 
   isComplete,
   companyName,
-  tenantUrl
+  tenantUrl,
+  completionNote,
+  warningNote,
 }: { 
   currentStep: number
   isComplete: boolean
   companyName: string
   tenantUrl?: string
+  completionNote?: string | null
+  warningNote?: string | null
 }) {
   const step = SETUP_STEPS[currentStep] || SETUP_STEPS[0]
   const StepIcon = step.icon
@@ -250,6 +254,17 @@ function CreatingAccountOverlay({
             {isComplete ? `Welcome to Netily, ${companyName}!` : step.subtitle}
           </p>
         </div>
+
+        {(completionNote || warningNote) && (
+          <div className={`mx-auto mb-6 max-w-sm rounded-2xl border px-4 py-3 text-left backdrop-blur-sm ${
+            warningNote
+              ? "border-amber-300/30 bg-amber-400/10 text-amber-50"
+              : "border-emerald-300/30 bg-emerald-400/10 text-emerald-50"
+          }`}>
+            {completionNote && <p className="text-sm font-semibold">{completionNote}</p>}
+            {warningNote && <p className="mt-1 text-sm text-amber-100">{warningNote}</p>}
+          </div>
+        )}
 
         {/* Progress bar */}
         <div className="mb-6">
@@ -320,6 +335,8 @@ export default function AdminRegisterPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [isSetupComplete, setIsSetupComplete] = useState(false)
   const [tenantUrl, setTenantUrl] = useState<string | null>(null)
+  const [completionNote, setCompletionNote] = useState<string | null>(null)
+  const [warningNote, setWarningNote] = useState<string | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
   const [generalError, setGeneralError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -356,6 +373,8 @@ export default function AdminRegisterPage() {
       setCurrentStep(0)
       setIsSetupComplete(false)
       setTenantUrl(null)
+      setCompletionNote(null)
+      setWarningNote(null)
       return
     }
 
@@ -490,9 +509,23 @@ export default function AdminRegisterPage() {
       // Set the tenant URL and show completion state
       setTenantUrl(tenantAdminUrl)
       setIsSetupComplete(true)
+      const welcomeProvider = response?.welcome_email?.provider
+      const welcomeSent = response?.welcome_email?.sent
+      const warnings = Array.isArray(response?.warnings) ? response.warnings : []
+      const emailMessage = welcomeSent
+        ? `Welcome email sent${welcomeProvider ? ` via ${String(welcomeProvider).toUpperCase()}` : ""}.`
+        : "Workspace created, but the welcome email was not delivered."
+      setCompletionNote(emailMessage)
+      setWarningNote(warnings[0] || (!welcomeSent ? "You can still continue directly to the tenant dashboard and fix mail delivery afterward." : null))
+
+      if (welcomeSent) {
+        toast.success(emailMessage)
+      } else {
+        toast.warning(emailMessage)
+      }
 
       // Wait a moment to show the success animation
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await new Promise((resolve) => setTimeout(resolve, welcomeSent ? 2000 : 3500))
 
       // Redirect to the tenant's admin dashboard
       window.location.href = tenantAdminUrl
@@ -540,6 +573,8 @@ export default function AdminRegisterPage() {
           isComplete={isSetupComplete}
           companyName={formData.company_name || "your company"}
           tenantUrl={tenantUrl || undefined}
+          completionNote={completionNote}
+          warningNote={warningNote}
         />
       )}
 

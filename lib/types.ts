@@ -189,6 +189,22 @@ export interface PlatformChangelog {
   update_type: 'feature' | 'improvement' | 'bugfix' | 'maintenance';
   is_published: boolean;
   release_date: string;
+  notification_channels?: string[];
+  notification_sent_at?: string | null;
+  notification_summary?: {
+    channels?: string[];
+    tenants_total?: number;
+    tenants_processed?: number;
+    users_targeted?: number;
+    notifications_created?: number;
+    notifications_sent?: number;
+    notifications_failed?: number;
+    errors?: Array<{ tenant: string; error: string }>;
+  };
+  notification_request?: {
+    channels: string[];
+    queued: boolean;
+  };
   created_at: string;
 }
 

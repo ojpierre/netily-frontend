@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import Image from "next/image"
 import { notFound } from "next/navigation"
 import { getBlogPost, getRelatedPosts, blogPosts, type ContentBlock } from "@/lib/blog-data"
 import BlogLeadModal from "@/components/blog-lead-modal"
@@ -275,6 +276,15 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
       <div className="min-h-screen bg-white dark:bg-slate-950">
         {/* ── Article Hero ── */}
         <header className={`bg-gradient-to-br ${post.coverGradient} relative overflow-hidden`}>
+          <Image
+            src={post.coverImage}
+            alt={post.coverImageAlt}
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover opacity-55"
+          />
+          <div className="absolute inset-0 bg-slate-950/45" />
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-8 right-8 w-64 h-64 border-2 border-white/50 rounded-full" />
             <div className="absolute -bottom-16 -left-16 w-80 h-80 border-2 border-white/30 rounded-full" />
@@ -406,10 +416,15 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
                       href={`/blog/${rel.slug}`}
                       className="group flex gap-4 p-5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-blue-300 dark:hover:border-blue-700 hover:-translate-y-0.5 hover:shadow-md transition-all"
                     >
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${rel.coverGradient} shrink-0 flex items-center justify-center`}>
-                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
+                      <div className={`relative w-16 h-16 rounded-xl bg-gradient-to-br ${rel.coverGradient} shrink-0 overflow-hidden`}>
+                        <Image
+                          src={rel.coverImage}
+                          alt={rel.coverImageAlt}
+                          fill
+                          sizes="64px"
+                          className="object-cover opacity-80"
+                        />
+                        <div className="absolute inset-0 bg-slate-950/35" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${relColors.badge}`}>{rel.category}</span>
