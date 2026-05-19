@@ -37,7 +37,7 @@ type CalcResult = PlanEstimate[]
 // ──────────────────────────────────────────────────────
 // Utility
 // ──────────────────────────────────────────────────────
-const API_ENDPOINT = "/api/billing-calculator"
+const API_ENDPOINT = "/billing-estimator"
 
 // Plain number formatter (used for non-currency values like client counts)
 function fmt(n: number) {

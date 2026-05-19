@@ -42,6 +42,18 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/billing-estimator',
+        destination: 'https://api.netily.co.ke/api/v1/subscriptions/calculator/',
+      },
+      {
+        source: '/api/billing-calculator',
+        destination: 'https://api.netily.co.ke/api/v1/subscriptions/calculator/',
+      },
+      {
+        source: '/api/billing-calculator/',
+        destination: 'https://api.netily.co.ke/api/v1/subscriptions/calculator/',
+      },
+      {
         source: '/api/public/:path*',
         destination: 'https://api.netily.co.ke/api/v1/:path*',
       },
