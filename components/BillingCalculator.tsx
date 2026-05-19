@@ -37,7 +37,7 @@ type CalcResult = PlanEstimate[]
 // ──────────────────────────────────────────────────────
 // Utility
 // ──────────────────────────────────────────────────────
-const API_BASE = "/api/public"
+const API_ENDPOINT = "/api/billing-calculator"
 
 // Plain number formatter (used for non-currency values like client counts)
 function fmt(n: number) {
@@ -337,7 +337,7 @@ export function BillingCalculator({
         pppoe_clients: String(pppoeClients),
         monthly_hotspot_revenue: String(hotspotRevenue),
       })
-      const res = await fetch(`${API_BASE}/subscriptions/calculator/?${params.toString()}`, {
+      const res = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
         method: "GET",
         headers: { Accept: "application/json" },
       })
