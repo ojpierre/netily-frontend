@@ -1,13 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { motion, useInView } from "framer-motion"
-import { Check, Users, Wifi, TrendingUp, Zap, Shield, Star } from "lucide-react"
+import { Check, Users, Wifi, Zap, Shield } from "lucide-react"
 import type { GeoInfo } from "@/hooks/use-geo"
 
-// ──────────────────────────────────────────────────────
-// Types
-// ──────────────────────────────────────────────────────
 interface PlanEstimate {
   plan_id: number
   plan_name: string
@@ -32,20 +29,6 @@ interface PlanEstimate {
   features: string[]
 }
 
-type CalcResult = PlanEstimate[]
-
-// ──────────────────────────────────────────────────────
-// Utility
-// ──────────────────────────────────────────────────────
-const API_ENDPOINT = "/billing-estimator"
-
-// Plain number formatter (used for non-currency values like client counts)
-function fmt(n: number) {
-  return n.toLocaleString("en-KE", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-}
-
-// Currency formatter: converts KES amount → local currency, prefixes with symbol
-// The API always returns amounts in KES; we convert for display only.
 const KES_FALLBACK: GeoInfo = {
   countryCode: "KE",
   countryName: "Kenya",
@@ -53,17 +36,43 @@ const KES_FALLBACK: GeoInfo = {
   currencySymbol: "KSh",
   rateFromKES: 1,
   paymentCopy: "M-Pesa",
-  flag: "🇰🇪",
+  flag: "KE",
+}
+
+const METERED_PLAN = {
+  plan_id: 1,
+  plan_name: "Metered",
+  plan_code: "metered",
+  tagline: "Perfect for growing ISPs who want to keep costs lean.",
+  is_metered: true,
+  is_popular: true,
+  base_fee: 500,
+  pppoe_unit_price: 20,
+  pppoe_min_clients: 0,
+  hotspot_share_pct: 3,
+  price_yearly: 0,
+  max_subscribers: null,
+  max_routers: null,
+  max_staff: null,
+  features: [
+    "Free M-Pesa STK Push integration",
+    "MikroTik auto-provisioning",
+    "Unlimited routers",
+  ],
+} as const
+
+function fmt(n: number) {
+  return n.toLocaleString("en-KE", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
 
 function fmtCurrency(kesAmount: number, geo: GeoInfo): string {
   const local = Math.round(kesAmount * geo.rateFromKES)
-  return `${geo.currencySymbol} ${local.toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  return `${geo.currencySymbol} ${local.toLocaleString("en", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`
 }
 
-// ──────────────────────────────────────────────────────
-// Custom range slider (styled)
-// ──────────────────────────────────────────────────────
 function Slider({
   label,
   value,
@@ -87,24 +96,21 @@ function Slider({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
+      <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-          <Icon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           {label}
         </div>
-        <span className="text-sm font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-2.5 py-0.5 rounded-lg tabular-nums">
+        <span className="rounded-lg bg-blue-50 px-2.5 py-0.5 text-sm font-bold tabular-nums text-blue-700 dark:bg-blue-950 dark:text-blue-400">
           {formatValue(value)}
         </span>
       </div>
-      <div className="relative h-2 flex items-center">
-        {/* Track */}
+      <div className="relative flex h-2 items-center">
         <div className="absolute inset-0 rounded-full bg-slate-200" />
-        {/* Filled */}
         <div
           className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all"
           style={{ width: `${pct}%` }}
         />
-        {/* Thumb input */}
         <input
           type="range"
           min={min}
@@ -112,25 +118,24 @@ function Slider({
           step={step}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="relative w-full h-2 appearance-none bg-transparent cursor-pointer
-            [&::-webkit-slider-thumb]:appearance-none
-            [&::-webkit-slider-thumb]:w-5
+          className="relative h-2 w-full cursor-pointer appearance-none bg-transparent
             [&::-webkit-slider-thumb]:h-5
+            [&::-webkit-slider-thumb]:w-5
+            [&::-webkit-slider-thumb]:appearance-none
             [&::-webkit-slider-thumb]:rounded-full
-            [&::-webkit-slider-thumb]:bg-white
             [&::-webkit-slider-thumb]:border-2
             [&::-webkit-slider-thumb]:border-blue-600
+            [&::-webkit-slider-thumb]:bg-white
             [&::-webkit-slider-thumb]:shadow-md
-            [&::-webkit-slider-thumb]:cursor-pointer
-            [&::-moz-range-thumb]:w-5
             [&::-moz-range-thumb]:h-5
+            [&::-moz-range-thumb]:w-5
             [&::-moz-range-thumb]:rounded-full
-            [&::-moz-range-thumb]:bg-white
             [&::-moz-range-thumb]:border-2
-            [&::-moz-range-thumb]:border-blue-600"
+            [&::-moz-range-thumb]:border-blue-600
+            [&::-moz-range-thumb]:bg-white"
         />
       </div>
-      <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+      <div className="mt-1 flex justify-between text-[10px] text-slate-400">
         <span>{formatValue(min)}</span>
         <span>{formatValue(max)}</span>
       </div>
@@ -138,165 +143,93 @@ function Slider({
   )
 }
 
-// ──────────────────────────────────────────────────────
-// Plan code → visual config map
-// ──────────────────────────────────────────────────────
-const PLAN_STYLES: Record<
-  string,
-  { badge: string; badgeText: string; color: string; accent: string; icon: React.ElementType }
-> = {
-  metered: {
-    badge: "bg-blue-50 text-blue-700 border border-blue-100",
-    badgeText: "Pay As You Grow",
-    color: "border-blue-200",
-    accent: "text-blue-600",
-    icon: Zap,
-  },
-  starter: {
-    badge: "bg-emerald-50 text-emerald-700 border border-emerald-100",
-    badgeText: "Flat Monthly",
-    color: "border-slate-200",
-    accent: "text-emerald-600",
-    icon: Star,
-  },
-  professional: {
-    badge: "bg-violet-50 text-violet-700 border border-violet-100",
-    badgeText: "Most Popular",
-    color: "border-violet-300",
-    accent: "text-violet-600",
-    icon: TrendingUp,
-  },
-  enterprise: {
-    badge: "bg-amber-50 text-amber-700 border border-amber-100",
-    badgeText: "Enterprise",
-    color: "border-amber-200",
-    accent: "text-amber-600",
-    icon: Shield,
-  },
-}
-
-function defaultStyle(code: string) {
-  return (
-    PLAN_STYLES[code] ?? {
-      badge: "bg-slate-100 text-slate-600 border border-slate-200",
-      badgeText: code,
-      color: "border-slate-200",
-      accent: "text-slate-600",
-      icon: Zap,
-    }
-  )
-}
-
-// ──────────────────────────────────────────────────────
-// Single plan card
-// ──────────────────────────────────────────────────────
 function PlanCard({
   plan,
   onGetStarted,
-  highlighted,
   geo,
 }: {
   plan: PlanEstimate
   onGetStarted: () => void
-  highlighted: boolean
   geo: GeoInfo
 }) {
-  const style = defaultStyle(plan.plan_code)
-  const Icon = style.icon
-
-  // Cost rows — amounts are in KES from API, converted to local currency for display
-  const rows = [
-    ...(plan.is_metered
-      ? [
-          { label: "Base license fee", value: `${fmtCurrency(plan.base_fee, geo)}/mo` },
-          {
-            label: `${fmt(plan.billable_pppoe_clients)} PPPoE clients × ${fmtCurrency(plan.pppoe_unit_price, geo)}`,
-            value: fmtCurrency(plan.pppoe_charge, geo),
-          },
-          ...(plan.hotspot_share > 0
-            ? [
-                {
-                  label: `${plan.hotspot_share_pct}% hotspot share on ${fmtCurrency(plan.input_hotspot_revenue, geo)}`,
-                  value: fmtCurrency(plan.hotspot_share, geo),
-                },
-              ]
-            : []),
-        ]
-      : [{ label: "Flat monthly fee", value: `${fmtCurrency(plan.base_fee, geo)}/mo` }]),
-  ]
-
   return (
     <motion.div
       layout
-      className={`relative flex flex-col bg-white dark:bg-slate-900 rounded-2xl border-2 p-6 transition-shadow hover:shadow-lg ${
-        highlighted ? "border-blue-600 shadow-blue-100 shadow-lg" : style.color
-      }`}
+      className="relative flex flex-col rounded-2xl border-2 border-blue-600 bg-white p-6 shadow-lg shadow-blue-100 transition-shadow hover:shadow-xl dark:bg-slate-900"
     >
-      {/* Popular badge */}
-      {plan.is_popular && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap shadow">
-          Most Popular
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full mb-2 ${style.badge}`}>
-            <Icon className="w-3 h-3" />
-            {style.badgeText}
-          </span>
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">{plan.plan_name}</h3>
-          {plan.tagline && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{plan.tagline}</p>}
-        </div>
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow">
+        Most Popular
       </div>
 
-      {/* Estimated cost */}
+      <div className="mb-4">
+        <span className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-blue-700">
+          <Zap className="h-3 w-3" />
+          Pay As You Grow
+        </span>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{plan.plan_name}</h3>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{plan.tagline}</p>
+      </div>
+
       <div className="mb-5">
         <div className="flex items-baseline gap-1">
-          <span className={`text-4xl font-extrabold ${style.accent}`}>
-            {fmtCurrency(plan.estimated_monthly, geo)}
+          <span className="text-4xl font-extrabold text-blue-600">
+            {fmtCurrency(plan.base_fee, geo)}
           </span>
-          <span className="text-slate-500 text-sm font-medium">/mo</span>
+          <span className="text-sm font-medium text-slate-500">/mo base</span>
         </div>
-        <p className="text-[11px] text-slate-400 mt-0.5">Based on your inputs</p>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+          + {fmtCurrency(plan.pppoe_unit_price, geo)} per PPPoE user · {plan.hotspot_share_pct}% hotspot share
+        </p>
       </div>
 
-      {/* Cost breakdown */}
-      <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-5 space-y-2">
-        <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Cost breakdown</p>
-        {rows.map((row, i) => (
-          <div key={i} className="flex items-start justify-between gap-4 text-xs">
-            <span className="text-slate-600 dark:text-slate-400">{row.label}</span>
-            <span className="font-semibold text-slate-900 dark:text-white whitespace-nowrap">{row.value}</span>
+      <div className="mb-5 rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          Live estimate
+        </p>
+        <div className="space-y-2">
+          <div className="flex items-start justify-between gap-4 text-xs">
+            <span className="text-slate-600 dark:text-slate-400">
+              Base platform fee
+            </span>
+            <span className="whitespace-nowrap font-semibold text-slate-900 dark:text-white">
+              {fmtCurrency(plan.base_fee, geo)}
+            </span>
           </div>
-        ))}
-        <div className="border-t border-slate-200 dark:border-slate-700 pt-2 flex items-center justify-between text-sm">
-          <span className="font-semibold text-slate-700 dark:text-slate-300">Total</span>
-          <span className={`font-bold ${style.accent}`}>{fmtCurrency(plan.estimated_monthly, geo)}/mo</span>
+          <div className="flex items-start justify-between gap-4 text-xs">
+            <span className="text-slate-600 dark:text-slate-400">
+              {fmt(plan.billable_pppoe_clients)} PPPoE users × {fmtCurrency(plan.pppoe_unit_price, geo)}
+            </span>
+            <span className="whitespace-nowrap font-semibold text-slate-900 dark:text-white">
+              {fmtCurrency(plan.pppoe_charge, geo)}
+            </span>
+          </div>
+          <div className="flex items-start justify-between gap-4 text-xs">
+            <span className="text-slate-600 dark:text-slate-400">
+              {plan.hotspot_share_pct}% of {fmtCurrency(plan.input_hotspot_revenue, geo)} hotspot revenue
+            </span>
+            <span className="whitespace-nowrap font-semibold text-slate-900 dark:text-white">
+              {fmtCurrency(plan.hotspot_share, geo)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-sm dark:border-slate-700">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Estimated total</span>
+            <span className="font-bold text-blue-600">{fmtCurrency(plan.estimated_monthly, geo)}/mo</span>
+          </div>
         </div>
       </div>
 
-      {/* Features */}
-      {plan.features?.length > 0 && (
-        <ul className="space-y-2 mb-6 flex-1">
-          {plan.features.slice(0, 5).map((f, i) => (
-            <li key={i} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
-              <Check className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${style.accent}`} />
-              {f}
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="mb-6 flex-1 space-y-2">
+        {plan.features.map((feature) => (
+          <li key={feature} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
+            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600" />
+            {feature}
+          </li>
+        ))}
+      </ul>
 
-      {/* CTA */}
       <button
         onClick={onGetStarted}
-        className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
-          highlighted
-            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-            : "border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-        }`}
+        className="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-700"
       >
         Start Free Trial
       </button>
@@ -304,9 +237,6 @@ function PlanCard({
   )
 }
 
-// ──────────────────────────────────────────────────────
-// Main export
-// ──────────────────────────────────────────────────────
 export function BillingCalculator({
   onGetStarted,
   onContactSales,
@@ -319,98 +249,67 @@ export function BillingCalculator({
   const geo = geoProp ?? KES_FALLBACK
   const [pppoeClients, setPppoeClients] = useState(30)
   const [hotspotRevenue, setHotspotRevenue] = useState(5000)
-  const [plans, setPlans] = useState<CalcResult>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
   const [mounted, setMounted] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: "-80px" })
 
-  useEffect(() => { setMounted(true) }, [])
-
-  const fetchEstimates = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const params = new URLSearchParams({
-        pppoe_clients: String(pppoeClients),
-        monthly_hotspot_revenue: String(hotspotRevenue),
-      })
-      const res = await fetch(`${API_ENDPOINT}?${params.toString()}`, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      })
-      if (!res.ok) {
-        const payload = await res.json().catch(() => null)
-        throw new Error(payload?.detail || `Server responded with ${res.status}` )
-      }
-      const data = await res.json()
-      setPlans(Array.isArray(data) ? data : data.results ?? [])
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't load estimates - please try again.")
-    } finally {
-      setLoading(false)
-    }
-  }, [pppoeClients, hotspotRevenue])
-
-  // Debounce: re-fetch 400 ms after sliders stop
   useEffect(() => {
-    const t = setTimeout(fetchEstimates, 400)
-    return () => clearTimeout(t)
-  }, [fetchEstimates])
+    setMounted(true)
+  }, [])
 
-  // Only show the metered plan in the calculator — non-metered plans are
-  // represented by the static Enterprise card with a Contact Sales CTA.
-  const sorted = [...plans]
-    .filter((p) => p.is_metered)
-    .sort((a, b) => a.estimated_monthly - b.estimated_monthly)
-
-  // Highlight the (only) metered plan
-  const cheapestId = sorted[0]?.plan_id
+  const pppoeCharge = pppoeClients * METERED_PLAN.pppoe_unit_price
+  const hotspotShare = Math.round(hotspotRevenue * (METERED_PLAN.hotspot_share_pct / 100))
+  const meteredPlan: PlanEstimate = {
+    ...METERED_PLAN,
+    input_pppoe_clients: pppoeClients,
+    billable_pppoe_clients: pppoeClients,
+    pppoe_charge: pppoeCharge,
+    input_hotspot_revenue: hotspotRevenue,
+    hotspot_share: hotspotShare,
+    estimated_monthly: METERED_PLAN.base_fee + pppoeCharge + hotspotShare,
+  }
 
   return (
     <section
       ref={ref}
       id="calculator"
-      className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-slate-50 dark:from-slate-950 dark:to-slate-900"
+      className="bg-gradient-to-b from-white to-slate-50 px-4 py-20 dark:from-slate-950 dark:to-slate-900 sm:px-6 md:py-28 lg:px-8"
     >
-      <div className="max-w-6xl mx-auto">
-        {/* Heading */}
+      <div className="mx-auto max-w-6xl">
         <motion.div
           initial={mounted ? { opacity: 0, y: 30 } : false}
           animate={mounted ? (isInView ? { opacity: 1, y: 0 } : {}) : undefined}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="text-center mb-10"
+          className="mb-10 text-center"
         >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-50 border border-blue-100 rounded-full text-blue-700 text-xs font-semibold uppercase tracking-wider mb-4">
-            <Zap className="w-3.5 h-3.5" />
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-blue-700">
+            <Zap className="h-3.5 w-3.5" />
             Billing Calculator
           </div>
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-            See exactly what<br className="hidden md:block" /> you&apos;ll pay.
+          <h2 className="mb-4 text-3xl font-bold tracking-tight md:text-5xl">
+            See exactly what
+            <br className="hidden md:block" /> you&apos;ll pay.
           </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
-            Drag the sliders to match your network size. Real numbers, no guesswork.
+          <p className="mx-auto max-w-xl text-lg text-slate-600 dark:text-slate-400">
+            Drag the sliders to match your network size. The metered plan updates instantly with no loading.
           </p>
         </motion.div>
 
-        {/* Sliders panel */}
         <motion.div
           initial={mounted ? { opacity: 0, y: 20 } : false}
           animate={mounted ? (isInView ? { opacity: 1, y: 0 } : {}) : undefined}
           transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm p-6 md:p-8 mb-8"
+          className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900 md:p-8"
         >
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid gap-8 md:grid-cols-2">
             <Slider
-              label="PPPoE Clients"
+              label="PPPoE Users"
               value={pppoeClients}
               min={0}
               max={500}
               step={5}
               onChange={setPppoeClients}
-              formatValue={(v) => `${v} clients`}
+              formatValue={(v) => `${v} users`}
               icon={Users}
             />
             <Slider
@@ -425,119 +324,90 @@ export function BillingCalculator({
             />
           </div>
 
-          {/* Quick-select presets */}
-          <div className="mt-6 flex flex-wrap gap-2 justify-center">
-            <p className="w-full text-center text-xs text-slate-400 mb-1 font-medium">Quick presets</p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <p className="mb-1 w-full text-center text-xs font-medium text-slate-400">Quick presets</p>
             {[
-              { label: `Starter (15 PPPoE, no hotspot)`, pppoe: 15, hotspot: 0 },
-              { label: `Growing (50 PPPoE, ${fmtCurrency(10000, geo)} hotspot)`, pppoe: 50, hotspot: 10000 },
-              { label: `Large (150 PPPoE, ${fmtCurrency(30000, geo)} hotspot)`, pppoe: 150, hotspot: 30000 },
-              { label: `Enterprise (300 PPPoE, ${fmtCurrency(80000, geo)} hotspot)`, pppoe: 300, hotspot: 80000 },
-            ].map((p) => (
+              { label: "Starter", pppoe: 15, hotspot: 0 },
+              { label: "Growing", pppoe: 50, hotspot: 10000 },
+              { label: "Large", pppoe: 150, hotspot: 30000 },
+              { label: "Busy hotspot", pppoe: 30, hotspot: 60000 },
+            ].map((preset) => (
               <button
-                key={p.label}
-                onClick={() => { setPppoeClients(p.pppoe); setHotspotRevenue(p.hotspot) }}
-                className={`text-xs px-3 py-1.5 rounded-lg border transition-all font-medium ${
-                  pppoeClients === p.pppoe && hotspotRevenue === p.hotspot
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-slate-50 text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-700"
+                key={preset.label}
+                onClick={() => {
+                  setPppoeClients(preset.pppoe)
+                  setHotspotRevenue(preset.hotspot)
+                }}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+                  pppoeClients === preset.pppoe && hotspotRevenue === preset.hotspot
+                    ? "border-blue-600 bg-blue-600 text-white"
+                    : "border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300 hover:text-blue-700"
                 }`}
               >
-                {p.label}
+                {preset.label}
               </button>
             ))}
           </div>
         </motion.div>
 
-        {/* Plan cards */}
-        {error && (
-          <div className="text-center py-8 text-red-500 text-sm font-medium">{error}</div>
-        )}
+        <motion.div layout className="mx-auto grid max-w-2xl gap-5 sm:grid-cols-2">
+          <PlanCard plan={meteredPlan} onGetStarted={onGetStarted} geo={geo} />
 
-        {loading && plans.length === 0 && (
-          <div className="grid sm:grid-cols-2 max-w-2xl mx-auto gap-5">
-            {[1, 2].map((n) => (
-              <div key={n} className="h-80 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
-            ))}
-          </div>
-        )}
-
-        {!error && (
           <motion.div
             layout
-            className="grid sm:grid-cols-2 max-w-2xl mx-auto gap-5"
+            className="flex flex-col rounded-2xl border border-blue-700/50 bg-gradient-to-br from-slate-900 to-blue-950 p-6 shadow-xl"
           >
-            {/* Metered plan — driven by calculator API */}
-            {sorted.map((plan) => (
-              <PlanCard
-                key={plan.plan_id}
-                plan={plan}
-                onGetStarted={onGetStarted}
-                highlighted={plan.plan_id === cheapestId}
-                geo={geo}
-              />
-            ))}
-
-            {/* Enterprise & Custom — static card, always visible */}
-            <motion.div
-              layout
-              className="rounded-2xl bg-gradient-to-br from-slate-900 to-blue-950 border border-blue-700/50 p-6 shadow-xl flex flex-col"
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-1.5 rounded-lg bg-blue-500/20">
-                  <Shield className="w-4 h-4 text-blue-400" />
-                </div>
-                <span className="text-xs font-semibold text-blue-300 uppercase tracking-wider">
-                  Enterprise &amp; Custom
-                </span>
+            <div className="mb-4 flex items-center gap-2">
+              <div className="rounded-lg bg-blue-500/20 p-1.5">
+                <Shield className="h-4 w-4 text-blue-400" />
               </div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-blue-300">
+                Enterprise &amp; Custom
+              </span>
+            </div>
 
-              <h3 className="text-xl font-bold text-white mb-1">Scale Without Limits</h3>
-              <p className="text-slate-400 text-sm mb-6">White-label, SLA guarantee, and pricing built around your ISP.</p>
+            <h3 className="mb-1 text-xl font-bold text-white">Scale Without Limits</h3>
+            <p className="mb-6 text-sm text-slate-400">
+              White-label, SLA guarantee, and pricing built around your ISP.
+            </p>
 
-              <div className="text-3xl font-extrabold text-white mb-1">Custom</div>
-              <p className="text-sm text-slate-400 mb-6">Tailored to your subscriber count &amp; growth stage</p>
+            <div className="mb-1 text-3xl font-extrabold text-white">Custom</div>
+            <p className="mb-6 text-sm text-slate-400">Tailored to your subscriber count and growth stage</p>
 
-              <ul className="space-y-2 mb-6 flex-1">
-                {[
-                  "Everything in Metered",
-                  "Full white-label support",
-                  "Dedicated account manager",
-                  "99.9% uptime SLA",
-                  "Custom payment integrations",
-                  "Priority 24/7 support",
-                ].map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-slate-300 text-sm">
-                    <Check className="w-4 h-4 text-blue-400 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
+            <ul className="mb-6 flex-1 space-y-2">
+              {[
+                "Everything in Metered",
+                "Full white-label support",
+                "Dedicated account manager",
+                "99.9% uptime SLA",
+                "Custom payment integrations",
+                "Priority 24/7 support",
+              ].map((feature) => (
+                <li key={feature} className="flex items-center gap-2 text-sm text-slate-300">
+                  <Check className="h-4 w-4 shrink-0 text-blue-400" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
 
-              <button
-                onClick={onContactSales ?? onGetStarted}
-                className="mt-auto w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-white text-sm text-center transition-colors"
-              >
-                Contact Sales →
-              </button>
-            </motion.div>
+            <button
+              onClick={onContactSales ?? onGetStarted}
+              className="mt-auto w-full rounded-xl bg-blue-600 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+            >
+              Contact Sales →
+            </button>
           </motion.div>
-        )}
+        </motion.div>
 
-        {/* Footnote */}
-        {sorted.length > 0 && (
-          <motion.p
-            initial={mounted ? { opacity: 0 } : false}
-            animate={mounted ? (isInView ? { opacity: 1 } : {}) : undefined}
-            transition={{ delay: 0.5 }}
-            className="text-center text-xs text-slate-400 mt-8"
-          >
-            Estimates shown in {geo.currency}{geo.countryCode !== "KE" ? ` (converted from KES at approx. 1 KES = ${geo.rateFromKES} ${geo.currency})` : ""}. Actuals depend on active users per billing cycle. No credit card required to start.
-          </motion.p>
-        )}
+        <motion.p
+          initial={mounted ? { opacity: 0 } : false}
+          animate={mounted ? (isInView ? { opacity: 1 } : {}) : undefined}
+          transition={{ delay: 0.5 }}
+          className="mt-8 text-center text-xs text-slate-400"
+        >
+          Estimates shown in {geo.currency}. Actual billing depends on active PPPoE users and hotspot revenue for the cycle. No API call is needed for this estimator.
+        </motion.p>
       </div>
     </section>
   )
 }
-
-
