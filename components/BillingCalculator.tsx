@@ -37,10 +37,7 @@ type CalcResult = PlanEstimate[]
 // ──────────────────────────────────────────────────────
 // Utility
 // ──────────────────────────────────────────────────────
-const API_BASE =
-  typeof window !== "undefined"
-    ? "/api/public"
-    : process.env.NEXT_PUBLIC_API_URL || "https://api.netily.co.ke/api/v1"
+const API_BASE = "/api/public"
 
 // Plain number formatter (used for non-currency values like client counts)
 function fmt(n: number) {
@@ -344,11 +341,14 @@ export function BillingCalculator({
         method: "GET",
         headers: { Accept: "application/json" },
       })
-      if (!res.ok) throw new Error(`Server responded with ${res.status}`)
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null)
+        throw new Error(payload?.detail || `Server responded with ${res.status}` )
+      }
       const data = await res.json()
       setPlans(Array.isArray(data) ? data : data.results ?? [])
-    } catch {
-      setError("Couldn't load estimates — please try again.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't load estimates - please try again.")
     } finally {
       setLoading(false)
     }
@@ -539,3 +539,5 @@ export function BillingCalculator({
     </section>
   )
 }
+
+

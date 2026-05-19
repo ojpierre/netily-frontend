@@ -155,6 +155,53 @@ function InfiniteMarquee() {
   )
 }
 
+function PaymentsMarquee() {
+  const logos = [
+    { name: "M-Pesa", src: "/payments-logos/mpesa_logo.png", category: "Mobile money" },
+    { name: "Airtel Money", src: "/payments-logos/airtel_money-logo.webp", category: "Mobile money" },
+    { name: "Telkom Kash", src: "/payments-logos/telkom-kash.png", category: "Mobile money" },
+    { name: "Co-op Bank", src: "/payments-logos/Coopbanklogo.jpg", category: "Banking" },
+    { name: "Equity Bank", src: "/payments-logos/Equity_bank_logo.png", category: "Banking" },
+    { name: "I&M Bank", src: "/payments-logos/Imbank-logo.webp", category: "Banking" },
+    { name: "Kingdom Bank", src: "/payments-logos/Kingdom_bank_logo.png", category: "Banking" },
+    { name: "National Bank", src: "/payments-logos/National-bank-logo.jpg", category: "Banking" },
+    { name: "SBM Bank", src: "/payments-logos/SBM_bank_logo.png", category: "Banking" },
+    { name: "Stanbic Bank", src: "/payments-logos/Stanbic-bank-logo.jpg", category: "Banking" },
+    { name: "Standard Chartered", src: "/payments-logos/standard_chartered_logo.png", category: "Banking" },
+  ]
+
+  return (
+    <div className="overflow-hidden">
+      <motion.div
+        className="flex w-max gap-4 py-1"
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{ duration: 32, repeat: Infinity, ease: "linear" }}
+      >
+        {[...logos, ...logos].map((logo, index) => (
+          <div
+            key={`${logo.name}-${index}`}
+            className="flex h-24 w-[220px] shrink-0 items-center gap-4 rounded-3xl border border-slate-200/80 bg-white/95 px-5 py-4 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900/90"
+          >
+            <div className="relative flex h-12 w-24 items-center justify-center overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-800">
+              <Image
+                src={logo.src}
+                alt={`${logo.name} payment platform logo used in Netily billing workflows`}
+                fill
+                sizes="96px"
+                className="object-contain p-2"
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">{logo.name}</p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{logo.category}</p>
+            </div>
+          </div>
+        ))}
+      </motion.div>
+    </div>
+  )
+}
+
 // ─── FAQ Accordion ──────────────────────────────────────────────
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
@@ -208,7 +255,7 @@ function AnimatedCounter({ value, suffix = "" }: { value: number; suffix?: strin
 // ─── Dashboard mockup (hero visual) ───────────────────────────
 function DashboardMockup() {
   return (
-    <div className="relative mx-auto max-w-5xl mt-16 md:mt-20">
+    <div className="relative mx-auto max-w-5xl mt-12 md:mt-16">
       {/* Glow behind */}
       <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-purple-500/20 rounded-3xl blur-3xl opacity-60" />
 
@@ -419,12 +466,15 @@ export function LandingPage() {
       <a href="#main-content" className="sr-only focus:not-sr-only">Skip to main content</a>
       {/* ━━━ 1. FLOATING HEADER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] border-b border-slate-200/60 dark:border-slate-800/60"
-            : "bg-transparent"
-        }`}
+        className="fixed inset-x-0 top-4 z-50 px-4 sm:px-6 lg:px-8"
       >
+        <div
+          className={`mx-auto max-w-7xl rounded-2xl border transition-all duration-300 ${
+            scrolled
+              ? "border-slate-200/80 bg-white/88 shadow-2xl shadow-slate-900/10 backdrop-blur-2xl dark:border-slate-800/80 dark:bg-slate-950/82"
+              : "border-white/60 bg-white/72 shadow-xl shadow-slate-900/5 backdrop-blur-2xl dark:border-slate-800/70 dark:bg-slate-950/72"
+          }`}
+        >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-18">
             {/* Logo */}
@@ -540,13 +590,14 @@ export function LandingPage() {
             </div>
           </div>
         </div>
+        </div>
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="md:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 px-4 pb-4"
+            className="mx-auto max-w-7xl rounded-b-2xl border-x border-b border-slate-200 bg-white/95 px-4 pb-4 backdrop-blur-2xl dark:border-slate-800 dark:bg-slate-900/95 md:hidden"
           >
             <div className="flex flex-col gap-1 pt-2">
               {(["Features", "Pricing", "Calculator", "FAQs"] as const).map((label) => (
@@ -615,7 +666,7 @@ export function LandingPage() {
       <motion.section
         ref={heroRef}
         style={{ opacity: heroOpacity, scale: heroScale }}
-        className="relative pt-28 md:pt-36 pb-20 md:pb-28 px-4 sm:px-6 lg:px-8 overflow-hidden"
+        className="relative pt-32 md:pt-40 pb-32 md:pb-44 px-4 sm:px-6 lg:px-8 overflow-hidden"
       >
         <div className="absolute inset-0 -z-20">
           <Image
@@ -781,6 +832,23 @@ export function LandingPage() {
             </p>
           </div>
           <InfiniteMarquee />
+        </div>
+      </section>
+
+      <section className="py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6 flex flex-col items-center text-center">
+            <p className="text-xs text-slate-400 uppercase tracking-widest font-medium">
+              Payments and banking rails
+            </p>
+            <h2 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Built around the payment platforms and banks Kenyan ISPs work with daily
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm md:text-base text-slate-500 dark:text-slate-400">
+              From M-Pesa collections to bank-aligned billing operations, Netily is designed for the financial channels your subscribers already trust.
+            </p>
+          </div>
+          <PaymentsMarquee />
         </div>
       </section>
 

@@ -130,6 +130,19 @@ const softwareSchema = {
     { "@type": "Country", name: "Uganda" },
     { "@type": "Country", name: "Rwanda" },
   ],
+  paymentAccepted: [
+    "M-Pesa",
+    "Airtel Money",
+    "Telkom Kash",
+    "Co-operative Bank",
+    "Equity Bank",
+    "I&M Bank",
+    "Kingdom Bank",
+    "National Bank",
+    "SBM Bank",
+    "Stanbic Bank",
+    "Standard Chartered",
+  ],
 }
 
 const orgSchema = {
@@ -155,6 +168,13 @@ const orgSchema = {
     areaServed: "KE",
     availableLanguage: "English",
   },
+  knowsAbout: [
+    "ISP billing software",
+    "M-Pesa billing automation",
+    "MikroTik provisioning",
+    "Hotspot billing",
+    "Kenyan bank payment operations",
+  ],
 }
 
 const websiteSchema = {
@@ -168,6 +188,29 @@ const websiteSchema = {
     target: "https://netily.co.ke/?q={search_term_string}",
     "query-input": "required name=search_term_string",
   },
+}
+
+const financialWorkflowSchema = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: "Netily Payment and Billing Workflow",
+  serviceType: "ISP billing automation",
+  provider: {
+    "@type": "Organization",
+    name: "Netily",
+    url: "https://netily.co.ke",
+  },
+  areaServed: [
+    { "@type": "Country", name: "Kenya" },
+    { "@type": "Country", name: "Uganda" },
+    { "@type": "Country", name: "Tanzania" },
+  ],
+  availableChannel: [
+    { "@type": "ServiceChannel", name: "M-Pesa" },
+    { "@type": "ServiceChannel", name: "Airtel Money" },
+    { "@type": "ServiceChannel", name: "Telkom Kash" },
+    { "@type": "ServiceChannel", name: "Bank-aligned billing workflows" },
+  ],
 }
 
 const faqSchema = {
@@ -299,6 +342,10 @@ export default function Page() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(financialWorkflowSchema) }}
       />
       <script
         type="application/ld+json"
