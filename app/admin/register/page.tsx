@@ -159,7 +159,7 @@ const validatePassword = (password: string): { valid: boolean; errors: string[] 
 // ==========================================
 
 async function registerCompany(data: Omit<RegisterFormData, "admin_password_confirm">) {
-  const response = await fetch("/api/public/core/companies/register/", {
+  const response = await fetch("/company-registration", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

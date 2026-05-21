@@ -42,6 +42,10 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/company-registration',
+        destination: 'https://api.netily.co.ke/api/v1/core/companies/register/',
+      },
+      {
         source: '/billing-estimator',
         destination: 'https://api.netily.co.ke/api/v1/subscriptions/calculator/',
       },
