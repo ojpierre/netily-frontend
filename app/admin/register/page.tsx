@@ -484,8 +484,11 @@ export default function AdminRegisterPage() {
         slugifyCompanyName(formData.company_name) // Fallback to generated slug
       
       console.log('Registration success, tenant subdomain:', tenantSubdomain)
-      
-      const tenantAdminUrl = getTenantFrontendUrl(tenantSubdomain, "/admin")
+
+      const tenantAdminUrl =
+        response.dashboard_url ||
+        response.login_url?.replace(/\/login\/?$/, "/") ||
+        getTenantFrontendUrl(tenantSubdomain, "/admin")
       
       // Set the tenant URL and show completion state
       setTenantUrl(tenantAdminUrl)
@@ -506,10 +509,10 @@ export default function AdminRegisterPage() {
       }
 
       // Wait a moment to show the success animation
-      await new Promise((resolve) => setTimeout(resolve, welcomeSent ? 2000 : 3500))
+      await new Promise((resolve) => setTimeout(resolve, welcomeSent ? 1200 : 2000))
 
       // Redirect to the tenant's admin dashboard
-      window.location.href = tenantAdminUrl
+      window.location.assign(tenantAdminUrl)
     } catch (error: any) {
       setLoading(false)
       if (error.status === 400 && error.errors) {

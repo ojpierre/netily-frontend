@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic"
 
 const DEFAULT_PUBLIC_API_BASE = "https://api.netily.co.ke"
 const REGISTER_PATH = "/api/v1/core/companies/register/"
+const REGISTRATION_TIMEOUT_MS = 5 * 60 * 1000
 
 function normalizeBaseUrl(value?: string | null) {
   if (!value) return null
@@ -35,6 +36,11 @@ function buildCandidateUrls() {
   return [...new Set(candidates)].map((baseUrl) => `${baseUrl}${REGISTER_PATH}`)
 }
 
+function getRegistrationUrl() {
+  const [primaryUrl] = buildCandidateUrls()
+  return primaryUrl || `${DEFAULT_PUBLIC_API_BASE}${REGISTER_PATH}`
+}
+
 export async function POST(request: NextRequest) {
   let payload: unknown
 
@@ -49,64 +55,60 @@ export async function POST(request: NextRequest) {
 
   const requestId = crypto.randomUUID()
   const payloadText = JSON.stringify(payload)
-  const candidateUrls = buildCandidateUrls()
-  const networkFailures: Array<{ url: string; error: string }> = []
+  const registrationUrl = getRegistrationUrl()
 
-  for (const url of candidateUrls) {
-    try {
-      console.info(`[company-registration:${requestId}] forwarding to ${url}`)
+  try {
+    console.info(`[company-registration:${requestId}] forwarding to ${registrationUrl}`)
 
-      const upstream = await fetch(url, {
-        method: "POST",
+    const upstream = await fetch(registrationUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Registration-Proxy": "netily-frontend",
+        "X-Request-ID": requestId,
+      },
+      body: payloadText,
+      cache: "no-store",
+      signal: AbortSignal.timeout(REGISTRATION_TIMEOUT_MS),
+    })
+
+    const text = await upstream.text()
+    const contentType = upstream.headers.get("content-type") || ""
+
+    console.info(
+      `[company-registration:${requestId}] upstream ${registrationUrl} responded ${upstream.status}`,
+    )
+
+    if (contentType.includes("application/json")) {
+      return new NextResponse(text, {
+        status: upstream.status,
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-Registration-Proxy": "netily-frontend",
+          "Cache-Control": "no-store",
           "X-Request-ID": requestId,
         },
-        body: payloadText,
-        cache: "no-store",
-        signal: AbortSignal.timeout(20000),
       })
-
-      const text = await upstream.text()
-      const contentType = upstream.headers.get("content-type") || ""
-
-      console.info(
-        `[company-registration:${requestId}] upstream ${url} responded ${upstream.status}`,
-      )
-
-      if (contentType.includes("application/json")) {
-        return new NextResponse(text, {
-          status: upstream.status,
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-store",
-            "X-Request-ID": requestId,
-          },
-        })
-      }
-
-      return NextResponse.json(
-        {
-          detail: text || "Registration service returned an unexpected response.",
-          request_id: requestId,
-        },
-        {
-          status: upstream.status,
-          headers: {
-            "Cache-Control": "no-store",
-            "X-Request-ID": requestId,
-          },
-        },
-      )
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown upstream error"
-      networkFailures.push({ url, error: message })
-      console.error(
-        `[company-registration:${requestId}] upstream ${url} failed: ${message}`,
-      )
     }
+
+    return NextResponse.json(
+      {
+        detail: text || "Registration service returned an unexpected response.",
+        request_id: requestId,
+      },
+      {
+        status: upstream.status,
+        headers: {
+          "Cache-Control": "no-store",
+          "X-Request-ID": requestId,
+        },
+      },
+    )
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown upstream error"
+    console.error(
+      `[company-registration:${requestId}] upstream ${registrationUrl} failed: ${message}`,
+    )
   }
 
   return NextResponse.json(
