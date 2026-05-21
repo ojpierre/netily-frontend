@@ -181,6 +181,26 @@ async function registerCompany(data: Omit<RegisterFormData, "admin_password_conf
   return result
 }
 
+async function lookupRegistrationStatus(companyName: string, companyEmail: string) {
+  const params = new URLSearchParams({
+    company_name: companyName,
+    company_email: companyEmail,
+  })
+
+  const response = await fetch(`/company-registration/status?${params.toString()}`, {
+    method: "GET",
+    cache: "no-store",
+  })
+
+  const result = await response.json().catch(() => ({}))
+
+  if (!response.ok) {
+    throw { status: response.status, errors: result }
+  }
+
+  return result
+}
+
 // ==========================================
 // LOADING OVERLAY COMPONENT
 // ==========================================
@@ -486,9 +506,9 @@ export default function AdminRegisterPage() {
       console.log('Registration success, tenant subdomain:', tenantSubdomain)
 
       const tenantAdminUrl =
+        response.login_url ||
         response.dashboard_url ||
-        response.login_url?.replace(/\/login\/?$/, "/") ||
-        getTenantFrontendUrl(tenantSubdomain, "/admin")
+        getTenantFrontendUrl(tenantSubdomain, "/admin/login/")
       
       // Set the tenant URL and show completion state
       setTenantUrl(tenantAdminUrl)
@@ -528,10 +548,28 @@ export default function AdminRegisterPage() {
         setGeneralError(String(backendDetail))
         toast.error(String(backendDetail))
       } else if (error.status === 502 || error.status === 503 || error.status === 504) {
-        const gatewayMessage =
-          "Registration service is temporarily unavailable (gateway/server restart). Please retry in 30-60 seconds."
-        setGeneralError(gatewayMessage)
-        toast.error(gatewayMessage)
+        try {
+          const statusResult = await lookupRegistrationStatus(
+            formData.company_name,
+            formData.company_email,
+          )
+          const fallbackUrl =
+            statusResult.login_url ||
+            statusResult.dashboard_url ||
+            getTenantFrontendUrl(
+              statusResult.subdomain || slugifyCompanyName(formData.company_name),
+              "/admin/login/",
+            )
+
+          toast.success("Workspace created. Redirecting you to your tenant login...")
+          window.location.assign(fallbackUrl)
+          return
+        } catch {
+          const gatewayMessage =
+            "Registration service is temporarily unavailable (gateway/server restart). Please retry in 30-60 seconds."
+          setGeneralError(gatewayMessage)
+          toast.error(gatewayMessage)
+        }
       } else {
         const fallbackMessage =
           error?.errors?.detail ||
