@@ -247,7 +247,7 @@ function OperationsShowcaseSection() {
               One operating surface for payment, network, and support
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-600 dark:text-slate-400">
-              The hero stays focused now. This section carries the deeper operating story with the dashboard visual and the workflow signals that matter most to an ISP owner.
+              From payment confirmation to subscriber state changes and support follow-up, the important operational signals stay visible in one place.
             </p>
           </div>
         </Reveal>
@@ -255,12 +255,20 @@ function OperationsShowcaseSection() {
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {signals.map((signal, index) => (
             <Reveal key={signal.title} delay={index * 0.08}>
-              <article className="rounded-[28px] border border-slate-200/80 bg-slate-50/90 p-6 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900/80">
-                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${signal.accent}`}>
-                  <signal.icon className="h-5 w-5" />
+              <article className="rounded-[30px] border border-slate-200/80 bg-white/95 p-6 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900/90">
+                <div className="flex items-start justify-between gap-4">
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${signal.accent}`}>
+                    <signal.icon className="h-5 w-5" />
+                  </div>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400 dark:border-slate-700 dark:bg-slate-800">
+                    0{index + 1}
+                  </span>
                 </div>
                 <p className="mt-5 text-lg font-semibold text-slate-900 dark:text-white">{signal.title}</p>
                 <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{signal.body}</p>
+                <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                  <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-blue-500 via-sky-500 to-emerald-400" />
+                </div>
               </article>
             </Reveal>
           ))}
@@ -851,7 +859,7 @@ export function LandingPage() {
       <motion.section
         ref={heroRef}
         style={{ opacity: heroOpacity, scale: heroScale }}
-        className="relative flex min-h-screen items-center px-4 pb-16 pt-28 sm:px-6 md:pt-32 lg:px-8 overflow-hidden"
+        className="relative flex min-h-screen items-end px-4 pb-14 pt-28 sm:px-6 md:pb-20 md:pt-32 lg:px-8 overflow-hidden"
       >
         <div className="absolute inset-0 -z-20">
           <Image
@@ -860,10 +868,10 @@ export function LandingPage() {
             fill
             priority
             sizes="100vw"
-            className="object-cover object-center opacity-[0.58]"
+            className="object-cover object-center opacity-[0.72]"
           />
-          <div className="absolute inset-0 bg-white/45 dark:bg-slate-950/58" />
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-blue-600/45 via-blue-500/18 to-transparent dark:from-blue-700/40 dark:via-blue-600/18" />
+          <div className="absolute inset-0 bg-slate-950/30 dark:bg-slate-950/44" />
+          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-blue-700/80 via-blue-600/35 to-transparent dark:from-blue-800/70 dark:via-blue-700/30" />
         </div>
         {/* Background gradient orbs */}
         <div className="absolute inset-0 overflow-hidden -z-10">
@@ -871,106 +879,104 @@ export function LandingPage() {
           <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-[128px] opacity-50" />
         </div>
 
-        <div className="mx-auto w-full max-w-5xl text-center">
+        <div className="mx-auto w-full max-w-6xl">
           {/* Badge */}
-          <Reveal>
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950 border border-blue-100 dark:border-blue-800 rounded-full text-blue-700 dark:text-blue-300 text-sm font-medium mb-8">
+          {/*<Reveal>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white/90 backdrop-blur-sm mb-6">
               <Sparkles className="w-4 h-4" />
               <span>Trusted by 100+ ISPs across Kenya &amp; East Africa</span>
               <span className="text-lg leading-none">✨</span>
             </div>
-          </Reveal>
+          </Reveal>*/}
 
-          {/* H1 — Search-intent targeted */}
-          <Reveal delay={0.1}>
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.08] mb-3">
-              ISP Billing Software
-              <br />
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                for Kenya &amp; East Africa
-              </span>
-            </h1>
-          </Reveal>
-
-          {/* Brand tagline below H1 */}
-          <Reveal delay={0.15}>
-            <p className="text-2xl sm:text-3xl font-bold text-slate-500 dark:text-slate-400 mb-6 tracking-tight">
-              Run your ISP while you sleep.
-            </p>
-          </Reveal>
-
-          {/* Sub-headline — keyword-rich first 200 words */}
-          <Reveal delay={0.2}>
-            <p className="text-lg md:text-xl text-slate-700 dark:text-slate-300 max-w-3xl mx-auto mb-4 leading-relaxed">
-              Netily is the <strong className="text-slate-700 dark:text-slate-200">ISP billing software</strong> and{" "}
-              <strong className="text-slate-700 dark:text-slate-200">ISP management system</strong> built for{" "}
-              <strong className="text-slate-700 dark:text-slate-200">Kenya &amp; East Africa</strong> — automating{" "}
-              <strong className="text-slate-700 dark:text-slate-200">M-Pesa STK Push</strong> payments,{" "}
-              <strong className="text-slate-700 dark:text-slate-200">MikroTik PPPoE provisioning</strong>,{" "}
-              <strong className="text-slate-700 dark:text-slate-200">RADIUS authentication</strong>,{" "}
-              <strong className="text-slate-700 dark:text-slate-200">hotspot billing</strong>, and customer
-              self-service so Kenyan ISPs can stop chasing payments and start growing.
-            </p>
-          </Reveal>
-
-          {/* Use-case pills */}
-          <Reveal delay={0.25}>
-            <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
-              {[
-                "M-Pesa billing automation",
-                "MikroTik + PPPoE workflows",
-                "Hotspot and subscriber operations",
-              ].map((label) => (
-                <span
-                  key={label}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/82 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/78 dark:text-slate-200"
-                >
-                  <Check className="w-3.5 h-3.5 text-blue-500" />
-                  {label}
+          <div className="max-w-3xl text-left">
+            {/* H1 — Search-intent targeted */}
+            <Reveal delay={0.1}>
+              <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.02] text-white mb-3">
+                ISP Billing Software
+                <br />
+                <span className="text-blue-100">
+                  for Everywhere
                 </span>
-              ))}
-            </div>
-          </Reveal>
+              </h1>
+            </Reveal>
 
-          {/* CTA Buttons */}
-          <Reveal delay={0.3}>
-            <div id="hero-cta" className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="#contact"
-                onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
-                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-xl transition-colors shadow-lg shadow-blue-600/25 text-lg"
-              >
-                Start Free 14-Day Trial
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-              <a
-                href="#features"
-                onClick={(e) => { e.preventDefault(); scrollTo("features") }}
-                className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium px-4 py-4 text-lg transition-colors"
-              >
-                See features
-                <ArrowRight className="w-4 h-4" />
-              </a>
-            </div>
-            <p className="text-xs text-slate-400 mt-3">No credit card required &bull; 14 days free &bull; Cancel anytime</p>
-          </Reveal>
+            {/* Brand tagline below H1 */}
+            <Reveal delay={0.15}>
+              <p className="text-2xl sm:text-3xl font-bold text-white/88 mb-4 tracking-tight">
+                Run your ISP while you sleep.
+              </p>
+            </Reveal>
 
-          <Reveal delay={0.38}>
-            <div className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Free 14-day trial
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-sky-500" />
-                No credit card required
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-violet-500" />
-                Built for East African ISP operations
-              </span>
+            <Reveal delay={0.2}>
+              <p className="max-w-2xl text-base md:text-lg leading-relaxed text-white/78">
+                Automate M-Pesa collections, MikroTik workflows, hotspot billing, and subscriber operations from one platform.
+              </p>
+            </Reveal>
+
+            <div className="sr-only">
+              Netily is the ISP billing software and ISP management system built for Kenya and East Africa, automating M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and customer self-service so Kenyan ISPs can stop chasing payments and start growing.
             </div>
-          </Reveal>
+
+            {/* Use-case pills */}
+            <Reveal delay={0.25}>
+              <div className="flex flex-wrap items-center gap-3 mb-8 mt-6">
+                {[
+                  "M-Pesa billing automation",
+                  "MikroTik + PPPoE workflows",
+                  "Hotspot and subscriber operations",
+                ].map((label) => (
+                  <span
+                    key={label}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white/92 backdrop-blur-sm"
+                  >
+                    <Check className="w-3.5 h-3.5 text-blue-200" />
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </Reveal>
+
+            {/* CTA Buttons */}
+            <Reveal delay={0.3}>
+              <div id="hero-cta" className="flex flex-col sm:flex-row items-start gap-4">
+                <Link
+                  href="#contact"
+                  onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-blue-900/30 transition-colors hover:bg-blue-500"
+                >
+                  Start Free 14-Day Trial
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+                <a
+                  href="#features"
+                  onClick={(e) => { e.preventDefault(); scrollTo("features") }}
+                  className="inline-flex items-center gap-2 px-1 py-4 text-lg font-medium text-white/88 transition-colors hover:text-white"
+                >
+                  See features
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
+              <p className="mt-3 text-xs text-white/72">No credit card required • 14 days free • Cancel anytime</p>
+            </Reveal>
+
+            <Reveal delay={0.38}>
+              <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-medium text-white/88">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  Free 14-day trial
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-sky-300" />
+                  No credit card required
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-violet-300" />
+                  Built for East African ISP operations
+                </span>
+              </div>
+            </Reveal>
+          </div>
 
           <div className="sr-only">
             Payment to provisioning. Collect, confirm, and reconnect without manual chasing.
@@ -1097,14 +1103,11 @@ export function LandingPage() {
           <Reveal>
             <div className="mb-10 text-center">
               <p className="text-xs text-slate-400 uppercase tracking-widest font-medium">
-                Built for every type of Kenyan ISP
+                Built for every type of ISP
               </p>
               <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
                 One platform, shaped around the different ways local ISPs grow
               </h2>
-              <p className="mt-3 max-w-2xl mx-auto text-sm md:text-base text-slate-500 dark:text-slate-400">
-                We’ve compacted this section into clearer bento-style cards so buyers can scan where they fit without reading a long wall of vertical copy.
-              </p>
             </div>
           </Reveal>
           <div className="grid gap-4 lg:grid-cols-3">
@@ -1114,7 +1117,7 @@ export function LandingPage() {
                 desc: "Automate PPPoE subscriptions, billing cycles, and M-Pesa collections for fiber broadband networks.",
                 icon: Wifi,
                 color: "blue",
-                href: "/isp-billing-software-kenya",
+                href: "/solutions/isp-billing-software-kenya",
                 span: "lg:col-span-2",
               },
               {
@@ -1122,7 +1125,7 @@ export function LandingPage() {
                 desc: "Branded captive portals, M-Pesa micropayments, voucher management, and session control for Wi-Fi hotspots.",
                 icon: Globe,
                 color: "violet",
-                href: "/hotspot-billing-software-kenya",
+                href: "/solutions/hotspot-billing-software-kenya",
                 span: "",
               },
               {
@@ -1130,7 +1133,7 @@ export function LandingPage() {
                 desc: "Zero-touch MikroTik provisioning via API. Create, suspend, and resume PPPoE users automatically on payment.",
                 icon: Router,
                 color: "emerald",
-                href: "/mikrotik-billing-software",
+                href: "/solutions/mikrotik-billing-software",
                 span: "",
               },
               {
@@ -1138,7 +1141,7 @@ export function LandingPage() {
                 desc: "Affordable metered billing that scales with your subscriber count. Pay only for what you use.",
                 icon: TrendingUp,
                 color: "amber",
-                href: "/mpesa-isp-billing",
+                href: "/solutions/mpesa-isp-billing",
                 span: "lg:col-span-2",
               },
             ].map((item, i) => {
