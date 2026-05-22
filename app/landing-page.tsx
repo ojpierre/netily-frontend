@@ -204,6 +204,7 @@ function PaymentsMarquee() {
 
 const LEAD_SOURCE_OPTIONS = [
   "Google Search",
+  "TikTok",
   "Facebook / Instagram",
   "LinkedIn",
   "WhatsApp group",
