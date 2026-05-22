@@ -761,7 +761,7 @@ export async function purchaseHotspotAccess({ routerId, planId, phoneNumber }: {
 /**
  * Submit a lead from the landing page (public, no auth required)
  */
-export async function submitLead(data: { name: string; email: string; phone: string; company: string; message?: string }, signal?: AbortSignal): Promise<{ message: string }> {
+export async function submitLead(data: { name: string; email: string; phone: string; company: string; lead_source?: string; message?: string }, signal?: AbortSignal): Promise<{ message: string }> {
   const baseUrl = getBaseUrl()
   const response = await fetch(`${baseUrl}/core/leads/submit/`, {
     method: 'POST',

@@ -202,6 +202,113 @@ function PaymentsMarquee() {
   )
 }
 
+const LEAD_SOURCE_OPTIONS = [
+  "Google Search",
+  "Facebook / Instagram",
+  "LinkedIn",
+  "WhatsApp group",
+  "YouTube",
+  "Referral from another ISP",
+  "Event or community meetup",
+  "Existing Netily customer",
+  "Other",
+]
+
+function OperatingJourneySection({ scrollTo }: { scrollTo: (id: string) => void }) {
+  const stages = [
+    {
+      icon: CircleDollarSign,
+      title: "Collect payment without chasing",
+      body: "STK Push, reminders, and billing events are tied closely to the subscriber lifecycle so collections don’t live in a separate spreadsheet reality.",
+      accent: "from-emerald-500/15 to-emerald-500/5 text-emerald-600 dark:text-emerald-300",
+    },
+    {
+      icon: Router,
+      title: "Apply service changes automatically",
+      body: "When payment status changes, Netily can drive the operational action your team would otherwise do manually in MikroTik, PPPoE, hotspot, and support flows.",
+      accent: "from-sky-500/15 to-sky-500/5 text-sky-600 dark:text-sky-300",
+    },
+    {
+      icon: BarChart3,
+      title: "Run the day from one control surface",
+      body: "Revenue, support, uptime, subscribers, and payment movement stay visible together so owners and operations teams can act faster.",
+      accent: "from-violet-500/15 to-violet-500/5 text-violet-600 dark:text-violet-300",
+    },
+  ]
+
+  return (
+    <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-slate-50/70 dark:bg-slate-900/40">
+      <div className="max-w-6xl mx-auto">
+        <Reveal>
+          <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">How Netily fits the work</p>
+              <h2 className="mt-3 text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white">
+                A cleaner operating loop for growing ISPs
+              </h2>
+              <p className="mt-4 text-lg leading-relaxed text-slate-600 dark:text-slate-400">
+                The homepage now makes one idea clearer: Netily is not just billing software. It is the operational layer between cash collection, subscriber access, and daily ISP decision-making.
+              </p>
+            </div>
+            <div className="rounded-[28px] border border-slate-200/80 bg-white/95 p-6 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900/85">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">What teams usually replace with Netily</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {[
+                  "Disconnected billing sheets",
+                  "Manual reconnection workflows",
+                  "Scattered payment follow-up",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Reveal>
+
+        <div className="mt-10 grid gap-4 lg:grid-cols-3">
+          {stages.map((stage, index) => (
+            <Reveal key={stage.title} delay={index * 0.08}>
+              <article className="h-full rounded-[28px] border border-slate-200/80 bg-white/95 p-6 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900/90">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${stage.accent}`}>
+                  <stage.icon className="h-5 w-5" />
+                </div>
+                <p className="mt-5 text-xl font-semibold text-slate-900 dark:text-white">{stage.title}</p>
+                <p className="mt-3 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{stage.body}</p>
+              </article>
+            </Reveal>
+          ))}
+        </div>
+
+        <Reveal delay={0.2}>
+          <div className="mt-10 rounded-[32px] border border-slate-200/80 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 p-8 text-white shadow-xl shadow-slate-900/10 dark:border-slate-700">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-blue-200">Designed for momentum</p>
+                <h3 className="mt-3 text-2xl md:text-3xl font-bold">You should be able to understand the value in one pass</h3>
+                <p className="mt-3 text-sm md:text-base leading-relaxed text-slate-300">
+                  We’ve tightened the story around operations, pricing, integrations, and contact so prospects can quickly see whether Netily fits their ISP without digging through a wall of sections.
+                </p>
+              </div>
+              <button
+                onClick={() => scrollTo("pricing")}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-100"
+              >
+                Jump to pricing
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
+
 // ─── FAQ Accordion ──────────────────────────────────────────────
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
@@ -431,13 +538,13 @@ export function LandingPage() {
   const [email, setEmail] = useState("")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const [leadForm, setLeadForm] = useState({ name: "", email: "", phone: "", company: "", message: "" })
+  const [leadForm, setLeadForm] = useState({ name: "", email: "", phone: "", company: "", lead_source: "", message: "" })
   const [leadFormErrors, setLeadFormErrors] = useState<{ name?: string; email?: string }>({})
   const [leadSubmitting, setLeadSubmitting] = useState(false)
   const [leadSubmitted, setLeadSubmitted] = useState(false)
 
   // Enterprise inline lead form (pricing card)
-  const [entForm, setEntForm] = useState({ name: "", email: "", company: "", subscribers: "" })
+  const [entForm, setEntForm] = useState({ name: "", email: "", company: "", subscribers: "", lead_source: "" })
   const [entErrors, setEntErrors] = useState<{ name?: string; email?: string }>({})
   const [entSubmitting, setEntSubmitting] = useState(false)
   const [entSubmitted, setEntSubmitted] = useState(false)
@@ -930,6 +1037,8 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+
+      <OperatingJourneySection scrollTo={scrollTo} />
 
       {/* ━━━ 3c. USE CASE BLOCK ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section className="py-14 md:py-20 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
@@ -1632,6 +1741,16 @@ export function LandingPage() {
                             onChange={(e) => setEntForm({ ...entForm, subscribers: e.target.value })}
                             className="w-full h-10 px-3 rounded-lg text-sm bg-slate-800 border border-slate-600 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
+                          <select
+                            value={entForm.lead_source}
+                            onChange={(e) => setEntForm({ ...entForm, lead_source: e.target.value })}
+                            className="col-span-2 h-10 rounded-lg border border-slate-600 bg-slate-800 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="">Where did you hear about us?</option>
+                            {LEAD_SOURCE_OPTIONS.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
                         </div>
                         <button
                           disabled={entSubmitting}
@@ -1648,6 +1767,7 @@ export function LandingPage() {
                                 email: entForm.email.trim(),
                                 phone: "",
                                 company: entForm.company.trim(),
+                                lead_source: entForm.lead_source,
                                 message: `Enterprise enquiry from ${geo.countryName}. Est. subscribers: ${entForm.subscribers || "not specified"}.`,
                               })
                               setEntSubmitted(true)
@@ -1899,67 +2019,105 @@ export function LandingPage() {
                 <p className="text-xs text-emerald-500 dark:text-emerald-600 mt-3">Optional — stay updated with tips, announcements &amp; support</p>
               </div>
             ) : (
-              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 md:p-8 shadow-lg max-w-2xl mx-auto">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Full Name *</label>
-                    <input
-                      type="text"
-                      placeholder="John Doe"
-                      value={leadForm.name}
-                      onChange={(e) => {
-                        setLeadForm({ ...leadForm, name: e.target.value })
-                        if (leadFormErrors.name) setLeadFormErrors((prev) => ({ ...prev, name: undefined }))
-                      }}
-                      className={`w-full h-11 px-4 rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${leadFormErrors.name ? "border-red-400" : "border-slate-300 dark:border-slate-600"}`}
-                    />
-                    {leadFormErrors.name && <p className="text-xs text-red-500 mt-1">{leadFormErrors.name}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email Address *</label>
-                    <input
-                      type="email"
-                      placeholder="john@example.com"
-                      value={leadForm.email}
-                      onChange={(e) => {
-                        setLeadForm({ ...leadForm, email: e.target.value })
-                        if (leadFormErrors.email) setLeadFormErrors((prev) => ({ ...prev, email: undefined }))
-                      }}
-                      className={`w-full h-11 px-4 rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${leadFormErrors.email ? "border-red-400" : "border-slate-300 dark:border-slate-600"}`}
-                    />
-                    {leadFormErrors.email && <p className="text-xs text-red-500 mt-1">{leadFormErrors.email}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Phone Number</label>
-                    <input
-                      type="tel"
-                      placeholder="+254 7XX XXX XXX"
-                      value={leadForm.phone}
-                      onChange={(e) => setLeadForm({ ...leadForm, phone: e.target.value })}
-                      className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">ISP / Company</label>
-                    <input
-                      type="text"
-                      placeholder="Your ISP name"
-                      value={leadForm.company}
-                      onChange={(e) => setLeadForm({ ...leadForm, company: e.target.value })}
-                      className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    />
+              <div className="grid gap-6 lg:grid-cols-[0.78fr_1.22fr] max-w-5xl mx-auto">
+                <div className="rounded-[28px] border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/80 p-6 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-blue-500">Talk to Netily</p>
+                  <h3 className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">Choose the clearest next step</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                    Use the form for demos, pricing questions, migrations, or operational advice. We’ve kept the content SEO-rich, but the contact area should feel simpler and more directed.
+                  </p>
+                  <div className="mt-6 space-y-3">
+                    {[
+                      "Book a walkthrough for your ISP workflow",
+                      "Ask about M-Pesa, hotspot, or MikroTik automation",
+                      "Tell us how you heard about Netily so we can track channels better",
+                    ].map((item) => (
+                      <div key={item} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Message</label>
-                  <textarea
-                    placeholder="Tell us about your ISP, what you're looking for, or any questions you have..."
-                    value={leadForm.message}
-                    onChange={(e) => setLeadForm({ ...leadForm, message: e.target.value })}
-                    rows={4}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
-                  />
-                </div>
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[28px] p-6 md:p-8 shadow-lg">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Full Name *</label>
+                      <input
+                        type="text"
+                        placeholder="John Doe"
+                        value={leadForm.name}
+                        onChange={(e) => {
+                          setLeadForm({ ...leadForm, name: e.target.value })
+                          if (leadFormErrors.name) setLeadFormErrors((prev) => ({ ...prev, name: undefined }))
+                        }}
+                        className={`w-full h-11 px-4 rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${leadFormErrors.name ? "border-red-400" : "border-slate-300 dark:border-slate-600"}`}
+                      />
+                      {leadFormErrors.name && <p className="text-xs text-red-500 mt-1">{leadFormErrors.name}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email Address *</label>
+                      <input
+                        type="email"
+                        placeholder="john@example.com"
+                        value={leadForm.email}
+                        onChange={(e) => {
+                          setLeadForm({ ...leadForm, email: e.target.value })
+                          if (leadFormErrors.email) setLeadFormErrors((prev) => ({ ...prev, email: undefined }))
+                        }}
+                        className={`w-full h-11 px-4 rounded-xl border bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${leadFormErrors.email ? "border-red-400" : "border-slate-300 dark:border-slate-600"}`}
+                      />
+                      {leadFormErrors.email && <p className="text-xs text-red-500 mt-1">{leadFormErrors.email}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Phone Number</label>
+                      <input
+                        type="tel"
+                        placeholder="+254 7XX XXX XXX"
+                        value={leadForm.phone}
+                        onChange={(e) => setLeadForm({ ...leadForm, phone: e.target.value })}
+                        className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">ISP / Company</label>
+                      <input
+                        type="text"
+                        placeholder="Your ISP name"
+                        value={leadForm.company}
+                        onChange={(e) => setLeadForm({ ...leadForm, company: e.target.value })}
+                        className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-[1fr_1fr] mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Where did you hear about us?</label>
+                      <select
+                        value={leadForm.lead_source}
+                        onChange={(e) => setLeadForm({ ...leadForm, lead_source: e.target.value })}
+                        className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      >
+                        <option value="">Select a source</option>
+                        {LEAD_SOURCE_OPTIONS.map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
+                      This helps us measure what channels are actually bringing in serious ISP leads.
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Message</label>
+                    <textarea
+                      placeholder="Tell us about your ISP, what you're looking for, or any questions you have..."
+                      value={leadForm.message}
+                      onChange={(e) => setLeadForm({ ...leadForm, message: e.target.value })}
+                      rows={4}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+                    />
+                  </div>
                 <button
                   onClick={async () => {
                     // Inline validation
@@ -1995,6 +2153,7 @@ export function LandingPage() {
                 <p className="text-xs text-slate-400 mt-3 text-center">
                   We typically respond within 24 hours &bull; No spam, ever
                 </p>
+              </div>
               </div>
             )}
           </Reveal>

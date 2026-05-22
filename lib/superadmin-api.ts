@@ -469,6 +469,7 @@ export interface LeadItem {
   email: string;
   phone: string;
   company_name: string;
+  lead_source: string;
   message: string;
   created_at: string;
 }
@@ -478,6 +479,7 @@ export interface LeadStats {
   this_month: number;
   last_30_days: number;
   last_7_days: number;
+  source_breakdown: { lead_source: string; count: number }[];
   trend: { month: string; count: number }[];
 }
 

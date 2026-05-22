@@ -326,6 +326,11 @@ export default function SuperAdminDashboardPage() {
                       <Mail className="w-3 h-3 text-slate-500" />
                       <p className="text-xs text-slate-400 truncate">{l.email}</p>
                     </div>
+                    {l.lead_source && (
+                      <p className="mt-1 inline-flex rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-300">
+                        {l.lead_source}
+                      </p>
+                    )}
                     {l.company_name && (
                       <p className="text-xs text-slate-500 mt-0.5">{l.company_name}</p>
                     )}

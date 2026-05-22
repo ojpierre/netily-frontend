@@ -88,12 +88,13 @@ export default function LeadsPage() {
   // CSV export
   const exportCsv = () => {
     if (leads.length === 0) return
-    const headers = ["Name", "Email", "Phone", "Company", "Message", "Date"]
+    const headers = ["Name", "Email", "Phone", "Company", "Source", "Message", "Date"]
     const rows = leads.map((l) => [
       l.name,
       l.email,
       l.phone || "",
       l.company_name || "",
+      l.lead_source || "",
       (l.message || "").replace(/\n/g, " "),
       new Date(l.created_at).toLocaleDateString(),
     ])
@@ -195,6 +196,30 @@ export default function LeadsPage() {
         </Card>
       )}
 
+      {stats && stats.source_breakdown.length > 0 && (
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-slate-300">Lead Source Breakdown</CardTitle>
+            <CardDescription className="text-slate-500 text-xs">
+              Top channels sending qualified homepage enquiries
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {stats.source_breakdown.map((item) => (
+                <div
+                  key={item.lead_source}
+                  className="rounded-2xl border border-slate-800 bg-slate-800/60 px-4 py-3"
+                >
+                  <p className="text-xs font-medium text-slate-400">{item.lead_source}</p>
+                  <p className="mt-2 text-2xl font-bold text-white">{item.count}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Search + table */}
       <Card className="bg-slate-900 border-slate-800">
         <CardHeader>
@@ -232,6 +257,7 @@ export default function LeadsPage() {
                     <th className="px-4 py-3">Name</th>
                     <th className="px-4 py-3">Contact</th>
                     <th className="px-4 py-3">Company</th>
+                    <th className="px-4 py-3 hidden xl:table-cell">Source</th>
                     <th className="px-4 py-3 hidden lg:table-cell">Message</th>
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3 text-right">Details</th>
@@ -265,6 +291,15 @@ export default function LeadsPage() {
                           </div>
                         ) : (
                           <span className="text-slate-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 hidden xl:table-cell">
+                        {l.lead_source ? (
+                          <span className="inline-flex rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[11px] font-medium text-blue-300">
+                            {l.lead_source}
+                          </span>
+                        ) : (
+                          <span className="text-slate-600">â€”</span>
                         )}
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
@@ -354,6 +389,7 @@ export default function LeadsPage() {
                 <DetailField label="Email" value={selectedLead.email} />
                 <DetailField label="Phone" value={selectedLead.phone || "—"} />
                 <DetailField label="Company" value={selectedLead.company_name || "—"} />
+                <DetailField label="Source" value={selectedLead.lead_source || "â€”"} />
                 <DetailField
                   label="Submitted"
                   value={new Date(selectedLead.created_at).toLocaleString("en-KE")}
