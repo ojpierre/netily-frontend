@@ -99,7 +99,7 @@ function InfiniteMarquee() {
       accent: "from-violet-500/20 to-violet-500/5 text-violet-300",
     },
     {
-      name: "PayHero",
+      name: "Payments",
       detail: "Support more payment collection flows when needed",
       icon: CreditCard,
       accent: "from-amber-500/20 to-amber-500/5 text-amber-300",
@@ -215,6 +215,76 @@ const LEAD_SOURCE_OPTIONS = [
   "Other",
 ]
 
+function OperationsShowcaseSection() {
+  const signals = [
+    {
+      icon: CircleDollarSign,
+      title: "Payment to provisioning",
+      body: "Collect, confirm, and reconnect without manual chasing.",
+      accent: "from-emerald-500/15 to-emerald-500/5 text-emerald-600 dark:text-emerald-300",
+    },
+    {
+      icon: Router,
+      title: "MikroTik-aware workflows",
+      body: "Built for PPPoE, hotspot, and subscriber state changes.",
+      accent: "from-sky-500/15 to-sky-500/5 text-sky-600 dark:text-sky-300",
+    },
+    {
+      icon: Activity,
+      title: "Daily operational clarity",
+      body: "See collections, uptime, and support movement at a glance.",
+      accent: "from-violet-500/15 to-violet-500/5 text-violet-600 dark:text-violet-300",
+    },
+  ]
+
+  return (
+    <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950">
+      <div className="max-w-6xl mx-auto">
+        <Reveal>
+          <div className="text-center max-w-3xl mx-auto">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">Inside the workflow</p>
+            <h2 className="mt-3 text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white">
+              One operating surface for payment, network, and support
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-slate-600 dark:text-slate-400">
+              The hero stays focused now. This section carries the deeper operating story with the dashboard visual and the workflow signals that matter most to an ISP owner.
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          {signals.map((signal, index) => (
+            <Reveal key={signal.title} delay={index * 0.08}>
+              <article className="rounded-[28px] border border-slate-200/80 bg-slate-50/90 p-6 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900/80">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${signal.accent}`}>
+                  <signal.icon className="h-5 w-5" />
+                </div>
+                <p className="mt-5 text-lg font-semibold text-slate-900 dark:text-white">{signal.title}</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{signal.body}</p>
+              </article>
+            </Reveal>
+          ))}
+        </div>
+
+        <Reveal delay={0.18}>
+          <div className="mt-10">
+            <DashboardMockup />
+          </div>
+        </Reveal>
+
+        <div className="sr-only">
+          Support desk setup for internet service operations. Live support visibility. Tickets, follow-ups, outages, and customer callbacks stay visible without leaving the operating dashboard.
+          Network infrastructure and wireless internet equipment. Network health snapshot. Routers online 89 / 92. Provisioning, session enforcement, and cash collection stay aligned across the live network.
+          admin.netily.co.ke/dashboard. Netily. Dashboard. Subscribers. Billing. Network. Routers. Monitoring.
+          Active Subscribers 1,247 plus 12 percent. Monthly Revenue KES 2.4M plus 8.3 percent. Online Routers 89 out of 92, 96.7 percent. M-Pesa Today KES 84K plus 23 percent.
+          Revenue Overview last 7 days Monday Tuesday Wednesday Thursday Friday Saturday Sunday.
+          Recent Payments John Kamau KES 2,500. Grace Wanjiku KES 1,800. David Omondi KES 3,200. Faith Njeri KES 1,500.
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function OperatingJourneySection({ scrollTo }: { scrollTo: (id: string) => void }) {
   const stages = [
     {
@@ -245,10 +315,10 @@ function OperatingJourneySection({ scrollTo }: { scrollTo: (id: string) => void 
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">How Netily fits the work</p>
               <h2 className="mt-3 text-3xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white">
-                A cleaner operating loop for growing ISPs
+                A better option for growing ISPs
               </h2>
               <p className="mt-4 text-lg leading-relaxed text-slate-600 dark:text-slate-400">
-                The homepage now makes one idea clearer: Netily is not just billing software. It is the operational layer between cash collection, subscriber access, and daily ISP decision-making.
+                Netily is not just billing software. It is the operational layer between cash collection, subscriber access, and daily ISP decision-making.
               </p>
             </div>
             <div className="rounded-[28px] border border-slate-200/80 bg-white/95 p-6 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900/85">
@@ -781,7 +851,7 @@ export function LandingPage() {
       <motion.section
         ref={heroRef}
         style={{ opacity: heroOpacity, scale: heroScale }}
-        className="relative flex min-h-[100svh] items-center px-4 pb-20 pt-28 sm:px-6 md:pt-32 lg:px-8 overflow-hidden"
+        className="relative flex min-h-screen items-center px-4 pb-16 pt-28 sm:px-6 md:pt-32 lg:px-8 overflow-hidden"
       >
         <div className="absolute inset-0 -z-20">
           <Image
@@ -790,9 +860,10 @@ export function LandingPage() {
             fill
             priority
             sizes="100vw"
-            className="object-cover object-center opacity-[0.42]"
+            className="object-cover object-center opacity-[0.58]"
           />
-          <div className="absolute inset-0 bg-white/70 dark:bg-slate-950/72" />
+          <div className="absolute inset-0 bg-white/45 dark:bg-slate-950/58" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-blue-600/45 via-blue-500/18 to-transparent dark:from-blue-700/40 dark:via-blue-600/18" />
         </div>
         {/* Background gradient orbs */}
         <div className="absolute inset-0 overflow-hidden -z-10">
@@ -800,7 +871,7 @@ export function LandingPage() {
           <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-[128px] opacity-50" />
         </div>
 
-        <div className="mx-auto w-full max-w-6xl text-center">
+        <div className="mx-auto w-full max-w-5xl text-center">
           {/* Badge */}
           <Reveal>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950 border border-blue-100 dark:border-blue-800 rounded-full text-blue-700 dark:text-blue-300 text-sm font-medium mb-8">
@@ -830,7 +901,7 @@ export function LandingPage() {
 
           {/* Sub-headline — keyword-rich first 200 words */}
           <Reveal delay={0.2}>
-            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-4 leading-relaxed">
+            <p className="text-lg md:text-xl text-slate-700 dark:text-slate-300 max-w-3xl mx-auto mb-4 leading-relaxed">
               Netily is the <strong className="text-slate-700 dark:text-slate-200">ISP billing software</strong> and{" "}
               <strong className="text-slate-700 dark:text-slate-200">ISP management system</strong> built for{" "}
               <strong className="text-slate-700 dark:text-slate-200">Kenya &amp; East Africa</strong> — automating{" "}
@@ -844,20 +915,17 @@ export function LandingPage() {
 
           {/* Use-case pills */}
           <Reveal delay={0.25}>
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
               {[
-                "Fiber ISPs",
-                "Hotspot Providers",
-                "MikroTik PPPoE Networks",
-                "WISPs in Kenya",
-                "RADIUS Billing",
-                "ISP Management System",
+                "M-Pesa billing automation",
+                "MikroTik + PPPoE workflows",
+                "Hotspot and subscriber operations",
               ].map((label) => (
                 <span
                   key={label}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-xs font-medium border border-slate-200 dark:border-slate-700"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/82 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/78 dark:text-slate-200"
                 >
-                  <Check className="w-3 h-3 text-blue-500" />
+                  <Check className="w-3.5 h-3.5 text-blue-500" />
                   {label}
                 </span>
               ))}
@@ -888,47 +956,27 @@ export function LandingPage() {
           </Reveal>
 
           <Reveal delay={0.38}>
-            <div className="mx-auto mt-8 grid max-w-4xl gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-white/70 bg-white/85 px-4 py-4 text-left shadow-lg shadow-slate-900/5 backdrop-blur dark:border-slate-800 dark:bg-slate-900/75">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
-                    <CircleDollarSign className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Payment to provisioning</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Collect, confirm, and reconnect without manual chasing.</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-2xl border border-white/70 bg-white/85 px-4 py-4 text-left shadow-lg shadow-slate-900/5 backdrop-blur dark:border-slate-800 dark:bg-slate-900/75">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-600 dark:text-sky-300">
-                    <Router className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">MikroTik-aware workflows</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Built for PPPoE, hotspot, and subscriber state changes.</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-2xl border border-white/70 bg-white/85 px-4 py-4 text-left shadow-lg shadow-slate-900/5 backdrop-blur dark:border-slate-800 dark:bg-slate-900/75">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-600 dark:text-violet-300">
-                    <Activity className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Daily operational clarity</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">See collections, uptime, and support movement at a glance.</p>
-                  </div>
-                </div>
-              </div>
+            <div className="mx-auto mt-8 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Free 14-day trial
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-sky-500" />
+                No credit card required
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-violet-500" />
+                Built for East African ISP operations
+              </span>
             </div>
           </Reveal>
 
-          {/* Dashboard mockup */}
-          <Reveal delay={0.5}>
-            <DashboardMockup />
-          </Reveal>
+          <div className="sr-only">
+            Payment to provisioning. Collect, confirm, and reconnect without manual chasing.
+            MikroTik-aware workflows. Built for PPPoE, hotspot, and subscriber state changes.
+            Daily operational clarity. See collections, uptime, and support movement at a glance.
+          </div>
         </div>
       </motion.section>
 
@@ -1039,16 +1087,27 @@ export function LandingPage() {
         </div>
       </section>
 
+      <OperationsShowcaseSection />
+
       <OperatingJourneySection scrollTo={scrollTo} />
 
       {/* ━━━ 3c. USE CASE BLOCK ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section className="py-14 md:py-20 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
         <div className="max-w-6xl mx-auto">
           <Reveal>
-            <p className="text-xs text-slate-400 uppercase tracking-widest font-medium text-center mb-8">
-              Built for every type of Kenyan ISP            </p>
+            <div className="mb-10 text-center">
+              <p className="text-xs text-slate-400 uppercase tracking-widest font-medium">
+                Built for every type of Kenyan ISP
+              </p>
+              <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+                One platform, shaped around the different ways local ISPs grow
+              </h2>
+              <p className="mt-3 max-w-2xl mx-auto text-sm md:text-base text-slate-500 dark:text-slate-400">
+                We’ve compacted this section into clearer bento-style cards so buyers can scan where they fit without reading a long wall of vertical copy.
+              </p>
+            </div>
           </Reveal>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid gap-4 lg:grid-cols-3">
             {[
               {
                 title: "Fiber ISPs",
@@ -1056,6 +1115,7 @@ export function LandingPage() {
                 icon: Wifi,
                 color: "blue",
                 href: "/isp-billing-software-kenya",
+                span: "lg:col-span-2",
               },
               {
                 title: "Hotspot Providers",
@@ -1063,6 +1123,7 @@ export function LandingPage() {
                 icon: Globe,
                 color: "violet",
                 href: "/hotspot-billing-software-kenya",
+                span: "",
               },
               {
                 title: "MikroTik PPPoE Networks",
@@ -1070,6 +1131,7 @@ export function LandingPage() {
                 icon: Router,
                 color: "emerald",
                 href: "/mikrotik-billing-software",
+                span: "",
               },
               {
                 title: "WISPs & Rural ISPs",
@@ -1077,6 +1139,7 @@ export function LandingPage() {
                 icon: TrendingUp,
                 color: "amber",
                 href: "/mpesa-isp-billing",
+                span: "lg:col-span-2",
               },
             ].map((item, i) => {
               const colorMap: Record<string, string> = {
@@ -1087,410 +1150,100 @@ export function LandingPage() {
               }
               return (
                 <Reveal key={item.title} delay={i * 0.1}>
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 h-full hover:shadow-md transition-shadow">
+                  <div className={`rounded-[28px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 h-full hover:shadow-md transition-shadow ${item.span}`}>
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${colorMap[item.color]}`}>
                       <item.icon className="w-5 h-5" />
                     </div>
                     <p className="font-bold text-slate-900 dark:text-white mb-2 text-base">{item.title}</p>
                     <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{item.desc}</p>
+                    <Link
+                      href={item.href}
+                      className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400"
+                    >
+                      Explore use case
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
                   </div>
                 </Reveal>
               )
             })}
           </div>
+          <div className="sr-only">
+            Built for fiber ISPs, hotspot providers, MikroTik PPPoE networks, and WISPs in Kenya. Netily supports branded captive portals, voucher management, M-Pesa micropayments, PPPoE provisioning, and affordable metered billing for rural internet operators.
+          </div>
         </div>
       </section>
 
-      {/* ━━━ 4. BENTO GRID ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      {/* ━━━ 4. FEATURE BENTO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section id="features" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <Reveal>
-            <div className="text-center mb-16">
+            <div className="text-center mb-14">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
                 Why ISPs choose Netily
               </h2>
               <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-                Cut the jargon. Here&apos;s what it actually feels like to automate your network.
+                The long section is now compressed into the few capabilities that shape the operating experience most.
               </p>
             </div>
           </Reveal>
 
-          <div className="grid md:grid-cols-2 gap-4 md:gap-5">
-            {/* Card 1 — Highlight (full-width) */}
-            <Reveal className="md:col-span-2">
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-8 md:p-12 text-white group md:flex md:items-center md:gap-10">
-                <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
-                <div className="relative z-10 max-w-xl flex-1">
-                  <div className="inline-flex items-center gap-2 bg-white/15 rounded-full px-3.5 py-1.5 text-sm font-medium mb-5 backdrop-blur-sm">
-                    <Zap className="w-4 h-4" />
-                    Instant M-Pesa Magic
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {[
+              {
+                title: "Instant collections to reconnection",
+                body: "STK Push, payment confirmation, and service restoration stay close together instead of being spread across tools and manual checklists.",
+                icon: Smartphone,
+                tone: "from-blue-600 to-indigo-700 text-white xl:col-span-2",
+                dark: true,
+              },
+              {
+                title: "Plug-and-play router operations",
+                body: "Bring MikroTik, PPPoE, hotspot, and subscriber lifecycle work into one repeatable workflow.",
+                icon: Router,
+                tone: "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
+              },
+              {
+                title: "Customer self-service",
+                body: "Let subscribers renew, pay, view invoices, raise tickets, and check usage without calling your team first.",
+                icon: Users,
+                tone: "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
+              },
+              {
+                title: "Invoices, reminders, and messaging",
+                body: "Auto-invoicing and inbuilt communications reduce the repetitive admin that usually sits between billing and support.",
+                icon: MessageSquare,
+                tone: "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
+              },
+              {
+                title: "Secure, compliant operations",
+                body: "Encrypted transactions, access controls, OTP-sensitive actions, and audit visibility support trustworthy day-to-day handling of subscriber data.",
+                icon: ShieldCheck,
+                tone: "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
+              },
+              {
+                title: "Growth and promotion tools",
+                body: "Captive portal branding, promotions, and upgrade nudges help turn subscriber attention into retention and expansion.",
+                icon: TrendingUp,
+                tone: "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800",
+              },
+            ].map((item, index) => (
+              <Reveal key={item.title} delay={index * 0.08}>
+                <article className={`rounded-[28px] p-6 shadow-sm shadow-slate-900/5 ${item.tone}`}>
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${item.dark ? "bg-white/15 text-white" : "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300"}`}>
+                    <item.icon className="h-5 w-5" />
                   </div>
-                  <h3 className="text-2xl md:text-3xl font-bold mb-3 leading-snug">
-                    Customer pays via M-Pesa. Internet connects 2 seconds later.
-                  </h3>
-                  <p className="text-blue-100 text-lg leading-relaxed">
-                    Zero manual reconciliation. STK Push fires, payment confirms, RADIUS credentials activate — all
-                    while you&apos;re asleep. The money lands in your account the next morning.
-                  </p>
-                </div>
-                {/* Mini STK Push phone mockup */}
-                <div className="hidden md:block relative z-10 shrink-0">
-                  <div className="w-48 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-4 transform rotate-3 group-hover:rotate-0 transition-transform duration-500">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                        <Smartphone className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-white">M-Pesa</p>
-                        <p className="text-[8px] text-blue-200">STK Push</p>
-                      </div>
-                    </div>
-                    <div className="bg-white/10 rounded-lg p-3 mb-2">
-                      <p className="text-[9px] text-blue-200 mb-1">Pay to</p>
-                      <p className="text-xs font-bold text-white">Netily ISP</p>
-                      <p className="text-[9px] text-blue-200 mt-2 mb-1">Amount</p>
-                      <p className="text-lg font-bold text-white">KES 2,500</p>
-                    </div>
-                    <div className="bg-green-500 rounded-lg py-2 text-center">
-                      <p className="text-[10px] font-bold text-white">Payment Confirmed ✓</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-
-            {/* Card 2 */}
-            <Reveal delay={0.1}>
-              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <Router className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <p className="text-xl font-bold mb-2">Plug &amp; Play Routers</p>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-5">
-                  Zero-touch provisioning. Plug in a new MikroTik, and our cloud configures the client
-                  instantly. No SSH, no scripts, no headaches.
-                </p>
-                {/* Mini router status */}
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Router Status</span>
-                    <span className="text-[9px] bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded font-medium">Live</span>
-                  </div>
-                  {[
-                    { name: "RB5009UPr+S+ — Main POP", status: "online" },
-                    { name: "hAP ac³ — Block A", status: "online" },
-                    { name: "CCR2004 — Fiber Hub", status: "online" },
-                  ].map((r) => (
-                    <div key={r.name} className="flex items-center gap-2 py-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[10px] text-slate-600 dark:text-slate-400 truncate">{r.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Reveal>
-
-            {/* Card 3 */}
-            <Reveal delay={0.2}>
-              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-amber-100 dark:bg-amber-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <FileText className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                </div>
-                <p className="text-xl font-bold mb-2">Auto-Invoicing</p>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-5">
-                  Tax-ready PDF invoices generated and emailed automatically every month. Your accountant
-                  will think you hired an assistant.
-                </p>
-                {/* Mini invoice */}
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">INV-2025-0142</span>
-                      <span className="text-[8px] text-slate-400 ml-2">Auto-sent</span>
-                    </div>
-                    <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Paid</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 py-1 border-t border-dashed border-slate-200 dark:border-slate-700">
-                    <span>10 Mbps Home Plan × 1 mo</span>
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">KES 2,500</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 py-1 border-t border-dashed border-slate-200 dark:border-slate-700">
-                    <span className="font-semibold">Total</span>
-                    <span className="font-bold text-slate-900 dark:text-white">KES 2,500</span>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-
-            {/* Card 4 */}
-            <Reveal delay={0.15} className="md:col-span-2">
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-8 md:flex md:items-center md:gap-10 hover:shadow-lg transition-shadow group">
-                <div className="w-12 h-12 bg-violet-100 dark:bg-violet-950 rounded-xl flex items-center justify-center mb-5 md:mb-0 shrink-0 group-hover:scale-110 transition-transform">
-                  <Ghost className="w-6 h-6 text-violet-600 dark:text-violet-400" />
-                </div>
-                <div>
-                  <p className="text-xl font-bold mb-2">Ghost Records</p>
-                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Never pay for dead accounts. Our system only bills you for exactly who connected this
-                    month. Dormant subscribers cost you nothing.
-                  </p>
-                </div>
-              </div>
-            </Reveal>
-
-            {/* Card 5 — Customisable Captive Portals */}
-            <Reveal delay={0.2}>
-              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <Globe className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <p className="text-xl font-bold mb-2">Customisable Captive Portals</p>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Design branded hotspot login pages with your logo, colors, and messaging. Engage users before they connect.
-                </p>
-              </div>
-            </Reveal>
-
-            {/* Card 6 — Secure Payments */}
-            <Reveal delay={0.25}>
-              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-green-100 dark:bg-green-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <Lock className="w-6 h-6 text-green-600 dark:text-green-400" />
-                </div>
-                <p className="text-xl font-bold mb-2">Secure Payments</p>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  End-to-end encrypted transactions via M-Pesa STK Push. PCI-compliant processing with OTP verification for every action.
-                </p>
-              </div>
-            </Reveal>
-
-            {/* Card 7 — Inbuilt SMS */}
-            <Reveal delay={0.3}>
-              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-orange-100 dark:bg-orange-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <MessageSquare className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                </div>
-                <p className="text-xl font-bold mb-2">Inbuilt SMS</p>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Send payment reminders, service alerts, and promotional messages directly from your dashboard. No third-party SMS gateway needed.
-                </p>
-              </div>
-            </Reveal>
-
-            {/* Card 8 — Data Protection */}
-            <Reveal delay={0.35}>
-              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <ShieldCheck className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <p className="text-xl font-bold mb-2">Data Protection</p>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Fully compliant with the Kenya Data Protection Act. Encrypted storage, access controls, and audit trails for all customer data.
-                </p>
-              </div>
-            </Reveal>
-
-            {/* Card 9 — Real Time Payments */}
-            <Reveal delay={0.4} className="md:col-span-2">
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 p-8 md:flex md:items-center md:gap-10 hover:shadow-lg transition-shadow group">
-                <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950 rounded-xl flex items-center justify-center mb-5 md:mb-0 shrink-0 group-hover:scale-110 transition-transform">
-                  <BanknoteIcon className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <p className="text-xl font-bold mb-2">Real Time Payments</p>
-                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Payments reflect instantly. The moment a subscriber pays, their service activates in real time — no waiting, no manual intervention.
-                  </p>
-                </div>
-              </div>
-            </Reveal>
-
-            {/* Card 10 — Customer Self-Service Portal */}
-            <Reveal delay={0.45}>
-              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-cyan-100 dark:bg-cyan-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <Users className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
-                </div>
-                <p className="text-xl font-bold mb-2">Customer Self-Service Portal</p>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-                  Give subscribers a branded portal to renew plans, pay via M-Pesa, view invoices, raise tickets, and check usage — without calling you.
-                </p>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700 space-y-2">
-                  {["Renew & top-up via M-Pesa", "Download invoices & receipts", "Submit support tickets", "Check bandwidth usage"].map((f) => (
-                    <div key={f} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                      <Check className="w-3 h-3 text-cyan-500 flex-shrink-0" />
-                      {f}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Reveal>
-
-            {/* Card 11 — Ads & Promotions */}
-            <Reveal delay={0.5}>
-              <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:shadow-lg transition-shadow group overflow-hidden">
-                <div className="w-12 h-12 bg-rose-100 dark:bg-rose-950 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <TrendingUp className="w-6 h-6 text-rose-600 dark:text-rose-400" />
-                </div>
-                <p className="text-xl font-bold mb-2">Ads &amp; Promotions</p>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-                  Run targeted promotions and display ads on your captive portal. Monetise your hotspot traffic or drive plan upgrades with smart campaigns.
-                </p>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700 space-y-2">
-                  {["Captive portal ad banners", "Targeted SMS promotions", "Loyalty & referral rewards", "Plan upgrade nudges"].map((f) => (
-                    <div key={f} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                      <Check className="w-3 h-3 text-rose-500 flex-shrink-0" />
-                      {f}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Reveal>
+                  <p className={`mt-5 text-xl font-semibold ${item.dark ? "text-white" : "text-slate-900 dark:text-white"}`}>{item.title}</p>
+                  <p className={`mt-3 text-sm leading-relaxed ${item.dark ? "text-blue-100" : "text-slate-500 dark:text-slate-400"}`}>{item.body}</p>
+                </article>
+              </Reveal>
+            ))}
           </div>
-        </div>
-      </section>
 
-      {/* ━━━ 4b. CUSTOMER PORTAL SHOWCASE ━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <Reveal>
-              <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-50 dark:bg-cyan-950 border border-cyan-100 dark:border-cyan-800 rounded-full text-cyan-700 dark:text-cyan-300 text-xs font-semibold uppercase tracking-wider mb-4">
-                  Customer Self-Service Portal
-                </div>
-                <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-                  Let your PPPoE clients manage themselves
-                </h2>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
-                  Give every subscriber — fiber, PPPoE, or hotspot — a branded self-service portal
-                  so they can renew, pay, and get help without calling you. Reduce support load
-                  while improving customer satisfaction.
-                </p>
-                <ul className="space-y-3">
-                  {[
-                    { icon: CreditCard, text: "Renew or upgrade plans via M-Pesa STK Push" },
-                    { icon: FileText, text: "Download invoices & payment receipts instantly" },
-                    { icon: MessageSquare, text: "Submit and track support tickets" },
-                    { icon: Activity, text: "View real-time bandwidth usage & session history" },
-                    { icon: Shield, text: "Self-serve password reset for PPPoE accounts" },
-                    { icon: Smartphone, text: "Mobile-first design — works on any phone" },
-                  ].map(({ icon: Icon, text }) => (
-                    <li key={text} className="flex items-start gap-3">
-                      <div className="w-5 h-5 mt-0.5 bg-cyan-100 dark:bg-cyan-900 rounded-md flex items-center justify-center shrink-0">
-                        <Icon className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
-                      </div>
-                      <span className="text-sm text-slate-600 dark:text-slate-400">{text}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="#contact"
-                  onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
-                  className="mt-8 inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
-                >
-                  Get the portal for your ISP
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </Reveal>
-            <Reveal delay={0.15}>
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-cyan-50 to-slate-50 dark:from-cyan-950/20 dark:to-slate-900 p-6 space-y-3">
-                {/* Mock portal UI */}
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">My Account</span>
-                  <span className="text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">Active</span>
-                </div>
-                {[
-                  { label: "Plan", value: "Fiber 20 Mbps" },
-                  { label: "Expires", value: "May 15, 2026" },
-                  { label: "Data Used", value: "142 GB / ∞" },
-                  { label: "Last Payment", value: "KES 2,500 · Apr 15" },
-                ].map((row) => (
-                  <div key={row.label} className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-700 last:border-0">
-                    <span className="text-xs text-slate-500">{row.label}</span>
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{row.value}</span>
-                  </div>
-                ))}
-                <button className="w-full mt-2 py-2 bg-cyan-600 text-white text-xs font-semibold rounded-lg">
-                  Renew via M-Pesa →
-                </button>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ━━━ 4c. ADS & PROMOTIONS SHOWCASE ━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <Reveal delay={0.1} className="order-2 md:order-1">
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-6 space-y-4">
-                {/* Mock ad banner preview */}
-                <div className="rounded-xl bg-gradient-to-r from-rose-500 to-orange-500 p-4 text-white text-center">
-                  <p className="text-xs font-bold uppercase tracking-wider mb-1">Limited Offer</p>
-                  <p className="text-lg font-extrabold">Upgrade to 50 Mbps</p>
-                  <p className="text-xs opacity-80">Only KES 500 more/month · Expires in 2 days</p>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  {[
-                    { label: "Impressions", value: "4,821" },
-                    { label: "Clicks", value: "312" },
-                    { label: "Conversions", value: "47" },
-                  ].map((stat) => (
-                    <div key={stat.label} className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
-                      <p className="text-base font-bold text-slate-900 dark:text-white">{stat.value}</p>
-                      <p className="text-xs text-slate-500">{stat.label}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                  Campaign &quot;Upgrade Push April&quot; · Running
-                </div>
-              </div>
-            </Reveal>
-            <Reveal className="order-1 md:order-2">
-              <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-rose-50 dark:bg-rose-950 border border-rose-100 dark:border-rose-800 rounded-full text-rose-700 dark:text-rose-300 text-xs font-semibold uppercase tracking-wider mb-4">
-                  Ads &amp; Promotions
-                </div>
-                <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-                  Turn your captive portal into a revenue engine
-                </h2>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
-                  Run targeted promotions on your Wi-Fi captive portal, send SMS upgrade nudges,
-                  and reward loyal subscribers — all from one dashboard. Drive plan upgrades and
-                  reduce churn without lifting a finger.
-                </p>
-                <ul className="space-y-3">
-                  {[
-                    { icon: Globe, text: "Captive portal banner ads with click tracking" },
-                    { icon: TrendingUp, text: "Targeted plan upgrade campaigns by usage tier" },
-                    { icon: MessageSquare, text: "Bulk SMS promotions to subscriber segments" },
-                    { icon: Users, text: "Referral & loyalty reward programs" },
-                    { icon: BarChart3, text: "Campaign analytics — impressions, clicks, conversions" },
-                    { icon: Clock, text: "Schedule campaigns with expiry and auto-stop" },
-                  ].map(({ icon: Icon, text }) => (
-                    <li key={text} className="flex items-start gap-3">
-                      <div className="w-5 h-5 mt-0.5 bg-rose-100 dark:bg-rose-900 rounded-md flex items-center justify-center shrink-0">
-                        <Icon className="w-3 h-3 text-rose-600 dark:text-rose-400" />
-                      </div>
-                      <span className="text-sm text-slate-600 dark:text-slate-400">{text}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="#contact"
-                onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
-                  className="mt-8 inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
-                >
-                  Start running ads on your portal
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </Reveal>
+          <div className="sr-only">
+            Netily supports instant M-Pesa STK Push workflows, router provisioning, auto-invoicing, ghost record awareness, custom captive portals, secure payments, inbuilt SMS, Kenya Data Protection Act aligned handling, real-time payments, a customer self-service portal, hotspot ad campaigns, targeted promotions, referral rewards, loyalty tools, and plan upgrade nudges.
+            Customer self-service includes renewals and top-ups via M-Pesa, invoice and receipt downloads, support ticket submission, usage history, PPPoE password reset, and mobile-first access.
+            Ads and promotions include captive portal banner ads, targeted SMS campaigns, referral rewards, loyalty campaigns, analytics for impressions, clicks, and conversions, and scheduled expiry-aware campaign management.
           </div>
         </div>
       </section>
