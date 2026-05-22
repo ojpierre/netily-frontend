@@ -76,8 +76,9 @@ export function generateStaticParams() {
   return Object.keys(SOLUTIONS).map((slug) => ({ slug }))
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const solution = SOLUTIONS[params.slug]
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const solution = SOLUTIONS[slug]
   if (!solution) {
     return {
       title: "Netily Solutions",
@@ -88,18 +89,19 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
     title: solution.seoTitle,
     description: solution.seoDescription,
     alternates: {
-      canonical: `https://netily.co.ke/solutions/${params.slug}`,
+      canonical: `https://netily.co.ke/solutions/${slug}`,
     },
     openGraph: {
       title: solution.seoTitle,
       description: solution.seoDescription,
-      url: `https://netily.co.ke/solutions/${params.slug}`,
+      url: `https://netily.co.ke/solutions/${slug}`,
     },
   }
 }
 
-export default function SolutionPage({ params }: { params: { slug: string } }) {
-  const solution = SOLUTIONS[params.slug]
+export default async function SolutionPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const solution = SOLUTIONS[slug]
 
   if (!solution) {
     return (

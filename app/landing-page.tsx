@@ -895,8 +895,8 @@ export function LandingPage() {
               <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.02] text-white mb-3">
                 ISP Billing Software
                 <br />
-                <span className="text-blue-100">
-                  for Everywhere
+                <span className="text-blue-100 dark:text-blue-200">
+                  for Kenya &amp; East Africa
                 </span>
               </h1>
             </Reveal>
@@ -909,36 +909,19 @@ export function LandingPage() {
             </Reveal>
 
             <Reveal delay={0.2}>
-              <p className="max-w-2xl text-base md:text-lg leading-relaxed text-white/78">
-                Automate M-Pesa collections, MikroTik workflows, hotspot billing, and subscriber operations from one platform.
+              <p className="max-w-xl text-base md:text-lg leading-relaxed text-white/80 dark:text-white/78">
+                Automate billing, provisioning, and subscriber operations from one platform.
               </p>
             </Reveal>
 
             <div className="sr-only">
               Netily is the ISP billing software and ISP management system built for Kenya and East Africa, automating M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and customer self-service so Kenyan ISPs can stop chasing payments and start growing.
+              M-Pesa billing automation. MikroTik plus PPPoE workflows. Hotspot and subscriber operations.
+              Free 14-day trial. No credit card required. Built for East African ISP operations.
             </div>
 
-            {/* Use-case pills */}
-            <Reveal delay={0.25}>
-              <div className="flex flex-wrap items-center gap-3 mb-8 mt-6">
-                {[
-                  "M-Pesa billing automation",
-                  "MikroTik + PPPoE workflows",
-                  "Hotspot and subscriber operations",
-                ].map((label) => (
-                  <span
-                    key={label}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white/92 backdrop-blur-sm"
-                  >
-                    <Check className="w-3.5 h-3.5 text-blue-200" />
-                    {label}
-                  </span>
-                ))}
-              </div>
-            </Reveal>
-
             {/* CTA Buttons */}
-            <Reveal delay={0.3}>
+            <Reveal delay={0.26}>
               <div id="hero-cta" className="flex flex-col sm:flex-row items-start gap-4">
                 <Link
                   href="#contact"
@@ -958,23 +941,6 @@ export function LandingPage() {
                 </a>
               </div>
               <p className="mt-3 text-xs text-white/72">No credit card required • 14 days free • Cancel anytime</p>
-            </Reveal>
-
-            <Reveal delay={0.38}>
-              <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-medium text-white/88">
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                  Free 14-day trial
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-sky-300" />
-                  No credit card required
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-violet-300" />
-                  Built for East African ISP operations
-                </span>
-              </div>
             </Reveal>
           </div>
 
@@ -1197,7 +1163,7 @@ export function LandingPage() {
                 title: "Instant collections to reconnection",
                 body: "STK Push, payment confirmation, and service restoration stay close together instead of being spread across tools and manual checklists.",
                 icon: Smartphone,
-                tone: "from-blue-600 to-indigo-700 text-white xl:col-span-2",
+                tone: "bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white xl:col-span-2 border border-blue-400/30 ring-1 ring-white/10",
                 dark: true,
               },
               {
@@ -1233,11 +1199,37 @@ export function LandingPage() {
             ].map((item, index) => (
               <Reveal key={item.title} delay={index * 0.08}>
                 <article className={`rounded-[28px] p-6 shadow-sm shadow-slate-900/5 ${item.tone}`}>
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${item.dark ? "bg-white/15 text-white" : "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300"}`}>
-                    <item.icon className="h-5 w-5" />
+                  <div className="flex items-start justify-between gap-4">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${item.dark ? "bg-white/18 text-white shadow-lg shadow-blue-950/25" : "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300"}`}>
+                      <item.icon className="h-5 w-5" />
+                    </div>
+                    {item.dark && (
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/90">
+                          Real-time flow
+                        </span>
+                        <span className="rounded-full border border-emerald-300/25 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-100">
+                          Payment-aware
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <p className={`mt-5 text-xl font-semibold ${item.dark ? "text-white" : "text-slate-900 dark:text-white"}`}>{item.title}</p>
                   <p className={`mt-3 text-sm leading-relaxed ${item.dark ? "text-blue-100" : "text-slate-500 dark:text-slate-400"}`}>{item.body}</p>
+                  {item.dark && (
+                    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                      {[
+                        { label: "STK Push", value: "Triggered" },
+                        { label: "Payment", value: "Confirmed" },
+                        { label: "Service", value: "Restored" },
+                      ].map((step) => (
+                        <div key={step.label} className="rounded-2xl border border-white/12 bg-white/8 px-4 py-3">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-100/70">{step.label}</p>
+                          <p className="mt-2 text-sm font-semibold text-white">{step.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </article>
               </Reveal>
             ))}
