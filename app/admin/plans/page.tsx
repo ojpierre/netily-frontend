@@ -666,7 +666,8 @@ export default function PlansPage() {
     )
   }, [plans, hotspotPlans, activeTab, selectedRouterId, searchQuery])
 
-  // Stats - use dashboard stats if available, otherwise calculate from plans
+  // Stats - use dashboard stats if available, otherwise calculate from loaded data
+  // hotspotPlans state holds HotspotPlan records — count those too
   const stats = useMemo(() => {
     if (dashboardStats) {
       return {
@@ -678,16 +679,17 @@ export default function PlansPage() {
         subscribers: dashboardStats.total_subscribers,
       }
     }
-    // Fallback to calculated stats
+    // Fallback: calculated from loaded data
+    const hotspotCount = plans.filter(p => p.plan_type === 'HOTSPOT').length + hotspotPlans.length
     return {
-      total: plans.length,
-      active: plans.filter(p => p.is_active).length,
-      hotspot: plans.filter(p => p.plan_type === 'HOTSPOT').length,
+      total: plans.length + hotspotPlans.length,
+      active: plans.filter(p => p.is_active).length + hotspotPlans.filter(p => p.is_active).length,
+      hotspot: hotspotCount,   // CHANGED: was just plans.filter count
       pppoe: plans.filter(p => p.plan_type === 'PPPOE').length,
       static: plans.filter(p => p.plan_type === 'STATIC').length,
       subscribers: plans.reduce((sum, p) => sum + (p.subscriber_count || 0), 0),
     }
-  }, [dashboardStats, plans])
+  }, [dashboardStats, plans, hotspotPlans])  // ADDED hotspotPlans to deps
 
   // Reset form
   const resetForm = () => {
