@@ -366,6 +366,7 @@ export default function PlansPage() {
   // Data states
   const [plans, setPlans] = useState<Plan[]>([])
   const [hotspotPlans, setHotspotPlans] = useState<Plan[]>([])
+  const [hotspotTotalCount, setHotspotTotalCount] = useState(0) // NEW: independent hotspot count for fallback
   const [dashboardStats, setDashboardStats] = useState<PlanDashboardStats | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
   
@@ -457,6 +458,21 @@ export default function PlansPage() {
   const [cidrOptions, setCidrOptions] = useState<CIDROption[]>([])
   const [blockedPrefixes, setBlockedPrefixes] = useState<string[]>([])
   const [subnetOptionsLoading, setSubnetOptionsLoading] = useState(false)
+
+  // NEW: Fetch hotspot stats count independently (for fallback when dashboardStats is null)
+  const fetchHotspotStatsCount = useCallback(async () => {
+    if (routers.length === 0) return
+    try {
+      let count = 0
+      for (const r of routers) {
+        const hPlans = await adminApi.getHotspotPlans(r.id)
+        count += hPlans.length
+      }
+      setHotspotTotalCount(count)
+    } catch (error) {
+      console.error('Failed to fetch hotspot stats count:', error)
+    }
+  }, [routers])
 
   // Load subnet prefix options for Cloud-Led subnet builder
   const loadSubnetPrefixOptions = useCallback(async () => {
@@ -606,6 +622,13 @@ export default function PlansPage() {
     }
   }, [activeTab, selectedRouterId, fetchHotspotPlans, fetchAllHotspotPlans, routers.length])
 
+  // NEW: Fetch hotspot stats count after routers load
+  useEffect(() => {
+    if (routers.length > 0) {
+      fetchHotspotStatsCount()
+    }
+  }, [routers, fetchHotspotStatsCount])
+
   // Fetch data
   const fetchPlans = useCallback(async () => {
     try {
@@ -644,7 +667,7 @@ export default function PlansPage() {
   // Refresh - updated for 'all'
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    const refreshTasks = [fetchPlans(), fetchDashboardStats()]
+    const refreshTasks = [fetchPlans(), fetchDashboardStats(), fetchHotspotStatsCount()]
     if (activeTab === 'hotspot') {
       if (selectedRouterId === 'all') {
         refreshTasks.push(fetchAllHotspotPlans())
@@ -666,7 +689,8 @@ export default function PlansPage() {
     )
   }, [plans, hotspotPlans, activeTab, selectedRouterId, searchQuery])
 
-  // Stats - use dashboard stats if available, otherwise calculate from plans
+  // Stats - use dashboard stats if available, otherwise calculate from loaded data
+  // Use hotspotTotalCount which is loaded independently on mount
   const stats = useMemo(() => {
     if (dashboardStats) {
       return {
@@ -678,16 +702,16 @@ export default function PlansPage() {
         subscribers: dashboardStats.total_subscribers,
       }
     }
-    // Fallback to calculated stats
+    // Fallback: use hotspotTotalCount which is loaded independently on mount
     return {
-      total: plans.length,
+      total: plans.length + hotspotTotalCount,
       active: plans.filter(p => p.is_active).length,
-      hotspot: plans.filter(p => p.plan_type === 'HOTSPOT').length,
+      hotspot: plans.filter(p => p.plan_type === 'HOTSPOT').length + hotspotTotalCount,
       pppoe: plans.filter(p => p.plan_type === 'PPPOE').length,
       static: plans.filter(p => p.plan_type === 'STATIC').length,
       subscribers: plans.reduce((sum, p) => sum + (p.subscriber_count || 0), 0),
     }
-  }, [dashboardStats, plans])
+  }, [dashboardStats, plans, hotspotTotalCount])
 
   // Reset form
   const resetForm = () => {
@@ -809,6 +833,7 @@ export default function PlansPage() {
       resetForm()
       fetchPlans()
       fetchDashboardStats()
+      fetchHotspotStatsCount()
     } catch (error: any) {
       console.error('Failed to create plan:', error)
       toast.error(error.message || 'Failed to create plan')
@@ -942,6 +967,7 @@ export default function PlansPage() {
       resetForm()
       fetchPlans()
       fetchDashboardStats()
+      fetchHotspotStatsCount()
     } catch (error: any) {
       console.error('Failed to update plan:', error)
       toast.error(error.message || 'Failed to update plan')
@@ -958,6 +984,7 @@ export default function PlansPage() {
       toast.success(`Plan ${plan.is_active ? 'deactivated' : 'activated'}`)
       fetchPlans()
       fetchDashboardStats()
+      fetchHotspotStatsCount()
     } catch (error: any) {
       console.error('Failed to toggle plan:', error)
       toast.error(error.message || 'Failed to toggle plan status')
@@ -994,6 +1021,7 @@ export default function PlansPage() {
       setPlanToDelete(null)
       fetchPlans()
       fetchDashboardStats()
+      fetchHotspotStatsCount()
       if (selectedRouterId === 'all') {
         fetchAllHotspotPlans()
       } else if (selectedRouterId) {
@@ -1040,6 +1068,7 @@ export default function PlansPage() {
       toast.success(`"${preset.config.name}" plan created for ${routerLabel}!`)
       fetchPlans()
       fetchDashboardStats()
+      fetchHotspotStatsCount()
       if (selectedRouterId === 'all') fetchAllHotspotPlans()
       else fetchHotspotPlans(selectedRouterId as number)
     } catch (error: any) {
@@ -1103,6 +1132,7 @@ export default function PlansPage() {
       resetHotspotForm()
       fetchPlans()
       fetchDashboardStats()
+      fetchHotspotStatsCount()
       if (selectedRouterId === 'all') fetchAllHotspotPlans()
       else if (selectedRouterId) fetchHotspotPlans(selectedRouterId as number)
     } catch (error: any) {
