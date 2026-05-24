@@ -40,7 +40,7 @@ interface PortalConfig {
   support_phone: string
   announcement_text: string
   gateway_ip: string
-  router_logo_url?: string | null  // ← NEW
+  router_logo_url?: string | null
 }
 
 interface BrandingConfig {
@@ -110,6 +110,29 @@ interface AdGrantResponse {
 }
 
 type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "timeout"
+
+// ─── Loyalty types ───────────────────────────────────────────────────────────
+
+interface LoyaltyRewardItem {
+  id: number
+  name: string
+  description: string
+  points_cost: number
+  reward_minutes: number
+  reward_speed_mbps: string
+}
+
+interface HotspotLoyaltyData {
+  program_active: boolean
+  has_loyalty: boolean
+  member_id?: number
+  current_points: number
+  lifetime_points?: number
+  tier_name?: string
+  tier_level?: string
+  available_rewards: LoyaltyRewardItem[]
+  all_hotspot_rewards: LoyaltyRewardItem[]
+}
 
 // ==========================================
 // API FUNCTIONS (Public endpoints — no auth)
@@ -298,6 +321,53 @@ async function grantAdAccess(data: {
   })
   const json = await res.json()
   if (!res.ok && res.status !== 409) throw new Error(json.error || 'Failed to grant access')
+  return json
+}
+
+// ─── Loyalty API functions ──────────────────────────────────────────────────
+
+async function fetchHotspotLoyalty(
+  mac: string,
+  tenant: string,
+  canonicalUsername?: string
+): Promise<HotspotLoyaltyData | null> {
+  try {
+    const params = new URLSearchParams({ mac, tenant })
+    if (canonicalUsername) params.append('canonical_username', canonicalUsername)
+    const res = await fetch(`${getApiBase()}/hotspot/loyalty-info/?${params.toString()}`, {
+      cache: 'no-store',
+    })
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
+}
+
+async function redeemHotspotLoyaltyPoints(data: {
+  canonical_username: string
+  reward_id: number
+  router_id: string
+  mac_address: string
+  tenant: string
+}): Promise<{
+  status: string
+  access_code: string
+  expires_at: string
+  reward_minutes: number
+  points_used: number
+  points_remaining: number
+  message: string
+  error?: string
+}> {
+  const res = await fetch(`${getApiBase()}/hotspot/loyalty-redeem/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    cache: 'no-store',
+  })
+  const json = await res.json()
+  if (!res.ok) throw new Error(json.error || 'Redemption failed')
   return json
 }
 
@@ -1038,6 +1108,13 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const videoRef = useRef<HTMLVideoElement>(null)
   const preloadVideoRef = useRef<HTMLVideoElement | null>(null)
 
+  // ── Loyalty state ──────────────────────────────────────────────────────────
+  const [loyaltyData, setLoyaltyData] = useState<HotspotLoyaltyData | null>(null)
+  const [showRedeemModal, setShowRedeemModal] = useState(false)
+  const [redeemLoading, setRedeemLoading] = useState(false)
+  const [redeemError, setRedeemError] = useState<string | null>(null)
+  const [canonicalUsername, setCanonicalUsername] = useState<string>('')
+
   // Preload video into browser cache as soon as ad data arrives
   useEffect(() => {
     if (!availableAd?.media_url || availableAd.media_type !== 'VIDEO') return
@@ -1147,9 +1224,12 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     
     checkAutoLogin(routerId, mac)
       .then((result) => {
-        if (result.has_session && result.credentials && loginUrl) {
-          setReturningToRouter(true)
-          returnTripToMikrotik(loginUrl, result.credentials.username, result.credentials.password)
+        if (result.has_session && result.credentials) {
+          setCanonicalUsername(result.credentials.username)  // ← ADDED: Track canonical username from auto-login
+          if (loginUrl) {
+            setReturningToRouter(true)
+            returnTripToMikrotik(loginUrl, result.credentials.username, result.credentials.password)
+          }
         } else if (isSmartTV()) {
             setIsTvDevice(true)
             const fetchCode = async () => {
@@ -1206,6 +1286,19 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     fetchServableAd(routerId, tenant).then(({ ad }) => setAvailableAd(ad))
   }, [routerId, isTvDevice, loading])
 
+  // ── Fetch loyalty info after plans load ───────────────────────────────────
+  useEffect(() => {
+    if (loading || isTvDevice) return
+    const mac = getMacAddress()
+    if (mac === '00:00:00:00:00:00') return
+    const tenant = getTenant()
+    if (!tenant) return
+
+    fetchHotspotLoyalty(mac, tenant, canonicalUsername || undefined).then(data => {
+      if (data?.program_active) setLoyaltyData(data)
+    })
+  }, [loading, isTvDevice, canonicalUsername])
+
   // ── Poll payment status ──
   useEffect(() => {
     if (paymentStatus !== "waiting" || !sessionId) return
@@ -1217,6 +1310,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           setPaymentStatus("success")
           setAccessCode(result.access_code || null)
           setExpiresAt(result.expires_at || null)
+          if (result.access_code) setCanonicalUsername(result.access_code)  // ← ADDED: Track canonical username from payment
           clearInterval(pollInterval)
           
           // ONLY auto-login if we are paying for THIS device (not for TV)
@@ -1851,6 +1945,49 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             </div>
           )}
 
+          {/* ── Loyalty Points Banner ── */}
+          {loyaltyData?.program_active && (
+            <div className="mb-5">
+              {loyaltyData.has_loyalty ? (
+                <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🏆</span>
+                    <div>
+                      <p className="text-sm font-semibold text-violet-800">
+                        {loyaltyData.current_points.toLocaleString()} points
+                      </p>
+                      <p className="text-xs text-violet-500">
+                        {loyaltyData.tier_name} tier
+                      </p>
+                    </div>
+                  </div>
+                  {loyaltyData.available_rewards.length > 0 ? (
+                    <button
+                      onClick={() => { setShowRedeemModal(true); setRedeemError(null) }}
+                      className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                    >
+                      🎁 Redeem
+                    </button>
+                  ) : loyaltyData.all_hotspot_rewards.length > 0 ? (
+                    <button
+                      onClick={() => { setShowRedeemModal(true); setRedeemError(null) }}
+                      className="px-3 py-1.5 bg-slate-100 text-slate-500 text-xs font-medium rounded-lg"
+                    >
+                      View Rewards
+                    </button>
+                  ) : null}
+                </div>
+              ) : loyaltyData.all_hotspot_rewards.length > 0 ? (
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-50 border border-violet-100">
+                  <span className="text-base">⭐</span>
+                  <p className="text-xs text-violet-600">
+                    Earn loyalty points with every purchase! Redeem for free internet.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          )}
+
           {/* ── Voucher Redemption — top level, always visible ── */}
           <div className="mb-5">
             <div className={`flex rounded-xl border ${theme.inputBorder} overflow-hidden`}>
@@ -2288,6 +2425,144 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                 ✕ No thanks
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ━━━ LOYALTY REDEEM MODAL ━━━ */}
+      {showRedeemModal && loyaltyData && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowRedeemModal(false)}
+          />
+          <div className="relative w-full sm:max-w-md mx-auto bg-white rounded-t-2xl sm:rounded-2xl p-6 max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+            <button
+              onClick={() => setShowRedeemModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:opacity-70"
+            >
+              ✕
+            </button>
+
+            <div className="mb-5">
+              <h3 className="text-lg font-bold text-gray-900 mb-1">🎁 Loyalty Rewards</h3>
+              <p className="text-sm text-gray-500">
+                You have <span className="font-bold text-violet-600">{loyaltyData.current_points.toLocaleString()} points</span>
+              </p>
+            </div>
+
+            {redeemError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" /> {redeemError}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {(loyaltyData.all_hotspot_rewards.length > 0
+                ? loyaltyData.all_hotspot_rewards
+                : []
+              ).map(reward => {
+                const canAfford = loyaltyData.current_points >= reward.points_cost
+                return (
+                  <div
+                    key={reward.id}
+                    className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
+                      canAfford
+                        ? 'border-violet-200 bg-violet-50'
+                        : 'border-gray-100 bg-gray-50 opacity-60'
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0 text-xl">
+                      🌐
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm">{reward.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {reward.reward_minutes} min · {reward.reward_speed_mbps} Mbps
+                        {reward.description ? ` · ${reward.description}` : ''}
+                      </p>
+                      <p className={`text-xs font-bold mt-0.5 ${canAfford ? 'text-violet-600' : 'text-gray-400'}`}>
+                        {reward.points_cost.toLocaleString()} points
+                        {!canAfford && ` (need ${(reward.points_cost - loyaltyData.current_points).toLocaleString()} more)`}
+                      </p>
+                    </div>
+                    {canAfford && (
+                      <button
+                        disabled={redeemLoading}
+                        onClick={async () => {
+                          setRedeemLoading(true)
+                          setRedeemError(null)
+                          try {
+                            const mac = getMacAddress()
+                            const username = canonicalUsername || ''
+                            const result = await redeemHotspotLoyaltyPoints({
+                              canonical_username: username,
+                              reward_id: reward.id,
+                              router_id: routerId,
+                              mac_address: mac,
+                              tenant: getTenant(),
+                            })
+                            setShowRedeemModal(false)
+                            setAccessCode(result.access_code)
+                            setExpiresAt(result.expires_at)
+                            setSelectedPlan({
+                              id: 'loyalty-reward',
+                              name: reward.name,
+                              duration_display: `${reward.reward_minutes} minutes (reward)`,
+                              speed_display: `${reward.reward_speed_mbps} Mbps`,
+                              price: 0,
+                              currency: 'KES',
+                              validity_type: 'MINUTES',
+                              validity_value: reward.reward_minutes,
+                              download_speed: Number(reward.reward_speed_mbps),
+                              upload_speed: Number(reward.reward_speed_mbps),
+                              speed_unit: 'MBPS',
+                              limitation_type: 'UNLIMITED',
+                              data_limit_value: null,
+                              data_limit_unit: 'MB',
+                              data_limit_display: 'Unlimited',
+                            })
+                            setPaymentStatus('success')
+                            // Update local points display
+                            setLoyaltyData(prev => prev ? {
+                              ...prev,
+                              current_points: result.points_remaining,
+                              available_rewards: prev.available_rewards.filter(
+                                r => r.points_cost <= result.points_remaining
+                              ),
+                            } : null)
+                            // Auto-login if we have a login URL
+                            if (loginUrl && result.access_code) {
+                              setReturningToRouter(true)
+                              const u = encodeURIComponent(result.access_code)
+                              setTimeout(() => {
+                                window.location.href = `${loginUrl}?username=${u}&password=${u}`
+                              }, 1500)
+                            }
+                          } catch (err: any) {
+                            setRedeemError(err.message || 'Redemption failed. Try again.')
+                          } finally {
+                            setRedeemLoading(false)
+                          }
+                        }}
+                        className="px-3 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1"
+                      >
+                        {redeemLoading ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : 'Redeem'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+
+              {loyaltyData.all_hotspot_rewards.length === 0 && (
+                <div className="py-8 text-center text-gray-400">
+                  <p className="text-sm">No hotspot rewards configured yet.</p>
+                  <p className="text-xs mt-1">Keep purchasing to earn points!</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -216,7 +216,12 @@ export default function LoyaltyPage() {
 
   const openCreateReward = () => {
     setEditingReward(null)
-    setRewardForm({ status: "active", category: "other" })
+    setRewardForm({ 
+      status: "active", 
+      category: "other",
+      hotspot_reward_minutes: null,
+      hotspot_reward_speed_mbps: "5"
+    })
     setRewardDialog("create")
   }
 
@@ -536,6 +541,9 @@ export default function LoyaltyPage() {
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0">{categoryLabels[r.category]}</Badge>
                           <Badge variant={r.status === "active" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 uppercase">{r.status}</Badge>
                           {r.stock_quantity !== null && <span className="text-[10px] text-muted-foreground">{r.stock_quantity} in stock</span>}
+                          {r.hotspot_reward_minutes && (
+                            <span className="text-[10px] text-purple-600 bg-purple-50 px-1.5 py-0 rounded">🎁 {r.hotspot_reward_minutes} min WiFi</span>
+                          )}
                         </div>
                       </div>
                       <div className="text-right shrink-0">
@@ -875,6 +883,43 @@ export default function LoyaltyPage() {
                 <Input type="number" min={0} value={rewardForm.stock_quantity ?? ""} onChange={e => setRewardForm(p => ({ ...p, stock_quantity: e.target.value ? Number(e.target.value) : null }))} />
               </div>
             </div>
+
+            {/* Hotspot reward fields */}
+            <div className="md:col-span-2 border-t pt-4">
+              <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-3">
+                📡 Hotspot Redemption (leave blank for non-hotspot rewards)
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm mb-1.5 block">Free Minutes</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="e.g. 30"
+                    value={rewardForm.hotspot_reward_minutes ?? ''}
+                    onChange={e => setRewardForm(p => ({
+                      ...p,
+                      hotspot_reward_minutes: e.target.value ? Number(e.target.value) : null
+                    }))}
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Minutes of free WiFi given on redemption</p>
+                </div>
+                <div>
+                  <Label className="text-sm mb-1.5 block">Speed (Mbps)</Label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. 5"
+                    value={rewardForm.hotspot_reward_speed_mbps ?? '5'}
+                    onChange={e => setRewardForm(p => ({
+                      ...p,
+                      hotspot_reward_speed_mbps: e.target.value
+                    }))}
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Speed during the reward session</p>
+                </div>
+              </div>
+            </div>
+
             <Button className="w-full" disabled={rewardLoading || !rewardForm.name || !rewardForm.points_cost} onClick={handleSaveReward}>
               {rewardLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</> : "Save Reward"}
             </Button>
