@@ -3353,6 +3353,8 @@ export interface LoyaltyReward {
   voucher_batch_id: number | null
   credit_amount: number | null
   is_available: boolean
+  hotspot_reward_minutes?: number | null
+  hotspot_reward_speed_mbps?: string
 }
 
 export interface PointsTransaction {
