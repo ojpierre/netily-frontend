@@ -583,10 +583,6 @@ export default function PayoutSettingsPage() {
             the funds are collected by Netily&apos;s payment processor.
           </p>
           <p>
-            <strong>Commission:</strong> Netily retains a 5% platform fee from each transaction. 
-            The remaining 95% is available for payout to you.
-          </p>
-          <p>
             <strong>Settlement:</strong> Based on your payout schedule, funds are automatically 
             transferred to your configured M-Pesa or bank account.
           </p>
