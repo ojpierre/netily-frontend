@@ -1015,7 +1015,7 @@ export function LandingPage() {
                 detail: "Customer records, billing status, and access changes stay in one operating system.",
               },
               {
-                value: 100%,
+                value: 100,
                 suffix: "%",
                 label: "Daily M-Pesa payout",
                 icon: CircleDollarSign,
