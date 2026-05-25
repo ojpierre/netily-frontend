@@ -796,7 +796,12 @@ class AdminApiService {
   // ------------------------------------------
 
 async getCustomerServices(customerId: number): Promise<CustomerService[]> {
-  return this.request<CustomerService[]>(`/customers/${customerId}/services/`)
+  const response = await this.request<CustomerService[] | { results: CustomerService[] }>(
+    `/customers/${customerId}/services/`
+  )
+  // Handle both paginated and non-paginated responses
+  if (Array.isArray(response)) return response
+  return (response as any).results || []
 }
 
 async createCustomerService(customerId: number, data: Partial<CustomerService>): Promise<CustomerService> {

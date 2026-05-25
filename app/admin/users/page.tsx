@@ -515,8 +515,12 @@ export default function UsersPage() {
     try {
       setSavingBilling(true)
       const services = await adminApi.getCustomerServices(selectedUser.customerId)
+      // services is now always an array thanks to the fix in admin-api.ts
+      if (!services || services.length === 0) {
+        toast.error('No service found for this customer')
+        return
+      }
       const primaryService = services[0]
-      if (!primaryService) throw new Error('No service found')
       await adminApi.updateCustomerService(
         selectedUser.customerId,
         primaryService.id,
