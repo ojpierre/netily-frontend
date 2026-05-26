@@ -70,18 +70,35 @@ import { MpesaSettingsPanel } from "@/components/mpesa-settings-panel"
 import type { PaymentMethod, PaymentMethodType, PaymentDashboardStats } from "@/lib/types"
 
 // =============================================================================
-// CONSTANTS
+// CONSTANTS - UPDATED to match Tuma's exact database values
 // =============================================================================
 const TUMA_BANKS = [
-  "KCB Bank", "Equity Bank", "Co-operative Bank", "ABSA Bank",
-  "Standard Chartered Bank", "Stanbic Bank", "Diamond Trust Bank (DTB)",
-  "Family Bank", "National Bank of Kenya", "NCBA Bank", "I&M Bank",
-  "Sidian Bank", "Gulf African Bank", "Ecobank", "SBM Bank",
-  "Middle East Bank", "Kingdom Bank", "HF Group",
-  "Kenya Women Microfinance Bank (KWFT)", "Faulu Bank", "Prime Bank",
-  "Bank of Baroda", "Consolidated Bank", "Victoria Commercial Bank",
-  "Guardian Bank", "Credit Bank", "Development Bank of Kenya",
-  "Mayfair CIB Bank", "Access Bank", "UBA Kenya",
+  "Kenya Commercial Bank",
+  "Equity Bank",
+  "Cooperative Bank",
+  "Absa Bank",
+  "Standard Chartered Bank",
+  "Stanbic Bank",
+  "Diamond Trust Bank",
+  "Family Bank",
+  "National Bank of Kenya",
+  "NCBA Bank",
+  "I&M Bank",
+  "Ecobank Savings & Current",
+  "Ecobank Xpress",
+  "Faulu Bank",
+  "Kingdom Bank",
+  "SBM Bank Kenya",
+  "Sidian Bank",
+  "Bank of Africa",
+  "Bank of Baroda",
+  "Post Bank",
+  "LOOP BUSINESS",
+  "LOOP C2B",
+  "Fortune Sacco",
+  "K Unity Sacco",
+  "Tower Sacco Society",
+  "Zemo Pay",
 ]
 
 // Removed MOBILE_MONEY and PAYMENT_LINK from METHOD_TYPES
