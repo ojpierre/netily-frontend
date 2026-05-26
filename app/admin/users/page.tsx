@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
 import {
   Search,
@@ -272,6 +272,10 @@ const generateSimplePassword = (length: number = 8): string => {
 
 export default function UsersPage() {
   const router = useRouter()
+  const ipSearchDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  const editIPSearchDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  const hasFetched = useRef(false)
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [users, setUsers] = useState<User[]>([])
@@ -320,7 +324,7 @@ export default function UsersPage() {
   const [routersLoading, setRoutersLoading] = useState(false)
   const [poolsList, setPoolsList] = useState<IPPool[]>([])
   const [poolsLoading, setPoolsLoading] = useState(false)
-  const [availableIPs, setAvailableIPs] = useState<AvailableIP[]>([])
+  const [availableIPs, setAvailableIPs] = useState<AvailableIP[] & { total_available?: number }>([])
   const [availableIPsLoading, setAvailableIPsLoading] = useState(false)
   const [ipSearchQuery, setIpSearchQuery] = useState("")
   const [onlineSessions, setOnlineSessions] = useState<OnlineSession[]>([])
@@ -341,6 +345,7 @@ export default function UsersPage() {
   const [selectedNewIPId, setSelectedNewIPId] = useState<string>("")
   const [editIPSearchQuery, setEditIPSearchQuery] = useState("")
   const [savingIP, setSavingIP] = useState(false)
+  const [editIPPoolId, setEditIPPoolId] = useState<number | null>(null)
 
   const [editForm, setEditForm] = useState({
     first_name: "",
@@ -369,7 +374,6 @@ export default function UsersPage() {
     initial_payment_reference: '',
   })
 
-  const hasFetched = React.useRef(false)
   useEffect(() => {
     if (hasFetched.current) return
     hasFetched.current = true
@@ -459,11 +463,14 @@ export default function UsersPage() {
     }
   }
 
+  // UPDATED: loadAvailableIPs with search and pagination
   const loadAvailableIPs = async (poolId: number, search?: string) => {
     try {
       setAvailableIPsLoading(true)
       const response = await adminApi.getIPPoolAvailableIPs(poolId, search)
-      setAvailableIPs(response.results || [])
+      const ips = response.results || []
+      ;(ips as any).total_available = response.total_available
+      setAvailableIPs(ips)
     } catch (err) {
       console.error('Failed to load available IPs:', err)
       setAvailableIPs([])
@@ -714,7 +721,6 @@ export default function UsersPage() {
     });
   }, [hotspotClients]);
 
-  // FIX: Simplified isEffectivelyExpired to just check the status, which is now correctly set during mapping
   const stats: UserStats = useMemo(() => {
     const now = new Date()
     const hotspotCount = activeSubscriptions.hotspot?.length || 0;
@@ -736,7 +742,6 @@ export default function UsersPage() {
     }
   }, [enrichedUsers, activeSubscriptions, onlineSessions])
 
-  // FIX 1: Added radius_username to search bar for All/PPPoE/Static tabs
   const filteredUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
       const matchesTab = 
@@ -749,7 +754,6 @@ export default function UsersPage() {
         (user.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
         (user.phone || '').includes(searchQuery) ||
         (user.id?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-        // ADDED: Search by RADIUS username
         (user.radiusCredentials?.username?.toLowerCase() || '').includes(searchQuery.toLowerCase())
       )
 
@@ -780,7 +784,6 @@ export default function UsersPage() {
     })
   }, [onlineSessions, onlineSearchQuery, onlineServiceFilter])
 
-  // FIX 1: Added radius_username to search bar for Active Subscriptions tab
   const activeSubscriptionUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
       const expiryDate = new Date(user.expiryDate)
@@ -797,7 +800,6 @@ export default function UsersPage() {
         (user.phone || '').includes(activeSearchQuery) ||
         (user.id?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
         (user.plan?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
-        // ADDED: Search by RADIUS username
         (user.radiusCredentials?.username?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase())
       )
       return isActive && matchesSearch
@@ -904,12 +906,13 @@ export default function UsersPage() {
     }
   }
 
-  // Edit IP Handler
+  // UPDATED: handleEditIP with caching of poolId
   const handleEditIP = async (user: User) => {
     setUserToEditIP(user)
     setSelectedNewIPId("")
     setEditIPSearchQuery("")
     setEditIPAvailableIPs([])
+    setEditIPPoolId(null)
     setShowEditIPDialog(true)
 
     if (!user.serviceId) {
@@ -920,44 +923,29 @@ export default function UsersPage() {
       setEditIPLoading(true)
 
       const rawServices = await adminApi.getCustomerServices(user.customerId)
-      console.log("=== EDIT IP DEBUG ===")
-      console.log("Raw services response:", JSON.stringify(rawServices, null, 2))
-
-      // Handle paginated response - extract results array
       const services: CustomerService[] = Array.isArray(rawServices)
         ? rawServices
         : ((rawServices as any)?.results ?? [])
-      
-      console.log("Extracted services array:", JSON.stringify(services, null, 2))
 
       const svc = services.find((s: CustomerService) => s.id === user.serviceId) || services[0]
-      console.log("Matched service:", JSON.stringify(svc, null, 2))
-      console.log("Plan:", JSON.stringify(svc?.plan, null, 2))
-      console.log("ip_pool from nested plan:", svc?.plan?.ip_pool)
 
       let poolId: number | null = null
 
       if (svc?.plan?.ip_pool && typeof svc.plan.ip_pool === 'number') {
         poolId = svc.plan.ip_pool
-        console.log("Pool ID from nested plan:", poolId)
       } else if (svc?.plan?.id) {
-        console.log("Fetching full plan for id:", svc.plan.id)
         const fullPlan = await adminApi.getPlan(svc.plan.id)
-        console.log("Full plan response:", JSON.stringify(fullPlan, null, 2))
         poolId = typeof fullPlan?.ip_pool === 'number' ? fullPlan.ip_pool : null
-        console.log("Pool ID from full plan:", poolId)
       }
 
       if (poolId) {
-        console.log("Fetching IPs for pool:", poolId)
+        setEditIPPoolId(poolId)
         const resp = await adminApi.getIPPoolAvailableIPs(poolId)
-        console.log("Available IPs response:", JSON.stringify(resp, null, 2))
         setEditIPAvailableIPs(resp.results || [])
         if (!resp.results?.length) {
           toast.error("No available IPs in this pool — all IPs may be assigned")
         }
       } else {
-        console.log("No pool ID found — plan has no ip_pool assigned")
         toast.error("No IP pool assigned to this user's plan. Assign an IP pool to the plan first.")
       }
     } catch (err: any) {
@@ -1049,6 +1037,7 @@ export default function UsersPage() {
       toast.success(result.message || 'IP address updated successfully')
       setShowEditIPDialog(false)
       setUserToEditIP(null)
+      setEditIPPoolId(null)
       await loadUsers()
       await loadOnlineSessions()
     } catch (err: any) {
@@ -1058,7 +1047,6 @@ export default function UsersPage() {
     }
   }
 
-  // UPDATED: Reset the new state when opening extend dialog
   const handleExtendSubscription = (user: User) => {
     setUserToExtend(user)
     setExtendForm({ duration_amount: 1, duration_unit: 'DAYS', plan_id: '' })
@@ -1068,7 +1056,6 @@ export default function UsersPage() {
     setShowExtendDialog(true)
   }
 
-  // UPDATED: confirmExtendSubscription with date mode support
   const confirmExtendSubscription = async () => {
     if (!userToExtend || !userToExtend.serviceId) {
       toast.error("No active service to extend")
@@ -1078,7 +1065,6 @@ export default function UsersPage() {
       setExtending(true)
       
       if (extendMode === "date" && extendManualDate) {
-        // Calculate duration from now (or current expiry) to selected date
         const targetDate = new Date(extendManualDate + "T23:59:59Z")
         const baseDate = userToExtend.expiryDate && new Date(userToExtend.expiryDate) > new Date()
           ? new Date(userToExtend.expiryDate)
@@ -1425,38 +1411,66 @@ export default function UsersPage() {
                   </div>
                 </div>
 
-                {/* Cloud-Led Static IP from plan's pool */}
+                {/* UPDATED: Cloud-Led Static IP from plan's pool with searchable input */}
                 {selectedPlanPool && (
                   <div className="space-y-1">
-                    <Label>Assign Static IP <span className="text-xs text-slate-400">(Cloud-Led - optional)</span></Label>
+                    <Label>Assign Static IP <span className="text-xs text-slate-400">(optional)</span></Label>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Search IP..."
+                        placeholder="Search IP (e.g. 10.50.3)"
                         value={ipSearchQuery}
                         onChange={(e) => {
                           setIpSearchQuery(e.target.value)
-                          if (selectedPlanPool) loadAvailableIPs(selectedPlanPool, e.target.value || undefined)
+                          if (selectedPlanPool) {
+                            if (ipSearchDebounceRef.current) clearTimeout(ipSearchDebounceRef.current)
+                            ipSearchDebounceRef.current = setTimeout(() => {
+                              loadAvailableIPs(selectedPlanPool, e.target.value || undefined)
+                            }, 400)
+                          }
                         }}
-                        className="w-40"
+                        className="flex-1"
                       />
-                      <Select
-                        value={newCustomerForm.assigned_ip || "none"}
-                        onValueChange={(value) => setNewCustomerForm({...newCustomerForm, assigned_ip: value === "none" ? "" : value})}
-                        disabled={availableIPsLoading}
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder={availableIPsLoading ? "Loading IPs..." : `${availableIPs.length} available`} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No Static IP</SelectItem>
-                          {availableIPs.map((ip) => (
-                            <SelectItem key={ip.id} value={String(ip.id)}>
-                              <span className="font-mono">{ip.ip_address}</span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     </div>
+                    {availableIPsLoading ? (
+                      <p className="text-xs text-slate-500 flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Loading IPs...
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        <Select
+                          value={newCustomerForm.assigned_ip || "none"}
+                          onValueChange={(value) =>
+                            setNewCustomerForm({ ...newCustomerForm, assigned_ip: value === "none" ? "" : value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue
+                              placeholder={
+                                availableIPs.length === 0
+                                  ? "No IPs found — try searching"
+                                  : `${availableIPs.length} IPs shown — search to filter`
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No Static IP (auto-assign)</SelectItem>
+                            {availableIPs.map((ip) => (
+                              <SelectItem key={ip.id} value={String(ip.id)}>
+                                <span className="font-mono">{ip.ip_address}</span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {availableIPs.length > 0 && (
+                          <p className="text-xs text-slate-500">
+                            Showing {availableIPs.length} of{" "}
+                            {(availableIPs as any).total_available ?? "many"} available —
+                            type above to search
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -2343,10 +2357,6 @@ export default function UsersPage() {
                   </TableHeader>
                   <TableBody>
                     {activeSubscriptions.hotspot.map((item) => {
-                      // FIX 2: Fixed hotspot offline usage showing money instead of "Offline"
-                      // REPLACED: const historicalSpend = item.client_total_spend ?? 0;
-                      // REPLACED: const historicalUsageDisplay = `KES ${historicalSpend.toLocaleString()}`;
-                      // WITH:
                       const historicalUsageDisplay = "Offline";
                       const liveUsage = item.canonical_username
                         ? hotspotLiveUsageMap.get(item.canonical_username)
@@ -3430,8 +3440,18 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit IP Dialog */}
-      <Dialog open={showEditIPDialog} onOpenChange={setShowEditIPDialog}>
+      {/* Edit IP Dialog - UPDATED with debounced server search */}
+      <Dialog open={showEditIPDialog} onOpenChange={(open) => {
+        setShowEditIPDialog(open)
+        if (!open) {
+          setUserToEditIP(null)
+          setEditIPPoolId(null)
+          setEditIPAvailableIPs([])
+          setEditIPSearchQuery("")
+          setSelectedNewIPId("")
+          if (editIPSearchDebounceRef.current) clearTimeout(editIPSearchDebounceRef.current)
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Change IP Address</DialogTitle>
@@ -3457,7 +3477,7 @@ export default function UsersPage() {
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Loading available IPs...
               </div>
-            ) : editIPAvailableIPs.length === 0 ? (
+            ) : editIPAvailableIPs.length === 0 && !editIPLoading ? (
               <div className="text-center py-6 text-slate-500 text-sm">
                 No available IPs in this plan's pool.<br />
                 <span className="text-xs">Ensure the plan has an IP pool assigned.</span>
@@ -3466,31 +3486,52 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <Label>Available IPs ({editIPAvailableIPs.length})</Label>
                 <Input
-                  placeholder="Search IP..."
+                  placeholder="Search IP (e.g. 10.50.3)"
                   value={editIPSearchQuery}
-                  onChange={(e) => setEditIPSearchQuery(e.target.value)}
+                  onChange={async (e) => {
+                    const searchVal = e.target.value
+                    setEditIPSearchQuery(searchVal)
+                    
+                    // Debounce — wait 400ms after user stops typing
+                    if (editIPSearchDebounceRef.current) clearTimeout(editIPSearchDebounceRef.current)
+                    editIPSearchDebounceRef.current = setTimeout(async () => {
+                      if (!editIPPoolId) return
+                      try {
+                        setEditIPLoading(true)
+                        const resp = await adminApi.getIPPoolAvailableIPs(
+                          editIPPoolId,
+                          searchVal || undefined
+                        )
+                        setEditIPAvailableIPs(resp.results || [])
+                      } catch (err) {
+                        console.error('IP search error:', err)
+                      } finally {
+                        setEditIPLoading(false)
+                      }
+                    }, 400)
+                  }}
                 />
                 <Select
                   value={selectedNewIPId || "none"}
                   onValueChange={(val) => setSelectedNewIPId(val === "none" ? "" : val)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select an IP address" />
+                    <SelectValue placeholder={editIPLoading ? "Loading..." : "Select an IP address"} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">— Select IP —</SelectItem>
-                    {editIPAvailableIPs
-                      .filter(ip =>
-                        !editIPSearchQuery ||
-                        ip.ip_address.includes(editIPSearchQuery)
-                      )
-                      .map(ip => (
-                        <SelectItem key={ip.id} value={String(ip.id)}>
-                          <span className="font-mono">{ip.ip_address}</span>
-                        </SelectItem>
-                      ))}
+                    {editIPAvailableIPs.map(ip => (
+                      <SelectItem key={ip.id} value={String(ip.id)}>
+                        <span className="font-mono">{ip.ip_address}</span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                {editIPAvailableIPs.length > 0 && !editIPLoading && (
+                  <p className="text-xs text-slate-500">
+                    Showing {editIPAvailableIPs.length} available — type above to search
+                  </p>
+                )}
               </div>
             )}
           </div>
