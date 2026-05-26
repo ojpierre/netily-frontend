@@ -587,8 +587,23 @@ export default function UsersPage() {
             serviceData.radius_username = newCustomerForm.radius_username
           }
 
+          // FIX 3: Auto-assign IP when none is selected
           if (newCustomerForm.assigned_ip) {
             serviceData.assigned_ip = parseInt(newCustomerForm.assigned_ip, 10)
+          } else if (selectedPlanPool) {
+            // Silently grab the first available IP so the user always gets one
+            try {
+              const autoRes = await adminApi.getIPPoolAvailableIPs(selectedPlanPool)
+              if ((autoRes.results?.length ?? 0) > 0) {
+                serviceData.assigned_ip = autoRes.results[0].id
+                toast.info(`Auto-assigned IP: ${autoRes.results[0].ip_address}`)
+              } else {
+                // Pool exists but is exhausted — warn and let admin decide
+                toast.warning('IP pool has no available addresses. User will be created without a static IP.')
+              }
+            } catch {
+              // Non-fatal — backend may still assign dynamically
+            }
           }
           
           if (newCustomerForm.plan_id) {
