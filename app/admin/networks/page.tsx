@@ -179,23 +179,24 @@ export default function IPv4NetworksPage() {
     setSelectedPool(null)
   }
 
+  // FIXED: poolSubnetPreview with correct calculation and large pool warning
   const poolSubnetPreview = useMemo(() => {
     const { subnet_prefix, subnet_octet, cidr_prefix } = poolForm
     if (!subnet_prefix || !subnet_octet) return null
     const octet = parseInt(subnet_octet)
     if (isNaN(octet) || octet < 0 || octet > 255) return null
     const cidrNum = parseInt(cidr_prefix)
-    const base = `${subnet_prefix}.${octet}`
+    if (isNaN(cidrNum) || cidrNum < 16 || cidrNum > 30) return null
+    
     const totalIPs = Math.pow(2, 32 - cidrNum)
-    const usableIPs = totalIPs - 3
+    const usableIPs = totalIPs - 3 // network + broadcast + gateway
+    
     return {
-      network: `${base}.0`,
-      gateway: `${base}.1`,
-      startIP: `${base}.1`,
-      endIP: `${base}.${totalIPs - 2}`,
-      broadcast: `${base}.${totalIPs - 1}`,
-      cidr: `${base}.0/${cidrNum}`,
+      network: `${subnet_prefix}.${octet}.0`,
+      gateway: `${subnet_prefix}.${octet}.1`,
+      cidr: `${subnet_prefix}.${octet}.0/${cidrNum}`,
       usableIPs,
+      isLarge: usableIPs > 1000,
     }
   }, [poolForm.subnet_prefix, poolForm.subnet_octet, poolForm.cidr_prefix])
 
@@ -764,7 +765,7 @@ export default function IPv4NetworksPage() {
                           <td className="p-3">
                             <div className="font-medium">{plan.name}</div>
                             <div className="text-xs text-muted-foreground">{plan.validity_display || `${plan.duration_days || 30} days`}</div>
-                          </td>
+                           </td>
                           <td className="p-3">
                             <Badge variant="outline" className={
                               plan.plan_type === 'PPPOE' ? 'bg-purple-50 text-purple-700 border-purple-200' :
@@ -774,10 +775,10 @@ export default function IPv4NetworksPage() {
                             }>
                               {plan.plan_type}
                             </Badge>
-                          </td>
+                           </td>
                           <td className="p-3">
                             <span className="text-sm">{plan.speed_display || `${plan.download_speed || '—'}/${plan.upload_speed || '—'} ${plan.speed_unit || 'Mbps'}`}</span>
-                          </td>
+                           </td>
                           <td className="p-3 font-medium">{formatCurrency(plan.price ?? plan.base_price)}</td>
                           <td className="p-3">
                             {plan.ip_pool ? (
@@ -796,22 +797,22 @@ export default function IPv4NetworksPage() {
                                 No pool assigned
                               </span>
                             )}
-                          </td>
+                           </td>
                           <td className="p-3 text-center">
                             {linkedPool ? (
                               <span className="text-sm">{linkedPool.available_ips ?? (linkedPool.total_ips - linkedPool.used_ips)}/{linkedPool.total_ips}</span>
                             ) : (
                               <span className="text-muted-foreground">—</span>
                             )}
-                          </td>
+                           </td>
                           <td className="p-3 text-center">
                             <span className="text-sm font-medium">{plan.subscriber_count ?? plan.subscribers_count ?? 0}</span>
-                          </td>
+                           </td>
                           <td className="p-3 text-center">
                             <Badge variant={plan.is_active ? "default" : "secondary"} className="text-xs">
                               {plan.is_active ? "Active" : "Inactive"}
                             </Badge>
-                          </td>
+                           </td>
                         </tr>
                       )
                     })}
@@ -897,7 +898,12 @@ export default function IPv4NetworksPage() {
                       {cidrOptions.length > 0 ? cidrOptions.map(c => (
                         <SelectItem key={c.value} value={c.value.toString()}>{c.label}</SelectItem>
                       )) : (
+                        // FIXED: Updated fallback CIDR options to include large pools
                         <>
+                          <SelectItem value="16">/16 (65,534 hosts)</SelectItem>
+                          <SelectItem value="20">/20 (4,094 hosts)</SelectItem>
+                          <SelectItem value="22">/22 (1,022 hosts)</SelectItem>
+                          <SelectItem value="23">/23 (510 hosts)</SelectItem>
                           <SelectItem value="24">/24 (254 hosts)</SelectItem>
                           <SelectItem value="25">/25 (126 hosts)</SelectItem>
                           <SelectItem value="26">/26 (62 hosts)</SelectItem>
@@ -910,6 +916,7 @@ export default function IPv4NetworksPage() {
                 </div>
               </div>
 
+              {/* FIXED: Updated preview with large pool warning */}
               {poolSubnetPreview && (
                 <div className="bg-muted/50 border rounded-lg p-3 text-sm space-y-1">
                   <div className="flex justify-between">
@@ -922,8 +929,19 @@ export default function IPv4NetworksPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Usable IPs:</span>
-                    <span className="font-medium text-green-600">{poolSubnetPreview.usableIPs}</span>
+                    <span className="font-medium text-green-600">
+                      {poolSubnetPreview.usableIPs.toLocaleString()}
+                    </span>
                   </div>
+                  {poolSubnetPreview.isLarge && (
+                    <div className="flex items-start gap-1.5 pt-1 border-t text-amber-700 text-xs">
+                      <span>⚠</span>
+                      <span>
+                        Large pool — IP addresses will be generated in the background after creation. 
+                        The pool will be available immediately but IPs may take a minute to populate.
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

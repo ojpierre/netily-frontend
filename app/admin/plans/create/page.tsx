@@ -522,18 +522,22 @@ export default function CreatePlanPage() {
     }
   }
 
-  // Compute subnet preview from current form values
+  // FIXED: Compute subnet preview from current form values with large pool detection
   const subnetPreview = React.useMemo(() => {
     const { subnet_prefix, subnet_octet, cidr_prefix } = formData
     if (!subnet_prefix || !subnet_octet) return null
     const octet = parseInt(subnet_octet)
     if (isNaN(octet) || octet < 0 || octet > 255) return null
-    const network = `${subnet_prefix}.${octet}.0/${cidr_prefix}`
-    const gateway = `${subnet_prefix}.${octet}.1`
     const cidrNum = parseInt(cidr_prefix)
+    if (isNaN(cidrNum)) return null
+    
+    const network = `${subnet_prefix}.${octet}.0/${cidrNum}`
+    const gateway = `${subnet_prefix}.${octet}.1`
     const totalHosts = Math.pow(2, 32 - cidrNum) - 2 // minus network + broadcast
     const usableIPs = totalHosts - 1 // minus gateway
-    return { network, gateway, usableIPs, totalHosts }
+    const isLarge = usableIPs > 1000
+    
+    return { network, gateway, usableIPs, totalHosts, isLarge }
   }, [formData.subnet_prefix, formData.subnet_octet, formData.cidr_prefix])
 
   // Load routers + subnet options on mount for PPPoE plan
@@ -1155,8 +1159,13 @@ export default function CreatePlanPage() {
                                 {opt.label}
                               </SelectItem>
                             ))}
+                            {/* FIXED: Updated fallback CIDR options to include large pools */}
                             {cidrOptions.length === 0 && (
                               <>
+                                <SelectItem value="16">/16 — 65,534 hosts</SelectItem>
+                                <SelectItem value="20">/20 — 4,094 hosts</SelectItem>
+                                <SelectItem value="22">/22 — 1,022 hosts</SelectItem>
+                                <SelectItem value="23">/23 — 510 hosts</SelectItem>
                                 <SelectItem value="24">/24 — 254 hosts</SelectItem>
                                 <SelectItem value="25">/25 — 126 hosts</SelectItem>
                                 <SelectItem value="26">/26 — 62 hosts</SelectItem>
@@ -1180,7 +1189,7 @@ export default function CreatePlanPage() {
                       </div>
                     )}
 
-                    {/* Subnet Preview */}
+                    {/* FIXED: Subnet Preview with large pool warning */}
                     {subnetPreview && (
                       <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
                         <div>
@@ -1193,12 +1202,17 @@ export default function CreatePlanPage() {
                         </div>
                         <div>
                           <p className="text-xs text-slate-500">Usable IPs</p>
-                          <p className="text-sm font-medium">{subnetPreview.usableIPs}</p>
+                          <p className="text-sm font-medium">{subnetPreview.usableIPs.toLocaleString()}</p>
                         </div>
                         <div>
                           <p className="text-xs text-slate-500">Total Hosts</p>
-                          <p className="text-sm font-medium">{subnetPreview.totalHosts}</p>
+                          <p className="text-sm font-medium">{subnetPreview.totalHosts.toLocaleString()}</p>
                         </div>
+                        {subnetPreview.isLarge && (
+                          <div className="col-span-2 text-xs text-amber-700 bg-amber-50 rounded p-2">
+                            ⚠ Large pool — IP records generated in background after save.
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
