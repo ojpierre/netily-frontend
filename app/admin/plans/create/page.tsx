@@ -54,6 +54,20 @@ import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import { Router as RouterType, IPPool, SubnetPrefixOption, CIDROption, SubnetPrefixOptionsResponse } from "@/lib/types"
 
+/**
+ * Determines whether the 3rd octet field is relevant for the given CIDR.
+ * /16 or larger → lock to 0, hide the field
+ * /17-/23 → show with label "3rd Octet (partial)"
+ * /24 and smaller → show normally, required
+ */
+function getOctetFieldConfig(cidrPrefix: string) {
+  const cidr = parseInt(cidrPrefix)
+  if (isNaN(cidr)) return { show: true, locked: false, label: '3rd Octet', hint: '0–255' }
+  if (cidr <= 16) return { show: false, locked: true, value: '0', label: '3rd Octet', hint: 'Not needed for /16+' }
+  if (cidr <= 23) return { show: true, locked: false, label: '3rd Octet (partial)', hint: `0–${Math.pow(2, 24 - cidr) - 1}` }
+  return { show: true, locked: false, label: '3rd Octet', hint: '0–255' }
+}
+
 // Industry-standard plan presets
 interface PlanPreset {
   id: string
@@ -522,22 +536,28 @@ export default function CreatePlanPage() {
     }
   }
 
-  // FIXED: Compute subnet preview from current form values with large pool detection
+  // FIXED: Compute subnet preview with large pool detection and locked octet support
   const subnetPreview = React.useMemo(() => {
     const { subnet_prefix, subnet_octet, cidr_prefix } = formData
-    if (!subnet_prefix || !subnet_octet) return null
-    const octet = parseInt(subnet_octet)
-    if (isNaN(octet) || octet < 0 || octet > 255) return null
+    if (!subnet_prefix) return null
     const cidrNum = parseInt(cidr_prefix)
     if (isNaN(cidrNum)) return null
-    
-    const network = `${subnet_prefix}.${octet}.0/${cidrNum}`
-    const gateway = `${subnet_prefix}.${octet}.1`
+
+    const octetConfig = getOctetFieldConfig(cidr_prefix)
+    const effectiveOctet = octetConfig.locked ? 0 : parseInt(subnet_octet)
+    if (!octetConfig.locked && (isNaN(effectiveOctet) || effectiveOctet < 0 || effectiveOctet > 255)) return null
+
     const totalHosts = Math.pow(2, 32 - cidrNum) - 2 // minus network + broadcast
     const usableIPs = totalHosts - 1 // minus gateway
     const isLarge = usableIPs > 1000
-    
-    return { network, gateway, usableIPs, totalHosts, isLarge }
+
+    return {
+      network: `${subnet_prefix}.${effectiveOctet}.0/${cidrNum}`,
+      gateway: `${subnet_prefix}.${effectiveOctet}.1`,
+      usableIPs,
+      totalHosts,
+      isLarge,
+    }
   }, [formData.subnet_prefix, formData.subnet_octet, formData.cidr_prefix])
 
   // Load routers + subnet options on mount for PPPoE plan
@@ -584,15 +604,28 @@ export default function CreatePlanPage() {
       let ipPoolId: number | null = formData.ip_pool ? parseInt(formData.ip_pool) : null
 
       // Cloud-Led: Create a new IP Pool from subnet builder first
-      if (formData.plan_type === 'PPPOE' && poolMode === 'new' && formData.subnet_prefix && formData.subnet_octet) {
+      if (formData.plan_type === 'PPPOE' && poolMode === 'new' && formData.subnet_prefix) {
+        const octetConfig = getOctetFieldConfig(formData.cidr_prefix)
+        let subnetOctetValue: number
+        
+        if (octetConfig.locked) {
+          subnetOctetValue = 0
+        } else if (!formData.subnet_octet) {
+          toast.error("3rd octet is required for this CIDR")
+          setIsLoading(false)
+          return
+        } else {
+          subnetOctetValue = parseInt(formData.subnet_octet)
+        }
+        
         const poolName = formData.pool_name.trim()
-          || `Pool ${formData.subnet_prefix}.${formData.subnet_octet}.0/${formData.cidr_prefix}`
+          || `Pool ${formData.subnet_prefix}.${subnetOctetValue}.0/${formData.cidr_prefix}`
         
         toast.info("Creating IP Pool from subnet builder...")
         const newPool = await adminApi.createIPPool({
           name: poolName,
           subnet_prefix: formData.subnet_prefix,
-          subnet_octet: parseInt(formData.subnet_octet),
+          subnet_octet: subnetOctetValue,
           cidr_prefix: parseInt(formData.cidr_prefix),
           router: formData.router_id ? parseInt(formData.router_id) as any : null,
           pool_type: 'PPPOE',
@@ -1097,89 +1130,106 @@ export default function CreatePlanPage() {
                       <p className="text-xs text-slate-500">Leave blank for auto-generated name</p>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
-                      {/* Subnet Prefix */}
-                      <div className="space-y-2">
-                        <Label>Prefix</Label>
-                        <Select
-                          value={formData.subnet_prefix}
-                          onValueChange={(value) => handleChange("subnet_prefix", value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={subnetOptionsLoading ? "Loading..." : "Select prefix"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {subnetPrefixes.map((prefix) => {
-                              const isBlocked = blockedPrefixes.includes(prefix.value)
-                              return (
-                                <SelectItem
-                                  key={prefix.value}
-                                  value={prefix.value}
-                                  disabled={isBlocked}
-                                  className={isBlocked ? "opacity-50 line-through" : ""}
-                                >
-                                  {prefix.label}
-                                  {isBlocked && " (blocked)"}
-                                </SelectItem>
-                              )
-                            })}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-slate-500">First two octets</p>
-                      </div>
+                    {/* Dynamic 3rd Octet based on CIDR selection */}
+                    {(() => {
+                      const octetConfig = getOctetFieldConfig(formData.cidr_prefix)
+                      return (
+                        <div className={`grid gap-3 ${octetConfig.show ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                          {/* Subnet Prefix */}
+                          <div className="space-y-2">
+                            <Label>Prefix</Label>
+                            <Select
+                              value={formData.subnet_prefix}
+                              onValueChange={(value) => {
+                                handleChange("subnet_prefix", value)
+                                if (octetConfig.locked) handleChange("subnet_octet", "0")
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={subnetOptionsLoading ? "Loading..." : "Select prefix"} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {subnetPrefixes.map((prefix) => {
+                                  const isBlocked = blockedPrefixes.includes(prefix.value)
+                                  return (
+                                    <SelectItem
+                                      key={prefix.value}
+                                      value={prefix.value}
+                                      disabled={isBlocked}
+                                      className={isBlocked ? "opacity-50 line-through" : ""}
+                                    >
+                                      {prefix.label}
+                                      {isBlocked && " (blocked)"}
+                                    </SelectItem>
+                                  )
+                                })}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-slate-500">First two octets</p>
+                          </div>
 
-                      {/* Third Octet */}
-                      <div className="space-y-2">
-                        <Label htmlFor="subnet_octet">3rd Octet</Label>
-                        <Input
-                          id="subnet_octet"
-                          type="number"
-                          min={0}
-                          max={255}
-                          value={formData.subnet_octet}
-                          onChange={(e) => handleChange("subnet_octet", e.target.value)}
-                          placeholder="0"
-                        />
-                        <p className="text-xs text-slate-500">0–255</p>
-                      </div>
+                          {/* 3rd Octet — hidden for /16 and larger */}
+                          {octetConfig.show && (
+                            <div className="space-y-2">
+                              <Label>{octetConfig.label}</Label>
+                              <Input
+                                type="number"
+                                min={0}
+                                max={255}
+                                value={formData.subnet_octet}
+                                onChange={(e) => handleChange("subnet_octet", e.target.value)}
+                                placeholder={octetConfig.hint}
+                              />
+                              <p className="text-xs text-slate-500">{octetConfig.hint}</p>
+                            </div>
+                          )}
 
-                      {/* CIDR Prefix */}
-                      <div className="space-y-2">
-                        <Label>CIDR</Label>
-                        <Select
-                          value={formData.cidr_prefix}
-                          onValueChange={(value) => handleChange("cidr_prefix", value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select CIDR" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {cidrOptions.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value.toString()}>
-                                {opt.label}
-                              </SelectItem>
-                            ))}
-                            {/* FIXED: Updated fallback CIDR options to include large pools */}
-                            {cidrOptions.length === 0 && (
-                              <>
-                                <SelectItem value="16">/16 — 65,534 hosts</SelectItem>
-                                <SelectItem value="20">/20 — 4,094 hosts</SelectItem>
-                                <SelectItem value="22">/22 — 1,022 hosts</SelectItem>
-                                <SelectItem value="23">/23 — 510 hosts</SelectItem>
-                                <SelectItem value="24">/24 — 254 hosts</SelectItem>
-                                <SelectItem value="25">/25 — 126 hosts</SelectItem>
-                                <SelectItem value="26">/26 — 62 hosts</SelectItem>
-                                <SelectItem value="27">/27 — 30 hosts</SelectItem>
-                                <SelectItem value="28">/28 — 14 hosts</SelectItem>
-                                <SelectItem value="29">/29 — 6 hosts</SelectItem>
-                                <SelectItem value="30">/30 — 2 hosts</SelectItem>
-                              </>
+                          {/* CIDR Prefix */}
+                          <div className="space-y-2">
+                            <Label>CIDR</Label>
+                            <Select
+                              value={formData.cidr_prefix}
+                              onValueChange={(value) => {
+                                const newConfig = getOctetFieldConfig(value)
+                                handleChange("cidr_prefix", value)
+                                if (newConfig.locked) handleChange("subnet_octet", "0")
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select CIDR" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {cidrOptions.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value.toString()}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                                {cidrOptions.length === 0 && (
+                                  <>
+                                    <SelectItem value="16">/16 — 65,534 hosts</SelectItem>
+                                    <SelectItem value="20">/20 — 4,094 hosts</SelectItem>
+                                    <SelectItem value="22">/22 — 1,022 hosts</SelectItem>
+                                    <SelectItem value="23">/23 — 510 hosts</SelectItem>
+                                    <SelectItem value="24">/24 — 254 hosts</SelectItem>
+                                    <SelectItem value="25">/25 — 126 hosts</SelectItem>
+                                    <SelectItem value="26">/26 — 62 hosts</SelectItem>
+                                    <SelectItem value="27">/27 — 30 hosts</SelectItem>
+                                    <SelectItem value="28">/28 — 14 hosts</SelectItem>
+                                    <SelectItem value="29">/29 — 6 hosts</SelectItem>
+                                    <SelectItem value="30">/30 — 2 hosts</SelectItem>
+                                  </>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            {!octetConfig.show && (
+                              <p className="text-xs text-amber-600">
+                                3rd octet not needed — entire /16 block used
+                              </p>
                             )}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-slate-500">Subnet size</p>
-                      </div>
-                    </div>
+                          </div>
+                        </div>
+                      )
+                    })()}
 
                     {/* 192.168 Warning */}
                     {formData.subnet_prefix.startsWith('192.168') && (

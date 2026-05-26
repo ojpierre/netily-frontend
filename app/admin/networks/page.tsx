@@ -81,6 +81,20 @@ const formatCurrency = (amount: string | number) => {
   return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(num || 0)
 }
 
+/**
+ * Determines whether the 3rd octet field is relevant for the given CIDR.
+ * /16 or larger → lock to 0, hide the field
+ * /17-/23 → show with label "3rd Octet (partial)"
+ * /24 and smaller → show normally, required
+ */
+function getOctetFieldConfig(cidrPrefix: string) {
+  const cidr = parseInt(cidrPrefix)
+  if (isNaN(cidr)) return { show: true, locked: false, label: '3rd Octet', hint: '0–255' }
+  if (cidr <= 16) return { show: false, locked: true, value: '0', label: '3rd Octet', hint: 'Not needed for /16+' }
+  if (cidr <= 23) return { show: true, locked: false, label: '3rd Octet (partial)', hint: `0–${Math.pow(2, 24 - cidr) - 1}` }
+  return { show: true, locked: false, label: '3rd Octet', hint: '0–255' }
+}
+
 export default function IPv4NetworksPage() {
   const hasFetchedRef = useRef(false)
 
@@ -179,22 +193,26 @@ export default function IPv4NetworksPage() {
     setSelectedPool(null)
   }
 
-  // FIXED: poolSubnetPreview with correct calculation and large pool warning
+  // FIXED: poolSubnetPreview with correct calculation, large pool warning, and locked octet
   const poolSubnetPreview = useMemo(() => {
     const { subnet_prefix, subnet_octet, cidr_prefix } = poolForm
-    if (!subnet_prefix || !subnet_octet) return null
-    const octet = parseInt(subnet_octet)
-    if (isNaN(octet) || octet < 0 || octet > 255) return null
+    if (!subnet_prefix) return null
     const cidrNum = parseInt(cidr_prefix)
     if (isNaN(cidrNum) || cidrNum < 16 || cidrNum > 30) return null
-    
+
+    // For /16 and larger, 3rd octet is always 0
+    const octetConfig = getOctetFieldConfig(cidr_prefix)
+    const effectiveOctet = octetConfig.locked ? 0 : parseInt(subnet_octet)
+
+    if (!octetConfig.locked && (isNaN(effectiveOctet) || effectiveOctet < 0 || effectiveOctet > 255)) return null
+
     const totalIPs = Math.pow(2, 32 - cidrNum)
     const usableIPs = totalIPs - 3 // network + broadcast + gateway
-    
+
     return {
-      network: `${subnet_prefix}.${octet}.0`,
-      gateway: `${subnet_prefix}.${octet}.1`,
-      cidr: `${subnet_prefix}.${octet}.0/${cidrNum}`,
+      network: `${subnet_prefix}.${effectiveOctet}.0`,
+      gateway: `${subnet_prefix}.${effectiveOctet}.1`,
+      cidr: `${subnet_prefix}.${effectiveOctet}.0/${cidrNum}`,
       usableIPs,
       isLarge: usableIPs > 1000,
     }
@@ -203,14 +221,26 @@ export default function IPv4NetworksPage() {
   // ===== Pool CRUD =====
   const handleCreatePool = async () => {
     if (!poolForm.name.trim()) { toast.error('Pool name is required'); return }
-    if (!poolForm.subnet_octet) { toast.error('Subnet octet is required'); return }
+    
+    const octetConfig = getOctetFieldConfig(poolForm.cidr_prefix)
+    let subnetOctetValue: number | undefined
+    
+    if (octetConfig.locked) {
+      subnetOctetValue = 0
+    } else if (!poolForm.subnet_octet) {
+      toast.error('Subnet octet is required')
+      return
+    } else {
+      subnetOctetValue = parseInt(poolForm.subnet_octet)
+    }
+    
     setPoolSubmitting(true)
     try {
       await adminApi.createIPPool({
         name: poolForm.name,
         pool_type: poolForm.pool_type,
         subnet_prefix: poolForm.subnet_prefix,
-        subnet_octet: parseInt(poolForm.subnet_octet),
+        subnet_octet: subnetOctetValue,
         cidr_prefix: parseInt(poolForm.cidr_prefix),
         gateway: poolSubnetPreview?.gateway || '',
         dns_servers: poolForm.dns_servers || '8.8.8.8,8.8.4.4',
@@ -541,7 +571,7 @@ export default function IPv4NetworksPage() {
                                 <div className="text-xs text-muted-foreground mt-0.5 font-mono">
                                   {pool.cidr_notation || `${pool.start_ip}/${pool.cidr_prefix || '24'}`}
                                 </div>
-                              </td>
+                               </td>
                               <td className="p-3">
                                 {linkedPlans.length > 0 ? (
                                   <div className="space-y-1">
@@ -561,13 +591,13 @@ export default function IPv4NetworksPage() {
                                     No plans linked
                                   </span>
                                 )}
-                              </td>
+                               </td>
                               <td className="p-3 font-mono text-xs">{pool.start_ip}</td>
                               <td className="p-3 font-mono text-xs">{pool.end_ip}</td>
                               <td className="p-3 text-center">
                                 <span className="text-green-600 font-medium">{pool.available_ips ?? pool.total_ips - pool.used_ips}</span>
                                 <span className="text-muted-foreground">/{pool.total_ips}</span>
-                              </td>
+                               </td>
                               <td className="p-3">
                                 <div className="flex items-center justify-center gap-2">
                                   <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -576,12 +606,12 @@ export default function IPv4NetworksPage() {
                                   </div>
                                   <span className={`text-xs font-medium ${utilColor}`}>{utilPct.toFixed(0)}%</span>
                                 </div>
-                              </td>
+                               </td>
                               <td className="p-3 text-center">
                                 <Badge variant={pool.is_active ? "default" : "secondary"} className="text-xs">
                                   {pool.is_active ? "Active" : "Inactive"}
                                 </Badge>
-                              </td>
+                               </td>
                               <td className="p-3 text-right">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
@@ -608,8 +638,8 @@ export default function IPv4NetworksPage() {
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
-                              </td>
-                            </tr>
+                               </td>
+                             </tr>
                             {/* Expanded Row Details */}
                             {isExpanded && (
                               <tr className="bg-muted/10">
@@ -644,14 +674,14 @@ export default function IPv4NetworksPage() {
                                       </div>
                                     </div>
                                   )}
-                                </td>
-                              </tr>
+                                 </td>
+                               </tr>
                             )}
                           </React.Fragment>
                         )
                       })}
                     </tbody>
-                  </table>
+                   </table>
                 </div>
               </CardContent>
             </Card>
@@ -863,60 +893,104 @@ export default function IPv4NetworksPage() {
 
             <div className="space-y-3">
               <Label>Subnet Configuration *</Label>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Prefix</Label>
-                  <Select value={poolForm.subnet_prefix} onValueChange={(v) => setPoolForm(prev => ({ ...prev, subnet_prefix: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {subnetPrefixes.length > 0 ? subnetPrefixes.map(p => (
-                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                      )) : (
-                        <>
-                          <SelectItem value="10.50">10.50.x.x</SelectItem>
-                          <SelectItem value="10.60">10.60.x.x</SelectItem>
-                          <SelectItem value="172.16">172.16.x.x</SelectItem>
-                          <SelectItem value="192.168">192.168.x.x</SelectItem>
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">3rd Octet</Label>
-                  <Input
-                    type="number" min="0" max="255" placeholder="0-255"
-                    value={poolForm.subnet_octet}
-                    onChange={(e) => setPoolForm(prev => ({ ...prev, subnet_octet: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">CIDR</Label>
-                  <Select value={poolForm.cidr_prefix} onValueChange={(v) => setPoolForm(prev => ({ ...prev, cidr_prefix: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {cidrOptions.length > 0 ? cidrOptions.map(c => (
-                        <SelectItem key={c.value} value={c.value.toString()}>{c.label}</SelectItem>
-                      )) : (
-                        // FIXED: Updated fallback CIDR options to include large pools
-                        <>
-                          <SelectItem value="16">/16 (65,534 hosts)</SelectItem>
-                          <SelectItem value="20">/20 (4,094 hosts)</SelectItem>
-                          <SelectItem value="22">/22 (1,022 hosts)</SelectItem>
-                          <SelectItem value="23">/23 (510 hosts)</SelectItem>
-                          <SelectItem value="24">/24 (254 hosts)</SelectItem>
-                          <SelectItem value="25">/25 (126 hosts)</SelectItem>
-                          <SelectItem value="26">/26 (62 hosts)</SelectItem>
-                          <SelectItem value="27">/27 (30 hosts)</SelectItem>
-                          <SelectItem value="28">/28 (14 hosts)</SelectItem>
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              
+              {/* Dynamic 3rd Octet based on CIDR selection */}
+              {(() => {
+                const octetConfig = getOctetFieldConfig(poolForm.cidr_prefix)
+                return (
+                  <div className={`grid gap-3 ${octetConfig.show ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                    {/* Prefix */}
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Prefix</Label>
+                      <Select
+                        value={poolForm.subnet_prefix}
+                        onValueChange={(v) => {
+                          // When prefix changes, reset octet if cidr becomes locked
+                          setPoolForm(prev => ({
+                            ...prev,
+                            subnet_prefix: v,
+                            subnet_octet: octetConfig.locked ? '0' : prev.subnet_octet
+                          }))
+                        }}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {subnetPrefixes.length > 0 ? subnetPrefixes.map(p => (
+                            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                          )) : (
+                            <>
+                              <SelectItem value="10.50">10.50.x.x</SelectItem>
+                              <SelectItem value="10.60">10.60.x.x</SelectItem>
+                              <SelectItem value="172.16">172.16.x.x</SelectItem>
+                              <SelectItem value="192.168">192.168.x.x</SelectItem>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-              {/* FIXED: Updated preview with large pool warning */}
+                    {/* 3rd Octet — hidden for /16 and larger */}
+                    {octetConfig.show && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">{octetConfig.label}</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="255"
+                          placeholder={octetConfig.hint}
+                          value={poolForm.subnet_octet}
+                          onChange={(e) => setPoolForm(prev => ({ ...prev, subnet_octet: e.target.value }))}
+                        />
+                        <p className="text-xs text-muted-foreground mt-0.5">{octetConfig.hint}</p>
+                      </div>
+                    )}
+
+                    {/* CIDR */}
+                    <div>
+                      <Label className="text-xs text-muted-foreground">CIDR</Label>
+                      <Select
+                        value={poolForm.cidr_prefix}
+                        onValueChange={(v) => {
+                          const newConfig = getOctetFieldConfig(v)
+                          setPoolForm(prev => ({
+                            ...prev,
+                            cidr_prefix: v,
+                            // Auto-clear octet when switching to a large CIDR
+                            subnet_octet: newConfig.locked ? '0' : prev.subnet_octet
+                          }))
+                        }}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {cidrOptions.length > 0 ? cidrOptions.map(c => (
+                            <SelectItem key={c.value} value={c.value.toString()}>{c.label}</SelectItem>
+                          )) : (
+                            <>
+                              <SelectItem value="16">/16 (65,534 hosts)</SelectItem>
+                              <SelectItem value="20">/20 (4,094 hosts)</SelectItem>
+                              <SelectItem value="22">/22 (1,022 hosts)</SelectItem>
+                              <SelectItem value="23">/23 (510 hosts)</SelectItem>
+                              <SelectItem value="24">/24 (254 hosts)</SelectItem>
+                              <SelectItem value="25">/25 (126 hosts)</SelectItem>
+                              <SelectItem value="26">/26 (62 hosts)</SelectItem>
+                              <SelectItem value="27">/27 (30 hosts)</SelectItem>
+                              <SelectItem value="28">/28 (14 hosts)</SelectItem>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {/* Show hint when 3rd octet is hidden */}
+                      {!octetConfig.show && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          3rd octet not needed — entire /16 block will be used
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Updated preview with large pool warning */}
               {poolSubnetPreview && (
                 <div className="bg-muted/50 border rounded-lg p-3 text-sm space-y-1">
                   <div className="flex justify-between">
