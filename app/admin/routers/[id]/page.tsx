@@ -835,9 +835,17 @@ export default function RouterDetailPage() {
               </DialogDescription>
               <Alert className="mb-4 mt-2">
                 <Shield className="h-4 w-4" />
-                <AlertTitle>One-time setup</AlertTitle>
+                <AlertTitle>Before you run this script</AlertTitle>
                 <AlertDescription>
-                  Run this script once on the router. It securely links the router to Netily.
+                  <ol className="list-decimal list-inside space-y-2 mt-1 text-sm">
+                    <li>Reset the router to factory defaults before running the script.</li>
+                    <li>
+                      If the device reports <span className="font-mono bg-slate-100 px-1 rounded text-xs">"device mode not allowed"</span>,
+                      open the MikroTik terminal and run{" "}
+                      <span className="font-mono bg-slate-100 px-1 rounded text-xs">/system/device-mode update mode=advanced</span>,
+                      then unplug the power cord for 10 seconds and restore power before retrying.
+                    </li>
+                  </ol>
                 </AlertDescription>
               </Alert>
             </DialogHeader>
@@ -1040,10 +1048,7 @@ export default function RouterDetailPage() {
             <Info className="w-4 h-4" />
             <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="metrics" className="gap-2">
-            <Activity className="w-4 h-4" />
-            <span className="hidden sm:inline">Metrics</span>
-          </TabsTrigger>
+          {/* Metrics tab trigger removed */}
           <TabsTrigger value="users" className="gap-2">
             <Users className="w-4 h-4" />
             <span className="hidden sm:inline">Users</span>
@@ -1233,106 +1238,7 @@ export default function RouterDetailPage() {
           )}
         </TabsContent>
 
-        {/* Metrics Tab */}
-        <TabsContent value="metrics" className="mt-6 space-y-6">
-          {routerData.metrics ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Cpu className="w-4 h-4" />
-                    CPU Usage
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold mb-2">{routerData.metrics.cpu_usage}%</div>
-                  <Progress 
-                    value={routerData.metrics.cpu_usage} 
-                    className={routerData.metrics.cpu_usage > 80 ? "[&>div]:bg-red-500" : routerData.metrics.cpu_usage > 60 ? "[&>div]:bg-amber-500" : ""}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <HardDrive className="w-4 h-4" />
-                    Memory Usage
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold mb-2">{routerData.metrics.memory_usage}%</div>
-                  <Progress 
-                    value={routerData.metrics.memory_usage} 
-                    className={routerData.metrics.memory_usage > 80 ? "[&>div]:bg-red-500" : routerData.metrics.memory_usage > 60 ? "[&>div]:bg-amber-500" : ""}
-                  />
-                </CardContent>
-              </Card>
-
-              {routerData.metrics.temperature && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Thermometer className="w-4 h-4" />
-                      Temperature
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className={`text-3xl font-bold ${
-                      routerData.metrics.temperature > 65 ? "text-red-600" : 
-                      routerData.metrics.temperature > 55 ? "text-amber-600" : "text-slate-700"
-                    }`}>
-                      {routerData.metrics.temperature}°C
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Download className="w-4 h-4" />
-                    Download Speed
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-green-600">{routerData.metrics.download_speed} Mbps</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Upload className="w-4 h-4" />
-                    Upload Speed
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-blue-600">{routerData.metrics.upload_speed} Mbps</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Zap className="w-4 h-4" />
-                    Active Connections
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{routerData.metrics.active_connections}</div>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="py-12 text-center text-slate-500">
-                <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No metrics available</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
+        {/* Metrics Tab Content Removed */}
 
         {/* Users Tab */}
         <TabsContent value="users" className="mt-6">
@@ -1780,14 +1686,6 @@ export default function RouterDetailPage() {
                       <p className="text-xs text-slate-500 mb-2 font-medium">One-liner command (paste in MikroTik terminal):</p>
                       <pre className="bg-slate-900 text-green-400 p-4 rounded-md text-sm overflow-x-auto font-mono">
                         <code>{`/tool fetch url="http://127.0.0.1:8000/api/v1/network/routers/${routerData.id}/config/?auth_key=${routerData.auth_key || 'NOT_GENERATED'}" dst-path=netily.rsc; :delay 2s; /import netily.rsc;`}</code>
-                      </pre>
-                    </div>
-                    
-                    {/* Alternative: Download bootstrap script first */}
-                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                      <p className="text-xs text-blue-700 mb-2 font-medium">📥 Alternative: Download bootstrap script first:</p>
-                      <pre className="bg-slate-800 text-blue-400 p-3 rounded-md text-xs overflow-x-auto font-mono">
-                        <code>{`/tool fetch url="http://127.0.0.1:8000/api/v1/network/routers/${routerData.id}/script/?version=7" dst-path=netily-bootstrap.rsc`}</code>
                       </pre>
                     </div>
 
