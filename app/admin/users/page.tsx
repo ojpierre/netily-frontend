@@ -73,13 +73,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -95,6 +88,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
+import { BandwidthGraph } from "@/components/ui/bandwidth-graph"
 
 type UserType = "pppoe" | "static" | "fiber" | "wireless"
 type UserStatus = "active" | "inactive" | "expired" | "suspended" | "pending" | "online" | "offline"
@@ -2659,16 +2653,16 @@ export default function UsersPage() {
       </Card>
       )}
 
-      {/* User Detail Drawer */}
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>User Details</SheetTitle>
-            <SheetDescription>Complete information about this user</SheetDescription>
-          </SheetHeader>
+      {/* User Detail Dialog (replaced Sheet) */}
+      <Dialog open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>Complete information about this user</DialogDescription>
+          </DialogHeader>
 
           {selectedUser && (
-            <div className="mt-6 space-y-6">
+            <div className="mt-2 space-y-6">
               {/* Status Badges */}
               <div className="flex flex-wrap items-center gap-2">
                 {getTypeBadge(selectedUser.type)}
@@ -2987,6 +2981,29 @@ export default function UsersPage() {
                 </div>
               </div>
 
+              {/* Bandwidth Graph - Only for online PPPoE users */}
+              {selectedUser && selectedUser.connectionStatus === "online" && 
+               selectedUser.type === "pppoe" && 
+               selectedUser.radiusCredentials?.username && (
+                <div className="pt-2">
+                  <BandwidthGraph
+                    username={selectedUser.radiusCredentials.username}
+                    isOnline={true}
+                    baseUrl={typeof window !== "undefined" ? window.location.origin : ""}
+                    authToken={
+                      (typeof window !== "undefined"
+                        ? localStorage.getItem(`adminToken:${window.location.hostname}`) ||
+                          localStorage.getItem("adminToken") ||
+                          sessionStorage.getItem(`adminToken:${window.location.hostname}`) ||
+                          sessionStorage.getItem("adminToken")
+                        : "") || ""
+                    }
+                    pollIntervalMs={4000}
+                    maxPoints={25}
+                  />
+                </div>
+              )}
+
               {/* Actions */}
               <div className="space-y-2 pt-4">
                 <div className="flex gap-2">
@@ -3057,8 +3074,8 @@ export default function UsersPage() {
               </div>
             </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit User Dialog */}
       <Dialog open={showEditUserDialog} onOpenChange={setShowEditUserDialog}>
