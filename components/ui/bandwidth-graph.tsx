@@ -1,198 +1,278 @@
-// components/ui/bandwidth-graph.tsx
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { Activity, TrendingDown, TrendingUp } from "lucide-react"
+import { useEffect, useRef, useState, useCallback } from "react"
+import { Activity, TrendingDown, TrendingUp, Wifi } from "lucide-react"
 
 interface DataPoint {
-  time: string
-  rx: number // kbps
-  tx: number // kbps
+  t: number   // timestamp ms
+  rx: number  // kbps
+  tx: number  // kbps
 }
 
-interface BandwidthGraphProps {
+interface Props {
   username: string
   isOnline: boolean
   baseUrl: string
   authToken: string
   maxPoints?: number
-  pollIntervalMs?: number
 }
 
-export function BandwidthGraph({
-  username,
-  isOnline,
-  baseUrl,
-  authToken,
-  maxPoints = 30,
-  pollIntervalMs = 4000,
-}: BandwidthGraphProps) {
-  const [data, setData] = useState<DataPoint[]>([])
+function smoothPath(points: { x: number; y: number }[]): string {
+  if (points.length < 2) return ""
+  let d = `M ${points[0].x} ${points[0].y}`
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1]
+    const curr = points[i]
+    const cpX = (prev.x + curr.x) / 2
+    d += ` C ${cpX} ${prev.y}, ${cpX} ${curr.y}, ${curr.x} ${curr.y}`
+  }
+  return d
+}
+
+function formatSpeed(kbps: number) {
+  if (kbps >= 1000) return `${(kbps / 1000).toFixed(1)} Mbps`
+  return `${Math.round(kbps)} Kbps`
+}
+
+export function BandwidthGraph({ username, isOnline, baseUrl, authToken, maxPoints = 20 }: Props) {
+  const [points, setPoints] = useState<DataPoint[]>([])
   const [currentRx, setCurrentRx] = useState(0)
   const [currentTx, setCurrentTx] = useState(0)
   const [peakRx, setPeakRx] = useState(0)
   const [peakTx, setPeakTx] = useState(0)
-  const [status, setStatus] = useState<"connecting" | "live" | "error">("connecting")
+  const [phase, setPhase] = useState<"connecting" | "live" | "stale" | "error">("connecting")
   const prevRef = useRef<{ bytes_in: number; bytes_out: number; ts: number } | null>(null)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const lastSpeedRef = useRef({ rx: 0, tx: 0 })
+  const animFrameRef = useRef<number | undefined>(undefined)
+  const scanRef = useRef(0)
+  const [scanX, setScanX] = useState(0)
+  const W = 400
+  const H = 80
 
-  const formatSpeed = (kbps: number) => {
-    if (kbps >= 1000) return `${(kbps / 1000).toFixed(1)} Mbps`
-    return `${kbps.toFixed(0)} Kbps`
-  }
-
-  const fetchAndUpdate = async () => {
+  // ── Fetch every 30s (RADIUS interim = 3min, 30s gives 6 samples per window)
+  const fetchBytes = useCallback(async () => {
     try {
       const res = await fetch(
         `${baseUrl}/api/v1/radius/accounting/?username=${encodeURIComponent(username)}&active=true&page_size=1`,
-        { headers: { Authorization: `Bearer ${authToken}` } }
+        { headers: { Authorization: `Bearer ${authToken}` }, signal: AbortSignal.timeout(8000) }
       )
       if (!res.ok) throw new Error("fetch failed")
       const json = await res.json()
       const session = json.results?.[0]
-      if (!session) return
+      if (!session) { setPhase("stale"); return }
 
       const now = Date.now()
-      const bytesIn = session.acctinputoctets || 0
-      const bytesOut = session.acctoutputoctets || 0
+      const bytesIn = session.acctinputoctets ?? 0
+      const bytesOut = session.acctoutputoctets ?? 0
 
       if (prevRef.current) {
         const dtSec = (now - prevRef.current.ts) / 1000
-        const rxKbps = Math.max(0, ((bytesIn - prevRef.current.bytes_in) * 8) / dtSec / 1000)
-        const txKbps = Math.max(0, ((bytesOut - prevRef.current.bytes_out) * 8) / dtSec / 1000)
+        const bytesChanged = bytesIn !== prevRef.current.bytes_in || bytesOut !== prevRef.current.bytes_out
+        
+        let rx: number
+        let tx: number
 
-        setCurrentRx(rxKbps)
-        setCurrentTx(txKbps)
-        setPeakRx(p => Math.max(p, rxKbps))
-        setPeakTx(p => Math.max(p, txKbps))
+        if (bytesChanged) {
+          // Real delta — user is actively transferring
+          rx = Math.max(0, ((bytesIn - prevRef.current.bytes_in) * 8) / dtSec / 1000)
+          tx = Math.max(0, ((bytesOut - prevRef.current.bytes_out) * 8) / dtSec / 1000)
+          lastSpeedRef.current = { rx, tx }
+          setPhase("live")
+        } else {
+          // No new RADIUS update yet — decay last known speed gracefully
+          rx = lastSpeedRef.current.rx * 0.7
+          tx = lastSpeedRef.current.tx * 0.7
+          lastSpeedRef.current = { rx, tx }
+          setPhase("stale")
+        }
 
-        const timeLabel = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-        setData(prev => [...prev.slice(-(maxPoints - 1)), { time: timeLabel, rx: rxKbps, tx: txKbps }])
-        setStatus("live")
+        const clampedRx = Math.min(rx, 100_000)
+        const clampedTx = Math.min(tx, 100_000)
+        setCurrentRx(clampedRx)
+        setCurrentTx(clampedTx)
+        setPeakRx(p => Math.max(p, clampedRx))
+        setPeakTx(p => Math.max(p, clampedTx))
+        setPoints(prev => [...prev.slice(-(maxPoints - 1)), { t: now, rx: clampedRx, tx: clampedTx }])
       }
 
       prevRef.current = { bytes_in: bytesIn, bytes_out: bytesOut, ts: now }
     } catch {
-      setStatus("error")
+      setPhase("error")
     }
-  }
+  }, [username, baseUrl, authToken, maxPoints])
 
   useEffect(() => {
     if (!isOnline || !username) return
-    fetchAndUpdate() // immediate first fetch
-    intervalRef.current = setInterval(fetchAndUpdate, pollIntervalMs)
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
+    fetchBytes()
+    const id = setInterval(fetchBytes, 30_000)
+    return () => clearInterval(id)
+  }, [fetchBytes, isOnline, username])
+
+  // Animate scanner line
+  useEffect(() => {
+    const animate = () => {
+      scanRef.current = (scanRef.current + 0.4) % W
+      setScanX(scanRef.current)
+      animFrameRef.current = requestAnimationFrame(animate)
     }
-  }, [username, isOnline])
-
-  // SVG sparkline renderer
-  const renderSparkline = (points: number[], color: string, height = 60) => {
-    if (points.length < 2) return null
-    const max = Math.max(...points, 1)
-    const w = 100 / (points.length - 1)
-    const coords = points.map((v, i) => `${i * w},${height - (v / max) * height}`)
-    return (
-      <polyline
-        points={coords.join(" ")}
-        fill="none"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    )
-  }
-
-  const rxPoints = data.map(d => d.rx)
-  const txPoints = data.map(d => d.tx)
-  const maxVal = Math.max(...rxPoints, ...txPoints, 1)
+    animFrameRef.current = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(animFrameRef.current!)
+  }, [])
 
   if (!isOnline) return null
 
+  // Build SVG paths
+  const n = points.length
+  const maxVal = Math.max(...points.map(p => Math.max(p.rx, p.tx)), 1)
+
+  const toCoords = (vals: number[]) =>
+    vals.map((v, i) => ({
+      x: n <= 1 ? W : (i / (n - 1)) * W,
+      y: H - (v / maxVal) * (H - 4) - 2,
+    }))
+
+  const rxCoords = toCoords(points.map(p => p.rx))
+  const txCoords = toCoords(points.map(p => p.tx))
+  const rxPath = smoothPath(rxCoords)
+  const txPath = smoothPath(txCoords)
+  const rxArea = rxPath + (rxCoords.length ? ` L ${rxCoords.at(-1)!.x} ${H} L 0 ${H} Z` : "")
+  const txArea = txPath + (txCoords.length ? ` L ${txCoords.at(-1)!.x} ${H} L 0 ${H} Z` : "")
+
+  const isLive = phase === "live"
+  const dotRx = rxCoords.at(-1)
+  const dotTx = txCoords.at(-1)
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 p-4 space-y-3">
+    <div className="rounded-xl overflow-hidden border border-slate-700/50 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-xl">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-slate-600" />
-          <span className="text-sm font-semibold text-slate-700">Live Bandwidth</span>
+          <div className={`relative flex h-2 w-2`}>
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isLive ? "bg-emerald-400" : "bg-amber-400"}`} />
+            <span className={`relative inline-flex rounded-full h-2 w-2 ${isLive ? "bg-emerald-500" : phase === "error" ? "bg-red-500" : "bg-amber-400"}`} />
+          </div>
+          <span className="text-xs font-semibold text-slate-300 tracking-wide uppercase">Live Bandwidth</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span
-            className={`w-2 h-2 rounded-full ${
-              status === "live" ? "bg-emerald-500 animate-pulse" :
-              status === "connecting" ? "bg-amber-400 animate-pulse" : "bg-red-400"
-            }`}
-          />
-          <span className="text-xs text-slate-500">
-            {status === "live" ? "Live" : status === "connecting" ? "Connecting..." : "Error"}
+        <span className="text-[10px] text-slate-500 font-mono">
+          {phase === "live" ? "LIVE" : phase === "stale" ? "~3m avg" : phase === "error" ? "ERR" : "…"}
+        </span>
+      </div>
+
+      {/* Speed readouts */}
+      <div className="grid grid-cols-2 gap-2 px-4 pb-3">
+        <div className="rounded-lg bg-slate-800/60 border border-emerald-500/20 p-2.5 backdrop-blur-sm">
+          <div className="flex items-center gap-1.5 mb-1">
+            <TrendingDown className="w-3 h-3 text-emerald-400" />
+            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Download</span>
+          </div>
+          <p className="text-lg font-bold font-mono text-emerald-400 tabular-nums leading-none">
+            {formatSpeed(currentRx)}
+          </p>
+          <p className="text-[10px] text-slate-600 mt-0.5 font-mono">peak {formatSpeed(peakRx)}</p>
+        </div>
+        <div className="rounded-lg bg-slate-800/60 border border-sky-500/20 p-2.5 backdrop-blur-sm">
+          <div className="flex items-center gap-1.5 mb-1">
+            <TrendingUp className="w-3 h-3 text-sky-400" />
+            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Upload</span>
+          </div>
+          <p className="text-lg font-bold font-mono text-sky-400 tabular-nums leading-none">
+            {formatSpeed(currentTx)}
+          </p>
+          <p className="text-[10px] text-slate-600 mt-0.5 font-mono">peak {formatSpeed(peakTx)}</p>
+        </div>
+      </div>
+
+      {/* Graph */}
+      <div className="px-4 pb-4">
+        <div className="relative rounded-lg overflow-hidden bg-slate-950/60 border border-slate-700/40" style={{ height: H + 4 }}>
+          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full h-full">
+            <defs>
+              {/* RX gradient fill */}
+              <linearGradient id="rxGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#34d399" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
+              </linearGradient>
+              {/* TX gradient fill */}
+              <linearGradient id="txGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+              </linearGradient>
+              {/* Glow filters */}
+              <filter id="rxGlow">
+                <feGaussianBlur stdDeviation="1.5" result="blur" />
+                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+              <filter id="txGlow">
+                <feGaussianBlur stdDeviation="1.5" result="blur" />
+                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+              {/* Scanner gradient */}
+              <linearGradient id="scanGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#6366f1" stopOpacity="0" />
+                <stop offset="50%" stopColor="#6366f1" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+
+            {/* Grid lines */}
+            {[0.25, 0.5, 0.75].map(r => (
+              <line key={r} x1="0" y1={H * r} x2={W} y2={H * r}
+                stroke="#1e293b" strokeWidth="1" strokeDasharray="3 6" />
+            ))}
+
+            {/* Area fills */}
+            {n >= 2 && <path d={rxArea} fill="url(#rxGrad)" />}
+            {n >= 2 && <path d={txArea} fill="url(#txGrad)" />}
+
+            {/* Lines */}
+            {n >= 2 && (
+              <>
+                <path d={rxPath} fill="none" stroke="#34d399" strokeWidth="1.5" filter="url(#rxGlow)" strokeLinecap="round" />
+                <path d={txPath} fill="none" stroke="#38bdf8" strokeWidth="1.5" filter="url(#txGlow)" strokeLinecap="round" />
+              </>
+            )}
+
+            {/* Live dots */}
+            {dotRx && n >= 1 && (
+              <>
+                <circle cx={dotRx.x} cy={dotRx.y} r="3" fill="#34d399" opacity="0.3" />
+                <circle cx={dotRx.x} cy={dotRx.y} r="1.5" fill="#34d399" />
+              </>
+            )}
+            {dotTx && n >= 1 && (
+              <>
+                <circle cx={dotTx.x} cy={dotTx.y} r="3" fill="#38bdf8" opacity="0.3" />
+                <circle cx={dotTx.x} cy={dotTx.y} r="1.5" fill="#38bdf8" />
+              </>
+            )}
+
+            {/* Animated scanner */}
+            <rect x={scanX - 20} y={0} width={40} height={H} fill="url(#scanGrad)" />
+
+            {/* No data state */}
+            {n < 2 && (
+              <text x={W / 2} y={H / 2} textAnchor="middle" dominantBaseline="middle"
+                fill="#475569" fontSize="10" fontFamily="monospace">
+                {phase === "connecting" ? "Collecting data…" : "Waiting for traffic"}
+              </text>
+            )}
+          </svg>
+        </div>
+
+        {/* Legend + note */}
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
+              <span className="w-3 h-px bg-emerald-400 inline-block" />RX
+            </span>
+            <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
+              <span className="w-3 h-px bg-sky-400 inline-block" />TX
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-600 font-mono">
+            {phase === "stale" ? "⟳ next update ~3m" : "⟳ 30s poll"}
           </span>
         </div>
-      </div>
-
-      {/* Current speeds */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-lg p-3 border border-emerald-100">
-          <div className="flex items-center gap-1.5 mb-1">
-            <TrendingDown className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-xs text-slate-500 font-medium">Download (RX)</span>
-          </div>
-          <p className="text-lg font-bold text-emerald-600">{formatSpeed(currentRx)}</p>
-          <p className="text-xs text-slate-400 mt-0.5">Peak: {formatSpeed(peakRx)}</p>
-        </div>
-        <div className="bg-white rounded-lg p-3 border border-blue-100">
-          <div className="flex items-center gap-1.5 mb-1">
-            <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
-            <span className="text-xs text-slate-500 font-medium">Upload (TX)</span>
-          </div>
-          <p className="text-lg font-bold text-blue-600">{formatSpeed(currentTx)}</p>
-          <p className="text-xs text-slate-400 mt-0.5">Peak: {formatSpeed(peakTx)}</p>
-        </div>
-      </div>
-
-      {/* SVG Graph */}
-      <div className="relative bg-white rounded-lg border border-slate-200 p-2 overflow-hidden" style={{ height: 80 }}>
-        {data.length < 2 ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-xs text-slate-400">Collecting data...</p>
-          </div>
-        ) : (
-          <svg
-            viewBox={`0 0 ${(data.length - 1) * (100 / (data.length - 1)) * (data.length - 1)} 60`}
-            preserveAspectRatio="none"
-            className="w-full h-full"
-          >
-            {/* Grid lines */}
-            {[0, 0.25, 0.5, 0.75, 1].map(ratio => (
-              <line
-                key={ratio}
-                x1="0" y1={60 * ratio}
-                x2="100%" y2={60 * ratio}
-                stroke="#f1f5f9"
-                strokeWidth="0.5"
-              />
-            ))}
-            {/* RX line (green) */}
-            <svg viewBox={`0 0 100 60`} preserveAspectRatio="none" width="100%" height="100%">
-              {renderSparkline(rxPoints.map(v => (v / maxVal) * 60), "#10b981")}
-              {renderSparkline(txPoints.map(v => (v / maxVal) * 60), "#3b82f6")}
-            </svg>
-          </svg>
-        )}
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center gap-4 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-0.5 bg-emerald-500 inline-block rounded" />
-          Download (RX)
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-0.5 bg-blue-500 inline-block rounded" />
-          Upload (TX)
-        </span>
-        <span className="ml-auto opacity-60">Updates every 4s</span>
       </div>
     </div>
   )

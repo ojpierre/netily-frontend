@@ -2983,8 +2983,8 @@ export default function UsersPage() {
 
               {/* Bandwidth Graph - Only for online PPPoE users */}
               {selectedUser && selectedUser.connectionStatus === "online" && 
-               selectedUser.type === "pppoe" && 
-               selectedUser.radiusCredentials?.username && (
+              selectedUser.type === "pppoe" && 
+              selectedUser.radiusCredentials?.username && (
                 <div className="pt-2">
                   <BandwidthGraph
                     username={selectedUser.radiusCredentials.username}
@@ -2998,8 +2998,7 @@ export default function UsersPage() {
                           sessionStorage.getItem("adminToken")
                         : "") || ""
                     }
-                    pollIntervalMs={4000}
-                    maxPoints={25}
+                    maxPoints={20}
                   />
                 </div>
               )}
