@@ -36,6 +36,7 @@ import {
   Trash2,
   Gauge,
   Info,
+  Database,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -317,6 +318,16 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
           )}
         </div>
 
+        {/* Data limit badge */}
+        {(plan as any).limitation_type === 'DATA' && (plan as any).data_limit_value && (
+          <div className="flex items-center gap-2 text-sm text-orange-700 bg-orange-50 px-2 py-1 rounded">
+            <Database className="w-3.5 h-3.5" />
+            <span>
+              {(plan as any).data_limit_value} {(plan as any).data_limit_unit || 'MB'} cap
+            </span>
+          </div>
+        )}
+
         {plan.features && plan.features.length > 0 && (
           <div className="space-y-2">
             {plan.features.slice(0, 3).map((feature, idx) => (
@@ -380,6 +391,10 @@ export default function PlansPage() {
     validity_type: 'HOURS' as string, duration_days: '1', validity_hours: '1', validity_minutes: '30',
     max_sessions: '1', description: '', features: '',
     is_active: true, is_popular: false,
+    // NEW: Data limit fields
+    limitation_type: 'UNLIMITED' as 'UNLIMITED' | 'DATA',
+    data_limit_value: '',
+    data_limit_unit: 'MB' as 'MB' | 'GB',
   })
 
   // Loading states
@@ -561,6 +576,10 @@ export default function PlansPage() {
           _hotspotPlanId: hp.id,
           _routerId: r.id,
           _routerName: r.name,
+          // NEW: Data limit fields
+          limitation_type: hp.limitation_type || 'UNLIMITED',
+          data_limit_value: hp.data_limit_value,
+          data_limit_unit: hp.data_limit_unit || 'MB',
         })) as any[]
         allPlans.push(...mapped)
       }
@@ -603,6 +622,10 @@ export default function PlansPage() {
         _isHotspotPlan: true, // marker to distinguish from Plan records
         _hotspotPlanId: hp.id, // UUID for delete operations
         _routerId: routerId,
+        // NEW: Data limit fields
+        limitation_type: hp.limitation_type || 'UNLIMITED',
+        data_limit_value: hp.data_limit_value,
+        data_limit_unit: hp.data_limit_unit || 'MB',
       })) as any[]
       setHotspotPlans(mapped)
     } catch (error) {
@@ -862,6 +885,10 @@ export default function PlansPage() {
         features: plan.features?.join('\n') || '',
         is_active: plan.is_active,
         is_popular: plan.is_popular || false,
+        // NEW: Restore data limit from existing plan
+        limitation_type: (hp.limitation_type as 'UNLIMITED' | 'DATA') || 'UNLIMITED',
+        data_limit_value: hp.data_limit_value?.toString() || '',
+        data_limit_unit: (hp.data_limit_unit as 'MB' | 'GB') || 'MB',
       })
       setEditingHotspotPlan(plan)
       setIsEditingHotspot(true)
@@ -1061,6 +1088,10 @@ export default function PlansPage() {
           is_popular: false,
           // Mark as global template when "All Routers" was selected
           is_global_template: selectedRouterId === 'all',
+          // Presets are always unlimited
+          limitation_type: 'UNLIMITED',
+          data_limit_value: null,
+          data_limit_unit: 'MB',
         } as any)
       }
       
@@ -1079,7 +1110,14 @@ export default function PlansPage() {
   }
 
   const resetHotspotForm = () => {
-    setHotspotForm({ name: '', price: '', download_speed: '', upload_speed: '', validity_type: 'HOURS', duration_days: '1', validity_hours: '1', validity_minutes: '30', max_sessions: '1', description: '', features: '', is_active: true, is_popular: false })
+    setHotspotForm({ 
+      name: '', price: '', download_speed: '', upload_speed: '', 
+      validity_type: 'HOURS', duration_days: '1', validity_hours: '1', validity_minutes: '30', 
+      max_sessions: '1', description: '', features: '', is_active: true, is_popular: false,
+      limitation_type: 'UNLIMITED',
+      data_limit_value: '',
+      data_limit_unit: 'MB',
+    })
     setIsEditingHotspot(false)
     setEditingHotspotPlan(null)
   }
@@ -1108,6 +1146,12 @@ export default function PlansPage() {
         simultaneous_devices: hotspotForm.max_sessions ? parseInt(hotspotForm.max_sessions) : 1,
         is_active: hotspotForm.is_active,
         is_popular: hotspotForm.is_popular,
+        // NEW: Data limit fields
+        limitation_type: hotspotForm.limitation_type,
+        data_limit_value: hotspotForm.limitation_type === 'DATA' && hotspotForm.data_limit_value 
+          ? parseInt(hotspotForm.data_limit_value) 
+          : null,
+        data_limit_unit: hotspotForm.data_limit_unit,
       } as any
 
       if (isEditingHotspot && editingHotspotPlan) {
@@ -2207,6 +2251,74 @@ export default function PlansPage() {
               <Input type="number" min={1} value={hotspotForm.max_sessions}
                 onChange={(e) => setHotspotForm({ ...hotspotForm, max_sessions: e.target.value })}
                 placeholder="1" />
+            </div>
+
+            {/* Data Limit — NEW SECTION */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Data Limit</Label>
+                <div className="flex rounded-lg border overflow-hidden text-sm">
+                  <button
+                    type="button"
+                    onClick={() => setHotspotForm({ ...hotspotForm, limitation_type: 'UNLIMITED' })}
+                    className={`px-3 py-1.5 transition-colors ${
+                      hotspotForm.limitation_type === 'UNLIMITED'
+                        ? 'bg-blue-600 text-white font-semibold'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    Unlimited
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHotspotForm({ ...hotspotForm, limitation_type: 'DATA' })}
+                    className={`px-3 py-1.5 transition-colors ${
+                      hotspotForm.limitation_type === 'DATA'
+                        ? 'bg-blue-600 text-white font-semibold'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    Limited
+                  </button>
+                </div>
+              </div>
+
+              {hotspotForm.limitation_type === 'DATA' && (
+                <div className="flex gap-2 items-center p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-xs text-orange-700">Data Cap</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={hotspotForm.data_limit_value}
+                      onChange={(e) => setHotspotForm({ ...hotspotForm, data_limit_value: e.target.value })}
+                      placeholder="e.g., 7"
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-orange-700">Unit</Label>
+                    <Select
+                      value={hotspotForm.data_limit_unit}
+                      onValueChange={(v) => setHotspotForm({ ...hotspotForm, data_limit_unit: v as 'MB' | 'GB' })}
+                    >
+                      <SelectTrigger className="h-9 w-24">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MB">MB</SelectItem>
+                        <SelectItem value="GB">GB</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {hotspotForm.limitation_type === 'UNLIMITED' && (
+                <p className="text-xs text-muted-foreground">
+                  No data cap — users can use as much data as they want within the time period.
+                </p>
+              )}
             </div>
 
             {/* Description */}
