@@ -134,6 +134,7 @@ export default function AdminDashboard() {
     hotspot: [], 
     total: 0 
   })
+  const [onlineTotal, setOnlineTotal] = useState(0)  // ADD THIS
 
   // State for expired customers count (derived from customers endpoint)
   const [expiredCount, setExpiredCount] = useState<number>(0)
@@ -169,9 +170,11 @@ export default function AdminDashboard() {
       // Update live data separately
       if (sessionsRes.status === "fulfilled") {
         setOnlineSessions(sessionsRes.value?.sessions || [])
+        setOnlineTotal(sessionsRes.value?.total || sessionsRes.value?.sessions?.length || 0)
       }
       if (activeSubsRes.status === "fulfilled") {
-        setActiveSubscriptions(activeSubsRes.value || { pppoe: [], hotspot: [], total: 0 })
+        const subs = activeSubsRes.value || { pppoe: [], hotspot: [], total: 0 }
+        setActiveSubscriptions(subs)
       }
 
       // Set expired count from customers endpoint (mirrors users page logic)
@@ -262,7 +265,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Active Customers */}
+        {/* Active Customers - FIXED: Uses activeSubscriptions total */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
@@ -274,13 +277,13 @@ export default function AdminDashboard() {
             ) : (
               <>
                 <div className="text-2xl font-bold text-green-600">
-                  {(core?.active_customers ?? 0).toLocaleString()}
+                  {((activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0) || core?.active_customers || 0).toLocaleString()}
                 </div>
                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                   <TrendingUp className="w-3 h-3 text-green-600" />
                   <span>
                     {core?.total_customers
-                      ? ((core.active_customers / core.total_customers) * 100).toFixed(1)
+                      ? (((activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0) || core?.active_customers || 0) / core.total_customers * 100).toFixed(1)
                       : 0}
                     % of total
                   </span>
@@ -329,7 +332,7 @@ export default function AdminDashboard() {
             {loading ? (
               <Skeleton className="h-20 w-full" />
             ) : (() => {
-              const onlineCount = onlineSessions.length
+              const onlineCount = onlineTotal || onlineSessions.length
               const pppoe = activeSubscriptions.pppoe?.length || 0
               const hotspot = activeSubscriptions.hotspot?.length || 0
               const activeCount = pppoe + hotspot
