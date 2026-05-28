@@ -335,6 +335,7 @@ export default function UsersPage() {
   const [ipSearchQuery, setIpSearchQuery] = useState("")
   const [onlineSessions, setOnlineSessions] = useState<OnlineSession[]>([])
   const [onlineSessionsLoading, setOnlineSessionsLoading] = useState(false)
+  const [onlineTotal, setOnlineTotal] = useState(0)  // ADD THIS
   const [onlineSearchQuery, setOnlineSearchQuery] = useState("")
   const [onlineServiceFilter, setOnlineServiceFilter] = useState("all")
   const [activeSearchQuery, setActiveSearchQuery] = useState("")
@@ -389,14 +390,13 @@ export default function UsersPage() {
     // Load critical data first
     loadUsers(1)
     loadPlans()
+    loadActiveSubscriptions()  // immediate — needed for stats card
     
     // Defer non-critical calls by 800ms so the table renders fast
     const timer = setTimeout(() => {
       loadOnlineSessions()
-      // Hotspot and active subscriptions will be loaded lazily when tabs are clicked
     }, 800)
     
-    // Hotspot clients only loaded when that tab is opened
     return () => clearTimeout(timer)
   }, [])
 
@@ -417,6 +417,7 @@ export default function UsersPage() {
       setOnlineSessionsLoading(true)
       const response = await adminApi.getOnlineSessions()
       setOnlineSessions(response.sessions || [])
+      setOnlineTotal(response.total || response.sessions?.length || 0)  // ADD THIS
     } catch (err) {
       console.error('Failed to load online sessions:', err)
       setOnlineSessions([])
@@ -782,7 +783,7 @@ export default function UsersPage() {
     const now = new Date()
     const hotspotCount = activeSubscriptions.hotspot?.length || 0;
     const pppoeCount = activeSubscriptions.pppoe?.length || 0;
-    const onlineCount = onlineSessions.length;
+    const onlineCount = onlineTotal || onlineSessions.length;
     
     const isEffectivelyExpired = (u: User) => u.status === "expired"
     
@@ -797,7 +798,7 @@ export default function UsersPage() {
       static: enrichedUsers.filter(u => u.type === "static").length,
       hotspot: hotspotCount + pppoeCount,
     }
-  }, [enrichedUsers, activeSubscriptions, onlineSessions, totalCount])
+  }, [enrichedUsers, activeSubscriptions, onlineSessions, onlineTotal, totalCount])
 
   const filteredUsers = useMemo(() => {
     // Client-side filtering is no longer needed for search/status since we use server-side
