@@ -253,7 +253,11 @@ const mapCustomerToUser = (customer: Customer): User => {
     downloadSpeed: primaryService?.download_speed || 0,
     uploadSpeed: primaryService?.upload_speed || 0,
     loyaltyPoints: 0,
-    balance: parseFloat(customer.balance) || 0,
+    balance: (() => {
+      const credit = parseFloat((customer as any).prepaid_credit || '0')
+      const debt = parseFloat(customer.balance || '0')  // outstanding_balance
+      return credit - debt  // positive = has credit, negative = owes money
+    })(),
     radiusCredentials,
   }
 }
@@ -3017,7 +3021,7 @@ export default function UsersPage() {
                     </div>
                   )}
 
-                  {/* Usage Stats */}
+                  {/* Usage Stats - UPDATED Balance Display */}
                   <div className="p-4 bg-slate-50 rounded-lg border">
                     <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Usage & Balance</h3>
                     <div className="space-y-3">
@@ -3035,7 +3039,12 @@ export default function UsersPage() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-600">Account Balance</span>
-                        <span className="font-medium">KES {selectedUser.balance.toLocaleString()}</span>
+                        <span className={`font-medium ${selectedUser.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {selectedUser.balance >= 0 
+                            ? `+KES ${selectedUser.balance.toLocaleString()} credit`
+                            : `-KES ${Math.abs(selectedUser.balance).toLocaleString()} owed`
+                          }
+                        </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-600">Loyalty Points</span>
