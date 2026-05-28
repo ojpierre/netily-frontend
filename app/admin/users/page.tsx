@@ -277,6 +277,7 @@ export default function UsersPage() {
   const editIPSearchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const hasFetched = useRef(false)
+  const isFirstRender = useRef(true)  // ADDED for filter effect
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -527,7 +528,8 @@ export default function UsersPage() {
         params.search = effectiveSearch.trim()
       }
       const effectiveStatus = status !== undefined ? status : statusFilter
-      if (effectiveStatus !== 'all') {
+      // FIX: Only send status param when it's a real status value, not "all"
+      if (effectiveStatus && effectiveStatus !== 'all') {
         params.status = effectiveStatus
       }
       const response = await adminApi.getCustomers(params)
@@ -860,8 +862,12 @@ export default function UsersPage() {
     return map
   }, [onlineSessions])
 
-  // Update server page when filters change
+  // Update server page when filters change - FIXED: Skip on first render
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     setServerPage(1)
     loadUsers(1, searchQuery, statusFilter)
   }, [searchQuery, statusFilter])
