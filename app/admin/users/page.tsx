@@ -38,7 +38,7 @@ import {
   MapPin,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
-import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession, ActiveSubscriptionsResponse, CustomerAvailablePlanOption, CustomerAvailablePlansResponse } from "@/lib/types"
+import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession, ActiveSubscriptionsResponse, CustomerAvailablePlanOption, CustomerAvailablePlansResponse, PaymentEntry } from "@/lib/types"
 
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -112,7 +112,7 @@ interface User {
   name: string
   email: string
   phone: string
-  location?: string        // ADDED
+  location?: string
   status: UserStatus
   serviceStatus: string | null
   connectionStatus: "online" | "offline"
@@ -235,7 +235,7 @@ const mapCustomerToUser = (customer: Customer): User => {
     name: customer.full_name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
     email: customer.email || '',
     phone: customer.phone || 'No phone',
-    location: (customer as any).location || '',  // ADDED
+    location: (customer as any).location || '',
     status: mapStatus(customer.status),
     serviceStatus: serviceStatus || null,
     connectionStatus: isOnline ? "online" : "offline",
@@ -284,6 +284,8 @@ export default function UsersPage() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerTab, setDrawerTab] = useState("general") // ADDED: tab state for drawer
+  const [payments, setPayments] = useState<PaymentEntry[]>([]) // ADDED: payments state
   const [currentPage, setCurrentPage] = useState(1)
   const [activeTab, setActiveTab] = useState("all")
   const [showAddUserDialog, setShowAddUserDialog] = useState(false)
@@ -351,7 +353,7 @@ export default function UsersPage() {
     phone: "",
     radius_username: "",
     radius_password: "",
-    location: "",             // ADDED
+    location: "",
   })
 
   const [newCustomerForm, setNewCustomerForm] = useState({
@@ -506,6 +508,17 @@ export default function UsersPage() {
       setError("Failed to load users. Please try again.")
     } finally {
       setLoading(false)
+    }
+  }
+
+  // ADDED: Function to load payments for a customer
+  const loadPayments = async (customerId: number) => {
+    try {
+      const response = await adminApi.getPayments({ customer: String(customerId) })
+      setPayments(response.results || [])
+    } catch (err) {
+      console.error('Failed to load payments:', err)
+      setPayments([])
     }
   }
 
@@ -768,7 +781,7 @@ export default function UsersPage() {
         (user.phone || '').includes(searchQuery) ||
         (user.id?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
         (user.radiusCredentials?.username?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-        (user.location?.toLowerCase() || '').includes(searchQuery.toLowerCase())  // ADDED
+        (user.location?.toLowerCase() || '').includes(searchQuery.toLowerCase())
       )
 
       const matchesStatus = statusFilter === "all" || user.status === statusFilter
@@ -903,7 +916,9 @@ export default function UsersPage() {
 
   const handleViewUser = (user: User) => {
     setSelectedUser(user)
+    setDrawerTab("general") // ADDED: reset tab to general
     setDrawerOpen(true)
+    loadPayments(user.customerId) // ADDED: load payments when opening user details
   }
 
   const handleDisconnectUser = async (user: User) => {
@@ -1206,7 +1221,7 @@ export default function UsersPage() {
       phone: user.phone === 'No phone' ? '' : (user.phone || ''),
       radius_username: user.radiusCredentials?.username || '',
       radius_password: user.radiusCredentials?.password || '',
-      location: user.location || '',   // ADDED
+      location: user.location || '',
     })
     setSelectedUser(user)
     setShowEditUserDialog(true)
@@ -1223,7 +1238,7 @@ export default function UsersPage() {
         last_name: editForm.last_name,
         ...(editForm.email.trim() ? { email: editForm.email.trim() } : {}),
         phone_number: editForm.phone,
-        location: editForm.location,   // ADDED
+        location: editForm.location,
       })
       
       const radiusUpdate: { password?: string; username?: string } = {}
@@ -2660,7 +2675,7 @@ export default function UsersPage() {
       </Card>
       )}
 
-      {/* User Detail Dialog (replaced Sheet) */}
+      {/* User Detail Dialog (replaced Sheet) - UPDATED with tabs */}
       <Dialog open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -2669,425 +2684,545 @@ export default function UsersPage() {
           </DialogHeader>
 
           {selectedUser && (
-            <div className="mt-2 space-y-6">
-              {/* Status Badges */}
-              <div className="flex flex-wrap items-center gap-2">
-                {getTypeBadge(selectedUser.type)}
-                {getStatusBadge(selectedUser.status)}
-                {getConnectionBadge(selectedUser.connectionStatus)}
-              </div>
-
-              {/* Basic Info */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
-                    {selectedUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                  </div>
-                  <div>
-                    <p className="text-xl font-semibold text-slate-900 dark:text-white">{selectedUser.name}</p>
-                    <p className="text-sm text-slate-500">{selectedUser.id}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-medium text-slate-500">Email</label>
-                    <p className="text-sm text-slate-900 dark:text-white">
-                      {selectedUser.email || <span className="text-slate-400 italic">No email</span>}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-slate-500">Phone</label>
-                    <p className="text-sm text-slate-900 dark:text-white">{selectedUser.phone}</p>
-                  </div>
-                  {/* ADDED: Location in User Detail Dialog */}
-                  {selectedUser.location && (
-                    <div className="col-span-2">
-                      <label className="text-xs font-medium text-slate-500">Location</label>
-                      <p className="text-sm text-slate-900 dark:text-white flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-slate-400" />
-                        {selectedUser.location}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Connection Info */}
-              <div className="p-4 bg-slate-50 rounded-lg border">
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                  <Signal className="w-4 h-4" />
-                  Connection Details
-                </h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-slate-500">Router:</span>
-                    <p className="font-medium">{selectedUser.router}</p>
-                  </div>
-                  {selectedUser.ipAddress && (
-                    <div>
-                      <span className="text-slate-500">IP Address:</span>
-                      <p className="font-medium">{selectedUser.ipAddress}</p>
-                    </div>
-                  )}
-                  {selectedUser.macAddress && (
-                    <div>
-                      <span className="text-slate-500">MAC Address:</span>
-                      <p className="font-medium font-mono text-xs">{selectedUser.macAddress}</p>
-                    </div>
-                  )}
-                  <div>
-                    <span className="text-slate-500">Last Online:</span>
-                    <p className="font-medium">{selectedUser.lastOnline}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Download:</span>
-                    <p className="font-medium">{selectedUser.downloadSpeed} Mbps</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Upload:</span>
-                    <p className="font-medium">{selectedUser.uploadSpeed} Mbps</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Subscription Info with editable billing account number */}
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Subscription</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Current Plan</span>
-                    <span className="font-medium">{selectedUser.plan}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Price</span>
-                    <span className="font-medium">KES {selectedUser.planPrice.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Joined Date</span>
-                    <span className="font-medium">
-                      {new Date(selectedUser.joinedDate).toLocaleDateString()}
+            <div className="mt-2">
+              {/* Tab switcher */}
+              <div className="flex border-b mb-4">
+                <button
+                  onClick={() => setDrawerTab("general")}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    drawerTab === "general"
+                      ? "border-blue-600 text-blue-600"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  General Information
+                </button>
+                <button
+                  onClick={() => setDrawerTab("payments")}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    drawerTab === "payments"
+                      ? "border-blue-600 text-blue-600"
+                      : "border-transparent text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  Payments
+                  {payments.length > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                      {payments.length}
                     </span>
+                  )}
+                </button>
+              </div>
+
+              {/* General Information Tab */}
+              {drawerTab === "general" && (
+                <div className="space-y-6">
+                  {/* Status Badges */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {getTypeBadge(selectedUser.type)}
+                    {getStatusBadge(selectedUser.status)}
+                    {getConnectionBadge(selectedUser.connectionStatus)}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Expiry Date</span>
-                    <span className="font-medium">
-                      {selectedUser.plan === "No Plan" ? "Managed by Voucher" : new Date(selectedUser.expiryDate).toLocaleDateString()}
-                    </span>
+
+                  {/* Basic Info */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
+                        {selectedUser.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                      </div>
+                      <div>
+                        <p className="text-xl font-semibold text-slate-900 dark:text-white">{selectedUser.name}</p>
+                        <p className="text-sm text-slate-500">{selectedUser.id}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-medium text-slate-500">Email</label>
+                        <p className="text-sm text-slate-900 dark:text-white">
+                          {selectedUser.email || <span className="text-slate-400 italic">No email</span>}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-500">Phone</label>
+                        <p className="text-sm text-slate-900 dark:text-white">{selectedUser.phone}</p>
+                      </div>
+                      {selectedUser.location && (
+                        <div className="col-span-2">
+                          <label className="text-xs font-medium text-slate-500">Location</label>
+                          <p className="text-sm text-slate-900 dark:text-white flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-slate-400" />
+                            {selectedUser.location}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-start justify-between gap-2 pt-1 border-t border-blue-200">
-                    <span className="text-slate-600 text-sm shrink-0">Billing Account No.</span>
-                    <div className="flex items-center gap-1.5 flex-1 justify-end">
-                      {editingBilling ? (
-                        <>
-                          <Input
-                            className="h-7 w-28 text-sm font-mono font-bold"
-                            value={billingNumberEdit}
-                            onChange={(e) => setBillingNumberEdit(e.target.value.toUpperCase())}
-                            maxLength={20}
-                            autoFocus
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-green-600"
-                            onClick={handleSaveBillingNumber}
-                            disabled={savingBilling}
-                          >
-                            {savingBilling ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2"
-                            onClick={() => setEditingBilling(false)}
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          {selectedUser.billingAccountNumber ? (
+
+                  {/* Connection Info */}
+                  <div className="p-4 bg-slate-50 rounded-lg border">
+                    <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                      <Signal className="w-4 h-4" />
+                      Connection Details
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-slate-500">Router:</span>
+                        <p className="font-medium">{selectedUser.router}</p>
+                      </div>
+                      {selectedUser.ipAddress && (
+                        <div>
+                          <span className="text-slate-500">IP Address:</span>
+                          <p className="font-medium">{selectedUser.ipAddress}</p>
+                        </div>
+                      )}
+                      {selectedUser.macAddress && (
+                        <div>
+                          <span className="text-slate-500">MAC Address:</span>
+                          <p className="font-medium font-mono text-xs">{selectedUser.macAddress}</p>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-slate-500">Last Online:</span>
+                        <p className="font-medium">{selectedUser.lastOnline}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Download:</span>
+                        <p className="font-medium">{selectedUser.downloadSpeed} Mbps</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Upload:</span>
+                        <p className="font-medium">{selectedUser.uploadSpeed} Mbps</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Subscription Info with editable billing account number */}
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Subscription</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Current Plan</span>
+                        <span className="font-medium">{selectedUser.plan}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Price</span>
+                        <span className="font-medium">KES {selectedUser.planPrice.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Joined Date</span>
+                        <span className="font-medium">
+                          {new Date(selectedUser.joinedDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Expiry Date</span>
+                        <span className="font-medium">
+                          {selectedUser.plan === "No Plan" ? "Managed by Voucher" : new Date(selectedUser.expiryDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex items-start justify-between gap-2 pt-1 border-t border-blue-200">
+                        <span className="text-slate-600 text-sm shrink-0">Billing Account No.</span>
+                        <div className="flex items-center gap-1.5 flex-1 justify-end">
+                          {editingBilling ? (
                             <>
-                              <code className="text-sm font-mono font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
-                                {selectedUser.billingAccountNumber}
-                              </code>
+                              <Input
+                                className="h-7 w-28 text-sm font-mono font-bold"
+                                value={billingNumberEdit}
+                                onChange={(e) => setBillingNumberEdit(e.target.value.toUpperCase())}
+                                maxLength={20}
+                                autoFocus
+                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-green-600"
+                                onClick={handleSaveBillingNumber}
+                                disabled={savingBilling}
+                              >
+                                {savingBilling ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2"
+                                onClick={() => setEditingBilling(false)}
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              {selectedUser.billingAccountNumber ? (
+                                <>
+                                  <code className="text-sm font-mono font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
+                                    {selectedUser.billingAccountNumber}
+                                  </code>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={() => copyToClipboard(selectedUser.billingAccountNumber!, 'Billing account number')}
+                                    title="Copy"
+                                  >
+                                    <Copy className="h-3.5 w-3.5" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <span className="text-xs text-slate-400 italic">Not assigned</span>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7"
-                                onClick={() => copyToClipboard(selectedUser.billingAccountNumber!, 'Billing account number')}
-                                title="Copy"
+                                onClick={() => {
+                                  setBillingNumberEdit(selectedUser.billingAccountNumber || '')
+                                  setEditingBilling(true)
+                                }}
+                                title="Edit"
                               >
-                                <Copy className="h-3.5 w-3.5" />
+                                <Edit className="h-3.5 w-3.5" />
                               </Button>
                             </>
-                          ) : (
-                            <span className="text-xs text-slate-400 italic">Not assigned</span>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => {
-                              setBillingNumberEdit(selectedUser.billingAccountNumber || '')
-                              setEditingBilling(true)
-                            }}
-                            title="Edit"
-                          >
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                        </>
+                        </div>
+                      </div>
+                      {selectedUser.billingAccountNumber && !editingBilling && (
+                        <div className="mt-1 p-2 bg-blue-100 rounded text-xs text-blue-800">
+                          💡 Pay via Paybill ➜ Account Ref: <strong>{selectedUser.billingAccountNumber}</strong>
+                        </div>
                       )}
                     </div>
                   </div>
-                  {selectedUser.billingAccountNumber && !editingBilling && (
-                    <div className="mt-1 p-2 bg-blue-100 rounded text-xs text-blue-800">
-                      💡 Pay via Paybill ➜ Account Ref: <strong>{selectedUser.billingAccountNumber}</strong>
+
+                  {/* RADIUS Network Credentials */}
+                  {selectedUser.serviceStatus === 'PENDING' && !selectedUser.radiusCredentials && (
+                    <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                      <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                        <Wifi className="w-4 h-4 text-orange-600" />
+                        Network Login (PPPoE/Hotspot)
+                      </h3>
+                      <p className="text-sm text-orange-700">
+                        RADIUS credentials will be created when the service is activated.
+                        Click <strong>"Activate Now"</strong> below to start the connection.
+                      </p>
                     </div>
                   )}
-                </div>
-              </div>
-
-              {/* RADIUS Network Credentials */}
-              {selectedUser.serviceStatus === 'PENDING' && !selectedUser.radiusCredentials && (
-                <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                  <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                    <Wifi className="w-4 h-4 text-orange-600" />
-                    Network Login (PPPoE/Hotspot)
-                  </h3>
-                  <p className="text-sm text-orange-700">
-                    RADIUS credentials will be created when the service is activated.
-                    Click <strong>"Activate Now"</strong> below to start the connection.
-                  </p>
-                </div>
-              )}
-              {selectedUser.radiusCredentials && (
-                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                  <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                    <Wifi className="w-4 h-4 text-purple-600" />
-                    Network Login (PPPoE/Hotspot)
-                  </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-medium text-slate-500">Username</label>
-                      <div className="flex items-center gap-2">
-                        <code className="flex-1 text-sm font-mono bg-white px-2 py-1 rounded border">
-                          {selectedUser.radiusCredentials.username}
-                        </code>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => copyToClipboard(selectedUser.radiusCredentials!.username, 'Username')}
-                        >
-                          Copy
-                        </Button>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-slate-500">Password</label>
-                      <div className="flex items-center gap-2">
-                        <code className="flex-1 text-sm font-mono bg-white px-2 py-1 rounded border">
-                          {showPassword ? selectedUser.radiusCredentials.password : '••••••••'}
-                        </code>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <XCircle className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => copyToClipboard(selectedUser.radiusCredentials!.password, 'Password')}
-                        >
-                          Copy
-                        </Button>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-slate-500">Subscription Status</label>
-                      <div className="flex items-center gap-2 mt-1">
-                        {selectedUser.radiusCredentials.expiration_date ? (
-                          (() => {
-                            const now = new Date()
-                            const expiry = new Date(selectedUser.radiusCredentials.expiration_date!)
-                            const isExpired = expiry <= now
-                            const diffMs = expiry.getTime() - now.getTime()
-                            const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-                            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-                            
-                            if (isExpired) {
-                              return (
-                                <Badge variant="destructive" className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  Expired
-                                </Badge>
-                              )
-                            } else if (diffHours < 24) {
-                              return (
-                                <Badge className="bg-yellow-100 text-yellow-700 flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {diffHours}h remaining
-                                </Badge>
-                              )
-                            } else {
-                              return (
-                                <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {diffDays}d remaining
-                                </Badge>
-                              )
-                            }
-                          })()
-                        ) : (
-                          <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            Unlimited
+                  {selectedUser.radiusCredentials && (
+                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                      <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                        <Wifi className="w-4 h-4 text-purple-600" />
+                        Network Login (PPPoE/Hotspot)
+                      </h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs font-medium text-slate-500">Username</label>
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 text-sm font-mono bg-white px-2 py-1 rounded border">
+                              {selectedUser.radiusCredentials.username}
+                            </code>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => copyToClipboard(selectedUser.radiusCredentials!.username, 'Username')}
+                            >
+                              Copy
+                            </Button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-500">Password</label>
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 text-sm font-mono bg-white px-2 py-1 rounded border">
+                              {showPassword ? selectedUser.radiusCredentials.password : '••••••••'}
+                            </code>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? <XCircle className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => copyToClipboard(selectedUser.radiusCredentials!.password, 'Password')}
+                            >
+                              Copy
+                            </Button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-500">Subscription Status</label>
+                          <div className="flex items-center gap-2 mt-1">
+                            {selectedUser.radiusCredentials.expiration_date ? (
+                              (() => {
+                                const now = new Date()
+                                const expiry = new Date(selectedUser.radiusCredentials.expiration_date!)
+                                const isExpired = expiry <= now
+                                const diffMs = expiry.getTime() - now.getTime()
+                                const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+                                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+                                
+                                if (isExpired) {
+                                  return (
+                                    <Badge variant="destructive" className="flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      Expired
+                                    </Badge>
+                                  )
+                                } else if (diffHours < 24) {
+                                  return (
+                                    <Badge className="bg-yellow-100 text-yellow-700 flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      {diffHours}h remaining
+                                    </Badge>
+                                  )
+                                } else {
+                                  return (
+                                    <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      {diffDays}d remaining
+                                    </Badge>
+                                  )
+                                }
+                              })()
+                            ) : (
+                              <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                Unlimited
+                              </Badge>
+                            )}
+                            {selectedUser.radiusCredentials.expiration_date && (
+                              <span className="text-xs text-slate-500">
+                                Expires: {new Date(selectedUser.radiusCredentials.expiration_date).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <Badge variant={selectedUser.radiusCredentials.is_enabled ? "default" : "secondary"}>
+                            {selectedUser.radiusCredentials.is_enabled ? 'Enabled' : 'Disabled'}
                           </Badge>
-                        )}
-                        {selectedUser.radiusCredentials.expiration_date && (
-                          <span className="text-xs text-slate-500">
-                            Expires: {new Date(selectedUser.radiusCredentials.expiration_date).toLocaleString()}
+                          <span className="text-slate-500">
+                            {selectedUser.radiusCredentials.connection_type}
                           </span>
-                        )}
+                          {selectedUser.radiusCredentials.synced_to_radius && (
+                            <Badge variant="outline" className="text-green-600 border-green-300">
+                              ✅ Synced
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <Badge variant={selectedUser.radiusCredentials.is_enabled ? "default" : "secondary"}>
-                        {selectedUser.radiusCredentials.is_enabled ? 'Enabled' : 'Disabled'}
-                      </Badge>
-                      <span className="text-slate-500">
-                        {selectedUser.radiusCredentials.connection_type}
-                      </span>
-                      {selectedUser.radiusCredentials.synced_to_radius && (
-                        <Badge variant="outline" className="text-green-600 border-green-300">
-                          ✅ Synced
-                        </Badge>
-                      )}
+                  )}
+
+                  {/* Usage Stats */}
+                  <div className="p-4 bg-slate-50 rounded-lg border">
+                    <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Usage & Balance</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-slate-600">Data Used</span>
+                          <span className="font-medium">
+                            {selectedUser.liveUsageString || `${Number(selectedUser.dataUsed || 0).toFixed(1)} GB`} 
+                            {selectedUser.dataLimit && ` / ${selectedUser.dataLimit} GB`}
+                          </span>
+                        </div>
+                        {selectedUser.dataLimit && (
+                          <Progress value={(Number(selectedUser.dataUsed || 0) / selectedUser.dataLimit) * 100} className="h-2" />
+                        )}
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Account Balance</span>
+                        <span className="font-medium">KES {selectedUser.balance.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Loyalty Points</span>
+                        <span className="font-medium text-amber-600">{selectedUser.loyaltyPoints.toLocaleString()} pts</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* Usage Stats */}
-              <div className="p-4 bg-slate-50 rounded-lg border">
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Usage & Balance</h3>
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-slate-600">Data Used</span>
-                      <span className="font-medium">
-                        {selectedUser.liveUsageString || `${Number(selectedUser.dataUsed || 0).toFixed(1)} GB`} 
-                        {selectedUser.dataLimit && ` / ${selectedUser.dataLimit} GB`}
-                      </span>
+                  {/* Bandwidth Graph - Only for online PPPoE users */}
+                  {selectedUser && selectedUser.connectionStatus === "online" && 
+                  selectedUser.type === "pppoe" && 
+                  selectedUser.radiusCredentials?.username && (
+                    <div className="pt-2">
+                      <BandwidthGraph
+                        username={selectedUser.radiusCredentials.username}
+                        isOnline={true}
+                        baseUrl={typeof window !== "undefined" ? window.location.origin : ""}
+                        authToken={
+                          (typeof window !== "undefined"
+                            ? localStorage.getItem(`adminToken:${window.location.hostname}`) ||
+                              localStorage.getItem("adminToken") ||
+                              sessionStorage.getItem(`adminToken:${window.location.hostname}`) ||
+                              sessionStorage.getItem("adminToken")
+                            : "") || ""
+                        }
+                        maxPoints={20}
+                      />
                     </div>
-                    {selectedUser.dataLimit && (
-                      <Progress value={(Number(selectedUser.dataUsed || 0) / selectedUser.dataLimit) * 100} className="h-2" />
+                  )}
+
+                  {/* Actions */}
+                  <div className="space-y-2 pt-4">
+                    <div className="flex gap-2">
+                      <Button className="flex-1" onClick={() => handleEditUser(selectedUser)}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit User
+                      </Button>
+                      <Button variant="outline" className="flex-1" onClick={() => handleExtendSubscription(selectedUser)}>
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Extend
+                      </Button>
+                    </div>
+                    {(selectedUser.type === "pppoe" || selectedUser.type === "static") ? (
+                      <Button variant="outline" className="flex-1 w-full" onClick={() => handleEditIP(selectedUser)}>
+                        <Server className="w-4 h-4 mr-2" />
+                        Edit IP
+                      </Button>
+                    ) : null}
+                    {selectedUser.status === "pending" && (
+                      <Button 
+                        className="w-full bg-green-600 hover:bg-green-700" 
+                        onClick={() => handleActivateUser(selectedUser)}
+                        disabled={activating}
+                      >
+                        {activating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UserCheck className="w-4 h-4 mr-2" />}
+                        Activate Now
+                      </Button>
                     )}
+                    {selectedUser.radiusCredentials && (
+                      <Button 
+                        variant="outline" 
+                        className={`w-full ${selectedUser.radiusCredentials.is_enabled ? 'text-yellow-600 hover:text-yellow-700' : 'text-green-600 hover:text-green-700'}`}
+                        onClick={() => handleToggleRadius(selectedUser, !selectedUser.radiusCredentials!.is_enabled)}
+                        disabled={togglingRadius}
+                      >
+                        {togglingRadius ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Power className="w-4 h-4 mr-2" />}
+                        {selectedUser.radiusCredentials.is_enabled ? 'Disable RADIUS Access' : 'Enable RADIUS Access'}
+                      </Button>
+                    )}
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1">
+                        <Send className="w-4 h-4 mr-2" />
+                        Send SMS
+                      </Button>
+                      <Button variant="outline" className="flex-1">
+                        <Mail className="w-4 h-4 mr-2" />
+                        Email
+                      </Button>
+                    </div>
+                    {selectedUser.connectionStatus === "online" && (
+                      <Button 
+                        variant="outline" 
+                        className="w-full text-yellow-600 hover:text-yellow-700"
+                        onClick={() => handleDisconnectUser(selectedUser)}
+                      >
+                        <Power className="w-4 h-4 mr-2" />
+                        Disconnect User
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      className="w-full text-red-600 hover:text-red-700 border-red-200"
+                      onClick={() => handleDeleteUser(selectedUser)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete User
+                    </Button>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">Account Balance</span>
-                    <span className="font-medium">KES {selectedUser.balance.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">Loyalty Points</span>
-                    <span className="font-medium text-amber-600">{selectedUser.loyaltyPoints.toLocaleString()} pts</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bandwidth Graph - Only for online PPPoE users */}
-              {selectedUser && selectedUser.connectionStatus === "online" && 
-              selectedUser.type === "pppoe" && 
-              selectedUser.radiusCredentials?.username && (
-                <div className="pt-2">
-                  <BandwidthGraph
-                    username={selectedUser.radiusCredentials.username}
-                    isOnline={true}
-                    baseUrl={typeof window !== "undefined" ? window.location.origin : ""}
-                    authToken={
-                      (typeof window !== "undefined"
-                        ? localStorage.getItem(`adminToken:${window.location.hostname}`) ||
-                          localStorage.getItem("adminToken") ||
-                          sessionStorage.getItem(`adminToken:${window.location.hostname}`) ||
-                          sessionStorage.getItem("adminToken")
-                        : "") || ""
-                    }
-                    maxPoints={20}
-                  />
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="space-y-2 pt-4">
-                <div className="flex gap-2">
-                  <Button className="flex-1" onClick={() => handleEditUser(selectedUser)}>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit User
-                  </Button>
-                  <Button variant="outline" className="flex-1" onClick={() => handleExtendSubscription(selectedUser)}>
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Extend
-                  </Button>
+              {/* Payments Tab */}
+              {drawerTab === "payments" && (
+                <div className="space-y-4">
+                  {payments.length === 0 ? (
+                    <div className="text-center py-10">
+                      <CreditCard className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                      <p className="text-slate-500 font-medium">No payments found</p>
+                      <p className="text-slate-400 text-sm mt-1">This customer has no payment history yet.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Summary */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                          <p className="text-xs text-slate-500">Total Paid</p>
+                          <p className="text-lg font-bold text-green-700">
+                            KES {payments.filter(p => p.status === 'COMPLETED' || p.status === 'completed').reduce((sum, p) => sum + (Number(p.amount) || 0), 0).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <p className="text-xs text-slate-500">Transactions</p>
+                          <p className="text-lg font-bold text-blue-700">{payments.length}</p>
+                        </div>
+                      </div>
+
+                      {/* Payments list */}
+                      <div className="space-y-2">
+                        {payments.map((payment) => {
+                          const isCompleted = ['completed', 'COMPLETED'].includes(payment.status)
+                          const isFailed = ['failed', 'FAILED'].includes(payment.status)
+                          const isPending = ['pending', 'PENDING', 'processing', 'PROCESSING'].includes(payment.status)
+                          return (
+                            <div
+                              key={payment.id}
+                              className="flex items-center justify-between p-3 rounded-lg border bg-white hover:bg-slate-50 transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                  isCompleted ? 'bg-green-100' : isFailed ? 'bg-red-100' : 'bg-yellow-100'
+                                }`}>
+                                  {isCompleted ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                  ) : isFailed ? (
+                                    <XCircle className="w-4 h-4 text-red-600" />
+                                  ) : (
+                                    <Clock className="w-4 h-4 text-yellow-600" />
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-slate-900">
+                                    KES {Number(payment.amount).toLocaleString()}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    {payment.method || payment.payment_method || 'M-Pesa'}
+                                    {(payment.reference || payment.mpesa_receipt) && (
+                                      <span className="ml-1 font-mono">
+                                        · {payment.reference || payment.mpesa_receipt}
+                                      </span>
+                                    )}
+                                  </p>
+                                  <p className="text-xs text-slate-400">
+                                    {payment.date
+                                      ? new Date(payment.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                      : payment.created_at
+                                      ? new Date(payment.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                      : '—'}
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge
+                                className={
+                                  isCompleted ? 'bg-green-100 text-green-700' :
+                                  isFailed ? 'bg-red-100 text-red-700' :
+                                  'bg-yellow-100 text-yellow-700'
+                                }
+                              >
+                                {isCompleted ? 'Paid' : isFailed ? 'Failed' : 'Pending'}
+                              </Badge>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </>
+                  )}
                 </div>
-                {(selectedUser.type === "pppoe" || selectedUser.type === "static") ? (
-                  <Button variant="outline" className="flex-1 w-full" onClick={() => handleEditIP(selectedUser)}>
-                    <Server className="w-4 h-4 mr-2" />
-                    Edit IP
-                  </Button>
-                ) : null}
-                {selectedUser.status === "pending" && (
-                  <Button 
-                    className="w-full bg-green-600 hover:bg-green-700" 
-                    onClick={() => handleActivateUser(selectedUser)}
-                    disabled={activating}
-                  >
-                    {activating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UserCheck className="w-4 h-4 mr-2" />}
-                    Activate Now
-                  </Button>
-                )}
-                {selectedUser.radiusCredentials && (
-                  <Button 
-                    variant="outline" 
-                    className={`w-full ${selectedUser.radiusCredentials.is_enabled ? 'text-yellow-600 hover:text-yellow-700' : 'text-green-600 hover:text-green-700'}`}
-                    onClick={() => handleToggleRadius(selectedUser, !selectedUser.radiusCredentials!.is_enabled)}
-                    disabled={togglingRadius}
-                  >
-                    {togglingRadius ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Power className="w-4 h-4 mr-2" />}
-                    {selectedUser.radiusCredentials.is_enabled ? 'Disable RADIUS Access' : 'Enable RADIUS Access'}
-                  </Button>
-                )}
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1">
-                    <Send className="w-4 h-4 mr-2" />
-                    Send SMS
-                  </Button>
-                  <Button variant="outline" className="flex-1">
-                    <Mail className="w-4 h-4 mr-2" />
-                    Email
-                  </Button>
-                </div>
-                {selectedUser.connectionStatus === "online" && (
-                  <Button 
-                    variant="outline" 
-                    className="w-full text-yellow-600 hover:text-yellow-700"
-                    onClick={() => handleDisconnectUser(selectedUser)}
-                  >
-                    <Power className="w-4 h-4 mr-2" />
-                    Disconnect User
-                  </Button>
-                )}
-                <Button 
-                  variant="outline" 
-                  className="w-full text-red-600 hover:text-red-700 border-red-200"
-                  onClick={() => handleDeleteUser(selectedUser)}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete User
-                </Button>
-              </div>
+              )}
             </div>
           )}
         </DialogContent>
