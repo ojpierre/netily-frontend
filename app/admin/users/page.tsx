@@ -1104,18 +1104,17 @@ export default function UsersPage() {
           toast.error("Selected date must be in the future")
           return
         }
-        // Calculate days from NOW, not from current expiry
-        const diffMs = targetDate.getTime() - now.getTime()
-        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+        // Pass the ISO date directly — backend sets it without stacking
         await adminApi.extendService(
           userToExtend.customerId,
           userToExtend.serviceId,
-          diffDays,
-          'DAYS',
-          extendForm.plan_id ? parseInt(extendForm.plan_id, 10) : undefined
+          1,           // unused when expiryDate is provided
+          'DAYS',      // unused when expiryDate is provided
+          extendForm.plan_id ? parseInt(extendForm.plan_id, 10) : undefined,
+          targetDate.toISOString()   // ← the absolute target date
         )
         toast.success(
-          `Subscription set to expire on ${new Date(extendManualDate).toLocaleDateString()}${extendForm.plan_id ? ' (plan changed)' : ''}`
+          `Expiry set to ${new Date(extendManualDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}${extendForm.plan_id ? ' · plan changed' : ''}`
         )
       } else {
         await adminApi.extendService(

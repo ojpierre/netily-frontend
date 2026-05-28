@@ -868,13 +868,14 @@ async activateService(
     })
   }
 
-  /** P3: Extend a service subscription by adding time, optionally changing plan */
+  /** P3: Extend a service subscription by adding time OR set exact expiry date */
   async extendService(
     customerId: number,
     serviceId: number,
     durationAmount: number,
     durationUnit: 'MINUTES' | 'HOURS' | 'DAYS',
-    planId?: number
+    planId?: number,
+    expiryDate?: string          // ← ADD this parameter
   ): Promise<any> {
     const body: Record<string, any> = {
       duration_amount: durationAmount,
@@ -882,6 +883,9 @@ async activateService(
     }
     if (planId) {
       body.plan_id = planId
+    }
+    if (expiryDate) {            // ← ADD this block
+      body.expiry_date = expiryDate
     }
     return this.request(`/customers/${customerId}/services/${serviceId}/extend/`, {
       method: 'POST',
