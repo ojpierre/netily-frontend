@@ -275,11 +275,14 @@ export default function UsersPage() {
   const router = useRouter()
   const ipSearchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const editIPSearchDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const hasFetched = useRef(false)
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [users, setUsers] = useState<User[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [serverPage, setServerPage] = useState(1)
   const [hotspotClients, setHotspotClients] = useState<HotspotClientData[]>([])
   const [activeSubscriptions, setActiveSubscriptions] = useState<ActiveSubscriptionsResponse>({ pppoe: [], hotspot: [], total: 0 })
   const [hotspotLoading, setHotspotLoading] = useState(false)
@@ -378,14 +381,23 @@ export default function UsersPage() {
     initial_payment_reference: '',
   })
 
+  // UPDATED useEffect: Stagger API calls - critical first, secondary after delay
   useEffect(() => {
     if (hasFetched.current) return
     hasFetched.current = true
-    loadUsers()
+    
+    // Load critical data first
+    loadUsers(1)
     loadPlans()
-    loadOnlineSessions()
-    loadHotspotClients()
-    loadActiveSubscriptions()
+    
+    // Defer non-critical calls by 800ms so the table renders fast
+    const timer = setTimeout(() => {
+      loadOnlineSessions()
+      // Hotspot and active subscriptions will be loaded lazily when tabs are clicked
+    }, 800)
+    
+    // Hotspot clients only loaded when that tab is opened
+    return () => clearTimeout(timer)
   }, [])
 
   const loadPlans = async () => {
@@ -500,13 +512,27 @@ export default function UsersPage() {
     setIpSearchQuery("")
   }, [selectedPlanPool])
 
-  const loadUsers = async () => {
+  // UPDATED loadUsers with server-side pagination and search
+  const loadUsers = async (page = 1, search?: string, status?: string) => {
     try {
       setLoading(true)
       setError(null)
-      const response = await adminApi.getCustomers({ page_size: "500" })
+      const params: Record<string, string> = {
+        page_size: "50",
+        page: String(page),
+      }
+      const effectiveSearch = search !== undefined ? search : searchQuery
+      if (effectiveSearch && effectiveSearch.trim()) {
+        params.search = effectiveSearch.trim()
+      }
+      const effectiveStatus = status !== undefined ? status : statusFilter
+      if (effectiveStatus !== 'all') {
+        params.status = effectiveStatus
+      }
+      const response = await adminApi.getCustomers(params)
       const mappedUsers = response.results.map(mapCustomerToUser)
       setUsers(mappedUsers)
+      setTotalCount(response.count)
     } catch (err) {
       console.error('Failed to load users:', err)
       setError("Failed to load users. Please try again.")
@@ -528,7 +554,8 @@ export default function UsersPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await Promise.all([loadUsers(), loadOnlineSessions(), loadHotspotClients(), loadActiveSubscriptions()])
+    await loadUsers(serverPage, searchQuery, statusFilter)
+    await loadOnlineSessions()
     setRefreshing(false)
   }
 
@@ -551,7 +578,7 @@ export default function UsersPage() {
       toast.success('Billing account number updated')
       setEditingBilling(false)
       setSelectedUser(prev => prev ? { ...prev, billingAccountNumber: billingNumberEdit.trim().toUpperCase() } : prev)
-      await loadUsers()
+      await loadUsers(serverPage, searchQuery, statusFilter)
     } catch (err: any) {
       toast.error(err.message || 'Failed to update billing number')
     } finally {
@@ -688,7 +715,7 @@ export default function UsersPage() {
       setIpSearchQuery("")
       setShowAddUserDialog(false)
       
-      await loadUsers()
+      await loadUsers(serverPage, searchQuery, statusFilter)
       
     } catch (err: any) {
       console.error('Failed to create customer:', err)
@@ -760,7 +787,7 @@ export default function UsersPage() {
     const isEffectivelyExpired = (u: User) => u.status === "expired"
     
     return {
-      total: enrichedUsers.length,
+      total: totalCount,
       active: enrichedUsers.filter(u => u.status === "active" && !isEffectivelyExpired(u)).length,
       pending: enrichedUsers.filter(u => u.status === "pending").length,
       suspended: enrichedUsers.filter(u => u.status === "suspended").length,
@@ -770,36 +797,21 @@ export default function UsersPage() {
       static: enrichedUsers.filter(u => u.type === "static").length,
       hotspot: hotspotCount + pppoeCount,
     }
-  }, [enrichedUsers, activeSubscriptions, onlineSessions])
+  }, [enrichedUsers, activeSubscriptions, onlineSessions, totalCount])
 
   const filteredUsers = useMemo(() => {
+    // Client-side filtering is no longer needed for search/status since we use server-side
+    // But we still need tab filtering
     return enrichedUsers.filter((user) => {
       const matchesTab = 
         activeTab === "all" ||
         (activeTab === "pppoe" && user.type === "pppoe") ||
         (activeTab === "static" && user.type === "static")
-
-      const matchesSearch = !searchQuery || (
-        (user.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-        (user.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-        (user.phone || '').includes(searchQuery) ||
-        (user.id?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-        (user.radiusCredentials?.username?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-        (user.location?.toLowerCase() || '').includes(searchQuery.toLowerCase())
-      )
-
-      const matchesStatus = statusFilter === "all" || user.status === statusFilter
-
-      return matchesTab && matchesSearch && matchesStatus
+      return matchesTab
     })
-  }, [enrichedUsers, activeTab, searchQuery, statusFilter])
+  }, [enrichedUsers, activeTab])
 
-  const paginatedUsers = filteredUsers.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
-
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
+  const totalPages = Math.ceil(totalCount / 50)
 
   const filteredOnlineSessions = useMemo(() => {
     return onlineSessions.filter((session) => {
@@ -847,13 +859,21 @@ export default function UsersPage() {
     return map
   }, [onlineSessions])
 
+  // Update server page when filters change
   useEffect(() => {
-    setCurrentPage(1)
-  }, [activeTab, searchQuery, statusFilter])
+    setServerPage(1)
+    loadUsers(1, searchQuery, statusFilter)
+  }, [searchQuery, statusFilter])
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    setServerPage(newPage)
+    loadUsers(newPage, searchQuery, statusFilter)
+  }
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedUsers(paginatedUsers.map((u) => u.id))
+      setSelectedUsers(filteredUsers.map((u) => u.id))
     } else {
       setSelectedUsers([])
     }
@@ -933,7 +953,7 @@ export default function UsersPage() {
     try {
       await adminApi.suspendService(user.customerId, user.serviceId, 'Manual disconnect')
       toast.success(`${user.name} disconnected`)
-      await Promise.all([loadUsers(), loadOnlineSessions()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to disconnect user')
     }
@@ -1046,7 +1066,7 @@ export default function UsersPage() {
 
       setShowChangePlanDialog(false)
       setUserToChangePlan(null)
-      await loadUsers()
+      await loadUsers(serverPage, searchQuery, statusFilter)
     } catch (err: any) {
       console.error("Failed to change plan:", err)
       toast.error(err.message || "Failed to change plan")
@@ -1071,7 +1091,7 @@ export default function UsersPage() {
       setShowEditIPDialog(false)
       setUserToEditIP(null)
       setEditIPPoolId(null)
-      await loadUsers()
+      await loadUsers(serverPage, searchQuery, statusFilter)
       await loadOnlineSessions()
     } catch (err: any) {
       toast.error(err.message || 'Failed to change IP address')
@@ -1132,7 +1152,7 @@ export default function UsersPage() {
       setUserToExtend(null)
       setExtendManualDate("")
       setExtendMode("duration")
-      await loadUsers()
+      await loadUsers(serverPage, searchQuery, statusFilter)
     } catch (err: any) {
       toast.error(err.message || 'Failed to extend subscription')
     } finally {
@@ -1154,7 +1174,7 @@ export default function UsersPage() {
       setShowDeleteConfirmDialog(false)
       setUserToDelete(null)
       setDrawerOpen(false)
-      await Promise.all([loadUsers(), loadOnlineSessions()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete user')
     } finally {
@@ -1172,10 +1192,10 @@ export default function UsersPage() {
       }
       toast.success(`${usersToDelete.length} user(s) deleted successfully`)
       setSelectedUsers([])
-      await Promise.all([loadUsers(), loadOnlineSessions()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete some users')
-      await Promise.all([loadUsers(), loadOnlineSessions()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions()])
     } finally {
       setDeleting(false)
     }
@@ -1190,7 +1210,7 @@ export default function UsersPage() {
       setActivating(true)
       await adminApi.activateService(user.customerId, user.serviceId)
       toast.success(`${user.name} activated! Expiration timer starts now.`)
-      await loadUsers()
+      await loadUsers(serverPage, searchQuery, statusFilter)
     } catch (err: any) {
       toast.error(err.message || 'Failed to activate user')
     } finally {
@@ -1207,7 +1227,7 @@ export default function UsersPage() {
         enable ? 'Enabled via admin panel' : 'Disabled via admin panel'
       )
       toast.success(`RADIUS ${enable ? 'enabled' : 'disabled'} for ${user.name}`)
-      await loadUsers()
+      await loadUsers(serverPage, searchQuery, statusFilter)
     } catch (err: any) {
       toast.error(err.message || `Failed to ${enable ? 'enable' : 'disable'} RADIUS`)
     } finally {
@@ -1264,7 +1284,7 @@ export default function UsersPage() {
       
       toast.success('User updated successfully!')
       setShowEditUserDialog(false)
-      await loadUsers()
+      await loadUsers(serverPage, searchQuery, statusFilter)
       
     } catch (err: any) {
       console.error('Failed to update user:', err)
@@ -1848,7 +1868,15 @@ export default function UsersPage() {
 
       {/* Connection Type Tabs */}
       <div className="flex flex-col gap-3">
-        <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); if (!['all'].includes(val)) setStatusFilter('all'); if (val === 'online-sessions') loadOnlineSessions(); }} className="w-full">
+        <Tabs value={activeTab} onValueChange={(val) => { 
+          setActiveTab(val); 
+          if (!['all'].includes(val)) setStatusFilter('all'); 
+          if (val === 'online-sessions') loadOnlineSessions();
+          // Lazy load hotspot data only when tab is opened
+          if (val === 'hotspot' && activeSubscriptions.hotspot?.length === 0) {
+            loadActiveSubscriptions();
+          }
+        }} className="w-full">
           <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 lg:w-auto lg:inline-grid">
             <TabsTrigger value="all" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -1920,7 +1948,16 @@ export default function UsersPage() {
                 <Input
                   placeholder="Search by name, email, phone, username, ID, or location..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setSearchQuery(val)
+                    // Debounce: wait 400ms after user stops typing
+                    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+                    searchDebounceRef.current = setTimeout(() => {
+                      setServerPage(1)
+                      loadUsers(1, val, statusFilter)
+                    }, 400)
+                  }}
                   className="pl-9"
                   autoComplete="off"
                   name="users-search"
@@ -2161,7 +2198,7 @@ export default function UsersPage() {
                     className="pl-9"
                   />
                 </div>
-                <Button variant="outline" size="icon" onClick={loadUsers} disabled={refreshing}>
+                <Button variant="outline" size="icon" onClick={() => loadUsers(serverPage, searchQuery, statusFilter)} disabled={refreshing}>
                   <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                 </Button>
               </div>
@@ -2464,10 +2501,10 @@ export default function UsersPage() {
             {activeTab === "pppoe" && "PPPoE Users"}
             {activeTab === "static" && "Static IP Users"}
             {statusFilter !== "all" && ` - ${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`}
-            {" "}({filteredUsers.length})
+            {" "}({totalCount})
           </CardTitle>
           <CardDescription>
-            Showing {paginatedUsers.length} of {filteredUsers.length} users
+            Showing {users.length} of {totalCount} users
             {statusFilter !== "all" && ` - Filtered by status: ${statusFilter}`}
           </CardDescription>
         </CardHeader>
@@ -2495,8 +2532,8 @@ export default function UsersPage() {
                       <TableHead className="w-12">
                         <Checkbox
                           checked={
-                            paginatedUsers.length > 0 &&
-                            selectedUsers.length === paginatedUsers.length
+                            filteredUsers.length > 0 &&
+                            selectedUsers.length === filteredUsers.length
                           }
                           onCheckedChange={handleSelectAll}
                         />
@@ -2512,7 +2549,7 @@ export default function UsersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedUsers.map((user) => (
+                    {filteredUsers.map((user) => (
                       <TableRow key={user.id} className="hover:bg-slate-50">
                         <TableCell>
                           <Checkbox
@@ -2649,22 +2686,22 @@ export default function UsersPage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-slate-600">
-                    Page {currentPage} of {totalPages}
+                    Page {serverPage} of {totalPages}
                   </p>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={serverPage === 1}
+                      onClick={() => handlePageChange(serverPage - 1)}
                     >
                       Previous
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={serverPage === totalPages}
+                      onClick={() => handlePageChange(serverPage + 1)}
                     >
                       Next
                     </Button>
