@@ -513,7 +513,7 @@ export default function UsersPage() {
     setIpSearchQuery("")
   }, [selectedPlanPool])
 
-  // UPDATED loadUsers with server-side pagination and search
+  // UPDATED loadUsers with server-side pagination and search - FIXED STATUS MAPPING
   const loadUsers = async (page = 1, search?: string, status?: string) => {
     try {
       setLoading(true)
@@ -527,9 +527,21 @@ export default function UsersPage() {
         params.search = effectiveSearch.trim()
       }
       const effectiveStatus = status !== undefined ? status : statusFilter
-      if (effectiveStatus !== 'all') {
-        params.status = effectiveStatus
+
+      // Map frontend lowercase values → backend uppercase choices
+      // 'expired' is frontend-only (RADIUS expiry), no backend status equivalent
+      const statusMap: Record<string, string> = {
+        active: 'ACTIVE',
+        pending: 'PENDING',
+        suspended: 'SUSPENDED',
+        inactive: 'INACTIVE',
+        terminated: 'TERMINATED',
       }
+
+      if (effectiveStatus !== 'all' && effectiveStatus !== 'expired') {
+        params.status = statusMap[effectiveStatus] || effectiveStatus.toUpperCase()
+      }
+
       const response = await adminApi.getCustomers(params)
       const mappedUsers = response.results.map(mapCustomerToUser)
       setUsers(mappedUsers)
