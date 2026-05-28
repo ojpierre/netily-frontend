@@ -46,6 +46,15 @@ export function BandwidthGraph({ username, isOnline, baseUrl, authToken, maxPoin
   const animFrameRef = useRef<number | undefined>(undefined)
   const scanRef = useRef(0)
   const [scanX, setScanX] = useState(0)
+  
+  // Interpolation refs for smooth animation
+  const displayRxRef = useRef(0)
+  const displayTxRef = useRef(0)
+  const targetRxRef = useRef(0)
+  const targetTxRef = useRef(0)
+  const [displayPoints, setDisplayPoints] = useState<DataPoint[]>([])
+  const lerpAnimRef = useRef<number | undefined>(undefined)
+  
   const W = 400
   const H = 80
 
@@ -88,11 +97,19 @@ export function BandwidthGraph({ username, isOnline, baseUrl, authToken, maxPoin
 
         const clampedRx = Math.min(rx, 100_000)
         const clampedTx = Math.min(tx, 100_000)
+        
+        // Update targets for smooth interpolation
+        targetRxRef.current = clampedRx
+        targetTxRef.current = clampedTx
         setCurrentRx(clampedRx)
         setCurrentTx(clampedTx)
         setPeakRx(p => Math.max(p, clampedRx))
         setPeakTx(p => Math.max(p, clampedTx))
-        setPoints(prev => [...prev.slice(-(maxPoints - 1)), { t: now, rx: clampedRx, tx: clampedTx }])
+        setPoints(prev => {
+          const next = [...prev.slice(-(maxPoints - 1)), { t: now, rx: clampedRx, tx: clampedTx }]
+          setDisplayPoints(next)
+          return next
+        })
       }
 
       prevRef.current = { bytes_in: bytesIn, bytes_out: bytesOut, ts: now }
@@ -108,11 +125,35 @@ export function BandwidthGraph({ username, isOnline, baseUrl, authToken, maxPoin
     return () => clearInterval(id)
   }, [fetchBytes, isOnline, username])
 
-  // Animate scanner line
+  // Animate scanner line and interpolate display values
   useEffect(() => {
+    let tick = 0
     const animate = () => {
-      scanRef.current = (scanRef.current + 0.4) % W
+      tick++
+
+      // Lerp display values toward targets — smooth transition on new data
+      const SPEED = 0.06
+      displayRxRef.current += (targetRxRef.current - displayRxRef.current) * SPEED
+      displayTxRef.current += (targetTxRef.current - displayTxRef.current) * SPEED
+
+      // Scanner line
+      scanRef.current = (scanRef.current + 0.3) % W
       setScanX(scanRef.current)
+
+      // Update display points at reduced rate (every 2nd frame = ~30fps)
+      if (tick % 2 === 0) {
+        setDisplayPoints(prev => {
+          if (prev.length === 0) return prev
+          const updated = [...prev]
+          updated[updated.length - 1] = {
+            ...updated[updated.length - 1],
+            rx: displayRxRef.current,
+            tx: displayTxRef.current,
+          }
+          return updated
+        })
+      }
+
       animFrameRef.current = requestAnimationFrame(animate)
     }
     animFrameRef.current = requestAnimationFrame(animate)
@@ -121,18 +162,18 @@ export function BandwidthGraph({ username, isOnline, baseUrl, authToken, maxPoin
 
   if (!isOnline) return null
 
-  // Build SVG paths
-  const n = points.length
-  const maxVal = Math.max(...points.map(p => Math.max(p.rx, p.tx)), 1)
-
+  // Build SVG paths using displayPoints for smooth rendering
+  const n = displayPoints.length
+  const maxVal = Math.max(...displayPoints.map(p => Math.max(p.rx, p.tx)), 1)
+  
   const toCoords = (vals: number[]) =>
     vals.map((v, i) => ({
       x: n <= 1 ? W : (i / (n - 1)) * W,
       y: H - (v / maxVal) * (H - 4) - 2,
     }))
-
-  const rxCoords = toCoords(points.map(p => p.rx))
-  const txCoords = toCoords(points.map(p => p.tx))
+  
+  const rxCoords = toCoords(displayPoints.map(p => p.rx))
+  const txCoords = toCoords(displayPoints.map(p => p.tx))
   const rxPath = smoothPath(rxCoords)
   const txPath = smoothPath(txCoords)
   const rxArea = rxPath + (rxCoords.length ? ` L ${rxCoords.at(-1)!.x} ${H} L 0 ${H} Z` : "")
@@ -187,73 +228,152 @@ export function BandwidthGraph({ username, isOnline, baseUrl, authToken, maxPoin
         <div className="relative rounded-lg overflow-hidden bg-slate-950/60 border border-slate-700/40" style={{ height: H + 4 }}>
           <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full h-full">
             <defs>
-              {/* RX gradient fill */}
-              <linearGradient id="rxGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#34d399" stopOpacity="0.35" />
+              {/* Area fills */}
+              <linearGradient id="rxAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#34d399" stopOpacity="0.4" />
+                <stop offset="70%" stopColor="#34d399" stopOpacity="0.05" />
                 <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
               </linearGradient>
-              {/* TX gradient fill */}
-              <linearGradient id="txGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.25" />
+              <linearGradient id="txAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.3" />
+                <stop offset="70%" stopColor="#38bdf8" stopOpacity="0.05" />
                 <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
               </linearGradient>
-              {/* Glow filters */}
-              <filter id="rxGlow">
-                <feGaussianBlur stdDeviation="1.5" result="blur" />
-                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+
+              {/* Strong neon glow - outer halo */}
+              <filter id="glow-rx" x="-20%" y="-40%" width="140%" height="180%">
+                <feGaussianBlur stdDeviation="3" result="halo" />
+                <feGaussianBlur stdDeviation="1" result="core" />
+                <feMerge>
+                  <feMergeNode in="halo" />
+                  <feMergeNode in="core" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
               </filter>
-              <filter id="txGlow">
-                <feGaussianBlur stdDeviation="1.5" result="blur" />
-                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+              <filter id="glow-tx" x="-20%" y="-40%" width="140%" height="180%">
+                <feGaussianBlur stdDeviation="3" result="halo" />
+                <feGaussianBlur stdDeviation="1" result="core" />
+                <feMerge>
+                  <feMergeNode in="halo" />
+                  <feMergeNode in="core" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
               </filter>
-              {/* Scanner gradient */}
+
+              {/* Dot glow */}
+              <filter id="dot-glow">
+                <feGaussianBlur stdDeviation="2.5" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+
+              {/* Scanner sweep */}
               <linearGradient id="scanGrad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#6366f1" stopOpacity="0" />
-                <stop offset="50%" stopColor="#6366f1" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+                <stop offset="0%" stopColor="#818cf8" stopOpacity="0" />
+                <stop offset="40%" stopColor="#818cf8" stopOpacity="0.08" />
+                <stop offset="50%" stopColor="#c4b5fd" stopOpacity="0.18" />
+                <stop offset="60%" stopColor="#818cf8" stopOpacity="0.08" />
+                <stop offset="100%" stopColor="#818cf8" stopOpacity="0" />
               </linearGradient>
+
+              {/* Clip so lines don't exceed canvas */}
+              <clipPath id="graphClip">
+                <rect x="0" y="0" width={W} height={H} />
+              </clipPath>
             </defs>
 
-            {/* Grid lines */}
+            {/* Grid — horizontal lines */}
             {[0.25, 0.5, 0.75].map(r => (
-              <line key={r} x1="0" y1={H * r} x2={W} y2={H * r}
-                stroke="#1e293b" strokeWidth="1" strokeDasharray="3 6" />
+              <line
+                key={r}
+                x1="0" y1={H * r} x2={W} y2={H * r}
+                stroke="#1e293b"
+                strokeWidth="0.75"
+                strokeDasharray="2 8"
+              />
+            ))}
+            {/* Grid — vertical lines */}
+            {[0.2, 0.4, 0.6, 0.8].map(r => (
+              <line
+                key={r}
+                x1={W * r} y1="0" x2={W * r} y2={H}
+                stroke="#1e293b"
+                strokeWidth="0.75"
+                strokeDasharray="2 8"
+              />
             ))}
 
-            {/* Area fills */}
-            {n >= 2 && <path d={rxArea} fill="url(#rxGrad)" />}
-            {n >= 2 && <path d={txArea} fill="url(#txGrad)" />}
+            <g clipPath="url(#graphClip)">
+              {/* Area fills */}
+              {n >= 2 && <path d={rxArea} fill="url(#rxAreaGrad)" />}
+              {n >= 2 && <path d={txArea} fill="url(#txAreaGrad)" />}
 
-            {/* Lines */}
-            {n >= 2 && (
-              <>
-                <path d={rxPath} fill="none" stroke="#34d399" strokeWidth="1.5" filter="url(#rxGlow)" strokeLinecap="round" />
-                <path d={txPath} fill="none" stroke="#38bdf8" strokeWidth="1.5" filter="url(#txGlow)" strokeLinecap="round" />
-              </>
-            )}
+              {/* Shadow line (thick, very dim) for depth */}
+              {n >= 2 && (
+                <>
+                  <path d={rxPath} fill="none" stroke="#34d399" strokeWidth="4" opacity="0.08" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={txPath} fill="none" stroke="#38bdf8" strokeWidth="4" opacity="0.08" strokeLinecap="round" strokeLinejoin="round" />
+                </>
+              )}
 
-            {/* Live dots */}
-            {dotRx && n >= 1 && (
-              <>
-                <circle cx={dotRx.x} cy={dotRx.y} r="3" fill="#34d399" opacity="0.3" />
-                <circle cx={dotRx.x} cy={dotRx.y} r="1.5" fill="#34d399" />
-              </>
-            )}
-            {dotTx && n >= 1 && (
-              <>
-                <circle cx={dotTx.x} cy={dotTx.y} r="3" fill="#38bdf8" opacity="0.3" />
-                <circle cx={dotTx.x} cy={dotTx.y} r="1.5" fill="#38bdf8" />
-              </>
-            )}
+              {/* Main neon lines */}
+              {n >= 2 && (
+                <>
+                  <path
+                    d={rxPath}
+                    fill="none"
+                    stroke="#34d399"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    filter="url(#glow-rx)"
+                  />
+                  <path
+                    d={txPath}
+                    fill="none"
+                    stroke="#38bdf8"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    filter="url(#glow-tx)"
+                  />
+                </>
+              )}
 
-            {/* Animated scanner */}
-            <rect x={scanX - 20} y={0} width={40} height={H} fill="url(#scanGrad)" />
+              {/* Live tip — pulsing dot with glow rings */}
+              {dotRx && n >= 1 && (
+                <g filter="url(#dot-glow)">
+                  <circle cx={dotRx.x} cy={dotRx.y} r="5" fill="#34d399" opacity="0.12" />
+                  <circle cx={dotRx.x} cy={dotRx.y} r="3" fill="#34d399" opacity="0.25" />
+                  <circle cx={dotRx.x} cy={dotRx.y} r="1.75" fill="#34d399" />
+                </g>
+              )}
+              {dotTx && n >= 1 && (
+                <g filter="url(#dot-glow)">
+                  <circle cx={dotTx.x} cy={dotTx.y} r="5" fill="#38bdf8" opacity="0.12" />
+                  <circle cx={dotTx.x} cy={dotTx.y} r="3" fill="#38bdf8" opacity="0.25" />
+                  <circle cx={dotTx.x} cy={dotTx.y} r="1.75" fill="#38bdf8" />
+                </g>
+              )}
 
-            {/* No data state */}
+              {/* Scanner sweep */}
+              <rect x={scanX - 25} y={0} width={50} height={H} fill="url(#scanGrad)" />
+            </g>
+
+            {/* Empty state */}
             {n < 2 && (
-              <text x={W / 2} y={H / 2} textAnchor="middle" dominantBaseline="middle"
-                fill="#475569" fontSize="10" fontFamily="monospace">
-                {phase === "connecting" ? "Collecting data…" : "Waiting for traffic"}
+              <text
+                x={W / 2} y={H / 2}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill="#334155"
+                fontSize="9"
+                fontFamily="monospace"
+                letterSpacing="1"
+              >
+                {phase === "connecting" ? "COLLECTING DATA..." : "AWAITING TRAFFIC"}
               </text>
             )}
           </svg>
