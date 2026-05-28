@@ -35,6 +35,7 @@ import {
   Smartphone,
   CreditCard,
   ArrowRightLeft,
+  MapPin,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
 import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession, ActiveSubscriptionsResponse, CustomerAvailablePlanOption, CustomerAvailablePlansResponse } from "@/lib/types"
@@ -111,6 +112,7 @@ interface User {
   name: string
   email: string
   phone: string
+  location?: string        // ADDED
   status: UserStatus
   serviceStatus: string | null
   connectionStatus: "online" | "offline"
@@ -233,6 +235,7 @@ const mapCustomerToUser = (customer: Customer): User => {
     name: customer.full_name || `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
     email: customer.email || '',
     phone: customer.phone || 'No phone',
+    location: (customer as any).location || '',  // ADDED
     status: mapStatus(customer.status),
     serviceStatus: serviceStatus || null,
     connectionStatus: isOnline ? "online" : "offline",
@@ -348,6 +351,7 @@ export default function UsersPage() {
     phone: "",
     radius_username: "",
     radius_password: "",
+    location: "",             // ADDED
   })
 
   const [newCustomerForm, setNewCustomerForm] = useState({
@@ -763,7 +767,8 @@ export default function UsersPage() {
         (user.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
         (user.phone || '').includes(searchQuery) ||
         (user.id?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-        (user.radiusCredentials?.username?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+        (user.radiusCredentials?.username?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (user.location?.toLowerCase() || '').includes(searchQuery.toLowerCase())  // ADDED
       )
 
       const matchesStatus = statusFilter === "all" || user.status === statusFilter
@@ -1201,6 +1206,7 @@ export default function UsersPage() {
       phone: user.phone === 'No phone' ? '' : (user.phone || ''),
       radius_username: user.radiusCredentials?.username || '',
       radius_password: user.radiusCredentials?.password || '',
+      location: user.location || '',   // ADDED
     })
     setSelectedUser(user)
     setShowEditUserDialog(true)
@@ -1217,6 +1223,7 @@ export default function UsersPage() {
         last_name: editForm.last_name,
         ...(editForm.email.trim() ? { email: editForm.email.trim() } : {}),
         phone_number: editForm.phone,
+        location: editForm.location,   // ADDED
       })
       
       const radiusUpdate: { password?: string; username?: string } = {}
@@ -1894,7 +1901,7 @@ export default function UsersPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
-                  placeholder="Search by name, email, phone, username, or ID..."
+                  placeholder="Search by name, email, phone, username, ID, or location..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
@@ -2693,6 +2700,16 @@ export default function UsersPage() {
                     <label className="text-xs font-medium text-slate-500">Phone</label>
                     <p className="text-sm text-slate-900 dark:text-white">{selectedUser.phone}</p>
                   </div>
+                  {/* ADDED: Location in User Detail Dialog */}
+                  {selectedUser.location && (
+                    <div className="col-span-2">
+                      <label className="text-xs font-medium text-slate-500">Location</label>
+                      <p className="text-sm text-slate-900 dark:text-white flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-slate-400" />
+                        {selectedUser.location}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -3119,6 +3136,16 @@ export default function UsersPage() {
                 id="edit_phone"
                 value={editForm.phone}
                 onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+              />
+            </div>
+            {/* ADDED: Location field in Edit User Dialog */}
+            <div>
+              <Label htmlFor="edit_location">Location / Area</Label>
+              <Input
+                id="edit_location"
+                placeholder="e.g. Westlands, Nairobi"
+                value={editForm.location}
+                onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
               />
             </div>
             
