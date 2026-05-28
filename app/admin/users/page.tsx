@@ -1099,15 +1099,14 @@ export default function UsersPage() {
       
       if (extendMode === "date" && extendManualDate) {
         const targetDate = new Date(extendManualDate + "T23:59:59Z")
-        const baseDate = userToExtend.expiryDate && new Date(userToExtend.expiryDate) > new Date()
-          ? new Date(userToExtend.expiryDate)
-          : new Date()
-        const diffMs = targetDate.getTime() - baseDate.getTime()
-        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
-        if (diffDays <= 0) {
+        const now = new Date()
+        if (targetDate <= now) {
           toast.error("Selected date must be in the future")
           return
         }
+        // Calculate days from NOW, not from current expiry
+        const diffMs = targetDate.getTime() - now.getTime()
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
         await adminApi.extendService(
           userToExtend.customerId,
           userToExtend.serviceId,
@@ -3489,11 +3488,11 @@ export default function UsersPage() {
                   <div className="p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
                     <CheckCircle2 className="w-4 h-4 inline mr-1 text-green-600" />
                     Will expire on: <strong>{new Date(extendManualDate + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</strong>
-                    {userToExtend?.expiryDate && userToExtend.plan !== "No Plan" && (() => {
-                      const base = new Date(userToExtend.expiryDate) > new Date() ? new Date(userToExtend.expiryDate) : new Date()
+                    {(() => {
+                      const now = new Date()
                       const target = new Date(extendManualDate + 'T23:59:59Z')
-                      const days = Math.ceil((target.getTime() - base.getTime()) / (1000 * 60 * 60 * 24))
-                      return days > 0 ? <span className="text-green-700"> (+{days} days)</span> : null
+                      const days = Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                      return days > 0 ? <span className="text-green-700"> ({days} days from now)</span> : null
                     })()}
                   </div>
                 )}
