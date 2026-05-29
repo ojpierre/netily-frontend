@@ -1866,6 +1866,13 @@ async activateService(
     return this.request<Technician>(`/staff/technicians/${id}/`)
   }
 
+  async createTechnician(data: Record<string, unknown>): Promise<Technician> {
+    return this.request<Technician>('/staff/technicians/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
   async getDispatchJobs(params?: Record<string, string>): Promise<PaginatedResponse<DispatchJob>> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
     return this.request<PaginatedResponse<DispatchJob>>(`/staff/dispatch/jobs/${queryString}`)
@@ -1882,6 +1889,13 @@ async activateService(
     })
   }
 
+  async updateDispatchJob(id: number, data: Partial<DispatchJob>): Promise<DispatchJob> {
+    return this.request<DispatchJob>(`/staff/dispatch/jobs/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
   async assignDispatchJob(jobId: number, technicianId: number): Promise<DispatchJob> {
     return this.request<DispatchJob>(`/staff/dispatch/jobs/${jobId}/assign/`, {
       method: 'POST',
@@ -1892,7 +1906,7 @@ async activateService(
   async updateJobStatus(jobId: number, status: string, notes?: string): Promise<DispatchJob> {
     return this.request<DispatchJob>(`/staff/dispatch/jobs/${jobId}/status/`, {
       method: 'POST',
-      body: JSON.stringify({ status, notes }),
+      body: JSON.stringify({ status, notes: notes || '' }),
     })
   }
 
@@ -1908,6 +1922,16 @@ async activateService(
 
   async getEquipmentItem(id: number): Promise<EquipmentItem> {
     return this.request<EquipmentItem>(`/inventory/equipment/${id}/`)
+  }
+
+
+
+  // Stock Alerts
+  async getStockAlerts(params?: Record<string, string>): Promise<StockAlert[]> {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
+    // Stock alerts returns an array directly on backend or object? UI expects array
+    const res = await this.request<any>(`/inventory/stock-alerts/${queryString}`)
+    return res.results || res || []
   }
 
   async createEquipmentItem(data: Partial<EquipmentItem>): Promise<EquipmentItem> {
@@ -2024,10 +2048,7 @@ async activateService(
     return this.request<PaginatedResponse<EquipmentItem>>(`/inventory/equipment/available/${queryString}`)
   }
 
-  // Stock Alerts
-  async getStockAlerts(): Promise<StockAlert[]> {
-    return this.request<StockAlert[]>('/inventory/stock-alerts/')
-  }
+
 
   // Stock Report
   async getStockReport(): Promise<Record<string, unknown>> {
@@ -2063,6 +2084,8 @@ async activateService(
       body: JSON.stringify(data),
     })
   }
+
+
 
   // ------------------------------------------
   // ALERTS - /alerts/
@@ -4246,6 +4269,28 @@ async activateService(
       body: JSON.stringify(data),
     })
   }
+
+  // ------------------------------------------
+  // LEADS - /leads/
+  // ------------------------------------------
+
+  async getLeads(params?: Record<string, string>): Promise<any> {
+    const query = params ? '?' + new URLSearchParams(params).toString() : ''
+    // Assuming it's PaginatedResponse<Lead> based on standard endpoints, but we use any for now
+    return this.request<any>(`/leads/${query}`)
+  }
+
+  async getLeadStats(): Promise<any> {
+    return this.request<any>('/leads/stats/')
+  }
+
+  async updateLead(id: string | number, data: any): Promise<any> {
+    return this.request<any>(`/leads/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
 
   // ------------------------------------------
   // SYSTEM NOTIFICATIONS - /notifications/

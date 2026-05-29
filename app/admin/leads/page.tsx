@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect, useMemo } from "react"
 import {
@@ -122,6 +122,8 @@ interface Lead {
   nextFollowUp?: string
   activities: LeadActivity[]
   conversionProbability: number
+  is_contacted?: boolean
+  contacted_at?: string
 }
 
 interface LeadStats {
@@ -137,7 +139,8 @@ interface LeadStats {
 }
 
 // TODO: Add leads API endpoint when backend supports it
-// import { adminApi } from "@/lib/admin-api"
+import { adminApi } from "@/lib/admin-api"
+import { toast } from "sonner"
 
 export default function LeadsPage() {
   const [loading, setLoading] = useState(true)
@@ -163,13 +166,25 @@ export default function LeadsPage() {
     try {
       setLoading(true)
       setError(null)
-      // TODO: Replace with adminApi.getLeads() when backend endpoint is available
-      // For now, show empty state — no mock data
-      setLeads([])
+      const data = await adminApi.getLeads()
+      setLeads(data?.results || data || [])
     } catch (err) {
       setError("Failed to load leads. Please try again.")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleToggleContacted = async (leadId: string, currentStatus: boolean) => {
+    try {
+      const updated = await adminApi.updateLead(leadId, { is_contacted: !currentStatus })
+      setLeads(leads.map(l => l.id === leadId ? { ...l, is_contacted: updated.is_contacted, contacted_at: updated.contacted_at } : l))
+      if (selectedLead?.id === leadId) {
+        setSelectedLead({ ...selectedLead, is_contacted: updated.is_contacted, contacted_at: updated.contacted_at })
+      }
+      toast.success(`Lead marked as ${!currentStatus ? 'contacted' : 'not contacted'}`)
+    } catch (err) {
+      toast.error("Failed to update lead status")
     }
   }
 
@@ -814,12 +829,33 @@ export default function LeadsPage() {
                     {selectedLead.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <h3 className="text-xl font-semibold">{selectedLead.name}</h3>
-                  <p className="text-slate-500 flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    {selectedLead.location}
-                  </p>
+                <div className="flex-1">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-xl font-semibold">{selectedLead.name}</h3>
+                      <p className="text-slate-500 flex items-center gap-1">
+                        <MapPin className="w-4 h-4" />
+                        {selectedLead.location}
+                      </p>
+                    </div>
+                    <Button 
+                      variant={selectedLead.is_contacted ? "default" : "outline"} 
+                      size="sm"
+                      className={selectedLead.is_contacted ? "bg-green-600 hover:bg-green-700" : ""}
+                      onClick={() => handleToggleContacted(selectedLead.id, selectedLead.is_contacted || false)}
+                    >
+                      {selectedLead.is_contacted ? (
+                        <><CheckCircle2 className="w-4 h-4 mr-2" /> Contacted</>
+                      ) : (
+                        <><Phone className="w-4 h-4 mr-2" /> Mark Contacted</>
+                      )}
+                    </Button>
+                  </div>
+                  {selectedLead.is_contacted && selectedLead.contacted_at && (
+                    <p className="text-xs text-slate-400 mt-1">
+                      Contacted on {new Date(selectedLead.contacted_at).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
               </div>
 

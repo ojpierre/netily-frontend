@@ -471,6 +471,8 @@ export interface LeadItem {
   company_name: string;
   lead_source: string;
   message: string;
+  is_contacted: boolean;
+  contacted_at: string | null;
   created_at: string;
 }
 
@@ -479,6 +481,8 @@ export interface LeadStats {
   this_month: number;
   last_30_days: number;
   last_7_days: number;
+  contacted: number;
+  not_contacted: number;
   source_breakdown: { lead_source: string; count: number }[];
   trend: { month: string; count: number }[];
 }
@@ -953,6 +957,13 @@ class SuperadminApiService {
 
   async getLeadStats(): Promise<LeadStats> {
     return this.request("/superadmin/leads/stats/")
+  }
+
+  async toggleLeadContacted(id: number, is_contacted: boolean): Promise<LeadItem> {
+    return this.request(`/superadmin/leads/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_contacted }),
+    })
   }
 
   // ── Tenant User Ledger ──

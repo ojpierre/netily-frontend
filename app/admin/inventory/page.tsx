@@ -163,6 +163,9 @@ export default function InventoryPage() {
   const [isAddItemOpen, setIsAddItemOpen] = useState(false)
   const [isAssignOpen, setIsAssignOpen] = useState(false)
   const [isReturnOpen, setIsReturnOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isAddTypeOpen, setIsAddTypeOpen] = useState(false)
+  const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false)
 
   // Add equipment form
   const [itemForm, setItemForm] = useState({
@@ -190,6 +193,34 @@ export default function InventoryPage() {
   const [returnForm, setReturnForm] = useState({
     condition: "good" as EquipmentCondition,
     notes: "",
+  })
+
+  // Edit equipment form
+  const [editForm, setEditForm] = useState({
+    name: "",
+    model: "",
+    serial_number: "",
+    condition: "good" as EquipmentCondition,
+    location: "",
+    notes: "",
+    purchase_price: "",
+  })
+
+  // Add type form
+  const [typeForm, setTypeForm] = useState({
+    name: "",
+    code: "",
+    description: "",
+    min_stock_level: "5",
+  })
+
+  // Add supplier form
+  const [supplierForm, setSupplierForm] = useState({
+    name: "",
+    contact_name: "",
+    email: "",
+    phone: "",
+    address: "",
   })
 
   // Fetch all data with optional filters
@@ -425,6 +456,112 @@ export default function InventoryPage() {
     } catch (error) {
       console.error('Failed to dispose equipment:', error)
       toast.error('Failed to dispose equipment')
+    }
+  }
+
+  // Edit equipment
+  const handleEditEquipment = (item: EquipmentItem) => {
+    setSelectedItem(item)
+    setEditForm({
+      name: item.name,
+      model: item.model || "",
+      serial_number: item.serial_number || "",
+      condition: item.condition,
+      location: item.location || "",
+      notes: item.notes || "",
+      purchase_price: item.purchase_price || "",
+    })
+    setIsEditOpen(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!selectedItem) return
+    setIsSubmitting(true)
+    try {
+      await adminApi.updateEquipmentItem(selectedItem.id, {
+        name: editForm.name,
+        model: editForm.model || undefined,
+        serial_number: editForm.serial_number || undefined,
+        condition: editForm.condition,
+        location: editForm.location || undefined,
+        notes: editForm.notes || undefined,
+        purchase_price: editForm.purchase_price || undefined,
+      })
+      toast.success('Equipment updated')
+      setIsEditOpen(false)
+      setIsDetailOpen(false)
+      fetchData()
+    } catch (error) {
+      console.error('Failed to update equipment:', error)
+      toast.error('Failed to update equipment')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Delete equipment
+  const handleDeleteEquipment = async (item: EquipmentItem) => {
+    if (!confirm(`Are you sure you want to delete ${item.name} (${item.asset_tag})?`)) return
+    try {
+      await adminApi.deleteEquipmentItem(item.id)
+      toast.success('Equipment deleted')
+      fetchData()
+    } catch (error) {
+      console.error('Failed to delete equipment:', error)
+      toast.error('Failed to delete equipment')
+    }
+  }
+
+  // Create equipment type
+  const handleCreateType = async () => {
+    if (!typeForm.name || !typeForm.code) {
+      toast.error('Name and code are required')
+      return
+    }
+    setIsSubmitting(true)
+    try {
+      await adminApi.createEquipmentType({
+        name: typeForm.name,
+        code: typeForm.code,
+        description: typeForm.description || undefined,
+        min_stock_level: parseInt(typeForm.min_stock_level) || 5,
+      })
+      toast.success('Equipment type created')
+      setIsAddTypeOpen(false)
+      setTypeForm({ name: "", code: "", description: "", min_stock_level: "5" })
+      fetchData()
+    } catch (error) {
+      console.error('Failed to create equipment type:', error)
+      toast.error('Failed to create equipment type')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Create supplier
+  const handleCreateSupplier = async () => {
+    if (!supplierForm.name) {
+      toast.error('Supplier name is required')
+      return
+    }
+    setIsSubmitting(true)
+    try {
+      await adminApi.createSupplier({
+        name: supplierForm.name,
+        contact_name: supplierForm.contact_name || undefined,
+        email: supplierForm.email || undefined,
+        phone: supplierForm.phone || undefined,
+        address: supplierForm.address || undefined,
+      } as any)
+      toast.success('Supplier created')
+      setIsAddSupplierOpen(false)
+      setSupplierForm({ name: "", contact_name: "", email: "", phone: "", address: "" })
+      fetchData()
+    } catch (error) {
+      console.error('Failed to create supplier:', error)
+      toast.error('Failed to create supplier')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -764,7 +901,7 @@ export default function InventoryPage() {
                               <Eye className="mr-2 h-4 w-4" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditEquipment(item)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
@@ -790,9 +927,9 @@ export default function InventoryPage() {
                               Send to Maintenance
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600" onClick={() => handleDispose(item)}>
+                            <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteEquipment(item)}>
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Dispose
+                              Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -887,7 +1024,7 @@ export default function InventoryPage() {
                 <CardTitle>Equipment Types</CardTitle>
                 <CardDescription>Categories of equipment with stock levels</CardDescription>
               </div>
-              <Button>
+              <Button onClick={() => setIsAddTypeOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Type
               </Button>
@@ -948,7 +1085,7 @@ export default function InventoryPage() {
                 <CardTitle>Suppliers</CardTitle>
                 <CardDescription>Manage your equipment suppliers</CardDescription>
               </div>
-              <Button>
+              <Button onClick={() => setIsAddSupplierOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Supplier
               </Button>
@@ -1133,7 +1270,7 @@ export default function InventoryPage() {
                       Return
                     </Button>
                   )}
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={() => { setIsDetailOpen(false); handleEditEquipment(selectedItem) }}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
                   </Button>
@@ -1401,6 +1538,206 @@ export default function InventoryPage() {
             <Button onClick={handleReturnEquipment} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Return to Stock
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Equipment Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Equipment</DialogTitle>
+            <DialogDescription>
+              Update {selectedItem?.name} ({selectedItem?.asset_tag})
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Name *</Label>
+                <Input
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Model</Label>
+                <Input
+                  value={editForm.model}
+                  onChange={(e) => setEditForm({ ...editForm, model: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Serial Number</Label>
+                <Input
+                  value={editForm.serial_number}
+                  onChange={(e) => setEditForm({ ...editForm, serial_number: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Condition</Label>
+                <Select value={editForm.condition} onValueChange={(v) => setEditForm({ ...editForm, condition: v as EquipmentCondition })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="good">Good</SelectItem>
+                    <SelectItem value="fair">Fair</SelectItem>
+                    <SelectItem value="poor">Poor</SelectItem>
+                    <SelectItem value="faulty">Faulty</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <Input
+                  value={editForm.location}
+                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Purchase Price (KES)</Label>
+                <Input
+                  type="number"
+                  value={editForm.purchase_price}
+                  onChange={(e) => setEditForm({ ...editForm, purchase_price: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSubmitting}>Cancel</Button>
+            <Button onClick={handleSaveEdit} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Equipment Type Dialog */}
+      <Dialog open={isAddTypeOpen} onOpenChange={setIsAddTypeOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Equipment Type</DialogTitle>
+            <DialogDescription>Create a new equipment category</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Name *</Label>
+                <Input
+                  placeholder="e.g., ONU"
+                  value={typeForm.name}
+                  onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Code *</Label>
+                <Input
+                  placeholder="e.g., ONU"
+                  value={typeForm.code}
+                  onChange={(e) => setTypeForm({ ...typeForm, code: e.target.value.toUpperCase() })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                placeholder="Brief description of this equipment type"
+                value={typeForm.description}
+                onChange={(e) => setTypeForm({ ...typeForm, description: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Minimum Stock Level</Label>
+              <Input
+                type="number"
+                value={typeForm.min_stock_level}
+                onChange={(e) => setTypeForm({ ...typeForm, min_stock_level: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddTypeOpen(false)} disabled={isSubmitting}>Cancel</Button>
+            <Button onClick={handleCreateType} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Type
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Supplier Dialog */}
+      <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Supplier</DialogTitle>
+            <DialogDescription>Register a new equipment supplier</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Company Name *</Label>
+                <Input
+                  placeholder="e.g., Huawei Technologies"
+                  value={supplierForm.name}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Contact Person</Label>
+                <Input
+                  placeholder="e.g., John Doe"
+                  value={supplierForm.contact_name}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, contact_name: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  placeholder="supplier@example.com"
+                  value={supplierForm.email}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input
+                  placeholder="+254 700 000 000"
+                  value={supplierForm.phone}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Address</Label>
+              <Textarea
+                placeholder="Supplier address"
+                value={supplierForm.address}
+                onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddSupplierOpen(false)} disabled={isSubmitting}>Cancel</Button>
+            <Button onClick={handleCreateSupplier} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Add Supplier
             </Button>
           </DialogFooter>
         </DialogContent>

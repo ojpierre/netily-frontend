@@ -1412,11 +1412,17 @@ export interface DispatchJob {
   priority: 'low' | 'medium' | 'high' | 'urgent'
   status: JobStatus
   assigned_to?: Technician
+  technician?: number
+  technician_name?: string
   scheduled_date: string
   scheduled_time?: string
+  estimated_duration?: number
   started_at?: string
   completed_at?: string
   notes?: string
+  ticket?: number
+  ticket_id?: number
+  ticket_number?: string
   customer_rating?: number
   customer_feedback?: string
   equipment_used?: InventoryItem[]

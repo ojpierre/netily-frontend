@@ -8,7 +8,6 @@ import {
   Mail,
   Phone,
   Building2,
-  MessageSquare,
   Calendar,
   TrendingUp,
   Users,
@@ -16,11 +15,11 @@ import {
   ChevronRight,
   Eye,
   Download,
+  CheckCircle2,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -43,6 +42,33 @@ export default function LeadsPage() {
   const [total, setTotal] = useState(0)
   const [selectedLead, setSelectedLead] = useState<LeadItem | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [contactedFilter, setContactedFilter] = useState<string>("all")
+
+  // Toggle contacted status with optimistic update
+  const toggleContacted = async (lead: LeadItem) => {
+    const newVal = !lead.is_contacted
+    try {
+      await superadminApi.toggleLeadContacted(lead.id, newVal)
+      setLeads((prev) =>
+        prev.map((l) =>
+          l.id === lead.id
+            ? { ...l, is_contacted: newVal, contacted_at: newVal ? new Date().toISOString() : null }
+            : l
+        )
+      )
+      if (selectedLead?.id === lead.id) {
+        setSelectedLead({
+          ...lead,
+          is_contacted: newVal,
+          contacted_at: newVal ? new Date().toISOString() : null,
+        })
+      }
+      toast.success(newVal ? "Marked as contacted" : "Marked as not contacted")
+      fetchStats()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update")
+    }
+  }
 
   const fetchLeads = useCallback(async () => {
     setLoading(true)
@@ -52,6 +78,7 @@ export default function LeadsPage() {
         page_size: String(PAGE_SIZE),
       }
       if (search) params.search = search
+      if (contactedFilter !== "all") params.contacted = contactedFilter
       const res = await superadminApi.getLeads(params)
       setLeads(res.results)
       setTotal(res.count)
@@ -60,7 +87,7 @@ export default function LeadsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, search])
+  }, [page, search, contactedFilter])
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true)
@@ -74,10 +101,7 @@ export default function LeadsPage() {
     }
   }, [])
 
-  useEffect(() => {
-    fetchStats()
-  }, [fetchStats])
-
+  useEffect(() => { fetchStats() }, [fetchStats])
   useEffect(() => {
     const t = setTimeout(() => fetchLeads(), 300)
     return () => clearTimeout(t)
@@ -85,10 +109,9 @@ export default function LeadsPage() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
-  // CSV export
   const exportCsv = () => {
     if (leads.length === 0) return
-    const headers = ["Name", "Email", "Phone", "Company", "Source", "Message", "Date"]
+    const headers = ["Name", "Email", "Phone", "Company", "Source", "Message", "Contacted", "Date"]
     const rows = leads.map((l) => [
       l.name,
       l.email,
@@ -96,6 +119,7 @@ export default function LeadsPage() {
       l.company_name || "",
       l.lead_source || "",
       (l.message || "").replace(/\n/g, " "),
+      l.is_contacted ? "Yes" : "No",
       new Date(l.created_at).toLocaleDateString(),
     ])
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n")
@@ -134,39 +158,13 @@ export default function LeadsPage() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="All Time"
-          value={stats?.total ?? 0}
-          icon={Users}
-          color="text-blue-400"
-          bg="bg-blue-500/10"
-          loading={statsLoading}
-        />
-        <StatCard
-          label="This Month"
-          value={stats?.this_month ?? 0}
-          icon={Calendar}
-          color="text-violet-400"
-          bg="bg-violet-500/10"
-          loading={statsLoading}
-        />
-        <StatCard
-          label="Last 30 Days"
-          value={stats?.last_30_days ?? 0}
-          icon={TrendingUp}
-          color="text-emerald-400"
-          bg="bg-emerald-500/10"
-          loading={statsLoading}
-        />
-        <StatCard
-          label="Last 7 Days"
-          value={stats?.last_7_days ?? 0}
-          icon={UserPlus}
-          color="text-amber-400"
-          bg="bg-amber-500/10"
-          loading={statsLoading}
-        />
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <StatCard label="All Time" value={stats?.total ?? 0} icon={Users} color="text-blue-400" bg="bg-blue-500/10" loading={statsLoading} />
+        <StatCard label="This Month" value={stats?.this_month ?? 0} icon={Calendar} color="text-violet-400" bg="bg-violet-500/10" loading={statsLoading} />
+        <StatCard label="Last 30 Days" value={stats?.last_30_days ?? 0} icon={TrendingUp} color="text-emerald-400" bg="bg-emerald-500/10" loading={statsLoading} />
+        <StatCard label="Last 7 Days" value={stats?.last_7_days ?? 0} icon={UserPlus} color="text-amber-400" bg="bg-amber-500/10" loading={statsLoading} />
+        <StatCard label="Contacted" value={stats?.contacted ?? 0} icon={CheckCircle2} color="text-green-400" bg="bg-green-500/10" loading={statsLoading} />
+        <StatCard label="Not Contacted" value={stats?.not_contacted ?? 0} icon={UserPlus} color="text-red-400" bg="bg-red-500/10" loading={statsLoading} />
       </div>
 
       {/* Trend mini chart */}
@@ -207,10 +205,7 @@ export default function LeadsPage() {
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {stats.source_breakdown.map((item) => (
-                <div
-                  key={item.lead_source}
-                  className="rounded-2xl border border-slate-800 bg-slate-800/60 px-4 py-3"
-                >
+                <div key={item.lead_source} className="rounded-2xl border border-slate-800 bg-slate-800/60 px-4 py-3">
                   <p className="text-xs font-medium text-slate-400">{item.lead_source}</p>
                   <p className="mt-2 text-2xl font-bold text-white">{item.count}</p>
                 </div>
@@ -234,12 +229,26 @@ export default function LeadsPage() {
             <Input
               placeholder="Search by name, email, company…"
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value)
-                setPage(1)
-              }}
+              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               className="pl-10 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
             />
+          </div>
+          {/* Contacted filter tabs */}
+          <div className="flex gap-2 mt-2">
+            {(["all", "true", "false"] as const).map((val) => (
+              <Button
+                key={val}
+                variant={contactedFilter === val ? "default" : "outline"}
+                size="sm"
+                onClick={() => { setContactedFilter(val); setPage(1) }}
+                className={contactedFilter === val
+                  ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                  : "border-slate-700 text-slate-300 hover:text-white hover:border-slate-500"
+                }
+              >
+                {val === "all" ? "All Leads" : val === "true" ? "✓ Contacted" : "✗ Not Contacted"}
+              </Button>
+            ))}
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -255,6 +264,7 @@ export default function LeadsPage() {
                 <thead>
                   <tr className="border-b border-slate-800 text-slate-400 text-left">
                     <th className="px-4 py-3">Name</th>
+                    <th className="px-4 py-3 w-24 text-center">Contacted</th>
                     <th className="px-4 py-3">Contact</th>
                     <th className="px-4 py-3">Company</th>
                     <th className="px-4 py-3 hidden xl:table-cell">Source</th>
@@ -268,6 +278,19 @@ export default function LeadsPage() {
                     <tr key={l.id} className="hover:bg-slate-800/50 transition-colors">
                       <td className="px-4 py-3">
                         <p className="font-medium text-white">{l.name}</p>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => toggleContacted(l)}
+                          title={l.is_contacted ? "Mark as not contacted" : "Mark as contacted"}
+                          className={`inline-flex items-center justify-center w-7 h-7 rounded-full border-2 transition-all duration-200 ${
+                            l.is_contacted
+                              ? "bg-green-500/20 border-green-500 text-green-400 hover:bg-red-500/10 hover:border-red-400 hover:text-red-400"
+                              : "border-slate-600 text-slate-600 hover:border-green-400 hover:text-green-400"
+                          }`}
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                        </button>
                       </td>
                       <td className="px-4 py-3">
                         <div className="space-y-0.5">
@@ -299,7 +322,7 @@ export default function LeadsPage() {
                             {l.lead_source}
                           </span>
                         ) : (
-                          <span className="text-slate-600">â€”</span>
+                          <span className="text-slate-600">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
@@ -321,10 +344,7 @@ export default function LeadsPage() {
                           variant="ghost"
                           size="icon"
                           className="text-slate-400 hover:text-white"
-                          onClick={() => {
-                            setSelectedLead(l)
-                            setDetailOpen(true)
-                          }}
+                          onClick={() => { setSelectedLead(l); setDetailOpen(true) }}
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -345,32 +365,18 @@ export default function LeadsPage() {
             Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
           </p>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-              className="border-slate-700 text-slate-300"
-            >
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)} className="border-slate-700 text-slate-300">
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <span className="text-sm text-slate-400">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage(page + 1)}
-              className="border-slate-700 text-slate-300"
-            >
+            <span className="text-sm text-slate-400">Page {page} of {totalPages}</span>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="border-slate-700 text-slate-300">
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* Detail Dialog */}
+      {/* Lead Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-lg">
           <DialogHeader>
@@ -389,36 +395,67 @@ export default function LeadsPage() {
                 <DetailField label="Email" value={selectedLead.email} />
                 <DetailField label="Phone" value={selectedLead.phone || "—"} />
                 <DetailField label="Company" value={selectedLead.company_name || "—"} />
-                <DetailField label="Source" value={selectedLead.lead_source || "â€”"} />
-                <DetailField
-                  label="Submitted"
-                  value={new Date(selectedLead.created_at).toLocaleString("en-KE")}
-                />
+                <DetailField label="Source" value={selectedLead.lead_source || "—"} />
+                <DetailField label="Submitted" value={new Date(selectedLead.created_at).toLocaleString("en-KE")} />
               </div>
+
               {selectedLead.message && (
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Message</p>
-                  <div className="bg-slate-800 rounded-lg p-3 text-slate-200 text-sm whitespace-pre-wrap">
+                  <div className="bg-slate-800 rounded-lg p-3 text-slate-200 whitespace-pre-wrap">
                     {selectedLead.message}
                   </div>
                 </div>
               )}
-              {/* Quick action buttons */}
-              <div className="flex gap-2 pt-2 border-t border-slate-800">
+
+              {/* Contacted status toggle */}
+              <div className="flex items-center justify-between p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+                <div>
+                  <p className="text-xs text-slate-500 mb-0.5">Contact Status</p>
+                  {selectedLead.is_contacted ? (
+                    <p className="text-sm font-semibold text-green-400 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Contacted
+                    </p>
+                  ) : (
+                    <p className="text-sm font-medium text-slate-400">Not yet contacted</p>
+                  )}
+                  {selectedLead.contacted_at && (
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      on {new Date(selectedLead.contacted_at).toLocaleString("en-KE")}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toggleContacted(selectedLead)}
+                  className={
+                    selectedLead.is_contacted
+                      ? "border-red-500/40 text-red-300 hover:bg-red-500/10"
+                      : "border-green-500/40 text-green-300 hover:bg-green-500/10"
+                  }
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                  {selectedLead.is_contacted ? "Unmark" : "Mark Contacted"}
+                </Button>
+              </div>
+
+              {/* Quick actions */}
+              <div className="flex gap-2 pt-1 border-t border-slate-800">
                 <a
                   href={`mailto:${selectedLead.email}?subject=Following up on your Netily enquiry&body=Hi ${selectedLead.name},%0A%0AThank you for reaching out to Netily!`}
                   className="flex-1"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <Button variant="outline" className="w-full border-slate-700 text-slate-300">
+                  <Button variant="outline" className="w-full border-slate-700 text-slate-300 hover:text-white">
                     <Mail className="w-4 h-4 mr-2" />
                     Email Lead
                   </Button>
                 </a>
                 {selectedLead.phone && (
                   <a href={`tel:${selectedLead.phone}`} className="flex-1">
-                    <Button variant="outline" className="w-full border-slate-700 text-slate-300">
+                    <Button variant="outline" className="w-full border-slate-700 text-slate-300 hover:text-white">
                       <Phone className="w-4 h-4 mr-2" />
                       Call
                     </Button>
@@ -433,22 +470,12 @@ export default function LeadsPage() {
   )
 }
 
-// ── Sub-components ──────────────────────────────────
+// ── Sub-components ──
 
 function StatCard({
-  label,
-  value,
-  icon: Icon,
-  color,
-  bg,
-  loading,
+  label, value, icon: Icon, color, bg, loading,
 }: {
-  label: string
-  value: number
-  icon: React.ElementType
-  color: string
-  bg: string
-  loading: boolean
+  label: string; value: number; icon: React.ElementType; color: string; bg: string; loading: boolean
 }) {
   return (
     <Card className="bg-slate-900 border-slate-800">

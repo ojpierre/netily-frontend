@@ -86,6 +86,7 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import type { Technician, DispatchJob } from "@/lib/types"
 
@@ -265,9 +266,10 @@ export default function DispatchPage() {
     if (jobToAssign && selectedTechnician) {
       try {
         await adminApi.assignDispatchJob(jobToAssign.id, Number(selectedTechnician))
+        toast.success("Technician assigned successfully")
         await fetchData()
-      } catch (err) {
-        console.error("Failed to assign job:", err)
+      } catch (err: any) {
+        toast.error(err.message || "Failed to assign job")
       }
       setIsAssignDialogOpen(false)
       setJobToAssign(null)
@@ -275,7 +277,46 @@ export default function DispatchPage() {
     }
   }
 
+  const handleStartJob = async (job: DispatchJob) => {
+    try {
+      await adminApi.updateJobStatus(job.id, 'in_progress')
+      toast.success("Job started")
+      await fetchData()
+      if (selectedJob?.id === job.id) {
+        setSelectedJob({ ...job, status: 'in_progress' })
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start job")
+    }
+  }
+
+  const handleCompleteJob = async (job: DispatchJob) => {
+    try {
+      await adminApi.updateJobStatus(job.id, 'completed')
+      toast.success("Job completed")
+      await fetchData()
+      setIsDetailOpen(false)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to complete job")
+    }
+  }
+
+  const handleCancelJob = async (job: DispatchJob) => {
+    try {
+      await adminApi.updateJobStatus(job.id, 'cancelled')
+      toast.success("Job cancelled")
+      await fetchData()
+      setIsDetailOpen(false)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel job")
+    }
+  }
+
   const handleCreateJob = async () => {
+    if (!jobForm.customer || !jobForm.scheduled_date) {
+      toast.error("Please fill in all required fields")
+      return
+    }
     try {
       await adminApi.createDispatchJob({
         customer: Number(jobForm.customer) || 0,
@@ -286,9 +327,10 @@ export default function DispatchPage() {
         description: jobForm.description,
         notes: jobForm.notes,
       } as any)
+      toast.success("Job created successfully")
       await fetchData()
-    } catch (err) {
-      console.error("Failed to create job:", err)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create job")
     }
     setIsCreateJobOpen(false)
     setJobForm({
@@ -536,19 +578,19 @@ export default function DispatchPage() {
                               </DropdownMenuItem>
                             )}
                             {job.status === 'assigned' && (
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStartJob(job)}>
                                 <Play className="mr-2 h-4 w-4" />
                                 Start Job
                               </DropdownMenuItem>
                             )}
                             {job.status === 'in_progress' && (
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleCompleteJob(job)}>
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Complete Job
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem className="text-red-600" onClick={() => handleCancelJob(job)}>
                               <XCircle className="mr-2 h-4 w-4" />
                               Cancel Job
                             </DropdownMenuItem>
@@ -799,13 +841,13 @@ export default function DispatchPage() {
                     </Button>
                   )}
                   {selectedJob.status === 'assigned' && (
-                    <Button className="flex-1">
+                    <Button className="flex-1" onClick={() => handleStartJob(selectedJob)}>
                       <Play className="mr-2 h-4 w-4" />
                       Start Job
                     </Button>
                   )}
                   {selectedJob.status === 'in_progress' && (
-                    <Button className="flex-1" variant="default">
+                    <Button className="flex-1" variant="default" onClick={() => handleCompleteJob(selectedJob)}>
                       <CheckCircle className="mr-2 h-4 w-4" />
                       Complete Job
                     </Button>
