@@ -12,7 +12,9 @@ import {
   Clock,
   Plus,
   Copy,
-  ShoppingCart
+  ShoppingCart,
+  Pencil,
+  Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -30,6 +32,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -119,6 +131,12 @@ export default function VouchersPage() {
   const [isGenerateOpen, setIsGenerateOpen] = useState(false)
   const [isGeneratedModalOpen, setIsGeneratedModalOpen] = useState(false)
   const [generatedResult, setGeneratedResult] = useState<VoucherGenerateResponse | null>(null)
+  
+  // Edit/Delete states
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [selectedVoucher, setSelectedVoucher] = useState<VoucherItem | null>(null)
+  const [editExpiryDate, setEditExpiryDate] = useState('')
 
   // Form states
   const [generateForm, setGenerateForm] = useState({
@@ -186,6 +204,11 @@ export default function VouchersPage() {
       toast.error('Quantity must be greater than 0')
       return
     }
+    // ADDED: Max 50 vouchers per generation
+    if (qty > 50) {
+      toast.error('Maximum 50 vouchers per generation')
+      return
+    }
 
     setIsSubmitting(true)
     try {
@@ -209,6 +232,48 @@ export default function VouchersPage() {
     } catch (error: any) {
       console.error('Failed to generate vouchers:', error)
       toast.error(error.message || 'Failed to generate vouchers')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Edit expiry handler
+  const handleEditExpiry = async () => {
+    if (!selectedVoucher || !editExpiryDate) {
+      toast.error('Please select a date')
+      return
+    }
+    setIsSubmitting(true)
+    try {
+      await adminApi.rawRequest(`/hotspot/admin/vouchers/${selectedVoucher.id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ expires_at: new Date(editExpiryDate).toISOString() }),
+      })
+      toast.success('Expiry date updated')
+      setIsEditOpen(false)
+      setSelectedVoucher(null)
+      fetchVouchers()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update expiry date')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Delete handler
+  const handleDelete = async () => {
+    if (!selectedVoucher) return
+    setIsSubmitting(true)
+    try {
+      await adminApi.rawRequest(`/hotspot/admin/vouchers/${selectedVoucher.id}/`, {
+        method: 'DELETE',
+      })
+      toast.success('Voucher deleted')
+      setIsDeleteOpen(false)
+      setSelectedVoucher(null)
+      fetchVouchers()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete voucher')
     } finally {
       setIsSubmitting(false)
     }
@@ -365,9 +430,44 @@ export default function VouchersPage() {
                     <TableCell>{voucher.use_count}</TableCell>
                     <TableCell>{formatDate(voucher.expires_at)}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => copyCode(voucher.code)}>
-                        <Copy className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => copyCode(voucher.code)}
+                          title="Copy code"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedVoucher(voucher)
+                            setEditExpiryDate(
+                              voucher.expires_at 
+                                ? new Date(voucher.expires_at).toISOString().slice(0, 16) 
+                                : ''
+                            )
+                            setIsEditOpen(true)
+                          }}
+                          title="Edit expiry"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => {
+                            setSelectedVoucher(voucher)
+                            setIsDeleteOpen(true)
+                          }}
+                          title="Delete voucher"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -382,7 +482,7 @@ export default function VouchersPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Generate Vouchers</DialogTitle>
-            <DialogDescription>Create a new batch of hotspot plan vouchers.</DialogDescription>
+            <DialogDescription>Create a new batch of hotspot plan vouchers (max 50 per batch).</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
@@ -403,11 +503,11 @@ export default function VouchersPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Quantity *</Label>
+                <Label>Quantity * (max 50)</Label>
                 <Input 
                   type="number" 
                   min="1" 
-                  max="1000"
+                  max="50"
                   value={generateForm.quantity} 
                   onChange={(e) => setGenerateForm({ ...generateForm, quantity: e.target.value })} 
                 />
@@ -493,6 +593,54 @@ export default function VouchersPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit Expiry Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit Expiry Date</DialogTitle>
+            <DialogDescription>
+              Update expiry for voucher <span className="font-mono">{selectedVoucher?.code}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-2">
+            <Label>New Expiry Date & Time</Label>
+            <Input
+              type="datetime-local"
+              value={editExpiryDate}
+              onChange={(e) => setEditExpiryDate(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSubmitting}>Cancel</Button>
+            <Button onClick={handleEditExpiry} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Voucher?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete voucher <span className="font-mono font-bold">{selectedVoucher?.code}</span>. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={handleDelete}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

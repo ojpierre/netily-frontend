@@ -547,6 +547,11 @@ class AdminApiService {
     }
   }
 
+  // Public escape hatch for one-off requests (e.g., PATCH/DELETE for vouchers)
+  async rawRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    return this.request<T>(endpoint, options)
+  }
+
   // ------------------------------------------
   // AUTHENTICATION - /core/auth/
   // ------------------------------------------
