@@ -134,17 +134,17 @@ export default function AdminDashboard() {
     hotspot: [], 
     total: 0 
   })
-  const [onlineTotal, setOnlineTotal] = useState(0)  // ADD THIS
+  const [onlineTotal, setOnlineTotal] = useState(0)
 
-  // State for expired customers count (derived from customers endpoint)
+  // State for expired customers count (derived from RADIUS credentials)
   const [expiredCount, setExpiredCount] = useState<number>(0)
 
   const fetchDashboardData = useCallback(async () => {
     try {
       setError(null)
 
-      // Fetch all dashboard data in parallel including expired customers
-      const [coreRes, routerRes, paymentRes, ticketRes, reportsRes, sessionsRes, activeSubsRes, expiredCustomersRes] = await Promise.allSettled([
+      // Fetch all dashboard data in parallel
+      const [coreRes, routerRes, paymentRes, ticketRes, reportsRes, sessionsRes, activeSubsRes, radiusCredsRes] = await Promise.allSettled([
         adminApi.getDashboard(),
         adminApi.getRouterDashboardStats(),
         adminApi.getPaymentDashboardStats(),
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
         adminApi.getReportsData("30d"),
         adminApi.getOnlineSessions(),
         adminApi.getActiveSubscriptions?.(),
-        adminApi.getCustomers({ status: 'inactive', page_size: '1' }),
+        adminApi.getRADIUSCredentials?.({ page_size: '500', is_enabled: 'true' }) || Promise.resolve({ results: [] }),
       ])
 
       setData({
@@ -177,9 +177,18 @@ export default function AdminDashboard() {
         setActiveSubscriptions(subs)
       }
 
-      // Set expired count from customers endpoint (mirrors users page logic)
-      if (expiredCustomersRes.status === "fulfilled") {
-        setExpiredCount(expiredCustomersRes.value?.count ?? 0)
+      // FIX: Derive expired count from RADIUS credentials (checks expiration_date against current time)
+      if (radiusCredsRes.status === "fulfilled") {
+        const radiusCreds = radiusCredsRes.value
+        const now = new Date()
+        const expired = (radiusCreds.results || []).filter((cred: any) => {
+          if (!cred.expiration_date) return false
+          return new Date(cred.expiration_date) <= now
+        }).length
+        setExpiredCount(expired)
+      } else {
+        // Fallback: try to get from core stats
+        setExpiredCount(coreRes.status === "fulfilled" ? (coreRes.value?.expired_customers || 0) : 0)
       }
     } catch (err: any) {
       console.error("Dashboard fetch error:", err)
@@ -265,7 +274,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Active Customers - FIXED: Uses activeSubscriptions total */}
+        {/* Active Customers - Uses activeSubscriptions total */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
@@ -293,7 +302,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Expired Customers - FIXED: Uses expiredCount from customers endpoint */}
+        {/* Expired Customers - FIXED: Uses expiredCount from RADIUS credentials */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Expired</CardTitle>
@@ -305,7 +314,7 @@ export default function AdminDashboard() {
             ) : (
               <>
                 <div className="text-2xl font-bold text-red-600">
-                  {(expiredCount || core?.expired_customers || 0).toLocaleString()}
+                  {expiredCount.toLocaleString()}
                 </div>
                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                   <TrendingDown className="w-3 h-3 text-red-600" />
@@ -316,7 +325,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* CHANGE 1: Online / Active — clean ratio number + progress bar */}
+        {/* Online / Active — clean ratio number + progress bar */}
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => router.push('/admin/users?tab=online-sessions')}
@@ -454,7 +463,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* CHANGE 2: Revenue Card — full-bleed tinted rows */}
+        {/* Revenue Card — full-bleed tinted rows */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
