@@ -316,6 +316,7 @@ export default function UsersPage() {
   const [extending, setExtending] = useState(false)
   const [extendForm, setExtendForm] = useState({ duration_amount: 1, duration_unit: 'DAYS' as 'MINUTES' | 'HOURS' | 'DAYS', plan_id: '' })
   const [extendManualDate, setExtendManualDate] = useState<string>("")
+  const [extendManualTime, setExtendManualTime] = useState<string>("23:59")
   const [extendMode, setExtendMode] = useState<"duration" | "date">("duration")
   const [activating, setActivating] = useState(false)
   const [togglingRadius, setTogglingRadius] = useState(false)
@@ -1142,6 +1143,7 @@ export default function UsersPage() {
     setUserToExtend(user)
     setExtendForm({ duration_amount: 1, duration_unit: 'DAYS', plan_id: '' })
     setExtendManualDate("")
+    setExtendManualTime("23:59")
     setExtendMode("duration")
     loadPlans()
     setShowExtendDialog(true)
@@ -1156,22 +1158,31 @@ export default function UsersPage() {
       setExtending(true)
       
       if (extendMode === "date" && extendManualDate) {
-        const targetDate = new Date(extendManualDate + "T23:59:59Z")
+        const timePart = extendManualTime || "23:59"
+        const targetDate = new Date(`${extendManualDate}T${timePart}:00`)
         const now = new Date()
         if (targetDate <= now) {
-          toast.error("Selected date must be in the future")
+          toast.error("Selected date and time must be in the future")
           return
         }
+        
+        // Build offset-aware ISO string using local timezone
+        const offsetMins = targetDate.getTimezoneOffset()
+        const sign = offsetMins <= 0 ? '+' : '-'
+        const absOffsetHrs = Math.floor(Math.abs(offsetMins) / 60).toString().padStart(2, '0')
+        const absOffsetMins = (Math.abs(offsetMins) % 60).toString().padStart(2, '0')
+        const localIso = `${extendManualDate}T${timePart}:00${sign}${absOffsetHrs}:${absOffsetMins}`
+        
         await adminApi.extendService(
           userToExtend.customerId,
           userToExtend.serviceId,
           1,
           'DAYS',
           extendForm.plan_id ? parseInt(extendForm.plan_id, 10) : undefined,
-          targetDate.toISOString()
+          localIso
         )
         toast.success(
-          `Expiry set to ${new Date(extendManualDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}${extendForm.plan_id ? ' · plan changed' : ''}`
+          `Expiry set to ${new Date(`${extendManualDate}T${timePart}:00`).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}${extendForm.plan_id ? ' · plan changed' : ''}`
         )
       } else {
         await adminApi.extendService(
@@ -1188,6 +1199,7 @@ export default function UsersPage() {
       setShowExtendDialog(false)
       setUserToExtend(null)
       setExtendManualDate("")
+      setExtendManualTime("23:59")
       setExtendMode("duration")
       await loadUsers(serverPage, searchQuery, statusFilter)
     } catch (err: any) {
@@ -3488,7 +3500,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Extend Subscription Dialog - UPDATED with date picker and Expire Now button */}
+      {/* Extend Subscription Dialog - UPDATED with date+time picker */}
       <Dialog open={showExtendDialog} onOpenChange={setShowExtendDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -3522,7 +3534,7 @@ export default function UsersPage() {
                     : "bg-white text-slate-600 hover:bg-slate-50"
                 }`}
               >
-                Set Expiry Date
+                Set Expiry Date & Time
               </button>
             </div>
 
@@ -3603,32 +3615,66 @@ export default function UsersPage() {
               </>
             ) : (
               <div className="space-y-3">
-                <Label>New Expiry Date</Label>
+                <Label>New Expiry Date & Time</Label>
                 {userToExtend?.expiryDate && userToExtend.plan !== "No Plan" && (
                   <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm">
                     <Clock className="w-4 h-4 text-amber-600 shrink-0" />
                     <span className="text-amber-800">
-                      Current expiry: <strong>{new Date(userToExtend.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+                      Current expiry: <strong>{new Date(userToExtend.expiryDate).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
                     </span>
                   </div>
                 )}
-                <input
-                  type="date"
-                  value={extendManualDate}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setExtendManualDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  style={{ colorScheme: 'light' }}
-                />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-slate-500">Date</Label>
+                    <input
+                      type="date"
+                      value={extendManualDate.split('T')[0] || extendManualDate}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        setExtendManualDate(e.target.value)
+                      }}
+                      className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      style={{ colorScheme: 'light' }}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-slate-500">Time (HH:MM)</Label>
+                    <input
+                      type="time"
+                      value={extendManualTime}
+                      onChange={(e) => setExtendManualTime(e.target.value)}
+                      className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      style={{ colorScheme: 'light' }}
+                    />
+                  </div>
+                </div>
                 {extendManualDate && (
                   <div className="p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
                     <CheckCircle2 className="w-4 h-4 inline mr-1 text-green-600" />
-                    Will expire on: <strong>{new Date(extendManualDate + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</strong>
+                    Will expire on:{" "}
+                    <strong>
+                      {new Date(`${extendManualDate}T${extendManualTime || "23:59"}:00`).toLocaleString('en-GB', {
+                        weekday: 'long',
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </strong>
                     {(() => {
                       const now = new Date()
-                      const target = new Date(extendManualDate + 'T23:59:59Z')
-                      const days = Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-                      return days > 0 ? <span className="text-green-700"> ({days} days from now)</span> : null
+                      const target = new Date(`${extendManualDate}T${extendManualTime || "23:59"}:00`)
+                      const diffMs = target.getTime() - now.getTime()
+                      if (diffMs <= 0) return <span className="text-red-600 ml-1"> (in the past — please select future date/time)</span>
+                      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+                      const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+                      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+                      if (days > 0) return <span className="text-green-700 ml-1"> ({days}d {hours}h from now)</span>
+                      if (hours > 0) return <span className="text-green-700 ml-1"> ({hours}h {minutes}m from now)</span>
+                      if (minutes > 0) return <span className="text-green-700 ml-1"> ({minutes}m from now)</span>
+                      return null
                     })()}
                   </div>
                 )}
