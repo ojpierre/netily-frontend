@@ -3442,7 +3442,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Extend Subscription Dialog - UPDATED with date picker */}
+      {/* Extend Subscription Dialog - UPDATED with date picker and Expire Now button */}
       <Dialog open={showExtendDialog} onOpenChange={setShowExtendDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -3512,6 +3512,48 @@ export default function UsersPage() {
                   <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 7, duration_unit: 'DAYS' })}>+7 Days</Button>
                   <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 30, duration_unit: 'DAYS' })}>+30 Days</Button>
                 </div>
+                {/* ADDED: Expire Now button at bottom of duration mode */}
+                <div className="pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    onClick={async () => {
+                      if (!userToExtend?.serviceId) {
+                        toast.error("No active service to expire")
+                        return
+                      }
+                      try {
+                        setExtending(true)
+                        const expireAt = new Date(Date.now() + 60 * 1000) // 1 minute from now
+                        await adminApi.extendService(
+                          userToExtend.customerId,
+                          userToExtend.serviceId,
+                          1,
+                          'DAYS',
+                          undefined,
+                          expireAt.toISOString()
+                        )
+                        toast.success(`${userToExtend.name} will expire in 1 minute`)
+                        setShowExtendDialog(false)
+                        setUserToExtend(null)
+                        await loadUsers(serverPage, searchQuery, statusFilter)
+                      } catch (err: any) {
+                        toast.error(err.message || 'Failed to expire user')
+                      } finally {
+                        setExtending(false)
+                      }
+                    }}
+                    disabled={extending}
+                  >
+                    {extending ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
+                    ) : (
+                      <><XCircle className="w-4 h-4 mr-2" />Expire Now (1 min)</>
+                    )}
+                  </Button>
+                </div>
               </>
             ) : (
               <div className="space-y-3">
@@ -3545,6 +3587,50 @@ export default function UsersPage() {
                     })()}
                   </div>
                 )}
+                {/* ADDED: Expire Now button in date mode */}
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="flex-1 border-t border-slate-200" />
+                  <span className="text-xs text-slate-400">or</span>
+                  <div className="flex-1 border-t border-slate-200" />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  onClick={async () => {
+                    if (!userToExtend?.serviceId) {
+                      toast.error("No active service to expire")
+                      return
+                    }
+                    try {
+                      setExtending(true)
+                      const expireAt = new Date(Date.now() + 60 * 1000) // 1 minute from now
+                      await adminApi.extendService(
+                        userToExtend.customerId,
+                        userToExtend.serviceId,
+                        1,
+                        'DAYS',
+                        undefined,
+                        expireAt.toISOString()
+                      )
+                      toast.success(`${userToExtend.name} will expire in 1 minute`)
+                      setShowExtendDialog(false)
+                      setUserToExtend(null)
+                      await loadUsers(serverPage, searchQuery, statusFilter)
+                    } catch (err: any) {
+                      toast.error(err.message || 'Failed to expire user')
+                    } finally {
+                      setExtending(false)
+                    }
+                  }}
+                  disabled={extending}
+                >
+                  {extending ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
+                  ) : (
+                    <><XCircle className="w-4 h-4 mr-2" />Expire Now</>
+                  )}
+                </Button>
               </div>
             )}
 
