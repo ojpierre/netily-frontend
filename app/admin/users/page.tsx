@@ -291,8 +291,8 @@ export default function UsersPage() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [drawerTab, setDrawerTab] = useState("general") // ADDED: tab state for drawer
-  const [payments, setPayments] = useState<PaymentEntry[]>([]) // ADDED: payments state
+  const [drawerTab, setDrawerTab] = useState("general")
+  const [payments, setPayments] = useState<PaymentEntry[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [activeTab, setActiveTab] = useState("all")
   const [showAddUserDialog, setShowAddUserDialog] = useState(false)
@@ -315,7 +315,6 @@ export default function UsersPage() {
   const [userToExtend, setUserToExtend] = useState<User | null>(null)
   const [extending, setExtending] = useState(false)
   const [extendForm, setExtendForm] = useState({ duration_amount: 1, duration_unit: 'DAYS' as 'MINUTES' | 'HOURS' | 'DAYS', plan_id: '' })
-  // ADD: New state for date picker extension
   const [extendManualDate, setExtendManualDate] = useState<string>("")
   const [extendMode, setExtendMode] = useState<"duration" | "date">("duration")
   const [activating, setActivating] = useState(false)
@@ -335,9 +334,11 @@ export default function UsersPage() {
   const [ipSearchQuery, setIpSearchQuery] = useState("")
   const [onlineSessions, setOnlineSessions] = useState<OnlineSession[]>([])
   const [onlineSessionsLoading, setOnlineSessionsLoading] = useState(false)
-  const [onlineTotal, setOnlineTotal] = useState(0)  // ADD THIS
+  const [onlineTotal, setOnlineTotal] = useState(0)
   const [onlineSearchQuery, setOnlineSearchQuery] = useState("")
   const [onlineServiceFilter, setOnlineServiceFilter] = useState("all")
+  const [onlinePage, setOnlinePage] = useState(1)
+  const onlinePageSize = 50
   const [activeSearchQuery, setActiveSearchQuery] = useState("")
   const [editingBilling, setEditingBilling] = useState(false)
   const [billingNumberEdit, setBillingNumberEdit] = useState("")
@@ -382,17 +383,14 @@ export default function UsersPage() {
     initial_payment_reference: '',
   })
 
-  // UPDATED useEffect: Stagger API calls - critical first, secondary after delay
   useEffect(() => {
     if (hasFetched.current) return
     hasFetched.current = true
     
-    // Load critical data first
     loadUsers(1)
     loadPlans()
-    loadActiveSubscriptions()  // immediate — needed for stats card
+    loadActiveSubscriptions()
     
-    // Defer non-critical calls by 800ms so the table renders fast
     const timer = setTimeout(() => {
       loadOnlineSessions()
     }, 800)
@@ -416,8 +414,32 @@ export default function UsersPage() {
     try {
       setOnlineSessionsLoading(true)
       const response = await adminApi.getOnlineSessions()
-      setOnlineSessions(response.sessions || [])
-      setOnlineTotal(response.total || response.sessions?.length || 0)  // ADD THIS
+      const total = response.total || response.sessions?.length || 0
+      let allSessions = response.sessions || []
+
+      // Fetch all sessions if there are more
+      if (total > allSessions.length) {
+        const fullResponse = await fetch(
+          `${window.location.origin}/api/v1/radius/sessions/active/?limit=${total}`,
+          {
+            headers: {
+              Authorization: `Bearer ${
+                localStorage.getItem(`adminToken:${window.location.hostname}`) ||
+                localStorage.getItem('adminToken') ||
+                sessionStorage.getItem(`adminToken:${window.location.hostname}`) ||
+                sessionStorage.getItem('adminToken') || ''
+              }`,
+            },
+          }
+        )
+        if (fullResponse.ok) {
+          const fullData = await fullResponse.json()
+          allSessions = fullData.sessions || allSessions
+        }
+      }
+
+      setOnlineSessions(allSessions)
+      setOnlineTotal(total)
     } catch (err) {
       console.error('Failed to load online sessions:', err)
       setOnlineSessions([])
@@ -480,7 +502,6 @@ export default function UsersPage() {
     }
   }
 
-  // UPDATED: loadAvailableIPs with search and pagination
   const loadAvailableIPs = async (poolId: number, search?: string) => {
     try {
       setAvailableIPsLoading(true)
@@ -513,7 +534,6 @@ export default function UsersPage() {
     setIpSearchQuery("")
   }, [selectedPlanPool])
 
-  // UPDATED loadUsers with server-side pagination and search - FIXED STATUS MAPPING
   const loadUsers = async (page = 1, search?: string, status?: string) => {
     try {
       setLoading(true)
@@ -528,8 +548,6 @@ export default function UsersPage() {
       }
       const effectiveStatus = status !== undefined ? status : statusFilter
 
-      // Map frontend lowercase values → backend uppercase choices
-      // 'expired' is frontend-only (RADIUS expiry), no backend status equivalent
       const statusMap: Record<string, string> = {
         active: 'ACTIVE',
         pending: 'PENDING',
@@ -538,7 +556,10 @@ export default function UsersPage() {
         terminated: 'TERMINATED',
       }
 
-      if (effectiveStatus !== 'all' && effectiveStatus !== 'expired') {
+      // FIX: For expired filter, fetch active users (expired is determined by RADIUS date)
+      if (effectiveStatus === 'expired') {
+        params.status = 'ACTIVE'
+      } else if (effectiveStatus !== 'all') {
         params.status = statusMap[effectiveStatus] || effectiveStatus.toUpperCase()
       }
 
@@ -554,7 +575,6 @@ export default function UsersPage() {
     }
   }
 
-  // ADDED: Function to load payments for a customer
   const loadPayments = async (customerId: number) => {
     try {
       const response = await adminApi.getPayments({ customer: String(customerId) })
@@ -577,7 +597,6 @@ export default function UsersPage() {
     try {
       setSavingBilling(true)
       const services = await adminApi.getCustomerServices(selectedUser.customerId)
-      // services is now always an array thanks to the fix in admin-api.ts
       if (!services || services.length === 0) {
         toast.error('No service found for this customer')
         return
@@ -642,18 +661,15 @@ export default function UsersPage() {
             serviceData.radius_username = newCustomerForm.radius_username
           }
 
-          // FIX 3: Auto-assign IP when none is selected
           if (newCustomerForm.assigned_ip) {
             serviceData.assigned_ip = parseInt(newCustomerForm.assigned_ip, 10)
           } else if (selectedPlanPool) {
-            // Silently grab the first available IP so the user always gets one
             try {
               const autoRes = await adminApi.getIPPoolAvailableIPs(selectedPlanPool)
               if ((autoRes.results?.length ?? 0) > 0) {
                 serviceData.assigned_ip = autoRes.results[0].id
                 toast.info(`Auto-assigned IP: ${autoRes.results[0].ip_address}`)
               } else {
-                // Pool exists but is exhausted — warn and let admin decide
                 toast.warning('IP pool has no available addresses. User will be created without a static IP.')
               }
             } catch {
@@ -812,17 +828,22 @@ export default function UsersPage() {
     }
   }, [enrichedUsers, activeSubscriptions, onlineSessions, onlineTotal, totalCount])
 
+  // FIX: filteredUsers now includes status filtering for expired
   const filteredUsers = useMemo(() => {
-    // Client-side filtering is no longer needed for search/status since we use server-side
-    // But we still need tab filtering
     return enrichedUsers.filter((user) => {
       const matchesTab = 
         activeTab === "all" ||
         (activeTab === "pppoe" && user.type === "pppoe") ||
         (activeTab === "static" && user.type === "static")
-      return matchesTab
+
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "expired" && user.status === "expired") ||
+        (statusFilter !== "expired" && user.status === statusFilter)
+
+      return matchesTab && matchesStatus
     })
-  }, [enrichedUsers, activeTab])
+  }, [enrichedUsers, activeTab, statusFilter])
 
   const totalPages = Math.ceil(totalCount / 50)
 
@@ -839,6 +860,13 @@ export default function UsersPage() {
       return matchesSearch && matchesService
     })
   }, [onlineSessions, onlineSearchQuery, onlineServiceFilter])
+
+  const paginatedOnlineSessions = useMemo(() => {
+    const start = (onlinePage - 1) * onlinePageSize
+    return filteredOnlineSessions.slice(start, start + onlinePageSize)
+  }, [filteredOnlineSessions, onlinePage, onlinePageSize])
+
+  const onlineTotalPages = Math.ceil(filteredOnlineSessions.length / onlinePageSize)
 
   const activeSubscriptionUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
@@ -872,13 +900,11 @@ export default function UsersPage() {
     return map
   }, [onlineSessions])
 
-  // Update server page when filters change
   useEffect(() => {
     setServerPage(1)
     loadUsers(1, searchQuery, statusFilter)
   }, [searchQuery, statusFilter])
 
-  // Handle page change
   const handlePageChange = (newPage: number) => {
     setServerPage(newPage)
     loadUsers(newPage, searchQuery, statusFilter)
@@ -953,9 +979,9 @@ export default function UsersPage() {
 
   const handleViewUser = (user: User) => {
     setSelectedUser(user)
-    setDrawerTab("general") // ADDED: reset tab to general
+    setDrawerTab("general")
     setDrawerOpen(true)
-    loadPayments(user.customerId) // ADDED: load payments when opening user details
+    loadPayments(user.customerId)
   }
 
   const handleDisconnectUser = async (user: User) => {
@@ -972,7 +998,6 @@ export default function UsersPage() {
     }
   }
 
-  // UPDATED: handleEditIP with caching of poolId
   const handleEditIP = async (user: User) => {
     setUserToEditIP(user)
     setSelectedNewIPId("")
@@ -1137,14 +1162,13 @@ export default function UsersPage() {
           toast.error("Selected date must be in the future")
           return
         }
-        // Pass the ISO date directly — backend sets it without stacking
         await adminApi.extendService(
           userToExtend.customerId,
           userToExtend.serviceId,
-          1,           // unused when expiryDate is provided
-          'DAYS',      // unused when expiryDate is provided
+          1,
+          'DAYS',
           extendForm.plan_id ? parseInt(extendForm.plan_id, 10) : undefined,
-          targetDate.toISOString()   // ← the absolute target date
+          targetDate.toISOString()
         )
         toast.success(
           `Expiry set to ${new Date(extendManualDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}${extendForm.plan_id ? ' · plan changed' : ''}`
@@ -1477,7 +1501,6 @@ export default function UsersPage() {
                   </div>
                 </div>
 
-                {/* UPDATED: Cloud-Led Static IP from plan's pool with searchable input */}
                 {selectedPlanPool && (
                   <div className="space-y-1">
                     <Label>Assign Static IP <span className="text-xs text-slate-400">(optional)</span></Label>
@@ -1602,7 +1625,6 @@ export default function UsersPage() {
                     </div>
                   </div>
                 </div>
-                {/* Preview of what will be used */}
                 <div className="p-2 bg-purple-50 border border-purple-200 rounded text-xs font-mono space-y-1">
                   <div className="flex gap-2">
                     <span className="text-purple-500 w-20">Username:</span>
@@ -1885,7 +1907,6 @@ export default function UsersPage() {
           setActiveTab(val); 
           if (!['all'].includes(val)) setStatusFilter('all'); 
           if (val === 'online-sessions') loadOnlineSessions();
-          // Lazy load hotspot data only when tab is opened
           if (val === 'hotspot' && activeSubscriptions.hotspot?.length === 0) {
             loadActiveSubscriptions();
           }
@@ -1964,7 +1985,6 @@ export default function UsersPage() {
                   onChange={(e) => {
                     const val = e.target.value
                     setSearchQuery(val)
-                    // Debounce: wait 400ms after user stops typing
                     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
                     searchDebounceRef.current = setTimeout(() => {
                       setServerPage(1)
@@ -2058,11 +2078,11 @@ export default function UsersPage() {
                   <Input
                     placeholder="Search name, IP, MAC..."
                     value={onlineSearchQuery}
-                    onChange={(e) => setOnlineSearchQuery(e.target.value)}
+                    onChange={(e) => { setOnlineSearchQuery(e.target.value); setOnlinePage(1) }}
                     className="pl-9"
                   />
                 </div>
-                <Select value={onlineServiceFilter} onValueChange={setOnlineServiceFilter}>
+                <Select value={onlineServiceFilter} onValueChange={(val) => { setOnlineServiceFilter(val); setOnlinePage(1) }}>
                   <SelectTrigger className="w-36">
                     <SelectValue placeholder="Service" />
                   </SelectTrigger>
@@ -2097,93 +2117,120 @@ export default function UsersPage() {
                 </p>
               </div>
             ) : (
-              <div className="rounded-lg border overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Service</TableHead>
-                      <TableHead>IP Address</TableHead>
-                      <TableHead>MAC Address</TableHead>
-                      <TableHead>Router</TableHead>
-                      <TableHead>Uptime</TableHead>
-                      <TableHead>Usage</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredOnlineSessions.map((session) => (
-                      <TableRow key={session.radacctid}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-medium text-xs">
-                              {((session.full_name || session.username) ?? 'HS')
-                                .split(' ')
-                                .map((n: string) => n?.[0] ?? '')
-                                .join('')
-                                .toUpperCase()
-                                .slice(0, 2) || 'HS'}
-                            </div>
-                            <div>
-                              <p className="font-medium text-slate-900 dark:text-white">
-                                {(session as any).canonical_username
-                                  ? (session as any).canonical_username
-                                  : (session.full_name || session.username)}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {(session as any).canonical_username
-                                  ? <span className="text-pink-600 font-medium">Hotspot</span>
-                                  : (session.phone_number || '')}
-                              </p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={
-                            session.service_type === 'PPPOE' ? 'border-purple-300 text-purple-700 bg-purple-50' :
-                            session.service_type === 'HOTSPOT' ? 'border-orange-300 text-orange-700 bg-orange-50' :
-                            'border-blue-300 text-blue-700 bg-blue-50'
-                          }>
-                            {session.service_type === 'PPPOE' ? 'PPPoE' : session.service_type === 'HOTSPOT' ? 'Hotspot' : session.service_type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-mono text-sm">
-                            {session.ip_address
-                              ? session.ip_address
-                              : (session as any).accounting_pending && !session.ip_address
-                                ? <span className="text-amber-500 text-xs italic">router connecting...</span>
-                                : "..."}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-mono text-xs text-slate-600">{session.mac_address || '...'}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">{session.router || '...'}</span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            {(session as any).accounting_pending && !session.ip_address ? (
-                              <span className="flex items-center gap-1 text-amber-600 text-xs">
-                                <RefreshCw className="w-3 h-3 animate-spin" />
-                                {session.uptime}
-                              </span>
-                            ) : (
-                              <>
-                                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                <span className="text-sm">{session.uptime}</span>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm font-medium">{session.usage}</span>
-                        </TableCell>
+              <>
+                <div className="rounded-lg border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Service</TableHead>
+                        <TableHead>IP Address</TableHead>
+                        <TableHead>MAC Address</TableHead>
+                        <TableHead>Router</TableHead>
+                        <TableHead>Uptime</TableHead>
+                        <TableHead>Usage</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedOnlineSessions.map((session) => (
+                        <TableRow key={session.radacctid}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-medium text-xs">
+                                {((session.full_name || session.username) ?? 'HS')
+                                  .split(' ')
+                                  .map((n: string) => n?.[0] ?? '')
+                                  .join('')
+                                  .toUpperCase()
+                                  .slice(0, 2) || 'HS'}
+                              </div>
+                              <div>
+                                <p className="font-medium text-slate-900 dark:text-white">
+                                  {(session as any).canonical_username
+                                    ? (session as any).canonical_username
+                                    : (session.full_name || session.username)}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  {(session as any).canonical_username
+                                    ? <span className="text-pink-600 font-medium">Hotspot</span>
+                                    : (session.phone_number || '')}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={
+                              session.service_type === 'PPPOE' ? 'border-purple-300 text-purple-700 bg-purple-50' :
+                              session.service_type === 'HOTSPOT' ? 'border-orange-300 text-orange-700 bg-orange-50' :
+                              'border-blue-300 text-blue-700 bg-blue-50'
+                            }>
+                              {session.service_type === 'PPPOE' ? 'PPPoE' : session.service_type === 'HOTSPOT' ? 'Hotspot' : session.service_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-mono text-sm">
+                              {session.ip_address
+                                ? session.ip_address
+                                : (session as any).accounting_pending && !session.ip_address
+                                  ? <span className="text-amber-500 text-xs italic">router connecting...</span>
+                                  : "..."}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-mono text-xs text-slate-600">{session.mac_address || '...'}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm">{session.router || '...'}</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              {(session as any).accounting_pending && !session.ip_address ? (
+                                <span className="flex items-center gap-1 text-amber-600 text-xs">
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                  {session.uptime}
+                                </span>
+                              ) : (
+                                <>
+                                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                  <span className="text-sm">{session.uptime}</span>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm font-medium">{session.usage}</span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {onlineTotalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm text-slate-500">
+                      Showing {((onlinePage - 1) * onlinePageSize) + 1}–{Math.min(onlinePage * onlinePageSize, filteredOnlineSessions.length)} of {filteredOnlineSessions.length} sessions
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={onlinePage === 1}
+                        onClick={() => setOnlinePage(p => p - 1)}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={onlinePage === onlineTotalPages}
+                        onClick={() => setOnlinePage(p => p + 1)}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -2514,10 +2561,10 @@ export default function UsersPage() {
             {activeTab === "pppoe" && "PPPoE Users"}
             {activeTab === "static" && "Static IP Users"}
             {statusFilter !== "all" && ` - ${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`}
-            {" "}({totalCount})
+            {" "}({filteredUsers.length})
           </CardTitle>
           <CardDescription>
-            Showing {users.length} of {totalCount} users
+            Showing {filteredUsers.length} of {totalCount} total users
             {statusFilter !== "all" && ` - Filtered by status: ${statusFilter}`}
           </CardDescription>
         </CardHeader>
@@ -2727,7 +2774,7 @@ export default function UsersPage() {
       </Card>
       )}
 
-      {/* User Detail Dialog (replaced Sheet) - UPDATED with tabs */}
+      {/* User Detail Dialog */}
       <Dialog open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -3330,7 +3377,6 @@ export default function UsersPage() {
                 onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
               />
             </div>
-            {/* ADDED: Location field in Edit User Dialog */}
             <div>
               <Label htmlFor="edit_location">Location / Area</Label>
               <Input
@@ -3512,7 +3558,7 @@ export default function UsersPage() {
                   <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 7, duration_unit: 'DAYS' })}>+7 Days</Button>
                   <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 30, duration_unit: 'DAYS' })}>+30 Days</Button>
                 </div>
-                {/* ADDED: Expire Now button at bottom of duration mode */}
+                {/* Expire Now button at bottom of duration mode */}
                 <div className="pt-4 border-t">
                   <Button
                     type="button"
@@ -3526,7 +3572,7 @@ export default function UsersPage() {
                       }
                       try {
                         setExtending(true)
-                        const expireAt = new Date(Date.now() + 60 * 1000) // 1 minute from now
+                        const expireAt = new Date(Date.now() + 60 * 1000)
                         await adminApi.extendService(
                           userToExtend.customerId,
                           userToExtend.serviceId,
@@ -3558,7 +3604,6 @@ export default function UsersPage() {
             ) : (
               <div className="space-y-3">
                 <Label>New Expiry Date</Label>
-                {/* Current expiry info */}
                 {userToExtend?.expiryDate && userToExtend.plan !== "No Plan" && (
                   <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm">
                     <Clock className="w-4 h-4 text-amber-600 shrink-0" />
@@ -3587,7 +3632,7 @@ export default function UsersPage() {
                     })()}
                   </div>
                 )}
-                {/* ADDED: Expire Now button in date mode */}
+                {/* Expire Now button in date mode */}
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex-1 border-t border-slate-200" />
                   <span className="text-xs text-slate-400">or</span>
@@ -3604,7 +3649,7 @@ export default function UsersPage() {
                     }
                     try {
                       setExtending(true)
-                      const expireAt = new Date(Date.now() + 60 * 1000) // 1 minute from now
+                      const expireAt = new Date(Date.now() + 60 * 1000)
                       await adminApi.extendService(
                         userToExtend.customerId,
                         userToExtend.serviceId,
@@ -3634,7 +3679,7 @@ export default function UsersPage() {
               </div>
             )}
 
-            {/* Optional plan change - shown in both modes */}
+            {/* Optional plan change */}
             <div className="space-y-2 pt-2 border-t">
               <Label>Change Plan <span className="text-xs text-slate-400 font-normal">(Optional)</span></Label>
               <Select
@@ -3674,6 +3719,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Change Plan Dialog */}
       <Dialog
         open={showChangePlanDialog}
         onOpenChange={(open) => {
@@ -3776,7 +3822,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit IP Dialog - UPDATED with debounced server search */}
+      {/* Edit IP Dialog */}
       <Dialog open={showEditIPDialog} onOpenChange={(open) => {
         setShowEditIPDialog(open)
         if (!open) {
@@ -3798,7 +3844,6 @@ export default function UsersPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Current IP */}
             {userToEditIP?.ipAddress && (
               <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
                 <Server className="w-4 h-4 text-amber-600 shrink-0" />
@@ -3828,7 +3873,6 @@ export default function UsersPage() {
                     const searchVal = e.target.value
                     setEditIPSearchQuery(searchVal)
                     
-                    // Debounce — wait 400ms after user stops typing
                     if (editIPSearchDebounceRef.current) clearTimeout(editIPSearchDebounceRef.current)
                     editIPSearchDebounceRef.current = setTimeout(async () => {
                       if (!editIPPoolId) return
