@@ -177,29 +177,27 @@ export default function AdminDashboard() {
       }
 
       // ─────────────────────────────────────────────────────────────
-      // TWO-PHASE FETCH FOR EXPIRED RADIUS CREDENTIALS
-      // This ensures we get ALL expired vouchers, not just page 1
+      // TWO-PHASE FETCH FOR EXPIRED RADIUS CREDENTIALS (FIXED)
+      // - Removed is_enabled filter (expired users may be disabled)
+      // - Larger page size (200) for fewer API calls
+      // - Counts expired based on expiration_date <= now
       // ─────────────────────────────────────────────────────────────
       let expiredViaRadius = 0
       try {
-        // Phase 1: Get first page with page_size=100 to get total count
-        const firstPage = await adminApi.getRADIUSCredentials({ 
-          page_size: '100', 
-          is_enabled: 'true' 
-        })
+        // Phase 1: Get first page with page_size=200 (no is_enabled filter)
+        const firstPage = await adminApi.getRADIUSCredentials({ page_size: '200' })
         const totalCreds = firstPage.count || 0
         let allCreds = firstPage.results || []
         
-        // Phase 2: Fetch remaining pages if total > 100
-        if (totalCreds > 100) {
-          const remainingCount = totalCreds - 100
-          const pages = Math.ceil(remainingCount / 100)
+        // Phase 2: Fetch remaining pages if total > 200
+        if (totalCreds > 200) {
+          const remainingCount = totalCreds - 200
+          const pages = Math.ceil(remainingCount / 200)
           const pagePromises = []
           for (let i = 0; i < pages; i++) {
             pagePromises.push(
               adminApi.getRADIUSCredentials({ 
-                page_size: '100', 
-                is_enabled: 'true',
+                page_size: '200',
                 page: String(i + 2) 
               })
             )
@@ -286,7 +284,7 @@ export default function AdminDashboard() {
 
       {/* ─── Row 1: Key Metrics ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total Customers */}
+        {/* Total Customers - UPDATED DESCRIPTION */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
@@ -300,18 +298,16 @@ export default function AdminDashboard() {
                 <div className="text-2xl font-bold">
                   {(core?.total_customers ?? 0).toLocaleString()}
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  {core?.new_customers_this_month ?? 0} new this month
-                </p>
+                <p className="text-xs text-slate-500 mt-1">All PPPoE/Static users</p>
               </>
             )}
           </CardContent>
         </Card>
 
-        {/* Active Customers - Uses activeSubscriptions total */}
+        {/* Active Customers - UPDATED TITLE & DESCRIPTION */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
             <UserCheck className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -324,12 +320,7 @@ export default function AdminDashboard() {
                 </div>
                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                   <TrendingUp className="w-3 h-3 text-green-600" />
-                  <span>
-                    {core?.total_customers
-                      ? (((activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0) || core?.active_customers || 0) / core.total_customers * 100).toFixed(1)
-                      : 0}
-                    % of total
-                  </span>
+                  <span>Customers with active sub</span>
                 </p>
               </>
             )}
@@ -359,7 +350,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Online / Active — clean ratio number + progress bar */}
+        {/* Online / Active — clean ratio number + progress bar (REMOVED "Active subs" legend) */}
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => router.push('/admin/users?tab=online-sessions')}
@@ -408,7 +399,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* Legend */}
+                  {/* Legend - REMOVED "Active subs" */}
                   <div className="flex gap-3 pt-0.5">
                     <span className="flex items-center gap-1.5 text-xs text-slate-500">
                       <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
@@ -417,10 +408,6 @@ export default function AdminDashboard() {
                     <span className="flex items-center gap-1.5 text-xs text-slate-500">
                       <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />
                       Hotspot: {hotspot}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs text-slate-500">
-                      <span className="w-2 h-2 rounded-full bg-slate-200 inline-block" />
-                      Active subs
                     </span>
                   </div>
                 </div>

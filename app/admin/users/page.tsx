@@ -399,28 +399,39 @@ export default function UsersPage() {
     hotspot: 0,
   })
 
-  // Optimized function to get expired RADIUS count with pagination handling
+  // NEW: Server-side status counts (active/pending/suspended)
+  const [serverStatusCounts, setServerStatusCounts] = useState({
+    active: 0,
+    pending: 0,
+    suspended: 0,
+  })
+
+  // NEW: For active subs tab – all active users (not just current page)
+  const [allActiveSubUsers, setAllActiveSubUsers] = useState<User[]>([])
+  const [activeSubsPageLoading, setActiveSubsPageLoading] = useState(false)
+
+  // Optimized function to get expired RADIUS count with pagination handling (500 per page)
   const loadServerStats = async () => {
     try {
       const now = new Date()
       
-      // Phase 1: Get total RADIUS creds count with page_size=100 (very fast)
+      // Use larger page size (500) to reduce number of calls
       const firstPage = await adminApi.getRADIUSCredentials({ 
-        page_size: '100', 
+        page_size: '500', 
         is_enabled: 'true' 
       })
       
       const totalCreds = firstPage.count || 0
       let allCreds = firstPage.results || []
       
-      // Phase 2: Fetch remaining pages if needed
-      if (totalCreds > 100) {
-        const totalPages = Math.ceil(totalCreds / 100)
+      // Fetch remaining pages in parallel (if any)
+      if (totalCreds > 500) {
+        const totalPages = Math.ceil(totalCreds / 500)
         const pagePromises = []
         for (let page = 2; page <= totalPages; page++) {
           pagePromises.push(
             adminApi.getRADIUSCredentials({ 
-              page_size: '100', 
+              page_size: '500', 
               is_enabled: 'true',
               page: String(page) 
             })
@@ -444,11 +455,52 @@ export default function UsersPage() {
       setServerStats({
         expired: expiredCount,
         pppoe: pppoeCount,
-        static: 0, // static IPs are within pppoe users typically
+        static: 0,
         hotspot: hotspotCount,
       })
     } catch (err) {
       console.error('Failed to load server stats:', err)
+    }
+  }
+
+  // NEW: Load status counts from server (active/pending/suspended totals)
+  const loadStatusCounts = async () => {
+    try {
+      const [activeRes, pendingRes, suspendedRes] = await Promise.all([
+        adminApi.getCustomers({ page_size: '1', status: 'ACTIVE' }),
+        adminApi.getCustomers({ page_size: '1', status: 'PENDING' }),
+        adminApi.getCustomers({ page_size: '1', status: 'SUSPENDED' }),
+      ])
+      setServerStatusCounts({
+        active: activeRes.count,
+        pending: pendingRes.count,
+        suspended: suspendedRes.count,
+      })
+    } catch (err) {
+      console.error('Failed to load status counts:', err)
+    }
+  }
+
+  // NEW: Load all active users for the "Active Subs" tab
+  const loadAllActiveUsers = async () => {
+    try {
+      setActiveSubsPageLoading(true)
+      const response = await adminApi.getCustomers({ 
+        page_size: '500',  // large enough for most cases; can be paginated if needed
+        status: 'ACTIVE' 
+      })
+      const mapped = response.results.map(mapCustomerToUser)
+      // Filter to those not expired by RADIUS date
+      const now = new Date()
+      const active = mapped.filter(u => {
+        const expiry = u.expiryDate ? new Date(u.expiryDate) : null
+        return expiry === null || expiry > now
+      })
+      setAllActiveSubUsers(active)
+    } catch (err) {
+      console.error('Failed to load all active users:', err)
+    } finally {
+      setActiveSubsPageLoading(false)
     }
   }
 
@@ -460,6 +512,7 @@ export default function UsersPage() {
     loadPlans()
     loadActiveSubscriptions()
     loadServerStats()
+    loadStatusCounts()   // ADDED: fetch server status counts
     
     const timer = setTimeout(() => {
       loadOnlineSessions()
@@ -632,7 +685,7 @@ export default function UsersPage() {
         terminated: 'TERMINATED',
       }
 
-      // FIX: For expired filter, fetch active users (expired is determined by RADIUS date)
+      // For expired filter, fetch active users (expired is determined by RADIUS date)
       if (effectiveStatus === 'expired') {
         params.status = 'ACTIVE'
       } else if (effectiveStatus !== 'all') {
@@ -666,6 +719,7 @@ export default function UsersPage() {
     await loadUsers(serverPage, searchQuery, statusFilter)
     await loadOnlineSessions()
     await loadServerStats()
+    await loadStatusCounts()
     setRefreshing(false)
   }
 
@@ -823,6 +877,7 @@ export default function UsersPage() {
       
       await loadUsers(serverPage, searchQuery, statusFilter)
       await loadServerStats()
+      await loadStatusCounts()
       
     } catch (err: any) {
       console.error('Failed to create customer:', err)
@@ -885,28 +940,26 @@ export default function UsersPage() {
     });
   }, [hotspotClients]);
 
+  // FIXED STATS: using server totals for active/pending/suspended, server expired count, server totalCount
   const stats: UserStats = useMemo(() => {
-    const now = new Date()
     const hotspotCount = activeSubscriptions.hotspot?.length || 0;
     const pppoeCount = activeSubscriptions.pppoe?.length || 0;
     const onlineCount = onlineTotal || onlineSessions.length;
     
-    const isEffectivelyExpired = (u: User) => u.status === "expired"
-    
     return {
       total: totalCount,
-      active: enrichedUsers.filter(u => u.status === "active" && !isEffectivelyExpired(u)).length,
-      pending: enrichedUsers.filter(u => u.status === "pending").length,
-      suspended: enrichedUsers.filter(u => u.status === "suspended").length,
-      expired: serverStats.expired,  // ← now server-side ✓
+      active: serverStatusCounts.active,
+      pending: serverStatusCounts.pending,
+      suspended: serverStatusCounts.suspended,
+      expired: serverStats.expired,
       online: onlineCount,
-      pppoe: enrichedUsers.filter(u => u.type === "pppoe").length,
-      static: enrichedUsers.filter(u => u.type === "static").length,
+      pppoe: totalCount,  // all customers = PPPoE + Static (for display)
+      static: 0,
       hotspot: hotspotCount + pppoeCount,
     }
-  }, [enrichedUsers, activeSubscriptions, onlineSessions, onlineTotal, totalCount, serverStats])
+  }, [totalCount, serverStatusCounts, serverStats.expired, onlineTotal, onlineSessions, activeSubscriptions])
 
-  // FIX: filteredUsers now includes status filtering for expired
+  // filteredUsers for main table (All/PPPoE/Static tabs)
   const filteredUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
       const matchesTab = 
@@ -946,6 +999,8 @@ export default function UsersPage() {
 
   const onlineTotalPages = Math.ceil(filteredOnlineSessions.length / onlinePageSize)
 
+  // DEPRECATED for active subs tab – now using allActiveSubUsers instead
+  // Keep for compatibility but not used in the tab
   const activeSubscriptionUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
       const expiryDate = new Date(user.expiryDate)
@@ -1302,7 +1357,7 @@ export default function UsersPage() {
       setShowDeleteConfirmDialog(false)
       setUserToDelete(null)
       setDrawerOpen(false)
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions(), loadServerStats()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions(), loadServerStats(), loadStatusCounts()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete user')
     } finally {
@@ -1320,10 +1375,10 @@ export default function UsersPage() {
       }
       toast.success(`${usersToDelete.length} user(s) deleted successfully`)
       setSelectedUsers([])
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions(), loadServerStats()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions(), loadServerStats(), loadStatusCounts()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete some users')
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions(), loadServerStats()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions(), loadServerStats(), loadStatusCounts()])
     } finally {
       setDeleting(false)
     }
@@ -1827,7 +1882,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - UPDATED LABELS */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
         <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'all' && activeTab === 'all' ? 'ring-2 ring-slate-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("all"); }}>
           <CardContent className="p-3">
@@ -1837,7 +1892,7 @@ export default function UsersPage() {
               </div>
               <div>
                 <p className="text-xl font-bold">{stats.total}</p>
-                <p className="text-xs text-slate-500">Total</p>
+                <p className="text-xs text-slate-500">Total PPPoE/Static</p>
               </div>
             </div>
           </CardContent>
@@ -1851,7 +1906,7 @@ export default function UsersPage() {
               </div>
               <div>
                 <p className="text-xl font-bold text-emerald-600">{stats.online}</p>
-                <p className="text-xs text-slate-500">Online</p>
+                <p className="text-xs text-slate-500">Total Online</p>
               </div>
             </div>
           </CardContent>
@@ -1865,7 +1920,7 @@ export default function UsersPage() {
               </div>
               <div>
                 <p className="text-xl font-bold text-green-600">{stats.active}</p>
-                <p className="text-xs text-slate-500">Active</p>
+                <p className="text-xs text-slate-500">Active Users</p>
               </div>
             </div>
           </CardContent>
@@ -1955,6 +2010,7 @@ export default function UsersPage() {
           </CardContent>
         </Card>
 
+        {/* Hybrid card - REMOVED "Active subs" legend */}
         <Card className="col-span-2 md:col-span-2 cursor-pointer hover:shadow-md transition-shadow border-2 border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50" onClick={() => { setActiveTab("online-sessions"); setStatusFilter("all"); }}>
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
@@ -1999,6 +2055,7 @@ export default function UsersPage() {
           setActiveTab(val); 
           if (!['all'].includes(val)) setStatusFilter('all'); 
           if (val === 'online-sessions') loadOnlineSessions();
+          if (val === 'active-subs') loadAllActiveUsers();   // NEW: load all users for active subs tab
           if (val === 'hotspot' && activeSubscriptions.hotspot?.length === 0) {
             loadActiveSubscriptions();
           }
@@ -2328,7 +2385,7 @@ export default function UsersPage() {
         </Card>
       )}
 
-      {/* -- Active Subscriptions Tab -- */}
+      {/* -- Active Subscriptions Tab (UPDATED: uses allActiveSubUsers) -- */}
       {activeTab === "active-subs" && (
         <Card>
           <CardHeader>
@@ -2336,7 +2393,7 @@ export default function UsersPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  Active Subscriptions ({activeSubscriptionUsers.length})
+                  Active Subscriptions ({allActiveSubUsers.length})
                 </CardTitle>
                 <CardDescription>Users with active or pending subscriptions - manage extensions and removals</CardDescription>
               </div>
@@ -2350,20 +2407,20 @@ export default function UsersPage() {
                     className="pl-9"
                   />
                 </div>
-                <Button variant="outline" size="icon" onClick={() => loadUsers(serverPage, searchQuery, statusFilter)} disabled={refreshing}>
-                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <Button variant="outline" size="icon" onClick={loadAllActiveUsers} disabled={activeSubsPageLoading}>
+                  <RefreshCw className={`w-4 h-4 ${activeSubsPageLoading ? 'animate-spin' : ''}`} />
                 </Button>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {activeSubsPageLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <Skeleton key={i} className="h-14 w-full" />
                 ))}
               </div>
-            ) : activeSubscriptionUsers.length === 0 ? (
+            ) : allActiveSubUsers.length === 0 ? (
               <div className="text-center py-12">
                 <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-slate-300" />
                 <p className="text-slate-600 font-medium">No active subscriptions</p>
@@ -2386,7 +2443,17 @@ export default function UsersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {activeSubscriptionUsers.map((user) => {
+                    {allActiveSubUsers
+                      .filter(user => {
+                        if (!activeSearchQuery) return true;
+                        return (
+                          (user.name?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
+                          (user.phone?.includes(activeSearchQuery)) ||
+                          (user.plan?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
+                          (user.radiusCredentials?.username?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase())
+                        );
+                      })
+                      .map((user) => {
                       const expiryDate = new Date(user.expiryDate)
                       const now = new Date()
                       const isExpired = expiryDate <= now

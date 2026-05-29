@@ -3873,6 +3873,16 @@ async activateService(
     await this.request(`/radius/credentials/${id}/`, { method: 'DELETE' })
   }
 
+    // NEW: Fast count of expired RADIUS credentials
+  async getExpiredRADIUSCount(): Promise<number> {
+    try {
+      const data = await this.request<{ count: number }>('/radius/credentials/expired_count/')
+      return data.count
+    } catch {
+      return 0
+    }
+  }
+
   async syncRADIUSCredential(id: string): Promise<{ status: string; message: string; synced_at: string }> {
     return this.request(`/radius/credentials/${id}/sync/`, { method: 'POST' })
   }
