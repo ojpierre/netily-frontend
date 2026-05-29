@@ -168,6 +168,13 @@ interface UserStats {
   hotspot: number
 }
 
+interface ServerStatsState {
+  expired: number
+  pppoe: number
+  static: number
+  hotspot: number
+}
+
 // Helper: Map backend Customer to frontend User display type
 const mapCustomerToUser = (customer: Customer): User => {
   const primaryService = customer.services?.[0]
@@ -384,6 +391,67 @@ export default function UsersPage() {
     initial_payment_reference: '',
   })
 
+  // Server-side stats state
+  const [serverStats, setServerStats] = useState<ServerStatsState>({
+    expired: 0,
+    pppoe: 0,
+    static: 0,
+    hotspot: 0,
+  })
+
+  // Optimized function to get expired RADIUS count with pagination handling
+  const loadServerStats = async () => {
+    try {
+      const now = new Date()
+      
+      // Phase 1: Get total RADIUS creds count with page_size=100 (very fast)
+      const firstPage = await adminApi.getRADIUSCredentials({ 
+        page_size: '100', 
+        is_enabled: 'true' 
+      })
+      
+      const totalCreds = firstPage.count || 0
+      let allCreds = firstPage.results || []
+      
+      // Phase 2: Fetch remaining pages if needed
+      if (totalCreds > 100) {
+        const totalPages = Math.ceil(totalCreds / 100)
+        const pagePromises = []
+        for (let page = 2; page <= totalPages; page++) {
+          pagePromises.push(
+            adminApi.getRADIUSCredentials({ 
+              page_size: '100', 
+              is_enabled: 'true',
+              page: String(page) 
+            })
+          )
+        }
+        const pageResults = await Promise.all(pagePromises)
+        pageResults.forEach(res => {
+          allCreds = [...allCreds, ...(res.results || [])]
+        })
+      }
+      
+      const expiredCount = allCreds.filter(cred => {
+        if (!cred.expiration_date) return false
+        return new Date(cred.expiration_date) <= now
+      }).length
+
+      // Also get counts for PPPoE and Static from active subscriptions
+      const pppoeCount = activeSubscriptions.pppoe?.length || 0
+      const hotspotCount = activeSubscriptions.hotspot?.length || 0
+
+      setServerStats({
+        expired: expiredCount,
+        pppoe: pppoeCount,
+        static: 0, // static IPs are within pppoe users typically
+        hotspot: hotspotCount,
+      })
+    } catch (err) {
+      console.error('Failed to load server stats:', err)
+    }
+  }
+
   useEffect(() => {
     if (hasFetched.current) return
     hasFetched.current = true
@@ -391,6 +459,7 @@ export default function UsersPage() {
     loadUsers(1)
     loadPlans()
     loadActiveSubscriptions()
+    loadServerStats()
     
     const timer = setTimeout(() => {
       loadOnlineSessions()
@@ -466,6 +535,12 @@ export default function UsersPage() {
       setHotspotLoading(true)
       const response = await adminApi.getActiveSubscriptions?.() || { pppoe: [], hotspot: [], total: 0 }
       setActiveSubscriptions(response)
+      // Update serverStats when active subscriptions change
+      setServerStats(prev => ({
+        ...prev,
+        pppoe: response.pppoe?.length || 0,
+        hotspot: response.hotspot?.length || 0,
+      }))
     } catch (err) {
       console.error('Failed to load active subscriptions:', err)
     } finally {
@@ -590,6 +665,7 @@ export default function UsersPage() {
     setRefreshing(true)
     await loadUsers(serverPage, searchQuery, statusFilter)
     await loadOnlineSessions()
+    await loadServerStats()
     setRefreshing(false)
   }
 
@@ -746,6 +822,7 @@ export default function UsersPage() {
       setShowAddUserDialog(false)
       
       await loadUsers(serverPage, searchQuery, statusFilter)
+      await loadServerStats()
       
     } catch (err: any) {
       console.error('Failed to create customer:', err)
@@ -821,13 +898,13 @@ export default function UsersPage() {
       active: enrichedUsers.filter(u => u.status === "active" && !isEffectivelyExpired(u)).length,
       pending: enrichedUsers.filter(u => u.status === "pending").length,
       suspended: enrichedUsers.filter(u => u.status === "suspended").length,
-      expired: enrichedUsers.filter(isEffectivelyExpired).length,
+      expired: serverStats.expired,  // ← now server-side ✓
       online: onlineCount,
       pppoe: enrichedUsers.filter(u => u.type === "pppoe").length,
       static: enrichedUsers.filter(u => u.type === "static").length,
       hotspot: hotspotCount + pppoeCount,
     }
-  }, [enrichedUsers, activeSubscriptions, onlineSessions, onlineTotal, totalCount])
+  }, [enrichedUsers, activeSubscriptions, onlineSessions, onlineTotal, totalCount, serverStats])
 
   // FIX: filteredUsers now includes status filtering for expired
   const filteredUsers = useMemo(() => {
@@ -1106,6 +1183,7 @@ export default function UsersPage() {
       setShowChangePlanDialog(false)
       setUserToChangePlan(null)
       await loadUsers(serverPage, searchQuery, statusFilter)
+      await loadServerStats()
     } catch (err: any) {
       console.error("Failed to change plan:", err)
       toast.error(err.message || "Failed to change plan")
@@ -1202,6 +1280,7 @@ export default function UsersPage() {
       setExtendManualTime("23:59")
       setExtendMode("duration")
       await loadUsers(serverPage, searchQuery, statusFilter)
+      await loadServerStats()
     } catch (err: any) {
       toast.error(err.message || 'Failed to extend subscription')
     } finally {
@@ -1223,7 +1302,7 @@ export default function UsersPage() {
       setShowDeleteConfirmDialog(false)
       setUserToDelete(null)
       setDrawerOpen(false)
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions(), loadServerStats()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete user')
     } finally {
@@ -1241,10 +1320,10 @@ export default function UsersPage() {
       }
       toast.success(`${usersToDelete.length} user(s) deleted successfully`)
       setSelectedUsers([])
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions(), loadServerStats()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete some users')
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions(), loadServerStats()])
     } finally {
       setDeleting(false)
     }
@@ -1260,6 +1339,7 @@ export default function UsersPage() {
       await adminApi.activateService(user.customerId, user.serviceId)
       toast.success(`${user.name} activated! Expiration timer starts now.`)
       await loadUsers(serverPage, searchQuery, statusFilter)
+      await loadServerStats()
     } catch (err: any) {
       toast.error(err.message || 'Failed to activate user')
     } finally {
