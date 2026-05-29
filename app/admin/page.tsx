@@ -143,7 +143,7 @@ export default function AdminDashboard() {
     try {
       setError(null)
 
-      // Fetch all dashboard data in parallel (excluding RADIUS which uses two-phase)
+      // Fetch all dashboard data in parallel (excluding expired count which uses single endpoint)
       const [coreRes, routerRes, paymentRes, ticketRes, reportsRes, sessionsRes, activeSubsRes] = await Promise.allSettled([
         adminApi.getDashboard(),
         adminApi.getRouterDashboardStats(),
@@ -177,44 +177,14 @@ export default function AdminDashboard() {
       }
 
       // ─────────────────────────────────────────────────────────────
-      // TWO-PHASE FETCH FOR EXPIRED RADIUS CREDENTIALS (FIXED)
-      // - Removed is_enabled filter (expired users may be disabled)
-      // - Larger page size (200) for fewer API calls
-      // - Counts expired based on expiration_date <= now
+      // FAST EXPIRED COUNT – single API call
+      // Uses the new /radius/credentials/expired_count/ endpoint
       // ─────────────────────────────────────────────────────────────
       let expiredViaRadius = 0
       try {
-        // Phase 1: Get first page with page_size=200 (no is_enabled filter)
-        const firstPage = await adminApi.getRADIUSCredentials({ page_size: '200' })
-        const totalCreds = firstPage.count || 0
-        let allCreds = firstPage.results || []
-        
-        // Phase 2: Fetch remaining pages if total > 200
-        if (totalCreds > 200) {
-          const remainingCount = totalCreds - 200
-          const pages = Math.ceil(remainingCount / 200)
-          const pagePromises = []
-          for (let i = 0; i < pages; i++) {
-            pagePromises.push(
-              adminApi.getRADIUSCredentials({ 
-                page_size: '200',
-                page: String(i + 2) 
-              })
-            )
-          }
-          const pageResults = await Promise.all(pagePromises)
-          pageResults.forEach(res => {
-            allCreds = [...allCreds, ...(res.results || [])]
-          })
-        }
-        
-        // Calculate expired count from all credentials
-        const now = new Date()
-        expiredViaRadius = allCreds.filter(cred => 
-          cred.expiration_date && new Date(cred.expiration_date) <= now
-        ).length
+        expiredViaRadius = await adminApi.getExpiredRADIUSCount()
       } catch (radiusErr) {
-        console.warn('Failed to fetch RADIUS credentials for expired count:', radiusErr)
+        console.warn('Failed to fetch expired RADIUS count:', radiusErr)
         // Fallback to core stats if available
         if (coreRes.status === "fulfilled") {
           expiredViaRadius = (coreRes.value?.expired_customers || 0)
@@ -327,7 +297,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Expired Customers - Uses two-phase fetched expiredCount */}
+        {/* Expired Customers - Uses fast single endpoint */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Expired</CardTitle>
