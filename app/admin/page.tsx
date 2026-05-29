@@ -143,8 +143,8 @@ export default function AdminDashboard() {
     try {
       setError(null)
 
-      // Fetch all dashboard data in parallel
-      const [coreRes, routerRes, paymentRes, ticketRes, reportsRes, sessionsRes, activeSubsRes, radiusCredsRes] = await Promise.allSettled([
+      // Fetch all dashboard data in parallel (excluding RADIUS which uses two-phase)
+      const [coreRes, routerRes, paymentRes, ticketRes, reportsRes, sessionsRes, activeSubsRes] = await Promise.allSettled([
         adminApi.getDashboard(),
         adminApi.getRouterDashboardStats(),
         adminApi.getPaymentDashboardStats(),
@@ -152,7 +152,6 @@ export default function AdminDashboard() {
         adminApi.getReportsData("30d"),
         adminApi.getOnlineSessions(),
         adminApi.getActiveSubscriptions?.(),
-        adminApi.getRADIUSCredentials?.({ page_size: '500', is_enabled: 'true' }) || Promise.resolve({ results: [] }),
       ])
 
       setData({
@@ -177,19 +176,54 @@ export default function AdminDashboard() {
         setActiveSubscriptions(subs)
       }
 
-      // FIX: Derive expired count from RADIUS credentials (checks expiration_date against current time)
-      if (radiusCredsRes.status === "fulfilled") {
-        const radiusCreds = radiusCredsRes.value
+      // ─────────────────────────────────────────────────────────────
+      // TWO-PHASE FETCH FOR EXPIRED RADIUS CREDENTIALS
+      // This ensures we get ALL expired vouchers, not just page 1
+      // ─────────────────────────────────────────────────────────────
+      let expiredViaRadius = 0
+      try {
+        // Phase 1: Get first page with page_size=100 to get total count
+        const firstPage = await adminApi.getRADIUSCredentials({ 
+          page_size: '100', 
+          is_enabled: 'true' 
+        })
+        const totalCreds = firstPage.count || 0
+        let allCreds = firstPage.results || []
+        
+        // Phase 2: Fetch remaining pages if total > 100
+        if (totalCreds > 100) {
+          const remainingCount = totalCreds - 100
+          const pages = Math.ceil(remainingCount / 100)
+          const pagePromises = []
+          for (let i = 0; i < pages; i++) {
+            pagePromises.push(
+              adminApi.getRADIUSCredentials({ 
+                page_size: '100', 
+                is_enabled: 'true',
+                page: String(i + 2) 
+              })
+            )
+          }
+          const pageResults = await Promise.all(pagePromises)
+          pageResults.forEach(res => {
+            allCreds = [...allCreds, ...(res.results || [])]
+          })
+        }
+        
+        // Calculate expired count from all credentials
         const now = new Date()
-        const expired = (radiusCreds.results || []).filter((cred: any) => {
-          if (!cred.expiration_date) return false
-          return new Date(cred.expiration_date) <= now
-        }).length
-        setExpiredCount(expired)
-      } else {
-        // Fallback: try to get from core stats
-        setExpiredCount(coreRes.status === "fulfilled" ? (coreRes.value?.expired_customers || 0) : 0)
+        expiredViaRadius = allCreds.filter(cred => 
+          cred.expiration_date && new Date(cred.expiration_date) <= now
+        ).length
+      } catch (radiusErr) {
+        console.warn('Failed to fetch RADIUS credentials for expired count:', radiusErr)
+        // Fallback to core stats if available
+        if (coreRes.status === "fulfilled") {
+          expiredViaRadius = (coreRes.value?.expired_customers || 0)
+        }
       }
+      
+      setExpiredCount(expiredViaRadius)
     } catch (err: any) {
       console.error("Dashboard fetch error:", err)
       setError("Failed to load dashboard data. Please try again.")
@@ -302,7 +336,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Expired Customers - FIXED: Uses expiredCount from RADIUS credentials */}
+        {/* Expired Customers - Uses two-phase fetched expiredCount */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Expired</CardTitle>
