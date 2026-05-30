@@ -2112,6 +2112,19 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             )}
           </div>
 
+          {/* ── Phone reconnect button (MOVED HERE, just below voucher) ── */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowPhoneModal(true)
+              setReconnectPhoneError(null)
+              setReconnectPhone('')
+            }}
+            className={`w-full mb-5 py-2.5 text-sm font-medium border rounded-xl transition-colors ${theme.planBorder} ${theme.mutedText} hover:opacity-70`}
+          >
+            Already subscribed? Connect this device
+          </button>
+
           {/* Free Ad-Sponsored Access */}
           {availableAd && availableAd.reward_enabled && availableAd.reward_minutes > 0 && (
             <button
@@ -2363,19 +2376,6 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
               </button>
             ))}
           </div>
-
-          {/* ── NEW: Already subscribed? Multi-device button ── */}
-          <button
-            type="button"
-            onClick={() => {
-              setShowPhoneModal(true)
-              setReconnectPhoneError(null)
-              setReconnectPhone('')
-            }}
-            className={`w-full mt-2 py-2.5 text-sm font-medium border rounded-xl transition-colors ${theme.planBorder} ${theme.mutedText} hover:opacity-70`}
-          >
-            Already subscribed? Connect this device
-          </button>
 
           {/* Support footer */}
           {supportPhone && (
