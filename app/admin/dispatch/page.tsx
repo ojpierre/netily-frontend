@@ -88,11 +88,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
-import type { Technician, DispatchJob } from "@/lib/types"
+import type { Technician, DispatchJob, Customer, SupportTicket, JobType } from "@/lib/types"
 
 type JobStatus = 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
 type JobPriority = 'low' | 'medium' | 'high' | 'urgent'
-type JobType = 'installation' | 'repair' | 'maintenance' | 'relocation' | 'survey'
 
 
 
@@ -134,6 +133,7 @@ const getTypeBadge = (type: JobType) => {
     repair: { icon: <Wrench className="h-3 w-3" />, color: "bg-red-100 text-red-700" },
     maintenance: { icon: <ClipboardList className="h-3 w-3" />, color: "bg-blue-100 text-blue-700" },
     relocation: { icon: <Navigation className="h-3 w-3" />, color: "bg-purple-100 text-purple-700" },
+    disconnection: { icon: <Pause className="h-3 w-3" />, color: "bg-slate-100 text-slate-700" },
     survey: { icon: <MapPin className="h-3 w-3" />, color: "bg-yellow-100 text-yellow-700" },
   }
   const c = config[type]
@@ -149,6 +149,8 @@ export default function DispatchPage() {
   const [loading, setLoading] = useState(true)
   const [technicians, setTechnicians] = useState<(Technician & { active_jobs: number; completed_today: number })[]>([])
   const [jobs, setJobs] = useState<DispatchJob[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [openTickets, setOpenTickets] = useState<SupportTicket[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [typeFilter, setTypeFilter] = useState<string>("all")
@@ -165,12 +167,17 @@ export default function DispatchPage() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      const [jobsRes, techsRes] = await Promise.allSettled([
+      const [jobsRes, techsRes, customersRes, ticketsRes] = await Promise.allSettled([
         adminApi.getDispatchJobs({ page_size: "100" }),
         adminApi.getTechnicians({ page_size: "50" }),
+        adminApi.getCustomers({ page_size: "100" }),
+        adminApi.getTickets({ page_size: "100" }),
       ])
       if (jobsRes.status === "fulfilled") {
         setJobs(jobsRes.value.results || [])
+      } else {
+        console.error("Failed to load dispatch jobs:", jobsRes.reason)
+        toast.error("Dispatch jobs endpoint is unavailable")
       }
       if (techsRes.status === "fulfilled") {
         setTechnicians(
@@ -180,9 +187,27 @@ export default function DispatchPage() {
             completed_today: 0,
           }))
         )
+      } else {
+        console.error("Failed to load technicians:", techsRes.reason)
+        toast.error("Technicians endpoint is unavailable")
+      }
+      if (customersRes.status === "fulfilled") {
+        setCustomers(customersRes.value.results || [])
+      } else {
+        console.error("Failed to load customers:", customersRes.reason)
+      }
+      if (ticketsRes.status === "fulfilled") {
+        setOpenTickets(
+          (ticketsRes.value.results || []).filter(
+            (ticket) => ticket.status !== "resolved" && ticket.status !== "closed"
+          )
+        )
+      } else {
+        console.error("Failed to load support tickets:", ticketsRes.reason)
       }
     } catch (err) {
       console.error("Failed to load dispatch data:", err)
+      toast.error("Failed to load dispatch data")
     } finally {
       setLoading(false)
     }
@@ -195,6 +220,7 @@ export default function DispatchPage() {
   // Create job form state
   const [jobForm, setJobForm] = useState({
     customer: "",
+    ticket: "",
     job_type: "installation" as JobType,
     priority: "medium" as JobPriority,
     scheduled_date: "",
@@ -279,11 +305,11 @@ export default function DispatchPage() {
 
   const handleStartJob = async (job: DispatchJob) => {
     try {
-      await adminApi.updateJobStatus(job.id, 'in_progress')
+      const updatedJob = await adminApi.updateJobStatus(job.id, 'in_progress')
       toast.success("Job started")
       await fetchData()
       if (selectedJob?.id === job.id) {
-        setSelectedJob({ ...job, status: 'in_progress' })
+        setSelectedJob(updatedJob)
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to start job")
@@ -292,9 +318,12 @@ export default function DispatchPage() {
 
   const handleCompleteJob = async (job: DispatchJob) => {
     try {
-      await adminApi.updateJobStatus(job.id, 'completed')
+      const updatedJob = await adminApi.updateJobStatus(job.id, 'completed')
       toast.success("Job completed")
       await fetchData()
+      if (selectedJob?.id === job.id) {
+        setSelectedJob(updatedJob)
+      }
       setIsDetailOpen(false)
     } catch (err: any) {
       toast.error(err.message || "Failed to complete job")
@@ -303,9 +332,12 @@ export default function DispatchPage() {
 
   const handleCancelJob = async (job: DispatchJob) => {
     try {
-      await adminApi.updateJobStatus(job.id, 'cancelled')
+      const updatedJob = await adminApi.updateJobStatus(job.id, 'cancelled')
       toast.success("Job cancelled")
       await fetchData()
+      if (selectedJob?.id === job.id) {
+        setSelectedJob(updatedJob)
+      }
       setIsDetailOpen(false)
     } catch (err: any) {
       toast.error(err.message || "Failed to cancel job")
@@ -326,6 +358,7 @@ export default function DispatchPage() {
         scheduled_time: jobForm.scheduled_time,
         description: jobForm.description,
         notes: jobForm.notes,
+        ticket: jobForm.ticket ? Number(jobForm.ticket) : undefined,
       } as any)
       toast.success("Job created successfully")
       await fetchData()
@@ -335,6 +368,7 @@ export default function DispatchPage() {
     setIsCreateJobOpen(false)
     setJobForm({
       customer: "",
+      ticket: "",
       job_type: "installation",
       priority: "medium",
       scheduled_date: "",
@@ -342,6 +376,17 @@ export default function DispatchPage() {
       description: "",
       notes: "",
     })
+  }
+
+  const handleTicketChange = (ticketId: string) => {
+    const ticket = openTickets.find((item) => String(item.id) === ticketId)
+    setJobForm((prev) => ({
+      ...prev,
+      ticket: ticketId,
+      customer: ticket ? String(ticket.customer_id) : prev.customer,
+      description: ticket ? `${ticket.subject}\n\n${ticket.description}` : prev.description,
+      priority: ticket ? ticket.priority : prev.priority,
+    }))
   }
 
   return (
@@ -472,6 +517,8 @@ export default function DispatchPage() {
                       <SelectItem value="repair">Repair</SelectItem>
                       <SelectItem value="maintenance">Maintenance</SelectItem>
                       <SelectItem value="relocation">Relocation</SelectItem>
+                      <SelectItem value="disconnection">Disconnection</SelectItem>
+                      <SelectItem value="survey">Survey</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={priorityFilter} onValueChange={setPriorityFilter}>
@@ -625,7 +672,7 @@ export default function DispatchPage() {
                           <div className="flex items-center justify-between">
                             <h3 className="font-semibold">{tech.name}</h3>
                             <Badge
-                              variant={tech.status === 'available' ? 'default' : tech.status === 'on_job' ? 'secondary' : 'outline'}
+                              variant={tech.status === 'available' ? 'default' : tech.status === 'busy' ? 'secondary' : 'outline'}
                               className={tech.status === 'available' ? 'bg-green-500' : ''}
                             >
                               {tech.status.replace('_', ' ')}
@@ -784,6 +831,12 @@ export default function DispatchPage() {
                       <span className="text-muted-foreground">Duration</span>
                       <span>~{selectedJob.estimated_duration} minutes</span>
                     </div>
+                    {selectedJob.ticket_number && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Linked Ticket</span>
+                        <span className="font-medium">{selectedJob.ticket_number}</span>
+                      </div>
+                    )}
                     <Separator className="my-2" />
                     <div>
                       <span className="text-muted-foreground">Description</span>
@@ -880,7 +933,7 @@ export default function DispatchPage() {
               </SelectTrigger>
               <SelectContent>
                 {technicians
-                  .filter(t => t.status !== 'off_duty')
+                  .filter(t => t.status === 'available' || t.status === 'busy')
                   .map((tech) => (
                     <SelectItem key={tech.id} value={String(tech.id)}>
                       <div className="flex items-center gap-2">
@@ -923,9 +976,30 @@ export default function DispatchPage() {
                   <SelectValue placeholder="Select a customer" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1001">John Doe - 123 Main St</SelectItem>
-                  <SelectItem value="1002">Jane Smith - 456 Oak Ave</SelectItem>
-                  <SelectItem value="1003">Bob Wilson - 789 Pine Rd</SelectItem>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={String(customer.id)}>
+                      {customer.full_name} - {customer.primary_address?.street_address || customer.phone}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ticket">Create from Ticket (Optional)</Label>
+              <Select value={jobForm.ticket} onValueChange={handleTicketChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Link an open support ticket" />
+                </SelectTrigger>
+                <SelectContent>
+                  {openTickets.length === 0 ? (
+                    <SelectItem value="none" disabled>No open tickets</SelectItem>
+                  ) : (
+                    openTickets.map((ticket) => (
+                      <SelectItem key={ticket.id} value={String(ticket.id)}>
+                        {ticket.ticket_number} - {ticket.customer_name} - {ticket.subject}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -941,6 +1015,7 @@ export default function DispatchPage() {
                     <SelectItem value="repair">Repair</SelectItem>
                     <SelectItem value="maintenance">Maintenance</SelectItem>
                     <SelectItem value="relocation">Relocation</SelectItem>
+                    <SelectItem value="disconnection">Disconnection</SelectItem>
                     <SelectItem value="survey">Survey</SelectItem>
                   </SelectContent>
                 </Select>

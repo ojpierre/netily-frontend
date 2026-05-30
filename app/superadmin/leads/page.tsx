@@ -20,6 +20,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -43,9 +44,11 @@ export default function LeadsPage() {
   const [selectedLead, setSelectedLead] = useState<LeadItem | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [contactedFilter, setContactedFilter] = useState<string>("all")
+  const [updatingLeadId, setUpdatingLeadId] = useState<number | null>(null)
 
   // Toggle contacted status with optimistic update
   const toggleContacted = async (lead: LeadItem) => {
+    setUpdatingLeadId(lead.id)
     const newVal = !lead.is_contacted
     try {
       await superadminApi.toggleLeadContacted(lead.id, newVal)
@@ -67,6 +70,8 @@ export default function LeadsPage() {
       fetchStats()
     } catch (err: any) {
       toast.error(err.message || "Failed to update")
+    } finally {
+      setUpdatingLeadId(null)
     }
   }
 
@@ -280,17 +285,15 @@ export default function LeadsPage() {
                         <p className="font-medium text-white">{l.name}</p>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => toggleContacted(l)}
-                          title={l.is_contacted ? "Mark as not contacted" : "Mark as contacted"}
-                          className={`inline-flex items-center justify-center w-7 h-7 rounded-full border-2 transition-all duration-200 ${
-                            l.is_contacted
-                              ? "bg-green-500/20 border-green-500 text-green-400 hover:bg-red-500/10 hover:border-red-400 hover:text-red-400"
-                              : "border-slate-600 text-slate-600 hover:border-green-400 hover:text-green-400"
-                          }`}
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-center">
+                          <Checkbox
+                            checked={l.is_contacted}
+                            disabled={updatingLeadId === l.id}
+                            aria-label={l.is_contacted ? `Mark ${l.name} as not contacted` : `Mark ${l.name} as contacted`}
+                            onCheckedChange={() => toggleContacted(l)}
+                            className="size-5 border-slate-500 data-[state=checked]:border-green-500 data-[state=checked]:bg-green-500"
+                          />
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="space-y-0.5">
@@ -428,6 +431,7 @@ export default function LeadsPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  disabled={updatingLeadId === selectedLead.id}
                   onClick={() => toggleContacted(selectedLead)}
                   className={
                     selectedLead.is_contacted

@@ -57,6 +57,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -166,6 +176,9 @@ export default function InventoryPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isAddTypeOpen, setIsAddTypeOpen] = useState(false)
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<EquipmentItem | null>(null)
+  const [pendingDestructiveAction, setPendingDestructiveAction] = useState<"delete" | "dispose">("delete")
 
   // Add equipment form
   const [itemForm, setItemForm] = useState({
@@ -447,16 +460,9 @@ export default function InventoryPage() {
 
   // Dispose equipment
   const handleDispose = async (item: EquipmentItem) => {
-    if (!confirm(`Are you sure you want to dispose ${item.name}?`)) return
-
-    try {
-      await adminApi.disposeEquipment(item.id, {})
-      toast.success('Equipment disposed')
-      fetchData()
-    } catch (error) {
-      console.error('Failed to dispose equipment:', error)
-      toast.error('Failed to dispose equipment')
-    }
+    setPendingDestructiveAction("dispose")
+    setItemToDelete(item)
+    setIsDeleteOpen(true)
   }
 
   // Edit equipment
@@ -501,14 +507,34 @@ export default function InventoryPage() {
 
   // Delete equipment
   const handleDeleteEquipment = async (item: EquipmentItem) => {
-    if (!confirm(`Are you sure you want to delete ${item.name} (${item.asset_tag})?`)) return
+    setPendingDestructiveAction("delete")
+    setItemToDelete(item)
+    setIsDeleteOpen(true)
+  }
+
+  const handleConfirmDeleteEquipment = async () => {
+    if (!itemToDelete) return
+    setIsSubmitting(true)
     try {
-      await adminApi.deleteEquipmentItem(item.id)
-      toast.success('Equipment deleted')
+      if (pendingDestructiveAction === "dispose") {
+        await adminApi.disposeEquipment(itemToDelete.id, {})
+        toast.success('Equipment disposed')
+      } else {
+        await adminApi.deleteEquipmentItem(itemToDelete.id)
+        toast.success('Equipment deleted')
+      }
+      setIsDeleteOpen(false)
+      if (selectedItem?.id === itemToDelete.id) {
+        setIsDetailOpen(false)
+        setSelectedItem(null)
+      }
+      setItemToDelete(null)
       fetchData()
     } catch (error) {
       console.error('Failed to delete equipment:', error)
       toast.error('Failed to delete equipment')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -1742,6 +1768,58 @@ export default function InventoryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          setIsDeleteOpen(open)
+          if (!open && !isSubmitting) {
+            setItemToDelete(null)
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingDestructiveAction === "dispose" ? "Dispose equipment item?" : "Delete equipment item?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {itemToDelete ? (
+                <>
+                  {pendingDestructiveAction === "dispose" ? (
+                    <>
+                      This will mark <span className="font-medium text-foreground">{itemToDelete.name}</span> with asset tag <span className="font-medium text-foreground">{itemToDelete.asset_tag}</span> as disposed and remove it from normal active inventory workflows.
+                    </>
+                  ) : (
+                    <>
+                      This will permanently remove <span className="font-medium text-foreground">{itemToDelete.name}</span> with asset tag <span className="font-medium text-foreground">{itemToDelete.asset_tag}</span> from inventory.
+                    </>
+                  )}{" "}
+                  This action cannot be undone.
+                </>
+              ) : (
+                "This action cannot be undone."
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault()
+                handleConfirmDeleteEquipment()
+              }}
+              disabled={isSubmitting}
+              className={pendingDestructiveAction === "dispose"
+                ? "bg-amber-600 hover:bg-amber-700 focus-visible:ring-amber-500"
+                : "bg-red-600 hover:bg-red-700 focus-visible:ring-red-500"}
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {pendingDestructiveAction === "dispose" ? "Dispose Equipment" : "Delete Equipment"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

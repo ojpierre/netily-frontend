@@ -1383,11 +1383,13 @@ export interface CPETask {
 
 export type TechnicianStatus = 'available' | 'busy' | 'offline' | 'on_leave'
 export type JobStatus = 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
-export type JobType = 'installation' | 'repair' | 'maintenance' | 'relocation' | 'disconnection'
+export type JobType = 'installation' | 'repair' | 'maintenance' | 'relocation' | 'disconnection' | 'survey'
 
 export interface Technician {
   id: number
-  user: User
+  user?: User
+  name: string
+  email?: string | null
   employee_id: string
   phone: string
   skills: string[]
@@ -1411,7 +1413,7 @@ export interface DispatchJob {
   description: string
   priority: 'low' | 'medium' | 'high' | 'urgent'
   status: JobStatus
-  assigned_to?: Technician
+  assigned_to?: number | Technician | null
   technician?: number
   technician_name?: string
   scheduled_date: string
