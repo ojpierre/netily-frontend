@@ -325,8 +325,10 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
 
       const response = await adminApi.createStaffUser(payload)
 
+      // 🟢 FIX 1: Safely extract user object from response
+      const createdUser = (response as any).user ?? response
       toast.success(
-        `Staff account created for ${response.user.first_name} ${response.user.last_name}`,
+        `Staff account created for ${createdUser.first_name} ${createdUser.last_name}`,
         {
           description: `Role: ${formData.role}. They can now log in with their email and password.`,
         }
@@ -991,8 +993,9 @@ export default function StaffManagementPage() {
                           </Badge>
                         )}
                       </TableCell>
+                      {/* 🟢 FIX 2: Use created_at if available, otherwise fallback to date_joined */}
                       <TableCell className="text-slate-500">
-                        {formatDate(user.date_joined)}
+                        {formatDate(user.created_at || user.date_joined)}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -1001,21 +1004,9 @@ export default function StaffManagementPage() {
                               <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
+                          {/* 🟢 FIX 3: Removed broken "View Details" and "Edit" routes */}
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => router.push(`/admin/staff/${user.id}`)}
-                            >
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => router.push(`/admin/staff/${user.id}/edit`)}
-                            >
-                              <Pencil className="w-4 h-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {user.is_active ? (
                               <DropdownMenuItem
