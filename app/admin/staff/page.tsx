@@ -119,10 +119,11 @@ const STAFF_ROLES: { value: StaffRole; label: string; description: string; icon:
   },
 ]
 
+// 🟢 FIX: Gender values changed to match backend choices (M/F/O)
 const GENDER_OPTIONS: { value: Gender; label: string }[] = [
-  { value: "male", label: "Male" },
-  { value: "female", label: "Female" },
-  { value: "other", label: "Other" },
+  { value: "M" as any, label: "Male" },
+  { value: "F" as any, label: "Female" },
+  { value: "O" as any, label: "Other" },
 ]
 
 // ==========================================
