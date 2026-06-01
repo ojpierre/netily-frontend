@@ -363,6 +363,10 @@ export default function UsersPage() {
   const [savingIP, setSavingIP] = useState(false)
   const [editIPPoolId, setEditIPPoolId] = useState<number | null>(null)
 
+  // NEW: SMS state
+  const [smsTarget, setSmsTarget] = useState<User | null>(null)
+  const [sendingSms, setSendingSms] = useState(false)
+
   const [editForm, setEditForm] = useState({
     first_name: "",
     last_name: "",
@@ -1504,6 +1508,52 @@ export default function UsersPage() {
     toast.success(`${label} copied to clipboard`)
   }
 
+  // NEW: SMS handlers
+  const handleSendSingleSms = async () => {
+    if (!smsTarget || !smsMessage.trim()) return
+    try {
+      setSendingSms(true)
+      await adminApi.sendSMS({
+        recipient: smsTarget.phone,
+        message: smsMessage.trim(),
+      })
+      toast.success(`SMS sent to ${smsTarget.name}`)
+      setShowSmsDialog(false)
+      setSmsMessage("")
+      setSmsTarget(null)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send SMS")
+    } finally {
+      setSendingSms(false)
+    }
+  }
+
+  const handleSendBulkSms = async () => {
+    if (selectedUsers.length === 0 || !smsMessage.trim()) return
+    try {
+      setSendingSms(true)
+      const usersToNotify = enrichedUsers.filter(u => selectedUsers.includes(u.id))
+      for (const user of usersToNotify) {
+        if (user.phone && user.phone !== 'No phone') {
+          await adminApi.sendSMS({
+            recipient: user.phone,
+            message: smsMessage.trim(),
+          })
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
+      }
+      toast.success(`SMS sent to ${usersToNotify.length} user(s)`)
+      setShowSmsDialog(false)
+      setSmsMessage("")
+      setSmsTarget(null)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send bulk SMS")
+    } finally {
+      setSendingSms(false)
+    }
+  }
+
   const totalActiveSubscriptions = (activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0)
 
   if (error) {
@@ -2158,40 +2208,14 @@ export default function UsersPage() {
                 {selectedUsers.length} user(s) selected
               </span>
               <div className="flex-1" />
-              <Dialog open={showSmsDialog} onOpenChange={setShowSmsDialog}>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    <Send className="w-4 h-4 mr-2" />
-                    Send SMS
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Send Bulk SMS</DialogTitle>
-                    <DialogDescription>
-                      Send SMS to {selectedUsers.length} selected users
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Message</Label>
-                      <Textarea 
-                        placeholder="Enter your message..."
-                        value={smsMessage}
-                        onChange={(e) => setSmsMessage(e.target.value)}
-                        rows={4}
-                      />
-                      <p className="text-xs text-slate-500">{smsMessage.length}/160 characters</p>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowSmsDialog(false)}>
-                      Cancel
-                    </Button>
-                    <Button>Send SMS</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <Button size="sm" variant="outline" onClick={() => {
+                setSmsTarget(null)
+                setSmsMessage("")
+                setShowSmsDialog(true)
+              }}>
+                <Send className="w-4 h-4 mr-2" />
+                Send SMS
+              </Button>
               <Button size="sm" variant="outline">
                 <Mail className="w-4 h-4 mr-2" />
                 Send Email
@@ -2555,6 +2579,14 @@ export default function UsersPage() {
                                     Edit IP Address
                                   </DropdownMenuItem>
                                 )}
+                                <DropdownMenuItem onClick={() => {
+                                  setSmsTarget(user)
+                                  setSmsMessage("")
+                                  setShowSmsDialog(true)
+                                }}>
+                                  <Send className="w-4 h-4 mr-2" />
+                                  Send SMS
+                                </DropdownMenuItem>
                                 {user.status === "pending" && (
                                   <DropdownMenuItem 
                                     onClick={() => handleActivateUser(user)}
@@ -2856,6 +2888,14 @@ export default function UsersPage() {
                                   Edit IP Address
                                 </DropdownMenuItem>
                               )}
+                              <DropdownMenuItem onClick={() => {
+                                setSmsTarget(user)
+                                setSmsMessage("")
+                                setShowSmsDialog(true)
+                              }}>
+                                <Send className="w-4 h-4 mr-2" />
+                                Send SMS
+                              </DropdownMenuItem>
                               {user.status === "pending" && (
                                 <DropdownMenuItem 
                                   onClick={() => handleActivateUser(user)}
@@ -3369,7 +3409,11 @@ export default function UsersPage() {
                       </Button>
                     )}
                     <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1">
+                      <Button variant="outline" className="flex-1" onClick={() => {
+                        setSmsTarget(selectedUser)
+                        setSmsMessage("")
+                        setShowSmsDialog(true)
+                      }}>
                         <Send className="w-4 h-4 mr-2" />
                         Send SMS
                       </Button>
@@ -4121,6 +4165,55 @@ export default function UsersPage() {
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Changing...</>
               ) : (
                 <><Server className="w-4 h-4 mr-2" />Change IP</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unified SMS Dialog (supports both single and bulk) */}
+      <Dialog open={showSmsDialog} onOpenChange={(open) => {
+        setShowSmsDialog(open)
+        if (!open) {
+          setSmsTarget(null)
+          setSmsMessage("")
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send SMS</DialogTitle>
+            <DialogDescription>
+              {smsTarget
+                ? `Send a message to ${smsTarget.name} (${smsTarget.phone})`
+                : selectedUsers.length > 0
+                ? `Send SMS to ${selectedUsers.length} selected user(s)`
+                : "Send SMS"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Message</Label>
+              <Textarea
+                placeholder="Enter your message..."
+                value={smsMessage}
+                onChange={(e) => setSmsMessage(e.target.value)}
+                rows={4}
+              />
+              <p className="text-xs text-slate-500">{smsMessage.length}/160 characters</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSmsDialog(false)} disabled={sendingSms}>
+              Cancel
+            </Button>
+            <Button
+              onClick={smsTarget ? handleSendSingleSms : handleSendBulkSms}
+              disabled={sendingSms || !smsMessage.trim() || (!smsTarget && selectedUsers.length === 0)}
+            >
+              {sendingSms ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending...</>
+              ) : (
+                <><Send className="w-4 h-4 mr-2" />Send SMS</>
               )}
             </Button>
           </DialogFooter>
