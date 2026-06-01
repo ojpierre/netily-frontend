@@ -1399,6 +1399,8 @@ export interface Technician {
   longitude?: number
   total_jobs_completed: number
   average_rating: number
+  active_jobs?: number
+  completed_today?: number
   created_at: string
 }
 

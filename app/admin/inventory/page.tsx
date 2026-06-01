@@ -183,6 +183,7 @@ export default function InventoryPage() {
   // Add equipment form
   const [itemForm, setItemForm] = useState({
     equipment_type: "",
+    equipment_type_text: "",
     name: "",
     model: "",
     serial_number: "",
@@ -351,6 +352,7 @@ export default function InventoryPage() {
   const resetItemForm = () => {
     setItemForm({
       equipment_type: "",
+      equipment_type_text: "",
       name: "",
       model: "",
       serial_number: "",
@@ -366,15 +368,15 @@ export default function InventoryPage() {
 
   // Create equipment
   const handleCreateEquipment = async () => {
-    if (!itemForm.equipment_type || !itemForm.name) {
-      toast.error('Please fill in required fields')
+    if (!itemForm.equipment_type_text.trim() || !itemForm.name.trim()) {
+      toast.error('Equipment type and name are required')
       return
     }
 
     setIsSubmitting(true)
     try {
       await adminApi.createEquipmentItem({
-        equipment_type: parseInt(itemForm.equipment_type),
+        equipment_type_text: itemForm.equipment_type_text.trim(),
         name: itemForm.name,
         model: itemForm.model || undefined,
         serial_number: itemForm.serial_number || undefined,
@@ -385,7 +387,7 @@ export default function InventoryPage() {
         condition: itemForm.condition,
         location: itemForm.location || undefined,
         notes: itemForm.notes || undefined,
-      })
+      } as any)
       toast.success('Equipment added successfully')
       setIsAddItemOpen(false)
       resetItemForm()
@@ -1324,19 +1326,21 @@ export default function InventoryPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="equipment_type">Equipment Type *</Label>
-                <Select
-                  value={itemForm.equipment_type}
-                  onValueChange={(v) => setItemForm({ ...itemForm, equipment_type: v })}
-                >
-                  <SelectTrigger id="equipment_type">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {equipmentTypes.map((type) => (
-                      <SelectItem key={type.id} value={String(type.id)}>{type.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="equipment_type"
+                  list="equipment-type-options"
+                  placeholder="Router, ONU, cable, radio..."
+                  value={itemForm.equipment_type_text}
+                  onChange={(e) => setItemForm({ ...itemForm, equipment_type_text: e.target.value })}
+                />
+                <datalist id="equipment-type-options">
+                  {equipmentTypes.map((type) => (
+                    <option key={type.id} value={type.name} />
+                  ))}
+                </datalist>
+                <p className="text-xs text-muted-foreground">
+                  Type freely. If it does not exist, Netily will create it for you.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>

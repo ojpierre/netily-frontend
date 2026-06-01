@@ -20,6 +20,8 @@ import {
   User,
   MapPin,
   Phone,
+  Mail,
+  Send,
   Eye,
   Play,
   Pause,
@@ -31,6 +33,7 @@ import {
   Target,
   Flag,
   MessageSquare,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -159,10 +162,15 @@ export default function DispatchPage() {
   const [selectedJob, setSelectedJob] = useState<DispatchJob | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isCreateJobOpen, setIsCreateJobOpen] = useState(false)
+  const [isCreateTechnicianOpen, setIsCreateTechnicianOpen] = useState(false)
+  const [isNotifyDialogOpen, setIsNotifyDialogOpen] = useState(false)
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false)
   const [jobToAssign, setJobToAssign] = useState<DispatchJob | null>(null)
+  const [jobToNotify, setJobToNotify] = useState<DispatchJob | null>(null)
   const [selectedTechnician, setSelectedTechnician] = useState<string>("")
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isSubmittingTechnician, setIsSubmittingTechnician] = useState(false)
+  const [isSendingNotification, setIsSendingNotification] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
@@ -183,8 +191,8 @@ export default function DispatchPage() {
         setTechnicians(
           (techsRes.value.results || []).map(t => ({
             ...t,
-            active_jobs: 0,
-            completed_today: 0,
+            active_jobs: (t as any).active_jobs || 0,
+            completed_today: (t as any).completed_today || 0,
           }))
         )
       } else {
@@ -227,6 +235,16 @@ export default function DispatchPage() {
     scheduled_time: "09:00",
     description: "",
     notes: "",
+  })
+
+  const [technicianForm, setTechnicianForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    password: "",
+    skills: "",
+    current_location: "",
   })
 
   // Stats
@@ -276,6 +294,15 @@ export default function DispatchPage() {
 
     return filtered
   }, [jobs, searchQuery, statusFilter, typeFilter, priorityFilter])
+
+  const scheduleGroups = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    return {
+      today: jobs.filter(j => j.scheduled_date === today && j.status !== "completed" && j.status !== "cancelled"),
+      upcoming: jobs.filter(j => j.scheduled_date > today && j.status !== "completed" && j.status !== "cancelled"),
+      unassigned: jobs.filter(j => !j.technician && !j.assigned_to && j.status !== "completed" && j.status !== "cancelled"),
+    }
+  }, [jobs])
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
@@ -378,6 +405,72 @@ export default function DispatchPage() {
     })
   }
 
+  const handleCreateTechnician = async () => {
+    if (!technicianForm.first_name.trim() || !technicianForm.phone.trim() || !technicianForm.email.trim()) {
+      toast.error("Technician name, phone, and email are required")
+      return
+    }
+
+    setIsSubmittingTechnician(true)
+    try {
+      await adminApi.createTechnician({
+        first_name: technicianForm.first_name.trim(),
+        last_name: technicianForm.last_name.trim(),
+        email: technicianForm.email.trim(),
+        phone: technicianForm.phone.trim(),
+        password: technicianForm.password || undefined,
+        skills: technicianForm.skills
+          .split(",")
+          .map((skill) => skill.trim())
+          .filter(Boolean),
+        current_location: technicianForm.current_location.trim() || undefined,
+        status: "available",
+      })
+      toast.success("Technician created")
+      setTechnicianForm({
+        first_name: "",
+        last_name: "",
+        email: "",
+        phone: "",
+        password: "",
+        skills: "",
+        current_location: "",
+      })
+      setIsCreateTechnicianOpen(false)
+      await fetchData()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create technician")
+    } finally {
+      setIsSubmittingTechnician(false)
+    }
+  }
+
+  const notificationTemplate = (job: DispatchJob | null) => {
+    if (!job) return ""
+    return `Hi ${job.technician_name || "Technician"}, you have been assigned ${job.job_number || `JOB-${job.id}`}: ${job.job_type.replace("_", " ")} for ${job.customer_name} on ${job.scheduled_date} at ${job.scheduled_time || "TBA"}. Customer phone: ${job.customer_phone || "N/A"}.`
+  }
+
+  const handleNotifyTechnician = async (channels: Array<"sms" | "email">) => {
+    if (!jobToNotify) return
+    setIsSendingNotification(true)
+    try {
+      const message = notificationTemplate(jobToNotify)
+      await adminApi.notifyDispatchTechnician(jobToNotify.id, {
+        channels,
+        sms_message: message,
+        email_subject: `Dispatch assignment ${jobToNotify.job_number || jobToNotify.id}`,
+        email_body: `${message}\n\nAddress: ${jobToNotify.customer_address || "N/A"}\nDescription: ${jobToNotify.description || "No description provided."}`,
+      })
+      toast.success(`Technician notification sent via ${channels.join(" and ")}`)
+      setIsNotifyDialogOpen(false)
+      setJobToNotify(null)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send notification")
+    } finally {
+      setIsSendingNotification(false)
+    }
+  }
+
   const handleTicketChange = (ticketId: string) => {
     const ticket = openTickets.find((item) => String(item.id) === ticketId)
     setJobForm((prev) => ({
@@ -388,6 +481,50 @@ export default function DispatchPage() {
       priority: ticket ? ticket.priority : prev.priority,
     }))
   }
+
+  const renderScheduleJobs = (items: DispatchJob[]) => (
+    <div className="space-y-4">
+      {items.length === 0 ? (
+        <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
+          No jobs in this schedule bucket.
+        </div>
+      ) : items.map((job) => (
+        <div key={job.id} className="flex items-center gap-4 p-4 rounded-lg border">
+          <div className="text-center min-w-[72px]">
+            <p className="text-lg font-bold">{job.scheduled_time || "TBA"}</p>
+            <p className="text-xs text-muted-foreground">{job.scheduled_date}</p>
+          </div>
+          <Separator orientation="vertical" className="h-12" />
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              {getTypeBadge(job.job_type)}
+              {getPriorityBadge(job.priority)}
+            </div>
+            <p className="font-medium mt-1">{job.customer_name}</p>
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {job.customer_address || "No address captured"}
+            </p>
+          </div>
+          <div className="text-right space-y-2">
+            {job.technician_name ? (
+              <div className="flex items-center justify-end gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="text-xs">
+                    {job.technician_name.split(' ').map(n => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm">{job.technician_name}</span>
+              </div>
+            ) : (
+              <Badge variant="outline" className="text-yellow-600">Unassigned</Badge>
+            )}
+            <div>{getStatusBadge(job.status)}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -403,6 +540,10 @@ export default function DispatchPage() {
           <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
+          </Button>
+          <Button variant="outline" onClick={() => setIsCreateTechnicianOpen(true)}>
+            <Users className="mr-2 h-4 w-4" />
+            Add Technician
           </Button>
           <Button onClick={() => setIsCreateJobOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -655,10 +796,25 @@ export default function DispatchPage() {
         <TabsContent value="technicians" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Technicians</CardTitle>
-              <CardDescription>Field technician roster and availability</CardDescription>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <CardTitle>Technicians</CardTitle>
+                  <CardDescription>Field technician roster and availability</CardDescription>
+                </div>
+                <Button onClick={() => setIsCreateTechnicianOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Technician
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
+              {technicians.length === 0 ? (
+                <div className="rounded-xl border border-dashed py-12 text-center">
+                  <Users className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+                  <p className="font-medium">No technicians yet</p>
+                  <p className="text-sm text-muted-foreground">Create your first technician so jobs can be assigned.</p>
+                </div>
+              ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {technicians.map((tech) => (
                   <Card key={tech.id} className="relative">
@@ -710,6 +866,7 @@ export default function DispatchPage() {
                   </Card>
                 ))}
               </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -717,56 +874,26 @@ export default function DispatchPage() {
         <TabsContent value="schedule" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Today's Schedule</CardTitle>
-              <CardDescription>Scheduled jobs for {new Date().toLocaleDateString()}</CardDescription>
+              <CardTitle>Schedule</CardTitle>
+              <CardDescription>Plan today's work, future appointments, and unassigned jobs.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {jobs
-                  .filter(j => j.status !== 'completed' && j.status !== 'cancelled')
-                  .slice(0, 10)
-                  .map((job) => (
-                    <div key={job.id} className="flex items-center gap-4 p-4 rounded-lg border">
-                      <div className="text-center min-w-[60px]">
-                        <p className="text-lg font-bold">{job.scheduled_time}</p>
-                        <p className="text-xs text-muted-foreground">
-                          ~{job.estimated_duration} min
-                        </p>
-                      </div>
-                      <Separator orientation="vertical" className="h-12" />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          {getTypeBadge(job.job_type)}
-                          {getPriorityBadge(job.priority)}
-                        </div>
-                        <p className="font-medium mt-1">{job.customer_name}</p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {job.customer_address}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        {job.technician_name ? (
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback className="text-xs">
-                                {job.technician_name.split(' ').map(n => n[0]).join('')}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm">{job.technician_name}</span>
-                          </div>
-                        ) : (
-                          <Badge variant="outline" className="text-yellow-600">
-                            Unassigned
-                          </Badge>
-                        )}
-                        <div className="mt-2">
-                          {getStatusBadge(job.status)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
+              <Tabs defaultValue="today">
+                <TabsList>
+                  <TabsTrigger value="today">Today ({scheduleGroups.today.length})</TabsTrigger>
+                  <TabsTrigger value="upcoming">Upcoming ({scheduleGroups.upcoming.length})</TabsTrigger>
+                  <TabsTrigger value="unassigned">Unassigned ({scheduleGroups.unassigned.length})</TabsTrigger>
+                </TabsList>
+                <TabsContent value="today" className="mt-4">
+                  {renderScheduleJobs(scheduleGroups.today)}
+                </TabsContent>
+                <TabsContent value="upcoming" className="mt-4">
+                  {renderScheduleJobs(scheduleGroups.upcoming)}
+                </TabsContent>
+                <TabsContent value="unassigned" className="mt-4">
+                  {renderScheduleJobs(scheduleGroups.unassigned)}
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </TabsContent>
@@ -905,9 +1032,16 @@ export default function DispatchPage() {
                       Complete Job
                     </Button>
                   )}
-                  <Button variant="outline">
+                  <Button
+                    variant="outline"
+                    disabled={!selectedJob.technician_name}
+                    onClick={() => {
+                      setJobToNotify(selectedJob)
+                      setIsNotifyDialogOpen(true)
+                    }}
+                  >
                     <MessageSquare className="mr-2 h-4 w-4" />
-                    Contact
+                    Notify Tech
                   </Button>
                 </div>
               </div>
@@ -954,6 +1088,90 @@ export default function DispatchPage() {
             <Button onClick={handleAssignJob} disabled={!selectedTechnician}>
               <User className="mr-2 h-4 w-4" />
               Assign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Technician Dialog */}
+      <Dialog open={isCreateTechnicianOpen} onOpenChange={setIsCreateTechnicianOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create Technician</DialogTitle>
+            <DialogDescription>
+              Create a technician login and make them available for dispatch jobs.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>First Name *</Label>
+                <Input value={technicianForm.first_name} onChange={(e) => setTechnicianForm({ ...technicianForm, first_name: e.target.value })} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Last Name</Label>
+                <Input value={technicianForm.last_name} onChange={(e) => setTechnicianForm({ ...technicianForm, last_name: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Phone *</Label>
+                <Input placeholder="+254..." value={technicianForm.phone} onChange={(e) => setTechnicianForm({ ...technicianForm, phone: e.target.value })} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Email *</Label>
+                <Input type="email" value={technicianForm.email} onChange={(e) => setTechnicianForm({ ...technicianForm, email: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Temporary Password</Label>
+              <Input type="password" placeholder="Leave blank to auto-generate" value={technicianForm.password} onChange={(e) => setTechnicianForm({ ...technicianForm, password: e.target.value })} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Skills</Label>
+              <Input placeholder="Fiber splicing, MikroTik, installs" value={technicianForm.skills} onChange={(e) => setTechnicianForm({ ...technicianForm, skills: e.target.value })} />
+              <p className="text-xs text-muted-foreground">Separate skills with commas.</p>
+            </div>
+            <div className="grid gap-2">
+              <Label>Base Location</Label>
+              <Input placeholder="e.g. Kiambu, Westlands" value={technicianForm.current_location} onChange={(e) => setTechnicianForm({ ...technicianForm, current_location: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateTechnicianOpen(false)} disabled={isSubmittingTechnician}>Cancel</Button>
+            <Button onClick={handleCreateTechnician} disabled={isSubmittingTechnician}>
+              {isSubmittingTechnician && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Technician
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Technician Notification Dialog */}
+      <Dialog open={isNotifyDialogOpen} onOpenChange={setIsNotifyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Notify Technician</DialogTitle>
+            <DialogDescription>
+              Send this assignment template to {jobToNotify?.technician_name || "the technician"}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border bg-slate-50 p-4 text-sm text-slate-700">
+            {notificationTemplate(jobToNotify)}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsNotifyDialogOpen(false)} disabled={isSendingNotification}>Cancel</Button>
+            <Button variant="outline" onClick={() => handleNotifyTechnician(["email"])} disabled={isSendingNotification}>
+              <Mail className="mr-2 h-4 w-4" />
+              Email
+            </Button>
+            <Button variant="outline" onClick={() => handleNotifyTechnician(["sms"])} disabled={isSendingNotification}>
+              <Send className="mr-2 h-4 w-4" />
+              SMS
+            </Button>
+            <Button onClick={() => handleNotifyTechnician(["sms", "email"])} disabled={isSendingNotification}>
+              {isSendingNotification && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send Both
             </Button>
           </DialogFooter>
         </DialogContent>

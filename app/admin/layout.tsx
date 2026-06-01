@@ -147,6 +147,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
   const [unreadNotifCount, setUnreadNotifCount] = useState(0)
   const [companyLogo, setCompanyLogo] = useState<string>("")
+  const [companyName, setCompanyName] = useState<string>("Netily Admin")
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
@@ -159,16 +160,39 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     setMounted(true)
   }, [])
 
-  // Load and watch company logo from localStorage
+  // Load tenant branding for the sidebar header and keep localStorage in sync.
   useEffect(() => {
     const saved = localStorage.getItem("netily_company_logo")
     if (saved) setCompanyLogo(saved)
+    const savedName = localStorage.getItem("netily_company_name")
+    if (savedName) setCompanyName(savedName)
+
+    const fetchBranding = async () => {
+      try {
+        const { adminApi } = await import("@/lib/admin-api")
+        const branding = await adminApi.getTenantBranding()
+        const logoUrl = branding.logo_url || branding.logo || ""
+        if (logoUrl) {
+          setCompanyLogo(logoUrl)
+          localStorage.setItem("netily_company_logo", logoUrl)
+        }
+        if (branding.name) {
+          setCompanyName(branding.name)
+          localStorage.setItem("netily_company_name", branding.name)
+        }
+      } catch {
+        // Branding is decorative; auth/navigation should never depend on it.
+      }
+    }
+    if (user && !isPublicPage) fetchBranding()
+
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "netily_company_logo") setCompanyLogo(e.newValue || "")
+      if (e.key === "netily_company_name") setCompanyName(e.newValue || "Netily Admin")
     }
     window.addEventListener("storage", handleStorage)
     return () => window.removeEventListener("storage", handleStorage)
-  }, [])
+  }, [user, isPublicPage])
 
   // Fetch unread notification count
   useEffect(() => {
@@ -265,7 +289,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   N
                 </div>
               )}
-              <span className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">Netily Admin</span>
+              <span className="truncate font-bold text-lg text-slate-900 dark:text-white tracking-tight">{companyName}</span>
             </Link>
           )}
           <Button

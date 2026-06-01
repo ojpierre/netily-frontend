@@ -993,6 +993,26 @@ async activateService(
     })
   }
 
+  async getTenantBranding(): Promise<{ id: number; name: string; logo?: string; logo_url?: string | null }> {
+    return this.request('/core/branding/')
+  }
+
+  async updateTenantBranding(formData: FormData): Promise<{ id: number; name: string; logo?: string; logo_url?: string | null }> {
+    const token = this.getAdminToken()
+    const response = await fetch(`${this.baseUrl}/core/branding/`, {
+      method: 'PATCH',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    })
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(error.detail || error.error || `Branding update failed (${response.status})`)
+    }
+    return response.json()
+  }
+
   // ------------------------------------------
   // TENANTS - /core/tenants/
   // ------------------------------------------
@@ -1907,6 +1927,18 @@ async activateService(
     return this.request<DispatchJob>(`/staff/dispatch/jobs/${jobId}/status/`, {
       method: 'POST',
       body: JSON.stringify({ status, notes: notes || '' }),
+    })
+  }
+
+  async notifyDispatchTechnician(jobId: number, data: {
+    channels?: Array<'sms' | 'email'>
+    sms_message?: string
+    email_subject?: string
+    email_body?: string
+  }): Promise<{ sms?: boolean | null; email?: boolean | null; sms_error?: string; email_error?: string }> {
+    return this.request(`/staff/dispatch/jobs/${jobId}/notify-technician/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     })
   }
 
@@ -4276,18 +4308,30 @@ async activateService(
 
   async getLeads(params?: Record<string, string>): Promise<any> {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    // Assuming it's PaginatedResponse<Lead> based on standard endpoints, but we use any for now
-    return this.request<any>(`/leads/${query}`)
+    return this.request<any>(`/core/leads/${query}`)
   }
 
   async getLeadStats(): Promise<any> {
-    return this.request<any>('/leads/stats/')
+    return this.request<any>('/core/leads/stats/')
+  }
+
+  async createLead(data: any): Promise<any> {
+    return this.request<any>('/core/leads/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
   }
 
   async updateLead(id: string | number, data: any): Promise<any> {
-    return this.request<any>(`/leads/${id}/`, {
+    return this.request<any>(`/core/leads/${id}/`, {
       method: 'PATCH',
       body: JSON.stringify(data),
+    })
+  }
+
+  async deleteLead(id: string | number): Promise<void> {
+    return this.request<void>(`/core/leads/${id}/`, {
+      method: 'DELETE',
     })
   }
 

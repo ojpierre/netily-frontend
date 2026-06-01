@@ -117,14 +117,16 @@ function AccountSettingsTab() {
           email: user.email || "",
           phone_number: user.phone_number || "",
         })
-        // Load company logo if companies exist
+        // Load tenant branding from the same endpoint used by dashboard chrome.
         try {
-          const companies = await adminApi.getCompanies()
-          if (companies && companies.length > 0) {
-            const company = companies[0] // Use first company
-            setCompanyId(company.id)
-            setCompanyName(company.name || "")
-            setCompanyLogo(company.logo || "")
+          const branding = await adminApi.getTenantBranding()
+          if (branding) {
+            setCompanyId(branding.id)
+            setCompanyName(branding.name || "")
+            const logoUrl = branding.logo_url || branding.logo || ""
+            setCompanyLogo(logoUrl)
+            if (logoUrl) localStorage.setItem("netily_company_logo", logoUrl)
+            if (branding.name) localStorage.setItem("netily_company_name", branding.name)
           }
         } catch { /* non-critical */ }
       } catch (error) {
@@ -331,41 +333,16 @@ function AccountSettingsTab() {
               }
               setLogoSaving(true)
               try {
-                // Try to find company ID - first check if we already have it
-                let cId = companyId
-                if (!cId) {
-                  try {
-                    // Try to get companies list
-                    const companies = await adminApi.getCompanies()
-                    if (companies && companies.length > 0) {
-                      // Use the first company (most common case)
-                      cId = companies[0].id
-                      setCompanyId(cId)
-                    }
-                  } catch { /* ignore */ }
-                }
-                
-                if (!cId) {
-                  toast.error("No company found. Please create a company profile first in the Company section below.")
-                  return
-                }
-                
                 const formData = new FormData()
                 formData.append('logo', logoFile)
-                const token = getAdminToken()
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
-                const res = await fetch(`${apiBase}/core/companies/${cId}/`, {
-                  method: 'PATCH',
-                  headers: {
-                    'Authorization': `Bearer ${token || ''}`,
-                  },
-                  body: formData,
-                })
-                if (!res.ok) throw new Error(`Upload failed (${res.status})`)
-                const data = await res.json()
-                const savedLogoUrl = data.logo || logoPreview
+                const data = await adminApi.updateTenantBranding(formData)
+                const savedLogoUrl = data.logo_url || data.logo || logoPreview
                 setCompanyLogo(savedLogoUrl)
                 localStorage.setItem("netily_company_logo", savedLogoUrl)
+                if (data.name) {
+                  setCompanyName(data.name)
+                  localStorage.setItem("netily_company_name", data.name)
+                }
                 setLogoFile(null)
                 setLogoPreview("")
                 toast.success("Company logo updated successfully!")
@@ -423,48 +400,12 @@ function AccountSettingsTab() {
               }
               setLogoSaving(true) // Reuse the loading state
               try {
-                let cId = companyId
-                if (!cId) {
-                  // Try to get existing companies first
-                  try {
-                    const companies = await adminApi.getCompanies()
-                    if (companies && companies.length > 0) {
-                      cId = companies[0].id
-                    }
-                  } catch { /* ignore */ }
-                }
-
-                const token = getAdminToken()
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
-                
-                if (cId) {
-                  // Update existing company
-                  const res = await fetch(`${apiBase}/core/companies/${cId}/`, {
-                    method: 'PATCH',
-                    headers: {
-                      'Authorization': `Bearer ${token || ''}`,
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ name: companyName.trim() }),
-                  })
-                  if (!res.ok) throw new Error(`Update failed (${res.status})`)
-                  const data = await res.json()
-                  setCompanyName(data.name || companyName)
-                } else {
-                  // Create new company
-                  const res = await fetch(`${apiBase}/core/companies/`, {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': `Bearer ${token || ''}`,
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ name: companyName.trim() }),
-                  })
-                  if (!res.ok) throw new Error(`Creation failed (${res.status})`)
-                  const data = await res.json()
-                  setCompanyId(data.id)
-                  setCompanyName(data.name || companyName)
-                }
+                const formData = new FormData()
+                formData.append("name", companyName.trim())
+                const data = await adminApi.updateTenantBranding(formData)
+                setCompanyId(data.id)
+                setCompanyName(data.name || companyName)
+                localStorage.setItem("netily_company_name", data.name || companyName.trim())
                 
                 toast.success("Company information saved successfully!")
               } catch (error: any) {
