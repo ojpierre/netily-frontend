@@ -36,7 +36,6 @@ import {
   CreditCard,
   ArrowRightLeft,
   MapPin,
-  Lock,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
 import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession, ActiveSubscriptionsResponse, CustomerAvailablePlanOption, CustomerAvailablePlansResponse, PaymentEntry } from "@/lib/types"
@@ -386,8 +385,6 @@ export default function UsersPage() {
     radius_username: "",
     radius_password: "",
     location: "",
-    portal_username: "",
-    portal_password: "",
   })
 
   const [newCustomerForm, setNewCustomerForm] = useState({
@@ -396,7 +393,6 @@ export default function UsersPage() {
     email: "",
     phone: "",
     password: "",
-    portal_username: "",
     radius_username: "",
     radius_password: "",
     connection_type: "pppoe" as "pppoe" | "static",
@@ -789,24 +785,17 @@ export default function UsersPage() {
       return
     }
     if (!newCustomerForm.password) {
-      toast.error("Portal password is required")
+      toast.error("Password is required")
       return
     }
 
     try {
       setCreating(true)
-      
-      // Determine portal username: explicit > PPPoE username > phone
-      const resolvedPortalUsername =
-        newCustomerForm.portal_username ||
-        newCustomerForm.radius_username ||
-        (newCustomerForm.phone ? generateUsernameFromPhone(newCustomerForm.phone) : "")
-      
       const customerData = {
         first_name: newCustomerForm.first_name,
         last_name: newCustomerForm.last_name,
-        email: newCustomerForm.email || resolvedPortalUsername,
-        phone: newCustomerForm.phone,
+        email: newCustomerForm.email || undefined,
+        phone: newCustomerForm.phone, 
         password: newCustomerForm.password,
         status: 'active' as const,
       }
@@ -896,7 +885,6 @@ export default function UsersPage() {
         email: "",
         phone: "",
         password: "",
-        portal_username: "",
         radius_username: "",
         radius_password: "",
         connection_type: "pppoe",
@@ -1466,8 +1454,6 @@ export default function UsersPage() {
       radius_username: user.radiusCredentials?.username || '',
       radius_password: user.radiusCredentials?.password || '',
       location: user.location || '',
-      portal_username: '',
-      portal_password: '',
     })
     setSelectedUser(user)
     setShowEditUserDialog(true)
@@ -1486,24 +1472,6 @@ export default function UsersPage() {
         phone_number: editForm.phone,
         location: editForm.location,
       })
-      
-      // Update portal credentials if provided
-      if (editForm.portal_username.trim() || editForm.portal_password.trim()) {
-        try {
-          const portalUpdates: Record<string, string> = {}
-          if (editForm.portal_username.trim()) {
-            portalUpdates.email = editForm.portal_username.trim()
-          }
-          if (editForm.portal_password.trim()) {
-            portalUpdates.password = editForm.portal_password.trim()
-          }
-          await adminApi.updateCustomer(selectedUser.customerId, portalUpdates as any)
-          toast.success('Portal credentials updated')
-        } catch (portalErr) {
-          console.warn('Portal credentials update failed:', portalErr)
-          toast.error('Failed to update portal credentials')
-        }
-      }
       
       const radiusUpdate: { password?: string; username?: string } = {}
       
@@ -1753,65 +1721,11 @@ export default function UsersPage() {
                   <Label>Portal Password <span className="text-red-500">*</span></Label>
                   <Input
                     type="password"
-                    placeholder="Password for customer portal login"
+                    placeholder="Enter password for customer portal"
                     value={newCustomerForm.password}
                     onChange={(e) => setNewCustomerForm({...newCustomerForm, password: e.target.value})}
                   />
-                  <p className="text-xs text-slate-500">
-                    Used for customer portal login. Also used as RADIUS password if not specified below.
-                  </p>
-                </div>
-
-                {/* Portal Username Field */}
-                <div className="space-y-1">
-                  <Label>
-                    Portal Username{" "}
-                    <span className="text-xs text-slate-400 font-normal">(optional)</span>
-                  </Label>
-                  <div className="flex gap-1">
-                    <Input
-                      placeholder="Defaults to PPPoE username"
-                      value={newCustomerForm.portal_username}
-                      onChange={(e) => setNewCustomerForm({...newCustomerForm, portal_username: e.target.value})}
-                      className="font-mono text-sm"
-                    />
-                    {newCustomerForm.phone && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        title="Use phone number as username"
-                        onClick={() => {
-                          const username = generateUsernameFromPhone(newCustomerForm.phone)
-                          setNewCustomerForm({...newCustomerForm, portal_username: username})
-                        }}
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                      </Button>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    Customer uses this to log into the portal. If blank, PPPoE username is used.
-                  </p>
-                </div>
-
-                {/* Portal Login Preview */}
-                <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs font-mono space-y-1">
-                  <p className="text-xs font-medium text-blue-700 not-italic font-sans">Portal Login Preview</p>
-                  <div className="flex gap-2">
-                    <span className="text-blue-500 w-20">Username:</span>
-                    <span className="text-blue-900 font-semibold">
-                      {newCustomerForm.portal_username ||
-                        (newCustomerForm.radius_username ||
-                          (newCustomerForm.phone ? generateUsernameFromPhone(newCustomerForm.phone) : "(from PPPoE)"))}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="text-blue-500 w-20">Password:</span>
-                    <span className="text-blue-900 font-semibold">
-                      {newCustomerForm.password ? "(custom portal password)" : "(same as PPPoE password)"}
-                    </span>
-                  </div>
+                  <p className="text-xs text-slate-500">Used for customer portal login. Also used as RADIUS password if not specified below.</p>
                 </div>
               </div>
 
@@ -3737,57 +3651,6 @@ export default function UsersPage() {
                 value={editForm.location}
                 onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
               />
-            </div>
-
-            {/* Portal Credentials Section */}
-            <div className="border-t pt-4">
-              <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
-                <Lock className="w-4 h-4" />
-                Customer Portal Login
-              </h4>
-              <p className="text-xs text-slate-500 mb-3">
-                Leave blank to keep current. If no portal username is set, customer uses their PPPoE username.
-              </p>
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="edit_portal_username">Portal Username</Label>
-                  <Input
-                    id="edit_portal_username"
-                    placeholder="Leave blank to keep current"
-                    value={editForm.portal_username}
-                    onChange={(e) => setEditForm({ ...editForm, portal_username: e.target.value })}
-                    className="font-mono text-sm"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    Current: {selectedUser?.email || selectedUser?.radiusCredentials?.username || 'not set'}
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="edit_portal_password">Portal Password</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="edit_portal_password"
-                      type="password"
-                      placeholder="Leave blank to keep current"
-                      value={editForm.portal_password}
-                      onChange={(e) => setEditForm({ ...editForm, portal_password: e.target.value })}
-                      className="font-mono text-sm"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const pwd = generateSimplePassword(8)
-                        setEditForm({ ...editForm, portal_password: pwd })
-                      }}
-                      title="Generate password"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
             </div>
             
             {/* RADIUS Credentials Section */}
