@@ -1893,6 +1893,19 @@ async activateService(
     })
   }
 
+  async updateTechnician(id: number, data: Partial<Technician>): Promise<Technician> {
+    return this.request<Technician>(`/staff/technicians/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteTechnician(id: number): Promise<void> {
+    return this.request<void>(`/staff/technicians/${id}/`, {
+      method: 'DELETE',
+    })
+  }
+
   async getDispatchJobs(params?: Record<string, string>): Promise<PaginatedResponse<DispatchJob>> {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
     return this.request<PaginatedResponse<DispatchJob>>(`/staff/dispatch/jobs/${queryString}`)

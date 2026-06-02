@@ -281,15 +281,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         {/* Sidebar header */}
         <div className="flex h-16 items-center justify-between px-4 border-b border-slate-100 dark:border-slate-800">
           {!sidebarCollapsed && (
-            <Link href="/admin" className="flex items-center gap-2">
+            <Link href="/admin" className="flex min-w-0 items-center gap-2">
               {companyLogo ? (
-                <img src={companyLogo} alt="Company Logo" className="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200" />
+                <img src={companyLogo} alt="Company Logo" className="h-8 w-8 shrink-0 rounded-lg object-contain bg-white border border-slate-200" />
               ) : (
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-sm">
+                <div className="h-8 w-8 shrink-0 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-sm">
                   N
                 </div>
               )}
-              <span className="truncate font-bold text-lg text-slate-900 dark:text-white tracking-tight">{companyName}</span>
+              <span className="block w-40 whitespace-normal break-words text-sm font-bold leading-tight text-slate-900 dark:text-white tracking-tight">
+                {companyName}
+              </span>
             </Link>
           )}
           <Button

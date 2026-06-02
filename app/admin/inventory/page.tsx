@@ -21,7 +21,6 @@ import {
   Tag,
   BarChart3,
   History,
-  QrCode,
   UserCheck,
   Undo2,
   Wrench,
@@ -443,6 +442,23 @@ export default function InventoryPage() {
     } catch (error) {
       console.error('Failed to return equipment:', error)
       toast.error('Failed to return equipment')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleReturnAssignment = async (assignment: EquipmentAssignment) => {
+    setIsSubmitting(true)
+    try {
+      await adminApi.markAssignmentReturned(assignment.id, {
+        condition: "good",
+        notes: "Returned from inventory assignments tab",
+      })
+      toast.success("Assignment marked returned")
+      fetchData()
+    } catch (error) {
+      console.error("Failed to return assignment:", error)
+      toast.error("Failed to return assignment")
     } finally {
       setIsSubmitting(false)
     }
@@ -933,10 +949,6 @@ export default function InventoryPage() {
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <QrCode className="mr-2 h-4 w-4" />
-                              Print Label
-                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {item.is_available && (
                               <DropdownMenuItem onClick={() => handleAssign(item)}>
@@ -974,18 +986,19 @@ export default function InventoryPage() {
         <TabsContent value="assignments" className="mt-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Equipment Assignments</CardTitle>
-                  <CardDescription>Track equipment assigned to employees</CardDescription>
-                </div>
-                <Button variant="outline">
-                  <Download className="mr-2 h-4 w-4" />
-                  Export
-                </Button>
+              <div>
+                <CardTitle>Equipment Assignments</CardTitle>
+                <CardDescription>Track equipment currently assigned to employees</CardDescription>
               </div>
             </CardHeader>
             <CardContent>
+              {assignments.length === 0 ? (
+                <div className="rounded-xl border border-dashed py-12 text-center">
+                  <ClipboardList className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+                  <p className="font-medium">No assignments yet</p>
+                  <p className="text-sm text-muted-foreground">Use an equipment item's actions to assign it to an employee.</p>
+                </div>
+              ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -1030,7 +1043,7 @@ export default function InventoryPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         {assignment.status === 'active' && (
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" onClick={() => handleReturnAssignment(assignment)} disabled={isSubmitting}>
                             <Undo2 className="mr-1 h-3 w-3" />
                             Return
                           </Button>
@@ -1040,6 +1053,7 @@ export default function InventoryPage() {
                   ))}
                 </TableBody>
               </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1058,6 +1072,13 @@ export default function InventoryPage() {
               </Button>
             </CardHeader>
             <CardContent>
+              {equipmentTypes.length === 0 ? (
+                <div className="rounded-xl border border-dashed py-12 text-center">
+                  <Tag className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+                  <p className="font-medium">No categories yet</p>
+                  <p className="text-sm text-muted-foreground">Categories are created automatically when you type a new equipment type.</p>
+                </div>
+              ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {equipmentTypes.map((type) => {
                   const stockPercent = type.min_stock_level > 0 ? (type.available_count / type.min_stock_level) * 100 : 100
@@ -1101,6 +1122,7 @@ export default function InventoryPage() {
                   )
                 })}
               </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1119,6 +1141,13 @@ export default function InventoryPage() {
               </Button>
             </CardHeader>
             <CardContent>
+              {suppliers.length === 0 ? (
+                <div className="rounded-xl border border-dashed py-12 text-center">
+                  <Truck className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+                  <p className="font-medium">No suppliers yet</p>
+                  <p className="text-sm text-muted-foreground">Add suppliers only when you want to track purchases and warranty sources.</p>
+                </div>
+              ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {suppliers.map((supplier) => (
                   <Card key={supplier.id}>
@@ -1162,6 +1191,7 @@ export default function InventoryPage() {
                   </Card>
                 ))}
               </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1301,10 +1331,6 @@ export default function InventoryPage() {
                   <Button variant="outline" onClick={() => { setIsDetailOpen(false); handleEditEquipment(selectedItem) }}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
-                  </Button>
-                  <Button variant="outline">
-                    <QrCode className="mr-2 h-4 w-4" />
-                    Label
                   </Button>
                 </div>
               </div>

@@ -22,6 +22,7 @@ import {
   Phone,
   Mail,
   Send,
+  Save,
   Eye,
   Play,
   Pause,
@@ -160,6 +161,7 @@ export default function DispatchPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
   const [activeTab, setActiveTab] = useState("jobs")
   const [selectedJob, setSelectedJob] = useState<DispatchJob | null>(null)
+  const [editingJob, setEditingJob] = useState<DispatchJob | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isCreateJobOpen, setIsCreateJobOpen] = useState(false)
   const [isCreateTechnicianOpen, setIsCreateTechnicianOpen] = useState(false)
@@ -371,28 +373,8 @@ export default function DispatchPage() {
     }
   }
 
-  const handleCreateJob = async () => {
-    if (!jobForm.customer || !jobForm.scheduled_date) {
-      toast.error("Please fill in all required fields")
-      return
-    }
-    try {
-      await adminApi.createDispatchJob({
-        customer: Number(jobForm.customer) || 0,
-        job_type: jobForm.job_type,
-        priority: jobForm.priority,
-        scheduled_date: jobForm.scheduled_date,
-        scheduled_time: jobForm.scheduled_time,
-        description: jobForm.description,
-        notes: jobForm.notes,
-        ticket: jobForm.ticket ? Number(jobForm.ticket) : undefined,
-      } as any)
-      toast.success("Job created successfully")
-      await fetchData()
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create job")
-    }
-    setIsCreateJobOpen(false)
+  const resetJobForm = () => {
+    setEditingJob(null)
     setJobForm({
       customer: "",
       ticket: "",
@@ -403,6 +385,73 @@ export default function DispatchPage() {
       description: "",
       notes: "",
     })
+  }
+
+  const handleEditJob = (job: DispatchJob) => {
+    setEditingJob(job)
+    setJobForm({
+      customer: String(job.customer || ""),
+      ticket: job.ticket ? String(job.ticket) : "",
+      job_type: job.job_type,
+      priority: job.priority,
+      scheduled_date: job.scheduled_date || "",
+      scheduled_time: job.scheduled_time || "09:00",
+      description: job.description || "",
+      notes: job.notes || "",
+    })
+    setIsCreateJobOpen(true)
+  }
+
+  const handleCreateJob = async () => {
+    if (!jobForm.customer || !jobForm.scheduled_date) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+    try {
+      const payload = {
+        customer: Number(jobForm.customer) || 0,
+        job_type: jobForm.job_type,
+        priority: jobForm.priority,
+        scheduled_date: jobForm.scheduled_date,
+        scheduled_time: jobForm.scheduled_time,
+        description: jobForm.description,
+        notes: jobForm.notes,
+        ticket: jobForm.ticket ? Number(jobForm.ticket) : undefined,
+      } as any
+      if (editingJob) {
+        await adminApi.updateDispatchJob(editingJob.id, payload)
+        toast.success("Job updated successfully")
+      } else {
+        await adminApi.createDispatchJob(payload)
+        toast.success("Job created successfully")
+      }
+      await fetchData()
+    } catch (err: any) {
+      toast.error(err.message || `Failed to ${editingJob ? "update" : "create"} job`)
+    }
+    setIsCreateJobOpen(false)
+    resetJobForm()
+  }
+
+  const handleUpdateTechnicianStatus = async (tech: Technician, available: boolean) => {
+    try {
+      await adminApi.updateTechnician(tech.id, { status: available ? "available" : "offline" } as any)
+      toast.success(`${tech.name} marked ${available ? "available" : "unavailable"}`)
+      await fetchData()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update technician status")
+    }
+  }
+
+  const handleDeleteTechnician = async (tech: Technician) => {
+    if (!window.confirm(`Delete technician "${tech.name}"? Existing job history will remain.`)) return
+    try {
+      await adminApi.deleteTechnician(tech.id)
+      toast.success("Technician deleted")
+      await fetchData()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete technician")
+    }
   }
 
   const handleCreateTechnician = async () => {
@@ -506,7 +555,7 @@ export default function DispatchPage() {
               {job.customer_address || "No address captured"}
             </p>
           </div>
-          <div className="text-right space-y-2">
+          <div className="min-w-[150px] text-right space-y-2">
             {job.technician_name ? (
               <div className="flex items-center justify-end gap-2">
                 <Avatar className="h-8 w-8">
@@ -520,6 +569,23 @@ export default function DispatchPage() {
               <Badge variant="outline" className="text-yellow-600">Unassigned</Badge>
             )}
             <div>{getStatusBadge(job.status)}</div>
+            <div className="flex justify-end gap-2">
+              {!job.technician_name && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setJobToAssign(job)
+                    setIsAssignDialogOpen(true)
+                  }}
+                >
+                  Assign
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" onClick={() => handleEditJob(job)}>
+                Edit
+              </Button>
+            </div>
           </div>
         </div>
       ))}
@@ -545,7 +611,7 @@ export default function DispatchPage() {
             <Users className="mr-2 h-4 w-4" />
             Add Technician
           </Button>
-          <Button onClick={() => setIsCreateJobOpen(true)}>
+          <Button onClick={() => { resetJobForm(); setIsCreateJobOpen(true) }}>
             <Plus className="mr-2 h-4 w-4" />
             Create Job
           </Button>
@@ -750,7 +816,7 @@ export default function DispatchPage() {
                               <Eye className="mr-2 h-4 w-4" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditJob(job)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Job
                             </DropdownMenuItem>
@@ -825,14 +891,38 @@ export default function DispatchPage() {
                           <AvatarFallback>{tech.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-semibold">{tech.name}</h3>
-                            <Badge
-                              variant={tech.status === 'available' ? 'default' : tech.status === 'busy' ? 'secondary' : 'outline'}
-                              className={tech.status === 'available' ? 'bg-green-500' : ''}
-                            >
-                              {tech.status.replace('_', ' ')}
-                            </Badge>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h3 className="truncate font-semibold">{tech.name}</h3>
+                              <Badge
+                                variant={tech.status === 'available' ? 'default' : tech.status === 'busy' ? 'secondary' : 'outline'}
+                                className={`mt-1 ${tech.status === 'available' ? 'bg-green-500' : ''}`}
+                              >
+                                {tech.status === "offline" ? "unavailable" : tech.status.replace('_', ' ')}
+                              </Badge>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="-mr-2 -mt-2">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleUpdateTechnicianStatus(tech, true)}>
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  Mark Available
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateTechnicianStatus(tech, false)}>
+                                  <Pause className="mr-2 h-4 w-4" />
+                                  Mark Unavailable
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteTechnician(tech)}>
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete Technician
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                           <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                             <Phone className="h-3 w-3" />
@@ -1178,12 +1268,18 @@ export default function DispatchPage() {
       </Dialog>
 
       {/* Create Job Dialog */}
-      <Dialog open={isCreateJobOpen} onOpenChange={setIsCreateJobOpen}>
+      <Dialog
+        open={isCreateJobOpen}
+        onOpenChange={(open) => {
+          setIsCreateJobOpen(open)
+          if (!open) resetJobForm()
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Create Dispatch Job</DialogTitle>
+            <DialogTitle>{editingJob ? "Edit Dispatch Job" : "Create Dispatch Job"}</DialogTitle>
             <DialogDescription>
-              Create a new job for technician dispatch
+              {editingJob ? "Update this job's schedule, priority, and work notes." : "Create a new job for technician dispatch"}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1299,12 +1395,12 @@ export default function DispatchPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateJobOpen(false)}>
+            <Button variant="outline" onClick={() => { setIsCreateJobOpen(false); resetJobForm() }}>
               Cancel
             </Button>
             <Button onClick={handleCreateJob}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Job
+              {editingJob ? <Save className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+              {editingJob ? "Save Job" : "Create Job"}
             </Button>
           </DialogFooter>
         </DialogContent>
