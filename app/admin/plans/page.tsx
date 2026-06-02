@@ -1003,15 +1003,24 @@ export default function PlansPage() {
     }
   }
 
-  // Toggle active status
+  // Toggle active status - FIXED to handle hotspot plans
   const handleToggleActive = async (plan: Plan) => {
     setTogglingId(plan.id)
     try {
-      await adminApi.togglePlanActive(plan.id)
+      const hp = plan as any
+      if (hp._isHotspotPlan && hp._routerId) {
+        // HotspotPlan: pass routerId to the API
+        await adminApi.togglePlanActive(hp._hotspotPlanId, hp._routerId)
+      } else {
+        // Regular Plan
+        await adminApi.togglePlanActive(plan.id)
+      }
       toast.success(`Plan ${plan.is_active ? 'deactivated' : 'activated'}`)
       fetchPlans()
       fetchDashboardStats()
       fetchHotspotStatsCount()
+      if (selectedRouterId === 'all') fetchAllHotspotPlans()
+      else if (selectedRouterId) fetchHotspotPlans(selectedRouterId as number)
     } catch (error: any) {
       console.error('Failed to toggle plan:', error)
       toast.error(error.message || 'Failed to toggle plan status')
@@ -1049,11 +1058,8 @@ export default function PlansPage() {
       fetchPlans()
       fetchDashboardStats()
       fetchHotspotStatsCount()
-      if (selectedRouterId === 'all') {
-        fetchAllHotspotPlans()
-      } else if (selectedRouterId) {
-        fetchHotspotPlans(selectedRouterId as number)
-      }
+      if (selectedRouterId === 'all') fetchAllHotspotPlans()
+      else if (selectedRouterId) fetchHotspotPlans(selectedRouterId as number)
     } catch (error: any) {
       console.error('Failed to delete plan:', error)
       toast.error(error.message || 'Failed to delete plan')

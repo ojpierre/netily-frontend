@@ -2197,7 +2197,14 @@ async activateService(
     })
   }
 
-  async togglePlanActive(id: number): Promise<Plan> {
+  async togglePlanActive(id: number | string, routerId?: number): Promise<any> {
+    // HotspotPlan: use router-scoped endpoint
+    if (routerId) {
+      return this.request(`/hotspot/admin/routers/${routerId}/plans/${id}/toggle-active/`, {
+        method: 'POST',
+      })
+    }
+    // Regular Plan
     return this.request<Plan>(`/billing/plans/${id}/toggle_active/`, {
       method: 'POST',
     })
