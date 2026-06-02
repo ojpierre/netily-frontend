@@ -4328,7 +4328,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* NEW: Per‑user SMS Dialog with variable insertion */}
+      {/* NEW: Per‑user SMS Dialog with variable insertion AND quick templates */}
       <Dialog open={showUserSmsDialog} onOpenChange={setShowUserSmsDialog}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -4337,11 +4337,56 @@ export default function UsersPage() {
               Send SMS to {userSmsTarget?.name}
             </DialogTitle>
             <DialogDescription>
-              Click a variable to insert it. It will be replaced with the customer's actual value when sent.
+              Use the quick templates below or click a variable to insert it.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* Quick Templates (same as bulk SMS) */}
+            {userSmsTarget && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-slate-500">Quick Templates</p>
+                <div className="grid grid-cols-1 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const paybill = mpesaConfig?.business_shortcode || "N/A"
+                      const billingAcc = userSmsTarget.billingAccountNumber || "N/A"
+                      setUserSmsMessage(
+                        `Hello ${userSmsTarget.name}, make payments via M-Pesa Paybill: ${paybill}, Account No: ${billingAcc}. Thank you!`
+                      )
+                    }}
+                    className="text-left px-3 py-2 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors text-xs"
+                  >
+                    <p className="font-medium text-blue-800">💳 Payment Details</p>
+                    <p className="text-blue-600 mt-0.5 line-clamp-2">
+                      Paybill + billing account number template
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const email = userSmsTarget.email && userSmsTarget.email !== "No email" ? userSmsTarget.email : "your email"
+                      const phone = userSmsTarget.phone && userSmsTarget.phone !== "No phone"
+                        ? userSmsTarget.phone.replace(/^0/, "+254").replace(/^(?!\+)/, "+254").replace(/^\+254254/, "+254")
+                        : userSmsTarget.phone
+                      const portalUrl = `${tenantSubdomain}.netily.co.ke/customer/login`
+                      setUserSmsMessage(
+                        `Hello ${userSmsTarget.name}, login to your customer portal at ${portalUrl} using: Username: ${email} | Password: ${phone}`
+                      )
+                    }}
+                    className="text-left px-3 py-2 rounded-lg border border-purple-200 bg-purple-50 hover:bg-purple-100 transition-colors text-xs"
+                  >
+                    <p className="font-medium text-purple-800">🔑 Portal Credentials</p>
+                    <p className="text-purple-600 mt-0.5 line-clamp-2">
+                      Customer portal login URL + credentials
+                    </p>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Variable chips */}
             <div>
               <p className="text-xs font-medium text-slate-500 mb-2">Insert variable</p>
@@ -4363,7 +4408,7 @@ export default function UsersPage() {
             <div className="space-y-1">
               <Label>Message</Label>
               <Textarea
-                placeholder="Type your message and click variables above to insert them…"
+                placeholder="Type your message, use templates above, or click variables to insert them…"
                 value={userSmsMessage}
                 onChange={e => setUserSmsMessage(e.target.value)}
                 rows={4}
