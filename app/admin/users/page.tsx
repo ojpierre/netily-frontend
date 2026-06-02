@@ -367,6 +367,10 @@ export default function UsersPage() {
   const [smsTarget, setSmsTarget] = useState<User | null>(null)
   const [sendingSms, setSendingSms] = useState(false)
 
+  // NEW: M-Pesa config and tenant subdomain for SMS templates
+  const [mpesaConfig, setMpesaConfig] = useState<{ business_shortcode?: string } | null>(null)
+  const [tenantSubdomain, setTenantSubdomain] = useState<string>("")
+
   const [editForm, setEditForm] = useState({
     first_name: "",
     last_name: "",
@@ -507,6 +511,18 @@ export default function UsersPage() {
       setActiveSubsPageLoading(false)
     }
   }
+
+  // NEW: Fetch M-Pesa config and tenant subdomain for SMS templates
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname
+      const parts = host.split(".")
+      setTenantSubdomain(parts.length >= 3 ? parts[0] : host.replace(".localhost", ""))
+    }
+    adminApi.getMpesaConfigurations({ is_active: "true", page_size: "1" }).then(res => {
+      if (res.results?.[0]) setMpesaConfig(res.results[0])
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (hasFetched.current) return
@@ -4191,10 +4207,55 @@ export default function UsersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Quick Templates */}
+            {smsTarget && (
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-slate-500">Quick Templates</Label>
+                <div className="grid grid-cols-1 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const paybill = mpesaConfig?.business_shortcode || "N/A"
+                      const billingAcc = smsTarget.billingAccountNumber || "N/A"
+                      setSmsMessage(
+                        `Hello ${smsTarget.name}, make payments via M-Pesa Paybill: ${paybill}, Account No: ${billingAcc}. Thank you!`
+                      )
+                    }}
+                    className="text-left px-3 py-2 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors text-xs"
+                  >
+                    <p className="font-medium text-blue-800">💳 Payment Details</p>
+                    <p className="text-blue-600 mt-0.5 line-clamp-2">
+                      Paybill + billing account number template
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const email = smsTarget.email && smsTarget.email !== "No email" ? smsTarget.email : "your email"
+                      const phone = smsTarget.phone && smsTarget.phone !== "No phone"
+                        ? smsTarget.phone.replace(/^0/, "+254").replace(/^(?!\+)/, "+254").replace(/^\+254254/, "+254")
+                        : smsTarget.phone
+                      const portalUrl = `${tenantSubdomain}.netily.co.ke/customer/login`
+                      setSmsMessage(
+                        `Hello ${smsTarget.name}, login to your customer portal at ${portalUrl} using: Username: ${email} | Password: ${phone}`
+                      )
+                    }}
+                    className="text-left px-3 py-2 rounded-lg border border-purple-200 bg-purple-50 hover:bg-purple-100 transition-colors text-xs"
+                  >
+                    <p className="font-medium text-purple-800">🔑 Portal Credentials</p>
+                    <p className="text-purple-600 mt-0.5 line-clamp-2">
+                      Customer portal login URL + credentials
+                    </p>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Message</Label>
               <Textarea
-                placeholder="Enter your message..."
+                placeholder="Enter your message or pick a template above..."
                 value={smsMessage}
                 onChange={(e) => setSmsMessage(e.target.value)}
                 rows={4}
