@@ -363,67 +363,13 @@ export default function UsersPage() {
   const [savingIP, setSavingIP] = useState(false)
   const [editIPPoolId, setEditIPPoolId] = useState<number | null>(null)
 
-  // NEW: SMS state for bulk
+  // NEW: SMS state
   const [smsTarget, setSmsTarget] = useState<User | null>(null)
   const [sendingSms, setSendingSms] = useState(false)
-
-  // NEW: Per‑user SMS with variable insertion
-  const [showUserSmsDialog, setShowUserSmsDialog] = useState(false)
-  const [userSmsTarget, setUserSmsTarget] = useState<User | null>(null)
-  const [userSmsMessage, setUserSmsMessage] = useState("")
-  const [sendingUserSms, setSendingUserSms] = useState(false)
 
   // NEW: M-Pesa config and tenant subdomain for SMS templates
   const [mpesaConfig, setMpesaConfig] = useState<{ business_shortcode?: string } | null>(null)
   const [tenantSubdomain, setTenantSubdomain] = useState<string>("")
-
-  // NEW: SMS variable helpers
-  const SMS_VARIABLES = [
-    { key: '{firstname}', label: 'First Name' },
-    { key: '{package}', label: 'Package' },
-    { key: '{expiry}', label: 'Expiry' },
-    { key: '{paybill}', label: 'Paybill Acct' },
-    { key: '{account}', label: 'Billing Acct' },
-    { key: '{amount}', label: 'Amount' },
-  ]
-
-  const resolveMessageVariables = (message: string, user: User): string => {
-    const expiryDate = new Date(user.expiryDate)
-    const expiryFormatted =
-      expiryDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) +
-      ' ' +
-      expiryDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-
-    return message
-      .replace(/{firstname}/g, user.name.split(' ')[0] || user.name)
-      .replace(/{package}/g, user.plan)
-      .replace(/{expiry}/g, expiryFormatted)
-      .replace(/{paybill}/g, user.billingAccountNumber || '—')
-      .replace(/{account}/g, user.billingAccountNumber || '—')
-      .replace(/{amount}/g, `KES ${user.planPrice.toLocaleString()}`)
-  }
-
-  const handleOpenUserSms = (user: User) => {
-    setUserSmsTarget(user)
-    setUserSmsMessage("")
-    setShowUserSmsDialog(true)
-  }
-
-  const handleSendUserSms = async () => {
-    if (!userSmsTarget || !userSmsMessage.trim()) return
-    try {
-      setSendingUserSms(true)
-      const resolved = resolveMessageVariables(userSmsMessage, userSmsTarget)
-      await adminApi.sendSMS({ recipient: userSmsTarget.phone, message: resolved })
-      toast.success(`SMS sent to ${userSmsTarget.name}`)
-      setShowUserSmsDialog(false)
-      setUserSmsMessage("")
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to send SMS')
-    } finally {
-      setSendingUserSms(false)
-    }
-  }
 
   const [editForm, setEditForm] = useState({
     first_name: "",
@@ -1389,7 +1335,7 @@ export default function UsersPage() {
           localIso
         )
         toast.success(
-          `Expiry set to ${new Date(`${extendManualDate}T${timePart}:00`).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'})}${extendForm.plan_id ? ' · plan changed' : ''}`
+          `Expiry set to ${new Date(`${extendManualDate}T${timePart}:00`).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}${extendForm.plan_id ? ' · plan changed' : ''}`
         )
       } else {
         await adminApi.extendService(
@@ -1578,7 +1524,7 @@ export default function UsersPage() {
     toast.success(`${label} copied to clipboard`)
   }
 
-  // NEW: Bulk SMS handlers (kept for bulk sends)
+  // NEW: SMS handlers
   const handleSendSingleSms = async () => {
     if (!smsTarget || !smsMessage.trim()) return
     try {
@@ -2649,7 +2595,11 @@ export default function UsersPage() {
                                     Edit IP Address
                                   </DropdownMenuItem>
                                 )}
-                                <DropdownMenuItem onClick={() => handleOpenUserSms(user)}>
+                                <DropdownMenuItem onClick={() => {
+                                  setSmsTarget(user)
+                                  setSmsMessage("")
+                                  setShowSmsDialog(true)
+                                }}>
                                   <Send className="w-4 h-4 mr-2" />
                                   Send SMS
                                 </DropdownMenuItem>
@@ -2954,7 +2904,11 @@ export default function UsersPage() {
                                   Edit IP Address
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem onClick={() => handleOpenUserSms(user)}>
+                              <DropdownMenuItem onClick={() => {
+                                setSmsTarget(user)
+                                setSmsMessage("")
+                                setShowSmsDialog(true)
+                              }}>
                                 <Send className="w-4 h-4 mr-2" />
                                 Send SMS
                               </DropdownMenuItem>
@@ -3471,7 +3425,11 @@ export default function UsersPage() {
                       </Button>
                     )}
                     <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1" onClick={() => handleOpenUserSms(selectedUser)}>
+                      <Button variant="outline" className="flex-1" onClick={() => {
+                        setSmsTarget(selectedUser)
+                        setSmsMessage("")
+                        setShowSmsDialog(true)
+                      }}>
                         <Send className="w-4 h-4 mr-2" />
                         Send SMS
                       </Button>
@@ -4229,76 +4187,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* New Per-User SMS Dialog with Variables */}
-      <Dialog open={showUserSmsDialog} onOpenChange={setShowUserSmsDialog}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Send className="w-4 h-4" />
-              Send SMS to {userSmsTarget?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Click a variable to insert it. It will be replaced with the customer's actual value when sent.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {/* Variable chips */}
-            <div>
-              <p className="text-xs font-medium text-slate-500 mb-2">Insert variable</p>
-              <div className="flex flex-wrap gap-1.5">
-                {SMS_VARIABLES.map(({ key, label }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setUserSmsMessage(prev => prev + key)}
-                    className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Message textarea */}
-            <div className="space-y-1">
-              <Label>Message</Label>
-              <Textarea
-                placeholder="Type your message and click variables above to insert them…"
-                value={userSmsMessage}
-                onChange={e => setUserSmsMessage(e.target.value)}
-                rows={4}
-                className="font-mono text-sm"
-              />
-              <p className="text-xs text-slate-400">{userSmsMessage.length} / 160 characters</p>
-            </div>
-
-            {/* Preview */}
-            {userSmsTarget && userSmsMessage && (
-              <div className="p-3 bg-slate-50 rounded-lg border text-sm space-y-1">
-                <p className="text-xs font-medium text-slate-500">Preview (resolved)</p>
-                <p className="text-slate-800 whitespace-pre-wrap break-words">
-                  {resolveMessageVariables(userSmsMessage, userSmsTarget)}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowUserSmsDialog(false)} disabled={sendingUserSms}>
-              Cancel
-            </Button>
-            <Button onClick={handleSendUserSms} disabled={sendingUserSms || !userSmsMessage.trim()}>
-              {sendingUserSms
-                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</>
-                : <><Send className="w-4 h-4 mr-2" />Send SMS</>
-              }
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Bulk SMS Dialog (kept for selected users) */}
+      {/* Unified SMS Dialog (supports both single and bulk) */}
       <Dialog open={showSmsDialog} onOpenChange={(open) => {
         setShowSmsDialog(open)
         if (!open) {
