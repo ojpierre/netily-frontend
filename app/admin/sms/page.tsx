@@ -44,14 +44,15 @@ const EMPTY_STATS = {
   delivery_rate: 0, total_cost: 0, messages_today: 0, messages_this_week: 0,
 } as any
 
-// FIX 1: Updated EMPTY_NOTIF_SETTINGS with correct backend field names
+// UPDATED: Replaced pppoe_expiry_days_before with pppoe_expiry_intervals
 const EMPTY_NOTIF_SETTINGS: SMSNotificationSettings = {
   use_inbuilt_system: false,
   hotspot_new_subscription: true, hotspot_welcome: true,
   hotspot_session_expiry: true, hotspot_expiry_minutes_before: 15,
   hotspot_payment_failed: true, hotspot_session_expired: true,
   pppoe_welcome: true, pppoe_payment_confirmation: true,
-  pppoe_expiry_reminder: true, pppoe_expiry_days_before: 4,
+  pppoe_expiry_reminder: true,
+  pppoe_expiry_intervals: [{ value: 4, unit: 'days' }], // NEW JSON field
   pppoe_service_suspended: true, pppoe_service_resumed: true,
   pppoe_plan_changed: true, pppoe_renewal_confirmation: true,
   pppoe_new_subscription: true,
@@ -630,7 +631,7 @@ export default function SMSPage() {
     finally { setIsSavingNotif(false) }
   }
 
-  const handleToggleNotif = (key: keyof SMSNotificationSettings, value: boolean | number) => {
+  const handleToggleNotif = (key: keyof SMSNotificationSettings, value: boolean | number | any[]) => {
     const patch = { [key]: value } as Partial<SMSNotificationSettings>
     setNotifSettings(p => ({ ...p, ...patch }))
     handleSaveNotifSettings(patch)
@@ -1136,26 +1137,70 @@ export default function SMSPage() {
                     onCheckedChange={v => handleToggleNotif('pppoe_renewal_confirmation', v)}
                   />
                   <Separator />
+
+                  {/* --- EXPIRY REMINDER (UPDATED with multi-interval) --- */}
                   <NotifToggle
                     label="Expiry Reminder"
                     description="Remind before subscription expires"
                     checked={notifSettings.pppoe_expiry_reminder}
                     onCheckedChange={v => handleToggleNotif('pppoe_expiry_reminder', v)}
                   >
-                    <div className="mt-2 flex items-center gap-2">
-                      <Label className="text-xs text-slate-500 whitespace-nowrap">Send</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={30}
-                        className="w-20 h-7 text-sm"
-                        value={notifSettings.pppoe_expiry_days_before}
-                        onChange={e => handleToggleNotif('pppoe_expiry_days_before', parseInt(e.target.value) || 4)}
-                      />
-                      <Label className="text-xs text-slate-500">days before expiry</Label>
+                    <div className="mt-3 space-y-2">
+                      <Label className="text-xs text-slate-500">Send reminders at:</Label>
+                      {((notifSettings as any).pppoe_expiry_intervals ?? [{ value: 4, unit: 'days' }]).map(
+                        (interval: { value: number; unit: string }, idx: number) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min={1}
+                              className="w-20 h-7 text-sm"
+                              value={interval.value}
+                              onChange={e => {
+                                const intervals = [...((notifSettings as any).pppoe_expiry_intervals ?? [{ value: 4, unit: 'days' }])]
+                                intervals[idx] = { ...intervals[idx], value: parseInt(e.target.value) || 1 }
+                                handleToggleNotif('pppoe_expiry_intervals' as any, intervals as any)
+                              }}
+                            />
+                            <Select
+                              value={interval.unit}
+                              onValueChange={v => {
+                                const intervals = [...((notifSettings as any).pppoe_expiry_intervals ?? [{ value: 4, unit: 'days' }])]
+                                intervals[idx] = { ...intervals[idx], unit: v }
+                                handleToggleNotif('pppoe_expiry_intervals' as any, intervals as any)
+                              }}
+                            >
+                              <SelectTrigger className="w-24 h-7 text-sm"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="days">days</SelectItem>
+                                <SelectItem value="hours">hours</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <span className="text-xs text-slate-400">before expiry</span>
+                            <Button
+                              variant="ghost" size="icon" className="h-6 w-6 text-red-400"
+                              onClick={() => {
+                                const intervals = ((notifSettings as any).pppoe_expiry_intervals ?? []).filter((_: any, i: number) => i !== idx)
+                                handleToggleNotif('pppoe_expiry_intervals' as any, intervals as any)
+                              }}
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        )
+                      )}
+                      <Button
+                        variant="outline" size="sm" className="h-7 text-xs mt-1"
+                        onClick={() => {
+                          const intervals = [...((notifSettings as any).pppoe_expiry_intervals ?? []), { value: 1, unit: 'days' }]
+                          handleToggleNotif('pppoe_expiry_intervals' as any, intervals as any)
+                        }}
+                      >
+                        <Plus className="w-3 h-3 mr-1" />Add reminder
+                      </Button>
                     </div>
                   </NotifToggle>
                   <Separator />
+
                   <NotifToggle
                     label="Plan Changed"
                     description="Notify customer when their plan is upgraded or downgraded"
