@@ -917,7 +917,7 @@ export function LandingPage() {
             <div className="sr-only">
               Netily is the ISP billing software and ISP management system built for Kenya and East Africa, automating M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and customer self-service so Kenyan ISPs can stop chasing payments and start growing.
               M-Pesa billing automation. MikroTik plus PPPoE workflows. Hotspot and subscriber operations.
-              Free 14-day trial. No credit card required. Built for East African ISP operations.
+              Free trial. No credit card required. Built for East African ISP operations.
             </div>
 
             {/* CTA Buttons */}
@@ -928,7 +928,7 @@ export function LandingPage() {
                   onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
                   className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-blue-900/30 transition-colors hover:bg-blue-500"
                 >
-                  Start Free 14-Day Trial
+                  Start Free Trial
                   <ArrowRight className="w-5 h-5" />
                 </Link>
                 <a
@@ -1978,7 +1978,7 @@ export function LandingPage() {
               onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
               className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-4 rounded-xl transition-colors shadow-lg shadow-blue-600/25 text-lg"
             >
-              Start Your 14-Day Free Trial
+              Start Your Free Trial
               <ArrowRight className="w-5 h-5" />
             </Link>
             <p className="text-sm text-slate-500 mt-4">No credit card required &bull; Full access &bull; Cancel anytime</p>

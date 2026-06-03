@@ -253,7 +253,7 @@ export function TrialCountdown() {
             </div>
             <DialogTitle className="text-center text-xl">Free Trial Expired</DialogTitle>
             <DialogDescription className="text-center">
-              Your 14-day free trial has ended. Upgrade to a paid plan to continue managing your
+              Your free trial has ended. Upgrade to a paid plan to continue managing your
               ISP business with Netily.
             </DialogDescription>
           </DialogHeader>
