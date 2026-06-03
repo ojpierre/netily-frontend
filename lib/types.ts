@@ -2638,7 +2638,7 @@ export interface SendBulkSMSRequest {
 
 export interface SMSBalance {
   provider: string
-  balance: string
+  balance: number | string  // ← CHANGE from string to number | string
   currency: string
   credits?: number
 }
@@ -2659,6 +2659,7 @@ export interface SMSGatewayConfig {
   provider: SMSProvider
   provider_display: string
   is_active: boolean
+  use_inbuilt_system?: boolean  
   api_key: string        // masked on read
   api_secret: string     // masked on read  
   username: string
@@ -2685,15 +2686,15 @@ export interface SMSNotificationSettings {
   pppoe_welcome: boolean
   pppoe_payment_confirmation: boolean
   pppoe_expiry_reminder: boolean
-  pppoe_expiry_days_before: number
+  pppoe_expiry_intervals: Array<{ value: number; unit: 'days' | 'hours' }>  // ← ADD THIS (replace the old pppoe_expiry_days_before)
   pppoe_service_suspended: boolean
   pppoe_service_resumed: boolean
   pppoe_plan_changed: boolean
   pppoe_renewal_confirmation: boolean
   pppoe_new_subscription: boolean
-  // Backend field names (DO NOT rename these)
   system_router_offline: boolean
   system_alert_phone: string
+  router_offline_numbers?: string[]  // ← ADD THIS
   updated_at?: string
 }
 

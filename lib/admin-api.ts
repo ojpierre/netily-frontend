@@ -3334,7 +3334,7 @@ async activateService(
     })
   }
 
-  async testSMSGateway(id: number): Promise<{ success: boolean; balance?: Record<string, unknown>; error?: string }> {
+  async testSMSGateway(id: number): Promise<{ success: boolean; balance?: number | string | Record<string, unknown>; error?: string }> {
     return this.request(`/messaging/gateway/${id}/test/`, { method: 'POST' })
   }
 
