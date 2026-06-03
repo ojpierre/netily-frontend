@@ -1380,13 +1380,13 @@ export function LandingPage() {
                   <div className="mb-8">
                     <div className="flex items-baseline gap-1 mb-1">
                       <span className="text-4xl font-extrabold">{fmt(500)}</span>
-                      <span className="text-slate-500 dark:text-slate-400 font-medium">/mo base</span>
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">activation</span>
                     </div>
                     {geo.rateFromKES !== 1 && (
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">≈ KSh 500/mo · estimated in {geo.currency}</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">≈ KSh 500 activation · estimated in {geo.currency}</p>
                     )}
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                      + {fmt(20)} per PPPoE user · 3% hotspot share
+                      Then {fmt(20)} per PPPoE footprint + max(3% hotspot revenue, KSh 500 minimum)
                     </p>
                   </div>
 

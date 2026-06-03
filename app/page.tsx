@@ -6,7 +6,7 @@ import { blogPosts } from "@/lib/blog-data"
 export const metadata: Metadata = {
   title: "ISP Billing Software Kenya | M-Pesa & MikroTik — Netily",
   description:
-    "Kenya's leading ISP billing software. Automate M-Pesa STK Push, MikroTik PPPoE & hotspot billing. 14-day free trial, no card required.",
+    "Kenya's leading ISP billing software. Automate M-Pesa STK Push, MikroTik PPPoE & hotspot billing. Free trial, no card required.",
   keywords: [
     // ── Exact-match Ahrefs targets (high intent) ──────
     "isp billing software",
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
     "Kenya broadband billing system",
     "East Africa ISP SaaS",
     "affordable ISP billing software Africa",
-    "14 day free trial ISP software",
+    "free trial ISP software",
     "Netily",
     "Netily ISP billing",
   ],
@@ -80,7 +80,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "ISP Billing Software Kenya | M-Pesa & MikroTik — Netily",
     description:
-      "Kenya's #1 ISP billing software. Automate M-Pesa STK Push, MikroTik PPPoE, RADIUS & hotspot billing. 14-day free trial.",
+      "Kenya's #1 ISP billing software. Automate M-Pesa STK Push, MikroTik PPPoE, RADIUS & hotspot billing. Free trial available.",
     url: "https://netily.co.ke",
     images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "Netily — ISP Billing Software Kenya" }],
   },
@@ -254,7 +254,7 @@ const faqSchema = {
       name: "Is there a free trial?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Netily offers a 14-day free trial. No credit card required. Start managing your ISP with full access to all features immediately.",
+        text: "Yes. Netily offers a free trial. No credit card required. Start managing your ISP with full access to all features immediately.",
       },
     },
     {
@@ -270,7 +270,7 @@ const faqSchema = {
       name: "What is the best ISP billing software in Kenya?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Netily is widely regarded as the best ISP billing software in Kenya for small and medium ISPs. It natively supports M-Pesa STK Push, MikroTik PPPoE auto-provisioning, RADIUS authentication, and hotspot billing — all priced in KES with a 14-day free trial.",
+        text: "Netily is widely regarded as the best ISP billing software in Kenya for small and medium ISPs. It natively supports M-Pesa STK Push, MikroTik PPPoE auto-provisioning, RADIUS authentication, and hotspot billing — all priced in KES with a free trial.",
       },
     },
     {
@@ -278,7 +278,7 @@ const faqSchema = {
       name: "Is there free ISP billing software?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Netily offers a 14-day free trial with no credit card required — giving ISPs full access to billing, M-Pesa integration, and MikroTik provisioning before committing. After the trial, pricing starts at KES 500/month. Open-source alternatives like ZAL ISP Management System exist but require self-hosting and technical setup.",
+        text: "Netily offers a free trial with no credit card required — giving ISPs full access to billing, M-Pesa integration, and MikroTik provisioning before committing. After the trial, tenants activate with KES 500, then recurring billing is based on PPPoE footprint and hotspot revenue usage. Open-source alternatives like ZAL ISP Management System exist but require self-hosting and technical setup.",
       },
     },
     {
