@@ -2638,7 +2638,7 @@ export interface SendBulkSMSRequest {
 
 export interface SMSBalance {
   provider: string
-  balance: string
+  balance: number | string  // ← CHANGE from string to number | string
   currency: string
   credits?: number
 }
@@ -2659,6 +2659,7 @@ export interface SMSGatewayConfig {
   provider: SMSProvider
   provider_display: string
   is_active: boolean
+  use_inbuilt_system?: boolean  
   api_key: string        // masked on read
   api_secret: string     // masked on read  
   username: string
@@ -2685,15 +2686,15 @@ export interface SMSNotificationSettings {
   pppoe_welcome: boolean
   pppoe_payment_confirmation: boolean
   pppoe_expiry_reminder: boolean
-  pppoe_expiry_days_before: number
+  pppoe_expiry_intervals: Array<{ value: number; unit: 'days' | 'hours' }>  // ← ADD THIS (replace the old pppoe_expiry_days_before)
   pppoe_service_suspended: boolean
   pppoe_service_resumed: boolean
   pppoe_plan_changed: boolean
   pppoe_renewal_confirmation: boolean
   pppoe_new_subscription: boolean
-  // Backend field names (DO NOT rename these)
   system_router_offline: boolean
   system_alert_phone: string
+  router_offline_numbers?: string[]  // ← ADD THIS
   updated_at?: string
 }
 
@@ -3436,11 +3437,14 @@ export const SMS_TEMPLATE_VARIABLES: Record<string, SMSTemplateVariable[]> = {
     { key: '{new_expiry}', label: 'New Expiry Date', example: 'Feb 15, 2026' },
   ],
   pppoe_expiry: [
-    { key: '{customer_name}', label: 'Customer Name', example: 'John' },
-    { key: '{days_left}', label: 'Days Remaining', example: '4' },
-    { key: '{expiry_date}', label: 'Expiry Date', example: 'Feb 15, 2026' },
+    { key: '{customer_name}', label: 'Customer Name', example: 'Geoffrey' },
+    { key: '{days_left}', label: 'Days Remaining', example: '1' },
+    { key: '{expiry_date}', label: 'Expiry Date', example: '04 Jun 2026' },
+    { key: '{expiry_time}', label: 'Expiry Time', example: '20:59' },
+    { key: '{expiry_display}', label: 'Smart Expiry Text', example: 'today at 20:59' },
+    { key: '{expiry_full}', label: 'Full Expiry DateTime', example: '04 Jun 2026 at 20:59' },
     { key: '{plan_name}', label: 'Plan Name', example: 'Home 10Mbps' },
-    { key: '{amount_due}', label: 'Amount Due', example: '2,500' },
+    { key: '{amount_due}', label: 'Amount Due', example: 'KES 1,500' },
   ],
   pppoe_suspended: [
     { key: '{customer_name}', label: 'Customer Name', example: 'John' },

@@ -543,6 +543,28 @@ export default function SMSPage() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
+  // -- AUTO FETCH LIVE BALANCE FOR CUSTOM PROVIDERS (FIX) --------------------
+  useEffect(() => {
+    // Only fetch live balance when using a custom provider (not inbuilt)
+    if (!notifSettings.use_inbuilt_system) {
+      const activeCustomGw = gatewayConfigs.find(g => g.is_active && !g.use_inbuilt_system)
+      if (activeCustomGw && activeCustomGw.id) {
+        adminApi.testSMSGateway(activeCustomGw.id)
+          .then(res => {
+            if (res.success && res.balance) {
+              // Update balance state with live provider data
+              setBalance({
+                balance: typeof res.balance === 'number' ? res.balance : parseFloat(res.balance),
+                currency: 'KES',
+                provider: activeCustomGw.provider,
+              })
+            }
+          })
+          .catch(err => console.error('Failed to fetch live balance:', err))
+      }
+    }
+  }, [gatewayConfigs, notifSettings.use_inbuilt_system])
+
   // -- derived ----------------------------------------------------------------
   const filteredMessages = useMemo(() => messages.filter(m => {
     const q = searchQuery.toLowerCase()
@@ -684,7 +706,19 @@ export default function SMSPage() {
     setGwTesting(true)
     try {
       const r = await adminApi.testSMSGateway(gwEditing)
-      r.success ? toast.success(`Connected! Balance: ${JSON.stringify(r.balance)}`) : toast.error(`Failed: ${r.error}`)
+      if (r.success) {
+        toast.success(`Connected! Balance: ${JSON.stringify(r.balance)}`)
+        // Also update the live balance display immediately
+        if (r.balance) {
+          setBalance({
+            balance: typeof r.balance === 'number' ? r.balance : parseFloat(r.balance),
+            currency: 'KES',
+            provider: gwForm.provider,
+          })
+        }
+      } else {
+        toast.error(`Failed: ${r.error}`)
+      }
     } catch (e: any) {
       toast.error(e?.message ?? 'Test failed')
     } finally {
