@@ -23,7 +23,8 @@ interface PlanEstimate {
   pppoe_charge: number
   input_hotspot_revenue: number
   hotspot_share: number
-  hotspot_billable_charge: number
+  usage_subtotal: number
+  minimum_applied: boolean
   estimated_monthly: number
   price_yearly: number
   max_subscribers: number | null
@@ -157,6 +158,8 @@ function PlanCard({
   onGetStarted: () => void
   geo: GeoInfo
 }) {
+  const minimumApplied = plan.minimum_applied
+
   return (
     <motion.div
       layout
@@ -183,7 +186,7 @@ function PlanCard({
           <span className="text-sm font-medium text-slate-500">activation</span>
         </div>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-          Then {fmtCurrency(plan.pppoe_unit_price, geo)} per PPPoE footprint + hotspot usage
+          Then {fmtCurrency(plan.pppoe_unit_price, geo)} per PPPoE footprint + {plan.hotspot_share_pct}% hotspot revenue
         </p>
       </div>
 
@@ -202,7 +205,7 @@ function PlanCard({
           </div>
           <div className="flex items-start justify-between gap-4 text-xs">
             <span className="text-slate-600 dark:text-slate-400">
-              {fmt(plan.billable_pppoe_clients)} PPPoE users × {fmtCurrency(plan.pppoe_unit_price, geo)}
+              {fmt(plan.billable_pppoe_clients)} PPPoE users x {fmtCurrency(plan.pppoe_unit_price, geo)}
             </span>
             <span className="whitespace-nowrap font-semibold text-slate-900 dark:text-white">
               {fmtCurrency(plan.pppoe_charge, geo)}
@@ -210,14 +213,27 @@ function PlanCard({
           </div>
           <div className="flex items-start justify-between gap-4 text-xs">
             <span className="text-slate-600 dark:text-slate-400">
-              Hotspot charge: max({plan.hotspot_share_pct}% of {fmtCurrency(plan.input_hotspot_revenue, geo)}, {fmtCurrency(plan.minimum_charge, geo)})
+              {plan.hotspot_share_pct}% of {fmtCurrency(plan.input_hotspot_revenue, geo)} hotspot revenue
             </span>
             <span className="whitespace-nowrap font-semibold text-slate-900 dark:text-white">
-              {fmtCurrency(plan.hotspot_billable_charge, geo)}
+              {fmtCurrency(plan.hotspot_share, geo)}
             </span>
           </div>
+          <div className="flex items-start justify-between gap-4 text-xs">
+            <span className="text-slate-600 dark:text-slate-400">
+              Usage subtotal
+            </span>
+            <span className="whitespace-nowrap font-semibold text-slate-900 dark:text-white">
+              {fmtCurrency(plan.usage_subtotal, geo)}
+            </span>
+          </div>
+          {minimumApplied && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+              Your usage subtotal is below {fmtCurrency(plan.minimum_charge, geo)}, so the monthly estimate is rounded up to the minimum charge.
+            </div>
+          )}
           <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-sm dark:border-slate-700">
-            <span className="font-semibold text-slate-700 dark:text-slate-300">Estimated total</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Monthly estimate</span>
             <span className="font-bold text-blue-600">{fmtCurrency(plan.estimated_monthly, geo)}/mo</span>
           </div>
         </div>
@@ -264,7 +280,8 @@ export function BillingCalculator({
 
   const pppoeCharge = pppoeClients * METERED_PLAN.pppoe_unit_price
   const hotspotShare = Math.round(hotspotRevenue * (METERED_PLAN.hotspot_share_pct / 100))
-  const hotspotBillableCharge = Math.max(hotspotShare, METERED_PLAN.minimum_charge)
+  const usageSubtotal = pppoeCharge + hotspotShare
+  const estimatedMonthly = Math.max(usageSubtotal, METERED_PLAN.minimum_charge)
   const meteredPlan: PlanEstimate = {
     ...METERED_PLAN,
     input_pppoe_clients: pppoeClients,
@@ -272,8 +289,9 @@ export function BillingCalculator({
     pppoe_charge: pppoeCharge,
     input_hotspot_revenue: hotspotRevenue,
     hotspot_share: hotspotShare,
-    hotspot_billable_charge: hotspotBillableCharge,
-    estimated_monthly: pppoeCharge + hotspotBillableCharge,
+    usage_subtotal: usageSubtotal,
+    minimum_applied: usageSubtotal < METERED_PLAN.minimum_charge,
+    estimated_monthly: estimatedMonthly,
   }
 
   return (
@@ -412,7 +430,7 @@ export function BillingCalculator({
           transition={{ delay: 0.5 }}
           className="mt-8 text-center text-xs text-slate-400"
         >
-          Estimates shown in {geo.currency}. Activation is paid once after trial. Recurring billing depends on PPPoE client footprint and hotspot revenue for the 30-day cycle.
+          Estimates shown in {geo.currency}. Activation is paid once after trial. Monthly usage is PPPoE footprint plus hotspot revenue share, with a {fmtCurrency(METERED_PLAN.minimum_charge, geo)} minimum if usage is lower.
         </motion.p>
       </div>
     </section>

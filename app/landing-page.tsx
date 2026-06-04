@@ -1386,7 +1386,7 @@ export function LandingPage() {
                       <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">≈ KSh 500 activation · estimated in {geo.currency}</p>
                     )}
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                      Then {fmt(20)} per PPPoE footprint + max(3% hotspot revenue, KSh 500 minimum)
+                      Then {fmt(20)} per PPPoE footprint + 3% hotspot revenue, with a KSh 500 monthly minimum
                     </p>
                   </div>
 
