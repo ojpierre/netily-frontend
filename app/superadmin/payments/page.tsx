@@ -36,6 +36,7 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [serviceFilter, setServiceFilter] = useState("all")
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
 
@@ -45,6 +46,7 @@ export default function PaymentsPage() {
       const params: Record<string, string> = { page: String(page) }
       if (search) params.search = search
       if (statusFilter !== "all") params.status = statusFilter
+      if (serviceFilter !== "all") params.service_type = serviceFilter
       const [res, sum] = await Promise.all([
         superadminApi.getPayments(params),
         superadminApi.getPaymentSummary(),
@@ -57,7 +59,7 @@ export default function PaymentsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, search, statusFilter])
+  }, [page, search, statusFilter, serviceFilter])
 
   useEffect(() => {
     const t = setTimeout(() => fetchPayments(), 300)
@@ -89,6 +91,31 @@ export default function PaymentsPage() {
 
   const kes = (n: number | string) =>
     Number(n).toLocaleString("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 0 })
+
+  const dateTime = (value?: string | null) => {
+    if (!value) return "-"
+    return new Date(value).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })
+  }
+
+  const serviceBadge = (service?: string) => {
+    const normalized = (service || "other").toLowerCase()
+    const styles: Record<string, string> = {
+      subscription: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+      hotspot: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+      pppoe: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+      other: "bg-slate-700/60 text-slate-300 border-slate-600",
+    }
+    return (
+      <Badge variant="outline" className={styles[normalized] || styles.other}>
+        {normalized.toUpperCase()}
+      </Badge>
+    )
+  }
+
+  const periodDisplay = (p: SubscriptionPayment) => {
+    if (!p.period_start && !p.period_end) return "-"
+    return `${dateTime(p.period_start)} - ${dateTime(p.period_end)}`
+  }
 
   return (
     <div className="space-y-6">
@@ -170,6 +197,18 @@ export default function PaymentsPage() {
             <SelectItem value="failed">Failed</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={serviceFilter} onValueChange={(v) => { setServiceFilter(v); setPage(1) }}>
+          <SelectTrigger className="w-44 bg-slate-900 border-slate-700 text-slate-200">
+            <SelectValue placeholder="Service" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Services</SelectItem>
+            <SelectItem value="subscription">Subscription</SelectItem>
+            <SelectItem value="hotspot">Hotspot</SelectItem>
+            <SelectItem value="pppoe">PPPoE</SelectItem>
+            <SelectItem value="other">Other</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table */}
@@ -188,9 +227,11 @@ export default function PaymentsPage() {
                   <tr className="border-b border-slate-800 text-slate-400 text-left">
                     <th className="px-4 py-3">Reference</th>
                     <th className="px-4 py-3">Company</th>
+                    <th className="px-4 py-3">Service</th>
                     <th className="px-4 py-3">Amount</th>
                     <th className="px-4 py-3">Method</th>
                     <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Period</th>
                     <th className="px-4 py-3">Date</th>
                   </tr>
                 </thead>
@@ -202,8 +243,9 @@ export default function PaymentsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <p className="text-white">{p.company_name}</p>
-                        <p className="text-xs text-slate-500">{p.plan_name}</p>
+                        <p className="text-xs text-slate-500">{p.customer_name || p.plan_name || p.invoice_number || "-"}</p>
                       </td>
+                      <td className="px-4 py-3">{serviceBadge(p.service_type)}</td>
                       <td className="px-4 py-3 text-white font-medium">
                         {kes(p.amount)}
                       </td>
@@ -213,8 +255,11 @@ export default function PaymentsPage() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3">{statusBadge(p.status)}</td>
+                      <td className="px-4 py-3 text-slate-400 text-xs min-w-[220px]">
+                        {periodDisplay(p)}
+                      </td>
                       <td className="px-4 py-3 text-slate-400">
-                        {new Date(p.created_at).toLocaleDateString()}
+                        {dateTime(p.completed_at || p.created_at)}
                       </td>
                     </tr>
                   ))}

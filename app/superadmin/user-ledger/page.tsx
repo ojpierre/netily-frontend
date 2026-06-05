@@ -11,6 +11,8 @@ import {
   Link2,
   Unlink,
   Calendar,
+  CircleDollarSign,
+  Percent,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -24,7 +26,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "sonner"
-import { superadminApi, type LedgerEntry } from "@/lib/superadmin-api"
+import { superadminApi, type LedgerEntry, type LedgerSummary } from "@/lib/superadmin-api"
+
+const kes = (amount: number | string | undefined | null) =>
+  new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency: "KES",
+    maximumFractionDigits: 0,
+  }).format(Number(amount || 0))
 
 const EVENTS = [
   { value: "all", label: "All Events" },
@@ -85,6 +94,7 @@ export default function UserLedgerPage() {
   const [dateTo, setDateTo] = useState("")
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
+  const [summary, setSummary] = useState<LedgerSummary | null>(null)
 
   const fetchLedger = useCallback(async () => {
     setLoading(true)
@@ -98,6 +108,7 @@ export default function UserLedgerPage() {
       const res = await superadminApi.getUserLedger(params)
       setEntries(res.results)
       setTotal(res.count)
+      setSummary(res.summary || null)
     } catch (err: any) {
       toast.error(err.message || "Failed to load user ledger")
     } finally {
@@ -136,6 +147,72 @@ export default function UserLedgerPage() {
           Refresh
         </Button>
       </div>
+
+      {/* Hotspot billing summary */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="bg-emerald-950/40 border-emerald-900/60">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-emerald-400">Hotspot Revenue</p>
+                <p className="mt-2 text-2xl font-extrabold text-white">{kes(summary?.hotspot_revenue_total)}</p>
+                <p className="mt-1 text-xs text-emerald-200/70">Across active tenant billing cycles</p>
+              </div>
+              <CircleDollarSign className="h-9 w-9 text-emerald-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-amber-950/40 border-amber-900/60">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-amber-400">Netily Share</p>
+                <p className="mt-2 text-2xl font-extrabold text-white">{kes(summary?.hotspot_share_total)}</p>
+                <p className="mt-1 text-xs text-amber-200/70">Calculated from each cycle's configured percentage</p>
+              </div>
+              <Percent className="h-9 w-9 text-amber-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-slate-900 border-slate-800">
+          <CardContent className="p-5">
+            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Active Hotspot Tenants</p>
+            <p className="mt-2 text-2xl font-extrabold text-white">{summary?.hotspot_tenants?.length || 0}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {summary?.active_cycle_count || 0} active billing cycle{summary?.active_cycle_count === 1 ? "" : "s"} monitored
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {summary?.hotspot_tenants?.length ? (
+        <Card className="bg-slate-900 border-slate-800">
+          <CardContent className="p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-white">Top hotspot revenue tenants</p>
+              <Badge variant="outline" className="border-slate-700 text-slate-300">Live cycle accumulator</Badge>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {summary.hotspot_tenants.slice(0, 6).map((tenant) => (
+                <div key={tenant.billing_cycle_id} className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+                  <p className="truncate text-sm font-semibold text-white">{tenant.tenant_name}</p>
+                  <p className="text-xs text-slate-500">{tenant.tenant_schema}</p>
+                  <div className="mt-3 flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-slate-500">Revenue</p>
+                      <p className="text-base font-bold text-emerald-400">{kes(tenant.hotspot_revenue)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500">{tenant.hotspot_share_pct}% share</p>
+                      <p className="text-base font-bold text-amber-400">{kes(tenant.hotspot_share_amount)}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 flex-wrap">

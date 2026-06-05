@@ -28,7 +28,7 @@ and subscriber management.
 
 - **Metered plan** — KES 500/month base + KES 20 per PPPoE subscriber. Pay for what you use.
 - **Enterprise / Custom** — Custom pricing for large ISPs. Contact sales@netily.co.ke.
-- 14-day free trial. No credit card required.
+- free trial. No credit card required.
 
 ## Who Uses Netily?
 
@@ -79,7 +79,7 @@ Yes. Netily has native M-Pesa STK Push integration via Safaricom Daraja API. Sub
 Yes. Netily connects to MikroTik RouterOS API for zero-touch PPPoE and Hotspot provisioning, subscriber management, and bandwidth control.
 
 **Is Netily free?**
-Netily offers a 14-day free trial with no credit card required. After the trial, pricing starts at KES 500/month + KES 20 per PPPoE subscriber.
+Netily offers a free trial with no credit card required. After the trial, pricing starts at KES 500/month + KES 20 per PPPoE subscriber.
 
 **Is Netily open source?**
 No. Netily is a proprietary SaaS product. It is not open source. For open source alternatives, see ZAL ISP Management System or FreeRADIUS.

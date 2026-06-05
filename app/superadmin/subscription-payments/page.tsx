@@ -25,6 +25,8 @@ interface SubscriptionPaymentRow {
   phone_number: string
   created_at: string | null
   completed_at: string | null
+  period_start: string | null
+  period_end: string | null
 }
 
 const STATUS_STYLES: Record<string, { cls: string; Icon: React.ElementType }> = {
@@ -162,19 +164,20 @@ export default function SubscriptionPaymentsPage() {
                 <th className="text-left px-4 py-3 text-slate-400 font-medium">Status</th>
                 <th className="text-left px-4 py-3 text-slate-400 font-medium hidden lg:table-cell">M-Pesa Receipt</th>
                 <th className="text-left px-4 py-3 text-slate-400 font-medium hidden lg:table-cell">Phone</th>
+                <th className="text-left px-4 py-3 text-slate-400 font-medium hidden xl:table-cell">Cycle Period</th>
                 <th className="text-left px-4 py-3 text-slate-400 font-medium">Date</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-16">
+                  <td colSpan={9} className="text-center py-16">
                     <Loader2 className="w-6 h-6 animate-spin mx-auto text-violet-400" />
                   </td>
                 </tr>
               ) : payments.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-16 text-slate-500">
+                  <td colSpan={9} className="text-center py-16 text-slate-500">
                     No payments found
                   </td>
                 </tr>
@@ -197,6 +200,9 @@ export default function SubscriptionPaymentsPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-400 text-xs hidden lg:table-cell">
                       {p.phone_number || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-400 text-xs hidden xl:table-cell min-w-[220px]">
+                      {p.period_start || p.period_end ? `${fmt(p.period_start)} - ${fmt(p.period_end)}` : "-"}
                     </td>
                     <td className="px-4 py-3 text-slate-400 text-xs">
                       {fmt(p.created_at)}

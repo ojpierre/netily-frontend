@@ -13,7 +13,7 @@ import type { AdminLoginResponse } from "@/lib/admin-api"
 // Toggle this to switch between mock and real backend
 // Set NEXT_PUBLIC_USE_MOCK=true in .env.local to use mock data
 const USE_MOCK_AUTH = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
-const ADMIN_ALLOWED_ROLES = ["admin", "staff", "accountant", "support", "superadmin"]
+const ADMIN_ALLOWED_ROLES = ["admin", "staff", "accountant", "support", "superadmin", "super_admin"]
 const PLATFORM_ADMIN_EMAILS = String(process.env.NEXT_PUBLIC_PLATFORM_ADMIN_EMAILS || "")
   .split(",")
   .map((v) => v.trim().toLowerCase())
@@ -32,6 +32,10 @@ interface AdminUser {
   is_staff: boolean
   is_superuser: boolean
   is_active?: boolean
+  role?: string
+  access_level?: string
+  department?: string | null
+  department_name?: string | null
 }
 
 interface AdminAuthContextType {
@@ -59,6 +63,10 @@ const MOCK_ADMIN: AdminUser = {
   is_staff: true,
   is_superuser: true,
   is_active: true,
+  role: "super_admin",
+  access_level: "super_admin",
+  department: null,
+  department_name: null,
 }
 
 const normalizeAdminUser = (user: any): AdminUser => ({
@@ -70,10 +78,14 @@ const normalizeAdminUser = (user: any): AdminUser => ({
   is_staff: !!user?.is_staff,
   is_superuser: !!user?.is_superuser,
   is_active: user?.is_active,
+  role: String(user?.access_level || user?.role || "basic").toLowerCase(),
+  access_level: String(user?.access_level || user?.role || "basic").toLowerCase(),
+  department: user?.department ? String(user.department).toLowerCase() : null,
+  department_name: user?.department_name || user?.department || null,
 })
 
 const isAllowedAdminUser = (user: any): boolean => {
-  const role = String(user?.role || "").toLowerCase()
+  const role = String(user?.access_level || user?.role || "").toLowerCase()
   const isPlatformAdminEmail = !!user?.email && PLATFORM_ADMIN_EMAILS.includes(String(user.email).toLowerCase())
   return ADMIN_ALLOWED_ROLES.includes(role) || !!user?.is_staff || !!user?.is_superuser || isPlatformAdminEmail
 }
@@ -99,7 +111,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     if (!raw) return false
     try {
       const u = JSON.parse(raw)
-      const role = String(u?.role || "").toLowerCase()
+      const role = String(u?.access_level || u?.role || "").toLowerCase()
       const isPlatformAdminEmail = !!u?.email && PLATFORM_ADMIN_EMAILS.includes(String(u.email).toLowerCase())
       return ADMIN_ALLOWED_ROLES.includes(role) || !!u?.is_staff || !!u?.is_superuser || isPlatformAdminEmail
     } catch {
@@ -209,11 +221,12 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       console.log('loadUser: Received user data:', userData)
       
       // Check for admin privileges - support multiple field formats
-      const hasAdminRole = userData?.role && ADMIN_ALLOWED_ROLES.includes(userData.role.toLowerCase())
+      const resolvedRole = String(userData?.access_level || userData?.role || "").toLowerCase()
+      const hasAdminRole = resolvedRole && ADMIN_ALLOWED_ROLES.includes(resolvedRole)
       const isStaffOrSuper = userData?.is_staff || userData?.is_superuser
       const isPlatformAdminEmail = !!userData?.email && PLATFORM_ADMIN_EMAILS.includes(String(userData.email).toLowerCase())
       
-      console.log('loadUser: Privilege check:', { role: userData?.role, hasAdminRole, isStaffOrSuper, isPlatformAdminEmail })
+      console.log('loadUser: Privilege check:', { role: resolvedRole, hasAdminRole, isStaffOrSuper, isPlatformAdminEmail })
       
       if (!hasAdminRole && !isStaffOrSuper && !isPlatformAdminEmail) {
         console.log('loadUser: User does not have admin privileges')
@@ -309,7 +322,14 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       // Sync access token to cookies for middleware
       document.cookie = `adminToken=${resolved.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
       
-      setUser(normalizeAdminUser(resolved.user))
+      try {
+        const profile = await adminApi.getCurrentAdmin()
+        storage.setItem(hostScopedKey("adminUser"), JSON.stringify(profile))
+        storage.setItem("adminUser", JSON.stringify(profile))
+        setUser(normalizeAdminUser(profile))
+      } catch {
+        setUser(normalizeAdminUser(resolved.user))
+      }
       console.log('login: User set, login complete')
     } catch (error: any) {
       setLoading(false)
@@ -340,6 +360,14 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     storage.setItem("adminUser", JSON.stringify(response.user))
     document.cookie = `adminToken=${response.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
     setUser(normalizeAdminUser(response.user))
+    adminApi.getCurrentAdmin().then((profile) => {
+      storage.setItem(hostScopedKey("adminUser"), JSON.stringify(profile))
+      storage.setItem("adminUser", JSON.stringify(profile))
+      setUser(normalizeAdminUser(profile))
+    }).catch(() => {
+      // The login payload is enough to keep the session alive; the profile
+      // refresh only enriches RBAC fields for department-aware navigation.
+    })
   }
 
   // Refresh the access token using the refresh token

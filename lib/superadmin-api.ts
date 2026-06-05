@@ -187,14 +187,21 @@ export interface PlatformUserDetail extends PlatformUser {
 
 export interface SubscriptionPayment {
   id: string
+  source?: string
   company_name: string
   plan_name: string
+  customer_name?: string
   amount: string
   currency: string
   status: string
   payment_method: string
+  service_type?: "subscription" | "hotspot" | "pppoe" | "other" | string
   reference: string
   created_at: string
+  completed_at?: string
+  period_start?: string
+  period_end?: string
+  invoice_number?: string
 }
 
 export interface PaymentSummary {
@@ -502,7 +509,32 @@ export interface LedgerEntry {
   plan_name: string;
   pppoe_count_after: number;
   hotspot_count_after: number;
+  active_cycle_id?: string | null;
+  cycle_hotspot_revenue?: string | number;
+  cycle_hotspot_share_pct?: string | number;
+  cycle_hotspot_share_amount?: string | number;
   created_at: string;
+}
+
+export interface LedgerHotspotTenantSummary {
+  tenant_id: string;
+  tenant_name: string;
+  tenant_schema: string;
+  billing_cycle_id: string;
+  hotspot_revenue: string | number;
+  hotspot_share_pct: string | number;
+  hotspot_share_amount: string | number;
+}
+
+export interface LedgerSummary {
+  active_cycle_count: number;
+  hotspot_revenue_total: string | number;
+  hotspot_share_total: string | number;
+  hotspot_tenants: LedgerHotspotTenantSummary[];
+}
+
+export interface LedgerResponse extends PaginatedResponse<LedgerEntry> {
+  summary?: LedgerSummary;
 }
 
 // ── API class ──────────────────────────────────────
@@ -968,7 +1000,7 @@ class SuperadminApiService {
 
   // ── Tenant User Ledger ──
 
-  async getUserLedger(params?: Record<string, string>): Promise<PaginatedResponse<LedgerEntry>> {
+  async getUserLedger(params?: Record<string, string>): Promise<LedgerResponse> {
     const qs = params ? "?" + new URLSearchParams(params).toString() : ""
     return this.request(`/superadmin/user-ledger/${qs}`)
   }

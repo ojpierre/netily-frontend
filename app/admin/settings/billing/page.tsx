@@ -81,6 +81,20 @@ function BillingContent() {
           staff: { current: raw.current_staff ?? 0, limit: raw.max_staff === 0 ? null : (raw.max_staff ?? null), percentage: raw.staff_usage_percent ?? null },
           is_over_limit: raw.is_near_limit ?? false,
           warnings: raw.warnings ?? [],
+          is_metered: raw.is_metered,
+          billing_cycle_id: raw.billing_cycle_id,
+          billing_cycle_start: raw.billing_cycle_start,
+          billing_cycle_end: raw.billing_cycle_end,
+          hotspot_revenue_accrued: raw.hotspot_revenue_accrued ?? 0,
+          hotspot_revenue_share_pct: raw.hotspot_revenue_share_pct ?? raw.hotspot_share_pct ?? 0,
+          hotspot_revenue_share_amount: raw.hotspot_revenue_share_amount ?? raw.hotspot_share_amount ?? 0,
+          hotspot_minimum_charge: raw.hotspot_minimum_charge ?? 0,
+          hotspot_billable_charge: raw.hotspot_billable_charge ?? raw.hotspot_revenue_share_amount ?? raw.hotspot_share_amount ?? 0,
+          usage_subtotal: raw.usage_subtotal ?? 0,
+          minimum_charge: raw.minimum_charge ?? raw.monthly_minimum_charge ?? 500,
+          minimum_adjustment: raw.minimum_adjustment ?? 0,
+          total_estimate: raw.total_estimate ?? 0,
+          hotspot_revenue_note: raw.hotspot_revenue_note,
         } as ApiUsageStats)
       } else {
         setUsage(usageData)
@@ -136,7 +150,7 @@ function BillingContent() {
           toast.error(res.message || "Payment failed. Please try again.")
           return
         }
-        // Still pending � poll again
+        // Still pending - poll again
         setTimeout(poll, 5000)
       } catch {
         if (!cancelled) setTimeout(poll, 5000)
@@ -159,14 +173,14 @@ function BillingContent() {
     )
   }
 
-  // Helper for Plan Price � use Number() so string "0.00" is treated as falsy
+  // Helper for plan price display.
   const getPlanPriceDisplay = (plan: NetilyPlan) => {
     if (plan?.is_metered) {
-      const basePrice = Number(plan.base_license_fee) || Number(plan.price_monthly) || 0
+      const activationFee = Number(plan.base_license_fee) || Number(plan.price_monthly) || 500
       return (
         <div className="flex flex-col">
-          <span className="text-2xl font-black">{kes(basePrice)}</span>
-          <span className="text-[10px] text-blue-600 font-bold uppercase">Base + Metered Usage</span>
+          <span className="text-2xl font-black">{kes(activationFee)}</span>
+          <span className="text-[10px] text-blue-600 font-bold uppercase">Activation + Usage Minimum</span>
         </div>
       )
     }
@@ -237,7 +251,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
       setPayPhone("")
       if (res.payment_id) {
         setPendingPaymentId(res.payment_id)
-        setPaymentStatus("Waiting for M-Pesa confirmation�")
+        setPaymentStatus("Waiting for M-Pesa confirmation...")
       }
     } catch (error: any) {
       toast.error(error?.message || "Payment initiation failed")
@@ -246,10 +260,10 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
     }
   }
 
-  // Derive display amount for a plan (UI only � backend calculates real amount)
+  // Derive display amount for a plan. The backend calculates the final amount.
   const getPlanAmount = (plan: NetilyPlan | null) => {
     if (!plan) return 0
-    if (plan.is_metered) return Number(plan.base_license_fee) || 0
+    if (plan.is_metered) return Number(plan.base_license_fee) || 500
     return Number(plan.price_monthly) || 0
   }
 
@@ -275,7 +289,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
       // Start polling for payment confirmation
       if (res.payment_id) {
         setPendingPaymentId(res.payment_id)
-        setPaymentStatus("Waiting for M-Pesa confirmation�")
+        setPaymentStatus("Waiting for M-Pesa confirmation...")
       }
     } catch (error: any) {
       toast.error(error?.message || "Payment initiation failed")
@@ -306,7 +320,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
       setPayNowPhone("")
       if (res.payment_id) {
         setPendingPaymentId(res.payment_id)
-        setPaymentStatus("Waiting for M-Pesa confirmation�")
+        setPaymentStatus("Waiting for M-Pesa confirmation...")
       }
     } catch (error: any) {
       toast.error(error?.message || "Payment initiation failed")
@@ -340,7 +354,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
           <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
           <AlertTitle className="text-blue-800">Processing Payment</AlertTitle>
           <AlertDescription className="text-blue-700">
-            {paymentStatus || "Waiting for M-Pesa confirmation�"} This page will update automatically once your payment is confirmed.
+            {paymentStatus || "Waiting for M-Pesa confirmation..."} This page will update automatically once your payment is confirmed.
           </AlertDescription>
         </Alert>
       )}
@@ -377,7 +391,9 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                       <p className="font-bold text-slate-900 dark:text-white">{subscription.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString('en-KE', { dateStyle: 'long' }) : '---'}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Base Monthly Fee</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">
+                        {subscription.plan?.is_metered ? "Activation Fee" : "Monthly Fee"}
+                      </p>
                       <p className="font-bold text-slate-900 dark:text-white">{kes(subscription.plan?.price_monthly || subscription.plan?.base_license_fee || subscription.plan?.price || 0)}</p>
                     </div>
                   </div>
@@ -385,7 +401,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 flex items-start gap-3">
                     <Clock className="w-5 h-5 text-slate-400 mt-0.5" />
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      Your plan is billed every 30 days. Invoices include your base fee plus any metered PPPoE or Hotspot usage accumulated during the period.
+                      Your plan is billed every 30 days. Metered invoices use your PPPoE footprint plus 3% of hotspot revenue, with a KES 500 monthly minimum if usage is lower.
                     </p>
                   </div>
                 </div>
@@ -451,7 +467,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                           Trial ends {new Date(subscription.trial_ends_at).toLocaleDateString('en-KE', { dateStyle: 'long' })}
                         </p>
                         <p className="text-xs text-amber-600 mt-0.5">
-                          {Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} days remaining � pay now to secure your subscription
+                          {Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} days remaining - pay now to secure your subscription
                         </p>
                       </div>
                     </div>
@@ -467,7 +483,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                     disabled={!!pendingPaymentId}
                   >
                     <Phone className="w-4 h-4 mr-2" />
-                    {subscription.is_trial ? 'Pay Now � Activate Subscription' : 'Pay Now'}
+                    {subscription.is_trial ? 'Pay Now - Activate Subscription' : 'Pay Now'}
                   </Button>
                 </CardFooter>
               )}
@@ -482,13 +498,13 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   </DialogTitle>
                   <DialogDescription>
                     {subscription?.plan?.is_metered
-                      ? `Base fee: ${kes(Number(subscription?.plan?.base_license_fee) || 0)} � metered usage will be added at cycle end`
+                      ? `Activation fee: ${kes(Number(subscription?.plan?.base_license_fee) || 500)}. Monthly invoices use usage or the KES 500 minimum, whichever is higher.`
                       : `Amount: ${kes(Number(subscription?.plan?.price_monthly) || 0)}`
                     }
                   </DialogDescription>
                 </DialogHeader>
                 <div className="mt-4 space-y-4">
-                  {/* Billing cycle start options � only shown during trial */}
+                  {/* Billing cycle start options - only shown during trial */}
                   {subscription?.is_trial && subscription?.trial_ends_at && (
                     <div className="space-y-3 bg-slate-50 rounded-lg p-4 border border-slate-200">
                       <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">When should billing start?</p>
@@ -542,7 +558,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   >
                     {payNowLoading
                       ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
-                      : `Send STK Push � ${kes(Number(subscription?.plan?.base_license_fee) || Number(subscription?.plan?.price_monthly) || 0)}`
+                      : `Send STK Push - ${kes(Number(subscription?.plan?.base_license_fee) || Number(subscription?.plan?.price_monthly) || 500)}`
                     }
                   </Button>
                 </div>
@@ -781,7 +797,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   </div>
                   <div className="bg-blue-50 p-3 rounded-lg">
                     <p className="text-xs text-blue-700 font-medium">
-                      Pay only for what you use beyond base limits
+                      KES 500 activation after trial, then usage billing with a KES 500 monthly minimum
                     </p>
                   </div>
                 </CardContent>
@@ -842,14 +858,14 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
             </Card>
           </div>
 
-          {/* Single shared dialog for plan selection � lives outside the map to avoid controlled/uncontrolled conflicts */}
+          {/* Single shared dialog for plan selection lives outside the map to avoid controlled/uncontrolled conflicts. */}
           <Dialog open={!!selectingPlan} onOpenChange={(open) => { if (!open) { setSelectingPlan(null); setPlanPayPhone("") } }}>
             <DialogContent className="max-w-[92vw] sm:max-w-[420px]">
               <DialogHeader>
                 <DialogTitle>Subscribe to {selectingPlan?.name}</DialogTitle>
                 <DialogDescription>
                   {selectingPlan?.is_metered
-                    ? `Base fee ${kes(getPlanAmount(selectingPlan))} + metered usage. You'll be charged based on actual usage.`
+                      ? `Pay ${kes(getPlanAmount(selectingPlan))} to activate. Monthly invoices use PPPoE footprint + 3% hotspot revenue, or KES 500 if usage is lower.`
                     : `Pay ${kes(getPlanAmount(selectingPlan))} to activate this plan`
                   }
                 </DialogDescription>
@@ -873,7 +889,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   {planPayLoading
                     ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
                     : selectingPlan?.is_metered
-                      ? `Subscribe � ${kes(getPlanAmount(selectingPlan))} base`
+                      ? `Activate - ${kes(getPlanAmount(selectingPlan))}`
                       : `Pay ${kes(getPlanAmount(selectingPlan))}`
                   }
                 </Button>
@@ -889,29 +905,32 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
               {/* --- Metered Billing Estimate (only shown for metered plans) --- */}
               {subscription?.plan?.is_metered && (() => {
                 const plan = subscription.plan
-                const baseFee = Number(plan.base_license_fee) || 0
+                const minimumCharge = Number(usage.minimum_charge ?? plan.base_license_fee) || 500
                 const pppoeCount = usage.subscribers?.current || 0
-                const pppoeMin = Number((plan as any).pppoe_min_clients) || 0
                 const pppoeUnitPrice = Number((plan as any).pppoe_unit_price) || 0
-                const hotspotSharePct = Number((plan as any).hotspot_revenue_share_pct) || 0
-                const billablePppoe = Math.max(pppoeCount, pppoeMin)
+                const hotspotSharePct = Number(usage.hotspot_revenue_share_pct ?? (plan as any).hotspot_revenue_share_pct) || 0
+                const hotspotRevenueAccrued = Number(usage.hotspot_revenue_accrued || 0)
+                const hotspotShareAmount = Number(usage.hotspot_revenue_share_amount || 0)
+                const billablePppoe = pppoeCount
                 const pppoeCharge = billablePppoe * pppoeUnitPrice
-                const totalEstimate = baseFee + pppoeCharge
+                const usageSubtotal = Number(usage.usage_subtotal ?? (pppoeCharge + hotspotShareAmount))
+                const minimumAdjustment = Number(usage.minimum_adjustment ?? Math.max(minimumCharge - usageSubtotal, 0))
+                const totalEstimate = Number(usage.total_estimate ?? (usageSubtotal + minimumAdjustment))
                 return (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-1">
                       <Receipt className="w-4 h-4 text-blue-600" />
-                      <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Billing Estimate � Current Cycle</h3>
+                      <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Billing Estimate - Current Cycle</h3>
                     </div>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                      {/* Base License Fee */}
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                      {/* Monthly Minimum */}
                       <Card className="border-blue-200 bg-blue-50/40">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-xs font-black uppercase text-blue-500 tracking-widest">Base License Fee</CardTitle>
+                          <CardTitle className="text-xs font-black uppercase text-blue-500 tracking-widest">Monthly Minimum</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{kes(baseFee)}</p>
-                          <p className="text-xs text-slate-500 mt-1">Fixed monthly fee</p>
+                          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{kes(minimumCharge)}</p>
+                          <p className="text-xs text-slate-500 mt-1">Applies only when usage is lower</p>
                         </CardContent>
                       </Card>
 
@@ -924,23 +943,32 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                           <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{kes(pppoeCharge)}</p>
                           <div className="text-xs text-slate-500 mt-1 space-y-0.5">
                             <p>Actual: <span className="font-semibold text-slate-700">{pppoeCount}</span> clients</p>
-                            {pppoeCount < pppoeMin && (
-                              <p className="text-amber-600">Min floor: <span className="font-semibold">{pppoeMin}</span> applies</p>
-                            )}
-                            <p>Billable: <span className="font-semibold text-slate-700">{billablePppoe}</span> � {kes(pppoeUnitPrice)}</p>
+                            <p>Footprint billed: <span className="font-semibold text-slate-700">{billablePppoe}</span> x {kes(pppoeUnitPrice)}</p>
                           </div>
                         </CardContent>
                       </Card>
 
-                      {/* Hotspot Revenue Share */}
+                      {/* Hotspot Revenue Accrued */}
                       <Card className="border-emerald-200 bg-emerald-50/40">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-xs font-black uppercase text-emerald-500 tracking-widest">Hotspot Revenue Share</CardTitle>
+                          <CardTitle className="text-xs font-black uppercase text-emerald-500 tracking-widest">Hotspot Revenue</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{hotspotSharePct}%</p>
-                          <p className="text-xs text-slate-500 mt-1">of hotspot collections</p>
-                          <p className="text-xs text-slate-400 mt-0.5">Calculated at cycle close</p>
+                          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{kes(hotspotRevenueAccrued)}</p>
+                          <p className="text-xs text-slate-500 mt-1">Collected this billing cycle</p>
+                          <p className="text-xs text-emerald-600 mt-0.5">Reconciled every 8 hrs</p>
+                        </CardContent>
+                      </Card>
+
+                      {/* Netily Hotspot Share */}
+                      <Card className="border-amber-200 bg-amber-50/50">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-xs font-black uppercase text-amber-600 tracking-widest">Hotspot Share</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{kes(hotspotShareAmount)}</p>
+                          <p className="text-xs text-slate-500 mt-1">{hotspotSharePct}% of hotspot revenue</p>
+                          <p className="text-xs text-slate-400 mt-0.5">Added to next invoice</p>
                         </CardContent>
                       </Card>
 
@@ -951,7 +979,10 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                         </CardHeader>
                         <CardContent>
                           <p className="text-2xl font-extrabold">{kes(totalEstimate)}</p>
-                          <p className="text-xs text-slate-400 mt-1">Base + PPPoE (excl. hotspot)</p>
+                          <p className="text-xs text-slate-400 mt-1">Max of usage subtotal or monthly minimum</p>
+                          {minimumAdjustment > 0 && (
+                            <p className="text-xs text-amber-300 mt-0.5">Includes {kes(minimumAdjustment)} minimum adjustment</p>
+                          )}
                           <p className="text-xs text-blue-400 mt-0.5">Updated every 8 hrs</p>
                         </CardContent>
                       </Card>

@@ -88,7 +88,7 @@ const SETUP_STEPS = [
   },
   {
     icon: Zap,
-    title: "Activating your 14-day trial",
+    title: "Activating your trial",
     subtitle: "Almost there! Unlocking all premium features...",
     funFact: "No credit card needed. We trust you! 💙",
   },
@@ -608,7 +608,7 @@ export default function AdminRegisterPage() {
             </div>
             <CardTitle className="text-2xl font-bold">Create Your ISP Account</CardTitle>
             <CardDescription>
-              Start your 14-day free trial. No credit card required.
+              Start your free trial. No credit card required.
             </CardDescription>
           </CardHeader>
 

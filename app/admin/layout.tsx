@@ -64,20 +64,36 @@ import { Separator } from "@/components/ui/separator"
 import { TrialCountdown, TrialCountdownCompact } from "@/components/trial-countdown"
 import { TrialGuard } from "@/components/trial-guard"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { RoleGuard } from "@/components/role-guard"
+import { NetilySupportChat } from "@/components/netily-support-chat"
+import { canAccess, getAccessRuleForPath, type AccessRule } from "@/lib/rbac"
+
+type NavigationItem = {
+  name: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+} & AccessRule
+
+type NavigationSection = {
+  title: string
+  items: NavigationItem[]
+} & AccessRule
 
 // Navigation organized by sections
-const navigationSections = [
+const navigationSections: NavigationSection[] = [
   {
     title: "Main",
     items: [
       { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
       { name: "Users", href: "/admin/users", icon: Users },
-      { name: "Staff", href: "/admin/staff", icon: UserCog },
-      { name: "Plans", href: "/admin/plans", icon: Package },
+      { name: "Staff", href: "/admin/staff", icon: UserCog, allowedRoles: ["admin", "super_admin"] },
+      { name: "Plans", href: "/admin/plans", icon: Package, allowedRoles: ["admin", "super_admin"] },
     ],
   },
   {
     title: "Network",
+    allowedRoles: ["admin", "super_admin"],
+    allowedDepartments: ["network", "it", "technical", "engineering", "noc"],
     items: [
       { name: "OLT Management", href: "/admin/olt", icon: Server },
       { name: "ONU Devices", href: "/admin/onu", icon: Box },
@@ -90,6 +106,8 @@ const navigationSections = [
   },
   {
     title: "Finance",
+    allowedRoles: ["admin", "super_admin"],
+    allowedDepartments: ["finance", "accounting", "billing", "accounts"],
     items: [
       { name: "Invoices", href: "/admin/invoices", icon: Receipt },
       { name: "Payments", href: "/admin/payments", icon: CreditCard },
@@ -101,6 +119,8 @@ const navigationSections = [
   },
   {
     title: "Billing & Payouts",
+    allowedRoles: ["admin", "super_admin"],
+    allowedDepartments: ["finance", "accounting", "billing", "accounts"],
     items: [
       { name: "Subscription", href: "/admin/settings/billing", icon: CreditCard },
     ],
@@ -124,6 +144,7 @@ const navigationSections = [
   },
   {
     title: "System",
+    allowedRoles: ["admin", "super_admin"],
     items: [
       { name: "Notifications", href: "/admin/notifications", icon: Bell },
       { name: "Logs", href: "/admin/logs", icon: FileText },
@@ -137,9 +158,6 @@ const bottomNavItems = [
   { name: "What's New", href: "/admin/whats-new", icon: Sparkles },
   { name: "Community Board", href: "/admin/community", icon: MessageSquareText },
 ]
-
-// Flat navigation for easy iteration
-const navigation = navigationSections.flatMap(section => section.items)
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -262,6 +280,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     )
   }
 
+  const filteredSections = navigationSections
+    .map((section) => {
+      if (!canAccess(user, section)) return { ...section, items: [] }
+      const items = section.items.filter((item) => canAccess(user, item))
+      return { ...section, items }
+    })
+    .filter((section) => section.items.length > 0)
+  const routeAccessRule = getAccessRuleForPath(pathname)
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950" suppressHydrationWarning>
       {/* Mobile sidebar backdrop */}
@@ -306,7 +333,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Navigation */}
         <nav className="sidebar-nav flex-1 overflow-y-auto py-4 px-2">
-          {navigationSections.map((section, sectionIndex) => (
+          {filteredSections.map((section, sectionIndex) => (
             <div key={section.title} className={sectionIndex > 0 ? "mt-5" : ""}>
               {!sidebarCollapsed && (
                 <p className="px-3 mb-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
@@ -488,9 +515,22 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Page content */}
         <main className="p-4 lg:p-6">
-          <TrialGuard>{children}</TrialGuard>
+          <TrialGuard>
+            {routeAccessRule ? (
+              <RoleGuard
+                areaLabel={routeAccessRule.label}
+                allowedRoles={routeAccessRule.allowedRoles}
+                allowedDepartments={routeAccessRule.allowedDepartments}
+              >
+                {children}
+              </RoleGuard>
+            ) : (
+              children
+            )}
+          </TrialGuard>
           <MjengoFooter />
         </main>
+        <NetilySupportChat />
       </div>
     </div>
   )

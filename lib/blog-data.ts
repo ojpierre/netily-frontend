@@ -206,8 +206,8 @@ export const blogPosts: BlogPost[] = [
       {
         type: "callout",
         variant: "tip",
-        title: "Start with a 14-day free trial",
-        text: "Netily offers a 14-day free trial with no credit card required. You get full access to MikroTik integration, M-Pesa STK Push, subscriber portal, and billing automation before committing to anything.",
+        title: "Start with a free trial",
+        text: "Netily offers a free trial with no credit card required. You get full access to MikroTik integration, M-Pesa STK Push, subscriber portal, and billing automation before committing to anything.",
       },
 
       // H2: FAQ
@@ -596,7 +596,7 @@ export const blogPosts: BlogPost[] = [
       {
         type: "ol",
         items: [
-          "<strong>Under 200 subscribers:</strong> Use Netily's metered plan (KES 500/month base + KES 20/subscriber). The 14-day free trial gives you full access before committing. Total cost at 100 subscribers: KES 2,500/month.",
+          "<strong>Under 200 subscribers:</strong> Use Netily's metered plan (KES 500 activation + KES 20/subscriber). The free trial gives you full access before committing. Total cost at 100 subscribers: KES 2,500/month.",
           "<strong>200–500 subscribers:</strong> Netily remains the most cost-effective option. At 300 subscribers you're paying KES 6,500/month — still a fraction of what maintaining a self-hosted solution costs.",
           "<strong>500–1,000 subscribers:</strong> Evaluate Netily's Enterprise plan for custom pricing, or Splynx with a custom M-Pesa integration if you need specific enterprise features not available in Netily.",
           "<strong>1,000+ subscribers with a dev team:</strong> A self-hosted solution or custom-built system becomes worth evaluating — the per-subscriber cost of SaaS starts to compete with engineering cost at this scale.",
@@ -605,8 +605,8 @@ export const blogPosts: BlogPost[] = [
       {
         type: "callout",
         variant: "tip",
-        title: "The 14-day free trial is your real free tier",
-        text: "Netily's 14-day free trial gives you full access to all features — MikroTik integration, M-Pesa STK Push, customer portal, and billing automation — with no credit card required. It's the most cost-effective way to evaluate whether paid ISP billing software is right for your ISP.",
+        title: "The free trial is your real free tier",
+        text: "Netily's free trial gives you full access to all features — MikroTik integration, M-Pesa STK Push, customer portal, and billing automation — with no credit card required. It's the most cost-effective way to evaluate whether paid ISP billing software is right for your ISP.",
       },
 
       { type: "hr" },

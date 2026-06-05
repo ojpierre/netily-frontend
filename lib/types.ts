@@ -2414,6 +2414,20 @@ export interface UsageStats {
   staff: { current: number; limit: number | null; percentage: number | null }
   is_over_limit: boolean
   warnings: string[]
+  is_metered?: boolean
+  billing_cycle_id?: string | null
+  billing_cycle_start?: string | null
+  billing_cycle_end?: string | null
+  hotspot_revenue_accrued?: string | number
+  hotspot_revenue_share_pct?: string | number
+  hotspot_revenue_share_amount?: string | number
+  hotspot_minimum_charge?: string | number
+  hotspot_billable_charge?: string | number
+  usage_subtotal?: string | number
+  minimum_charge?: string | number
+  minimum_adjustment?: string | number
+  total_estimate?: string | number
+  hotspot_revenue_note?: string
 }
 
 export interface SettlementSummary {
