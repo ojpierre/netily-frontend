@@ -85,7 +85,7 @@ export function NetilySupportChat() {
             {messages.map((item, index) => (
               <div key={`${item.role}-${index}`} className={item.role === "user" ? "text-right" : "text-left"}>
                 <div
-                  className={`inline-block max-w-[88%] rounded-2xl px-3 py-2 text-sm ${
+                  className={`inline-block max-w-[88%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${
                     item.role === "user"
                       ? "bg-blue-600 text-white"
                       : "bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100"
