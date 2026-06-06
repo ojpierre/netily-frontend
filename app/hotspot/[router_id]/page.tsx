@@ -2122,7 +2122,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             }}
             className={`w-full mb-5 py-2.5 text-sm font-medium border rounded-xl transition-colors ${theme.planBorder} ${theme.mutedText} hover:opacity-70`}
           >
-            Already subscribed? Connect this device
+            Already paid? Reconnect or add a device
           </button>
 
           {/* Free Ad-Sponsored Access */}
