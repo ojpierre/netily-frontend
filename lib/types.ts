@@ -3459,6 +3459,7 @@ export const SMS_TEMPLATE_VARIABLES: Record<string, SMSTemplateVariable[]> = {
     { key: '{expiry_full}', label: 'Full Expiry DateTime', example: '04 Jun 2026 at 20:59' },
     { key: '{plan_name}', label: 'Plan Name', example: 'Home 10Mbps' },
     { key: '{amount_due}', label: 'Amount Due', example: 'KES 1,500' },
+    { key: '{customer_account}', label: 'Customer Account Number', example: '0712345678' },  // ← ADD THIS LINE
   ],
   pppoe_suspended: [
     { key: '{customer_name}', label: 'Customer Name', example: 'John' },
