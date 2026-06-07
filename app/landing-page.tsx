@@ -940,7 +940,7 @@ export function LandingPage() {
                   <ArrowRight className="w-4 h-4" />
                 </a>
               </div>
-              <p className="mt-3 text-xs text-white/72">No credit card required • 14 days free • Cancel anytime</p>
+              <p className="mt-3 text-xs text-white/72">No credit card required • Free Trial • Cancel anytime</p>
             </Reveal>
           </div>
 

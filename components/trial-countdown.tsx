@@ -1,18 +1,9 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { Clock, CreditCard, AlertTriangle, Lock, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   Tooltip,
   TooltipContent,
@@ -121,7 +112,6 @@ function getStatusDisplay(timeRemaining: TimeRemaining, isTrial: boolean): Statu
 
 export function TrialCountdown() {
   const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(null)
-  const [showExpiredDialog, setShowExpiredDialog] = useState(false)
   const [expiryDate, setExpiryDate] = useState<Date | null>(null)
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null)
   const [planName, setPlanName] = useState<string | null>(null)
@@ -159,15 +149,10 @@ export function TrialCountdown() {
     const interval = setInterval(() => {
       const remaining = calculateTimeRemaining(expiryDate)
       setTimeRemaining(remaining)
-      
-      // Show expired dialog only for trial users when trial ends
-      if (remaining.expired && subscriptionStatus === 'trial' && !showExpiredDialog) {
-        setShowExpiredDialog(true)
-      }
     }, 1000)
     
     return () => clearInterval(interval)
-  }, [expiryDate, subscriptionStatus, showExpiredDialog])
+  }, [expiryDate])
 
   // Don't render if no time remaining data
   if (!timeRemaining || !expiryDate) {
@@ -244,65 +229,6 @@ export function TrialCountdown() {
         </Tooltip>
       </TooltipProvider>
 
-      {/* Trial Expired Dialog */}
-      <Dialog open={showExpiredDialog} onOpenChange={setShowExpiredDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-              <Lock className="w-8 h-8 text-red-600" />
-            </div>
-            <DialogTitle className="text-center text-xl">Free Trial Expired</DialogTitle>
-            <DialogDescription className="text-center">
-              Your free trial has ended. Upgrade to a paid plan to continue managing your
-              ISP business with Netily.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-4">
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-bold">✓</span>
-              </div>
-              <div>
-                <p className="font-medium text-sm">Unlimited Users & Routers</p>
-                <p className="text-xs text-slate-500">Manage your entire network</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-bold">✓</span>
-              </div>
-              <div>
-                <p className="font-medium text-sm">Automated Billing & Payments</p>
-                <p className="text-xs text-slate-500">M-Pesa, bank transfers, and more</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-purple-600 font-bold">✓</span>
-              </div>
-              <div>
-                <p className="font-medium text-sm">24/7 Priority Support</p>
-                <p className="text-xs text-slate-500">Get help when you need it</p>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button onClick={handleUpgradeClick} className="w-full" size="lg">
-              <CreditCard className="w-4 h-4 mr-2" />
-              Upgrade Now
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => setShowExpiredDialog(false)}
-              className="w-full text-slate-500"
-            >
-              Remind me later
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }

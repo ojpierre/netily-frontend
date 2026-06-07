@@ -22,14 +22,20 @@ const STARTER: ChatMessage = {
   text: "Ask me about Netily onboarding, billing, routers, hotspot, leads, dispatch, or inventory. I only answer from approved support docs.",
 }
 
+const SUGGESTED_PROMPTS = [
+  "How do I connect my first router?",
+  "How is my monthly invoice calculated?",
+  "Where do I manage leads?",
+]
+
 export function NetilySupportChat() {
   const [open, setOpen] = useState(false)
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([STARTER])
 
-  async function sendMessage() {
-    const trimmed = message.trim()
+  async function sendMessage(value = message) {
+    const trimmed = value.trim()
     if (!trimmed || loading) return
 
     setMessage("")
@@ -106,6 +112,19 @@ export function NetilySupportChat() {
                 Searching approved docs...
               </div>
             )}
+            {messages.length === 1 && !loading ? (
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTED_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => sendMessage(prompt)}
+                    className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-left text-xs font-semibold text-blue-700 transition hover:border-blue-200 hover:bg-blue-100 dark:border-blue-900/60 dark:bg-blue-950/50 dark:text-blue-200"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div className="border-t border-slate-100 p-3 dark:border-slate-800">
@@ -119,7 +138,7 @@ export function NetilySupportChat() {
                 placeholder="Ask about billing, routers, hotspot..."
                 className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2 dark:border-slate-800 dark:bg-slate-900"
               />
-              <Button onClick={sendMessage} disabled={loading || !message.trim()} size="icon" className="rounded-xl">
+              <Button onClick={() => sendMessage()} disabled={loading || !message.trim()} size="icon" className="rounded-xl">
                 <Send className="h-4 w-4" />
               </Button>
             </div>
