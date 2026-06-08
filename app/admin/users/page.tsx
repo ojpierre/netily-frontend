@@ -38,7 +38,7 @@ import {
   MapPin,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
-import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession, ActiveSubscriptionsResponse, CustomerAvailablePlanOption, CustomerAvailablePlansResponse, PaymentEntry } from "@/lib/types"
+import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession, ActiveSubscriptionsResponse, CustomerAvailablePlanOption, CustomerAvailablePlansResponse, PaymentEntry, CustomerRADIUSCredentials } from "@/lib/types"
 
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -294,7 +294,14 @@ export default function UsersPage() {
   const [activeSubscriptions, setActiveSubscriptions] = useState<ActiveSubscriptionsResponse>({ pppoe: [], hotspot: [], total: 0 })
   const [hotspotLoading, setHotspotLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
+  // CHANGE A: Read status from URL on mount
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      return params.get("status") || "all"
+    }
+    return "all"
+  })
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -424,56 +431,21 @@ export default function UsersPage() {
   const [allActiveSubUsers, setAllActiveSubUsers] = useState<User[]>([])
   const [activeSubsPageLoading, setActiveSubsPageLoading] = useState(false)
 
-  // Optimized function to get expired RADIUS count with pagination handling (500 per page)
+  // CHANGE B: New state for expired users
+  const [expiredUsers, setExpiredUsers] = useState<User[]>([])
+  const [expiredUsersLoading, setExpiredUsersLoading] = useState(false)
+
+  // CHANGE C: Replace loadServerStats entirely (single fast endpoint)
   const loadServerStats = async () => {
     try {
-      const now = new Date()
-      
-      // Use larger page size (500) to reduce number of calls
-      const firstPage = await adminApi.getRADIUSCredentials({ 
-        page_size: '500', 
-        is_enabled: 'true' 
-      })
-      
-      const totalCreds = firstPage.count || 0
-      let allCreds = firstPage.results || []
-      
-      // Fetch remaining pages in parallel (if any)
-      if (totalCreds > 500) {
-        const totalPages = Math.ceil(totalCreds / 500)
-        const pagePromises = []
-        for (let page = 2; page <= totalPages; page++) {
-          pagePromises.push(
-            adminApi.getRADIUSCredentials({ 
-              page_size: '500', 
-              is_enabled: 'true',
-              page: String(page) 
-            })
-          )
-        }
-        const pageResults = await Promise.all(pagePromises)
-        pageResults.forEach(res => {
-          allCreds = [...allCreds, ...(res.results || [])]
-        })
-      }
-      
-      const expiredCount = allCreds.filter(cred => {
-        if (!cred.expiration_date) return false
-        return new Date(cred.expiration_date) <= now
-      }).length
-
-      // Also get counts for PPPoE and Static from active subscriptions
-      const pppoeCount = activeSubscriptions.pppoe?.length || 0
-      const hotspotCount = activeSubscriptions.hotspot?.length || 0
-
-      setServerStats({
+      // Single fast endpoint — same one the dashboard uses
+      const expiredCount = await adminApi.getExpiredRADIUSCount()
+      setServerStats(prev => ({
+        ...prev,
         expired: expiredCount,
-        pppoe: pppoeCount,
-        static: 0,
-        hotspot: hotspotCount,
-      })
+      }))
     } catch (err) {
-      console.error('Failed to load server stats:', err)
+      console.error("Failed to load server stats:", err)
     }
   }
 
@@ -518,6 +490,75 @@ export default function UsersPage() {
     }
   }
 
+  // CHANGE D: Add loadExpiredUsersFromRADIUS function
+  const loadExpiredUsersFromRADIUS = async () => {
+    try {
+      setExpiredUsersLoading(true)
+      const now = new Date()
+      let allCreds: CustomerRADIUSCredentials[] = []
+      let page = 1
+      let hasMore = true
+
+      while (hasMore) {
+        const res = await adminApi.getRADIUSCredentials({
+          page_size: "500",
+          page: String(page),
+        })
+        allCreds = [...allCreds, ...(res.results || [])]
+        hasMore = !!res.next
+        page++
+      }
+
+      const expired = allCreds.filter(
+        (c) => c.expiration_date && new Date(c.expiration_date) <= now
+      )
+
+      const mapped: User[] = expired.map((cred) => ({
+        id: cred.customer_code || `CRED-${cred.id}`,
+        customerId: parseInt(String(cred.customer)),
+        serviceId: null,
+        billingAccountNumber: undefined,
+        name: cred.customer_name || "Unknown",
+        email: "",
+        phone: "",
+        location: "",
+        status: "expired" as UserStatus,
+        serviceStatus: "ACTIVE",
+        connectionStatus: "offline" as const,
+        type: "pppoe" as UserType,
+        plan: cred.profile_name || "No Plan",
+        planPrice: 0,
+        joinedDate: cred.created_at,
+        expiryDate: cred.expiration_date || "",
+        lastOnline: "N/A",
+        dataUsed: 0,
+        dataLimit: null,
+        macAddress: undefined,
+        ipAddress: undefined,
+        router: cred.router_name || "",
+        downloadSpeed: 0,
+        uploadSpeed: 0,
+        loyaltyPoints: 0,
+        balance: 0,
+        radiusCredentials: {
+          id: String(cred.id),
+          username: cred.username,
+          password: "",
+          is_enabled: cred.is_enabled,
+          connection_type: cred.connection_type,
+          expiration_date: cred.expiration_date,
+          synced_to_radius: cred.synced_to_radius,
+        },
+      }))
+
+      setExpiredUsers(mapped)
+    } catch (err) {
+      console.error("Failed to load expired users from RADIUS:", err)
+    } finally {
+      setExpiredUsersLoading(false)
+    }
+  }
+
   // NEW: Fetch M-Pesa config and tenant subdomain for SMS templates
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -546,6 +587,13 @@ export default function UsersPage() {
     
     return () => clearTimeout(timer)
   }, [])
+
+  // CHANGE E: Trigger expired load when filter changes
+  useEffect(() => {
+    if (statusFilter === "expired") {
+      loadExpiredUsersFromRADIUS()
+    }
+  }, [statusFilter])
 
   const loadPlans = async () => {
     try {
@@ -689,6 +737,7 @@ export default function UsersPage() {
     setIpSearchQuery("")
   }, [selectedPlanPool])
 
+  // CHANGE F: Update loadUsers to skip server call when in expired mode
   const loadUsers = async (page = 1, search?: string, status?: string) => {
     try {
       setLoading(true)
@@ -711,10 +760,13 @@ export default function UsersPage() {
         terminated: 'TERMINATED',
       }
 
-      // For expired filter, fetch active users (expired is determined by RADIUS date)
-      if (effectiveStatus === 'expired') {
-        params.status = 'ACTIVE'
-      } else if (effectiveStatus !== 'all') {
+      // Don't hit the customer endpoint for expired — handled by loadExpiredUsersFromRADIUS
+      if (effectiveStatus === "expired") {
+        setLoading(false)
+        return
+      }
+
+      if (effectiveStatus !== "all") {
         params.status = statusMap[effectiveStatus] || effectiveStatus.toUpperCase()
       }
 
@@ -985,22 +1037,33 @@ export default function UsersPage() {
     }
   }, [totalCount, serverStatusCounts, serverStats.expired, onlineTotal, onlineSessions, activeSubscriptions])
 
-  // filteredUsers for main table (All/PPPoE/Static tabs)
+  // CHANGE G: filteredUsers should use expiredUsers when filter is expired
   const filteredUsers = useMemo(() => {
+    if (statusFilter === "expired") {
+      // Use RADIUS-sourced expired list, apply search client-side
+      if (!searchQuery.trim()) return expiredUsers
+      const q = searchQuery.toLowerCase()
+      return expiredUsers.filter(
+        (u) =>
+          u.name.toLowerCase().includes(q) ||
+          u.id.toLowerCase().includes(q) ||
+          (u.radiusCredentials?.username || "").toLowerCase().includes(q)
+      )
+    }
+
     return enrichedUsers.filter((user) => {
-      const matchesTab = 
+      const matchesTab =
         activeTab === "all" ||
         (activeTab === "pppoe" && user.type === "pppoe") ||
         (activeTab === "static" && user.type === "static")
 
       const matchesStatus =
         statusFilter === "all" ||
-        (statusFilter === "expired" && user.status === "expired") ||
         (statusFilter !== "expired" && user.status === statusFilter)
 
       return matchesTab && matchesStatus
     })
-  }, [enrichedUsers, activeTab, statusFilter])
+  }, [enrichedUsers, expiredUsers, activeTab, statusFilter, searchQuery])
 
   const totalPages = Math.ceil(totalCount / 50)
 
@@ -2076,14 +2139,20 @@ export default function UsersPage() {
           </CardContent>
         </Card>
         
-        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'expired' ? 'ring-2 ring-red-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("expired"); }}>
+        {/* CHANGE I: Update expired stats card */}
+        <Card
+          className={`cursor-pointer hover:shadow-md transition-shadow ${
+            statusFilter === "expired" ? "ring-2 ring-red-400" : ""
+          }`}
+          onClick={() => { setActiveTab("all"); setStatusFilter("expired"); }}
+        >
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-red-100 rounded-lg">
                 <XCircle className="w-4 h-4 text-red-600" />
               </div>
               <div>
-                <p className="text-xl font-bold text-red-600">{stats.expired}</p>
+                <p className="text-xl font-bold text-red-600">{serverStats.expired}</p>
                 <p className="text-xs text-slate-500">Expired</p>
               </div>
             </div>
@@ -2828,7 +2897,8 @@ export default function UsersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {/* CHANGE H: Show expired loading state in the table section */}
+          {(loading || (statusFilter === "expired" && expiredUsersLoading)) ? (
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Skeleton key={i} className="h-16 w-full" />
