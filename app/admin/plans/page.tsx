@@ -542,7 +542,7 @@ export default function PlansPage() {
     }
   }, [routers.length])
 
-  // NEW: Fetch hotspot plans from all routers
+  // NEW: Fetch hotspot plans from all routers - UPDATED with subscriber_count
   const fetchAllHotspotPlans = useCallback(async () => {
     try {
       const allPlans: Plan[] = []
@@ -569,14 +569,13 @@ export default function PlansPage() {
           is_public: true,
           is_popular: hp.is_popular,
           features: [],
-          subscriber_count: 0,
+          subscriber_count: hp.subscriber_count || 0,  // ← CHANGED: Now uses backend value
           created_at: hp.created_at,
           updated_at: hp.updated_at,
           _isHotspotPlan: true,
           _hotspotPlanId: hp.id,
           _routerId: r.id,
           _routerName: r.name,
-          // NEW: Data limit fields
           limitation_type: hp.limitation_type || 'UNLIMITED',
           data_limit_value: hp.data_limit_value,
           data_limit_unit: hp.data_limit_unit || 'MB',
@@ -590,7 +589,7 @@ export default function PlansPage() {
     }
   }, [routers])
 
-  // Fetch HotspotPlan records for a specific router
+  // Fetch HotspotPlan records for a specific router - UPDATED with subscriber_count
   const fetchHotspotPlans = useCallback(async (routerId: number) => {
     try {
       const hPlans = await adminApi.getHotspotPlans(routerId)
@@ -616,13 +615,12 @@ export default function PlansPage() {
         is_public: true,
         is_popular: hp.is_popular,
         features: [],
-        subscriber_count: 0,
+        subscriber_count: hp.subscriber_count || 0,  // ← CHANGED: Now uses backend value
         created_at: hp.created_at,
         updated_at: hp.updated_at,
-        _isHotspotPlan: true, // marker to distinguish from Plan records
-        _hotspotPlanId: hp.id, // UUID for delete operations
+        _isHotspotPlan: true,
+        _hotspotPlanId: hp.id,
         _routerId: routerId,
-        // NEW: Data limit fields
         limitation_type: hp.limitation_type || 'UNLIMITED',
         data_limit_value: hp.data_limit_value,
         data_limit_unit: hp.data_limit_unit || 'MB',
