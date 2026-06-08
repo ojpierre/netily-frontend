@@ -141,7 +141,7 @@ export default function ReceiptsPage() {
       if (searchQuery) params.search = searchQuery
 
       const response = await adminApi.getReceipts(params)
-      setReceipts(response.results || [])
+      setReceipts(Array.isArray(response) ? response : response.results || [])
     } catch (error) {
       console.error('Failed to fetch receipts:', error)
       toast.error('Failed to load receipts')
@@ -239,12 +239,12 @@ export default function ReceiptsPage() {
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-6 p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Skeleton className="h-9 w-64" />
           <Skeleton className="h-10 w-24" />
         </div>
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
@@ -268,7 +268,7 @@ export default function ReceiptsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -277,8 +277,8 @@ export default function ReceiptsPage() {
             Manage payment receipts and send to customers
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing} className="w-full sm:w-auto">
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
@@ -336,18 +336,18 @@ export default function ReceiptsPage() {
               <CardTitle>Receipt History</CardTitle>
               <CardDescription>{receipts.length} receipts found</CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <div className="relative">
+            <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:flex-wrap">
+              <div className="relative w-full md:w-auto">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search by number or customer..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-[250px]"
+                  className="pl-9 w-full md:w-[250px]"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-full md:w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>

@@ -165,7 +165,7 @@ export default function InvoiceManagementPage() {
         adminApi.getInvoiceDashboardStats().catch(() => null),
       ])
 
-      setInvoices(invoicesRes.results || [])
+      setInvoices(Array.isArray(invoicesRes) ? invoicesRes : invoicesRes.results || [])
       if (statsRes) setStats(statsRes)
     } catch (error) {
       console.error('Failed to fetch invoices:', error)
@@ -309,12 +309,12 @@ export default function InvoiceManagementPage() {
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-6 p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Skeleton className="h-9 w-64" />
           <Skeleton className="h-10 w-24" />
         </div>
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
@@ -338,7 +338,7 @@ export default function InvoiceManagementPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -347,12 +347,12 @@ export default function InvoiceManagementPage() {
             Create, manage, and track customer invoices
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing} className="w-full sm:w-auto">
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" className="w-full sm:w-auto">
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
@@ -419,22 +419,22 @@ export default function InvoiceManagementPage() {
               <CardTitle>Invoices</CardTitle>
               <CardDescription>{invoices.length} total invoices</CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:flex-wrap">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList>
+                <TabsList className="w-full md:w-fit">
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="pending">Pending</TabsTrigger>
                   <TabsTrigger value="overdue">Overdue</TabsTrigger>
                   <TabsTrigger value="paid">Paid</TabsTrigger>
                 </TabsList>
               </Tabs>
-              <div className="relative">
+              <div className="relative w-full md:w-auto">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search invoices..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-[200px]"
+                  className="pl-9 w-full md:w-[200px]"
                 />
               </div>
             </div>

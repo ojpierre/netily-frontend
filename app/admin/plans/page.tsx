@@ -102,6 +102,17 @@ const formatCurrency = (amount: string | number) => {
   return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(num || 0)
 }
 
+const getPlanSubscriberCount = (plan?: Plan | null) => {
+  const raw: unknown =
+    plan?.active_subscriptions_count ??
+    plan?.subscriptions_count ??
+    plan?.subscriber_count ??
+    plan?.subscribers_count ??
+    0
+  const count = typeof raw === "string" ? Number.parseInt(raw, 10) : Number(raw)
+  return Number.isFinite(count) ? count : 0
+}
+
 const getTypeBadge = (type: PlanType) => {
   const config: Record<string, { icon: typeof Wifi; class: string; label: string }> = {
     INTERNET: { icon: Globe, class: "bg-green-100 text-green-700 border-green-200", label: "Internet" },
@@ -359,7 +370,7 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
         <div className="flex w-full justify-between text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
             <Users className="w-4 h-4" />
-            {plan.subscriber_count || 0} subscribers
+            {getPlanSubscriberCount(plan)} subscribers
           </span>
           {plan.data_limit && (
             <span>{plan.data_limit} GB limit</span>
@@ -730,7 +741,7 @@ export default function PlansPage() {
       hotspot: plans.filter(p => p.plan_type === 'HOTSPOT').length + hotspotTotalCount,
       pppoe: plans.filter(p => p.plan_type === 'PPPOE').length,
       static: plans.filter(p => p.plan_type === 'STATIC').length,
-      subscribers: plans.reduce((sum, p) => sum + (p.subscriber_count || 0), 0),
+      subscribers: plans.reduce((sum, p) => sum + getPlanSubscriberCount(p), 0),
     }
   }, [dashboardStats, plans, hotspotTotalCount])
 
@@ -1193,12 +1204,12 @@ export default function PlansPage() {
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-6 p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Skeleton className="h-9 w-64" />
           <Skeleton className="h-10 w-24" />
         </div>
-        <div className="grid gap-4 md:grid-cols-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           {[...Array(6)].map((_, i) => (
             <Card key={i}>
               <CardContent className="p-4">
@@ -1217,7 +1228,7 @@ export default function PlansPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+      <div className="flex flex-col gap-6 p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -1226,8 +1237,8 @@ export default function PlansPage() {
             Manage internet plans, pricing, and features
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing} className="w-full sm:w-auto">
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
@@ -1236,7 +1247,7 @@ export default function PlansPage() {
 
       {/* ── Tabs: Full-width, prominent, with counts ── */}
       <div className="w-full">
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {([
             { value: "all", label: "All Plans", icon: Package, count: stats.total, activeBorder: "border-slate-500", activeBg: "bg-slate-50", activeIconBg: "bg-slate-100", activeIconColor: "text-slate-600", activeCountColor: "text-slate-600", inactiveIconBg: "bg-muted", bottomBar: "bg-slate-500" },
             { value: "hotspot", label: "Hotspot", icon: Wifi, count: stats.hotspot, activeBorder: "border-blue-500", activeBg: "bg-blue-50", activeIconBg: "bg-blue-100", activeIconColor: "text-blue-600", activeCountColor: "text-blue-600", inactiveIconBg: "bg-muted", bottomBar: "bg-blue-500" },
@@ -2423,7 +2434,7 @@ export default function PlansPage() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Subscribers</p>
-                  <p className="font-medium">{selectedPlan.subscriber_count || 0}</p>
+                  <p className="font-medium">{getPlanSubscriberCount(selectedPlan)}</p>
                 </div>
                 {selectedPlan.setup_fee && (
                   <div>
@@ -2501,9 +2512,9 @@ export default function PlansPage() {
             <AlertDialogDescription>
               Are you sure you want to delete <span className="font-semibold">&ldquo;{planToDelete?.name}&rdquo;</span>?
               This action cannot be undone. The plan will be permanently removed from the system.
-              {(planToDelete?.subscriber_count ?? 0) > 0 && (
+              {getPlanSubscriberCount(planToDelete) > 0 && (
                 <span className="block mt-2 text-red-600 font-medium">
-                  Warning: This plan has {planToDelete?.subscriber_count} active subscriber(s).
+                  Warning: This plan has {getPlanSubscriberCount(planToDelete)} active subscriber(s).
                 </span>
               )}
             </AlertDialogDescription>

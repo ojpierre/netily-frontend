@@ -732,7 +732,7 @@ export default function SMSPage() {
   // -------------------------------------------------------------------------
   return (
     <TooltipProvider>
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-6">
 
         {/* -- Header ----------------------------------------------------------- */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -740,18 +740,18 @@ export default function SMSPage() {
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white">SMS Management</h1>
             <p className="text-slate-500 text-sm mt-1">Send messages, manage templates, and configure notifications</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={fetchAll} disabled={isLoading}>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <Button variant="outline" size="sm" onClick={fetchAll} disabled={isLoading} className="w-full sm:w-auto">
               <RefreshCw className={`w-4 h-4 mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
             {notifSettings.use_inbuilt_system && (
-              <Button variant="outline" size="sm" onClick={() => setIsTopupOpen(true)}>
+              <Button variant="outline" size="sm" onClick={() => setIsTopupOpen(true)} className="w-full sm:w-auto">
                 <Wallet className="w-4 h-4 mr-1.5" />
                 {walletUnits > 0 ? `${Number(walletUnits).toLocaleString()} units` : 'Buy Units'}
               </Button>
             )}
-            <Button size="sm" onClick={() => setIsComposeOpen(true)}>
+            <Button size="sm" onClick={() => setIsComposeOpen(true)} className="w-full sm:w-auto">
               <Send className="w-4 h-4 mr-1.5" />
               Send SMS
             </Button>
@@ -785,7 +785,7 @@ export default function SMSPage() {
 
         {/* -- Main tabs -------------------------------------------------------- */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="h-9">
+          <TabsList className="h-9 w-full sm:w-fit">
             <TabsTrigger value="history" className="text-xs"><History className="w-3.5 h-3.5 mr-1.5" />History</TabsTrigger>
             <TabsTrigger value="templates" className="text-xs"><FileText className="w-3.5 h-3.5 mr-1.5" />Templates</TabsTrigger>
             <TabsTrigger value="campaigns" className="text-xs"><Users className="w-3.5 h-3.5 mr-1.5" />Campaigns</TabsTrigger>
@@ -805,17 +805,17 @@ export default function SMSPage() {
                     <CardTitle>Message History</CardTitle>
                     <CardDescription>All sent and received messages</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm"><Download className="w-4 h-4 mr-1.5" />Export</Button>
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto"><Download className="w-4 h-4 mr-1.5" />Export</Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-2 mb-4">
+                <div className="flex flex-col gap-2 mb-4 sm:flex-row">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                     <Input placeholder="Search messages..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-8 text-sm" />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-32 h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 w-full text-sm sm:w-32"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All</SelectItem>
                       <SelectItem value="delivered">Delivered</SelectItem>

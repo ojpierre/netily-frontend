@@ -639,19 +639,19 @@ export default function InventoryPage() {
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-6">
-        <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-6 p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <Skeleton className="h-9 w-64 mb-2" />
             <Skeleton className="h-5 w-96" />
           </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-32" />
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Skeleton className="h-10 w-full sm:w-24" />
+            <Skeleton className="h-10 w-full sm:w-24" />
+            <Skeleton className="h-10 w-full sm:w-32" />
           </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           {[...Array(6)].map((_, i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
@@ -681,7 +681,7 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -690,16 +690,16 @@ export default function InventoryPage() {
             Track individual equipment assets, assignments, and maintenance
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing} className="w-full sm:w-auto">
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button variant="outline" onClick={handleExport}>
+          <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
-          <Button onClick={() => setIsAddItemOpen(true)}>
+          <Button onClick={() => setIsAddItemOpen(true)} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Add Equipment
           </Button>
@@ -798,7 +798,7 @@ export default function InventoryPage() {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="w-full sm:w-fit">
           <TabsTrigger value="equipment" className="gap-2">
             <Package className="h-4 w-4" />
             Equipment
@@ -828,18 +828,18 @@ export default function InventoryPage() {
                     {filteredEquipment.length} items found
                   </CardDescription>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <div className="relative">
+                <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:flex-wrap">
+                  <div className="relative w-full md:w-auto">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       placeholder="Search by name, serial, asset tag..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 w-[250px]"
+                      className="pl-9 w-full md:w-[250px]"
                     />
                   </div>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className="w-full md:w-[140px]">
                       <SelectValue placeholder="Type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -850,7 +850,7 @@ export default function InventoryPage() {
                     </SelectContent>
                   </Select>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className="w-full md:w-[140px]">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -863,7 +863,7 @@ export default function InventoryPage() {
                     </SelectContent>
                   </Select>
                   <Select value={conditionFilter} onValueChange={setConditionFilter}>
-                    <SelectTrigger className="w-[130px]">
+                    <SelectTrigger className="w-full md:w-[130px]">
                       <SelectValue placeholder="Condition" />
                     </SelectTrigger>
                     <SelectContent>

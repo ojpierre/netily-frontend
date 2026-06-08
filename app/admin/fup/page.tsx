@@ -560,13 +560,13 @@ export default function FUPPage() {
   const filteredPolicies = useMemo(() => policies.filter(p => p.name.toLowerCase().includes(policySearch.toLowerCase())), [policies, policySearch])
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div><h1 className="text-3xl font-bold text-slate-900 dark:text-white">Fair Usage Policy</h1><p className="text-slate-600 dark:text-slate-400 mt-1">Monitor, enforce, and manage bandwidth rules</p></div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchAllData} disabled={isLoading}><RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} /> Refresh</Button>
-          <Button onClick={() => setIsCreateOpen(true)}><Plus className="w-4 h-4 mr-2" /> Create Policy</Button>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Button variant="outline" onClick={fetchAllData} disabled={isLoading} className="w-full sm:w-auto"><RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} /> Refresh</Button>
+          <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-2" /> Create Policy</Button>
         </div>
       </div>
 
@@ -580,7 +580,7 @@ export default function FUPPage() {
 
       {/* TABS */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
+        <TabsList className="w-full sm:w-fit">
           <TabsTrigger value="policies">Policies</TabsTrigger>
           <TabsTrigger value="usage">Current Usage</TabsTrigger>
           <TabsTrigger value="violations">Violations {dashboard.active_violations > 0 && <Badge variant="destructive" className="ml-2">{dashboard.active_violations}</Badge>}</TabsTrigger>
@@ -709,14 +709,14 @@ export default function FUPPage() {
                   <Input placeholder="Search by customer..." value={violSearch} onChange={(e) => setViolSearch(e.target.value)} className="pl-10" />
                 </div>
                 <Select value={violStatusFilter} onValueChange={setViolStatusFilter}>
-                  <SelectTrigger className="w-[180px]"><Filter className="w-4 h-4 mr-2 text-slate-500"/><SelectValue placeholder="Filter Status" /></SelectTrigger>
+                  <SelectTrigger className="w-full sm:w-[180px]"><Filter className="w-4 h-4 mr-2 text-slate-500"/><SelectValue placeholder="Filter Status" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Statuses</SelectItem><SelectItem value="OPEN">Open</SelectItem>
                     <SelectItem value="RESOLVED">Resolved</SelectItem><SelectItem value="ACKNOWLEDGED">Acknowledged</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={violPolicyFilter} onValueChange={setViolPolicyFilter}>
-                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter Policy" /></SelectTrigger>
+                  <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Filter Policy" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Policies</SelectItem>
                     {policies.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}

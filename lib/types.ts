@@ -1721,6 +1721,8 @@ export interface Plan {
   features?: string[]
   subscribers_count?: number
   subscriber_count?: number  // Alias
+  active_subscriptions_count?: number
+  subscriptions_count?: number
   created_at: string
   updated_at: string
 }

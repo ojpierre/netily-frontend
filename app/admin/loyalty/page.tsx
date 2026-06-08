@@ -281,9 +281,9 @@ export default function LoyaltyPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
             <Trophy className="w-6 h-6 text-yellow-500" /> Loyalty Program
@@ -293,14 +293,14 @@ export default function LoyaltyPage() {
             <span className="ml-2 text-xs text-green-500 font-medium">● Live</span>
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={loadAll} disabled={loading}>
+        <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+          <Button variant="outline" size="sm" onClick={loadAll} disabled={loading} className="w-full sm:w-auto">
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
-          <Button size="sm" onClick={() => setAwardDialog(true)}>
+          <Button size="sm" onClick={() => setAwardDialog(true)} className="w-full sm:w-auto">
             <Zap className="w-4 h-4 mr-2" /> Award Points
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => setVoucherDialog(true)}>
+          <Button size="sm" variant="secondary" onClick={() => setVoucherDialog(true)} className="w-full sm:w-auto">
             <Ticket className="w-4 h-4 mr-2" /> Award Voucher
           </Button>
         </div>
@@ -347,7 +347,7 @@ export default function LoyaltyPage() {
 
       {/* Main Tabs */}
       <Tabs defaultValue="members">
-        <TabsList className="grid grid-cols-3 sm:grid-cols-6 w-full">
+        <TabsList className="w-full sm:w-fit">
           <TabsTrigger value="members" className="text-xs sm:text-sm"><Users className="w-4 h-4 mr-1 hidden sm:inline" /> Members</TabsTrigger>
           <TabsTrigger value="tiers" className="text-xs sm:text-sm"><Crown className="w-4 h-4 mr-1 hidden sm:inline" /> Tiers</TabsTrigger>
           <TabsTrigger value="rewards" className="text-xs sm:text-sm"><Gift className="w-4 h-4 mr-1 hidden sm:inline" /> Rewards</TabsTrigger>
@@ -360,12 +360,12 @@ export default function LoyaltyPage() {
         <TabsContent value="members" className="mt-4 space-y-4">
           <Card>
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <CardTitle>Loyalty Members</CardTitle>
                   <CardDescription>Click on any member row to award points or vouchers</CardDescription>
                 </div>
-                <div className="relative w-64">
+                <div className="relative w-full md:w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
                     placeholder="Search name, code, phone…"
@@ -387,7 +387,7 @@ export default function LoyaltyPage() {
                     return (
                       <div
                         key={m.id}
-                        className={`flex items-center gap-4 rounded-xl px-4 py-3 border transition-all ${
+                        className={`flex flex-wrap items-center gap-3 rounded-xl px-3 py-3 border transition-all sm:flex-nowrap sm:gap-4 sm:px-4 ${
                           isTop3
                             ? "bg-gradient-to-r from-violet-50 to-white border-violet-200 shadow-sm"
                             : "bg-white border-slate-100 hover:border-slate-200"

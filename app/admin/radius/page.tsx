@@ -489,12 +489,12 @@ export default function RADIUSPage() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="p-4 sm:p-6 space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-10 w-32" />
         </div>
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-32" />
           ))}
@@ -505,24 +505,24 @@ export default function RADIUSPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">RADIUS Management</h1>
           <p className="text-muted-foreground">
             Manage RADIUS users, profiles, and network access servers
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={fetchData}>
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <Button variant="outline" size="icon" onClick={fetchData} className="shrink-0">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -584,7 +584,7 @@ export default function RADIUSPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="w-full sm:w-fit">
           <TabsTrigger value="users">
             <Users className="h-4 w-4 mr-2" />
             Users ({users.length})
@@ -609,9 +609,9 @@ export default function RADIUSPage() {
 
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative w-full sm:w-72">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search users..."
@@ -621,7 +621,7 @@ export default function RADIUSPage() {
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -631,7 +631,7 @@ export default function RADIUSPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={() => setCreateUserDialogOpen(true)}>
+            <Button onClick={() => setCreateUserDialogOpen(true)} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               New User
             </Button>
@@ -751,14 +751,14 @@ export default function RADIUSPage() {
 
         {/* Profiles Tab */}
         <TabsContent value="profiles" className="space-y-4">
-          <div className="flex items-center justify-end">
-            <Button onClick={() => setCreateProfileDialogOpen(true)}>
+          <div className="flex justify-end">
+            <Button onClick={() => setCreateProfileDialogOpen(true)} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               New Profile
             </Button>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {profiles.map((profile) => (
               <Card key={profile.id}>
                 <CardHeader>
@@ -816,7 +816,7 @@ export default function RADIUSPage() {
               </Card>
             ))}
             {profiles.length === 0 && (
-              <Card className="col-span-3">
+              <Card className="sm:col-span-2 xl:col-span-3">
                 <CardContent className="py-8 text-center text-muted-foreground">
                   No profiles found. Create one to get started.
                 </CardContent>
@@ -827,8 +827,8 @@ export default function RADIUSPage() {
 
         {/* NAS Tab */}
         <TabsContent value="nas" className="space-y-4">
-          <div className="flex items-center justify-end">
-            <Button onClick={() => setCreateNASDialogOpen(true)}>
+          <div className="flex justify-end">
+            <Button onClick={() => setCreateNASDialogOpen(true)} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               New NAS
             </Button>
@@ -963,7 +963,7 @@ export default function RADIUSPage() {
 
         {/* Credentials Tab - Auto-generated customer RADIUS credentials */}
         <TabsContent value="credentials" className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4">
             <div>
               <h3 className="text-lg font-medium">Customer RADIUS Credentials</h3>
               <p className="text-sm text-muted-foreground">

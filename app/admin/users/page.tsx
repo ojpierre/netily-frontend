@@ -1706,17 +1706,17 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Users Management</h1>
           <p className="text-slate-500 mt-1">Manage Hotspot, PPPoE, and Static IP users</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
+        <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing} className="w-full sm:w-auto">
             <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button variant="outline" onClick={() => router.push('/admin/users/import')}>
+          <Button variant="outline" onClick={() => router.push('/admin/users/import')} className="w-full sm:w-auto">
             <FileUp className="w-4 h-4 mr-2" />
             Bulk Import
           </Button>
@@ -1728,7 +1728,7 @@ export default function UsersPage() {
             }
           }}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <UserPlus className="w-4 h-4 mr-2" />
                 Add User
               </Button>
@@ -2251,7 +2251,7 @@ export default function UsersPage() {
             loadActiveSubscriptions();
           }
         }} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 lg:w-auto lg:inline-grid">
+          <TabsList className="w-full lg:w-fit">
             <TabsTrigger value="all" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">All Users</span>
