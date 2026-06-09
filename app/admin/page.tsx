@@ -25,6 +25,10 @@ import {
   Shield,
   CreditCard,
   BarChart3,
+  CircleDollarSign,
+  Router,
+  Smartphone,
+  Globe,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import {
@@ -99,10 +103,98 @@ function ChangeBadge({ value }: { value: number }) {
   return (
     <Badge
       variant="secondary"
-      className={`text-xs ${isPositive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+      className={`text-xs font-medium ${isPositive ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"}`}
     >
-      {isPositive ? "+" : "-"}{absValue}%
+      {isPositive ? "↑" : "↓"} {absValue}%
     </Badge>
+  )
+}
+
+// Metric Card Component for consistent styling
+function MetricCard({ 
+  title, 
+  value, 
+  icon: Icon, 
+  iconColor, 
+  trend, 
+  trendText, 
+  onClick 
+}: { 
+  title: string
+  value: string | number
+  icon: React.ElementType
+  iconColor: string
+  trend?: "up" | "down"
+  trendText?: string
+  onClick?: () => void
+}) {
+  return (
+    <Card 
+      className={`overflow-hidden border-slate-200 dark:border-slate-800 transition-all duration-200 hover:shadow-md ${
+        onClick ? "cursor-pointer hover:shadow-lg" : ""
+      }`}
+      onClick={onClick}
+    >
+      <CardContent className="p-0">
+        <div className="flex items-center justify-between p-4">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              {title}
+            </p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">
+              {value}
+            </p>
+            {trend && (
+              <div className="flex items-center gap-1">
+                <TrendingUp className={`w-3 h-3 ${trend === "up" ? "text-emerald-600" : "text-rose-600"}`} />
+                <span className={`text-xs font-medium ${trend === "up" ? "text-emerald-600" : "text-rose-600"}`}>
+                  {trendText}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className={`p-3 rounded-xl ${iconColor} bg-opacity-10`}>
+            <Icon className={`w-5 h-5 ${iconColor}`} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Stat Card Component for smaller stats
+function StatCard({ 
+  label, 
+  value, 
+  icon: Icon, 
+  color, 
+  onClick 
+}: { 
+  label: string
+  value: number
+  icon: React.ElementType
+  color: string
+  onClick?: () => void
+}) {
+  return (
+    <Card 
+      className={`border-slate-200 dark:border-slate-800 transition-all duration-200 hover:shadow-md ${
+        onClick ? "cursor-pointer hover:shadow-lg" : ""
+      }`}
+      onClick={onClick}
+    >
+      <CardContent className="p-3">
+        <div className="flex items-center gap-2">
+          <div className={`p-1.5 rounded-lg bg-${color}-100 dark:bg-${color}-900/30`}>
+            <Icon className={`w-4 h-4 text-${color}-600 dark:text-${color}-400`} />
+          </div>
+          <div>
+            <p className="text-xl font-bold text-slate-900 dark:text-white">{value.toLocaleString()}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -219,6 +311,12 @@ export default function AdminDashboard() {
   const payments = data.payments
   const tickets = data.tickets
 
+  const pppoeCount = activeSubscriptions.pppoe?.length || 0
+  const hotspotCount = activeSubscriptions.hotspot?.length || 0
+  const onlineCount = onlineTotal || onlineSessions.length
+  const activeCount = pppoeCount + hotspotCount
+  const onlinePct = activeCount > 0 ? Math.round((onlineCount / activeCount) * 100) : 0
+
   if (error && !core) {
     return (
       <div className="space-y-6">
@@ -235,173 +333,120 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6 bg-slate-50 dark:bg-slate-950 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
-          <p className="text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Welcome back, {user?.first_name || user?.username || "Admin"}
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh} 
+            disabled={isRefreshing}
+            className="border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
             <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
         </div>
       </div>
 
-      {/* ─── Row 1: Key Metrics ─── */}
+      {/* ─── Row 1: Key Metrics Cards ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total Customers - UPDATED DESCRIPTION */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
-            <Users className="h-4 w-4 text-slate-500" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">
-                  {(core?.total_customers ?? 0).toLocaleString()}
-                </div>
-                <p className="text-xs text-slate-500 mt-1">All PPPoE/Static users</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Active Customers - UPDATED TITLE & DESCRIPTION */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold text-green-600">
-                  {((activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0) || core?.active_customers || 0).toLocaleString()}
-                </div>
-                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3 text-green-600" />
-                  <span>Customers with active sub</span>
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Expired Customers - Uses fast single endpoint - NOW CLICKABLE */}
-        <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+        <MetricCard
+          title="Total Customers"
+          value={(core?.total_customers ?? 0).toLocaleString()}
+          icon={Users}
+          iconColor="text-blue-600"
+          trendText="All PPPoE/Static users"
+        />
+        <MetricCard
+          title="Active Subscriptions"
+          value={activeCount.toLocaleString()}
+          icon={UserCheck}
+          iconColor="text-emerald-600"
+          trend="up"
+          trendText="Customers with active sub"
+        />
+        <MetricCard
+          title="Expired"
+          value={expiredCount.toLocaleString()}
+          icon={UserX}
+          iconColor="text-rose-600"
+          trendText="Requires renewal"
           onClick={() => router.push('/admin/users?status=expired')}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expired</CardTitle>
-            <UserX className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold text-red-600">
-                  {expiredCount.toLocaleString()}
-                </div>
-                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                  <TrendingDown className="w-3 h-3 text-red-600" />
-                  <span>Requires renewal</span>
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Online / Active — clean ratio number + progress bar (REMOVED "Active subs" legend) */}
-        <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+        />
+        <Card 
+          className="overflow-hidden border-slate-200 dark:border-slate-800 transition-all duration-200 hover:shadow-md cursor-pointer hover:shadow-lg"
           onClick={() => router.push('/admin/users?tab=online-sessions')}
         >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Online / Active</CardTitle>
-            <span className="text-xs text-slate-400 flex items-center gap-1.5">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live
-            </span>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-20 w-full" />
-            ) : (() => {
-              const onlineCount = onlineTotal || onlineSessions.length
-              const pppoe = activeSubscriptions.pppoe?.length || 0
-              const hotspot = activeSubscriptions.hotspot?.length || 0
-              const activeCount = pppoe + hotspot
-              const pct = activeCount > 0 ? Math.round((onlineCount / activeCount) * 100) : 0
-
-              return (
-                <div className="space-y-3 pt-1">
-                  {/* Big ratio number */}
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-4xl font-semibold text-slate-900 dark:text-slate-100 leading-none">
-                      {onlineCount}
-                    </span>
-                    <span className="text-xl text-slate-300">/</span>
-                    <span className="text-xl font-medium text-slate-500 leading-none">
-                      {activeCount}
-                    </span>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs text-slate-400">
-                      <span>Online now</span>
-                      <span>{pct}% connected</span>
-                    </div>
-                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-blue-500 transition-all duration-700"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Legend - REMOVED "Active subs" */}
-                  <div className="flex gap-3 pt-0.5">
-                    <span className="flex items-center gap-1.5 text-xs text-slate-500">
-                      <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                      PPPoE: {pppoe}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs text-slate-500">
-                      <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />
-                      Hotspot: {hotspot}
-                    </span>
-                  </div>
-                </div>
-              )
-            })()}
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Online / Active
+              </p>
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1.5 mb-3">
+              <span className="text-3xl font-bold text-slate-900 dark:text-white">
+                {onlineCount}
+              </span>
+              <span className="text-lg text-slate-300">/</span>
+              <span className="text-lg font-medium text-slate-500">
+                {activeCount}
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-500">Online now</span>
+                <span className="font-medium text-slate-700 dark:text-slate-300">{onlinePct}% connected</span>
+              </div>
+              <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-blue-500 transition-all duration-700"
+                  style={{ width: `${onlinePct}%` }}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-3 pt-1">
+              <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                PPPoE: {pppoeCount}
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                <span className="w-2 h-2 rounded-full bg-violet-500" />
+                Hotspot: {hotspotCount}
+              </span>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* ─── Row 2: Network & Revenue ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Router Status */}
-        <Card>
+        {/* Router Status Card - Redesigned */}
+        <Card className="border-slate-200 dark:border-slate-800">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Server className="w-4 h-4 text-slate-600" />
-                Router Fleet
-              </CardTitle>
+              <div className="space-y-0.5">
+                <CardTitle className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <Server className="w-4 h-4 text-slate-500" />
+                  Router Fleet
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-400">
+                  Real-time router status
+                </CardDescription>
+              </div>
               <Link href="/admin/routers">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-slate-500">
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </Link>
@@ -414,42 +459,38 @@ export default function AdminDashboard() {
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-800">
                   <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                    <span className="text-sm font-medium">Online</span>
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Online</span>
                   </div>
-                  <span className="text-lg font-bold text-green-600">
-                    {routers?.online_routers ?? 0}
-                  </span>
+                  <span className="text-lg font-bold text-emerald-600">{routers?.online_routers ?? 0}</span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-800">
                   <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                    <span className="text-sm font-medium">Offline</span>
+                    <div className="w-2 h-2 rounded-full bg-rose-500" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Offline</span>
                   </div>
-                  <span className="text-lg font-bold text-red-600">
-                    {routers?.offline_routers ?? 0}
-                  </span>
+                  <span className="text-lg font-bold text-rose-600">{routers?.offline_routers ?? 0}</span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-800">
                   <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                    <span className="text-sm font-medium">Warning / Maintenance</span>
+                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Warning/Maintenance</span>
                   </div>
                   <span className="text-lg font-bold text-amber-600">
                     {(routers?.warning_routers ?? 0) + (routers?.maintenance_routers ?? 0)}
                   </span>
                 </div>
-                <div className="pt-2 border-t">
+                <div className="pt-3 mt-1 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Total Routers</span>
-                    <span className="font-semibold">{routers?.total_routers ?? 0}</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">{routers?.total_routers ?? 0}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm mt-1">
                     <span className="text-slate-500">Connected Users</span>
-                    <span className="font-semibold">{routers?.total_connected_users ?? 0}</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">{routers?.total_connected_users ?? 0}</span>
                   </div>
                 </div>
               </div>
@@ -457,16 +498,21 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Revenue Card — full-bleed tinted rows */}
-        <Card>
+        {/* Revenue Card - Redesigned */}
+        <Card className="border-slate-200 dark:border-slate-800">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-green-600" />
-                Revenue
-              </CardTitle>
+              <div className="space-y-0.5">
+                <CardTitle className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <CircleDollarSign className="w-4 h-4 text-emerald-500" />
+                  Revenue
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-400">
+                  Payment tracking
+                </CardDescription>
+              </div>
               <Link href="/admin/payments">
-                <Button variant="ghost" size="sm" className="text-xs text-slate-400 hover:text-slate-600 px-2">
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-slate-500 text-xs">
                   View all →
                 </Button>
               </Link>
@@ -481,11 +527,10 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div className="space-y-2">
-                {/* Today */}
-                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/30">
+                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-800">
                   <div>
-                    <p className="text-[10px] font-semibold tracking-widest text-blue-400 uppercase">Today</p>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                    <p className="text-[10px] font-semibold tracking-wider text-blue-500 uppercase">Today</p>
+                    <p className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">
                       {formatKSh(data.reports?.overview?.today_revenue ?? payments?.amount_today)}
                     </p>
                   </div>
@@ -493,12 +538,10 @@ export default function AdminDashboard() {
                     <ChangeBadge value={data.reports?.overview?.today_change ?? 0} />
                   )}
                 </div>
-
-                {/* This week */}
-                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
+                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-800">
                   <div>
-                    <p className="text-[10px] font-semibold tracking-widest text-green-500 uppercase">This week</p>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                    <p className="text-[10px] font-semibold tracking-wider text-emerald-500 uppercase">This week</p>
+                    <p className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">
                       {formatKSh(data.reports?.overview?.week_revenue ?? 0)}
                     </p>
                   </div>
@@ -506,12 +549,10 @@ export default function AdminDashboard() {
                     <ChangeBadge value={data.reports?.overview?.week_change ?? 0} />
                   )}
                 </div>
-
-                {/* This month */}
-                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
+                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-800">
                   <div>
-                    <p className="text-[10px] font-semibold tracking-widest text-amber-500 uppercase">This month</p>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                    <p className="text-[10px] font-semibold tracking-wider text-amber-500 uppercase">This month</p>
+                    <p className="text-base font-semibold text-slate-900 dark:text-white mt-0.5">
                       {formatKSh(data.reports?.overview?.month_revenue ?? payments?.amount_this_month)}
                     </p>
                   </div>
@@ -519,11 +560,9 @@ export default function AdminDashboard() {
                     <ChangeBadge value={data.reports?.overview?.month_change ?? 0} />
                   )}
                 </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <span>Transactions today</span>
-                  <span className="font-medium text-slate-600 dark:text-slate-300">
+                <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-slate-500">Transactions today</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
                     {data.reports?.overview?.total_transactions_today ?? payments?.payments_today ?? 0}
                   </span>
                 </div>
@@ -532,16 +571,21 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Support Tickets */}
-        <Card>
+        {/* Support Tickets Card - Redesigned */}
+        <Card className="border-slate-200 dark:border-slate-800">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Ticket className="w-4 h-4 text-purple-600" />
-                Support Tickets
-              </CardTitle>
+              <div className="space-y-0.5">
+                <CardTitle className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <Ticket className="w-4 h-4 text-purple-500" />
+                  Support Tickets
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-400">
+                  Customer support requests
+                </CardDescription>
+              </div>
               <Link href="/admin/tickets">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-slate-500">
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </Link>
@@ -556,31 +600,31 @@ export default function AdminDashboard() {
             ) : (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-red-600">{tickets?.open ?? 0}</p>
-                    <p className="text-xs text-slate-500">Open</p>
+                  <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-800 text-center">
+                    <p className="text-2xl font-bold text-rose-600">{tickets?.open ?? 0}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Open</p>
                   </div>
-                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-center">
+                  <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-800 text-center">
                     <p className="text-2xl font-bold text-amber-600">{tickets?.in_progress ?? 0}</p>
-                    <p className="text-xs text-slate-500">In Progress</p>
+                    <p className="text-xs text-slate-500 mt-0.5">In Progress</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-green-600">{tickets?.resolved ?? 0}</p>
-                    <p className="text-xs text-slate-500">Resolved</p>
+                  <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-800 text-center">
+                    <p className="text-2xl font-bold text-emerald-600">{tickets?.resolved ?? 0}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Resolved</p>
                   </div>
-                  <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
+                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-800 text-center">
                     <p className="text-2xl font-bold text-blue-600">{tickets?.total ?? 0}</p>
-                    <p className="text-xs text-slate-500">Total</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Total</p>
                   </div>
                 </div>
-                <div className="pt-2 border-t flex items-center justify-between text-sm">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-sm">
                   <div className="flex items-center gap-1 text-slate-500">
                     <Clock className="w-3 h-3" />
                     Avg Response
                   </div>
-                  <span className="font-medium">{tickets?.avg_response_time ?? "—"}</span>
+                  <span className="font-medium text-slate-900 dark:text-white">{tickets?.avg_response_time ?? "—"}</span>
                 </div>
               </div>
             )}
@@ -588,11 +632,10 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* ─── Row 2.5: Weekly Income & Monthly Earnings ─── */}
+      {/* ─── Row 2.5: Weekly Income & Monthly Earnings Charts ─── */}
       <div className="grid gap-4 md:grid-cols-2">
-
         {/* Weekly Income Chart */}
-        <Card>
+        <Card className="border-slate-200 dark:border-slate-800">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -694,7 +737,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Monthly Earnings Chart */}
-        <Card>
+        <Card className="border-slate-200 dark:border-slate-800">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -794,67 +837,76 @@ export default function AdminDashboard() {
             )}
           </CardContent>
         </Card>
-
       </div>
 
       {/* ─── Row 3: Quick Actions & Recent Activity ─── */}
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Quick Actions */}
-        <Card>
+        {/* Quick Actions - Redesigned */}
+        <Card className="border-slate-200 dark:border-slate-800">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-500" />
-              Quick Actions
-            </CardTitle>
-            <CardDescription>Common administrative tasks</CardDescription>
+            <div className="space-y-0.5">
+              <CardTitle className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-amber-500" />
+                Quick Actions
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-400">
+                Common administrative tasks
+              </CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
               <Link href="/admin/users">
-                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
-                  <Users className="w-5 h-5 text-blue-600" />
-                  <span className="text-xs">Manage Users</span>
+                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1 border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+                  <Users className="w-5 h-5 text-blue-500" />
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Manage Users</span>
                 </Button>
               </Link>
               <Link href="/admin/routers">
-                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
-                  <Wifi className="w-5 h-5 text-green-600" />
-                  <span className="text-xs">Manage Routers</span>
+                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1 border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+                  <Router className="w-5 h-5 text-emerald-500" />
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Manage Routers</span>
                 </Button>
               </Link>
               <Link href="/admin/payments">
-                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
-                  <CreditCard className="w-5 h-5 text-purple-600" />
-                  <span className="text-xs">View Payments</span>
+                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1 border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+                  <CreditCard className="w-5 h-5 text-purple-500" />
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">View Payments</span>
                 </Button>
               </Link>
               <Link href="/admin/tickets">
-                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
-                  <Ticket className="w-5 h-5 text-amber-600" />
-                  <span className="text-xs">Support Tickets</span>
+                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1 border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+                  <Ticket className="w-5 h-5 text-amber-500" />
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Support Tickets</span>
                 </Button>
               </Link>
               <Link href="/admin/plans">
-                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
-                  <BarChart3 className="w-5 h-5 text-cyan-600" />
-                  <span className="text-xs">Manage Plans</span>
+                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1 border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+                  <BarChart3 className="w-5 h-5 text-cyan-500" />
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Manage Plans</span>
                 </Button>
               </Link>
               <Link href="/admin/invoices">
-                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
-                  <DollarSign className="w-5 h-5 text-green-600" />
-                  <span className="text-xs">Invoices</span>
+                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1 border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+                  <DollarSign className="w-5 h-5 text-emerald-500" />
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Invoices</span>
                 </Button>
               </Link>
             </div>
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
-        <Card>
+        {/* Recent Activity - Redesigned */}
+        <Card className="border-slate-200 dark:border-slate-800">
           <CardHeader>
-            <CardTitle className="text-base">Recent Activity</CardTitle>
-            <CardDescription>Latest system events from audit log</CardDescription>
+            <div className="space-y-0.5">
+              <CardTitle className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100">
+                Recent Activity
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-400">
+                Latest system events from audit log
+              </CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -871,8 +923,9 @@ export default function AdminDashboard() {
               </div>
             ) : data.recentActivity.length === 0 ? (
               <div className="text-center py-8 text-slate-500">
-                <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No recent activity</p>
+                <Activity className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                <p className="text-sm font-medium">No recent activity</p>
+                <p className="text-xs text-slate-400 mt-1">System events will appear here</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-[340px] overflow-y-auto">
@@ -890,7 +943,7 @@ export default function AdminDashboard() {
                       <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
                         {activity.user__email || "System"}
                       </p>
-                      <p className="text-xs text-slate-600">
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
                         {activity.action} — {activity.object_repr || activity.model_name}
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">
@@ -904,9 +957,9 @@ export default function AdminDashboard() {
           </CardContent>
           <CardFooter className="pt-0">
             <Link href="/admin/logs" className="w-full">
-              <Button variant="ghost" size="sm" className="w-full text-slate-500">
+              <Button variant="ghost" size="sm" className="w-full text-slate-500 hover:text-slate-700 text-xs">
                 View all activity
-                <ChevronRight className="w-4 h-4 ml-1" />
+                <ChevronRight className="w-3 h-3 ml-1" />
               </Button>
             </Link>
           </CardFooter>
