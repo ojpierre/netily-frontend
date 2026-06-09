@@ -595,33 +595,34 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-blue-600" />
+              <div className="space-y-0.5">
+                <CardTitle className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100">
                   Weekly Income
                 </CardTitle>
-                <CardDescription>Daily revenue for the selected week</CardDescription>
+                <CardDescription className="text-xs text-slate-400">
+                  {weekView === "this" ? "This week · daily breakdown" : "Last week · daily breakdown"}
+                </CardDescription>
               </div>
-              <div className="flex items-center gap-1 rounded-lg border p-1">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                 <button
                   onClick={() => setWeekView("this")}
-                  className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                  className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     weekView === "this"
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
+                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   }`}
                 >
-                  This Week
+                  This week
                 </button>
                 <button
                   onClick={() => setWeekView("last")}
-                  className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                  className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     weekView === "last"
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
+                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   }`}
                 >
-                  Last Week
+                  Last week
                 </button>
               </div>
             </div>
@@ -649,6 +650,7 @@ export default function AdminDashboard() {
                   }
                   barSize={28}
                   margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+                  cursor="default"
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -658,10 +660,15 @@ export default function AdminDashboard() {
                     axisLine={false}
                     tickLine={false}
                     width={45}
+                    domain={([dataMin, dataMax]: [number, number]) => {
+                      const padding = (dataMax - dataMin) * 0.25
+                      return [0, Math.ceil((dataMax + padding) / 1000) * 1000]
+                    }}
                   />
                   <Tooltip
-                    formatter={(value: number) => [`KSh ${value.toLocaleString()}`, "Income"]}
-                    contentStyle={{ borderRadius: 8, fontSize: 13 }}
+                    cursor={false}
+                    formatter={(value: number) => [`KSh ${value.toLocaleString("en-KE")}`, "Income"]}
+                    contentStyle={{ borderRadius: 8, fontSize: 13, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
                   />
                   <Bar
                     dataKey="amount"
@@ -672,7 +679,12 @@ export default function AdminDashboard() {
                       position: "top",
                       fontSize: 10,
                       fill: "#64748b",
-                      formatter: (v: number) => v > 0 ? (v >= 1000 ? `${(v/1000).toFixed(0)}K` : `${v}`) : "",
+                      formatter: (v: number) => {
+                        if (!v || v === 0) return ""
+                        if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+                        if (v >= 1000) return `${(v / 1000).toFixed(1)}K`
+                        return `${v}`
+                      },
                     }}
                   />
                 </BarChart>
@@ -685,33 +697,34 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+              <div className="space-y-0.5">
+                <CardTitle className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100">
                   Monthly Earnings
                 </CardTitle>
-                <CardDescription>Revenue per month for the selected year</CardDescription>
+                <CardDescription className="text-xs text-slate-400">
+                  {yearView === "this" ? `${new Date().getFullYear()} · month by month` : `${new Date().getFullYear() - 1} · month by month`}
+                </CardDescription>
               </div>
-              <div className="flex items-center gap-1 rounded-lg border p-1">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                 <button
                   onClick={() => setYearView("this")}
-                  className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                  className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     yearView === "this"
-                      ? "bg-emerald-600 text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
+                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   }`}
                 >
-                  This Year
+                  {new Date().getFullYear()}
                 </button>
                 <button
                   onClick={() => setYearView("last")}
-                  className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                  className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     yearView === "last"
-                      ? "bg-emerald-600 text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
+                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   }`}
                 >
-                  Last Year
+                  {new Date().getFullYear() - 1}
                 </button>
               </div>
             </div>
@@ -739,6 +752,7 @@ export default function AdminDashboard() {
                   }
                   barSize={18}
                   margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+                  cursor="default"
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -748,10 +762,15 @@ export default function AdminDashboard() {
                     axisLine={false}
                     tickLine={false}
                     width={45}
+                    domain={([dataMin, dataMax]: [number, number]) => {
+                      const padding = (dataMax - dataMin) * 0.25
+                      return [0, Math.ceil((dataMax + padding) / 1000) * 1000]
+                    }}
                   />
                   <Tooltip
-                    formatter={(value: number) => [`KSh ${value.toLocaleString()}`, "Earnings"]}
-                    contentStyle={{ borderRadius: 8, fontSize: 13 }}
+                    cursor={false}
+                    formatter={(value: number) => [`KSh ${value.toLocaleString("en-KE")}`, "Earnings"]}
+                    contentStyle={{ borderRadius: 8, fontSize: 13, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
                   />
                   <Bar
                     dataKey="amount"
@@ -762,7 +781,12 @@ export default function AdminDashboard() {
                       position: "top",
                       fontSize: 10,
                       fill: "#64748b",
-                      formatter: (v: number) => v > 0 ? (v >= 1000 ? `${(v/1000).toFixed(0)}K` : `${v}`) : "",
+                      formatter: (v: number) => {
+                        if (!v || v === 0) return ""
+                        if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+                        if (v >= 1000) return `${(v / 1000).toFixed(1)}K`
+                        return `${v}`
+                      },
                     }}
                   />
                 </BarChart>
