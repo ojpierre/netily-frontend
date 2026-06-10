@@ -68,6 +68,7 @@ type AccountingLog = {
 }
 
 // Map backend RADIUS accounting session to local AccountingLog type
+// BUG FIX 1 & 2: Handle null/undefined values and use acctsessiontime with live duration calculation
 const mapSessionToLog = (session: RADIUSAccountingSession): AccountingLog => ({
   id: String(session.id),
   userId: session.username,
@@ -75,9 +76,15 @@ const mapSessionToLog = (session: RADIUSAccountingSession): AccountingLog => ({
   sessionId: session.acctsessionid,
   startTime: session.acctstarttime,
   endTime: session.acctstoptime || "",
-  duration: session.session_duration ? Math.floor(session.session_duration / 60) : 0,
-  dataUpload: Math.round(session.acctinputoctets / (1024 * 1024)), // bytes to MB
-  dataDownload: Math.round(session.acctoutputoctets / (1024 * 1024)), // bytes to MB
+  // BUG FIX 2: Use acctsessiontime instead of session_duration, calculate live duration for active sessions
+  duration: session.acctsessiontime
+    ? Math.floor(session.acctsessiontime / 60)
+    : session.acctstarttime
+      ? Math.floor((Date.now() - new Date(session.acctstarttime).getTime()) / 60000)
+      : 0,
+  // BUG FIX 1: Use null coalescing to handle undefined/null values (prevents NaN)
+  dataUpload: Math.round((session.acctinputoctets || 0) / (1024 * 1024)), // bytes to MB
+  dataDownload: Math.round((session.acctoutputoctets || 0) / (1024 * 1024)), // bytes to MB
   ipAddress: session.framedipaddress || "",
   nasId: session.nas_name || session.nasipaddress,
   terminationCause: session.is_active ? "Active" : (session.acctterminatecause || "Unknown"),
@@ -182,9 +189,8 @@ export default function UsagePage() {
     setDialogOpen(true)
   }
 
-  const totalTimeOnline = logs
-    .filter((l) => l.status === "completed")
-    .reduce((sum, l) => sum + l.duration, 0)
+  // BUG FIX 3: Total time includes active sessions too (don't filter out active sessions)
+  const totalTimeOnline = logs.reduce((sum, l) => sum + l.duration, 0)
 
   const totalDataUsed = logs.reduce((sum, l) => sum + l.dataDownload + l.dataUpload, 0)
 

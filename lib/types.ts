@@ -2906,6 +2906,7 @@ export interface RADIUSAccountingSession {
   acctterminatecause?: string
   callingstationid?: string
   session_duration?: number
+  acctsessiontime?: number 
   is_active: boolean
 }
 
