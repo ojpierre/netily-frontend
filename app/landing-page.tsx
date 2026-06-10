@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useRef } from "react"
 import Link from "next/link"
@@ -611,6 +611,330 @@ function DashboardMockup() {
 }
 
 // ════════════════════════════════════════════════════════════════
+// HERO SLIDER
+// ════════════════════════════════════════════════════════════════
+
+const HERO_SLIDES = [
+  {
+    id: "billing",
+    bg: "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1800&q=80",
+    overlay: "from-slate-950/70 via-blue-950/40 to-transparent",
+    accent: "text-blue-200",
+    badgeBg: "bg-blue-600/20 border-blue-400/30 text-blue-200",
+    badge: "🇰🇪  #1 ISP Billing Platform in East Africa",
+    headline: "ISP Billing Software",
+    highlight: "for Kenya & East Africa",
+    tagline: "Run your ISP while you sleep.",
+    body: "Automate billing, provisioning, and subscriber operations — from M-Pesa STK Push to MikroTik PPPoE — in one unified platform.",
+    cta1Label: "Start Free Trial",
+    cta1Target: "contact",
+    cta2Label: "See features",
+    cta2Target: "features",
+    stats: [
+      { value: "500+", label: "ISPs" },
+      { value: "50K+", label: "Subscribers" },
+      { value: "99.9%", label: "Uptime" },
+    ],
+  },
+  {
+    id: "mikrotik",
+    bg: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1800&q=80",
+    overlay: "from-slate-950/75 via-cyan-950/35 to-transparent",
+    accent: "text-cyan-200",
+    badgeBg: "bg-cyan-600/20 border-cyan-400/30 text-cyan-200",
+    badge: "⚡  Zero-touch MikroTik provisioning",
+    headline: "MikroTik PPPoE Billing",
+    highlight: "Automated, Instant, Reliable",
+    tagline: "Provision in seconds, not hours.",
+    body: "Connect your MikroTik RouterOS via API. When a subscriber pays, their PPPoE profile is created, activated, or suspended automatically — no SSH, no manual steps.",
+    cta1Label: "Get Started Free",
+    cta1Target: "contact",
+    cta2Label: "View pricing",
+    cta2Target: "pricing",
+    stats: [
+      { value: "<5s", label: "Provisioning time" },
+      { value: "API", label: "RouterOS native" },
+      { value: "100%", label: "Auto-reconciliation" },
+    ],
+  },
+  {
+    id: "mpesa",
+    bg: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1800&q=80",
+    overlay: "from-slate-950/72 via-emerald-950/40 to-transparent",
+    accent: "text-emerald-200",
+    badgeBg: "bg-emerald-600/20 border-emerald-400/30 text-emerald-200",
+    badge: "💳  Safaricom Daraja API — Native M-Pesa STK Push",
+    headline: "M-Pesa Billing Automation",
+    highlight: "Pay. Activate. Done.",
+    tagline: "Stop chasing payments manually.",
+    body: "Native M-Pesa STK Push, C2B Paybill, and Till integration. Payments auto-confirm, invoices auto-close, and subscribers reconnect — all without your team lifting a finger.",
+    cta1Label: "Book a Demo",
+    cta1Target: "contact",
+    cta2Label: "See how it works",
+    cta2Target: "features",
+    stats: [
+      { value: "M-Pesa", label: "STK Push native" },
+      { value: "0s", label: "Manual reconciliation" },
+      { value: "Airtel", label: "+ Telkom Kash" },
+    ],
+  },
+  {
+    id: "hotspot",
+    bg: "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1800&q=80",
+    overlay: "from-slate-950/70 via-violet-950/38 to-transparent",
+    accent: "text-violet-200",
+    badgeBg: "bg-violet-600/20 border-violet-400/30 text-violet-200",
+    badge: "📡  Hotspot & Captive Portal Billing",
+    headline: "WiFi Hotspot Billing",
+    highlight: "Branded, Managed, Profitable",
+    tagline: "Turn any WiFi into a revenue engine.",
+    body: "Deploy branded captive portals with M-Pesa payments, voucher packs, session limits, and daily analytics. Perfect for hotels, schools, matatu parks, and public hotspots across Kenya.",
+    cta1Label: "Start Free Trial",
+    cta1Target: "contact",
+    cta2Label: "Explore hotspot features",
+    cta2Target: "features",
+    stats: [
+      { value: "Branded", label: "Captive portal" },
+      { value: "M-Pesa", label: "Instant vouchers" },
+      { value: "Real-time", label: "Session control" },
+    ],
+  },
+  {
+    id: "operations",
+    bg: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1800&q=80",
+    overlay: "from-slate-950/72 via-indigo-950/35 to-transparent",
+    accent: "text-indigo-200",
+    badgeBg: "bg-indigo-600/20 border-indigo-400/30 text-indigo-200",
+    badge: "📊  Full ISP operations — one dashboard",
+    headline: "One Platform for All",
+    highlight: "Your ISP Operations",
+    tagline: "Billing. Network. Subscribers. Support.",
+    body: "Monitor routers, manage subscribers, track collections, send SMS reminders, and handle support tickets — all visible in a single real-time dashboard designed for busy ISP teams.",
+    cta1Label: "See the Dashboard",
+    cta1Target: "contact",
+    cta2Label: "View pricing",
+    cta2Target: "pricing",
+    stats: [
+      { value: "Live", label: "Router monitoring" },
+      { value: "SMS", label: "Auto reminders" },
+      { value: "KES", label: "Local currency" },
+    ],
+  },
+] as const
+
+function HeroSlider({ scrollTo }: { scrollTo: (id: string) => void }) {
+  const [current, setCurrent] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const [direction, setDirection] = useState(1)
+  const total = HERO_SLIDES.length
+
+  // Auto-advance every 6 seconds
+  useEffect(() => {
+    if (paused) return
+    const timer = setInterval(() => {
+      setDirection(1)
+      setCurrent((prev) => (prev + 1) % total)
+    }, 6000)
+    return () => clearInterval(timer)
+  }, [paused, total])
+
+  const goTo = (idx: number) => {
+    setDirection(idx > current ? 1 : -1)
+    setCurrent(idx)
+  }
+
+  const slide = HERO_SLIDES[current]
+
+  return (
+    <div
+      className="relative flex min-h-screen items-end overflow-hidden"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      {/* Slide backgrounds with crossfade */}
+      {HERO_SLIDES.map((s, i) => (
+        <motion.div
+          key={s.id}
+          className="absolute inset-0 -z-10"
+          initial={false}
+          animate={{ opacity: i === current ? 1 : 0 }}
+          transition={{ duration: 1.1, ease: "easeInOut" }}
+        >
+          <Image
+            src={s.bg}
+            alt={`Netily ISP management platform — ${s.headline}`}
+            fill
+            priority={i === 0}
+            sizes="100vw"
+            className="object-cover object-center"
+          />
+          {/* Layered gradient overlay */}
+          <div className={`absolute inset-0 bg-gradient-to-r ${s.overlay}`} />
+          <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent" />
+        </motion.div>
+      ))}
+
+      {/* Ambient glow that shifts per slide */}
+      <motion.div
+        key={`glow-${current}`}
+        className="pointer-events-none absolute inset-0 -z-10"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.4 }}
+      >
+        <div className="absolute top-24 left-1/4 w-[700px] h-[700px] rounded-full blur-[160px] opacity-30 bg-blue-500" />
+        <div className="absolute bottom-0 right-1/3 w-[500px] h-[500px] rounded-full blur-[120px] opacity-20 bg-indigo-600" />
+      </motion.div>
+
+      {/* Content */}
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-14 pt-28 sm:px-6 md:pb-24 md:pt-36 lg:px-8">
+        <div className="max-w-3xl">
+          {/* Badge */}
+          <motion.div
+            key={`badge-${current}`}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.05 }}
+          >
+            <div className={`mb-5 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium backdrop-blur-sm ${slide.badgeBg}`}>
+              {slide.badge}
+            </div>
+          </motion.div>
+
+          {/* Headline */}
+          <motion.div
+            key={`h1-${current}`}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.1 }}
+          >
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.02] text-white">
+              {slide.headline}
+              <br />
+              <span className={slide.accent}>{slide.highlight}</span>
+            </h1>
+          </motion.div>
+
+          {/* Tagline */}
+          <motion.div
+            key={`tag-${current}`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.17 }}
+          >
+            <p className="mt-4 text-2xl sm:text-3xl font-bold text-white/90 tracking-tight">
+              {slide.tagline}
+            </p>
+          </motion.div>
+
+          {/* Body */}
+          <motion.div
+            key={`body-${current}`}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.22 }}
+          >
+            <p className="mt-4 max-w-2xl text-base md:text-lg leading-relaxed text-white/78">
+              {slide.body}
+            </p>
+          </motion.div>
+
+          {/* Stat pills */}
+          <motion.div
+            key={`stats-${current}`}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.28 }}
+            className="mt-6 flex flex-wrap gap-3"
+          >
+            {slide.stats.map((s) => (
+              <div
+                key={s.label}
+                className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 backdrop-blur-sm"
+              >
+                <span className="text-sm font-bold text-white">{s.value}</span>
+                <span className="text-xs text-white/60">{s.label}</span>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* CTAs */}
+          <motion.div
+            key={`cta-${current}`}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.33 }}
+            className="mt-8"
+          >
+            <div id="hero-cta" className="flex flex-col sm:flex-row items-start gap-4">
+              <button
+                onClick={() => scrollTo(slide.cta1Target)}
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:shadow-blue-600/50 hover:-translate-y-0.5"
+              >
+                {slide.cta1Label}
+                <ArrowRight className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => scrollTo(slide.cta2Target)}
+                className="inline-flex items-center gap-2 px-1 py-4 text-lg font-medium text-white/88 transition-colors hover:text-white"
+              >
+                {slide.cta2Label}
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="mt-3 text-xs text-white/60">No credit card required • Free Trial • Cancel anytime</p>
+          </motion.div>
+        </div>
+
+        {/* Slide navigation dots + progress */}
+        <div className="mt-12 flex items-center gap-3">
+          {HERO_SLIDES.map((s, i) => (
+            <button
+              key={s.id}
+              onClick={() => goTo(i)}
+              aria-label={`Go to slide ${i + 1}: ${s.headline}`}
+              className="group relative flex items-center"
+            >
+              <div
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  i === current
+                    ? "w-10 bg-white"
+                    : "w-4 bg-white/30 hover:bg-white/50"
+                }`}
+              >
+                {i === current && !paused && (
+                  <motion.div
+                    className="absolute inset-y-0 left-0 rounded-full bg-blue-400"
+                    initial={{ width: "0%" }}
+                    animate={{ width: "100%" }}
+                    transition={{ duration: 6, ease: "linear" }}
+                    key={`progress-${current}`}
+                  />
+                )}
+              </div>
+            </button>
+          ))}
+          <span className="ml-2 text-xs text-white/40 font-mono tabular-nums">
+            {String(current + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+          </span>
+        </div>
+
+        {/* Hidden SEO text — all slide content readable by crawlers */}
+        <div className="sr-only">
+          {HERO_SLIDES.map((s) => (
+            <div key={s.id}>
+              <h2>{s.headline} — {s.highlight}</h2>
+              <p>{s.tagline} {s.body}</p>
+            </div>
+          ))}
+          Netily is Kenya's leading ISP billing software and ISP management platform. M-Pesa STK Push, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and subscriber management. Built for Kenyan and East African ISPs. Free trial, no credit card required.
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ════════════════════════════════════════════════════════════════
 export function LandingPage() {
@@ -854,102 +1178,13 @@ export function LandingPage() {
         )}
       </header>
 
-      {/* ━━━ 2. HERO SECTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      {/* ━━━ 2. HERO SECTION (auto-slider) ━━━━━━━━━━━━━━━━━━━━━━ */}
       <main id="main-content">
       <motion.section
         ref={heroRef}
         style={{ opacity: heroOpacity, scale: heroScale }}
-        className="relative flex min-h-screen items-end px-4 pb-14 pt-28 sm:px-6 md:pb-20 md:pt-32 lg:px-8 overflow-hidden"
       >
-        <div className="absolute inset-0 -z-20">
-          <Image
-            src={HERO_PHOTO}
-            alt="Team using laptops to manage an internet service provider platform"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-center opacity-[0.72]"
-          />
-          <div className="absolute inset-0 bg-slate-950/30 dark:bg-slate-950/44" />
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-blue-700/80 via-blue-600/35 to-transparent dark:from-blue-800/70 dark:via-blue-700/30" />
-        </div>
-        {/* Background gradient orbs */}
-        <div className="absolute inset-0 overflow-hidden -z-10">
-          <div className="absolute top-20 left-1/4 w-[600px] h-[600px] bg-blue-100 rounded-full blur-[128px] opacity-60" />
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-[128px] opacity-50" />
-        </div>
-
-        <div className="mx-auto w-full max-w-6xl">
-          {/* Badge */}
-          {/*<Reveal>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white/90 backdrop-blur-sm mb-6">
-              <Sparkles className="w-4 h-4" />
-              <span>Trusted by 100+ ISPs across Kenya &amp; East Africa</span>
-              <span className="text-lg leading-none">✨</span>
-            </div>
-          </Reveal>*/}
-
-          <div className="max-w-3xl text-left">
-            {/* H1 — Search-intent targeted */}
-            <Reveal delay={0.1}>
-              <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.02] text-white mb-3">
-                ISP Billing Software
-                <br />
-                <span className="text-blue-100 dark:text-blue-200">
-                  for Kenya &amp; East Africa
-                </span>
-              </h1>
-            </Reveal>
-
-            {/* Brand tagline below H1 */}
-            <Reveal delay={0.15}>
-              <p className="text-2xl sm:text-3xl font-bold text-white/88 mb-4 tracking-tight">
-                Run your ISP while you sleep.
-              </p>
-            </Reveal>
-
-            <Reveal delay={0.2}>
-              <p className="max-w-xl text-base md:text-lg leading-relaxed text-white/80 dark:text-white/78">
-                Automate billing, provisioning, and subscriber operations from one platform.
-              </p>
-            </Reveal>
-
-            <div className="sr-only">
-              Netily is the ISP billing software and ISP management system built for Kenya and East Africa, automating M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and customer self-service so Kenyan ISPs can stop chasing payments and start growing.
-              M-Pesa billing automation. MikroTik plus PPPoE workflows. Hotspot and subscriber operations.
-              Free trial. No credit card required. Built for East African ISP operations.
-            </div>
-
-            {/* CTA Buttons */}
-            <Reveal delay={0.26}>
-              <div id="hero-cta" className="flex flex-col sm:flex-row items-start gap-4">
-                <Link
-                  href="#contact"
-                  onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-blue-900/30 transition-colors hover:bg-blue-500"
-                >
-                  Start Free Trial
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-                <a
-                  href="#features"
-                  onClick={(e) => { e.preventDefault(); scrollTo("features") }}
-                  className="inline-flex items-center gap-2 px-1 py-4 text-lg font-medium text-white/88 transition-colors hover:text-white"
-                >
-                  See features
-                  <ArrowRight className="w-4 h-4" />
-                </a>
-              </div>
-              <p className="mt-3 text-xs text-white/72">No credit card required • Free Trial • Cancel anytime</p>
-            </Reveal>
-          </div>
-
-          <div className="sr-only">
-            Payment to provisioning. Collect, confirm, and reconnect without manual chasing.
-            MikroTik-aware workflows. Built for PPPoE, hotspot, and subscriber state changes.
-            Daily operational clarity. See collections, uptime, and support movement at a glance.
-          </div>
-        </div>
+        <HeroSlider scrollTo={scrollTo} />
       </motion.section>
 
       {/* ━━━ 3. TRUST MARQUEE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}

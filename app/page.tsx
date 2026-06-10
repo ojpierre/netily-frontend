@@ -1,4 +1,4 @@
-﻿import { LandingPage } from "./landing-page"
+import { LandingPage } from "./landing-page"
 import type { Metadata } from "next"
 import { blogPosts } from "@/lib/blog-data"
 
@@ -67,8 +67,47 @@ export const metadata: Metadata = {
     "East Africa ISP SaaS",
     "affordable ISP billing software Africa",
     "free trial ISP software",
+    // ── Competitor comparisons ────────────────────────
+    "Splynx alternative Kenya",
+    "WHMCS alternative ISP Africa",
+    "Ucrm alternative Kenya",
+    "Splynx vs Netily",
+    "better than Splynx for Kenya ISP",
+    "affordable Splynx alternative East Africa",
+    "ISP billing software better than Splynx",
+    // ── Vertical / use-case ───────────────────────────
+    "school WiFi billing software Kenya",
+    "hotel WiFi billing system Kenya",
+    "matatu WiFi billing Kenya",
+    "apartment estate WiFi management Kenya",
+    "FTTH billing software Kenya",
+    "fiber to the home ISP billing",
+    "fixed wireless access billing Kenya",
+    "church WiFi billing Kenya",
+    "campus WiFi management Kenya",
+    // ── Long-tail queries ─────────────────────────────
+    "how to automate ISP billing with M-Pesa",
+    "best ISP billing software with mikrotik api",
+    "mikrotik pppoe auto suspend on expiry Kenya",
+    "mikrotik hotspot billing with mpesa Kenya",
+    "ISP billing software with radius integration",
+    "internet subscription management Kenya",
+    "ISP reconciliation software M-Pesa Safaricom",
+    "automated internet billing Kenya",
+    "PPPoE subscriber auto-suspend software Kenya",
+    // ── More cities/regions ───────────────────────────
+    "Thika ISP billing",
+    "Machakos ISP software",
+    "Nyeri internet billing",
+    "Kampala ISP billing Uganda",
+    "Dar es Salaam ISP billing Tanzania",
+    "Kigali ISP software Rwanda",
+    // ── Brand ─────────────────────────────────────────
     "Netily",
     "Netily ISP billing",
+    "Netily vs Splynx",
+    "Netily MikroTik integration",
+    "Netily hotspot billing",
   ],
   alternates: {
     canonical: "https://netily.co.ke",
@@ -123,6 +162,9 @@ const softwareSchema = {
     "Automated invoicing",
     "Bandwidth management",
     "ISP management dashboard",
+    "SMS payment reminders",
+    "Subscriber auto-suspension",
+    "Revenue analytics dashboard",
   ],
   areaServed: [
     { "@type": "Country", name: "Kenya" },
@@ -174,6 +216,8 @@ const orgSchema = {
     "MikroTik provisioning",
     "Hotspot billing",
     "Kenyan bank payment operations",
+    "RADIUS authentication",
+    "PPPoE subscriber management",
   ],
 }
 
@@ -303,6 +347,14 @@ const faqSchema = {
       acceptedAnswer: {
         "@type": "Answer",
         text: "Netily is built specifically for Kenyan and East African ISPs. Unlike Splynx, Netily has native M-Pesa STK Push integration, is priced in KES, and is significantly more affordable for small and medium ISPs. Splynx is a European product that does not natively support M-Pesa.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is Netily a good Splynx alternative for Kenya?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Netily is Kenya's leading Splynx alternative. It offers native M-Pesa STK Push, MikroTik auto-provisioning, RADIUS integration, and hotspot billing — all at a fraction of Splynx's cost and priced in KES. Most Kenyan ISPs switching from Splynx are live on Netily within 24 hours.",
       },
     },
   ],
