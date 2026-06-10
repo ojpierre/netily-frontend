@@ -477,6 +477,7 @@ export interface LeadItem {
   phone: string;
   company_name: string;
   lead_source: string;
+  referral_name: string;
   message: string;
   is_contacted: boolean;
   contacted_at: string | null;

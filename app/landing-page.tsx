@@ -617,13 +617,13 @@ export function LandingPage() {
   const [email, setEmail] = useState("")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const [leadForm, setLeadForm] = useState({ name: "", email: "", phone: "", company: "", lead_source: "", message: "" })
+  const [leadForm, setLeadForm] = useState({ name: "", email: "", phone: "", company: "", lead_source: "", referral_name: "", message: "" })
   const [leadFormErrors, setLeadFormErrors] = useState<{ name?: string; email?: string }>({})
   const [leadSubmitting, setLeadSubmitting] = useState(false)
   const [leadSubmitted, setLeadSubmitted] = useState(false)
 
   // Enterprise inline lead form (pricing card)
-  const [entForm, setEntForm] = useState({ name: "", email: "", company: "", subscribers: "", lead_source: "" })
+  const [entForm, setEntForm] = useState({ name: "", email: "", company: "", subscribers: "", lead_source: "", referral_name: "" })
   const [entErrors, setEntErrors] = useState<{ name?: string; email?: string }>({})
   const [entSubmitting, setEntSubmitting] = useState(false)
   const [entSubmitted, setEntSubmitted] = useState(false)
@@ -1493,13 +1493,20 @@ export function LandingPage() {
                           <select
                             value={entForm.lead_source}
                             onChange={(e) => setEntForm({ ...entForm, lead_source: e.target.value })}
-                            className="col-span-2 h-10 rounded-lg border border-slate-600 bg-slate-800 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="h-10 rounded-lg border border-slate-600 bg-slate-800 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           >
                             <option value="">Where did you hear about us?</option>
                             {LEAD_SOURCE_OPTIONS.map((option) => (
                               <option key={option} value={option}>{option}</option>
                             ))}
                           </select>
+                          <input
+                            type="text"
+                            placeholder="Who referred you? (Optional)"
+                            value={entForm.referral_name}
+                            onChange={(e) => setEntForm({ ...entForm, referral_name: e.target.value })}
+                            className="h-10 rounded-lg border border-slate-600 bg-slate-800 px-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
                         </div>
                         <button
                           disabled={entSubmitting}
@@ -1517,6 +1524,7 @@ export function LandingPage() {
                                 phone: "",
                                 company: entForm.company.trim(),
                                 lead_source: entForm.lead_source,
+                                referral_name: entForm.referral_name.trim(),
                                 message: `Enterprise enquiry from ${geo.countryName}. Est. subscribers: ${entForm.subscribers || "not specified"}.`,
                               })
                               setEntSubmitted(true)
@@ -1853,9 +1861,19 @@ export function LandingPage() {
                         ))}
                       </select>
                     </div>
-                    <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
-                      This helps us measure what channels are actually bringing in serious ISP leads.
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Who referred you? <span className="text-slate-400">(Optional)</span></label>
+                      <input
+                        type="text"
+                        placeholder="Name of person or ISP"
+                        value={leadForm.referral_name}
+                        onChange={(e) => setLeadForm({ ...leadForm, referral_name: e.target.value })}
+                        className="w-full h-11 px-4 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      />
                     </div>
+                  </div>
+                  <div className="mb-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
+                    Referral names help us manually verify introductions and apply any approved discounts on the right invoice later.
                   </div>
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Message</label>

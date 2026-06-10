@@ -78,16 +78,17 @@ const normalizeAdminUser = (user: any): AdminUser => ({
   is_staff: !!user?.is_staff,
   is_superuser: !!user?.is_superuser,
   is_active: user?.is_active,
-  role: String(user?.access_level || user?.role || "basic").toLowerCase(),
-  access_level: String(user?.access_level || user?.role || "basic").toLowerCase(),
+  role: String(user?.role || user?.access_level || "basic").toLowerCase(),
+  access_level: String(user?.access_level || "basic").toLowerCase(),
   department: user?.department ? String(user.department).toLowerCase() : null,
   department_name: user?.department_name || user?.department || null,
 })
 
 const isAllowedAdminUser = (user: any): boolean => {
-  const role = String(user?.access_level || user?.role || "").toLowerCase()
+  const role = String(user?.role || "").toLowerCase()
+  const accessLevel = String(user?.access_level || "").toLowerCase()
   const isPlatformAdminEmail = !!user?.email && PLATFORM_ADMIN_EMAILS.includes(String(user.email).toLowerCase())
-  return ADMIN_ALLOWED_ROLES.includes(role) || !!user?.is_staff || !!user?.is_superuser || isPlatformAdminEmail
+  return [role, accessLevel].some((value) => ADMIN_ALLOWED_ROLES.includes(value)) || !!user?.is_staff || !!user?.is_superuser || isPlatformAdminEmail
 }
 
 const hostScopedKey = (base: string): string => {
@@ -111,9 +112,10 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     if (!raw) return false
     try {
       const u = JSON.parse(raw)
-      const role = String(u?.access_level || u?.role || "").toLowerCase()
+      const role = String(u?.role || "").toLowerCase()
+      const accessLevel = String(u?.access_level || "").toLowerCase()
       const isPlatformAdminEmail = !!u?.email && PLATFORM_ADMIN_EMAILS.includes(String(u.email).toLowerCase())
-      return ADMIN_ALLOWED_ROLES.includes(role) || !!u?.is_staff || !!u?.is_superuser || isPlatformAdminEmail
+      return [role, accessLevel].some((value) => ADMIN_ALLOWED_ROLES.includes(value)) || !!u?.is_staff || !!u?.is_superuser || isPlatformAdminEmail
     } catch {
       return false
     }
@@ -221,12 +223,13 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       console.log('loadUser: Received user data:', userData)
       
       // Check for admin privileges - support multiple field formats
-      const resolvedRole = String(userData?.access_level || userData?.role || "").toLowerCase()
-      const hasAdminRole = resolvedRole && ADMIN_ALLOWED_ROLES.includes(resolvedRole)
+      const resolvedRole = String(userData?.role || "").toLowerCase()
+      const resolvedAccessLevel = String(userData?.access_level || "").toLowerCase()
+      const hasAdminRole = [resolvedRole, resolvedAccessLevel].some((value) => ADMIN_ALLOWED_ROLES.includes(value))
       const isStaffOrSuper = userData?.is_staff || userData?.is_superuser
       const isPlatformAdminEmail = !!userData?.email && PLATFORM_ADMIN_EMAILS.includes(String(userData.email).toLowerCase())
       
-      console.log('loadUser: Privilege check:', { role: resolvedRole, hasAdminRole, isStaffOrSuper, isPlatformAdminEmail })
+      console.log('loadUser: Privilege check:', { role: resolvedRole, access_level: resolvedAccessLevel, hasAdminRole, isStaffOrSuper, isPlatformAdminEmail })
       
       if (!hasAdminRole && !isStaffOrSuper && !isPlatformAdminEmail) {
         console.log('loadUser: User does not have admin privileges')

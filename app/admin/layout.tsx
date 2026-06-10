@@ -66,7 +66,18 @@ import { TrialGuard } from "@/components/trial-guard"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { RoleGuard } from "@/components/role-guard"
 import { NetilySupportChat } from "@/components/netily-support-chat"
-import { canAccess, getAccessRuleForPath, type AccessRule } from "@/lib/rbac"
+import {
+  ADMIN_ROLES,
+  ENGAGEMENT_ROLES,
+  FINANCE_ROLES,
+  NETWORK_ROLES,
+  OPERATIONS_ROLES,
+  SUPPORT_ROLES,
+  USER_MANAGEMENT_ROLES,
+  canAccess,
+  getAccessRuleForPath,
+  type AccessRule,
+} from "@/lib/rbac"
 
 type NavigationItem = {
   name: string
@@ -85,14 +96,14 @@ const navigationSections: NavigationSection[] = [
     title: "Main",
     items: [
       { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-      { name: "Users", href: "/admin/users", icon: Users },
-      { name: "Staff", href: "/admin/staff", icon: UserCog, allowedRoles: ["admin", "super_admin"] },
-      { name: "Plans", href: "/admin/plans", icon: Package, allowedRoles: ["admin", "super_admin"] },
+      { name: "Users", href: "/admin/users", icon: Users, allowedRoles: USER_MANAGEMENT_ROLES },
+      { name: "Staff", href: "/admin/staff", icon: UserCog, allowedRoles: ADMIN_ROLES },
+      { name: "Plans", href: "/admin/plans", icon: Package, allowedRoles: ADMIN_ROLES },
     ],
   },
   {
     title: "Network",
-    allowedRoles: ["admin", "super_admin"],
+    allowedRoles: NETWORK_ROLES,
     allowedDepartments: ["network", "it", "technical", "engineering", "noc"],
     items: [
       { name: "OLT Management", href: "/admin/olt", icon: Server },
@@ -106,7 +117,7 @@ const navigationSections: NavigationSection[] = [
   },
   {
     title: "Finance",
-    allowedRoles: ["admin", "super_admin"],
+    allowedRoles: FINANCE_ROLES,
     allowedDepartments: ["finance", "accounting", "billing", "accounts"],
     items: [
       { name: "Invoices", href: "/admin/invoices", icon: Receipt },
@@ -119,7 +130,7 @@ const navigationSections: NavigationSection[] = [
   },
   {
     title: "Billing & Payouts",
-    allowedRoles: ["admin", "super_admin"],
+    allowedRoles: FINANCE_ROLES,
     allowedDepartments: ["finance", "accounting", "billing", "accounts"],
     items: [
       { name: "Subscription", href: "/admin/settings/billing", icon: CreditCard },
@@ -127,6 +138,7 @@ const navigationSections: NavigationSection[] = [
   },
   {
     title: "Operations",
+    allowedRoles: OPERATIONS_ROLES,
     items: [
       { name: "Dispatch", href: "/admin/dispatch", icon: Truck },
       { name: "Inventory", href: "/admin/inventory", icon: Warehouse },
@@ -135,16 +147,16 @@ const navigationSections: NavigationSection[] = [
   {
     title: "Engagement",
     items: [
-      { name: "Tickets", href: "/admin/tickets", icon: Ticket },
-      { name: "Leads", href: "/admin/leads", icon: UserPlus },
-      { name: "Loyalty", href: "/admin/loyalty", icon: Gift },
-      { name: "SMS", href: "/admin/sms", icon: MessageSquare },
-      { name: "Ads", href: "/admin/ads", icon: Image },
+      { name: "Tickets", href: "/admin/tickets", icon: Ticket, allowedRoles: [...SUPPORT_ROLES, "technician"] },
+      { name: "Leads", href: "/admin/leads", icon: UserPlus, allowedRoles: ENGAGEMENT_ROLES },
+      { name: "Loyalty", href: "/admin/loyalty", icon: Gift, allowedRoles: ENGAGEMENT_ROLES },
+      { name: "SMS", href: "/admin/sms", icon: MessageSquare, allowedRoles: [...ENGAGEMENT_ROLES, "accountant"] },
+      { name: "Ads", href: "/admin/ads", icon: Image, allowedRoles: ENGAGEMENT_ROLES },
     ],
   },
   {
     title: "System",
-    allowedRoles: ["admin", "super_admin"],
+    allowedRoles: ADMIN_ROLES,
     items: [
       { name: "Notifications", href: "/admin/notifications", icon: Bell },
       { name: "Logs", href: "/admin/logs", icon: FileText },

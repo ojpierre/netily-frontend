@@ -32,6 +32,7 @@ interface Lead {
   phone: string
   company_name: string
   lead_source: string
+  referral_name: string
   message: string
   status: LeadStatus
   is_contacted: boolean
@@ -45,6 +46,7 @@ const emptyForm = {
   email: "",
   company_name: "",
   lead_source: "",
+  referral_name: "",
   message: "",
   status: "not_yet" as LeadStatus,
 }
@@ -247,7 +249,14 @@ export default function LeadsPage() {
                           {lead.email && <div className="flex items-center gap-2"><Mail className="h-3 w-3" />{lead.email}</div>}
                         </div>
                       </TableCell>
-                      <TableCell>{lead.lead_source || "Manual"}</TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div>{lead.lead_source || "Manual"}</div>
+                          {lead.referral_name && (
+                            <div className="text-xs text-emerald-600">Referred by {lead.referral_name}</div>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {lead.status === "converted" || lead.is_contacted ? (
                           <Badge className="bg-emerald-600"><CheckCircle2 className="mr-1 h-3 w-3" />Converted</Badge>
@@ -309,6 +318,11 @@ export default function LeadsPage() {
                 <Label>Source</Label>
                 <Input value={form.lead_source} onChange={(event) => setForm({ ...form, lead_source: event.target.value })} placeholder="Referral, Facebook, walk-in..." />
               </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Who referred them? <span className="text-muted-foreground">(Optional)</span></Label>
+              <Input value={form.referral_name} onChange={(event) => setForm({ ...form, referral_name: event.target.value })} placeholder="Name of customer, ISP, or partner" />
+              <p className="text-xs text-muted-foreground">Use this for manual referral checks before applying invoice discounts.</p>
             </div>
             <div className="grid gap-2">
               <Label>Status</Label>

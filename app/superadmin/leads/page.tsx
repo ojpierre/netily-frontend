@@ -327,6 +327,9 @@ export default function LeadsPage() {
                         ) : (
                           <span className="text-slate-600">—</span>
                         )}
+                        {l.referral_name && (
+                          <p className="mt-1 text-[11px] text-emerald-300">Referred by {l.referral_name}</p>
+                        )}
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         {l.message ? (
@@ -399,6 +402,7 @@ export default function LeadsPage() {
                 <DetailField label="Phone" value={selectedLead.phone || "—"} />
                 <DetailField label="Company" value={selectedLead.company_name || "—"} />
                 <DetailField label="Source" value={selectedLead.lead_source || "—"} />
+                <DetailField label="Referred By" value={selectedLead.referral_name || "â€”"} />
                 <DetailField label="Submitted" value={new Date(selectedLead.created_at).toLocaleString("en-KE")} />
               </div>
 

@@ -43,6 +43,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { useAdminAuth } from "./admin-auth-context"
 import { adminApi } from "@/lib/admin-api"
+import { canAccess, getAccessRuleForPath } from "@/lib/rbac"
 import type {
   DashboardStats,
   RouterDashboardStats,
@@ -138,6 +139,15 @@ export default function AdminDashboard() {
 
   // State for expired customers count (derived from RADIUS credentials)
   const [expiredCount, setExpiredCount] = useState<number>(0)
+  const canOpenRoute = (href: string) => canAccess(user, getAccessRuleForPath(href))
+  const quickActions = [
+    { href: "/admin/users", label: "Manage Users", icon: Users, className: "text-blue-600" },
+    { href: "/admin/routers", label: "Manage Routers", icon: Wifi, className: "text-green-600" },
+    { href: "/admin/payments", label: "View Payments", icon: CreditCard, className: "text-purple-600" },
+    { href: "/admin/tickets", label: "Support Tickets", icon: Ticket, className: "text-amber-600" },
+    { href: "/admin/plans", label: "Manage Plans", icon: BarChart3, className: "text-cyan-600" },
+    { href: "/admin/invoices", label: "Invoices", icon: DollarSign, className: "text-green-600" },
+  ].filter((item) => canOpenRoute(item.href))
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -400,11 +410,13 @@ export default function AdminDashboard() {
                 <Server className="w-4 h-4 text-slate-600" />
                 Router Fleet
               </CardTitle>
-              <Link href="/admin/routers">
-                <Button variant="ghost" size="sm">
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </Link>
+              {canOpenRoute("/admin/routers") && (
+                <Link href="/admin/routers">
+                  <Button variant="ghost" size="sm">
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -465,11 +477,13 @@ export default function AdminDashboard() {
                 <DollarSign className="w-4 h-4 text-green-600" />
                 Revenue
               </CardTitle>
-              <Link href="/admin/payments">
-                <Button variant="ghost" size="sm" className="text-xs text-slate-400 hover:text-slate-600 px-2">
-                  View all →
-                </Button>
-              </Link>
+              {canOpenRoute("/admin/payments") && (
+                <Link href="/admin/payments">
+                  <Button variant="ghost" size="sm" className="text-xs text-slate-400 hover:text-slate-600 px-2">
+                    View all →
+                  </Button>
+                </Link>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -540,11 +554,13 @@ export default function AdminDashboard() {
                 <Ticket className="w-4 h-4 text-purple-600" />
                 Support Tickets
               </CardTitle>
-              <Link href="/admin/tickets">
-                <Button variant="ghost" size="sm">
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </Link>
+              {canOpenRoute("/admin/tickets") && (
+                <Link href="/admin/tickets">
+                  <Button variant="ghost" size="sm">
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -810,42 +826,21 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
-              <Link href="/admin/users">
-                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
-                  <Users className="w-5 h-5 text-blue-600" />
-                  <span className="text-xs">Manage Users</span>
-                </Button>
-              </Link>
-              <Link href="/admin/routers">
-                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
-                  <Wifi className="w-5 h-5 text-green-600" />
-                  <span className="text-xs">Manage Routers</span>
-                </Button>
-              </Link>
-              <Link href="/admin/payments">
-                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
-                  <CreditCard className="w-5 h-5 text-purple-600" />
-                  <span className="text-xs">View Payments</span>
-                </Button>
-              </Link>
-              <Link href="/admin/tickets">
-                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
-                  <Ticket className="w-5 h-5 text-amber-600" />
-                  <span className="text-xs">Support Tickets</span>
-                </Button>
-              </Link>
-              <Link href="/admin/plans">
-                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
-                  <BarChart3 className="w-5 h-5 text-cyan-600" />
-                  <span className="text-xs">Manage Plans</span>
-                </Button>
-              </Link>
-              <Link href="/admin/invoices">
-                <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
-                  <DollarSign className="w-5 h-5 text-green-600" />
-                  <span className="text-xs">Invoices</span>
-                </Button>
-              </Link>
+              {quickActions.length ? quickActions.map((action) => {
+                const Icon = action.icon
+                return (
+                  <Link key={action.href} href={action.href}>
+                    <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
+                      <Icon className={`w-5 h-5 ${action.className}`} />
+                      <span className="text-xs">{action.label}</span>
+                    </Button>
+                  </Link>
+                )
+              }) : (
+                <div className="col-span-2 rounded-xl border border-dashed p-4 text-center text-sm text-slate-500">
+                  Your staff role has no quick actions assigned yet.
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -903,12 +898,14 @@ export default function AdminDashboard() {
             )}
           </CardContent>
           <CardFooter className="pt-0">
-            <Link href="/admin/logs" className="w-full">
-              <Button variant="ghost" size="sm" className="w-full text-slate-500">
-                View all activity
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </Link>
+            {canOpenRoute("/admin/logs") && (
+              <Link href="/admin/logs" className="w-full">
+                <Button variant="ghost" size="sm" className="w-full text-slate-500">
+                  View all activity
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </Link>
+            )}
           </CardFooter>
         </Card>
       </div>
