@@ -181,9 +181,8 @@ export default function PaymentsPage() {
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
   const [methodFilter, setMethodFilter] = useState("all")
-  const [activeTab, setActiveTab] = useState("all")
+  // Removed activeTab - always showing completed payments only
 
   // Pagination
   const [page, setPage] = useState(1)
@@ -229,13 +228,17 @@ export default function PaymentsPage() {
   const [pollingPaymentId, setPollingPaymentId] = useState<number | null>(null)
   const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'instructions'>('form')
 
-  // Fetch data
+  // Fetch data - always filter to COMPLETED only
   const fetchData = useCallback(async () => {
     try {
-      const params: Record<string, string> = { ordering: '-created_at', page: String(page), page_size: String(pageSize) }
-      if (activeTab !== 'all') {
-        params.status = activeTab.toUpperCase()
+      // Always send status='COMPLETED' to only get completed payments
+      const params: Record<string, string> = { 
+        ordering: '-created_at', 
+        page: String(page), 
+        page_size: String(pageSize),
+        status: 'COMPLETED'  // always filter to completed only
       }
+      
       if (methodFilter !== 'all') {
         params.payment_method = methodFilter.toUpperCase()
       }
@@ -257,7 +260,7 @@ export default function PaymentsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [activeTab, methodFilter, searchQuery, page])
+  }, [methodFilter, searchQuery, page])
 
   useEffect(() => {
     fetchData()
@@ -649,7 +652,7 @@ export default function PaymentsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Payments</h1>
           <p className="text-muted-foreground">
-            Manage and track all payment transactions
+            Manage and track completed payment transactions
           </p>
         </div>
         <div className="flex gap-2">
@@ -735,23 +738,15 @@ export default function PaymentsPage() {
         </Card>
       </div>
 
-      {/* Filters & Table */}
+      {/* Filters & Table - Removed Tabs component since we only show completed payments */}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <CardTitle>Payment Transactions</CardTitle>
-              <CardDescription>{totalCount} total payments</CardDescription>
+              <CardDescription>{totalCount} completed payments</CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1) }}>
-                <TabsList>
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="pending">Pending</TabsTrigger>
-                  <TabsTrigger value="completed">Completed</TabsTrigger>
-                  <TabsTrigger value="failed">Failed</TabsTrigger>
-                </TabsList>
-              </Tabs>
               <Select value={methodFilter} onValueChange={(v) => { setMethodFilter(v); setPage(1) }}>
                 <SelectTrigger className="w-[130px]">
                   <SelectValue placeholder="Method" />
@@ -833,44 +828,14 @@ export default function PaymentsPage() {
                           <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        {payment.status?.toUpperCase() === 'PENDING' && (
-                          <>
-                            <DropdownMenuItem
-                              onClick={() => handleMarkCompleted(payment)}
-                              disabled={processingId === payment.id}
-                            >
-                              {processingId === payment.id ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              ) : (
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                              )}
-                              Mark Completed
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleMarkFailed(payment)}
-                              disabled={processingId === payment.id}
-                            >
-                              <XCircle className="mr-2 h-4 w-4" />
-                              Mark Failed
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => {
-                              setSelectedPayment(payment)
-                              setIsReconcileOpen(true)
-                            }}>
-                              <ArrowDownUp className="mr-2 h-4 w-4" />
-                              Reconcile
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        {payment.status?.toUpperCase() === 'COMPLETED' && (
-                          <DropdownMenuItem onClick={() => {
-                            setSelectedPayment(payment)
-                            setIsRefundOpen(true)
-                          }}>
-                            <RotateCcw className="mr-2 h-4 w-4" />
-                            Refund
-                          </DropdownMenuItem>
-                        )}
+                        {/* Only show refund for completed payments (which is all we show now) */}
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedPayment(payment)
+                          setIsRefundOpen(true)
+                        }}>
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          Refund
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -882,8 +847,8 @@ export default function PaymentsPage() {
           {payments.length === 0 && (
             <div className="text-center py-12">
               <CreditCard className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-semibold">No payments found</h3>
-              <p className="text-muted-foreground">Payments will appear here once processed.</p>
+              <h3 className="mt-4 text-lg font-semibold">No completed payments found</h3>
+              <p className="text-muted-foreground">Completed payments will appear here once processed.</p>
             </div>
           )}
 
@@ -984,43 +949,17 @@ export default function PaymentsPage() {
               )}
 
               <div className="flex gap-2">
-                {selectedPayment.status?.toUpperCase() === 'PENDING' && (
-                  <>
-                    <Button
-                      className="flex-1"
-                      onClick={() => handleMarkCompleted(selectedPayment)}
-                      disabled={processingId === selectedPayment.id}
-                    >
-                      {processingId === selectedPayment.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Complete
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        setIsDetailOpen(false)
-                        setIsReconcileOpen(true)
-                      }}
-                    >
-                      <ArrowDownUp className="mr-2 h-4 w-4" />
-                      Reconcile
-                    </Button>
-                  </>
-                )}
-                {selectedPayment.status?.toUpperCase() === 'COMPLETED' && (
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => {
-                      setIsDetailOpen(false)
-                      setIsRefundOpen(true)
-                    }}
-                  >
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    Refund
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setIsDetailOpen(false)
+                    setIsRefundOpen(true)
+                  }}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Refund
+                </Button>
               </div>
             </div>
           )}
