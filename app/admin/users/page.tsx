@@ -332,6 +332,16 @@ export default function UsersPage() {
   const [extendManualDate, setExtendManualDate] = useState<string>("")
   const [extendManualTime, setExtendManualTime] = useState<string>("23:59")
   const [extendMode, setExtendMode] = useState<"duration" | "date">("duration")
+  
+  // NEW: Hotspot session extension state
+  const [showExtendHotspotDialog, setShowExtendHotspotDialog] = useState(false)
+  const [hotspotSessionToExtend, setHotspotSessionToExtend] = useState<typeof activeSubscriptions.hotspot[0] | null>(null)
+  const [hotspotExtendForm, setHotspotExtendForm] = useState({ duration_amount: 1, duration_unit: 'HOURS' as 'MINUTES' | 'HOURS' | 'DAYS' })
+  const [hotspotExtendManualDate, setHotspotExtendManualDate] = useState("")
+  const [hotspotExtendManualTime, setHotspotExtendManualTime] = useState("23:59")
+  const [hotspotExtendMode, setHotspotExtendMode] = useState<"duration" | "date">("duration")
+  const [extendingHotspot, setExtendingHotspot] = useState(false)
+  
   const [activating, setActivating] = useState(false)
   const [togglingRadius, setTogglingRadius] = useState(false)
   const [smsMessage, setSmsMessage] = useState("")
@@ -962,6 +972,44 @@ export default function UsersPage() {
       toast.error(err.message || "Failed to create customer. Please try again.")
     } finally {
       setCreating(false)
+    }
+  }
+
+  // NEW: Hotspot session extension handlers
+  const handleExtendHotspot = (item: typeof activeSubscriptions.hotspot[0]) => {
+    setHotspotSessionToExtend(item)
+    setHotspotExtendForm({ duration_amount: 1, duration_unit: 'HOURS' })
+    setHotspotExtendManualDate("")
+    setHotspotExtendManualTime("23:59")
+    setHotspotExtendMode("duration")
+    setShowExtendHotspotDialog(true)
+  }
+
+  const confirmExtendHotspot = async () => {
+    if (!hotspotSessionToExtend?.session_id) return
+    try {
+      setExtendingHotspot(true)
+      let payload: Parameters<typeof adminApi.extendHotspotSession>[1] = {}
+      if (hotspotExtendMode === "date" && hotspotExtendManualDate) {
+        const iso = `${hotspotExtendManualDate}T${hotspotExtendManualTime || "23:59"}:00`
+        if (new Date(iso) <= new Date()) { 
+          toast.error("Date must be in the future")
+          return 
+        }
+        payload.expiry_date = new Date(iso).toISOString()
+      } else {
+        payload.duration_amount = hotspotExtendForm.duration_amount
+        payload.duration_unit = hotspotExtendForm.duration_unit
+      }
+      const result = await adminApi.extendHotspotSession(hotspotSessionToExtend.session_id, payload)
+      toast.success(result.message || "Hotspot session extended")
+      setShowExtendHotspotDialog(false)
+      setHotspotSessionToExtend(null)
+      await loadActiveSubscriptions()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to extend hotspot session")
+    } finally {
+      setExtendingHotspot(false)
     }
   }
 
@@ -2811,6 +2859,7 @@ export default function UsersPage() {
                       <TableHead>Duration</TableHead>
                       <TableHead>Connection</TableHead>
                       <TableHead>Usage</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -2867,6 +2916,18 @@ export default function UsersPage() {
                             </span>
                             {isLive && (
                               <span className="block text-xs text-emerald-600">✓ Live</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {item.session_id && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleExtendHotspot(item)}
+                              >
+                                <Calendar className="w-3.5 h-3.5 mr-1" />
+                                Extend
+                              </Button>
                             )}
                           </TableCell>
                         </TableRow>
@@ -4083,6 +4144,132 @@ export default function UsersPage() {
                   <Calendar className="w-4 h-4 mr-2" />
                   Extend Subscription
                 </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* NEW: Extend Hotspot Session Dialog */}
+      <Dialog open={showExtendHotspotDialog} onOpenChange={setShowExtendHotspotDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Extend Hotspot Session</DialogTitle>
+            <DialogDescription>
+              {hotspotSessionToExtend?.canonical_username || hotspotSessionToExtend?.username} — {hotspotSessionToExtend?.plan_name}
+              {hotspotSessionToExtend?.expiry_date && (
+                <span className="block text-amber-600 mt-1">
+                  Current expiry: {new Date(hotspotSessionToExtend.expiry_date).toLocaleString()}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex rounded-lg border overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setHotspotExtendMode("duration")}
+                className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                  hotspotExtendMode === "duration" ? "bg-blue-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                Add Duration
+              </button>
+              <button
+                type="button"
+                onClick={() => setHotspotExtendMode("date")}
+                className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                  hotspotExtendMode === "date" ? "bg-blue-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                Set Expiry
+              </button>
+            </div>
+
+            {hotspotExtendMode === "duration" ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>Amount</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={hotspotExtendForm.duration_amount}
+                      onChange={e => setHotspotExtendForm(f => ({ ...f, duration_amount: parseInt(e.target.value) || 1 }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Unit</Label>
+                    <Select
+                      value={hotspotExtendForm.duration_unit}
+                      onValueChange={(v: 'MINUTES' | 'HOURS' | 'DAYS') => setHotspotExtendForm(f => ({ ...f, duration_unit: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MINUTES">Minutes</SelectItem>
+                        <SelectItem value="HOURS">Hours</SelectItem>
+                        <SelectItem value="DAYS">Days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[['30m', 30, 'MINUTES'], ['1h', 1, 'HOURS'], ['3h', 3, 'HOURS'], ['1d', 1, 'DAYS']].map(([label, amt, unit]) => (
+                    <Button
+                      key={label as string}
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setHotspotExtendForm({ duration_amount: amt as number, duration_unit: unit as 'MINUTES'|'HOURS'|'DAYS' })}
+                    >
+                      +{label}
+                    </Button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-slate-500">Date</Label>
+                    <input
+                      type="date"
+                      value={hotspotExtendManualDate}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={e => setHotspotExtendManualDate(e.target.value)}
+                      className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm"
+                      style={{ colorScheme: 'light' }}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-slate-500">Time</Label>
+                    <input
+                      type="time"
+                      value={hotspotExtendManualTime}
+                      onChange={e => setHotspotExtendManualTime(e.target.value)}
+                      className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm"
+                      style={{ colorScheme: 'light' }}
+                    />
+                  </div>
+                </div>
+                {hotspotExtendManualDate && (
+                  <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded p-2">
+                    New expiry: <strong>{new Date(`${hotspotExtendManualDate}T${hotspotExtendManualTime}:00`).toLocaleString()}</strong>
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowExtendHotspotDialog(false)} disabled={extendingHotspot}>
+              Cancel
+            </Button>
+            <Button onClick={confirmExtendHotspot} disabled={extendingHotspot}>
+              {extendingHotspot ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Extending...</>
+              ) : (
+                <><Calendar className="w-4 h-4 mr-2" />Extend Session</>
               )}
             </Button>
           </DialogFooter>

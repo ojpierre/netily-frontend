@@ -4197,6 +4197,21 @@ async activateService(
       `/hotspot/admin/routers/${routerId}/income/`
     )
   }
+
+    // ------------------------------------------
+  // HOTSPOT SESSION EXTENSION
+  // ------------------------------------------
+  
+  async extendHotspotSession(sessionId: string, data: {
+    duration_amount?: number;
+    duration_unit?: 'MINUTES' | 'HOURS' | 'DAYS';
+    expiry_date?: string;
+  }): Promise<{ status: string; session_id: string; new_expiry: string; message: string }> {
+    return this.request(`/hotspot/admin/sessions/${sessionId}/extend/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
   
   // ------------------------------------------
   // FAIR USAGE POLICY (FUP) - /fup/
