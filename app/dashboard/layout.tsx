@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/app/auth-context"
 import { Button } from "@/components/ui/button"
+import { PageTransition, AnimatedNavItem } from "@/components/page-transition"
 import {
   LayoutDashboard,
   User,
@@ -114,7 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               const Icon = item.icon
               const isActive = pathname === item.href
               return (
-                <li key={item.href}>
+                <AnimatedNavItem key={item.href} isActive={isActive}>
                   <Link
                     href={item.href}
                     onClick={() => setIsSidebarOpen(false)}
@@ -127,7 +128,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <Icon className="w-5 h-5" />
                     {item.label}
                   </Link>
-                </li>
+                </AnimatedNavItem>
               )
             })}
           </ul>
@@ -165,7 +166,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main Content */}
       <main className="lg:ml-64 min-h-screen">
         <div className="p-6 lg:p-8">
-          {children}
+          <PageTransition>{children}</PageTransition>
         </div>
       </main>
     </div>

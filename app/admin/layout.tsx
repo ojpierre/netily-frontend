@@ -48,6 +48,7 @@ import {
   Sparkles, // Added for What's New as an alternative
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
+import { PageTransition, AnimatedNavItem } from "@/components/page-transition"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -355,29 +356,29 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               {sidebarCollapsed && sectionIndex > 0 && (
                 <Separator className="my-2 bg-slate-100 dark:bg-slate-800" />
               )}
-              <ul className="space-y-0.5">
-                {section.items.map((item) => {
-                  const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href))
-                  return (
-                    <li key={item.name}>
-                      <Link
-                        href={item.href}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
-                          isActive
-                            ? "bg-blue-600 text-white shadow-sm"
-                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        }`}
-                        title={sidebarCollapsed ? item.name : undefined}
-                      >
-                        <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
-                        {!sidebarCollapsed && (
-                          <span className="font-medium">{item.name}</span>
-                        )}
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
+                <ul className="space-y-0.5">
+                  {section.items.map((item) => {
+                    const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href))
+                    return (
+                      <AnimatedNavItem key={item.name} isActive={isActive}>
+                        <Link
+                          href={item.href}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                            isActive
+                              ? "bg-blue-600 text-white shadow-sm"
+                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          }`}
+                          title={sidebarCollapsed ? item.name : undefined}
+                        >
+                          <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
+                          {!sidebarCollapsed && (
+                            <span className="font-medium">{item.name}</span>
+                          )}
+                        </Link>
+                      </AnimatedNavItem>
+                    )
+                  })}
+                </ul>
             </div>
           ))}
 
@@ -393,7 +394,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               {bottomNavItems.map((item) => {
                 const isActive = pathname === item.href
                 return (
-                  <li key={item.name}>
+                  <AnimatedNavItem key={item.name} isActive={isActive}>
                     <Link
                       href={item.href}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
@@ -408,7 +409,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                         <span className="font-medium">{item.name}</span>
                       )}
                     </Link>
-                  </li>
+                  </AnimatedNavItem>
                 )
               })}
             </ul>
@@ -527,20 +528,22 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Page content */}
         <main className="p-4 lg:p-6">
-          <TrialGuard>
-            {routeAccessRule ? (
-              <RoleGuard
-                areaLabel={routeAccessRule.label}
-                allowedRoles={routeAccessRule.allowedRoles}
-                allowedDepartments={routeAccessRule.allowedDepartments}
-              >
-                {children}
-              </RoleGuard>
-            ) : (
-              children
-            )}
-          </TrialGuard>
-          <MjengoFooter />
+          <PageTransition>
+            <TrialGuard>
+              {routeAccessRule ? (
+                <RoleGuard
+                  areaLabel={routeAccessRule.label}
+                  allowedRoles={routeAccessRule.allowedRoles}
+                  allowedDepartments={routeAccessRule.allowedDepartments}
+                >
+                  {children}
+                </RoleGuard>
+              ) : (
+                children
+              )}
+            </TrialGuard>
+            <MjengoFooter />
+          </PageTransition>
         </main>
         <NetilySupportChat />
       </div>
