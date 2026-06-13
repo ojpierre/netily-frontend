@@ -331,7 +331,7 @@ export interface ServicePlan {
   connection_type: ConnectionType
   is_active: boolean
   features?: string[]
-  ip_pool?: number | null  // ← ADD THIS LINE
+  ip_pool?: number | null
   created_at: string
 }
 
@@ -2601,6 +2601,7 @@ export interface SMSTemplate {
   variables: string[]
   is_active: boolean
   usage_count: number
+  event_type?: string  // Added for template-event linking
   created_at: string
   updated_at: string
 }
@@ -2654,7 +2655,7 @@ export interface SendBulkSMSRequest {
 
 export interface SMSBalance {
   provider: string
-  balance: number | string  // ← CHANGE from string to number | string
+  balance: number | string
   currency: string
   credits?: number
 }
@@ -2690,7 +2691,7 @@ export interface SMSGatewayConfig {
   updated_at: string
 }
 
-
+// UPDATED: SMSNotificationSettings - removed deprecated fields, added new ones
 export interface SMSNotificationSettings {
   use_inbuilt_system: boolean
   hotspot_new_subscription: boolean
@@ -2700,17 +2701,14 @@ export interface SMSNotificationSettings {
   hotspot_payment_failed: boolean
   hotspot_session_expired: boolean
   pppoe_welcome: boolean
-  pppoe_payment_confirmation: boolean
+  pppoe_payment_confirmation: boolean  // MERGED: handles both payment AND renewal confirmations
   pppoe_expiry_reminder: boolean
-  pppoe_expiry_intervals: Array<{ value: number; unit: 'days' | 'hours' }>  // ← ADD THIS (replace the old pppoe_expiry_days_before)
-  pppoe_service_suspended: boolean
-  pppoe_service_resumed: boolean
-  pppoe_plan_changed: boolean
-  pppoe_renewal_confirmation: boolean
-  pppoe_new_subscription: boolean
+  pppoe_expiry_intervals: Array<{ value: number; unit: 'days' | 'hours' }>
+  pppoe_expiry_notification: boolean   // NEW: one-time notice when subscription has expired
   system_router_offline: boolean
   system_alert_phone: string
-  router_offline_numbers?: string[]  // ← ADD THIS
+  router_offline_numbers?: string[]
+  router_offline_enabled?: boolean
   updated_at?: string
 }
 
@@ -3425,10 +3423,12 @@ export interface SMSTemplateVariable {
   example: string
 }
 
+// UPDATED: SMS_TEMPLATE_VARIABLES - matches backend context exactly
 export const SMS_TEMPLATE_VARIABLES: Record<string, SMSTemplateVariable[]> = {
+  // Hotspot templates (unchanged)
   hotspot_welcome: [
     { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
-    { key: '{expires_at}', label: 'Expiry Time', example: '3:45 PM' },
+    { key: '{expiry_time}', label: 'Expiry Time', example: '3:45 PM' },
     { key: '{access_code}', label: 'Access Code', example: 'ABCD-1234' },
     { key: '{speed}', label: 'Speed', example: '5Mbps' },
   ],
@@ -3437,44 +3437,57 @@ export const SMS_TEMPLATE_VARIABLES: Record<string, SMSTemplateVariable[]> = {
     { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
     { key: '{access_code}', label: 'Access Code', example: 'ABCD-1234' },
   ],
-  hotspot_expired: [
+  hotspot_session_expired: [
     { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
     { key: '{router_name}', label: 'Location', example: 'Main Hall' },
   ],
+  hotspot_new_subscription: [
+    { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
+    { key: '{amount}', label: 'Amount', example: '50' },
+    { key: '{session_id}', label: 'Session ID', example: 'abc123' },
+    { key: '{access_code}', label: 'Access Code', example: 'ABCD-1234' },
+  ],
+  hotspot_payment_failed: [
+    { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
+    { key: '{reason}', label: 'Reason', example: 'Insufficient balance' },
+  ],
+
+  // PPPoE templates (UPDATED to match backend context)
   pppoe_welcome: [
     { key: '{customer_name}', label: 'Customer Name', example: 'John' },
     { key: '{username}', label: 'PPPoE Username', example: '712345678' },
     { key: '{password}', label: 'PPPoE Password', example: 'abc12345' },
     { key: '{plan_name}', label: 'Plan Name', example: 'Home 10Mbps' },
+    { key: '{customer_account}', label: 'Account Number', example: '0712345678' },
   ],
   pppoe_payment: [
     { key: '{customer_name}', label: 'Customer Name', example: 'John' },
     { key: '{amount}', label: 'Amount', example: '2,500' },
-    { key: '{reference}', label: 'Reference', example: 'PAY-12345' },
-    { key: '{new_expiry}', label: 'New Expiry Date', example: 'Feb 15, 2026' },
+    { key: '{amount_due}', label: 'Amount (with KES)', example: 'KES 2,500' },
+    { key: '{plan_name}', label: 'Plan Name', example: 'Home 10Mbps' },
+    { key: '{reference}', label: 'Payment Reference', example: 'PAY-12345' },
+    { key: '{expiry_date}', label: 'Expiry Date', example: '04 Jun 2026' },
+    { key: '{expiry_time}', label: 'Expiry Time', example: '20:59' },
+    { key: '{expiry_display}', label: 'Smart Expiry Text', example: 'today at 20:59' },
+    { key: '{expiry_full}', label: 'Full Expiry DateTime', example: '04 Jun 2026 at 20:59' },
+    { key: '{customer_account}', label: 'Account Number', example: '0712345678' },
   ],
-  pppoe_expiry: [
+  pppoe_expiry_reminder: [
     { key: '{customer_name}', label: 'Customer Name', example: 'Geoffrey' },
     { key: '{days_left}', label: 'Days Remaining', example: '1' },
+    { key: '{days}', label: 'Days (alias)', example: '1' },
     { key: '{expiry_date}', label: 'Expiry Date', example: '04 Jun 2026' },
     { key: '{expiry_time}', label: 'Expiry Time', example: '20:59' },
     { key: '{expiry_display}', label: 'Smart Expiry Text', example: 'today at 20:59' },
     { key: '{expiry_full}', label: 'Full Expiry DateTime', example: '04 Jun 2026 at 20:59' },
     { key: '{plan_name}', label: 'Plan Name', example: 'Home 10Mbps' },
     { key: '{amount_due}', label: 'Amount Due', example: 'KES 1,500' },
-    { key: '{customer_account}', label: 'Customer Account Number', example: '0712345678' },  // ← ADD THIS LINE
+    { key: '{customer_account}', label: 'Account Number', example: '0712345678' },
   ],
-  pppoe_suspended: [
-    { key: '{customer_name}', label: 'Customer Name', example: 'John' },
-    { key: '{reason}', label: 'Reason', example: 'payment overdue' },
-  ],
-  pppoe_resumed: [
+  pppoe_expiry_notification: [
     { key: '{customer_name}', label: 'Customer Name', example: 'John' },
     { key: '{plan_name}', label: 'Plan Name', example: 'Home 10Mbps' },
-  ],
-  pppoe_plan_changed: [
-    { key: '{customer_name}', label: 'Customer Name', example: 'John' },
-    { key: '{old_plan}', label: 'Previous Plan', example: 'Home 5Mbps' },
-    { key: '{new_plan}', label: 'New Plan', example: 'Home 10Mbps' },
+    { key: '{amount_due}', label: 'Amount Due', example: 'KES 1,500' },
+    { key: '{customer_account}', label: 'Account Number', example: '0712345678' },
   ],
 }

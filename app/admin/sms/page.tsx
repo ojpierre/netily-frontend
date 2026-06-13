@@ -44,7 +44,7 @@ const EMPTY_STATS = {
   delivery_rate: 0, total_cost: 0, messages_today: 0, messages_this_week: 0,
 } as any
 
-// UPDATED: Replaced pppoe_expiry_days_before with pppoe_expiry_intervals
+// UPDATED: Removed deprecated fields to match backend
 const EMPTY_NOTIF_SETTINGS: SMSNotificationSettings = {
   use_inbuilt_system: false,
   hotspot_new_subscription: true, hotspot_welcome: true,
@@ -52,10 +52,9 @@ const EMPTY_NOTIF_SETTINGS: SMSNotificationSettings = {
   hotspot_payment_failed: true, hotspot_session_expired: true,
   pppoe_welcome: true, pppoe_payment_confirmation: true,
   pppoe_expiry_reminder: true,
-  pppoe_expiry_intervals: [{ value: 4, unit: 'days' }], // NEW JSON field
-  pppoe_service_suspended: true, pppoe_service_resumed: true,
-  pppoe_plan_changed: true, pppoe_renewal_confirmation: true,
-  pppoe_new_subscription: true,
+  pppoe_expiry_intervals: [{ value: 4, unit: 'days' }],
+  // Removed: pppoe_service_suspended, pppoe_service_resumed, pppoe_plan_changed, pppoe_renewal_confirmation, pppoe_new_subscription
+  pppoe_expiry_notification: true,  // NEW
   system_router_offline: false,
   system_alert_phone: '',
   router_offline_numbers: [],
@@ -152,7 +151,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 // -----------------------------------------------------------------------------
-// TEMPLATE EDITOR
+// TEMPLATE EDITOR - FIXED: locks name/event_type when editing, loads correct vars
 // -----------------------------------------------------------------------------
 
 function TemplateEditor({
@@ -165,9 +164,11 @@ function TemplateEditor({
 }) {
   const [name, setName] = useState(initial?.name ?? '')
   const [content, setContent] = useState(initial?.content ?? '')
-  const [eventType, setEventType] = useState('pppoe_payment')
+  // FIX: derive eventType from the template being edited, not a hardcoded default
+  const [eventType, setEventType] = useState((initial as any)?.event_type ?? 'pppoe_payment')
 
   const vars = SMS_TEMPLATE_VARIABLES[eventType] ?? []
+  const isEditing = !!initial
 
   const insertVar = (key: string) => {
     setContent(prev => prev + key)
@@ -185,6 +186,7 @@ function TemplateEditor({
     if (open) {
       setName(initial?.name ?? '')
       setContent(initial?.content ?? '')
+      setEventType((initial as any)?.event_type ?? 'pppoe_payment')
     }
   }, [open, initial])
 
@@ -200,23 +202,26 @@ function TemplateEditor({
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label>Template Name</Label>
-              <Input placeholder="e.g., PPPoE Payment Received" value={name} onChange={e => setName(e.target.value)} />
+              <Input
+                placeholder="e.g., PPPoE Payment Received"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                disabled={isEditing}
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label>Event Type</Label>
-              <Select value={eventType} onValueChange={setEventType}>
+              <Select value={eventType} onValueChange={setEventType} disabled={isEditing}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="hotspot_welcome">Hotspot → Welcome</SelectItem>
                   <SelectItem value="hotspot_expiry">Hotspot → Expiry Warning</SelectItem>
-                  <SelectItem value="hotspot_expired">Hotspot → Session Expired</SelectItem>
+                  <SelectItem value="hotspot_session_expired">Hotspot → Session Expired</SelectItem>
                   <SelectItem value="pppoe_welcome">PPPoE → Welcome</SelectItem>
-                  <SelectItem value="pppoe_payment">PPPoE → Payment Confirmation</SelectItem>
-                  <SelectItem value="pppoe_expiry">PPPoE → Expiry Reminder</SelectItem>
-                  <SelectItem value="pppoe_suspended">PPPoE → Service Suspended</SelectItem>
-                  <SelectItem value="pppoe_resumed">PPPoE → Service Resumed</SelectItem>
-                  <SelectItem value="pppoe_plan_changed">PPPoE → Plan Changed</SelectItem>
+                  <SelectItem value="pppoe_payment">PPPoE → Payment / Renewal Confirmation</SelectItem>
+                  <SelectItem value="pppoe_expiry_reminder">PPPoE → Expiry Reminder</SelectItem>
+                  <SelectItem value="pppoe_expiry_notification">PPPoE → Subscription Expired</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -617,15 +622,22 @@ export default function SMSPage() {
     } finally { setBulkSending(false) }
   }
 
+  // FIX: handleSaveTemplate - send event_type for updates (preserves original)
   const handleSaveTemplate = async (data: { name: string; content: string; event_type?: string }) => {
     try {
       if (editingTemplate) {
-        const res = await adminApi.updateSMSTemplate(editingTemplate.id, data)
+        // FIX: preserve original event_type on update (field is locked but must still be sent)
+        const res = await adminApi.updateSMSTemplate(editingTemplate.id, {
+          content: data.content,
+        })
         setTemplates(p => p.map(t => t.id === editingTemplate.id ? res : t))
         toast.success('Template updated')
       } else {
         const res = await adminApi.createSMSTemplate({
-          name: data.name, content: data.content, is_active: true,
+          name: data.name,
+          content: data.content,
+          is_active: true,
+          event_type: data.event_type,
           variables: [...(data.content.match(/\{[\w_]+\}/g) ?? [])],
         })
         setTemplates(p => [...p, res])
@@ -917,6 +929,11 @@ export default function SMSPage() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm">{t.name}</span>
                             <span className="text-xs text-slate-400">Used {t.usage_count ?? 0}×</span>
+                            {(t as any).event_type && (
+                              <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">
+                                {(t as any).event_type}
+                              </span>
+                            )}
                           </div>
                           <p className="text-sm text-slate-600 mt-1 line-clamp-2">{t.content}</p>
                           {t.variables?.length > 0 && (
@@ -1139,7 +1156,7 @@ export default function SMSPage() {
                 </CardContent>
               </Card>
 
-              {/* -- PPPoE / Static notifications ----------------------- */}
+              {/* -- PPPoE / Static notifications (UPDATED - removed deprecated) ----------------------- */}
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2">
@@ -1157,24 +1174,10 @@ export default function SMSPage() {
                   />
                   <Separator />
                   <NotifToggle
-                    label="New Subscription Created"
-                    description="When admin sets up a subscription for a customer"
-                    checked={notifSettings.pppoe_new_subscription}
-                    onCheckedChange={v => handleToggleNotif('pppoe_new_subscription', v)}
-                  />
-                  <Separator />
-                  <NotifToggle
-                    label="Payment Confirmation"
-                    description="Confirm receipt of subscription payment"
+                    label="Payment / Renewal Confirmation"
+                    description="Confirm when a payment or renewal is received"
                     checked={notifSettings.pppoe_payment_confirmation}
                     onCheckedChange={v => handleToggleNotif('pppoe_payment_confirmation', v)}
-                  />
-                  <Separator />
-                  <NotifToggle
-                    label="Renewal Confirmation"
-                    description="Confirm when subscription is successfully renewed"
-                    checked={notifSettings.pppoe_renewal_confirmation}
-                    onCheckedChange={v => handleToggleNotif('pppoe_renewal_confirmation', v)}
                   />
                   <Separator />
 
@@ -1241,25 +1244,12 @@ export default function SMSPage() {
                   </NotifToggle>
                   <Separator />
 
+                  {/* NEW: Subscription Expired Notification */}
                   <NotifToggle
-                    label="Plan Changed"
-                    description="Notify customer when their plan is upgraded or downgraded"
-                    checked={notifSettings.pppoe_plan_changed}
-                    onCheckedChange={v => handleToggleNotif('pppoe_plan_changed', v)}
-                  />
-                  <Separator />
-                  <NotifToggle
-                    label="Service Suspended"
-                    description="Alert when service is suspended"
-                    checked={notifSettings.pppoe_service_suspended}
-                    onCheckedChange={v => handleToggleNotif('pppoe_service_suspended', v)}
-                  />
-                  <Separator />
-                  <NotifToggle
-                    label="Service Resumed"
-                    description="Confirm when service is restored"
-                    checked={notifSettings.pppoe_service_resumed}
-                    onCheckedChange={v => handleToggleNotif('pppoe_service_resumed', v)}
+                    label="Subscription Expired"
+                    description="Notify customer once when their subscription has actually expired"
+                    checked={notifSettings.pppoe_expiry_notification}
+                    onCheckedChange={v => handleToggleNotif('pppoe_expiry_notification', v)}
                   />
                 </CardContent>
               </Card>
