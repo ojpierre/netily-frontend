@@ -497,6 +497,8 @@ export interface Router {
   hotspot_name?: string
   support_phone?: string
   announcement_text?: string
+  logo?: string  // URL to the uploaded logo
+  hide_plan_speed?: boolean  // If true, hide download/upload speed info on captive portal plan cards
   // Remote Access (HAProxy managed)
   winbox_remote_port?: number | null
   api_remote_port?: number | null
@@ -2570,6 +2572,94 @@ export interface HotspotBranding {
 }
 
 // ==========================================
+// HOTSPOT PORTAL (Public)
+// ==========================================
+
+export interface CaptivePortalResponse {
+  status: string
+  portal_config: CaptivePortalConfig
+  plans: CaptivePortalPlan[]
+}
+
+export interface CaptivePortalConfig {
+  template_id: number
+  hotspot_name: string
+  support_phone: string
+  announcement_text: string
+  gateway_ip: string
+  router_logo_url?: string
+  hide_plan_speed?: boolean
+}
+
+export interface CaptivePortalPlan {
+  id: string
+  name: string
+  description: string
+  price: number
+  currency: string
+  // Validity
+  validity_type: string
+  validity_value: number
+  duration_display: string
+  // Speed
+  download_speed: number
+  upload_speed: number
+  speed_unit: string
+  speed_display: string
+  // Data limits
+  limitation_type: string
+  data_limit_value: number | null
+  data_limit_unit: string
+  data_limit_display: string
+  // Display
+  is_popular: boolean
+}
+
+/** @deprecated Use CaptivePortalResponse instead */
+export interface HotspotRouterInfo {
+  id: number
+  name: string
+  location: string
+  branding: HotspotBranding
+  plans: HotspotPlanPublic[]
+}
+
+export interface HotspotPlanPublic {
+  id: number
+  name: string
+  description: string
+  price: string
+  duration_minutes: number
+  duration_display: string
+  data_limit_mb: number | null
+  data_limit_display: string
+  speed_limit: string | null
+}
+
+export interface HotspotPurchaseRequest {
+  router_id: number
+  plan_id: number
+  phone_number: string
+  mac_address?: string
+}
+
+export interface HotspotPurchaseResponse {
+  status: 'success' | 'error'
+  session_id: string
+  checkout_request_id: string
+  message: string
+}
+
+export interface HotspotPurchaseStatus {
+  session_id: string
+  status: 'pending_payment' | 'active' | 'expired' | 'failed'
+  username?: string
+  password?: string
+  expires_at?: string
+  error_message?: string
+}
+
+// ==========================================
 // SMS MODULE (Backend Aligned)
 // ==========================================
 
@@ -3218,92 +3308,6 @@ export interface CustomerPlan {
   is_active: boolean
   is_popular?: boolean
   features?: string[]
-}
-
-// ==========================================
-// HOTSPOT PORTAL (Public)
-// ==========================================
-
-export interface CaptivePortalResponse {
-  status: string
-  portal_config: CaptivePortalConfig
-  plans: CaptivePortalPlan[]
-}
-
-export interface CaptivePortalConfig {
-  template_id: number
-  hotspot_name: string
-  support_phone: string
-  announcement_text: string
-  gateway_ip: string
-}
-
-export interface CaptivePortalPlan {
-  id: string
-  name: string
-  description: string
-  price: number
-  currency: string
-  // Validity
-  validity_type: string
-  validity_value: number
-  duration_display: string
-  // Speed
-  download_speed: number
-  upload_speed: number
-  speed_unit: string
-  speed_display: string
-  // Data limits
-  limitation_type: string
-  data_limit_value: number | null
-  data_limit_unit: string
-  data_limit_display: string
-  // Display
-  is_popular: boolean
-}
-
-/** @deprecated Use CaptivePortalResponse instead */
-export interface HotspotRouterInfo {
-  id: number
-  name: string
-  location: string
-  branding: HotspotBranding
-  plans: HotspotPlanPublic[]
-}
-
-export interface HotspotPlanPublic {
-  id: number
-  name: string
-  description: string
-  price: string
-  duration_minutes: number
-  duration_display: string
-  data_limit_mb: number | null
-  data_limit_display: string
-  speed_limit: string | null
-}
-
-export interface HotspotPurchaseRequest {
-  router_id: number
-  plan_id: number
-  phone_number: string
-  mac_address?: string
-}
-
-export interface HotspotPurchaseResponse {
-  status: 'success' | 'error'
-  session_id: string
-  checkout_request_id: string
-  message: string
-}
-
-export interface HotspotPurchaseStatus {
-  session_id: string
-  status: 'pending_payment' | 'active' | 'expired' | 'failed'
-  username?: string
-  password?: string
-  expires_at?: string
-  error_message?: string
 }
 
 // ==========================================

@@ -41,6 +41,7 @@ interface PortalConfig {
   announcement_text: string
   gateway_ip: string
   router_logo_url?: string | null
+  hide_plan_speed?: boolean
 }
 
 interface BrandingConfig {
@@ -1862,10 +1863,12 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                 {selectedPlan?.duration_display || "-"}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className={theme.mutedText}>Speed</span>
-              <span className={`font-semibold ${theme.planTitle}`}>{selectedPlan?.speed_display || "-"}</span>
-            </div>
+            {!portalConfig?.hide_plan_speed && (
+              <div className="flex justify-between">
+                <span className={theme.mutedText}>Speed</span>
+                <span className={`font-semibold ${theme.planTitle}`}>{selectedPlan?.speed_display || "-"}</span>
+              </div>
+            )}
             {selectedPlan && selectedPlan.limitation_type !== "UNLIMITED" && (
               <div className="flex justify-between">
                 <span className={theme.mutedText}>Data</span>
@@ -2232,12 +2235,14 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                         <span className={`text-lg font-bold ${theme.planTitle}`}>{plan.name}</span>
                         <div className={`flex items-center gap-3 mt-1 text-sm ${theme.planSub}`}>
                           <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{plan.duration_display}</span>
-                          {plan.download_speed ? (
-                            <>
-                              <span className="flex items-center gap-1 text-green-600"><ArrowDown className="w-3.5 h-3.5" />{plan.download_speed} {plan.speed_unit || 'Mbps'}</span>
-                              <span className="flex items-center gap-1 text-blue-600"><ArrowUp className="w-3.5 h-3.5" />{plan.upload_speed} {plan.speed_unit || 'Mbps'}</span>
-                            </>
-                          ) : <span className="flex items-center gap-1"><Zap className="w-4 h-4" />{plan.speed_display}</span>}
+                          {!portalConfig?.hide_plan_speed && (
+                            plan.download_speed ? (
+                              <>
+                                <span className="flex items-center gap-1 text-green-600"><ArrowDown className="w-3.5 h-3.5" />{plan.download_speed} {plan.speed_unit || 'Mbps'}</span>
+                                <span className="flex items-center gap-1 text-blue-600"><ArrowUp className="w-3.5 h-3.5" />{plan.upload_speed} {plan.speed_unit || 'Mbps'}</span>
+                              </>
+                            ) : <span className="flex items-center gap-1"><Zap className="w-4 h-4" />{plan.speed_display}</span>
+                          )}
                         </div>
                       </div>
                       <span className={`text-2xl font-bold ${theme.planPrice}`} style={brandingPriceStyle}>
@@ -2280,7 +2285,9 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                     )}
                     <div className={`text-xs space-y-1 ${theme.planSub} flex-1`}>
                       <div className="flex items-center gap-1"><Clock className="w-3 h-3" />{plan.duration_display}</div>
-                      <div className="flex items-center gap-1"><Zap className="w-3 h-3" />{plan.speed_display}</div>
+                      {!portalConfig?.hide_plan_speed && (
+                        <div className="flex items-center gap-1"><Zap className="w-3 h-3" />{plan.speed_display}</div>
+                      )}
                       {plan.simultaneous_devices && plan.simultaneous_devices > 0 && (
                         <div className="flex items-center gap-1"><Users className="w-3 h-3" />{plan.simultaneous_devices} devices</div>
                       )}
@@ -2324,23 +2331,25 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                         {plan.duration_display}
                       </span>
                       {/* Show detailed speeds if available, otherwise fallback to speed_display */}
-                      {plan.download_speed || plan.upload_speed ? (
-                        <>
-                          <span className="flex items-center gap-1 text-green-600">
-                            <ArrowDown className="w-3.5 h-3.5" />
-                            {plan.download_speed} {plan.speed_unit || 'Mbps'}
+                      {!portalConfig?.hide_plan_speed && (
+                        plan.download_speed || plan.upload_speed ? (
+                          <>
+                            <span className="flex items-center gap-1 text-green-600">
+                              <ArrowDown className="w-3.5 h-3.5" />
+                              {plan.download_speed} {plan.speed_unit || 'Mbps'}
+                            </span>
+                            <span className="flex items-center gap-1 text-blue-600">
+                              <ArrowUp className="w-3.5 h-3.5" />
+                              {plan.upload_speed} {plan.speed_unit || 'Mbps'}
+                            </span>
+                          </>
+                        ) : plan.speed_display ? (
+                          <span className="flex items-center gap-1">
+                            <Zap className="w-4 h-4" />
+                            {plan.speed_display}
                           </span>
-                          <span className="flex items-center gap-1 text-blue-600">
-                            <ArrowUp className="w-3.5 h-3.5" />
-                            {plan.upload_speed} {plan.speed_unit || 'Mbps'}
-                          </span>
-                        </>
-                      ) : plan.speed_display ? (
-                        <span className="flex items-center gap-1">
-                          <Zap className="w-4 h-4" />
-                          {plan.speed_display}
-                        </span>
-                      ) : null}
+                        ) : null
+                      )}
                     </div>
                     {/* Data limit + device limit row */}
                     <div className={`flex flex-wrap items-center gap-3 mt-1 text-xs ${theme.planSub}`}>
@@ -2412,7 +2421,9 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
               <h3 className={`text-lg font-bold mb-2 ${theme.planTitle}`}>{selectedPlan.name}</h3>
               <div className={`flex flex-wrap gap-x-4 gap-y-1 text-sm ${theme.mutedText}`}>
                 <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{selectedPlan.duration_display}</span>
-                <span className="flex items-center gap-1"><Zap className="w-4 h-4" />{selectedPlan.speed_display}</span>
+                {!portalConfig?.hide_plan_speed && (
+                  <span className="flex items-center gap-1"><Zap className="w-4 h-4" />{selectedPlan.speed_display}</span>
+                )}
                 {selectedPlan.limitation_type !== "UNLIMITED" && selectedPlan.data_limit_value && (
                   <span className="flex items-center gap-1"><Database className="w-4 h-4" />{selectedPlan.data_limit_display}</span>
                 )}

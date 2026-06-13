@@ -22,12 +22,14 @@ import {
   ImageIcon,
   Upload,
   X,
+  Gauge,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import {
   Card,
   CardContent,
@@ -223,10 +225,10 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   const [hotspotName, setHotspotName] = useState("")
   const [supportPhone, setSupportPhone] = useState("")
   const [announcementText, setAnnouncementText] = useState("")
+  const [hidePlanSpeed, setHidePlanSpeed] = useState(false)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string>("")
   const [existingLogo, setExistingLogo] = useState<string>("")
-  // FIX #2: Update planLayout state type to include "default"
   const [planLayout, setPlanLayout] = useState<"grid" | "list" | "default">("default")
 
   // UI state
@@ -238,17 +240,16 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   const [loadFailed, setLoadFailed] = useState(false)
 
   // Original values for dirty-check (ref avoids stale-closure issues)
-  // FIX #2: Update original state type to include _planLayout with "default"
   const [original, setOriginal] = useState({
     template_id: 1,
     hotspot_name: "",
     support_phone: "",
     announcement_text: "",
+    hide_plan_speed: false,
     _planLayout: "default" as "grid" | "list" | "default",
   })
 
   // ── Load current values from router ──
-  // FIX #2: Update loadSettings to decode the new encoding (grid = >200, list = 101-200)
   const loadSettings = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -270,11 +271,13 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
         hotspot_name: router.hotspot_name ?? "",
         support_phone: router.support_phone ?? "",
         announcement_text: router.announcement_text ?? "",
+        hide_plan_speed: router.hide_plan_speed ?? false,
       }
       setTemplateId(baseTemplateId)
       setHotspotName(values.hotspot_name)
       setSupportPhone(values.support_phone)
       setAnnouncementText(values.announcement_text)
+      setHidePlanSpeed(values.hide_plan_speed)
       
       // Fix logo URL resolution - handle relative paths from backend
       const rawLogo = (router as any).logo || ""
@@ -288,6 +291,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
         hotspot_name: values.hotspot_name,
         support_phone: values.support_phone,
         announcement_text: values.announcement_text,
+        hide_plan_speed: values.hide_plan_speed,
         _planLayout: isGridLayout ? "grid" : isListLayout ? "list" : "default",
       })
       setPlanLayout(isGridLayout ? "grid" : isListLayout ? "list" : "default")
@@ -313,12 +317,12 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
       hotspotName !== original.hotspot_name ||
       supportPhone !== original.support_phone ||
       announcementText !== original.announcement_text ||
+      hidePlanSpeed !== original.hide_plan_speed ||
       logoFile !== null
     setDirty(isDirty)
-  }, [templateId, hotspotName, supportPhone, announcementText, original, logoFile, planLayout])
+  }, [templateId, hotspotName, supportPhone, announcementText, hidePlanSpeed, original, logoFile, planLayout])
 
   // ── Save — PATCH only changed fields ──
-  // FIX #2: Update handleSave encoding logic to support grid override (templateId + 200)
   const handleSave = async () => {
     if (isDemo) {
       toast.info("Demo mode — changes are not saved")
@@ -345,6 +349,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     if (hotspotName !== original.hotspot_name) payload.hotspot_name = hotspotName
     if (supportPhone !== original.support_phone) payload.support_phone = supportPhone
     if (announcementText !== original.announcement_text) payload.announcement_text = announcementText
+    if (hidePlanSpeed !== original.hide_plan_speed) payload.hide_plan_speed = hidePlanSpeed
 
     if (Object.keys(payload).length === 0 && !logoFile) {
       toast.info("No changes to save")
@@ -367,6 +372,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
         hotspot_name: hotspotName,
         support_phone: supportPhone,
         announcement_text: announcementText,
+        hide_plan_speed: hidePlanSpeed,
         _planLayout: planLayout,
       })
       setDirty(false)
@@ -510,7 +516,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
             </CardContent>
           </Card>
 
-          {/* Layout Toggle — FIX #2: Add "Default" option */}
+          {/* Layout Toggle */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -586,6 +592,34 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                   <p className="text-sm font-semibold">List</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Full-width rows</p>
                 </button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Plan Display Options - NEW CARD */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Gauge className="w-5 h-5" />
+                Plan Display Options
+              </CardTitle>
+              <CardDescription>
+                Control what information is shown on plan cards in the captive portal
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="hide-speed-toggle">Show Speed on Plans</Label>
+                  <p className="text-xs text-muted-foreground">
+                    When off, download/upload speed info is hidden from customers on the WiFi login page
+                  </p>
+                </div>
+                <Switch
+                  id="hide-speed-toggle"
+                  checked={!hidePlanSpeed}
+                  onCheckedChange={(checked) => setHidePlanSpeed(!checked)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -736,6 +770,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                 logoPreview={logoPreview}
                 existingLogo={existingLogo}
                 planLayout={planLayout}
+                hidePlanSpeed={hidePlanSpeed}
               />
             </CardContent>
           </Card>
@@ -776,6 +811,7 @@ function PortalPreview({
   logoPreview,
   existingLogo,
   planLayout,
+  hidePlanSpeed,
 }: {
   templateId: number
   hotspotName: string
@@ -784,6 +820,7 @@ function PortalPreview({
   logoPreview: string
   existingLogo: string
   planLayout: "grid" | "list" | "default"
+  hidePlanSpeed: boolean
 }) {
   const template = TEMPLATES.find((t) => t.id === templateId) || TEMPLATES[0]
   const displayName = hotspotName || "WiFi Hotspot"
@@ -792,7 +829,7 @@ function PortalPreview({
   // Template-specific styles
   const styles = getTemplateStyles(templateId)
 
-  // FIX #3: Determine effective layout for preview
+  // Determine effective layout for preview
   const effectiveLayout = planLayout === "default" 
     ? (templateId % 3 === 0 ? "list" : "grid")  // rough default approximation for preview
     : planLayout
@@ -842,13 +879,15 @@ function PortalPreview({
             </div>
           )}
 
-          {/* FIX #3: Mock plans with layout-aware rendering */}
+          {/* Mock plans with layout-aware rendering and hidePlanSpeed support */}
           <div className={`p-3 ${effectiveLayout === "grid" ? "grid grid-cols-2 gap-2" : "space-y-2"}`}>
             <div className={`rounded-lg border-2 p-2.5 ${styles.planSelected}`}>
               <div className={effectiveLayout === "grid" ? "flex flex-col" : "flex justify-between items-center"}>
                 <div>
                   <div className={`text-xs font-semibold ${styles.planTitle}`}>1 Hour</div>
-                  <div className={`text-[10px] ${styles.planSub}`}>5Mbps • 500MB</div>
+                  <div className={`text-[10px] ${styles.planSub}`}>
+                    {hidePlanSpeed ? "500MB" : "5Mbps • 500MB"}
+                  </div>
                 </div>
                 <div className={`text-sm font-bold ${styles.planPrice} ${effectiveLayout === "grid" ? "mt-1" : ""}`}>KES 20</div>
               </div>
@@ -857,7 +896,9 @@ function PortalPreview({
               <div className={effectiveLayout === "grid" ? "flex flex-col" : "flex justify-between items-center"}>
                 <div>
                   <div className={`text-xs font-semibold ${styles.planTitle}`}>24 Hours</div>
-                  <div className={`text-[10px] ${styles.planSub}`}>10Mbps • 2GB</div>
+                  <div className={`text-[10px] ${styles.planSub}`}>
+                    {hidePlanSpeed ? "2GB" : "10Mbps • 2GB"}
+                  </div>
                 </div>
                 <div className={`text-sm font-bold ${styles.planPrice} ${effectiveLayout === "grid" ? "mt-1" : ""}`}>KES 100</div>
               </div>
