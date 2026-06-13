@@ -181,8 +181,7 @@ export default function PaymentsPage() {
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("")
-  const [methodFilter, setMethodFilter] = useState("all")
-  // Removed activeTab - always showing completed payments only
+  // Removed methodFilter and activeTab - always showing completed payments only
 
   // Pagination
   const [page, setPage] = useState(1)
@@ -239,9 +238,7 @@ export default function PaymentsPage() {
         status: 'COMPLETED'  // always filter to completed only
       }
       
-      if (methodFilter !== 'all') {
-        params.payment_method = methodFilter.toUpperCase()
-      }
+      // Removed method filter
       if (searchQuery) {
         params.search = searchQuery
       }
@@ -260,7 +257,7 @@ export default function PaymentsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [methodFilter, searchQuery, page])
+  }, [searchQuery, page])
 
   useEffect(() => {
     fetchData()
@@ -585,32 +582,19 @@ export default function PaymentsPage() {
     // If the API returned data with flat keys or nested keys, prefer flat keys
     if (s) {
       const methodDist: { name: string; total: number }[] = s.method_distribution ?? []
-      const mpesaEntry = methodDist.find((m: any) => m.name?.toUpperCase()?.includes('MPESA') || m.name?.toUpperCase()?.includes('M-PESA'))
       const bankEntry = methodDist.find((m: any) => m.name?.toUpperCase()?.includes('BANK'))
       return {
-        total_payments: (s.completed_count ?? s.status_distribution?.COMPLETED ?? 0) + (s.pending_count ?? s.status_distribution?.PENDING ?? 0) + (s.failed_count ?? s.status_distribution?.FAILED ?? 0),
         total_collected: s.total_collected ?? 0,
-        total_pending: s.total_pending ?? 0,
-        completed_count: s.completed_count ?? s.status_distribution?.COMPLETED ?? 0,
-        pending_count: s.pending_count ?? s.status_distribution?.PENDING ?? 0,
-        failed_count: s.failed_count ?? s.status_distribution?.FAILED ?? 0,
-        mpesa_total: mpesaEntry?.total ?? 0,
         bank_total: bankEntry?.total ?? 0,
+        completed_count: s.completed_count ?? s.status_distribution?.COMPLETED ?? 0,
       }
     }
     // Fallback: compute from loaded payments
     const completed = payments.filter(p => p.status?.toUpperCase() === 'COMPLETED')
-    const pending = payments.filter(p => p.status?.toUpperCase() === 'PENDING')
-    const failed = payments.filter(p => p.status?.toUpperCase() === 'FAILED')
     return {
-      total_payments: payments.length,
       total_collected: completed.reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0),
-      total_pending: pending.reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0),
-      completed_count: completed.length,
-      pending_count: pending.length,
-      failed_count: failed.length,
-      mpesa_total: payments.filter(p => p.payment_method?.toUpperCase() === 'MPESA').reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0),
       bank_total: payments.filter(p => p.payment_method?.toUpperCase() === 'BANK').reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0),
+      completed_count: completed.length,
     }
   }, [payments, stats])
 
@@ -622,8 +606,8 @@ export default function PaymentsPage() {
           <Skeleton className="h-9 w-64" />
           <Skeleton className="h-10 w-24" />
         </div>
-        <div className="grid gap-4 md:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid gap-4 md:grid-cols-2">
+          {[...Array(2)].map((_, i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
                 <Skeleton className="h-4 w-20" />
@@ -685,8 +669,8 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Stats Cards - Only Total Collected and Bank Transfers */}
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
@@ -697,31 +681,6 @@ export default function PaymentsPage() {
               {formatCurrency(localStats.total_collected ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">{localStats.completed_count ?? 0} payments</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {formatCurrency(localStats.total_pending ?? 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">{localStats.pending_count ?? 0} awaiting</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">M-Pesa</CardTitle>
-            <Smartphone className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(localStats.mpesa_total ?? 0)}
-            </div>
           </CardContent>
         </Card>
 
@@ -738,7 +697,7 @@ export default function PaymentsPage() {
         </Card>
       </div>
 
-      {/* Filters & Table - Removed Tabs component since we only show completed payments */}
+      {/* Table - Removed filters section */}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -747,25 +706,13 @@ export default function PaymentsPage() {
               <CardDescription>{totalCount} completed payments</CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Select value={methodFilter} onValueChange={(v) => { setMethodFilter(v); setPage(1) }}>
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue placeholder="Method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Methods</SelectItem>
-                  <SelectItem value="mpesa">M-Pesa</SelectItem>
-                  <SelectItem value="bank">Bank</SelectItem>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="card">Card</SelectItem>
-                </SelectContent>
-              </Select>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
-                  className="pl-9 w-[180px]"
+                  className="pl-9 w-[220px]"
                 />
               </div>
             </div>
@@ -1022,8 +969,7 @@ export default function PaymentsPage() {
           <DialogHeader>
             <DialogTitle>Record Bank Transfer</DialogTitle>
             <DialogDescription>
-              Record a bank transfer payment
-            </DialogDescription>
+              Record a bank transfer payment            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
