@@ -25,6 +25,7 @@ import {
   RotateCcw,
   Save,
   TestTube,
+  ArrowUpRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -402,8 +403,8 @@ export default function RoutersPage() {
             <Skeleton className="h-10 w-32" />
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-          {[...Array(7)].map((_, i) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
             <Card key={i}>
               <CardContent className="p-4">
                 <Skeleton className="h-12 w-full" />
@@ -446,8 +447,8 @@ export default function RoutersPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+      {/* Stats Cards - Redesigned with 5 cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -485,34 +486,6 @@ export default function RoutersPage() {
               <div>
                 <p className="text-2xl font-bold text-red-600">{localStats.offline_routers}</p>
                 <p className="text-xs text-slate-500">Offline</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-amber-600">{localStats.warning_routers}</p>
-                <p className="text-xs text-slate-500">Warnings</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-blue-600">{localStats.total_connected_users}</p>
-                <p className="text-xs text-slate-500">Connected</p>
               </div>
             </div>
           </CardContent>
@@ -597,144 +570,174 @@ export default function RoutersPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Grid View */}
+        {/* Grid View - Premium Redesign */}
         <TabsContent value="grid" className="mt-4">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredRouters.map((r) => (
-              <Card 
-                key={r.id} 
-                className={`cursor-pointer hover:shadow-md transition-shadow ${
-                  r.status === "offline" ? "border-red-200 bg-red-50/30" :
-                  r.status === "warning" ? "border-amber-200 bg-amber-50/30" :
-                  r.status === "maintenance" ? "border-blue-200 bg-blue-50/30" : ""
-                }`}
-                onClick={() => router.push(`/admin/routers/${r.id}`)}
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${
-                        r.status === "online" ? "bg-green-100" :
-                        r.status === "offline" ? "bg-red-100" :
-                        r.status === "warning" ? "bg-amber-100" : "bg-blue-100"
-                      }`}>
-                        <Server className={`w-5 h-5 ${
-                          r.status === "online" ? "text-green-600" :
-                          r.status === "offline" ? "text-red-600" :
-                          r.status === "warning" ? "text-amber-600" : "text-blue-600"
-                        }`} />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">{r.name}</CardTitle>
-                        <CardDescription className="text-xs">{r.ip_address}</CardDescription>
-                      </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/routers/${r.id}`) }}>
-                          <Eye className="w-4 h-4 mr-2" /> View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(r) }}>
-                          <Edit className="w-4 h-4 mr-2" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={(e) => { e.stopPropagation(); handleTestConnection(r.id) }}
-                          disabled={isTesting === r.id}
-                        >
-                          {isTesting === r.id ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <TestTube className="w-4 h-4 mr-2" />
-                          )}
-                          Test Connection
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReboot(r.id) }}>
-                          <RotateCcw className="w-4 h-4 mr-2" /> Reboot
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-red-600"
-                          onClick={(e) => { e.stopPropagation(); setSelectedRouter(r); setIsDeleteDialogOpen(true) }}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    {getStatusBadge(r.status)}
-                    {getTypeBadge(r.router_type)}
-                  </div>
-                  
-                  {r.location && (
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                      <MapPin className="w-4 h-4" />
-                      <span>{r.location}</span>
-                    </div>
-                  )}
-                  
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-slate-400" />
-                      <span>{r.active_users} users</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-slate-400" />
-                      <span>{r.uptime || "N/A"}</span>
-                    </div>
-                  </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredRouters.map((r) => {
+              const statusConfig = {
+                online: {
+                  ring: "ring-green-500/20",
+                  glow: "shadow-green-500/10",
+                  dot: "bg-green-500",
+                  accent: "from-green-500 to-emerald-400",
+                  badge: "bg-green-500/10 text-green-700 border-green-500/20",
+                },
+                offline: {
+                  ring: "ring-red-500/20",
+                  glow: "shadow-red-500/10",
+                  dot: "bg-red-500",
+                  accent: "from-red-500 to-rose-400",
+                  badge: "bg-red-500/10 text-red-700 border-red-500/20",
+                },
+                warning: {
+                  ring: "ring-amber-500/20",
+                  glow: "shadow-amber-500/10",
+                  dot: "bg-amber-500",
+                  accent: "from-amber-500 to-yellow-400",
+                  badge: "bg-amber-500/10 text-amber-700 border-amber-500/20",
+                },
+                maintenance: {
+                  ring: "ring-blue-500/20",
+                  glow: "shadow-blue-500/10",
+                  dot: "bg-blue-500",
+                  accent: "from-blue-500 to-cyan-400",
+                  badge: "bg-blue-500/10 text-blue-700 border-blue-500/20",
+                },
+              }[r.status]
 
-                  {/* SLA Progress — uses status as proxy when uptime_percentage is 0 */}
-                  {(() => {
-                    const slaTarget = r.sla_target || 99
-                    // If uptime_percentage is available and non-zero, use it; otherwise derive from status
-                    const uptimePct = r.uptime_percentage && r.uptime_percentage > 0
-                      ? r.uptime_percentage
-                      : r.status === 'online' ? slaTarget : 0
-                    const meetsSlA = uptimePct >= slaTarget
-                    return (
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-slate-500">SLA target: {slaTarget}%</span>
-                          <span className={meetsSlA ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                            {r.uptime_percentage && r.uptime_percentage > 0 
-                              ? `${Number(r.uptime_percentage).toFixed(1)}%`
-                              : r.status === 'online' ? '✓ Online' : '✗ Offline'
-                            }
-                          </span>
+              const slaTarget = r.sla_target || 99
+              const uptimePct = r.uptime_percentage && r.uptime_percentage > 0
+                ? r.uptime_percentage
+                : r.status === 'online' ? slaTarget : 0
+              const meetsSla = uptimePct >= slaTarget
+
+              return (
+                <Card
+                  key={r.id}
+                  className={`group relative overflow-hidden cursor-pointer border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${statusConfig.glow} ring-1 ${statusConfig.ring}`}
+                  onClick={() => router.push(`/admin/routers/${r.id}`)}
+                >
+                  {/* Top accent gradient bar */}
+                  <div className={`h-1 w-full bg-gradient-to-r ${statusConfig.accent}`} />
+
+                  {/* Subtle corner glow */}
+                  <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full bg-gradient-to-br ${statusConfig.accent} opacity-[0.07] blur-2xl group-hover:opacity-[0.12] transition-opacity`} />
+
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="relative flex-shrink-0">
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${statusConfig.accent} shadow-md`}>
+                            <Server className="w-5 h-5 text-white" />
+                          </div>
+                          <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full ${statusConfig.dot} ring-2 ring-white dark:ring-slate-900 ${r.status === 'online' ? 'animate-pulse' : ''}`} />
                         </div>
-                        <Progress
-                          value={r.uptime_percentage && r.uptime_percentage > 0 ? r.uptime_percentage : r.status === 'online' ? 100 : 0}
-                          className={`h-2 ${!meetsSlA && r.status !== 'online' ? "[&>div]:bg-red-500" : r.status === 'online' ? "[&>div]:bg-green-500" : "[&>div]:bg-slate-300"}`}
-                        />
+                        <div className="min-w-0">
+                          <CardTitle className="text-base truncate">{r.name}</CardTitle>
+                          <CardDescription className="text-xs font-mono truncate">{r.ip_address}</CardDescription>
+                        </div>
                       </div>
-                    )
-                  })()}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-1 flex-shrink-0">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/routers/${r.id}`) }}>
+                            <Eye className="w-4 h-4 mr-2" /> View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(r) }}>
+                            <Edit className="w-4 h-4 mr-2" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => { e.stopPropagation(); handleTestConnection(r.id) }}
+                            disabled={isTesting === r.id}
+                          >
+                            {isTesting === r.id ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <TestTube className="w-4 h-4 mr-2" />
+                            )}
+                            Test Connection
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReboot(r.id) }}>
+                            <RotateCcw className="w-4 h-4 mr-2" /> Reboot
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={(e) => { e.stopPropagation(); setSelectedRouter(r); setIsDeleteDialogOpen(true) }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardHeader>
 
-                  {/* Metrics section - shows CPU/RAM from available data */}
-                  {r.status === 'online' && (r.metrics || r.uptime) && (
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-                      {r.metrics ? (
-                        // Full metrics available
-                        [
+                  <CardContent className="space-y-4">
+                    {/* Status + type row */}
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline" className={`${statusConfig.badge} capitalize font-medium`}>
+                        {getStatusIcon(r.status)}
+                        <span className="ml-1.5">{r.status}</span>
+                      </Badge>
+                      {getTypeBadge(r.router_type)}
+                    </div>
+
+                    {/* Location */}
+                    {r.location && (
+                      <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="truncate">{r.location}</span>
+                      </div>
+                    )}
+
+                    {/* Connected users — highlighted metric */}
+                    <div className="flex items-center gap-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
+                      <div className="p-1.5 bg-blue-100 dark:bg-blue-500/10 rounded-md">
+                        <Users className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{r.active_users}</span>
+                      <span className="text-xs text-slate-400">connected users</span>
+                    </div>
+
+                    {/* SLA Progress */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-baseline text-xs">
+                        <span className="text-slate-400 font-medium uppercase tracking-wide">SLA · {slaTarget}%</span>
+                        <span className={`font-bold text-sm ${
+                          r.uptime_percentage && r.uptime_percentage > 0
+                            ? meetsSla ? "text-green-600" : "text-red-600"
+                            : r.status === 'online' ? "text-green-600" : "text-slate-400"
+                        }`}>
+                          {r.uptime_percentage && r.uptime_percentage > 0
+                            ? `${Number(r.uptime_percentage).toFixed(1)}%`
+                            : r.status === 'online' ? 'Online' : 'Offline'
+                          }
+                        </span>
+                      </div>
+                      <Progress
+                        value={r.uptime_percentage && r.uptime_percentage > 0 ? r.uptime_percentage : r.status === 'online' ? 100 : 0}
+                        className={`h-1.5 ${!meetsSla && r.status !== 'online' ? "[&>div]:bg-red-500" : r.status === 'online' ? "[&>div]:bg-green-500" : "[&>div]:bg-slate-300"}`}
+                      />
+                    </div>
+
+                    {/* CPU/RAM metrics */}
+                    {r.status === 'online' && r.metrics ? (
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        {[
                           { label: "CPU", value: r.metrics.cpu_usage },
                           { label: "RAM", value: r.metrics.memory_usage },
                         ].map(({ label, value }) => {
                           const barClass = value > 80 ? "bg-red-500" : value > 60 ? "bg-amber-500" : "bg-blue-500"
                           const textClass = value > 80 ? "text-red-600" : value > 60 ? "text-amber-600" : "text-slate-600"
-                          const bgClass = value > 80 ? "bg-red-50" : value > 60 ? "bg-amber-50" : "bg-blue-50"
                           const R = 11; const circ = 2 * Math.PI * R
                           const dash = (value / 100) * circ
                           return (
-                            <div key={label} className={`rounded-lg p-2 ${bgClass} flex items-center gap-2`}>
+                            <div key={label} className="rounded-lg p-2 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-2">
                               <svg width="28" height="28" className="-rotate-90 flex-shrink-0">
                                 <circle cx="14" cy="14" r={R} fill="none" stroke="#e2e8f0" strokeWidth="3" />
                                 <circle cx="14" cy="14" r={R} fill="none"
@@ -746,39 +749,44 @@ export default function RoutersPage() {
                                   <span className="text-[11px] font-medium text-slate-500">{label}</span>
                                   <span className={`text-xs font-bold ${textClass}`}>{value}%</span>
                                 </div>
-                                <div className="mt-0.5 h-1 bg-white/70 rounded-full overflow-hidden">
+                                <div className="mt-0.5 h-1 bg-white/70 dark:bg-slate-700 rounded-full overflow-hidden">
                                   <div className={`h-full rounded-full ${barClass} transition-all duration-500`} style={{ width: `${value}%` }} />
                                 </div>
                               </div>
                             </div>
                           )
-                        })
-                      ) : (
-                        // No metrics yet — show placeholder prompting user to click in
-                        <div className="col-span-2 text-center py-1">
-                          <p className="text-[11px] text-slate-400">
-                            Click router to view live CPU & memory stats
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        })}
+                      </div>
+                    ) : r.status === 'online' ? (
+                      <div className="text-center py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                        <p className="text-[11px] text-slate-400">
+                          Click to view live CPU & memory stats
+                        </p>
+                      </div>
+                    ) : null}
 
-                  {/* Tags */}
-                  {r.tags && r.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-2">
-                      {r.tags.map((tag, i) => (
-                        <Badge key={i} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
+                    {/* Tags */}
+                    {r.tags && r.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {r.tags.map((tag, i) => (
+                          <Badge key={i} variant="outline" className="text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Hover CTA */}
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <span className="text-xs text-slate-400">View full details</span>
+                      <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
-          
+
           {filteredRouters.length === 0 && (
             <div className="text-center py-12 text-slate-500">
               <Server className="w-12 h-12 mx-auto mb-4 opacity-50" />
