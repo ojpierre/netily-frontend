@@ -33,24 +33,21 @@ const EASE_IN_OUT = [0.43, 0.13, 0.23, 0.96] as const
 const pageVariants: Variants = {
   initial: {
     opacity: 0,
-    y: 12,
-    filter: "blur(2px)",
+    y: 10,
   },
   animate: {
     opacity: 1,
     y: 0,
-    filter: "blur(0px)",
     transition: {
-      duration: 0.3,
+      duration: 0.28,
       ease: EASE_OUT,
     },
   },
   exit: {
     opacity: 0,
-    y: -8,
-    filter: "blur(1px)",
+    y: -6,
     transition: {
-      duration: 0.18,
+      duration: 0.2,
       ease: EASE_IN_OUT,
     },
   },
@@ -219,7 +216,7 @@ export function AnimatedNavItem({ children, className, isActive }: AnimatedNavIt
   return (
     <motion.li
       className={className}
-      whileHover={{ x: isActive ? 0 : 3 }}
+      whileHover={{ x: 2 }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.15, ease: EASE_OUT }}
     >

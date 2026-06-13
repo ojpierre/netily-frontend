@@ -29,9 +29,18 @@ import {
   superadminApi,
   type Tenant, type TenantStats, type TenantUpdatePayload,
   type TenantRouter, type PPPoEUser, type HotspotUser,
-  type InventoryItem, type AuditLogEntry, type PaginatedResponse, type TenantDeletionJob,
+  type InventoryItem, type AuditLogEntry, type PaginatedResponse,
 } from "@/lib/superadmin-api"
 import { TenantBillingTab } from "./components/tenant-billing-tab"
+
+const HARD_DELETE_STEPS = [
+  "Verify confirmation and protect system schemas",
+  "Delete subscription payments and company subscription",
+  "Remove tenant users, domains, company, and tenant records",
+  "Clean router indexes and RADIUS tenant configuration",
+  "Drop the tenant database schema",
+  "Return to the tenant list",
+]
 
 // ━━━━━━━━━━━━━━━ Helpers ━━━━━━━━━━━━━━━
 
@@ -100,7 +109,9 @@ export default function TenantDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState("")
-  const [deletionJob, setDeletionJob] = useState<TenantDeletionJob | null>(null)
+  const [hardDeleteStep, setHardDeleteStep] = useState(0)
+  const [hardDeleteError, setHardDeleteError] = useState("")
+  const [hardDeleteComplete, setHardDeleteComplete] = useState(false)
   const [impersonating, setImpersonating] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -130,33 +141,11 @@ export default function TenantDetailPage() {
   useEffect(() => {
     if (!confirmDelete) {
       setDeleteConfirmation("")
-      setDeletionJob(null)
+      setHardDeleteStep(0)
+      setHardDeleteError("")
+      setHardDeleteComplete(false)
     }
   }, [confirmDelete])
-
-  useEffect(() => {
-    if (!deletionJob || deletionJob.status === "completed" || deletionJob.status === "failed") {
-      return
-    }
-
-    const interval = setInterval(async () => {
-      try {
-        const nextJob = await superadminApi.getTenantDeletionJob(deletionJob.id)
-        setDeletionJob(nextJob)
-
-        if (nextJob.status === "completed") {
-          toast.success("Tenant permanently deleted")
-          router.push("/superadmin/tenants")
-        } else if (nextJob.status === "failed") {
-          toast.error(nextJob.error_message || "Delete failed")
-        }
-      } catch (err: any) {
-        toast.error(err.message || "Failed to refresh deletion status")
-      }
-    }, 2000)
-
-    return () => clearInterval(interval)
-  }, [deletionJob, router])
 
   const handleSave = async () => {
     setSaving(true)
@@ -181,11 +170,24 @@ export default function TenantDetailPage() {
 
   const handleDelete = async () => {
     setDeleting(true)
+    setHardDeleteStep(0)
+    setHardDeleteError("")
+    setHardDeleteComplete(false)
+
+    const progressTimer = window.setInterval(() => {
+      setHardDeleteStep((step) => Math.min(step + 1, HARD_DELETE_STEPS.length - 2))
+    }, 700)
+
     try {
-      const job = await superadminApi.requestTenantDeletion(id, deleteConfirmation)
-      setDeletionJob(job)
-      toast.success("Tenant deletion queued")
+      await superadminApi.hardDeleteTenant(id, deleteConfirmation)
+      window.clearInterval(progressTimer)
+      setHardDeleteStep(HARD_DELETE_STEPS.length - 1)
+      setHardDeleteComplete(true)
+      toast.success("Tenant permanently deleted")
+      window.setTimeout(() => router.push("/superadmin/tenants"), 800)
     } catch (err: any) {
+      window.clearInterval(progressTimer)
+      setHardDeleteError(err.message || "Delete failed")
       toast.error(err.message || "Delete failed")
     } finally {
       setDeleting(false)
@@ -231,7 +233,6 @@ export default function TenantDetailPage() {
     "Unknown"
   const deleteTargetName = tenant?.company_name || ""
   const deleteMatch = deleteConfirmation.trim() === deleteTargetName.trim()
-  const deletionProgress = deletionJob?.progress_percent ?? 0
 
   if (loading || !tenant) {
     return (
@@ -554,59 +555,101 @@ export default function TenantDetailPage() {
       </Tabs>
 
       {/* Delete confirmation */}
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+      <AlertDialog
+        open={confirmDelete}
+        onOpenChange={(open) => {
+          if (deleting) return
+          setConfirmDelete(open)
+        }}
+      >
         <AlertDialogContent className="bg-slate-900 border-slate-700 text-white">
           <AlertDialogHeader>
             <AlertDialogTitle>Permanently Delete Tenant?</AlertDialogTitle>
             <AlertDialogDescription className="text-slate-400">
-              {deletionJob ? (
-                <div className="space-y-4 pt-2">
+              <div className="space-y-4 pt-2">
+                <p>
+                  This will <span className="text-red-400 font-semibold">permanently delete</span>{" "}
+                  <strong className="text-white">{tenant.company_name}</strong> now. The request runs
+                  immediately, and you will be returned to the tenant list when cleanup is complete.
+                </p>
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-100">
+                  This removes subscription records, users, domains, router/RADIUS indexes, tenant and
+                  company records, then drops the tenant schema. This cannot be undone.
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="delete-confirm-tenant" className="text-slate-200">
+                    Type <span className="font-semibold text-white">{deleteTargetName}</span> to confirm
+                  </Label>
+                  <Input
+                    id="delete-confirm-tenant"
+                    value={deleteConfirmation}
+                    onChange={(e) => setDeleteConfirmation(e.target.value)}
+                    placeholder={deleteTargetName}
+                    className="border-slate-700 bg-slate-950 text-white"
+                    disabled={deleting || hardDeleteComplete}
+                  />
+                </div>
+                {(deleting || hardDeleteComplete || hardDeleteError) && (
                   <div className="rounded-2xl border border-slate-700 bg-slate-950/70 p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-white">{deletionJob.status_message}</p>
-                        <p className="mt-1 text-xs text-slate-400">
-                          Step: {deletionJob.current_step.replaceAll("_", " ")}
-                        </p>
-                      </div>
-                      <span className="text-sm font-semibold text-blue-300">{deletionProgress}%</span>
+                      <p className="text-sm font-semibold text-white">
+                        {hardDeleteError
+                          ? "Hard delete needs attention"
+                          : hardDeleteComplete
+                          ? "Hard delete completed"
+                          : "Hard delete running"}
+                      </p>
+                      <span className="text-sm font-semibold text-blue-300">
+                        {Math.round(((hardDeleteStep + 1) / HARD_DELETE_STEPS.length) * 100)}%
+                      </span>
                     </div>
                     <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
                       <div
-                        className={`h-full rounded-full transition-all ${
-                          deletionJob.status === "failed" ? "bg-red-500" : "bg-blue-500"
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          hardDeleteError ? "bg-red-500" : "bg-blue-500"
                         }`}
-                        style={{ width: `${deletionProgress}%` }}
+                        style={{
+                          width: `${Math.round(((hardDeleteStep + 1) / HARD_DELETE_STEPS.length) * 100)}%`,
+                        }}
                       />
                     </div>
-                    {deletionJob.error_message ? (
-                      <p className="mt-3 text-xs text-red-300">{deletionJob.error_message}</p>
+                    <div className="mt-4 space-y-2">
+                      {HARD_DELETE_STEPS.map((step, index) => {
+                        const isDone = hardDeleteComplete || index < hardDeleteStep
+                        const isActive = !hardDeleteComplete && !hardDeleteError && index === hardDeleteStep
+                        const isFailed = hardDeleteError && index === hardDeleteStep
+                        return (
+                          <div key={step} className="flex items-start gap-2 text-xs">
+                            <span
+                              className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                                isFailed
+                                  ? "border-red-400 bg-red-500/20 text-red-200"
+                                  : isDone
+                                  ? "border-emerald-400 bg-emerald-500/20 text-emerald-200"
+                                  : isActive
+                                  ? "border-blue-400 bg-blue-500/20 text-blue-200"
+                                  : "border-slate-600 text-slate-500"
+                              }`}
+                            >
+                              {isActive ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : isDone ? (
+                                <CheckCircle2 className="h-3 w-3" />
+                              ) : null}
+                            </span>
+                            <span className={isDone || isActive ? "text-slate-100" : "text-slate-500"}>
+                              {step}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {hardDeleteError ? (
+                      <p className="mt-3 text-xs text-red-300">{hardDeleteError}</p>
                     ) : null}
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-4 pt-2">
-                  <p>
-                    This will <span className="text-red-400 font-semibold">irreversibly destroy</span>{" "}
-                    the database schema and all data for <strong className="text-white">{tenant.company_name}</strong>.
-                  </p>
-                  <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-100">
-                    Access will be revoked immediately before storage, router indexes, shared integrations, and schema data are removed in the background.
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="delete-confirm-tenant" className="text-slate-200">
-                      Type <span className="font-semibold text-white">{deleteTargetName}</span> to confirm
-                    </Label>
-                    <Input
-                      id="delete-confirm-tenant"
-                      value={deleteConfirmation}
-                      onChange={(e) => setDeleteConfirmation(e.target.value)}
-                      placeholder={deleteTargetName}
-                      className="border-slate-700 bg-slate-950 text-white"
-                    />
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -614,22 +657,17 @@ export default function TenantDetailPage() {
               variant="outline"
               className="bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white"
               onClick={() => setConfirmDelete(false)}
+              disabled={deleting}
             >
-              {deletionJob ? "Hide" : "Cancel"}
+              Cancel
             </Button>
             <Button
               onClick={handleDelete}
-              disabled={deleting || !deleteMatch || deletionJob?.status === "queued" || deletionJob?.status === "running"}
+              disabled={deleting || hardDeleteComplete || !deleteMatch}
               className="bg-red-600 hover:bg-red-500 text-white"
             >
               {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              {deletionJob
-                ? deletionJob.status === "failed"
-                  ? "Deletion Failed"
-                  : deletionJob.status === "completed"
-                  ? "Deleted"
-                  : "Deletion Running"
-                : "Queue Permanent Delete"}
+              {hardDeleteComplete ? "Deleted" : deleting ? "Deleting Now" : "Delete Now"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

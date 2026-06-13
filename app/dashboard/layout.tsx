@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { motion } from "framer-motion"
 import { useAuth } from "@/app/auth-context"
 import { Button } from "@/components/ui/button"
 import { PageTransition, AnimatedNavItem } from "@/components/page-transition"
@@ -119,14 +120,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <Link
                     href={item.href}
                     onClick={() => setIsSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    className={`relative flex items-center gap-3 overflow-hidden px-4 py-3 rounded-lg transition-colors ${
                       isActive
-                        ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 font-medium"
+                        ? "text-white font-medium"
                         : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                     }`}
                   >
-                    <Icon className="w-5 h-5" />
-                    {item.label}
+                    {isActive && (
+                      <motion.span
+                        layoutId="dashboard-active-nav"
+                        className="absolute inset-0 rounded-lg bg-blue-600 shadow-sm"
+                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                      />
+                    )}
+                    <Icon className="relative z-10 w-5 h-5" />
+                    <span className="relative z-10">{item.label}</span>
                   </Link>
                 </AnimatedNavItem>
               )

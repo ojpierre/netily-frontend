@@ -160,6 +160,21 @@ export interface TenantDeletionJob {
   finished_at: string | null
 }
 
+export interface TenantHardDeleteResult {
+  detail: string
+  purge_summary: {
+    tenant_pk: string
+    schema_name: string
+    subdomain: string
+    company_name: string
+    rows_deleted: Record<string, number | boolean>
+    integrations_cleaned: Record<string, number>
+    schema_dropped: boolean
+    schema_drop_error: string
+    warnings: string[]
+  }
+}
+
 export interface PlatformUser {
   id: number
   email: string
@@ -705,6 +720,13 @@ class SuperadminApiService {
   async requestTenantDeletion(id: string, confirmationName: string): Promise<TenantDeletionJob> {
     return this.request(`/superadmin/tenants/${id}/delete-request/`, {
       method: "POST",
+      body: JSON.stringify({ confirmation_name: confirmationName }),
+    })
+  }
+
+  async hardDeleteTenant(id: string, confirmationName: string): Promise<TenantHardDeleteResult> {
+    return this.request(`/superadmin/tenants/${id}/hard-delete/`, {
+      method: "DELETE",
       body: JSON.stringify({ confirmation_name: confirmationName }),
     })
   }

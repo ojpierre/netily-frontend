@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { motion } from "framer-motion"
 import { MjengoFooter } from "@/components/mjengo-footer"
 import {
   LayoutDashboard,
@@ -363,16 +364,23 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                       <AnimatedNavItem key={item.name} isActive={isActive}>
                         <Link
                           href={item.href}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                          className={`relative flex items-center gap-3 overflow-hidden px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
                             isActive
-                              ? "bg-blue-600 text-white shadow-sm"
+                              ? "text-white shadow-sm"
                               : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
                           }`}
                           title={sidebarCollapsed ? item.name : undefined}
                         >
-                          <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
+                          {isActive && (
+                            <motion.span
+                              layoutId="admin-active-nav"
+                              className="absolute inset-0 rounded-lg bg-blue-600"
+                              transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                            />
+                          )}
+                          <item.icon className="relative z-10 w-[18px] h-[18px] flex-shrink-0" />
                           {!sidebarCollapsed && (
-                            <span className="font-medium">{item.name}</span>
+                            <span className="relative z-10 font-medium">{item.name}</span>
                           )}
                         </Link>
                       </AnimatedNavItem>
@@ -397,16 +405,23 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   <AnimatedNavItem key={item.name} isActive={isActive}>
                     <Link
                       href={item.href}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                      className={`relative flex items-center gap-3 overflow-hidden px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
                         isActive
-                          ? "bg-blue-600 text-white shadow-sm"
+                          ? "text-white shadow-sm"
                           : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
                       }`}
                       title={sidebarCollapsed ? item.name : undefined}
                     >
-                      <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
+                      {isActive && (
+                        <motion.span
+                          layoutId="admin-active-nav"
+                          className="absolute inset-0 rounded-lg bg-blue-600"
+                          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                        />
+                      )}
+                      <item.icon className="relative z-10 w-[18px] h-[18px] flex-shrink-0" />
                       {!sidebarCollapsed && (
-                        <span className="font-medium">{item.name}</span>
+                        <span className="relative z-10 font-medium">{item.name}</span>
                       )}
                     </Link>
                   </AnimatedNavItem>
