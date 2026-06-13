@@ -962,79 +962,87 @@ export default function RouterDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Stats Cards */}
+      {/* Premium Stats Cards - Redesigned */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* REPLACED: Active Users Card with Total Income Card */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <DollarSign className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-green-700">
-                  {routerIncome !== null
-                    ? `KES ${routerIncome.toLocaleString('en-KE', { minimumFractionDigits: 0 })}`
-                    : '—'}
-                </p>
-                <p className="text-xs text-slate-500">Total Income</p>
-              </div>
+        {/* Total Income Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 group hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300">
+          <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(circle at 80% -20%, rgba(16,185,129,0.18), transparent 60%)' }} />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 opacity-80" />
+          <div className="relative flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Total Income</p>
+              <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none">
+                {routerIncome !== null
+                  ? `KES ${routerIncome.toLocaleString('en-KE', { minimumFractionDigits: 0 })}`
+                  : '—'}
+              </p>
+              <p className="text-xs text-slate-400 mt-1.5">All time earnings</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-lg shadow-emerald-500/25">
+              <DollarSign className="w-5 h-5 text-white" />
+            </div>
+          </div>
+        </div>
 
-        {/* Fix 2c: Updated Uptime card to use live status data */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-100 rounded-lg">
-                <Clock className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-lg font-bold">
-                  {liveStatusData?.uptime || routerData.uptime || "N/A"}
-                </p>
-                <p className="text-xs text-slate-500">Uptime</p>
-              </div>
+        {/* Uptime Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 group hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300">
+          <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(circle at 80% -20%, rgba(59,130,246,0.15), transparent 60%)' }} />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 opacity-80" />
+          <div className="relative flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Uptime</p>
+              <p className="text-2xl font-extrabold text-slate-900 dark:text-white leading-none">
+                {liveStatusData?.uptime || routerData.uptime || 'N/A'}
+              </p>
+              <p className="text-xs text-slate-400 mt-1.5">Since last reboot</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/25">
+              <Clock className="w-5 h-5 text-white" />
+            </div>
+          </div>
+        </div>
 
-        {/* Fix 2c: Updated SLA card to show formatted value */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Shield className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {routerData.uptime_percentage && routerData.uptime_percentage > 0
-                    ? `${Number(routerData.uptime_percentage).toFixed(1)}%`
-                    : routerData.status === 'online' ? '✓' : '—'
-                  }
-                </p>
-                <p className="text-xs text-slate-500">
-                  SLA target: {routerData.sla_target || 99}%
-                </p>
-              </div>
+        {/* SLA Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 group hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300">
+          <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(circle at 80% -20%, rgba(139,92,246,0.15), transparent 60%)' }} />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-400 via-violet-400 to-fuchsia-400 opacity-80" />
+          <div className="relative flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">SLA</p>
+              <p className={`text-2xl font-extrabold leading-none ${
+                routerData.uptime_percentage && routerData.uptime_percentage >= (routerData.sla_target || 99)
+                  ? 'text-purple-600 dark:text-purple-400'
+                  : 'text-red-600 dark:text-red-400'
+              }`}>
+                {routerData.uptime_percentage && routerData.uptime_percentage > 0
+                  ? `${Number(routerData.uptime_percentage).toFixed(1)}%`
+                  : routerData.status === 'online' ? '✓' : '—'}
+              </p>
+              <p className="text-xs text-slate-400 mt-1.5">Target: {routerData.sla_target || 99}%</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-400 to-violet-500 shadow-lg shadow-purple-500/25">
+              <Shield className="w-5 h-5 text-white" />
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <Activity className="w-5 h-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-lg font-bold">{routerData.metrics?.active_connections || 0}</p>
-                <p className="text-xs text-slate-500">Connections</p>
-              </div>
+        {/* Connections Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 group hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300">
+          <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(circle at 80% -20%, rgba(245,158,11,0.15), transparent 60%)' }} />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400 opacity-80" />
+          <div className="relative flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Connections</p>
+              <p className="text-2xl font-extrabold text-slate-900 dark:text-white leading-none">
+                {routerData.metrics?.active_connections || 0}
+              </p>
+              <p className="text-xs text-slate-400 mt-1.5">Active right now</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/25">
+              <Activity className="w-5 h-5 text-white" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}

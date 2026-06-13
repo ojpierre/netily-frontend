@@ -10,29 +10,23 @@ import {
   Server,
   Wifi,
   Activity,
-  Thermometer,
   CheckCircle,
   XCircle,
+  Zap,
+  Thermometer,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
-import type { RouterLiveStatus, RouterSystemHealth } from "@/lib/types"
+import type { RouterLiveStatus } from "@/lib/types"
 
 interface RouterOverviewTabProps {
   routerId: number
   isDemo?: boolean
 }
 
-// Demo data
 const DEMO_LIVE_STATUS: RouterLiveStatus = {
   online: true,
   identity: "MikroTik-Gateway",
@@ -47,134 +41,44 @@ const DEMO_LIVE_STATUS: RouterLiveStatus = {
   architecture: "arm",
 }
 
-// ── Premium Gauge Card ────────────────────────────────────────────────────────
-function PremiumGaugeCard({
-  title,
-  value,
-  icon: Icon,
-  detail,
-}: {
-  title: string
-  value: number
-  icon: React.ComponentType<{ className?: string }>
-  detail?: string
-}) {
-  const clampedValue = Math.min(100, Math.max(0, value))
-
-  const theme = clampedValue >= 85
-    ? { color: "#ef4444", shadow: "shadow-red-500/20", badge: "bg-red-100 text-red-700 border-red-200", label: "Critical", bar: "bg-red-500", ring: "text-red-500", glow: "bg-red-500/10" }
-    : clampedValue >= 65
-    ? { color: "#f59e0b", shadow: "shadow-amber-500/20", badge: "bg-amber-100 text-amber-700 border-amber-200", label: "High", bar: "bg-amber-500", ring: "text-amber-500", glow: "bg-amber-500/10" }
-    : { color: "#3b82f6", shadow: "shadow-blue-500/20", badge: "bg-blue-100 text-blue-700 border-blue-200", label: "Normal", bar: "bg-blue-500", ring: "text-blue-500", glow: "bg-blue-500/10" }
-
-  const R = 44
+function ArcGauge({ value, color, size = 120 }: { value: number; color: string; size?: number }) {
+  const R = size * 0.38
   const circ = 2 * Math.PI * R
-  const dash = (clampedValue / 100) * circ
+  const clamped = Math.min(100, Math.max(0, value))
+  const dash = (clamped / 100) * circ
+  const cx = size / 2
+  const cy = size / 2
+
+  const colorMap: Record<string, { stroke: string; glow: string; text: string }> = {
+    blue:   { stroke: '#3b82f6', glow: 'rgba(59,130,246,0.2)',   text: 'text-blue-600 dark:text-blue-400' },
+    purple: { stroke: '#8b5cf6', glow: 'rgba(139,92,246,0.2)',   text: 'text-purple-600 dark:text-purple-400' },
+    emerald:{ stroke: '#10b981', glow: 'rgba(16,185,129,0.2)',   text: 'text-emerald-600 dark:text-emerald-400' },
+    amber:  { stroke: '#f59e0b', glow: 'rgba(245,158,11,0.2)',   text: 'text-amber-600 dark:text-amber-400' },
+    red:    { stroke: '#ef4444', glow: 'rgba(239,68,68,0.2)',    text: 'text-red-600 dark:text-red-400' },
+  }
+
+  const activeColor = value >= 85 ? 'red' : value >= 65 ? 'amber' : color
+  const c = colorMap[activeColor] || colorMap.blue
 
   return (
-    <div className={`rounded-2xl border bg-white shadow-lg ${theme.shadow} overflow-hidden`}>
-      {/* Gradient accent strip */}
-      <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${theme.color}88, ${theme.color})` }} />
-
-      <div className="p-5">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className={`p-1.5 rounded-lg ${theme.glow}`}>
-              <Icon className={`w-4 h-4 ${theme.ring}`} />
-            </div>
-            <span className="font-semibold text-slate-700 text-sm">{title}</span>
-          </div>
-          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${theme.badge}`}>
-            {theme.label}
-          </span>
-        </div>
-
-        {/* Gauge + stats row */}
-        <div className="flex items-center gap-5">
-          {/* SVG Arc Gauge */}
-          <div className="relative flex-shrink-0 w-[100px] h-[100px]">
-            {/* Subtle glow ring */}
-            <div className={`absolute inset-2 rounded-full blur-xl opacity-30 ${theme.glow}`} />
-            <svg width="100" height="100" className="relative -rotate-90">
-              {/* Track */}
-              <circle cx="50" cy="50" r={R} fill="none" stroke="#f1f5f9" strokeWidth="10" />
-              {/* Progress */}
-              <circle
-                cx="50" cy="50" r={R}
-                fill="none"
-                stroke={theme.color}
-                strokeWidth="10"
-                strokeDasharray={`${dash} ${circ}`}
-                strokeLinecap="round"
-                style={{ transition: "stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)" }}
-              />
-              {/* Inner glow ring */}
-              <circle
-                cx="50" cy="50" r={R}
-                fill="none"
-                stroke={theme.color}
-                strokeWidth="2"
-                strokeDasharray={`${dash} ${circ}`}
-                strokeLinecap="round"
-                opacity="0.3"
-                style={{ transition: "stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)" }}
-              />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl font-bold text-slate-800 leading-none">
-                {Math.round(clampedValue)}
-              </span>
-              <span className="text-[11px] text-slate-400 font-medium">%</span>
-            </div>
-          </div>
-
-          {/* Right side info */}
-          <div className="flex-1 min-w-0 space-y-3">
-            {/* Large percent echo */}
-            <div>
-              <div className="text-3xl font-black text-slate-800 leading-none">
-                {Math.round(clampedValue)}<span className="text-lg font-normal text-slate-400">%</span>
-              </div>
-              {detail && <p className="text-xs text-slate-400 mt-0.5 truncate">{detail}</p>}
-            </div>
-
-            {/* Segmented bar */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[10px] text-slate-400">
-                <span>0%</span>
-                <span>50%</span>
-                <span>100%</span>
-              </div>
-              <div className="relative h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                {/* Tick marks */}
-                <div className="absolute inset-0 flex">
-                  {[25, 50, 75].map(tick => (
-                    <div key={tick} className="absolute top-0 bottom-0 w-px bg-white/60" style={{ left: `${tick}%` }} />
-                  ))}
-                </div>
-                <div
-                  className={`h-full rounded-full ${theme.bar} transition-all duration-700 ease-out`}
-                  style={{ width: `${clampedValue}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Threshold indicators */}
-            <div className="flex gap-2">
-              {[
-                { label: "OK", max: 65, color: "bg-blue-400" },
-                { label: "High", max: 85, color: "bg-amber-400" },
-                { label: "Crit", max: 100, color: "bg-red-400" },
-              ].map(({ label, color }) => (
-                <div key={label} className="flex items-center gap-1">
-                  <div className={`w-1.5 h-1.5 rounded-full ${color}`} />
-                  <span className="text-[10px] text-slate-400">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={cx} cy={cy} r={R} fill="none" stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeWidth={size * 0.083} />
+        <circle
+          cx={cx} cy={cy} r={R}
+          fill="none"
+          stroke={c.stroke}
+          strokeWidth={size * 0.083}
+          strokeDasharray={`${dash} ${circ}`}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)', filter: `drop-shadow(0 0 6px ${c.glow})` }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`font-extrabold leading-none ${size >= 120 ? 'text-2xl' : 'text-xl'} text-slate-900 dark:text-white`}>
+          {Math.round(clamped)}
+        </span>
+        <span className="text-xs text-slate-400 font-medium">%</span>
       </div>
     </div>
   )
@@ -207,18 +111,16 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
 
   useEffect(() => {
     fetchLiveStatus()
-    
-    // Auto-refresh every 30 seconds
     const interval = setInterval(fetchLiveStatus, 30000)
     return () => clearInterval(interval)
   }, [fetchLiveStatus])
 
-  const handleRefresh = () => {
-    setIsRefreshing(true)
-    fetchLiveStatus()
+  const parseCpuLoad = (load: string | number | undefined | null) => {
+    if (load === undefined || load === null) return 0
+    if (typeof load === 'number') return Math.round(load)
+    return parseInt(String(load).replace('%', '')) || 0
   }
 
-  // Parse memory values
   const parseMemory = (free: string, total: string) => {
     const freeNum = parseInt(free) || 0
     const totalNum = parseInt(total) || 1
@@ -228,177 +130,192 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
     return { usedPercent, freeMB, totalMB }
   }
 
-  // Parse CPU load - handles string, number, or undefined
-  const parseCpuLoad = (load: string | number | undefined | null) => {
-    if (load === undefined || load === null) return 0
-    if (typeof load === 'number') return Math.round(load)
-    if (typeof load === 'string') return parseInt(load.replace('%', '')) || 0
-    return 0
-  }
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-full border-2 border-blue-500/30 border-t-blue-500 animate-spin" />
+          <p className="text-sm text-slate-400">Connecting to router…</p>
+        </div>
       </div>
     )
   }
 
   if (!liveStatus) {
     return (
-      <Card>
-        <CardContent className="p-6 text-center">
-          <XCircle className="w-12 h-12 mx-auto text-red-500 mb-2" />
-          <p className="text-lg font-medium">Unable to connect to router</p>
-          <p className="text-sm text-slate-500 mb-4">
-            The router may be offline or API credentials are invalid
-          </p>
-          <Button onClick={handleRefresh}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+          <XCircle className="w-8 h-8 text-red-500" />
+        </div>
+        <p className="text-lg font-semibold text-slate-900 dark:text-white">Unable to connect</p>
+        <p className="text-sm text-slate-400">Router may be offline or credentials invalid</p>
+        <Button onClick={() => { setIsRefreshing(true); fetchLiveStatus() }} variant="outline" className="rounded-xl">
+          <RefreshCw className="w-4 h-4 mr-2" /> Retry
+        </Button>
+      </div>
     )
   }
 
   const memory = parseMemory(liveStatus.free_memory, liveStatus.total_memory)
   const cpuLoad = parseCpuLoad(liveStatus.cpu_load)
+  const hddFree = (parseInt(liveStatus.free_hdd) / 1024 / 1024).toFixed(1)
+
+  const cpuColor = cpuLoad >= 85 ? 'red' : cpuLoad >= 65 ? 'amber' : 'blue'
+  const memColor = memory.usedPercent >= 85 ? 'red' : memory.usedPercent >= 65 ? 'amber' : 'purple'
 
   return (
     <div className="space-y-6">
-      {/* Header with refresh */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Badge variant={liveStatus.online ? "default" : "destructive"} className="gap-1">
-            {liveStatus.online ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-            {liveStatus.online ? "Online" : "Offline"}
-          </Badge>
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold border ${
+            liveStatus.online
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
+              : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${liveStatus.online ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+            {liveStatus.online ? 'Online' : 'Offline'}
+          </div>
           {lastUpdated && (
-            <span className="text-xs text-slate-500">
-              Last updated: {lastUpdated.toLocaleTimeString()}
-            </span>
+            <span className="text-xs text-slate-400">Updated {lastUpdated.toLocaleTimeString()}</span>
           )}
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+        <Button variant="outline" size="sm" onClick={() => { setIsRefreshing(true); fetchLiveStatus() }} disabled={isRefreshing} className="rounded-xl">
           <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
 
-      {/* System Info Cards */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
+      {/* Identity Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { icon: Server,      label: 'Identity',    value: liveStatus.identity,    color: 'from-blue-400 to-indigo-500',   shadow: 'shadow-blue-500/25' },
+          { icon: Wifi,        label: 'Model',       value: liveStatus.model,       color: 'from-purple-400 to-violet-500', shadow: 'shadow-purple-500/25' },
+          { icon: Zap,         label: 'Firmware',    value: liveStatus.firmware,    color: 'from-emerald-400 to-teal-500',  shadow: 'shadow-emerald-500/25' },
+          { icon: Clock,       label: 'Uptime',      value: liveStatus.uptime,      color: 'from-amber-400 to-orange-500',  shadow: 'shadow-amber-500/25' },
+        ].map(({ icon: Icon, label, value, color, shadow }) => (
+          <div key={label} className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Server className="w-5 h-5 text-blue-600" />
+              <div className={`p-2 rounded-xl bg-gradient-to-br ${color} shadow-lg ${shadow} flex-shrink-0`}>
+                <Icon className="w-4 h-4 text-white" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-slate-500">Identity</p>
-                <p className="font-medium truncate">{liveStatus.identity}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Wifi className="w-5 h-5 text-purple-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-slate-500">Model</p>
-                <p className="font-medium truncate">{liveStatus.model}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Activity className="w-5 h-5 text-green-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-slate-500">Firmware</p>
-                <p className="font-medium truncate">{liveStatus.firmware}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <Clock className="w-5 h-5 text-amber-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-slate-500">Uptime</p>
-                <p className="font-medium">{liveStatus.uptime}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Premium Resource Usage */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <PremiumGaugeCard
-          title="CPU Usage"
-          value={cpuLoad}
-          icon={Cpu}
-          detail={`${cpuLoad}% utilization`}
-        />
-        <PremiumGaugeCard
-          title="Memory Usage"
-          value={memory.usedPercent}
-          icon={HardDrive}
-          detail={`${memory.freeMB} MB free of ${memory.totalMB} MB`}
-        />
-      </div>
-
-      {/* Additional Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle>System Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <p className="text-sm text-slate-500">Serial Number</p>
-              <p className="font-mono text-sm">{liveStatus.serial}</p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Architecture</p>
-              <p className="capitalize">{liveStatus.architecture}</p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Free HDD</p>
-              <p>{(parseInt(liveStatus.free_hdd) / 1024 / 1024).toFixed(1)} MB</p>
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Status</p>
-              <div className="flex items-center gap-1">
-                {liveStatus.online ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span className="text-green-600">Connected</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-4 h-4 text-red-500" />
-                    <span className="text-red-600">Disconnected</span>
-                  </>
-                )}
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{label}</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate mt-0.5">{value}</p>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        ))}
+      </div>
+
+      {/* Resource Gauges */}
+      <div className="grid md:grid-cols-2 gap-5">
+        {/* CPU */}
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+          <div className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(circle at 90% -10%, ${cpuLoad >= 85 ? 'rgba(239,68,68,0.2)' : cpuLoad >= 65 ? 'rgba(245,158,11,0.2)' : 'rgba(59,130,246,0.15)'}, transparent 60%)` }} />
+          <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${cpuLoad >= 85 ? 'from-red-400 to-rose-500' : cpuLoad >= 65 ? 'from-amber-400 to-orange-500' : 'from-blue-400 to-indigo-500'}`} />
+          <div className="relative flex items-center gap-6">
+            <ArcGauge value={cpuLoad} color={cpuColor} size={120} />
+            <div className="flex-1 space-y-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className={`p-1.5 rounded-lg bg-gradient-to-br ${cpuLoad >= 85 ? 'from-red-400 to-rose-500' : cpuLoad >= 65 ? 'from-amber-400 to-orange-500' : 'from-blue-400 to-indigo-500'}`}>
+                    <Cpu className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">CPU Usage</p>
+                </div>
+                <p className="text-xs text-slate-400">{cpuLoad}% utilization</p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px] text-slate-400 font-medium">
+                  <span>0%</span><span>50%</span><span>100%</span>
+                </div>
+                <div className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${cpuLoad >= 85 ? 'bg-gradient-to-r from-red-400 to-rose-500' : cpuLoad >= 65 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-blue-400 to-indigo-500'}`}
+                    style={{ width: `${cpuLoad}%` }}
+                  />
+                </div>
+                <div className="flex gap-3">
+                  {[{ label: 'Normal', dot: 'bg-blue-400' }, { label: 'High', dot: 'bg-amber-400' }, { label: 'Critical', dot: 'bg-red-400' }].map(t => (
+                    <div key={t.label} className="flex items-center gap-1">
+                      <div className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />
+                      <span className="text-[10px] text-slate-400">{t.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Memory */}
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+          <div className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(circle at 90% -10%, ${memory.usedPercent >= 85 ? 'rgba(239,68,68,0.2)' : memory.usedPercent >= 65 ? 'rgba(245,158,11,0.2)' : 'rgba(139,92,246,0.15)'}, transparent 60%)` }} />
+          <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${memory.usedPercent >= 85 ? 'from-red-400 to-rose-500' : memory.usedPercent >= 65 ? 'from-amber-400 to-orange-500' : 'from-purple-400 to-violet-500'}`} />
+          <div className="relative flex items-center gap-6">
+            <ArcGauge value={memory.usedPercent} color={memColor} size={120} />
+            <div className="flex-1 space-y-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className={`p-1.5 rounded-lg bg-gradient-to-br ${memory.usedPercent >= 85 ? 'from-red-400 to-rose-500' : memory.usedPercent >= 65 ? 'from-amber-400 to-orange-500' : 'from-purple-400 to-violet-500'}`}>
+                    <HardDrive className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Memory Usage</p>
+                </div>
+                <p className="text-xs text-slate-400">{memory.freeMB} MB free of {memory.totalMB} MB</p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px] text-slate-400 font-medium">
+                  <span>0%</span><span>50%</span><span>100%</span>
+                </div>
+                <div className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${memory.usedPercent >= 85 ? 'bg-gradient-to-r from-red-400 to-rose-500' : memory.usedPercent >= 65 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-purple-400 to-violet-500'}`}
+                    style={{ width: `${Math.min(100, memory.usedPercent)}%` }}
+                  />
+                </div>
+                <div className="flex gap-3">
+                  {[{ label: 'Normal', dot: 'bg-purple-400' }, { label: 'High', dot: 'bg-amber-400' }, { label: 'Critical', dot: 'bg-red-400' }].map(t => (
+                    <div key={t.label} className="flex items-center gap-1">
+                      <div className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />
+                      <span className="text-[10px] text-slate-400">{t.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* System Details */}
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-slate-300 via-slate-400 to-slate-300 dark:from-slate-700 dark:via-slate-600 dark:to-slate-700" />
+        <p className="text-sm font-semibold text-slate-900 dark:text-white mb-5">System Details</p>
+        <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Serial Number', value: liveStatus.serial, mono: true },
+            { label: 'Architecture',  value: liveStatus.architecture, mono: false },
+            { label: 'Free Storage',  value: `${hddFree} MB`, mono: false },
+            { label: 'Status',        value: liveStatus.online ? 'Connected' : 'Disconnected', mono: false, isStatus: true, online: liveStatus.online },
+          ].map(({ label, value, mono, isStatus, online }) => (
+            <div key={label} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">{label}</p>
+              {isStatus ? (
+                <div className="flex items-center gap-1.5">
+                  {online
+                    ? <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    : <XCircle className="w-4 h-4 text-red-500" />}
+                  <span className={`text-sm font-semibold ${online ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{value}</span>
+                </div>
+              ) : (
+                <p className={`text-sm font-semibold text-slate-900 dark:text-white capitalize ${mono ? 'font-mono' : ''}`}>{value}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
