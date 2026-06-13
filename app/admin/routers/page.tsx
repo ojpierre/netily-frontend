@@ -430,90 +430,92 @@ export default function RoutersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Router Management</h1>
-          <p className="text-slate-500 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+            Router Management
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
             Monitor and manage network access servers
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing} className="rounded-xl">
             <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Button onClick={() => setIsAddDialogOpen(true)} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
             <Plus className="w-4 h-4 mr-2" />
             Add Router
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards - Redesigned with 5 cards */}
+      {/* Stats Cards - Glassmorphism redesign */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Card>
+        <Card className="bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-slate-100 rounded-lg">
-                <Server className="w-5 h-5 text-slate-600" />
+              <div className="p-2 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-xl">
+                <Server className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{localStats.total_routers}</p>
-                <p className="text-xs text-slate-500">Total Routers</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">{localStats.total_routers}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Routers</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+              <div className="p-2 bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-500/20 dark:to-emerald-500/10 rounded-xl">
+                <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-green-600">{localStats.online_routers}</p>
-                <p className="text-xs text-slate-500">Online</p>
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{localStats.online_routers}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Online</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <XCircle className="w-5 h-5 text-red-600" />
+              <div className="p-2 bg-gradient-to-br from-red-100 to-red-200 dark:from-red-500/20 dark:to-red-500/10 rounded-xl">
+                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-red-600">{localStats.offline_routers}</p>
-                <p className="text-xs text-slate-500">Offline</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{localStats.offline_routers}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Offline</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-100 rounded-lg">
-                <Activity className="w-5 h-5 text-emerald-600" />
+              <div className="p-2 bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-500/20 dark:to-emerald-500/10 rounded-xl">
+                <Activity className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-emerald-600">{Number(localStats.average_uptime || 0).toFixed(1)}%</p>
-                <p className="text-xs text-slate-500">Avg Uptime</p>
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{Number(localStats.average_uptime || 0).toFixed(1)}%</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Avg Uptime</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Shield className="w-5 h-5 text-purple-600" />
+              <div className="p-2 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-500/20 dark:to-purple-500/10 rounded-xl">
+                <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-purple-600">{localStats.below_sla_count}</p>
-                <p className="text-xs text-slate-500">Below SLA</p>
+                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{localStats.below_sla_count}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Below SLA</p>
               </div>
             </div>
           </CardContent>
@@ -528,11 +530,11 @@ export default function RoutersPage() {
             placeholder="Search routers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="pl-9 rounded-xl border-slate-200 dark:border-slate-800"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-40">
+          <SelectTrigger className="w-full sm:w-40 rounded-xl">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -544,7 +546,7 @@ export default function RoutersPage() {
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-full sm:w-40">
+          <SelectTrigger className="w-full sm:w-40 rounded-xl">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
@@ -559,49 +561,61 @@ export default function RoutersPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="grid" className="w-full">
-        <TabsList>
-          <TabsTrigger value="grid" className="flex items-center gap-2">
+        <TabsList className="rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
+          <TabsTrigger value="grid" className="flex items-center gap-2 rounded-lg data-[state=active]:shadow-md">
             <BarChart3 className="w-4 h-4" />
             Grid View
           </TabsTrigger>
-          <TabsTrigger value="table" className="flex items-center gap-2">
+          <TabsTrigger value="table" className="flex items-center gap-2 rounded-lg data-[state=active]:shadow-md">
             <Server className="w-4 h-4" />
             Table View
           </TabsTrigger>
         </TabsList>
 
-        {/* Grid View - Premium Redesign */}
+        {/* Grid View - Premium Glassmorphism Design */}
         <TabsContent value="grid" className="mt-4">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredRouters.map((r) => {
               const statusConfig = {
                 online: {
-                  ring: "ring-green-500/20",
-                  glow: "shadow-green-500/10",
-                  dot: "bg-green-500",
-                  accent: "from-green-500 to-emerald-400",
-                  badge: "bg-green-500/10 text-green-700 border-green-500/20",
+                  glow: "shadow-emerald-500/20",
+                  dot: "bg-emerald-500",
+                  dotRing: "ring-emerald-500/30",
+                  gradient: "from-emerald-400 via-teal-400 to-cyan-400",
+                  meshFrom: "rgba(16,185,129,0.15)",
+                  meshTo: "rgba(6,182,212,0.05)",
+                  badge: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20",
+                  textAccent: "text-emerald-600 dark:text-emerald-400",
                 },
                 offline: {
-                  ring: "ring-red-500/20",
-                  glow: "shadow-red-500/10",
+                  glow: "shadow-red-500/20",
                   dot: "bg-red-500",
-                  accent: "from-red-500 to-rose-400",
-                  badge: "bg-red-500/10 text-red-700 border-red-500/20",
+                  dotRing: "ring-red-500/30",
+                  gradient: "from-red-400 via-rose-400 to-pink-400",
+                  meshFrom: "rgba(239,68,68,0.15)",
+                  meshTo: "rgba(244,63,94,0.05)",
+                  badge: "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20",
+                  textAccent: "text-red-600 dark:text-red-400",
                 },
                 warning: {
-                  ring: "ring-amber-500/20",
-                  glow: "shadow-amber-500/10",
+                  glow: "shadow-amber-500/20",
                   dot: "bg-amber-500",
-                  accent: "from-amber-500 to-yellow-400",
-                  badge: "bg-amber-500/10 text-amber-700 border-amber-500/20",
+                  dotRing: "ring-amber-500/30",
+                  gradient: "from-amber-400 via-orange-400 to-yellow-400",
+                  meshFrom: "rgba(245,158,11,0.15)",
+                  meshTo: "rgba(251,191,36,0.05)",
+                  badge: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
+                  textAccent: "text-amber-600 dark:text-amber-400",
                 },
                 maintenance: {
-                  ring: "ring-blue-500/20",
-                  glow: "shadow-blue-500/10",
+                  glow: "shadow-blue-500/20",
                   dot: "bg-blue-500",
-                  accent: "from-blue-500 to-cyan-400",
-                  badge: "bg-blue-500/10 text-blue-700 border-blue-500/20",
+                  dotRing: "ring-blue-500/30",
+                  gradient: "from-blue-400 via-indigo-400 to-violet-400",
+                  meshFrom: "rgba(59,130,246,0.15)",
+                  meshTo: "rgba(139,92,246,0.05)",
+                  badge: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
+                  textAccent: "text-blue-600 dark:text-blue-400",
                 },
               }[r.status]
 
@@ -614,32 +628,52 @@ export default function RoutersPage() {
               return (
                 <Card
                   key={r.id}
-                  className={`group relative overflow-hidden cursor-pointer border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${statusConfig.glow} ring-1 ${statusConfig.ring}`}
+                  className={`group relative overflow-hidden cursor-pointer border border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm transition-all duration-500 hover:-translate-y-1.5 hover:shadow-2xl ${statusConfig.glow} rounded-2xl`}
                   onClick={() => router.push(`/admin/routers/${r.id}`)}
                 >
-                  {/* Top accent gradient bar */}
-                  <div className={`h-1 w-full bg-gradient-to-r ${statusConfig.accent}`} />
+                  {/* Animated gradient mesh background */}
+                  <div
+                    className="absolute inset-0 opacity-60 transition-opacity duration-500 group-hover:opacity-100"
+                    style={{
+                      background: `radial-gradient(circle at 85% -10%, ${statusConfig.meshFrom}, transparent 50%), radial-gradient(circle at -10% 110%, ${statusConfig.meshTo}, transparent 50%)`,
+                    }}
+                  />
 
-                  {/* Subtle corner glow */}
-                  <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full bg-gradient-to-br ${statusConfig.accent} opacity-[0.07] blur-2xl group-hover:opacity-[0.12] transition-opacity`} />
+                  {/* Fine grid texture overlay */}
+                  <div
+                    className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+                    style={{
+                      backgroundImage: `linear-gradient(rgba(0,0,0,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,1) 1px, transparent 1px)`,
+                      backgroundSize: '24px 24px',
+                    }}
+                  />
 
-                  <CardHeader className="pb-3">
+                  {/* Top gradient line — animates on hover */}
+                  <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${statusConfig.gradient} opacity-70 group-hover:opacity-100 transition-opacity`} />
+
+                  <CardHeader className="relative pb-3">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        {/* Icon with layered glow */}
                         <div className="relative flex-shrink-0">
-                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${statusConfig.accent} shadow-md`}>
-                            <Server className="w-5 h-5 text-white" />
+                          <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${statusConfig.gradient} opacity-30 blur-md group-hover:opacity-50 group-hover:blur-lg transition-all duration-500`} />
+                          <div className={`relative w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br ${statusConfig.gradient} shadow-lg`}>
+                            <Server className="w-5 h-5 text-white drop-shadow-sm" strokeWidth={2.25} />
                           </div>
-                          <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full ${statusConfig.dot} ring-2 ring-white dark:ring-slate-900 ${r.status === 'online' ? 'animate-pulse' : ''}`} />
+                          <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${statusConfig.dot} ring-[3px] ring-white dark:ring-slate-900 ${statusConfig.dotRing} ${r.status === 'online' ? 'animate-pulse' : ''}`} />
                         </div>
-                        <div className="min-w-0">
-                          <CardTitle className="text-base truncate">{r.name}</CardTitle>
-                          <CardDescription className="text-xs font-mono truncate">{r.ip_address}</CardDescription>
+                        <div className="min-w-0 pt-0.5">
+                          <CardTitle className="text-[15px] font-bold tracking-tight truncate text-slate-900 dark:text-white">
+                            {r.name}
+                          </CardTitle>
+                          <CardDescription className="text-xs font-mono truncate text-slate-400 mt-0.5">
+                            {r.ip_address}
+                          </CardDescription>
                         </div>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-1 flex-shrink-0">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-1 flex-shrink-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -677,10 +711,10 @@ export default function RoutersPage() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-4">
+                  <CardContent className="relative space-y-4">
                     {/* Status + type row */}
                     <div className="flex items-center justify-between">
-                      <Badge variant="outline" className={`${statusConfig.badge} capitalize font-medium`}>
+                      <Badge variant="outline" className={`${statusConfig.badge} capitalize font-semibold text-xs px-2.5 py-1 rounded-full border`}>
                         {getStatusIcon(r.status)}
                         <span className="ml-1.5">{r.status}</span>
                       </Badge>
@@ -689,68 +723,78 @@ export default function RoutersPage() {
 
                     {/* Location */}
                     {r.location && (
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
+                      <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                         <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                         <span className="truncate">{r.location}</span>
                       </div>
                     )}
 
-                    {/* Connected users — highlighted metric */}
-                    <div className="flex items-center gap-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
-                      <div className="p-1.5 bg-blue-100 dark:bg-blue-500/10 rounded-md">
-                        <Users className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    {/* Hero metric — connected users, big and bold */}
+                    <div className="flex items-center justify-between rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/60 dark:to-slate-800/20 px-4 py-3 border border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">
+                          <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-extrabold text-slate-900 dark:text-white leading-none tracking-tight">
+                            {r.active_users}
+                          </p>
+                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">connected users</p>
+                        </div>
                       </div>
-                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{r.active_users}</span>
-                      <span className="text-xs text-slate-400">connected users</span>
-                    </div>
-
-                    {/* SLA Progress */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-baseline text-xs">
-                        <span className="text-slate-400 font-medium uppercase tracking-wide">SLA · {slaTarget}%</span>
-                        <span className={`font-bold text-sm ${
+                      {/* SLA pill */}
+                      <div className="text-right">
+                        <p className={`text-sm font-bold leading-none ${
                           r.uptime_percentage && r.uptime_percentage > 0
-                            ? meetsSla ? "text-green-600" : "text-red-600"
-                            : r.status === 'online' ? "text-green-600" : "text-slate-400"
+                            ? meetsSla ? statusConfig.textAccent : "text-red-600"
+                            : r.status === 'online' ? statusConfig.textAccent : "text-slate-400"
                         }`}>
                           {r.uptime_percentage && r.uptime_percentage > 0
                             ? `${Number(r.uptime_percentage).toFixed(1)}%`
-                            : r.status === 'online' ? 'Online' : 'Offline'
+                            : r.status === 'online' ? 'Online' : '—'
                           }
-                        </span>
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-1">
+                          SLA {slaTarget}%
+                        </p>
                       </div>
+                    </div>
+
+                    {/* SLA Progress bar */}
+                    <div className="space-y-1.5">
                       <Progress
                         value={r.uptime_percentage && r.uptime_percentage > 0 ? r.uptime_percentage : r.status === 'online' ? 100 : 0}
-                        className={`h-1.5 ${!meetsSla && r.status !== 'online' ? "[&>div]:bg-red-500" : r.status === 'online' ? "[&>div]:bg-green-500" : "[&>div]:bg-slate-300"}`}
+                        className={`h-1.5 rounded-full ${!meetsSla && r.status !== 'online' ? "[&>div]:bg-red-500" : `[&>div]:bg-gradient-to-r [&>div]:${statusConfig.gradient}`}`}
                       />
                     </div>
 
                     {/* CPU/RAM metrics */}
                     {r.status === 'online' && r.metrics ? (
-                      <div className="grid grid-cols-2 gap-2 pt-1">
+                      <div className="grid grid-cols-2 gap-2.5 pt-1">
                         {[
                           { label: "CPU", value: r.metrics.cpu_usage },
-                          { label: "RAM", value: r.metrics.memory_usage },
+                          { label: "Memory", value: r.metrics.memory_usage },
                         ].map(({ label, value }) => {
                           const barClass = value > 80 ? "bg-red-500" : value > 60 ? "bg-amber-500" : "bg-blue-500"
-                          const textClass = value > 80 ? "text-red-600" : value > 60 ? "text-amber-600" : "text-slate-600"
-                          const R = 11; const circ = 2 * Math.PI * R
+                          const textClass = value > 80 ? "text-red-600 dark:text-red-400" : value > 60 ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"
+                          const R = 13; const circ = 2 * Math.PI * R
                           const dash = (value / 100) * circ
                           return (
-                            <div key={label} className="rounded-lg p-2 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-2">
-                              <svg width="28" height="28" className="-rotate-90 flex-shrink-0">
-                                <circle cx="14" cy="14" r={R} fill="none" stroke="#e2e8f0" strokeWidth="3" />
-                                <circle cx="14" cy="14" r={R} fill="none"
+                            <div key={label} className="rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-2.5 border border-slate-100 dark:border-slate-800/50">
+                              <svg width="32" height="32" className="-rotate-90 flex-shrink-0">
+                                <circle cx="16" cy="16" r={R} fill="none" stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeWidth="3" />
+                                <circle cx="16" cy="16" r={R} fill="none"
                                   stroke={value > 80 ? "#ef4444" : value > 60 ? "#f59e0b" : "#3b82f6"}
-                                  strokeWidth="3" strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
+                                  strokeWidth="3" strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+                                  style={{ transition: "stroke-dasharray 0.6s ease" }} />
                               </svg>
                               <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-baseline">
-                                  <span className="text-[11px] font-medium text-slate-500">{label}</span>
+                                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{label}</span>
                                   <span className={`text-xs font-bold ${textClass}`}>{value}%</span>
                                 </div>
-                                <div className="mt-0.5 h-1 bg-white/70 dark:bg-slate-700 rounded-full overflow-hidden">
-                                  <div className={`h-full rounded-full ${barClass} transition-all duration-500`} style={{ width: `${value}%` }} />
+                                <div className="mt-1 h-1 bg-white dark:bg-slate-700 rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full ${barClass} transition-all duration-700`} style={{ width: `${value}%` }} />
                                 </div>
                               </div>
                             </div>
@@ -758,9 +802,9 @@ export default function RoutersPage() {
                         })}
                       </div>
                     ) : r.status === 'online' ? (
-                      <div className="text-center py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                      <div className="text-center py-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/50">
                         <p className="text-[11px] text-slate-400">
-                          Click to view live CPU & memory stats
+                          Live metrics load on open
                         </p>
                       </div>
                     ) : null}
@@ -769,7 +813,7 @@ export default function RoutersPage() {
                     {r.tags && r.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 pt-1">
                         {r.tags.map((tag, i) => (
-                          <Badge key={i} variant="outline" className="text-xs bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
+                          <Badge key={i} variant="outline" className="text-[10px] font-medium bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5">
                             {tag}
                           </Badge>
                         ))}
@@ -777,9 +821,13 @@ export default function RoutersPage() {
                     )}
 
                     {/* Hover CTA */}
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-                      <span className="text-xs text-slate-400">View full details</span>
-                      <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+                      <span className="text-xs font-medium text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
+                        Open dashboard
+                      </span>
+                      <div className={`flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br ${statusConfig.gradient} opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300`}>
+                        <ArrowUpRight className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -788,38 +836,40 @@ export default function RoutersPage() {
           </div>
 
           {filteredRouters.length === 0 && (
-            <div className="text-center py-12 text-slate-500">
-              <Server className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No routers found matching your criteria</p>
+            <div className="text-center py-16 text-slate-400">
+              <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                <Server className="w-7 h-7 opacity-40" />
+              </div>
+              <p className="font-medium">No routers found matching your criteria</p>
             </div>
           )}
         </TabsContent>
 
-        {/* Table View */}
+        {/* Table View - Enhanced with premium styling */}
         <TabsContent value="table" className="mt-4">
-          <Card>
+          <Card className="rounded-2xl border-slate-200/50 dark:border-slate-800/50 shadow-lg overflow-hidden">
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>IP Address</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Users</TableHead>
-                    <TableHead>Uptime</TableHead>
-                    <TableHead>SLA</TableHead>
-                    <TableHead>CPU</TableHead>
-                    <TableHead>RAM</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-800/50 dark:to-slate-800/30">
+                    <TableHead className="font-semibold">Name</TableHead>
+                    <TableHead className="font-semibold">IP Address</TableHead>
+                    <TableHead className="font-semibold">Type</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Location</TableHead>
+                    <TableHead className="font-semibold">Users</TableHead>
+                    <TableHead className="font-semibold">Uptime</TableHead>
+                    <TableHead className="font-semibold">SLA</TableHead>
+                    <TableHead className="font-semibold">CPU</TableHead>
+                    <TableHead className="font-semibold">RAM</TableHead>
+                    <TableHead className="text-right font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredRouters.map((r) => (
                     <TableRow 
                       key={r.id} 
-                      className="cursor-pointer hover:bg-slate-50"
+                      className="cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group"
                       onClick={() => router.push(`/admin/routers/${r.id}`)}
                     >
                       <TableCell className="font-medium">{r.name}</TableCell>
@@ -827,23 +877,23 @@ export default function RoutersPage() {
                       <TableCell>{getTypeBadge(r.router_type)}</TableCell>
                       <TableCell>{getStatusBadge(r.status)}</TableCell>
                       <TableCell>{r.location || "-"}</TableCell>
-                      <TableCell>{r.active_users}</TableCell>
+                      <TableCell className="font-semibold">{r.active_users}</TableCell>
                       <TableCell>{r.uptime || "-"}</TableCell>
                       <TableCell>
-                        <span className={(r.uptime_percentage || 0) >= (r.sla_target || 99) ? "text-green-600" : "text-red-600"}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${(r.uptime_percentage || 0) >= (r.sla_target || 99) ? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400"}`}>
                           {Number(r.uptime_percentage || 0).toFixed(1)}%
                         </span>
                       </TableCell>
                       <TableCell>
                         {r.metrics?.cpu_usage != null && r.status === 'online' ? (
                           <div className="flex items-center gap-1.5">
-                            <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="w-12 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                               <div
-                                className={`h-full rounded-full ${r.metrics.cpu_usage > 80 ? 'bg-red-500' : r.metrics.cpu_usage > 60 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                                className={`h-full rounded-full transition-all ${r.metrics.cpu_usage > 80 ? 'bg-red-500' : r.metrics.cpu_usage > 60 ? 'bg-amber-500' : 'bg-blue-500'}`}
                                 style={{ width: `${r.metrics.cpu_usage}%` }}
                               />
                             </div>
-                            <span className={`text-xs font-medium ${r.metrics.cpu_usage > 80 ? 'text-red-600' : r.metrics.cpu_usage > 60 ? 'text-amber-600' : 'text-slate-600'}`}>
+                            <span className={`text-xs font-medium ${r.metrics.cpu_usage > 80 ? 'text-red-600 dark:text-red-400' : r.metrics.cpu_usage > 60 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-600 dark:text-slate-300'}`}>
                               {r.metrics.cpu_usage}%
                             </span>
                           </div>
@@ -854,13 +904,13 @@ export default function RoutersPage() {
                       <TableCell>
                         {r.metrics?.memory_usage != null && r.status === 'online' ? (
                           <div className="flex items-center gap-1.5">
-                            <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="w-12 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                               <div
-                                className={`h-full rounded-full ${r.metrics.memory_usage > 80 ? 'bg-red-500' : r.metrics.memory_usage > 60 ? 'bg-amber-500' : 'bg-purple-500'}`}
+                                className={`h-full rounded-full transition-all ${r.metrics.memory_usage > 80 ? 'bg-red-500' : r.metrics.memory_usage > 60 ? 'bg-amber-500' : 'bg-purple-500'}`}
                                 style={{ width: `${r.metrics.memory_usage}%` }}
                               />
                             </div>
-                            <span className={`text-xs font-medium ${r.metrics.memory_usage > 80 ? 'text-red-600' : r.metrics.memory_usage > 60 ? 'text-amber-600' : 'text-slate-600'}`}>
+                            <span className={`text-xs font-medium ${r.metrics.memory_usage > 80 ? 'text-red-600 dark:text-red-400' : r.metrics.memory_usage > 60 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-600 dark:text-slate-300'}`}>
                               {r.metrics.memory_usage}%
                             </span>
                           </div>
@@ -871,7 +921,7 @@ export default function RoutersPage() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -912,11 +962,11 @@ export default function RoutersPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Add Router Dialog */}
+      {/* Add Router Dialog - Glassmorphism */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-2xl backdrop-blur-sm bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-800">
           <DialogHeader>
-            <DialogTitle>Add New Router</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Add New Router</DialogTitle>
             <DialogDescription>
               Enter a name for your router. After adding, you can edit it to configure connection details and get the authentication script.
             </DialogDescription>
@@ -931,6 +981,7 @@ export default function RoutersPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g. Main Gateway, Westlands Branch"
                 autoFocus
+                className="rounded-xl"
               />
             </div>
             
@@ -940,7 +991,7 @@ export default function RoutersPage() {
                 value={formData.router_type}
                 onValueChange={(v) => setFormData({ ...formData, router_type: v as RouterType })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -959,6 +1010,7 @@ export default function RoutersPage() {
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 placeholder="Nairobi CBD - HQ"
+                className="rounded-xl"
               />
             </div>
             
@@ -970,15 +1022,16 @@ export default function RoutersPage() {
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Additional notes..."
                 rows={2}
+                className="rounded-xl"
               />
             </div>
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm() }}>
+            <Button variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm() }} className="rounded-xl">
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={isSubmitting}>
+            <Button onClick={handleCreate} disabled={isSubmitting} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
               {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
               Add Router
             </Button>
@@ -988,9 +1041,9 @@ export default function RoutersPage() {
 
       {/* Edit Router Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg rounded-2xl backdrop-blur-sm bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-800">
           <DialogHeader>
-            <DialogTitle>Details Overview</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Details Overview</DialogTitle>
             <DialogDescription>Router configuration details (read-only)</DialogDescription>
           </DialogHeader>
           
@@ -1002,7 +1055,7 @@ export default function RoutersPage() {
                   id="edit-name"
                   value={formData.name}
                   readOnly
-                  className="bg-slate-50 text-slate-600 cursor-default"
+                  className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-default rounded-xl"
                 />
               </div>
               <div className="space-y-2">
@@ -1011,7 +1064,7 @@ export default function RoutersPage() {
                   id="edit-router_type"
                   value={formData.router_type ? formData.router_type.charAt(0).toUpperCase() + formData.router_type.slice(1) : ""}
                   readOnly
-                  className="bg-slate-50 text-slate-600 cursor-default"
+                  className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-default rounded-xl"
                 />
               </div>
             </div>
@@ -1023,7 +1076,7 @@ export default function RoutersPage() {
                   id="edit-ip_address"
                   value={formData.ip_address}
                   readOnly
-                  className="bg-slate-50 text-slate-600 cursor-default"
+                  className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-default rounded-xl"
                 />
               </div>
               <div className="space-y-2">
@@ -1032,7 +1085,7 @@ export default function RoutersPage() {
                   id="edit-api_port"
                   value={formData.api_port}
                   readOnly
-                  className="bg-slate-50 text-slate-600 cursor-default"
+                  className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-default rounded-xl"
                 />
               </div>
             </div>
@@ -1044,7 +1097,7 @@ export default function RoutersPage() {
                   id="edit-api_username"
                   value={formData.api_username}
                   readOnly
-                  className="bg-slate-50 text-slate-600 cursor-default"
+                  className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-default rounded-xl"
                 />
               </div>
               <div className="space-y-2">
@@ -1054,7 +1107,7 @@ export default function RoutersPage() {
                   type="password"
                   value="••••••••"
                   readOnly
-                  className="bg-slate-50 text-slate-600 cursor-default"
+                  className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-default rounded-xl"
                 />
               </div>
             </div>
@@ -1066,7 +1119,7 @@ export default function RoutersPage() {
                   id="edit-model"
                   value={formData.model}
                   readOnly
-                  className="bg-slate-50 text-slate-600 cursor-default"
+                  className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-default rounded-xl"
                 />
               </div>
               <div className="space-y-2">
@@ -1075,7 +1128,7 @@ export default function RoutersPage() {
                   id="edit-sla_target"
                   value={formData.sla_target}
                   readOnly
-                  className="bg-slate-50 text-slate-600 cursor-default"
+                  className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-default rounded-xl"
                 />
               </div>
             </div>
@@ -1086,7 +1139,7 @@ export default function RoutersPage() {
                 id="edit-location"
                 value={formData.location}
                 readOnly
-                className="bg-slate-50 text-slate-600 cursor-default"
+                className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-default rounded-xl"
               />
             </div>
             
@@ -1096,14 +1149,14 @@ export default function RoutersPage() {
                 id="edit-notes"
                 value={formData.notes}
                 readOnly
-                className="bg-slate-50 text-slate-600 cursor-default resize-none"
+                className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-default resize-none rounded-xl"
                 rows={2}
               />
             </div>
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); setSelectedRouter(null); resetForm() }}>
+            <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); setSelectedRouter(null); resetForm() }} className="rounded-xl">
               Close
             </Button>
           </DialogFooter>
@@ -1112,18 +1165,18 @@ export default function RoutersPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl backdrop-blur-sm bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-800">
           <DialogHeader>
-            <DialogTitle>Delete Router</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Delete Router</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete &quot;{selectedRouter?.name}&quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setIsDeleteDialogOpen(false); setSelectedRouter(null) }}>
+            <Button variant="outline" onClick={() => { setIsDeleteDialogOpen(false); setSelectedRouter(null) }} className="rounded-xl">
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>
+            <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting} className="rounded-xl">
               {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
               Delete
             </Button>
