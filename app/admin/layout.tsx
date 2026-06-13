@@ -44,9 +44,9 @@ import {
   Shield,
   Key,
   Radio,
-  Megaphone, // Added for What's New
-  MessageSquareText, // Added for Community Board
-  Sparkles, // Added for What's New as an alternative
+  Megaphone,
+  MessageSquareText,
+  Sparkles,
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { PageTransition, AnimatedNavItem } from "@/components/page-transition"
@@ -523,11 +523,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/admin/settings")}>
                   <User className="w-4 h-4 mr-2" />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/admin/settings")}>
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
                 </DropdownMenuItem>
