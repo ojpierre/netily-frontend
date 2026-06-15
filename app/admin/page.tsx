@@ -116,7 +116,7 @@ function ChangeBadge({ value }: { value: number }) {
   return (
     <Badge
       variant="secondary"
-      className={`text-xs ${isPositive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+      className={`text-xs ${isPositive ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400"}`}
     >
       {isPositive ? "+" : "-"}{absValue}%
     </Badge>
@@ -124,7 +124,156 @@ function ChangeBadge({ value }: { value: number }) {
 }
 
 // ──────────────────────────────────────
-// COMPONENT
+// PREMIUM COMPONENTS
+// ──────────────────────────────────────
+
+// Live Clock Component
+function LiveClock() {
+  const [time, setTime] = useState(new Date())
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  const hh = time.getHours().toString().padStart(2, "0")
+  const mm = time.getMinutes().toString().padStart(2, "0")
+  const ss = time.getSeconds().toString().padStart(2, "0")
+  const date = time.toLocaleDateString("en-KE", { weekday: "short", day: "numeric", month: "short" })
+
+  return (
+    <div className="hidden md:flex flex-col items-end text-right mr-2">
+      <span className="text-lg font-mono font-semibold tracking-widest text-slate-700 dark:text-slate-200 tabular-nums leading-none">
+        {hh}
+        <span className="animate-pulse text-slate-400">:</span>
+        {mm}
+        <span className="text-slate-400 text-sm ml-0.5">{ss}</span>
+      </span>
+      <span className="text-[10px] text-slate-400 tracking-wide mt-0.5">{date}</span>
+    </div>
+  )
+}
+
+// Count-up Animation Hook
+function useCountUp(target: number, duration = 800) {
+  const [value, setValue] = useState(0)
+  useEffect(() => {
+    if (!target && target !== 0) return
+    let start = 0
+    const step = target / (duration / 16)
+    const timer = setInterval(() => {
+      start += step
+      if (start >= target) { 
+        setValue(target)
+        clearInterval(timer)
+      } else {
+        setValue(Math.floor(start))
+      }
+    }, 16)
+    return () => clearInterval(timer)
+  }, [target, duration])
+  return value
+}
+
+// Section Divider Component
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 my-1">
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-800 to-transparent" />
+      <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-slate-300 dark:text-slate-600 select-none">
+        {label}
+      </span>
+      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-800 to-transparent" />
+    </div>
+  )
+}
+
+// Premium Metric Card Component (reusable)
+function PremiumMetricCard({ 
+  title, 
+  value, 
+  icon: Icon, 
+  accentColor, 
+  description, 
+  loading,
+  onClick,
+  trend
+}: { 
+  title: string
+  value: number
+  icon: any
+  accentColor: "blue" | "emerald" | "red" | "violet"
+  description: string
+  loading: boolean
+  onClick?: () => void
+  trend?: "up" | "down"
+}) {
+  const displayValue = useCountUp(value)
+  
+  const colorConfig = {
+    blue: {
+      bg: "bg-blue-50 dark:bg-blue-950/40",
+      hoverBg: "group-hover:bg-blue-100 dark:group-hover:bg-blue-950/60",
+      text: "text-blue-600 dark:text-blue-400",
+      bar: "from-blue-500 via-blue-400 to-transparent",
+    },
+    emerald: {
+      bg: "bg-emerald-50 dark:bg-emerald-950/40",
+      hoverBg: "group-hover:bg-emerald-100 dark:group-hover:bg-emerald-950/60",
+      text: "text-emerald-600 dark:text-emerald-400",
+      bar: "from-emerald-500 via-emerald-400 to-transparent",
+    },
+    red: {
+      bg: "bg-red-50 dark:bg-red-950/40",
+      hoverBg: "group-hover:bg-red-100 dark:group-hover:bg-red-950/60",
+      text: "text-red-600 dark:text-red-400",
+      bar: "from-red-500 via-red-400 to-transparent",
+    },
+    violet: {
+      bg: "bg-violet-50 dark:bg-violet-950/40",
+      hoverBg: "group-hover:bg-violet-100 dark:group-hover:bg-violet-950/60",
+      text: "text-violet-600 dark:text-violet-400",
+      bar: "from-violet-500 via-violet-400 to-transparent",
+    },
+  }
+  
+  const config = colorConfig[accentColor]
+  
+  return (
+    <Card 
+      className={`relative overflow-hidden ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group cursor-${onClick ? 'pointer' : 'default'}`}
+      onClick={onClick}
+    >
+      <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r ${config.bar}`} />
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-5">
+        <CardTitle className="text-sm font-medium tracking-tight text-slate-600 dark:text-slate-400">
+          {title}
+        </CardTitle>
+        <div className={`p-2 rounded-lg ${config.bg} ${config.hoverBg} transition-colors`}>
+          <Icon className={`h-4 w-4 ${config.text}`} />
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <Skeleton className="h-8 w-24" />
+        ) : (
+          <>
+            <div className="text-2xl font-bold tabular-nums tracking-tight text-slate-900 dark:text-slate-100">
+              {displayValue.toLocaleString()}
+            </div>
+            <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+              {trend === "up" && <TrendingUp className="w-3 h-3 text-emerald-500" />}
+              {trend === "down" && <TrendingDown className="w-3 h-3 text-red-500" />}
+              <span>{description}</span>
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ──────────────────────────────────────
+// MAIN COMPONENT
 // ──────────────────────────────────────
 
 export default function AdminDashboard() {
@@ -157,19 +306,18 @@ export default function AdminDashboard() {
   const [expiredCount, setExpiredCount] = useState<number>(0)
   const canOpenRoute = (href: string) => canAccess(user, getAccessRuleForPath(href))
   const quickActions = [
-    { href: "/admin/users", label: "Manage Users", icon: Users, className: "text-blue-600" },
-    { href: "/admin/routers", label: "Manage Routers", icon: Wifi, className: "text-green-600" },
-    { href: "/admin/payments", label: "View Payments", icon: CreditCard, className: "text-purple-600" },
-    { href: "/admin/tickets", label: "Support Tickets", icon: Ticket, className: "text-amber-600" },
-    { href: "/admin/plans", label: "Manage Plans", icon: BarChart3, className: "text-cyan-600" },
-    { href: "/admin/invoices", label: "Invoices", icon: DollarSign, className: "text-green-600" },
+    { href: "/admin/users", label: "Manage Users", icon: Users, color: "blue" },
+    { href: "/admin/routers", label: "Manage Routers", icon: Wifi, color: "green" },
+    { href: "/admin/payments", label: "View Payments", icon: CreditCard, color: "purple" },
+    { href: "/admin/tickets", label: "Support Tickets", icon: Ticket, color: "amber" },
+    { href: "/admin/plans", label: "Manage Plans", icon: BarChart3, color: "cyan" },
+    { href: "/admin/invoices", label: "Invoices", icon: DollarSign, color: "green" },
   ].filter((item) => canOpenRoute(item.href))
 
   const fetchDashboardData = useCallback(async () => {
     try {
       setError(null)
 
-      // Fetch all dashboard data in parallel (excluding expired count which uses single endpoint)
       const [coreRes, routerRes, paymentRes, ticketRes, reportsRes, sessionsRes, activeSubsRes] = await Promise.allSettled([
         adminApi.getDashboard(),
         adminApi.getRouterDashboardStats(),
@@ -192,7 +340,6 @@ export default function AdminDashboard() {
         reports: reportsRes.status === "fulfilled" ? reportsRes.value : null,
       })
 
-      // Update live data separately
       if (sessionsRes.status === "fulfilled") {
         setOnlineSessions(sessionsRes.value?.sessions || [])
         setOnlineTotal(sessionsRes.value?.total || sessionsRes.value?.sessions?.length || 0)
@@ -202,16 +349,11 @@ export default function AdminDashboard() {
         setActiveSubscriptions(subs)
       }
 
-      // ─────────────────────────────────────────────────────────────
-      // FAST EXPIRED COUNT – single API call
-      // Uses the new /radius/credentials/expired_count/ endpoint
-      // ─────────────────────────────────────────────────────────────
       let expiredViaRadius = 0
       try {
         expiredViaRadius = await adminApi.getExpiredRADIUSCount()
       } catch (radiusErr) {
         console.warn('Failed to fetch expired RADIUS count:', radiusErr)
-        // Fallback to core stats if available
         if (coreRes.status === "fulfilled") {
           expiredViaRadius = (coreRes.value?.expired_customers || 0)
         }
@@ -229,7 +371,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData()
-    // Auto-refresh every 60 seconds
     const interval = setInterval(fetchDashboardData, 60000)
     return () => clearInterval(interval)
   }, [fetchDashboardData])
@@ -239,7 +380,6 @@ export default function AdminDashboard() {
     fetchDashboardData()
   }
 
-  // Derive stats from data
   const core = data.core
   const routers = data.routers
   const payments = data.payments
@@ -263,110 +403,123 @@ export default function AdminDashboard() {
     )
   }
 
+  const activeCount = (activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0)
+  const onlineCount = onlineTotal || onlineSessions.length
+
   return (
     <div className="space-y-6">
-      {/* Premium Header with border and dynamic greeting */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+      {/* Global shimmer animation styles */}
+      <style jsx global>{`
+        @keyframes shimmer {
+          0% { background-position: 0% center; }
+          100% { background-position: 200% center; }
+        }
+      `}</style>
+
+      {/* Premium Header with dot-grid background */}
+      <div className="relative flex items-center justify-between pb-6 mb-2">
+        {/* Subtle dot-grid background texture */}
+        <div
+          className="absolute inset-0 -mx-6 -mt-6 opacity-[0.03] dark:opacity-[0.06] pointer-events-none"
+          style={{
+            backgroundImage: `radial-gradient(circle, #64748b 1px, transparent 1px)`,
+            backgroundSize: "24px 24px",
+          }}
+        />
+
+        <div className="relative">
+          {/* Animated gradient "Dashboard" title */}
+          <h1
+            className="text-3xl font-bold tracking-tight"
+            style={{
+              background: "linear-gradient(135deg, #0f172a 0%, #475569 50%, #0f172a 100%)",
+              backgroundSize: "200% auto",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              animation: "shimmer 4s linear infinite",
+            }}
+          >
             Dashboard
           </h1>
+
+          {/* Dynamic greeting with status pulse */}
           {(() => {
             const { greeting, emoji } = getGreeting(user?.first_name || user?.username)
             return (
-              <p className="text-slate-400 mt-1 flex items-center gap-1.5 text-sm">
-                <span>{emoji}</span>
+              <p className="text-slate-400 mt-1.5 flex items-center gap-2 text-sm font-medium">
+                <span className="text-base leading-none">{emoji}</span>
                 <span>{greeting}</span>
+                <span className="inline-flex items-center gap-1.5 ml-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 tracking-wide uppercase">
+                    Systems live
+                  </span>
+                </span>
               </p>
             )
           })()}
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+
+        <div className="relative flex gap-2 items-center">
+          <LiveClock />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh} 
+            disabled={isRefreshing}
+            className="border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200"
+          >
             <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
         </div>
       </div>
 
-      {/* ─── Row 1: Key Metrics (Premium Cards with ring + hover lift) ─── */}
+      {/* ─── Row 1: Key Metrics (Premium Cards) ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total Customers */}
-        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium tracking-tight">Total Customers</CardTitle>
-            <Users className="h-4 w-4 text-slate-500" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold tabular-nums tracking-tight text-slate-800 dark:text-slate-100">
-                  {(core?.total_customers ?? 0).toLocaleString()}
-                </div>
-                <p className="text-xs text-slate-500 mt-1">All PPPoE/Static users</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        <PremiumMetricCard
+          title="Total Customers"
+          value={core?.total_customers ?? 0}
+          icon={Users}
+          accentColor="blue"
+          description="All PPPoE / Static users"
+          loading={loading}
+        />
 
-        {/* Active Subscriptions */}
-        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium tracking-tight">Active Subscriptions</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold tabular-nums tracking-tight text-green-600 dark:text-green-500">
-                  {((activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0) || core?.active_customers || 0).toLocaleString()}
-                </div>
-                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3 text-green-600" />
-                  <span>Customers with active sub</span>
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        <PremiumMetricCard
+          title="Active Subscriptions"
+          value={activeCount || core?.active_customers || 0}
+          icon={UserCheck}
+          accentColor="emerald"
+          description="Customers with active sub"
+          loading={loading}
+          trend="up"
+        />
 
-        {/* Expired Customers - Clickable */}
-        <Card
-          className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+        <PremiumMetricCard
+          title="Expired"
+          value={expiredCount}
+          icon={UserX}
+          accentColor="red"
+          description="Requires renewal"
+          loading={loading}
+          trend="down"
           onClick={() => router.push('/admin/users?status=expired')}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium tracking-tight">Expired</CardTitle>
-            <UserX className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold tabular-nums tracking-tight text-red-600 dark:text-red-500">
-                  {expiredCount.toLocaleString()}
-                </div>
-                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                  <TrendingDown className="w-3 h-3 text-red-600" />
-                  <span>Requires renewal</span>
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        />
 
-        {/* Online / Active — with premium glowing live indicator */}
-        <Card
-          className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+        <Card 
+          className="relative overflow-hidden ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group cursor-pointer"
           onClick={() => router.push('/admin/users?tab=online-sessions')}
         >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium tracking-tight">Online / Active</CardTitle>
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 via-violet-400 to-transparent" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-5">
+            <CardTitle className="text-sm font-medium tracking-tight text-slate-600 dark:text-slate-400">
+              Online / Active
+            </CardTitle>
             <span className="text-xs text-slate-400 flex items-center gap-1.5">
               <span className="relative inline-flex">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
@@ -379,15 +532,9 @@ export default function AdminDashboard() {
             {loading ? (
               <Skeleton className="h-20 w-full" />
             ) : (() => {
-              const onlineCount = onlineTotal || onlineSessions.length
-              const pppoe = activeSubscriptions.pppoe?.length || 0
-              const hotspot = activeSubscriptions.hotspot?.length || 0
-              const activeCount = pppoe + hotspot
               const pct = activeCount > 0 ? Math.round((onlineCount / activeCount) * 100) : 0
-
               return (
                 <div className="space-y-3 pt-1">
-                  {/* Big ratio number */}
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-4xl font-semibold text-slate-900 dark:text-slate-100 leading-none tabular-nums tracking-tight">
                       {onlineCount}
@@ -397,8 +544,6 @@ export default function AdminDashboard() {
                       {activeCount}
                     </span>
                   </div>
-
-                  {/* Progress bar */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs text-slate-400">
                       <span>Online now</span>
@@ -406,21 +551,19 @@ export default function AdminDashboard() {
                     </div>
                     <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-blue-500 transition-all duration-700"
+                        className="h-full rounded-full bg-violet-500 transition-all duration-700"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
                   </div>
-
-                  {/* Legend */}
                   <div className="flex gap-3 pt-0.5">
                     <span className="flex items-center gap-1.5 text-xs text-slate-500">
                       <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                      PPPoE: {pppoe}
+                      PPPoE: {activeSubscriptions.pppoe?.length || 0}
                     </span>
                     <span className="flex items-center gap-1.5 text-xs text-slate-500">
                       <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />
-                      Hotspot: {hotspot}
+                      Hotspot: {activeSubscriptions.hotspot?.length || 0}
                     </span>
                   </div>
                 </div>
@@ -430,22 +573,23 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Section Divider */}
-      <div className="border-t border-slate-100 dark:border-slate-800/60" />
+      <SectionDivider label="Network & Revenue" />
 
       {/* ─── Row 2: Network & Revenue ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Router Status */}
-        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2 tracking-tight">
-                <Server className="w-4 h-4 text-slate-600" />
+                <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800">
+                  <Server className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                </div>
                 Router Fleet
               </CardTitle>
               {canOpenRoute("/admin/routers") && (
                 <Link href="/admin/routers">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="rounded-full">
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </Link>
@@ -460,16 +604,16 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                   <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
                     <span className="text-sm font-medium">Online</span>
                   </div>
                   <span className="text-lg font-bold tabular-nums tracking-tight text-green-600">
                     {routers?.online_routers ?? 0}
                   </span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                     <span className="text-sm font-medium">Offline</span>
@@ -478,7 +622,7 @@ export default function AdminDashboard() {
                     {routers?.offline_routers ?? 0}
                   </span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                     <span className="text-sm font-medium">Warning / Maintenance</span>
@@ -487,7 +631,7 @@ export default function AdminDashboard() {
                     {(routers?.warning_routers ?? 0) + (routers?.maintenance_routers ?? 0)}
                   </span>
                 </div>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="pt-2 mt-1 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Total Routers</span>
                     <span className="font-semibold tabular-nums tracking-tight">{routers?.total_routers ?? 0}</span>
@@ -502,94 +646,79 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Revenue Card — full-bleed tinted rows */}
-        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
+        {/* Revenue Card - Premium Stacked Design */}
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2 tracking-tight">
-                <DollarSign className="w-4 h-4 text-green-600" />
+                <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40">
+                  <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
                 Revenue
               </CardTitle>
               {canOpenRoute("/admin/payments") && (
                 <Link href="/admin/payments">
-                  <Button variant="ghost" size="sm" className="text-xs text-slate-400 hover:text-slate-600 px-2">
+                  <Button variant="ghost" size="sm" className="text-xs text-slate-400 hover:text-slate-600 rounded-full">
                     View all →
                   </Button>
                 </Link>
               )}
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-1 pt-1">
             {loading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
+              <div className="space-y-2"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
             ) : (
-              <div className="space-y-2">
-                {/* Today */}
-                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/30">
-                  <div>
-                    <p className="text-[10px] font-semibold tracking-widest text-blue-400 uppercase">Today</p>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5 tabular-nums tracking-tight">
-                      {formatKSh(data.reports?.overview?.today_revenue ?? payments?.amount_today)}
-                    </p>
+              <>
+                {[
+                  { label: "Today", value: data.reports?.overview?.today_revenue ?? payments?.amount_today, change: data.reports?.overview?.today_change, color: "blue" },
+                  { label: "This week", value: data.reports?.overview?.week_revenue ?? 0, change: data.reports?.overview?.week_change, color: "emerald" },
+                  { label: "This month", value: data.reports?.overview?.month_revenue ?? payments?.amount_this_month, change: data.reports?.overview?.month_change, color: "amber" },
+                ].map(({ label, value, change, color }) => (
+                  <div key={label}
+                    className={`group flex items-center justify-between px-3 py-3 rounded-xl border border-transparent hover:border-${color}-100 dark:hover:border-${color}-900/30 hover:bg-${color}-50/50 dark:hover:bg-${color}-950/20 transition-all duration-200 cursor-default`}
+                  >
+                    <div>
+                      <p className={`text-[10px] font-bold tracking-[0.12em] uppercase text-${color}-500 dark:text-${color}-400`}>
+                        {label}
+                      </p>
+                      <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100 mt-0.5 tabular-nums tracking-tight">
+                        {formatKSh(value)}
+                      </p>
+                    </div>
+                    {change !== undefined && change !== 0 && (
+                      <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg ${change > 0 ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400"}`}>
+                        {change > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                        {Math.abs(change)}%
+                      </div>
+                    )}
                   </div>
-                  {(data.reports?.overview?.today_change ?? 0) !== 0 && (
-                    <ChangeBadge value={data.reports?.overview?.today_change ?? 0} />
-                  )}
-                </div>
+                ))}
 
-                {/* This week */}
-                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
-                  <div>
-                    <p className="text-[10px] font-semibold tracking-widest text-green-500 uppercase">This week</p>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5 tabular-nums tracking-tight">
-                      {formatKSh(data.reports?.overview?.week_revenue ?? 0)}
-                    </p>
-                  </div>
-                  {(data.reports?.overview?.week_change ?? 0) !== 0 && (
-                    <ChangeBadge value={data.reports?.overview?.week_change ?? 0} />
-                  )}
-                </div>
-
-                {/* This month */}
-                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
-                  <div>
-                    <p className="text-[10px] font-semibold tracking-widest text-amber-500 uppercase">This month</p>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5 tabular-nums tracking-tight">
-                      {formatKSh(data.reports?.overview?.month_revenue ?? payments?.amount_this_month)}
-                    </p>
-                  </div>
-                  {(data.reports?.overview?.month_change ?? 0) !== 0 && (
-                    <ChangeBadge value={data.reports?.overview?.month_change ?? 0} />
-                  )}
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between text-xs text-slate-400 pt-2 mt-1 border-t border-slate-100 dark:border-slate-800 px-1">
                   <span>Transactions today</span>
-                  <span className="font-medium text-slate-600 dark:text-slate-300 tabular-nums tracking-tight">
+                  <span className="font-semibold text-slate-600 dark:text-slate-300 tabular-nums">
                     {data.reports?.overview?.total_transactions_today ?? payments?.payments_today ?? 0}
                   </span>
                 </div>
-              </div>
+              </>
             )}
           </CardContent>
         </Card>
 
         {/* Support Tickets */}
-        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2 tracking-tight">
-                <Ticket className="w-4 h-4 text-purple-600" />
+                <div className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/40">
+                  <Ticket className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                </div>
                 Support Tickets
               </CardTitle>
               {canOpenRoute("/admin/tickets") && (
                 <Link href="/admin/tickets">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="rounded-full">
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </Link>
@@ -605,21 +734,21 @@ export default function AdminDashboard() {
             ) : (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg text-center">
+                  <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-xl text-center">
                     <p className="text-2xl font-bold tabular-nums tracking-tight text-red-600">{tickets?.open ?? 0}</p>
                     <p className="text-xs text-slate-500">Open</p>
                   </div>
-                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-center">
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl text-center">
                     <p className="text-2xl font-bold tabular-nums tracking-tight text-amber-600">{tickets?.in_progress ?? 0}</p>
                     <p className="text-xs text-slate-500">In Progress</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-center">
+                  <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-xl text-center">
                     <p className="text-2xl font-bold tabular-nums tracking-tight text-green-600">{tickets?.resolved ?? 0}</p>
                     <p className="text-xs text-slate-500">Resolved</p>
                   </div>
-                  <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl text-center">
                     <p className="text-2xl font-bold tabular-nums tracking-tight text-blue-600">{tickets?.total ?? 0}</p>
                     <p className="text-xs text-slate-500">Total</p>
                   </div>
@@ -637,14 +766,12 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Section Divider */}
-      <div className="border-t border-slate-100 dark:border-slate-800/60" />
+      <SectionDivider label="Earnings Trend" />
 
-      {/* ─── Row 2.5: Weekly Income & Monthly Earnings ─── */}
+      {/* ─── Row 3: Weekly Income & Monthly Earnings ─── */}
       <div className="grid gap-4 md:grid-cols-2">
-
         {/* Weekly Income Chart */}
-        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -746,7 +873,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Monthly Earnings Chart */}
-        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -846,37 +973,55 @@ export default function AdminDashboard() {
             )}
           </CardContent>
         </Card>
-
       </div>
 
-      {/* Section Divider */}
-      <div className="border-t border-slate-100 dark:border-slate-800/60" />
+      <SectionDivider label="Operations" />
 
-      {/* ─── Row 3: Quick Actions & Recent Activity ─── */}
+      {/* ─── Row 4: Quick Actions & Recent Activity ─── */}
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Quick Actions */}
-        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
+        {/* Quick Actions - Premium Icon Cards */}
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2 tracking-tight">
-              <Zap className="w-4 h-4 text-amber-500" />
+              <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40">
+                <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              </div>
               Quick Actions
             </CardTitle>
             <CardDescription>Common administrative tasks</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               {quickActions.length ? quickActions.map((action) => {
                 const Icon = action.icon
+                const colorClasses: Record<string, string> = {
+                  blue: "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800",
+                  green: "hover:bg-green-50 dark:hover:bg-green-950/30 hover:border-green-200 dark:hover:border-green-800",
+                  purple: "hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:border-purple-200 dark:hover:border-purple-800",
+                  amber: "hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:border-amber-200 dark:hover:border-amber-800",
+                  cyan: "hover:bg-cyan-50 dark:hover:bg-cyan-950/30 hover:border-cyan-200 dark:hover:border-cyan-800",
+                }
+                const textColors: Record<string, string> = {
+                  blue: "text-blue-600 dark:text-blue-400",
+                  green: "text-green-600 dark:text-green-400",
+                  purple: "text-purple-600 dark:text-purple-400",
+                  amber: "text-amber-600 dark:text-amber-400",
+                  cyan: "text-cyan-600 dark:text-cyan-400",
+                }
                 return (
                   <Link key={action.href} href={action.href}>
-                    <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1 hover:shadow-sm transition-all duration-200">
-                      <Icon className={`w-5 h-5 ${action.className}`} />
-                      <span className="text-xs">{action.label}</span>
-                    </Button>
+                    <div className={`flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${colorClasses[action.color] ?? ""}`}>
+                      <div className={`p-2 rounded-lg bg-slate-50 dark:bg-slate-800 ${textColors[action.color] ?? "text-slate-600"}`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 text-center leading-tight">
+                        {action.label}
+                      </span>
+                    </div>
                   </Link>
                 )
               }) : (
-                <div className="col-span-2 rounded-xl border border-dashed p-4 text-center text-sm text-slate-500">
+                <div className="col-span-3 rounded-xl border border-dashed p-4 text-center text-sm text-slate-500">
                   Your staff role has no quick actions assigned yet.
                 </div>
               )}
@@ -885,7 +1030,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Recent Activity */}
-        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader>
             <CardTitle className="text-base tracking-tight">Recent Activity</CardTitle>
             <CardDescription>Latest system events from audit log</CardDescription>
@@ -913,9 +1058,9 @@ export default function AdminDashboard() {
                 {data.recentActivity.map((activity) => (
                   <div
                     key={activity.id}
-                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-200"
                   >
-                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 flex items-center justify-center flex-shrink-0">
                       <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
                         {(activity.user__email || "?").charAt(0).toUpperCase()}
                       </span>
@@ -924,7 +1069,7 @@ export default function AdminDashboard() {
                       <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
                         {activity.user__email || "System"}
                       </p>
-                      <p className="text-xs text-slate-600">
+                      <p className="text-xs text-slate-500">
                         {activity.action} — {activity.object_repr || activity.model_name}
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">
@@ -939,7 +1084,7 @@ export default function AdminDashboard() {
           <CardFooter className="pt-0">
             {canOpenRoute("/admin/logs") && (
               <Link href="/admin/logs" className="w-full">
-                <Button variant="ghost" size="sm" className="w-full text-slate-500 hover:shadow-sm transition-all duration-200">
+                <Button variant="ghost" size="sm" className="w-full text-slate-500 hover:shadow-sm transition-all duration-200 rounded-full">
                   View all activity
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
