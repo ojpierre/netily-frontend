@@ -93,6 +93,22 @@ function timeAgo(timestamp: string): string {
   return `${diffDays}d ago`
 }
 
+// Helper: dynamic greeting based on time of day
+function getGreeting(firstName?: string): { greeting: string; emoji: string } {
+  const hour = new Date().getHours()
+  const name = firstName ? `, ${firstName}` : ""
+  
+  if (hour >= 5 && hour < 12) {
+    return { greeting: `Good morning${name}`, emoji: "☀️" }
+  } else if (hour >= 12 && hour < 17) {
+    return { greeting: `Good afternoon${name}`, emoji: "🌤️" }
+  } else if (hour >= 17 && hour < 21) {
+    return { greeting: `Good evening${name}`, emoji: "🌆" }
+  } else {
+    return { greeting: `Burning the midnight oil${name}`, emoji: "🌙" }
+  }
+}
+
 // ChangeBadge component for revenue changes
 function ChangeBadge({ value }: { value: number }) {
   const isPositive = value > 0
@@ -233,8 +249,11 @@ export default function AdminDashboard() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
-          <p className="text-slate-500 mt-1">Overview of your ISP operations</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard</h1>
+          <p className="text-slate-400 mt-1 flex items-center gap-1.5 text-sm">
+            <span>⚠️</span>
+            <span>Overview of your ISP operations</span>
+          </p>
         </div>
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -246,13 +265,21 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Premium Header with border and dynamic greeting */}
+      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
-          <p className="text-slate-500 mt-1">
-            Welcome back, {user?.first_name || user?.username || "Admin"}
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Dashboard
+          </h1>
+          {(() => {
+            const { greeting, emoji } = getGreeting(user?.first_name || user?.username)
+            return (
+              <p className="text-slate-400 mt-1 flex items-center gap-1.5 text-sm">
+                <span>{emoji}</span>
+                <span>{greeting}</span>
+              </p>
+            )
+          })()}
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
@@ -262,12 +289,12 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* ─── Row 1: Key Metrics ─── */}
+      {/* ─── Row 1: Key Metrics (Premium Cards with ring + hover lift) ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total Customers - UPDATED DESCRIPTION */}
-        <Card>
+        {/* Total Customers */}
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+            <CardTitle className="text-sm font-medium tracking-tight">Total Customers</CardTitle>
             <Users className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
@@ -275,7 +302,7 @@ export default function AdminDashboard() {
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold tabular-nums tracking-tight text-slate-800 dark:text-slate-100">
                   {(core?.total_customers ?? 0).toLocaleString()}
                 </div>
                 <p className="text-xs text-slate-500 mt-1">All PPPoE/Static users</p>
@@ -284,10 +311,10 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Active Customers - UPDATED TITLE & DESCRIPTION */}
-        <Card>
+        {/* Active Subscriptions */}
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
+            <CardTitle className="text-sm font-medium tracking-tight">Active Subscriptions</CardTitle>
             <UserCheck className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -295,7 +322,7 @@ export default function AdminDashboard() {
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold tabular-nums tracking-tight text-green-600 dark:text-green-500">
                   {((activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0) || core?.active_customers || 0).toLocaleString()}
                 </div>
                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
@@ -307,13 +334,13 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Expired Customers - Uses fast single endpoint - NOW CLICKABLE */}
+        {/* Expired Customers - Clickable */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
           onClick={() => router.push('/admin/users?status=expired')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expired</CardTitle>
+            <CardTitle className="text-sm font-medium tracking-tight">Expired</CardTitle>
             <UserX className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
@@ -321,7 +348,7 @@ export default function AdminDashboard() {
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-2xl font-bold tabular-nums tracking-tight text-red-600 dark:text-red-500">
                   {expiredCount.toLocaleString()}
                 </div>
                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
@@ -333,15 +360,18 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Online / Active — clean ratio number + progress bar (REMOVED "Active subs" legend) */}
+        {/* Online / Active — with premium glowing live indicator */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
           onClick={() => router.push('/admin/users?tab=online-sessions')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Online / Active</CardTitle>
+            <CardTitle className="text-sm font-medium tracking-tight">Online / Active</CardTitle>
             <span className="text-xs text-slate-400 flex items-center gap-1.5">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="relative inline-flex">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
+                <span className="relative inline-block w-2 h-2 rounded-full bg-emerald-500" />
+              </span>
               Live
             </span>
           </CardHeader>
@@ -359,11 +389,11 @@ export default function AdminDashboard() {
                 <div className="space-y-3 pt-1">
                   {/* Big ratio number */}
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-4xl font-semibold text-slate-900 dark:text-slate-100 leading-none">
+                    <span className="text-4xl font-semibold text-slate-900 dark:text-slate-100 leading-none tabular-nums tracking-tight">
                       {onlineCount}
                     </span>
                     <span className="text-xl text-slate-300">/</span>
-                    <span className="text-xl font-medium text-slate-500 leading-none">
+                    <span className="text-xl font-medium text-slate-500 leading-none tabular-nums tracking-tight">
                       {activeCount}
                     </span>
                   </div>
@@ -382,7 +412,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* Legend - REMOVED "Active subs" */}
+                  {/* Legend */}
                   <div className="flex gap-3 pt-0.5">
                     <span className="flex items-center gap-1.5 text-xs text-slate-500">
                       <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
@@ -400,13 +430,16 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
+      {/* Section Divider */}
+      <div className="border-t border-slate-100 dark:border-slate-800/60" />
+
       {/* ─── Row 2: Network & Revenue ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Router Status */}
-        <Card>
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-base flex items-center gap-2 tracking-tight">
                 <Server className="w-4 h-4 text-slate-600" />
                 Router Fleet
               </CardTitle>
@@ -432,7 +465,7 @@ export default function AdminDashboard() {
                     <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
                     <span className="text-sm font-medium">Online</span>
                   </div>
-                  <span className="text-lg font-bold text-green-600">
+                  <span className="text-lg font-bold tabular-nums tracking-tight text-green-600">
                     {routers?.online_routers ?? 0}
                   </span>
                 </div>
@@ -441,7 +474,7 @@ export default function AdminDashboard() {
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                     <span className="text-sm font-medium">Offline</span>
                   </div>
-                  <span className="text-lg font-bold text-red-600">
+                  <span className="text-lg font-bold tabular-nums tracking-tight text-red-600">
                     {routers?.offline_routers ?? 0}
                   </span>
                 </div>
@@ -450,18 +483,18 @@ export default function AdminDashboard() {
                     <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                     <span className="text-sm font-medium">Warning / Maintenance</span>
                   </div>
-                  <span className="text-lg font-bold text-amber-600">
+                  <span className="text-lg font-bold tabular-nums tracking-tight text-amber-600">
                     {(routers?.warning_routers ?? 0) + (routers?.maintenance_routers ?? 0)}
                   </span>
                 </div>
-                <div className="pt-2 border-t">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Total Routers</span>
-                    <span className="font-semibold">{routers?.total_routers ?? 0}</span>
+                    <span className="font-semibold tabular-nums tracking-tight">{routers?.total_routers ?? 0}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm mt-1">
                     <span className="text-slate-500">Connected Users</span>
-                    <span className="font-semibold">{routers?.total_connected_users ?? 0}</span>
+                    <span className="font-semibold tabular-nums tracking-tight">{routers?.total_connected_users ?? 0}</span>
                   </div>
                 </div>
               </div>
@@ -470,10 +503,10 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Revenue Card — full-bleed tinted rows */}
-        <Card>
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-base flex items-center gap-2 tracking-tight">
                 <DollarSign className="w-4 h-4 text-green-600" />
                 Revenue
               </CardTitle>
@@ -499,7 +532,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/30">
                   <div>
                     <p className="text-[10px] font-semibold tracking-widest text-blue-400 uppercase">Today</p>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5 tabular-nums tracking-tight">
                       {formatKSh(data.reports?.overview?.today_revenue ?? payments?.amount_today)}
                     </p>
                   </div>
@@ -512,7 +545,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
                   <div>
                     <p className="text-[10px] font-semibold tracking-widest text-green-500 uppercase">This week</p>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5 tabular-nums tracking-tight">
                       {formatKSh(data.reports?.overview?.week_revenue ?? 0)}
                     </p>
                   </div>
@@ -525,7 +558,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
                   <div>
                     <p className="text-[10px] font-semibold tracking-widest text-amber-500 uppercase">This month</p>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5 tabular-nums tracking-tight">
                       {formatKSh(data.reports?.overview?.month_revenue ?? payments?.amount_this_month)}
                     </p>
                   </div>
@@ -537,7 +570,7 @@ export default function AdminDashboard() {
                 {/* Footer */}
                 <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <span>Transactions today</span>
-                  <span className="font-medium text-slate-600 dark:text-slate-300">
+                  <span className="font-medium text-slate-600 dark:text-slate-300 tabular-nums tracking-tight">
                     {data.reports?.overview?.total_transactions_today ?? payments?.payments_today ?? 0}
                   </span>
                 </div>
@@ -547,10 +580,10 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Support Tickets */}
-        <Card>
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-base flex items-center gap-2 tracking-tight">
                 <Ticket className="w-4 h-4 text-purple-600" />
                 Support Tickets
               </CardTitle>
@@ -573,30 +606,30 @@ export default function AdminDashboard() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-red-600">{tickets?.open ?? 0}</p>
+                    <p className="text-2xl font-bold tabular-nums tracking-tight text-red-600">{tickets?.open ?? 0}</p>
                     <p className="text-xs text-slate-500">Open</p>
                   </div>
                   <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-amber-600">{tickets?.in_progress ?? 0}</p>
+                    <p className="text-2xl font-bold tabular-nums tracking-tight text-amber-600">{tickets?.in_progress ?? 0}</p>
                     <p className="text-xs text-slate-500">In Progress</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-green-600">{tickets?.resolved ?? 0}</p>
+                    <p className="text-2xl font-bold tabular-nums tracking-tight text-green-600">{tickets?.resolved ?? 0}</p>
                     <p className="text-xs text-slate-500">Resolved</p>
                   </div>
                   <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-blue-600">{tickets?.total ?? 0}</p>
+                    <p className="text-2xl font-bold tabular-nums tracking-tight text-blue-600">{tickets?.total ?? 0}</p>
                     <p className="text-xs text-slate-500">Total</p>
                   </div>
                 </div>
-                <div className="pt-2 border-t flex items-center justify-between text-sm">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-sm">
                   <div className="flex items-center gap-1 text-slate-500">
                     <Clock className="w-3 h-3" />
                     Avg Response
                   </div>
-                  <span className="font-medium">{tickets?.avg_response_time ?? "—"}</span>
+                  <span className="font-medium tabular-nums tracking-tight">{tickets?.avg_response_time ?? "—"}</span>
                 </div>
               </div>
             )}
@@ -604,11 +637,14 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
+      {/* Section Divider */}
+      <div className="border-t border-slate-100 dark:border-slate-800/60" />
+
       {/* ─── Row 2.5: Weekly Income & Monthly Earnings ─── */}
       <div className="grid gap-4 md:grid-cols-2">
 
         {/* Weekly Income Chart */}
-        <Card>
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -710,7 +746,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Monthly Earnings Chart */}
-        <Card>
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -813,12 +849,15 @@ export default function AdminDashboard() {
 
       </div>
 
+      {/* Section Divider */}
+      <div className="border-t border-slate-100 dark:border-slate-800/60" />
+
       {/* ─── Row 3: Quick Actions & Recent Activity ─── */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Quick Actions */}
-        <Card>
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2 tracking-tight">
               <Zap className="w-4 h-4 text-amber-500" />
               Quick Actions
             </CardTitle>
@@ -830,7 +869,7 @@ export default function AdminDashboard() {
                 const Icon = action.icon
                 return (
                   <Link key={action.href} href={action.href}>
-                    <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
+                    <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1 hover:shadow-sm transition-all duration-200">
                       <Icon className={`w-5 h-5 ${action.className}`} />
                       <span className="text-xs">{action.label}</span>
                     </Button>
@@ -846,9 +885,9 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Recent Activity */}
-        <Card>
+        <Card className="ring-1 ring-slate-100 dark:ring-slate-800 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base">Recent Activity</CardTitle>
+            <CardTitle className="text-base tracking-tight">Recent Activity</CardTitle>
             <CardDescription>Latest system events from audit log</CardDescription>
           </CardHeader>
           <CardContent>
@@ -900,7 +939,7 @@ export default function AdminDashboard() {
           <CardFooter className="pt-0">
             {canOpenRoute("/admin/logs") && (
               <Link href="/admin/logs" className="w-full">
-                <Button variant="ghost" size="sm" className="w-full text-slate-500">
+                <Button variant="ghost" size="sm" className="w-full text-slate-500 hover:shadow-sm transition-all duration-200">
                   View all activity
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
