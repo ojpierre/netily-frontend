@@ -109,12 +109,12 @@ function SuperAdminLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-slate-900 border-r border-slate-800 transform transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed top-0 left-0 z-50 flex h-full w-64 flex-col bg-slate-900 border-r border-slate-800 transform transition-transform duration-200 lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         {/* Brand */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-800">
+        <div className="flex shrink-0 items-center gap-3 px-5 py-5 border-b border-slate-800">
           <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-violet-600">
             <Shield className="w-5 h-5 text-white" />
           </div>
@@ -128,7 +128,7 @@ function SuperAdminLayoutContent({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Nav items */}
-        <nav className="px-3 py-4 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-4 space-y-1">
           {navItems.map((item) => {
             const isActive =
               item.href === "/superadmin"
@@ -153,7 +153,7 @@ function SuperAdminLayoutContent({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Bottom user area */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800">
+        <div className="shrink-0 p-4 border-t border-slate-800">
           <div className="flex items-center gap-3">
             <Avatar className="h-9 w-9 ring-2 ring-violet-500/40">
               <AvatarFallback className="bg-violet-700 text-white text-xs">{initials}</AvatarFallback>

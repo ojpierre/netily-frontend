@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Wifi, Smartphone, Lock, ArrowRight, Mail } from "lucide-react"
+import { Loader2, Wifi, Smartphone, Lock, ArrowRight } from "lucide-react"
 import { customerApi } from "@/lib/customer-api"
 import { ThemeToggle } from "@/components/theme-toggle"
 
@@ -18,17 +18,18 @@ export default function CustomerLoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const formatPhoneNumber = (phone: string): string => {
-    let cleaned = phone.replace(/\D/g, "")
-    if (cleaned.startsWith("0")) {
-      cleaned = "254" + cleaned.substring(1)
-    } else if (!cleaned.startsWith("254")) {
-      cleaned = "254" + cleaned
+  const normalizeLocalPhone = (phone: string): string => {
+    const digits = phone.replace(/\D/g, "")
+    if (digits.startsWith("254") && digits.length === 12) {
+      return `0${digits.slice(3)}`
     }
-    return cleaned
+    if (digits.length === 9 && (digits.startsWith("7") || digits.startsWith("1"))) {
+      return `0${digits}`
+    }
+    return digits
   }
 
-  const isEmail = (value: string) => value.includes("@")
+  const isValidLocalPhone = (phone: string) => /^(07|01)\d{8}$/.test(normalizeLocalPhone(phone))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,15 +37,14 @@ export default function CustomerLoginPage() {
     setIsLoading(true)
 
     try {
-      let response
-      if (isEmail(identifier)) {
-        // Login with email
-        response = await customerApi.loginWithEmail(identifier.trim(), password)
-      } else {
-        // Login with phone
-        const formattedPhone = formatPhoneNumber(identifier)
-        response = await customerApi.login(formattedPhone, password)
+      const phoneNumber = normalizeLocalPhone(identifier)
+      if (!isValidLocalPhone(phoneNumber)) {
+        setError("Enter a 10-digit PPPoE phone number starting with 07 or 01.")
+        setIsLoading(false)
+        return
       }
+
+      const response = await customerApi.login(phoneNumber, password.trim())
       
       // Store tokens
       if (response.access) {
@@ -58,7 +58,7 @@ export default function CustomerLoginPage() {
       }
     } catch (err: any) {
       console.error("Login error:", err)
-      setError(err.message || "Invalid credentials. Please check your phone number/email and password.")
+      setError(err.message || "Invalid credentials. Enter your PPPoE phone number in both fields.")
     } finally {
       setIsLoading(false)
     }
@@ -78,7 +78,7 @@ export default function CustomerLoginPage() {
             <Wifi className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-xl font-bold text-white">Customer Portal</h1>
-          <p className="text-white/80 text-sm mt-1">Sign in to manage your account</p>
+          <p className="text-white/80 text-sm mt-1">Use your PPPoE phone number to continue</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -89,23 +89,24 @@ export default function CustomerLoginPage() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="identifier">Phone Number or Email</Label>
+            <Label htmlFor="identifier">PPPoE Phone Number</Label>
             <div className="relative">
-              {isEmail(identifier) ? (
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              ) : (
-                <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              )}
+              <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 id="identifier"
                 type="text"
-                placeholder="0712345678 or email@example.com"
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="0712345678"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 className="pl-10"
                 required
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Customers enter the same phone number in both fields.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -115,7 +116,9 @@ export default function CustomerLoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                inputMode="numeric"
+                autoComplete="current-password"
+                placeholder="Enter the same phone number"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10"
@@ -127,7 +130,7 @@ export default function CustomerLoginPage() {
           <Button
             type="submit"
             className="w-full"
-            disabled={isLoading || !identifier.trim() || !password.trim()}
+            disabled={isLoading || !isValidLocalPhone(identifier) || !password.trim()}
           >
             {isLoading ? (
               <>
@@ -151,14 +154,9 @@ export default function CustomerLoginPage() {
             </p>
           </div>
 
-          <div className="text-center">
-            <Link 
-              href="/customer/forgot-password" 
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Forgot password?
-            </Link>
-          </div>
+          <p className="text-center text-xs text-muted-foreground">
+            Need help? Contact your ISP support team.
+          </p>
         </form>
       </Card>
     </div>
