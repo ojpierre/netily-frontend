@@ -11,14 +11,18 @@ import {
   DollarSign,
   TrendingUp,
   TrendingDown,
+  ArrowUpRight,
   Loader2,
   Wifi,
+  WifiOff,
   Server,
+  AlertTriangle,
   Ticket,
   Clock,
   RefreshCw,
   ChevronRight,
   Zap,
+  Shield,
   CreditCard,
   BarChart3,
 } from "lucide-react"
@@ -36,6 +40,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Progress } from "@/components/ui/progress"
 import { useAdminAuth } from "./admin-auth-context"
 import { adminApi } from "@/lib/admin-api"
 import { canAccess, getAccessRuleForPath } from "@/lib/rbac"
@@ -88,17 +93,6 @@ function timeAgo(timestamp: string): string {
   return `${diffDays}d ago`
 }
 
-// Helper: dynamic greeting - clean, no emoji parade
-function getGreeting(firstName?: string): string {
-  const hour = new Date().getHours()
-  const name = firstName ? `, ${firstName}` : ""
-  
-  if (hour >= 5 && hour < 12) return `Good morning${name}`
-  if (hour >= 12 && hour < 17) return `Good afternoon${name}`
-  if (hour >= 17 && hour < 21) return `Good evening${name}`
-  return `Working late${name}`
-}
-
 // ChangeBadge component for revenue changes
 function ChangeBadge({ value }: { value: number }) {
   const isPositive = value > 0
@@ -106,7 +100,7 @@ function ChangeBadge({ value }: { value: number }) {
   return (
     <Badge
       variant="secondary"
-      className={`text-[10px] font-medium px-1.5 py-0 ${isPositive ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400" : "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"}`}
+      className={`text-xs ${isPositive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
     >
       {isPositive ? "+" : "-"}{absValue}%
     </Badge>
@@ -114,7 +108,7 @@ function ChangeBadge({ value }: { value: number }) {
 }
 
 // ──────────────────────────────────────
-// MAIN COMPONENT
+// COMPONENT
 // ──────────────────────────────────────
 
 export default function AdminDashboard() {
@@ -134,6 +128,7 @@ export default function AdminDashboard() {
   const [weekView, setWeekView] = useState<"this" | "last">("this")
   const [yearView, setYearView] = useState<"this" | "last">("last")
   
+  // State for live online sessions and active subscriptions
   const [onlineSessions, setOnlineSessions] = useState<any[]>([])
   const [activeSubscriptions, setActiveSubscriptions] = useState<{ pppoe: any[]; hotspot: any[]; total: number }>({ 
     pppoe: [], 
@@ -141,22 +136,24 @@ export default function AdminDashboard() {
     total: 0 
   })
   const [onlineTotal, setOnlineTotal] = useState(0)
+
+  // State for expired customers count (derived from RADIUS credentials)
   const [expiredCount, setExpiredCount] = useState<number>(0)
-  
   const canOpenRoute = (href: string) => canAccess(user, getAccessRuleForPath(href))
-  
   const quickActions = [
-    { href: "/admin/users", label: "Users", icon: Users },
-    { href: "/admin/routers", label: "Routers", icon: Wifi },
-    { href: "/admin/payments", label: "Payments", icon: CreditCard },
-    { href: "/admin/tickets", label: "Tickets", icon: Ticket },
-    { href: "/admin/plans", label: "Plans", icon: BarChart3 },
+    { href: "/admin/users", label: "Manage Users", icon: Users, className: "text-blue-600" },
+    { href: "/admin/routers", label: "Manage Routers", icon: Wifi, className: "text-green-600" },
+    { href: "/admin/payments", label: "View Payments", icon: CreditCard, className: "text-purple-600" },
+    { href: "/admin/tickets", label: "Support Tickets", icon: Ticket, className: "text-amber-600" },
+    { href: "/admin/plans", label: "Manage Plans", icon: BarChart3, className: "text-cyan-600" },
+    { href: "/admin/invoices", label: "Invoices", icon: DollarSign, className: "text-green-600" },
   ].filter((item) => canOpenRoute(item.href))
 
   const fetchDashboardData = useCallback(async () => {
     try {
       setError(null)
 
+      // Fetch all dashboard data in parallel (excluding expired count which uses single endpoint)
       const [coreRes, routerRes, paymentRes, ticketRes, reportsRes, sessionsRes, activeSubsRes] = await Promise.allSettled([
         adminApi.getDashboard(),
         adminApi.getRouterDashboardStats(),
@@ -179,6 +176,7 @@ export default function AdminDashboard() {
         reports: reportsRes.status === "fulfilled" ? reportsRes.value : null,
       })
 
+      // Update live data separately
       if (sessionsRes.status === "fulfilled") {
         setOnlineSessions(sessionsRes.value?.sessions || [])
         setOnlineTotal(sessionsRes.value?.total || sessionsRes.value?.sessions?.length || 0)
@@ -188,14 +186,21 @@ export default function AdminDashboard() {
         setActiveSubscriptions(subs)
       }
 
+      // ─────────────────────────────────────────────────────────────
+      // FAST EXPIRED COUNT – single API call
+      // Uses the new /radius/credentials/expired_count/ endpoint
+      // ─────────────────────────────────────────────────────────────
       let expiredViaRadius = 0
       try {
         expiredViaRadius = await adminApi.getExpiredRADIUSCount()
       } catch (radiusErr) {
+        console.warn('Failed to fetch expired RADIUS count:', radiusErr)
+        // Fallback to core stats if available
         if (coreRes.status === "fulfilled") {
           expiredViaRadius = (coreRes.value?.expired_customers || 0)
         }
       }
+      
       setExpiredCount(expiredViaRadius)
     } catch (err: any) {
       console.error("Dashboard fetch error:", err)
@@ -208,6 +213,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData()
+    // Auto-refresh every 60 seconds
     const interval = setInterval(fetchDashboardData, 60000)
     return () => clearInterval(interval)
   }, [fetchDashboardData])
@@ -217,194 +223,321 @@ export default function AdminDashboard() {
     fetchDashboardData()
   }
 
+  // Derive stats from data
   const core = data.core
   const routers = data.routers
   const payments = data.payments
   const tickets = data.tickets
-  const activeCount = (activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0)
-  const onlineCount = onlineTotal || onlineSessions.length
 
   if (error && !core) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Dashboard</h1>
-          <p className="text-slate-400 text-sm mt-0.5">Overview of your ISP operations</p>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
+          <p className="text-slate-500 mt-1">Overview of your ISP operations</p>
         </div>
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-        <Button onClick={handleRefresh} className="mt-4">Try Again</Button>
+        <Button onClick={handleRefresh}>Try Again</Button>
       </div>
     )
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      
-      {/* Header — clean, just the essentials */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">
-            {getGreeting(user?.first_name || user?.username)}
-          </h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            {new Date().toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
+          <p className="text-slate-500 mt-1">
+            Welcome back, {user?.first_name || user?.username || "Admin"}
           </p>
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={handleRefresh} 
-          disabled={isRefreshing}
-          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* ─── Row 1: Key Metrics ─── */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Total Customers - UPDATED DESCRIPTION */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+            <Users className="h-4 w-4 text-slate-500" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">
+                  {(core?.total_customers ?? 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">All PPPoE/Static users</p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Active Customers - UPDATED TITLE & DESCRIPTION */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
+            <UserCheck className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-green-600">
+                  {((activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0) || core?.active_customers || 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3 text-green-600" />
+                  <span>Customers with active sub</span>
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Expired Customers - Uses fast single endpoint - NOW CLICKABLE */}
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => router.push('/admin/users?status=expired')}
         >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
-        </Button>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Expired</CardTitle>
+            <UserX className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-red-600">
+                  {expiredCount.toLocaleString()}
+                </div>
+                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                  <TrendingDown className="w-3 h-3 text-red-600" />
+                  <span>Requires renewal</span>
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Online / Active — clean ratio number + progress bar (REMOVED "Active subs" legend) */}
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => router.push('/admin/users?tab=online-sessions')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Online / Active</CardTitle>
+            <span className="text-xs text-slate-400 flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Live
+            </span>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-20 w-full" />
+            ) : (() => {
+              const onlineCount = onlineTotal || onlineSessions.length
+              const pppoe = activeSubscriptions.pppoe?.length || 0
+              const hotspot = activeSubscriptions.hotspot?.length || 0
+              const activeCount = pppoe + hotspot
+              const pct = activeCount > 0 ? Math.round((onlineCount / activeCount) * 100) : 0
+
+              return (
+                <div className="space-y-3 pt-1">
+                  {/* Big ratio number */}
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-4xl font-semibold text-slate-900 dark:text-slate-100 leading-none">
+                      {onlineCount}
+                    </span>
+                    <span className="text-xl text-slate-300">/</span>
+                    <span className="text-xl font-medium text-slate-500 leading-none">
+                      {activeCount}
+                    </span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs text-slate-400">
+                      <span>Online now</span>
+                      <span>{pct}% connected</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-blue-500 transition-all duration-700"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Legend - REMOVED "Active subs" */}
+                  <div className="flex gap-3 pt-0.5">
+                    <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+                      PPPoE: {pppoe}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />
+                      Hotspot: {hotspot}
+                    </span>
+                  </div>
+                </div>
+              )
+            })()}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Stats Row — borderless, numbers breathe */}
-      <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 mb-8">
-        {[
-          { label: "Total customers", value: core?.total_customers ?? 0, sub: "All accounts" },
-          { label: "Active", value: activeCount || core?.active_customers || 0, sub: "Subscribed", positive: true },
-          { label: "Expired", value: expiredCount, sub: "Need renewal", negative: true },
-          { label: "Online now", value: onlineCount, sub: `of ${activeCount} active` },
-        ].map(({ label, value, sub, positive, negative }) => (
-          <div key={label} className="px-4 md:px-6 py-4 md:py-5">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400 mb-1.5">{label}</p>
-            <p className={`text-2xl md:text-3xl font-semibold tabular-nums tracking-tight ${
-              positive ? "text-emerald-600 dark:text-emerald-500" : 
-              negative ? "text-red-500 dark:text-red-400" : 
-              "text-slate-900 dark:text-white"
-            }`}>
-              {value.toLocaleString()}
-            </p>
-            <p className="text-xs text-slate-400 mt-1.5">{sub}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Row 1: Network & Revenue */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-        
+      {/* ─── Row 2: Network & Revenue ─── */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Router Status */}
-        <Card className="border border-slate-100 dark:border-slate-800 shadow-none rounded-2xl bg-white dark:bg-slate-900">
-          <CardHeader className="pb-2 px-5 pt-5">
+        <Card>
+          <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400 tracking-tight">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Server className="w-4 h-4 text-slate-600" />
                 Router Fleet
               </CardTitle>
               {canOpenRoute("/admin/routers") && (
                 <Link href="/admin/routers">
-                  <ChevronRight className="w-4 h-4 text-slate-300" />
+                  <Button variant="ghost" size="sm">
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                 </Link>
               )}
             </div>
           </CardHeader>
-          <CardContent className="px-5 pb-5">
+          <CardContent>
             {loading ? (
               <div className="space-y-3">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
             ) : (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between py-2 border-b border-slate-50 dark:border-slate-800">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-sm text-slate-600 dark:text-slate-400">Online</span>
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                    <span className="text-sm font-medium">Online</span>
                   </div>
-                  <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-white">
+                  <span className="text-lg font-bold text-green-600">
                     {routers?.online_routers ?? 0}
                   </span>
                 </div>
-                <div className="flex items-center justify-between py-2 border-b border-slate-50 dark:border-slate-800">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-red-400" />
-                    <span className="text-sm text-slate-600 dark:text-slate-400">Offline</span>
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                    <span className="text-sm font-medium">Offline</span>
                   </div>
-                  <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-white">
+                  <span className="text-lg font-bold text-red-600">
                     {routers?.offline_routers ?? 0}
                   </span>
                 </div>
-                <div className="flex items-center justify-between py-2">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-amber-400" />
-                    <span className="text-sm text-slate-600 dark:text-slate-400">Warning</span>
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                    <span className="text-sm font-medium">Warning / Maintenance</span>
                   </div>
-                  <span className="text-lg font-semibold tabular-nums text-slate-900 dark:text-white">
+                  <span className="text-lg font-bold text-amber-600">
                     {(routers?.warning_routers ?? 0) + (routers?.maintenance_routers ?? 0)}
                   </span>
                 </div>
-                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between text-xs text-slate-400">
-                  <span>Total routers</span>
-                  <span className="font-medium text-slate-600 dark:text-slate-300">{routers?.total_routers ?? 0}</span>
+                <div className="pt-2 border-t">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Total Routers</span>
+                    <span className="font-semibold">{routers?.total_routers ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm mt-1">
+                    <span className="text-slate-500">Connected Users</span>
+                    <span className="font-semibold">{routers?.total_connected_users ?? 0}</span>
+                  </div>
                 </div>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Revenue Card */}
-        <Card className="border border-slate-100 dark:border-slate-800 shadow-none rounded-2xl bg-white dark:bg-slate-900">
-          <CardHeader className="pb-2 px-5 pt-5">
+        {/* Revenue Card — full-bleed tinted rows */}
+        <Card>
+          <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400 tracking-tight">
+              <CardTitle className="text-base flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-green-600" />
                 Revenue
               </CardTitle>
               {canOpenRoute("/admin/payments") && (
                 <Link href="/admin/payments">
-                  <span className="text-xs text-slate-400 hover:text-slate-600">View all →</span>
+                  <Button variant="ghost" size="sm" className="text-xs text-slate-400 hover:text-slate-600 px-2">
+                    View all →
+                  </Button>
                 </Link>
               )}
             </div>
           </CardHeader>
-          <CardContent className="px-5 pb-5">
+          <CardContent>
             {loading ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
               </div>
             ) : (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Today</p>
-                  <div className="flex items-center justify-between mt-0.5">
-                    <p className="text-xl font-semibold text-slate-900 dark:text-white tabular-nums">
+              <div className="space-y-2">
+                {/* Today */}
+                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/30">
+                  <div>
+                    <p className="text-[10px] font-semibold tracking-widest text-blue-400 uppercase">Today</p>
+                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
                       {formatKSh(data.reports?.overview?.today_revenue ?? payments?.amount_today)}
                     </p>
-                    {(data.reports?.overview?.today_change ?? 0) !== 0 && (
-                      <ChangeBadge value={data.reports?.overview?.today_change ?? 0} />
-                    )}
                   </div>
+                  {(data.reports?.overview?.today_change ?? 0) !== 0 && (
+                    <ChangeBadge value={data.reports?.overview?.today_change ?? 0} />
+                  )}
                 </div>
-                <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">This week</p>
-                  <div className="flex items-center justify-between mt-0.5">
-                    <p className="text-xl font-semibold text-slate-900 dark:text-white tabular-nums">
+
+                {/* This week */}
+                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
+                  <div>
+                    <p className="text-[10px] font-semibold tracking-widest text-green-500 uppercase">This week</p>
+                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
                       {formatKSh(data.reports?.overview?.week_revenue ?? 0)}
                     </p>
-                    {(data.reports?.overview?.week_change ?? 0) !== 0 && (
-                      <ChangeBadge value={data.reports?.overview?.week_change ?? 0} />
-                    )}
                   </div>
+                  {(data.reports?.overview?.week_change ?? 0) !== 0 && (
+                    <ChangeBadge value={data.reports?.overview?.week_change ?? 0} />
+                  )}
                 </div>
-                <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">This month</p>
-                  <div className="flex items-center justify-between mt-0.5">
-                    <p className="text-xl font-semibold text-slate-900 dark:text-white tabular-nums">
+
+                {/* This month */}
+                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
+                  <div>
+                    <p className="text-[10px] font-semibold tracking-widest text-amber-500 uppercase">This month</p>
+                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
                       {formatKSh(data.reports?.overview?.month_revenue ?? payments?.amount_this_month)}
                     </p>
-                    {(data.reports?.overview?.month_change ?? 0) !== 0 && (
-                      <ChangeBadge value={data.reports?.overview?.month_change ?? 0} />
-                    )}
                   </div>
+                  {(data.reports?.overview?.month_change ?? 0) !== 0 && (
+                    <ChangeBadge value={data.reports?.overview?.month_change ?? 0} />
+                  )}
                 </div>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between text-xs text-slate-400">
+
+                {/* Footer */}
+                <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <span>Transactions today</span>
-                  <span className="font-medium text-slate-600 dark:text-slate-300 tabular-nums">
+                  <span className="font-medium text-slate-600 dark:text-slate-300">
                     {data.reports?.overview?.total_transactions_today ?? payments?.payments_today ?? 0}
                   </span>
                 </div>
@@ -414,42 +547,56 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Support Tickets */}
-        <Card className="border border-slate-100 dark:border-slate-800 shadow-none rounded-2xl bg-white dark:bg-slate-900">
-          <CardHeader className="pb-2 px-5 pt-5">
+        <Card>
+          <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400 tracking-tight">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Ticket className="w-4 h-4 text-purple-600" />
                 Support Tickets
               </CardTitle>
               {canOpenRoute("/admin/tickets") && (
                 <Link href="/admin/tickets">
-                  <ChevronRight className="w-4 h-4 text-slate-300" />
+                  <Button variant="ghost" size="sm">
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                 </Link>
               )}
             </div>
           </CardHeader>
-          <CardContent className="px-5 pb-5">
+          <CardContent>
             {loading ? (
               <div className="space-y-3">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-slate-50 dark:border-slate-800">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Open</span>
-                  <span className="text-lg font-semibold text-red-500 dark:text-red-400 tabular-nums">{tickets?.open ?? 0}</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-red-600">{tickets?.open ?? 0}</p>
+                    <p className="text-xs text-slate-500">Open</p>
+                  </div>
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-amber-600">{tickets?.in_progress ?? 0}</p>
+                    <p className="text-xs text-slate-500">In Progress</p>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-slate-50 dark:border-slate-800">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">In Progress</span>
-                  <span className="text-lg font-semibold text-amber-500 dark:text-amber-400 tabular-nums">{tickets?.in_progress ?? 0}</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-green-600">{tickets?.resolved ?? 0}</p>
+                    <p className="text-xs text-slate-500">Resolved</p>
+                  </div>
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-blue-600">{tickets?.total ?? 0}</p>
+                    <p className="text-xs text-slate-500">Total</p>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Resolved</span>
-                  <span className="text-lg font-semibold text-emerald-500 dark:text-emerald-400 tabular-nums">{tickets?.resolved ?? 0}</span>
-                </div>
-                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between text-xs text-slate-400">
-                  <span>Avg response time</span>
-                  <span className="font-medium text-slate-600 dark:text-slate-300">{tickets?.avg_response_time ?? "—"}</span>
+                <div className="pt-2 border-t flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-1 text-slate-500">
+                    <Clock className="w-3 h-3" />
+                    Avg Response
+                  </div>
+                  <span className="font-medium">{tickets?.avg_response_time ?? "—"}</span>
                 </div>
               </div>
             )}
@@ -457,38 +604,38 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Row 2: Charts */}
-      <div className="grid gap-6 md:grid-cols-2 mb-8">
-        
+      {/* ─── Row 2.5: Weekly Income & Monthly Earnings ─── */}
+      <div className="grid gap-4 md:grid-cols-2">
+
         {/* Weekly Income Chart */}
-        <Card className="border border-slate-100 dark:border-slate-800 shadow-none rounded-2xl bg-white dark:bg-slate-900">
-          <CardHeader className="pb-2 px-5 pt-5">
+        <Card>
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400 tracking-tight">
+              <div className="space-y-0.5">
+                <CardTitle className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100">
                   Weekly Income
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-400 mt-0.5">
-                  {weekView === "this" ? "This week" : "Last week"}
+                <CardDescription className="text-xs text-slate-400">
+                  {weekView === "this" ? "This week · daily breakdown" : "Last week · daily breakdown"}
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 rounded-lg p-0.5">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                 <button
                   onClick={() => setWeekView("this")}
-                  className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
+                  className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     weekView === "this"
                       ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
+                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   }`}
                 >
                   This week
                 </button>
                 <button
                   onClick={() => setWeekView("last")}
-                  className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
+                  className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     weekView === "last"
                       ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
+                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   }`}
                 >
                   Last week
@@ -496,18 +643,18 @@ export default function AdminDashboard() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="px-5 pb-5">
+          <CardContent>
             {loading ? (
               <div className="h-[220px] flex items-center justify-center">
-                <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
+                <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
               </div>
             ) : !(weekView === "this"
                 ? data.reports?.overview?.weekly_income
                 : data.reports?.overview?.last_week_income
               )?.length ? (
               <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-slate-400">
-                <BarChart3 className="w-8 h-8 opacity-30" />
-                <p className="text-sm">No data</p>
+                <BarChart3 className="w-10 h-10 opacity-30" />
+                <p className="text-sm">No data for this period</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
@@ -517,26 +664,44 @@ export default function AdminDashboard() {
                       ? data.reports?.overview?.weekly_income
                       : data.reports?.overview?.last_week_income
                   }
-                  barSize={32}
-                  margin={{ top: 8, right: 0, bottom: 0, left: 0 }}
+                  barSize={28}
+                  margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+                  cursor="default"
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis
                     tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : `${v}`}
-                    tick={{ fontSize: 10, fill: "#94a3b8" }}
+                    tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
-                    width={40}
+                    width={45}
+                    domain={([dataMin, dataMax]: [number, number]) => {
+                      const padding = (dataMax - dataMin) * 0.25
+                      return [0, Math.ceil((dataMax + padding) / 1000) * 1000]
+                    }}
                   />
                   <Tooltip
+                    cursor={false}
                     formatter={(value: number) => [`KSh ${value.toLocaleString("en-KE")}`, "Income"]}
-                    contentStyle={{ borderRadius: 12, fontSize: 12, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}
+                    contentStyle={{ borderRadius: 8, fontSize: 13, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
                   />
                   <Bar
                     dataKey="amount"
+                    name="Income"
                     fill={weekView === "this" ? "#3b82f6" : "#8b5cf6"}
                     radius={[4, 4, 0, 0]}
+                    label={{
+                      position: "top",
+                      fontSize: 10,
+                      fill: "#64748b",
+                      formatter: (v: number) => {
+                        if (!v || v === 0) return ""
+                        if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+                        if (v >= 1000) return `${(v / 1000).toFixed(1)}K`
+                        return `${v}`
+                      },
+                    }}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -545,34 +710,34 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Monthly Earnings Chart */}
-        <Card className="border border-slate-100 dark:border-slate-800 shadow-none rounded-2xl bg-white dark:bg-slate-900">
-          <CardHeader className="pb-2 px-5 pt-5">
+        <Card>
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400 tracking-tight">
+              <div className="space-y-0.5">
+                <CardTitle className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100">
                   Monthly Earnings
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-400 mt-0.5">
-                  {yearView === "this" ? new Date().getFullYear() : new Date().getFullYear() - 1}
+                <CardDescription className="text-xs text-slate-400">
+                  {yearView === "this" ? `${new Date().getFullYear()} · month by month` : `${new Date().getFullYear() - 1} · month by month`}
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 rounded-lg p-0.5">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                 <button
                   onClick={() => setYearView("this")}
-                  className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
+                  className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     yearView === "this"
                       ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
+                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   }`}
                 >
                   {new Date().getFullYear()}
                 </button>
                 <button
                   onClick={() => setYearView("last")}
-                  className={`px-3 py-1 text-xs rounded-md font-medium transition-all ${
+                  className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     yearView === "last"
                       ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-700"
+                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   }`}
                 >
                   {new Date().getFullYear() - 1}
@@ -580,18 +745,18 @@ export default function AdminDashboard() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="px-5 pb-5">
+          <CardContent>
             {loading ? (
               <div className="h-[220px] flex items-center justify-center">
-                <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
+                <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
               </div>
             ) : !(yearView === "this"
                 ? data.reports?.overview?.monthly_earnings
                 : data.reports?.overview?.last_year_earnings
               )?.length ? (
               <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-slate-400">
-                <BarChart3 className="w-8 h-8 opacity-30" />
-                <p className="text-sm">No data</p>
+                <BarChart3 className="w-10 h-10 opacity-30" />
+                <p className="text-sm">No data for this period</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
@@ -601,62 +766,79 @@ export default function AdminDashboard() {
                       ? data.reports?.overview?.monthly_earnings
                       : data.reports?.overview?.last_year_earnings
                   }
-                  barSize={20}
-                  margin={{ top: 8, right: 0, bottom: 0, left: 0 }}
+                  barSize={18}
+                  margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+                  cursor="default"
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                   <YAxis
                     tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : `${v}`}
-                    tick={{ fontSize: 10, fill: "#94a3b8" }}
+                    tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
-                    width={40}
+                    width={45}
+                    domain={([dataMin, dataMax]: [number, number]) => {
+                      const padding = (dataMax - dataMin) * 0.25
+                      return [0, Math.ceil((dataMax + padding) / 1000) * 1000]
+                    }}
                   />
                   <Tooltip
+                    cursor={false}
                     formatter={(value: number) => [`KSh ${value.toLocaleString("en-KE")}`, "Earnings"]}
-                    contentStyle={{ borderRadius: 12, fontSize: 12, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}
+                    contentStyle={{ borderRadius: 8, fontSize: 13, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
                   />
                   <Bar
                     dataKey="amount"
+                    name="Earnings"
                     fill={yearView === "this" ? "#10b981" : "#f59e0b"}
                     radius={[4, 4, 0, 0]}
+                    label={{
+                      position: "top",
+                      fontSize: 10,
+                      fill: "#64748b",
+                      formatter: (v: number) => {
+                        if (!v || v === 0) return ""
+                        if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+                        if (v >= 1000) return `${(v / 1000).toFixed(1)}K`
+                        return `${v}`
+                      },
+                    }}
                   />
                 </BarChart>
               </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
+
       </div>
 
-      {/* Row 3: Quick Actions & Recent Activity */}
-      <div className="grid gap-6 md:grid-cols-2">
-        
+      {/* ─── Row 3: Quick Actions & Recent Activity ─── */}
+      <div className="grid gap-4 md:grid-cols-2">
         {/* Quick Actions */}
-        <Card className="border border-slate-100 dark:border-slate-800 shadow-none rounded-2xl bg-white dark:bg-slate-900">
-          <CardHeader className="pb-2 px-5 pt-5">
-            <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400 tracking-tight">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Zap className="w-4 h-4 text-amber-500" />
               Quick Actions
             </CardTitle>
-            <CardDescription className="text-xs text-slate-400">Common administrative tasks</CardDescription>
+            <CardDescription>Common administrative tasks</CardDescription>
           </CardHeader>
-          <CardContent className="px-5 pb-5">
-            <div className="grid grid-cols-3 gap-2">
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
               {quickActions.length ? quickActions.map((action) => {
                 const Icon = action.icon
                 return (
                   <Link key={action.href} href={action.href}>
-                    <div className="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer">
-                      <Icon className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-                      <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
-                        {action.label}
-                      </span>
-                    </div>
+                    <Button variant="outline" className="w-full h-auto py-3 flex-col gap-1">
+                      <Icon className={`w-5 h-5 ${action.className}`} />
+                      <span className="text-xs">{action.label}</span>
+                    </Button>
                   </Link>
                 )
               }) : (
-                <div className="col-span-3 text-center text-sm text-slate-500 py-6">
-                  No quick actions available
+                <div className="col-span-2 rounded-xl border border-dashed p-4 text-center text-sm text-slate-500">
+                  Your staff role has no quick actions assigned yet.
                 </div>
               )}
             </div>
@@ -664,51 +846,49 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Recent Activity */}
-        <Card className="border border-slate-100 dark:border-slate-800 shadow-none rounded-2xl bg-white dark:bg-slate-900">
-          <CardHeader className="pb-2 px-5 pt-5">
-            <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400 tracking-tight">
-              Recent Activity
-            </CardTitle>
-            <CardDescription className="text-xs text-slate-400">Latest system events</CardDescription>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Recent Activity</CardTitle>
+            <CardDescription>Latest system events from audit log</CardDescription>
           </CardHeader>
-          <CardContent className="px-5 pb-5">
+          <CardContent>
             {loading ? (
               <div className="space-y-3">
-                {[1, 2, 3, 4].map((i) => (
+                {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="flex items-center gap-3">
                     <Skeleton className="h-8 w-8 rounded-full" />
                     <div className="flex-1 space-y-2">
-                      <Skeleton className="h-3 w-full" />
-                      <Skeleton className="h-2 w-16" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-3 w-20" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : data.recentActivity.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
-                <Activity className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">No recent activity</p>
+              <div className="text-center py-8 text-slate-500">
+                <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No recent activity</p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                {data.recentActivity.slice(0, 8).map((activity) => (
+              <div className="space-y-2 max-h-[340px] overflow-y-auto">
+                {data.recentActivity.map((activity) => (
                   <div
                     key={activity.id}
-                    className="flex items-start gap-3 pb-3 border-b border-slate-50 dark:border-slate-800 last:border-0"
+                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                   >
-                    <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                        {(activity.user__email || "S").charAt(0).toUpperCase()}
+                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                        {(activity.user__email || "?").charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
+                      <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
                         {activity.user__email || "System"}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        {activity.action} · {activity.object_repr || activity.model_name}
+                      <p className="text-xs text-slate-600">
+                        {activity.action} — {activity.object_repr || activity.model_name}
                       </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-400 mt-0.5">
                         {timeAgo(activity.timestamp)}
                       </p>
                     </div>
@@ -717,16 +897,16 @@ export default function AdminDashboard() {
               </div>
             )}
           </CardContent>
-          {canOpenRoute("/admin/logs") && data.recentActivity.length > 0 && (
-            <CardFooter className="px-5 pb-5 pt-0">
+          <CardFooter className="pt-0">
+            {canOpenRoute("/admin/logs") && (
               <Link href="/admin/logs" className="w-full">
-                <Button variant="ghost" size="sm" className="w-full text-slate-500 text-xs">
+                <Button variant="ghost" size="sm" className="w-full text-slate-500">
                   View all activity
-                  <ChevronRight className="w-3 h-3 ml-1" />
+                  <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </Link>
-            </CardFooter>
-          )}
+            )}
+          </CardFooter>
         </Card>
       </div>
     </div>
