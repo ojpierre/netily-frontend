@@ -84,11 +84,11 @@ export default function TenantsPage() {
     tenant: Tenant
   } | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [suspendReason, setSuspendReason] = useState("")
   const [deleteConfirmation, setDeleteConfirmation] = useState("")
   const [hardDeleteStep, setHardDeleteStep] = useState(0)
   const [hardDeleteError, setHardDeleteError] = useState("")
   const [hardDeleteComplete, setHardDeleteComplete] = useState(false)
-
   // Manual Activation dialog
   const [manualActivateTarget, setManualActivateTarget] = useState<Tenant | null>(null)
   const [manualExtendDays, setManualExtendDays] = useState("30")
@@ -122,6 +122,9 @@ export default function TenantsPage() {
       setHardDeleteError("")
       setHardDeleteComplete(false)
     }
+    if (!confirmAction) {
+      setSuspendReason("")
+    }
   }, [confirmAction])
 
   const handleManualActivate = async () => {
@@ -153,16 +156,34 @@ export default function TenantsPage() {
     setActionLoading(true)
     try {
       if (confirmAction.type === "suspend") {
-        const updated = await superadminApi.suspendTenant(confirmAction.tenant.id)
-        upsertTenant(updated)
-        toast.success(`${confirmAction.tenant.company_name} suspended`)
+        // Optimistic update: flip the button immediately
+        upsertTenant({ ...confirmAction.tenant, status: "suspended" })
         setConfirmAction(null)
+        try {
+          const updated = await superadminApi.suspendTenant(
+            confirmAction.tenant.id,
+            suspendReason || undefined,
+          )
+          upsertTenant(updated)
+          toast.success(`${confirmAction.tenant.company_name} suspended successfully`)
+        } catch (err: any) {
+          // Roll back optimistic update on failure
+          upsertTenant(confirmAction.tenant)
+          toast.error(err.message || "Failed to suspend tenant")
+        }
         await fetchTenants()
       } else if (confirmAction.type === "activate") {
-        const updated = await superadminApi.activateTenant(confirmAction.tenant.id)
-        upsertTenant(updated)
-        toast.success(`${confirmAction.tenant.company_name} unsuspended`)
+        // Optimistic update
+        upsertTenant({ ...confirmAction.tenant, status: "active" })
         setConfirmAction(null)
+        try {
+          const updated = await superadminApi.activateTenant(confirmAction.tenant.id)
+          upsertTenant(updated)
+          toast.success(`${confirmAction.tenant.company_name} unsuspended successfully`)
+        } catch (err: any) {
+          upsertTenant(confirmAction.tenant)
+          toast.error(err.message || "Failed to unsuspend tenant")
+        }
         await fetchTenants()
       } else if (confirmAction.type === "delete") {
         setHardDeleteStep(0)
@@ -198,6 +219,7 @@ export default function TenantsPage() {
       setActionLoading(false)
     }
   }
+
 
   const statusBadge = (s: string) => {
     switch (s) {
@@ -742,15 +764,33 @@ export default function TenantsPage() {
                   )}
                 </div>
               ) : confirmAction?.type === "suspend" ? (
-                <>
-                  <strong className="text-white">{confirmAction.tenant.company_name}</strong> will be suspended.
-                  Their users will lose access until reactivated.
-                </>
+                <div className="space-y-3 pt-1">
+                  <p>
+                    <strong className="text-white">{confirmAction.tenant.company_name}</strong>
+                    {" "}will be suspended. Their users will lose access until the account is reactivated.
+                  </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="suspend-reason" className="text-slate-300 text-xs">
+                      Reason <span className="text-slate-500">(optional — logged in audit trail)</span>
+                    </Label>
+                    <textarea
+                      id="suspend-reason"
+                      rows={2}
+                      value={suspendReason}
+                      onChange={(e) => setSuspendReason(e.target.value)}
+                      placeholder="e.g. Payment overdue, Account review..."
+                      className="w-full rounded-md border border-slate-700 bg-slate-950 text-white text-sm px-3 py-2 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-amber-500 resize-none"
+                    />
+                  </div>
+                </div>
               ) : (
-                <>
-                  <strong className="text-white">{confirmAction?.tenant.company_name}</strong> will be unsuspended.
-                  All users will regain access immediately.
-                </>
+                <div className="pt-1">
+                  <p>
+                    <strong className="text-white">{confirmAction?.tenant.company_name}</strong>
+                    {" "}will be unsuspended. All users will regain access immediately.
+                  </p>
+                </div>
+
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -169,25 +169,39 @@ export default function TenantDetailPage() {
   }
 
   const handleSuspend = async () => {
+    if (!tenant) return
+    const previous = { ...tenant }
+    // Optimistic update
+    setTenant((cur) => cur ? { ...cur, status: "suspended" } : cur)
+    setFormStatus("suspended")
     try {
       const updated = await superadminApi.suspendTenant(id)
-      setTenant((current) => current ? { ...current, ...updated } : updated)
+      setTenant((cur) => cur ? { ...cur, ...updated } : updated)
       setFormStatus(updated.status)
       toast.success("Tenant suspended")
-      await fetchData()
     } catch (err: any) {
+      // Roll back
+      setTenant(previous)
+      setFormStatus(previous.status)
       toast.error(err.message || "Failed to suspend tenant")
     }
   }
 
   const handleUnsuspend = async () => {
+    if (!tenant) return
+    const previous = { ...tenant }
+    // Optimistic update
+    setTenant((cur) => cur ? { ...cur, status: "active" } : cur)
+    setFormStatus("active")
     try {
       const updated = await superadminApi.activateTenant(id)
-      setTenant((current) => current ? { ...current, ...updated } : updated)
+      setTenant((cur) => cur ? { ...cur, ...updated } : updated)
       setFormStatus(updated.status)
       toast.success("Tenant unsuspended")
-      await fetchData()
     } catch (err: any) {
+      // Roll back
+      setTenant(previous)
+      setFormStatus(previous.status)
       toast.error(err.message || "Failed to unsuspend tenant")
     }
   }
