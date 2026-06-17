@@ -184,8 +184,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
 
-  // Check if we're on a public page (login or register)
-  const isPublicPage = pathname?.startsWith('/admin/login') || pathname?.startsWith('/admin/register')
+  // Check if we're on a public/special page handled outside tenant admin auth.
+  const isPublicPage = pathname?.startsWith('/admin/login') || pathname?.startsWith('/admin/selfie')
 
   // Handle hydration
   useEffect(() => {

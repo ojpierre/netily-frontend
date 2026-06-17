@@ -160,6 +160,67 @@ export interface TenantDeletionJob {
   finished_at: string | null
 }
 
+export interface SubscriptionInvoiceSummary {
+  count: number
+  active: number
+  invoiced: number
+  paid: number
+  calculated_total: string
+  hotspot_revenue: string
+}
+
+export interface SubscriptionInvoice {
+  id: string
+  tenant_id: string
+  tenant_name: string
+  tenant_subdomain: string
+  tenant_schema: string
+  company_email?: string
+  company_phone?: string
+  status: "active" | "invoiced" | "paid"
+  start_date: string | null
+  end_date: string | null
+  grace_ends_at: string | null
+  invoice_reference: string | null
+  pppoe_count: number
+  pppoe_unit_price: string
+  pppoe_charge: string
+  hotspot_revenue: string
+  hotspot_share_pct: string
+  hotspot_share: string
+  usage_subtotal: string
+  monthly_minimum: string
+  minimum_adjustment: string
+  calculated_total: string
+  invoice: {
+    id: number
+    invoice_number: string
+    status: string
+    subtotal: string
+    discount_amount: string
+    total_amount: string
+    balance: string
+    due_date: string | null
+    notes: string
+    internal_notes: string
+  } | null
+  recipients?: Array<{
+    id: number
+    email?: string
+    phone_number?: string
+    first_name?: string
+    last_name?: string
+  }>
+}
+
+export interface SubscriptionInvoiceListResponse {
+  count: number
+  page: number
+  page_size: number
+  summary: SubscriptionInvoiceSummary
+  results: SubscriptionInvoice[]
+}
+
 export interface TenantHardDeleteResult {
   detail: string
   purge_summary: {
@@ -855,6 +916,35 @@ class SuperadminApiService {
   async getSubscriptionPayments(params?: Record<string, string>): Promise<PaginatedResponse<any>> {
     const qs = params ? "?" + new URLSearchParams(params).toString() : ""
     return this.request(`/superadmin/subscription-payments/${qs}`)
+  }
+
+  async getSubscriptionInvoices(params?: Record<string, string>): Promise<SubscriptionInvoiceListResponse> {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
+    return this.request(`/superadmin/subscription-invoices/${qs}`)
+  }
+
+  async getSubscriptionInvoice(id: string): Promise<SubscriptionInvoice> {
+    return this.request(`/superadmin/subscription-invoices/${id}/`)
+  }
+
+  async updateSubscriptionInvoiceDiscount(
+    id: string,
+    data: { discount_amount: string | number; discount_reason?: string },
+  ): Promise<SubscriptionInvoice> {
+    return this.request(`/superadmin/subscription-invoices/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async sendSubscriptionInvoice(
+    id: string,
+    channel: "email" | "sms" | "in_app" | "all",
+  ): Promise<{ detail: string; email_count: number; notification_count: number; sms_count: number; invoice: SubscriptionInvoice }> {
+    return this.request(`/superadmin/subscription-invoices/${id}/send/`, {
+      method: "POST",
+      body: JSON.stringify({ channel }),
+    })
   }
 
   // ── Analytics ──

@@ -330,7 +330,7 @@ function CreatingAccountOverlay({
 // MAIN COMPONENT
 // ==========================================
 
-export default function AdminRegisterPage() {
+export default function AdminSelfiePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)

@@ -629,7 +629,7 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
 
   const allowedPaths = [
     "/admin/login",
-    "/admin/register",
+    "/admin/selfie",
   ]
 
   useEffect(() => {

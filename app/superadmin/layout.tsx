@@ -48,6 +48,7 @@ const navItems = [
   { name: "Users", href: "/superadmin/users", icon: Users },
   { name: "Payments", href: "/superadmin/payments", icon: CreditCard },
   { name: "Sub. Payments", href: "/superadmin/subscription-payments", icon: CreditCard },
+  { name: "Invoices", href: "/superadmin/subscription-invoices", icon: ScrollText },
   { name: "Leads", href: "/superadmin/leads", icon: UserPlus },
   { name: "Analytics", href: "/superadmin/analytics", icon: BarChart3 },
   { name: "Activity", href: "/superadmin/activity", icon: Activity },

@@ -32,8 +32,17 @@ export function proxy(request: NextRequest) {
 
   // Admin routes protection
   if (pathname.startsWith('/admin')) {
-    // Allow access to admin login and register pages
-    if (pathname === '/admin/login' || pathname === '/admin/register') {
+    if (pathname === '/admin/selfie') {
+      if (!superadminToken) {
+        const loginUrl = new URL('/superadmin/login', request.url)
+        loginUrl.searchParams.set('from', pathname)
+        return NextResponse.redirect(loginUrl)
+      }
+      return NextResponse.next()
+    }
+
+    // Allow access to admin login page
+    if (pathname === '/admin/login') {
       // Do NOT force redirect by cookie presence alone.
       // Cookies can be stale or belong to a non-admin account; client-side auth
       // validation will decide whether to route to /admin or stay on login.
