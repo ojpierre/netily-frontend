@@ -31,51 +31,30 @@ const ENV_API_PORT = process.env.NEXT_PUBLIC_API_PORT || '8000'
 const ENV_API_URL = process.env.NEXT_PUBLIC_API_URL
 
 /**
- * Get the API base URL preserving subdomain context
+ * Get the API base URL preserving current domain context
+ * 
+ * This ensures that API calls are always made to the same domain
+ * as the frontend, avoiding CORS/CSRF issues.
  */
 const getBaseUrl = (): string => {
-  // During SSR, use environment variable or default
+  // During SSR (Server Side Rendering), default to the env variable
   if (typeof window === 'undefined') {
     return ENV_API_URL || 'http://127.0.0.1:8000/api/v1'
   }
   
-  const hostname = window.location.hostname
+  // Always use the current protocol and hostname (e.g., bentrextechnologies.com)
+  // This ensures the API call is same-origin and avoids CORS/CSRF issues.
   const protocol = window.location.protocol
+  const hostname = window.location.hostname
   
-  // Local development with subdomains (e.g., yellow.localhost)
+  // For local development with subdomains, we need to keep the port
   if (hostname.endsWith('.localhost') || hostname === 'localhost') {
     return `${protocol}//${hostname}:${ENV_API_PORT}/api/v1`
   }
   
-  // IP-based local development
-  if (hostname.startsWith('127.') || hostname.startsWith('192.168.')) {
-    return `${protocol}//${hostname}:${ENV_API_PORT}/api/v1`
-  }
-  
-  // Tunnel mode (ngrok, pinggy) - use ENV_API_URL
-  if (hostname.includes('ngrok') || hostname.includes('pinggy') || 
-      hostname.includes('loca.lt') || hostname.includes('localhost.run')) {
-    if (ENV_API_URL && ENV_API_URL.trim() !== '') {
-      return ENV_API_URL
-    }
-  }
-  
-  // Production tenant subdomains: use same-origin to avoid CORS
-  // e.g., pink4.netily.co.ke/api/v1/... → nginx → Django (reads Host for tenant)
-  const KNOWN_DOMAINS = ['netily.co.ke']
-  const isTenantSubdomain = KNOWN_DOMAINS.some(d => hostname.endsWith(`.${d}`) && hostname !== `www.${d}` && hostname !== `api.${d}`)
-
-  if (isTenantSubdomain) {
-    return `${protocol}//${hostname}/api/v1`
-  }
-
-  // Production bare domain - use ENV_API_URL
-  if (ENV_API_URL && ENV_API_URL.trim() !== '') {
-    return ENV_API_URL
-  }
-  
-  // Fallback: same hostname, port 8000
-  return `${protocol}//${hostname}:${ENV_API_PORT}/api/v1`
+  // For all other environments (including custom domains like bentrextechnologies.com),
+  // use the same hostname for API calls
+  return `${protocol}//${hostname}/api/v1`
 }
 
 // ==========================================
@@ -250,7 +229,7 @@ class CustomerApiService {
    * Get current user profile
    */
   async getProfile(): Promise<any> {
-    return this.request('/self-service/profile/') // <-- Changed from /dashboard/ to /profile/
+    return this.request('/self-service/profile/')
   }
 
   /**
