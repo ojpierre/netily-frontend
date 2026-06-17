@@ -134,12 +134,13 @@ export default function TenantsPage() {
       } else if (manualExtendDays && parseInt(manualExtendDays) > 0) {
         options.extendDays = parseInt(manualExtendDays)
       }
-      await superadminApi.activateTenant(manualActivateTarget.id, options)
+      const updated = await superadminApi.activateTenant(manualActivateTarget.id, options)
+      upsertTenant(updated)
       toast.success(`${manualActivateTarget.company_name} activated successfully`)
       setManualActivateTarget(null)
       setManualExtendDays("30")
       setManualExpiryDate("")
-      fetchTenants()
+      await fetchTenants()
     } catch (err: any) {
       toast.error(err.message || "Activation failed")
     } finally {
@@ -152,15 +153,17 @@ export default function TenantsPage() {
     setActionLoading(true)
     try {
       if (confirmAction.type === "suspend") {
-        await superadminApi.suspendTenant(confirmAction.tenant.id)
+        const updated = await superadminApi.suspendTenant(confirmAction.tenant.id)
+        upsertTenant(updated)
         toast.success(`${confirmAction.tenant.company_name} suspended`)
         setConfirmAction(null)
-        fetchTenants()
+        await fetchTenants()
       } else if (confirmAction.type === "activate") {
-        await superadminApi.activateTenant(confirmAction.tenant.id)
-        toast.success(`${confirmAction.tenant.company_name} activated`)
+        const updated = await superadminApi.activateTenant(confirmAction.tenant.id)
+        upsertTenant(updated)
+        toast.success(`${confirmAction.tenant.company_name} unsuspended`)
         setConfirmAction(null)
-        fetchTenants()
+        await fetchTenants()
       } else if (confirmAction.type === "delete") {
         setHardDeleteStep(0)
         setHardDeleteError("")
@@ -211,10 +214,18 @@ export default function TenantsPage() {
     }
   }
 
-  const resolveTenantStatus = (tenant: Tenant) =>
+  const upsertTenant = (updated: Tenant) => {
+    setTenants((current) =>
+      current
+        .map((tenant) => (tenant.id === updated.id ? { ...tenant, ...updated } : tenant))
+        .filter((tenant) => statusFilter === "all" || tenant.status === statusFilter),
+    )
+  }
+
+  const isTenantSuspended = (tenant: Tenant) => tenant.status === "suspended"
+
+  const resolveTenantStatusLabel = (tenant: Tenant) =>
     tenant.tenant_status_display ||
-    tenant.subscription_status_display ||
-    tenant.subscription_status ||
     tenant.status
 
   const formatExpiry = (tenant: Tenant) => {
@@ -355,7 +366,7 @@ export default function TenantsPage() {
                       <div className="space-y-1">
                         {statusBadge(t.status)}
                         <p className="text-xs font-medium text-slate-400">
-                          Billing: {resolveTenantStatus(t)}
+                          Tenant: {resolveTenantStatusLabel(t)}
                         </p>
                       </div>
                     </td>
@@ -441,18 +452,14 @@ export default function TenantsPage() {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {(t.status === "suspended" || t.subscription_status === "suspended") ? (
+                        {isTenantSuspended(t) ? (
                           <Button
                             size="sm"
                             variant="outline"
                             className="h-7 text-xs border-emerald-700 text-emerald-400 hover:bg-emerald-500/10"
-                            onClick={() => {
-                              setManualActivateTarget(t)
-                              setManualExtendDays("30")
-                              setManualExpiryDate("")
-                            }}
+                            onClick={() => setConfirmAction({ type: "activate", tenant: t })}
                           >
-                            <Play className="w-3 h-3 mr-1" />Activate
+                            <Play className="w-3 h-3 mr-1" />Unsuspend
                           </Button>
                         ) : (
                           <Button
@@ -484,7 +491,7 @@ export default function TenantsPage() {
                             <ExternalLink className="w-4 h-4 mr-2" /> Open Admin Panel
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          {t.status !== "suspended" ? (
+                          {!isTenantSuspended(t) ? (
                             <DropdownMenuItem
                               onClick={() => setConfirmAction({ type: "suspend", tenant: t })}
                               className="text-amber-500"
@@ -496,7 +503,7 @@ export default function TenantsPage() {
                               onClick={() => setConfirmAction({ type: "activate", tenant: t })}
                               className="text-emerald-500"
                             >
-                              <Play className="w-4 h-4 mr-2" /> Activate
+                              <Play className="w-4 h-4 mr-2" /> Unsuspend
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem
@@ -506,7 +513,9 @@ export default function TenantsPage() {
                             <Trash2 className="w-4 h-4 mr-2" /> Delete Permanently
                           </DropdownMenuItem>
                         </DropdownMenuContent>
-                      </DropdownMenu>                      </div>                    </td>
+                      </DropdownMenu>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -644,7 +653,7 @@ export default function TenantsPage() {
                 ? "Delete Tenant Permanently?"
                 : confirmAction?.type === "suspend"
                 ? "Suspend Tenant?"
-                : "Activate Tenant?"}
+                : "Unsuspend Tenant?"}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-slate-400">
               {confirmAction?.type === "delete" ? (
@@ -739,7 +748,7 @@ export default function TenantsPage() {
                 </>
               ) : (
                 <>
-                  <strong className="text-white">{confirmAction?.tenant.company_name}</strong> will be reactivated.
+                  <strong className="text-white">{confirmAction?.tenant.company_name}</strong> will be unsuspended.
                   All users will regain access immediately.
                 </>
               )}
@@ -778,7 +787,7 @@ export default function TenantsPage() {
                   : "Delete Now"
                 : confirmAction?.type === "suspend"
                 ? "Suspend"
-                : "Activate"}
+                : "Unsuspend"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

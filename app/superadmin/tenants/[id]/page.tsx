@@ -168,6 +168,30 @@ export default function TenantDetailPage() {
     }
   }
 
+  const handleSuspend = async () => {
+    try {
+      const updated = await superadminApi.suspendTenant(id)
+      setTenant((current) => current ? { ...current, ...updated } : updated)
+      setFormStatus(updated.status)
+      toast.success("Tenant suspended")
+      await fetchData()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to suspend tenant")
+    }
+  }
+
+  const handleUnsuspend = async () => {
+    try {
+      const updated = await superadminApi.activateTenant(id)
+      setTenant((current) => current ? { ...current, ...updated } : updated)
+      setFormStatus(updated.status)
+      toast.success("Tenant unsuspended")
+      await fetchData()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to unsuspend tenant")
+    }
+  }
+
   const handleDelete = async () => {
     setDeleting(true)
     setHardDeleteStep(0)
@@ -287,7 +311,7 @@ export default function TenantDetailPage() {
             <Button
               variant="outline" size="sm"
               className="border-amber-700 text-amber-400 hover:bg-amber-500/10"
-              onClick={async () => { await superadminApi.suspendTenant(id); toast.success("Tenant suspended"); fetchData() }}
+              onClick={handleSuspend}
             >
               <Pause className="w-4 h-4 mr-2" />Suspend
             </Button>
@@ -295,9 +319,9 @@ export default function TenantDetailPage() {
             <Button
               variant="outline" size="sm"
               className="border-emerald-700 text-emerald-400 hover:bg-emerald-500/10"
-              onClick={async () => { await superadminApi.activateTenant(id); toast.success("Tenant activated"); fetchData() }}
+              onClick={handleUnsuspend}
             >
-              <Play className="w-4 h-4 mr-2" />Activate
+              <Play className="w-4 h-4 mr-2" />Unsuspend
             </Button>
           )}
           <Button

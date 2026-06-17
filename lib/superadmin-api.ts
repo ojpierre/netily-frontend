@@ -796,7 +796,7 @@ class SuperadminApiService {
     return this.request(`/superadmin/tenant-deletion-jobs/${jobId}/`)
   }
 
-  async suspendTenant(id: string, reason?: string): Promise<{ detail: string }> {
+  async suspendTenant(id: string, reason?: string): Promise<Tenant & { detail?: string }> {
     return this.request(`/superadmin/tenants/${id}/suspend/`, {
       method: "POST",
       body: JSON.stringify({ reason: reason || "" }),
