@@ -263,19 +263,23 @@ const getBaseUrl = (): string => {
     return getApiBaseUrl()
   }
   
-  // Case 4: Production domains (e.g. pink4.netily.co.ke, netily.co.ke)
-  // For tenant subdomains, use same-origin /api/v1 so:
-  //   - No CORS needed (request stays on pink4.netily.co.ke)
+  // Case 4: Production domains (e.g. pink4.netily.co.ke, netily.co.ke, bentrextechnologies.com)
+  // For tenant subdomains and custom domains, use same-origin /api/v1 so:
+  //   - No CORS needed (request stays on same domain)
   //   - nginx routes /api/ to Django, which reads the Host header for tenant detection
-  // Only use ENV_API_URL for the bare domain (netily.co.ke / www.netily.co.ke)
-  const KNOWN_DOMAINS = ['netily.co.ke']
+  //   - Only use ENV_API_URL for the bare domain (netily.co.ke / www.netily.co.ke)
+  const KNOWN_DOMAINS = ['netily.co.ke', 'bentrextechnologies.com']
   const isKnownDomain = KNOWN_DOMAINS.some(d => hostname === d || hostname === `www.${d}`)
+  
+  // This detects if we are on a known tenant domain (subdomain OR custom root)
   const isTenantSubdomain = KNOWN_DOMAINS.some(d => hostname.endsWith(`.${d}`) && hostname !== `www.${d}` && hostname !== `api.${d}`)
+  const isCustomDomain = KNOWN_DOMAINS.some(d => hostname === d || hostname === `www.${d}`)
 
-  if (isTenantSubdomain) {
+  if (isTenantSubdomain || isCustomDomain) {
     // Same-origin: pink4.netily.co.ke/api/v1/... → nginx → Django
+    // OR: bentrextechnologies.com/api/v1/... → nginx → Django
     const url = `${protocol}//${hostname}/api/v1`
-    console.log('[AdminAPI] Tenant subdomain (same-origin):', url)
+    console.log('[AdminAPI] Tenant domain (same-origin):', url)
     return url
   }
 
