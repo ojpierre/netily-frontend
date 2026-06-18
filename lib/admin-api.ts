@@ -3591,7 +3591,9 @@ async activateService(
         this._subscriptionCache = { data, ts: Date.now() }
         return data
       } catch {
-        this._subscriptionCache = { data: null, ts: Date.now() }
+        // Do not cache transient failures as "no subscription"; guards should
+        // treat an unknown network state differently from an actual expired plan.
+        this._subscriptionCache = null
         return null
       } finally {
         this._subscriptionInflight = null

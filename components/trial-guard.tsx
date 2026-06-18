@@ -40,6 +40,7 @@ import type { NetilyPlan } from "@/lib/types"
 // ==========================================
 
 function checkDateExpired(targetDate: Date): boolean {
+  if (Number.isNaN(targetDate.getTime())) return false
   return new Date() >= targetDate
 }
 
@@ -652,9 +653,11 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
         setPlansLoading(false)
 
         if (!subscription || !subscription.status) {
-          // No subscription — show payment wall
-          setIsExpired(true)
-          setSubscriptionType("trial")
+          // Unknown subscription state should not block an active tenant.
+          // Transient request failures can happen during route transitions; only
+          // show the wall when the API positively reports an expired subscription.
+          setIsExpired(false)
+          setSubscriptionType(null)
           setIsChecking(false)
           return
         }
@@ -675,16 +678,21 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
         )
 
         const s = subscription.status
+        const paidPeriodActive = Boolean(
+          subscription.current_period_end &&
+          !checkDateExpired(new Date(subscription.current_period_end))
+        )
+        const convertedOrPaid = subscription.is_trial === false || paidPeriodActive
 
         // ── ACTIVE / PAID SUBSCRIPTION ──
-        if (s === "active") {
+        if (s === "active" || convertedOrPaid) {
           localStorage.setItem("subscriptionStatus", "active")
           setSubscriptionType("active")
 
           // FIX: For converted paid subscriptions (is_trial === false), ignore trial_ends_at
           // entirely — it will always be in the past and is irrelevant for paid accounts.
           // Only current_period_end determines if the paid period has expired.
-          if (subscription.is_trial === false) {
+          if (convertedOrPaid) {
             if (subscription.current_period_end) {
               const expired = checkDateExpired(new Date(subscription.current_period_end))
               setIsExpired(expired)
@@ -745,7 +753,7 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
         // ── EXPIRED / CANCELLED / PAST_DUE ──
         if (["expired", "cancelled", "past_due"].includes(s)) {
           setIsExpired(true)
-          setSubscriptionType("trial")
+          setSubscriptionType(subscription.is_trial === false ? "active" : "trial")
           setIsChecking(false)
           return
         }
@@ -757,8 +765,8 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
         console.error("TrialGuard error:", error)
         if (!active) return
         setPlansLoading(false)
-        setIsExpired(true)
-        setSubscriptionType("trial")
+        setIsExpired(false)
+        setSubscriptionType(null)
         setIsChecking(false)
       }
     }
