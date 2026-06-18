@@ -3,11 +3,10 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Wifi, Smartphone, Lock, ArrowRight } from "lucide-react"
+import { Loader2, Smartphone, Lock, ArrowRight } from "lucide-react"
 import { customerApi } from "@/lib/customer-api"
 import { ThemeToggle } from "@/components/theme-toggle"
 
@@ -39,126 +38,148 @@ export default function CustomerLoginPage() {
     try {
       const phoneNumber = normalizeLocalPhone(identifier)
       if (!isValidLocalPhone(phoneNumber)) {
-        setError("Enter a 10-digit PPPoE phone number starting with 07 or 01.")
+        setError("Enter a valid 10-digit number starting with 07 or 01.")
         setIsLoading(false)
         return
       }
 
       const response = await customerApi.login(phoneNumber, password.trim())
-      
-      // Store tokens
+
       if (response.access) {
         localStorage.setItem("customerToken", response.access)
         if (response.refresh) {
           localStorage.setItem("customerRefreshToken", response.refresh)
         }
-        
-        // Redirect to dashboard
         router.push("/customer/dashboard")
       }
     } catch (err: any) {
       console.error("Login error:", err)
-      setError(err.message || "Invalid credentials. Enter your PPPoE phone number in both fields.")
+      setError(err.message || "Invalid credentials. Enter your number in both fields.")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
-      {/* Theme toggle in top-right */}
-      <div className="fixed top-4 right-4">
+    <div className="min-h-screen relative flex items-center justify-center p-4 bg-[#0B0E14] overflow-hidden">
+      {/* Ambient signal field background */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-32 -left-32 w-[480px] h-[480px] rounded-full bg-amber-500/10 blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[420px] h-[420px] rounded-full bg-amber-400/[0.06] blur-[100px]" />
+        <svg className="absolute inset-0 w-full h-full opacity-[0.07]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M40 0 L0 0 0 40" fill="none" stroke="white" strokeWidth="0.5" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
+      </div>
+
+      <div className="fixed top-5 right-5 z-10">
         <ThemeToggle />
       </div>
 
-      <Card className="w-full max-w-md overflow-hidden border-0 shadow-xl dark:border dark:border-slate-800">
-        {/* Header */}
-        <div className="bg-blue-600 p-6 text-center">
-          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Wifi className="w-8 h-8 text-white" />
+      <div className="relative w-full max-w-[420px] z-10">
+        {/* Signature mark: signal pulse */}
+        <div className="flex justify-center mb-8">
+          <div className="relative w-16 h-16 flex items-center justify-center">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-amber-500/20 animate-ping [animation-duration:2.5s]" />
+            <span className="absolute inline-flex h-11 w-11 rounded-full bg-amber-500/15" />
+            <span className="relative inline-flex h-7 w-7 rounded-full bg-amber-500 shadow-[0_0_24px_rgba(245,158,11,0.65)]" />
           </div>
-          <h1 className="text-xl font-bold text-white">Customer Portal</h1>
-          <p className="text-white/80 text-sm mt-1">Use your PPPoE phone number to continue</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="identifier">PPPoE Phone Number</Label>
-            <div className="relative">
-              <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="identifier"
-                type="text"
-                inputMode="numeric"
-                autoComplete="tel"
-                placeholder="0712345678"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Customers enter the same phone number in both fields.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="password"
-                type="password"
-                inputMode="numeric"
-                autoComplete="current-password"
-                placeholder="Enter the same phone number"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading || !isValidLocalPhone(identifier) || !password.trim()}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              <>
-                Sign In
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </>
-            )}
-          </Button>
-
-          <div className="text-center text-sm text-muted-foreground">
-            <p>
-              Don&apos;t have an account?{" "}
-              <Link href="/customer/register" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-                Register
-              </Link>
-            </p>
-          </div>
-
-          <p className="text-center text-xs text-muted-foreground">
-            Need help? Contact your ISP support team.
+        <div className="text-center mb-9">
+          <h1 className="font-serif text-[28px] leading-tight text-white tracking-tight">
+            Welcome back
+          </h1>
+          <p className="text-[#8B92A3] text-sm mt-2">
+            Sign in to manage your connection
           </p>
-        </form>
-      </Card>
+        </div>
+
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
+          <form onSubmit={handleSubmit} className="p-7 space-y-5">
+            {error && (
+              <div className="px-3.5 py-2.5 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <p className="text-sm text-red-400">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="identifier" className="text-[#C8CDD8] text-xs font-medium uppercase tracking-wide">
+                Phone Number
+              </Label>
+              <div className="relative">
+                <Smartphone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280]" />
+                <Input
+                  id="identifier"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  placeholder="0712345678"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  className="pl-10 h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-[#5B6271] focus-visible:ring-amber-500/40 focus-visible:border-amber-500/40"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-[#C8CDD8] text-xs font-medium uppercase tracking-wide">
+                Password
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280]" />
+                <Input
+                  id="password"
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="current-password"
+                  placeholder="Enter your number again"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 h-11 bg-white/[0.04] border-white/[0.08] text-white placeholder:text-[#5B6271] focus-visible:ring-amber-500/40 focus-visible:border-amber-500/40"
+                  required
+                />
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full h-11 mt-2 bg-amber-500 hover:bg-amber-400 text-[#1A1206] font-semibold shadow-[0_4px_20px_rgba(245,158,11,0.35)] transition-all"
+              disabled={isLoading || !isValidLocalPhone(identifier) || !password.trim()}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
+              )}
+            </Button>
+
+            <div className="text-center text-sm text-[#8B92A3] pt-1">
+              <p>
+                Don&apos;t have an account?{" "}
+                <Link href="/customer/register" className="text-amber-400 hover:text-amber-300 font-medium">
+                  Register
+                </Link>
+              </p>
+            </div>
+          </form>
+        </div>
+
+        <p className="text-center text-xs text-[#5B6271] mt-6">
+          Need help? Contact your ISP support team.
+        </p>
+      </div>
     </div>
   )
 }

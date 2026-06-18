@@ -4,22 +4,10 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  User,
-  Phone,
-  Mail,
-  MapPin,
-  Wifi,
-  Calendar,
-  Save,
-  Loader2,
-} from "lucide-react"
+import { User, Phone, Mail, MapPin, Wifi, Calendar } from "lucide-react"
 import { customerApi } from "@/lib/customer-api"
-import { toast } from "sonner"
 
 interface ProfileData {
   id: number
@@ -40,14 +28,6 @@ export default function CustomerProfilePage() {
   const router = useRouter()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
-  const [form, setForm] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
-    address: "",
-  })
 
   useEffect(() => {
     const token = localStorage.getItem("customerToken")
@@ -59,16 +39,8 @@ export default function CustomerProfilePage() {
     const fetchProfile = async () => {
       try {
         setIsLoading(true)
-        // Now this directly returns the perfect, flat profile object
         const data = await customerApi.getProfile()
-        
         setProfile(data)
-        setForm({
-          first_name: data.first_name || "",
-          last_name: data.last_name || "",
-          email: data.email || "",
-          address: data.address || "",
-        })
       } catch (err: any) {
         if (err.message?.includes("401")) {
           router.push("/customer/login")
@@ -80,21 +52,6 @@ export default function CustomerProfilePage() {
 
     fetchProfile()
   }, [router])
-
-  const handleSave = async () => {
-    try {
-      setIsSaving(true)
-      await customerApi.updateProfile(form)
-      const updated = await customerApi.getProfile()
-      setProfile(updated)
-      setIsEditing(false)
-      toast.success("Profile updated successfully")
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update profile")
-    } finally {
-      setIsSaving(false)
-    }
-  }
 
   if (isLoading) {
     return (
@@ -125,29 +82,11 @@ export default function CustomerProfilePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">My Profile</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            View and manage your account information
-          </p>
-        </div>
-        {!isEditing ? (
-          <Button variant="outline" onClick={() => setIsEditing(true)}>
-            Edit Profile
-          </Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsEditing(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              <Save className="w-4 h-4 mr-2" />
-              Save
-            </Button>
-          </div>
-        )}
+      <div>
+        <h1 className="text-2xl font-bold">My Profile</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          View your account information
+        </p>
       </div>
 
       {/* Account Overview */}
@@ -189,95 +128,42 @@ export default function CustomerProfilePage() {
         </Card>
       </div>
 
-      {/* Profile Details */}
+      {/* Profile Details — read only */}
       <Card className="p-6">
         <h3 className="font-semibold mb-6">Personal Information</h3>
         <div className="grid md:grid-cols-2 gap-6">
-          {isEditing ? (
-            <>
-              <div>
-                <Label htmlFor="first_name">First Name</Label>
-                <Input
-                  id="first_name"
-                  value={form.first_name}
-                  onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="last_name">Last Name</Label>
-                <Input
-                  id="last_name"
-                  value={form.last_name}
-                  onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label>Phone Number</Label>
-                <Input
-                  value={profile.phone_number}
-                  disabled
-                  className="mt-1 bg-slate-50 dark:bg-slate-800"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Phone number cannot be changed
-                </p>
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  className="mt-1"
-                  placeholder="Enter your address"
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center gap-3">
-                <User className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Full Name</p>
-                  <p className="font-medium">{profile.full_name}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Phone className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Phone Number</p>
-                  <p className="font-medium">{profile.phone_number}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Email</p>
-                  <p className="font-medium">{profile.email || "Not set"}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Address</p>
-                  <p className="font-medium">{profile.address || "Not set"}</p>
-                </div>
-              </div>
-            </>
-          )}
+          <div className="flex items-center gap-3">
+            <User className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="text-xs text-muted-foreground">Full Name</p>
+              <p className="font-medium">{profile.full_name}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Phone className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="text-xs text-muted-foreground">Phone Number</p>
+              <p className="font-medium">{profile.phone_number}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Mail className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="text-xs text-muted-foreground">Email</p>
+              <p className="font-medium">{profile.email || "Not set"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <MapPin className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="text-xs text-muted-foreground">Address</p>
+              <p className="font-medium">{profile.address || "Not set"}</p>
+            </div>
+          </div>
         </div>
+        <p className="text-xs text-muted-foreground mt-6">
+          To update your details, contact your ISP support team.
+        </p>
       </Card>
 
       {/* Balance Card */}
