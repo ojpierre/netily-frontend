@@ -60,7 +60,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { superadminApi, type Tenant } from "@/lib/superadmin-api"
+import { superadminApi, type Tenant, type TenantSupportEmailInfo } from "@/lib/superadmin-api"
 
 const HARD_DELETE_STEPS = [
   "Verify confirmation and protect system schemas",
@@ -95,6 +95,15 @@ export default function TenantsPage() {
   const [manualExpiryDate, setManualExpiryDate] = useState("")
   const [manualActivateLoading, setManualActivateLoading] = useState(false)
 
+  // Support email repair dialog
+  const [emailSupportTarget, setEmailSupportTarget] = useState<Tenant | null>(null)
+  const [emailSupportInfo, setEmailSupportInfo] = useState<TenantSupportEmailInfo | null>(null)
+  const [emailSupportCompanyEmail, setEmailSupportCompanyEmail] = useState("")
+  const [emailSupportLoginEmail, setEmailSupportLoginEmail] = useState("")
+  const [emailSupportUserId, setEmailSupportUserId] = useState("")
+  const [emailSupportLoading, setEmailSupportLoading] = useState(false)
+  const [emailSupportSaving, setEmailSupportSaving] = useState(false)
+
   const fetchTenants = useCallback(async () => {
     setLoading(true)
     try {
@@ -126,6 +135,48 @@ export default function TenantsPage() {
       setSuspendReason("")
     }
   }, [confirmAction])
+
+  const openEmailSupport = async (tenant: Tenant) => {
+    setEmailSupportTarget(tenant)
+    setEmailSupportInfo(null)
+    setEmailSupportCompanyEmail(tenant.company_email || "")
+    setEmailSupportLoginEmail("")
+    setEmailSupportUserId("")
+    setEmailSupportLoading(true)
+    try {
+      const info = await superadminApi.getTenantSupportEmailInfo(tenant.id)
+      const primaryAdmin = info.admin_users?.[0]
+      setEmailSupportInfo(info)
+      setEmailSupportCompanyEmail(info.company_email || tenant.company_email || "")
+      setEmailSupportUserId(primaryAdmin ? String(primaryAdmin.id) : "")
+      setEmailSupportLoginEmail(primaryAdmin?.email || "")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load tenant email details")
+    } finally {
+      setEmailSupportLoading(false)
+    }
+  }
+
+  const saveEmailSupport = async () => {
+    if (!emailSupportTarget) return
+    setEmailSupportSaving(true)
+    try {
+      const updated = await superadminApi.updateTenantSupportEmails(emailSupportTarget.id, {
+        company_email: emailSupportCompanyEmail,
+        tenant_admin_email: emailSupportLoginEmail,
+        user_id: emailSupportUserId || undefined,
+      })
+      upsertTenant(updated)
+      toast.success(updated.detail || "Tenant email details updated")
+      setEmailSupportTarget(null)
+      setEmailSupportInfo(null)
+      await fetchTenants()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update tenant emails")
+    } finally {
+      setEmailSupportSaving(false)
+    }
+  }
 
   const handleManualActivate = async () => {
     if (!manualActivateTarget) return
@@ -512,6 +563,9 @@ export default function TenantsPage() {
                           >
                             <ExternalLink className="w-4 h-4 mr-2" /> Open Admin Panel
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEmailSupport(t)}>
+                            <Wrench className="w-4 h-4 mr-2" /> Fix Login Email
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {!isTenantSuspended(t) ? (
                             <DropdownMenuItem
@@ -657,6 +711,115 @@ export default function TenantsPage() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!emailSupportTarget}
+        onOpenChange={(open) => {
+          if (emailSupportSaving) return
+          if (!open) {
+            setEmailSupportTarget(null)
+            setEmailSupportInfo(null)
+          }
+        }}
+      >
+        <DialogContent className="border-slate-800 bg-slate-950 text-white sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Fix Tenant Login Email</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Update the company contact email and the tenant admin login email for support cases.
+            </DialogDescription>
+          </DialogHeader>
+          {emailSupportTarget && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm">
+                <p className="font-semibold text-white">{emailSupportTarget.company_name}</p>
+                <p className="text-slate-400">{emailSupportTarget.subdomain}.netily.co.ke</p>
+              </div>
+
+              {emailSupportLoading ? (
+                <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm text-slate-300">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading tenant admins...
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>Company Email</Label>
+                    <Input
+                      type="email"
+                      value={emailSupportCompanyEmail}
+                      onChange={(e) => setEmailSupportCompanyEmail(e.target.value)}
+                      className="border-slate-700 bg-slate-900 text-white"
+                      placeholder="billing@example.com"
+                    />
+                    <p className="text-xs text-slate-500">Used for company billing/contact communication.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Tenant Admin Account</Label>
+                    <Select
+                      value={emailSupportUserId}
+                      onValueChange={(value) => {
+                        setEmailSupportUserId(value)
+                        const selectedAdmin = emailSupportInfo?.admin_users.find((user) => String(user.id) === value)
+                        setEmailSupportLoginEmail(selectedAdmin?.email || "")
+                      }}
+                    >
+                      <SelectTrigger className="border-slate-700 bg-slate-900 text-white">
+                        <SelectValue placeholder="Select admin user" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(emailSupportInfo?.admin_users || []).map((user) => (
+                          <SelectItem key={user.id} value={String(user.id)}>
+                            {user.name} - {user.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {emailSupportInfo?.admin_users.length === 0 && (
+                      <p className="text-xs text-amber-300">No tenant admin users were found in this schema.</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Tenant Login Email</Label>
+                    <Input
+                      type="email"
+                      value={emailSupportLoginEmail}
+                      onChange={(e) => setEmailSupportLoginEmail(e.target.value)}
+                      className="border-slate-700 bg-slate-900 text-white"
+                      placeholder="admin@example.com"
+                    />
+                    <p className="text-xs text-slate-500">This is the email the tenant admin uses to log in.</p>
+                  </div>
+                </>
+              )}
+
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  className="border-slate-700"
+                  onClick={() => setEmailSupportTarget(null)}
+                  disabled={emailSupportSaving}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={saveEmailSupport}
+                  disabled={emailSupportLoading || emailSupportSaving}
+                  className="bg-blue-600 hover:bg-blue-500"
+                >
+                  {emailSupportSaving ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</>
+                  ) : (
+                    "Save Email Fix"
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

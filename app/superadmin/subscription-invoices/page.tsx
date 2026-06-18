@@ -41,6 +41,8 @@ export default function SuperadminSubscriptionInvoicesPage() {
   const [selected, setSelected] = useState<SubscriptionInvoice | null>(null)
   const [discountAmount, setDiscountAmount] = useState("")
   const [discountReason, setDiscountReason] = useState("")
+  const [adjustmentAmount, setAdjustmentAmount] = useState("")
+  const [adjustmentDescription, setAdjustmentDescription] = useState("")
   const [saving, setSaving] = useState(false)
 
   const fetchInvoices = async () => {
@@ -70,30 +72,34 @@ export default function SuperadminSubscriptionInvoicesPage() {
     { label: "Invoiced Cycles", value: summary?.invoiced ?? 0, icon: Send },
   ], [summary, rows.length])
 
-  const openDiscount = async (row: SubscriptionInvoice) => {
+  const openAdjustment = async (row: SubscriptionInvoice) => {
     try {
       const detail = await superadminApi.getSubscriptionInvoice(row.id)
       setSelected(detail)
       setDiscountAmount(detail.invoice?.discount_amount || "0")
+      setAdjustmentAmount(detail.invoice?.manual_adjustment_amount || "0")
+      setAdjustmentDescription(detail.invoice?.manual_adjustment_description || "")
       setDiscountReason("")
     } catch (error: any) {
       toast.error(error?.message || "Failed to open invoice")
     }
   }
 
-  const saveDiscount = async () => {
+  const saveAdjustment = async () => {
     if (!selected) return
     setSaving(true)
     try {
       const updated = await superadminApi.updateSubscriptionInvoiceDiscount(selected.id, {
         discount_amount: discountAmount || "0",
         discount_reason: discountReason,
+        manual_adjustment_amount: adjustmentAmount || "0",
+        manual_adjustment_description: adjustmentDescription,
       })
       setSelected(updated)
-      toast.success("Invoice discount updated")
+      toast.success("Invoice adjustment updated")
       fetchInvoices()
     } catch (error: any) {
-      toast.error(error?.message || "Failed to update discount")
+      toast.error(error?.message || "Failed to update invoice")
     } finally {
       setSaving(false)
     }
@@ -116,7 +122,7 @@ export default function SuperadminSubscriptionInvoicesPage() {
           <p className="text-sm uppercase tracking-[0.24em] text-violet-300">Platform Billing</p>
           <h1 className="mt-2 text-3xl font-bold text-white">Subscription Invoices</h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-400">
-            Review tenant usage invoices, apply manual referral discounts, and send invoice notices by email, SMS, or in-app notification.
+            Review tenant usage invoices, add approved custom charges, apply referral discounts, and send invoice notices by email, SMS, or in-app notification.
           </p>
         </div>
         <Button onClick={fetchInvoices} disabled={loading} className="bg-violet-600 hover:bg-violet-500">
@@ -222,11 +228,14 @@ export default function SuperadminSubscriptionInvoicesPage() {
                       {Number(row.invoice?.discount_amount || 0) > 0 && (
                         <p className="text-xs text-emerald-300">Discount: {money(row.invoice?.discount_amount)}</p>
                       )}
+                      {Number(row.invoice?.manual_adjustment_amount || 0) > 0 && (
+                        <p className="text-xs text-amber-300">Custom charge: {money(row.invoice?.manual_adjustment_amount)}</p>
+                      )}
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="outline" className="border-slate-700" onClick={() => openDiscount(row)}>
-                          Discount
+                        <Button size="sm" variant="outline" className="border-slate-700" onClick={() => openAdjustment(row)}>
+                          Adjust
                         </Button>
                         <Button size="sm" variant="outline" className="border-slate-700" onClick={() => sendInvoice(row, "email")}>
                           <Mail className="mr-1 h-3.5 w-3.5" /> Email
@@ -250,9 +259,9 @@ export default function SuperadminSubscriptionInvoicesPage() {
       <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
         <DialogContent className="border-slate-800 bg-slate-950 text-white sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Apply Manual Discount</DialogTitle>
+            <DialogTitle>Adjust Subscription Invoice</DialogTitle>
             <DialogDescription className="text-slate-400">
-              Use this for verified referrals or support-approved invoice corrections.
+              Add agreed custom charges or subtract approved discounts. The tenant usage estimate follows the adjusted invoice total.
             </DialogDescription>
           </DialogHeader>
           {selected && (
@@ -263,6 +272,26 @@ export default function SuperadminSubscriptionInvoicesPage() {
                 <p className="text-slate-400">Invoice: {selected.invoice?.invoice_number || "Will be generated when saved"}</p>
               </div>
               <div className="space-y-2">
+                <Label>Custom Charge Amount</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={adjustmentAmount}
+                  onChange={(e) => setAdjustmentAmount(e.target.value)}
+                  className="border-slate-700 bg-slate-900 text-white"
+                />
+                <p className="text-xs text-slate-500">Adds to the invoice for custom integrations, support work, or agreed extras.</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Custom Charge Description</Label>
+                <Textarea
+                  value={adjustmentDescription}
+                  onChange={(e) => setAdjustmentDescription(e.target.value)}
+                  placeholder="Example: Custom MikroTik integration setup"
+                  className="border-slate-700 bg-slate-900 text-white"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Discount Amount</Label>
                 <Input
                   type="number"
@@ -271,9 +300,10 @@ export default function SuperadminSubscriptionInvoicesPage() {
                   onChange={(e) => setDiscountAmount(e.target.value)}
                   className="border-slate-700 bg-slate-900 text-white"
                 />
+                <p className="text-xs text-slate-500">Subtracts from the invoice for approved referrals or goodwill credits.</p>
               </div>
               <div className="space-y-2">
-                <Label>Reason</Label>
+                <Label>Discount Reason</Label>
                 <Textarea
                   value={discountReason}
                   onChange={(e) => setDiscountReason(e.target.value)}
@@ -285,8 +315,8 @@ export default function SuperadminSubscriptionInvoicesPage() {
                 <Button variant="outline" className="border-slate-700" onClick={() => setSelected(null)}>
                   Cancel
                 </Button>
-                <Button onClick={saveDiscount} disabled={saving} className="bg-violet-600 hover:bg-violet-500">
-                  {saving ? "Saving..." : "Save Discount"}
+                <Button onClick={saveAdjustment} disabled={saving} className="bg-violet-600 hover:bg-violet-500">
+                  {saving ? "Saving..." : "Save Adjustment"}
                 </Button>
               </div>
             </div>

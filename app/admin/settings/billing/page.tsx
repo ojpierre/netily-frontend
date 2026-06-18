@@ -94,6 +94,11 @@ function BillingContent() {
           minimum_charge: raw.minimum_charge ?? raw.monthly_minimum_charge ?? 500,
           minimum_adjustment: raw.minimum_adjustment ?? 0,
           total_estimate: raw.total_estimate ?? 0,
+          invoice_adjustment_amount: raw.invoice_adjustment_amount ?? 0,
+          invoice_discount_amount: raw.invoice_discount_amount ?? 0,
+          invoice_total_estimate: raw.invoice_total_estimate ?? null,
+          invoice_number: raw.invoice_number ?? "",
+          invoice_adjustment_note: raw.invoice_adjustment_note ?? "",
           hotspot_revenue_note: raw.hotspot_revenue_note,
         } as ApiUsageStats)
       } else {
@@ -916,6 +921,9 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                 const usageSubtotal = Number(usage.usage_subtotal ?? (pppoeCharge + hotspotShareAmount))
                 const minimumAdjustment = Number(usage.minimum_adjustment ?? Math.max(minimumCharge - usageSubtotal, 0))
                 const totalEstimate = Number(usage.total_estimate ?? (usageSubtotal + minimumAdjustment))
+                const invoiceAdjustmentAmount = Number(usage.invoice_adjustment_amount || 0)
+                const invoiceDiscountAmount = Number(usage.invoice_discount_amount || 0)
+                const hasInvoiceAdjustment = invoiceAdjustmentAmount > 0 || invoiceDiscountAmount > 0
                 return (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-1">
@@ -982,6 +990,15 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                           <p className="text-xs text-slate-400 mt-1">Max of usage subtotal or monthly minimum</p>
                           {minimumAdjustment > 0 && (
                             <p className="text-xs text-amber-300 mt-0.5">Includes {kes(minimumAdjustment)} minimum adjustment</p>
+                          )}
+                          {invoiceAdjustmentAmount > 0 && (
+                            <p className="text-xs text-amber-300 mt-0.5">Includes {kes(invoiceAdjustmentAmount)} support-approved custom charge</p>
+                          )}
+                          {invoiceDiscountAmount > 0 && (
+                            <p className="text-xs text-emerald-300 mt-0.5">Includes {kes(invoiceDiscountAmount)} support-approved discount</p>
+                          )}
+                          {hasInvoiceAdjustment && usage.invoice_number && (
+                            <p className="text-xs text-blue-300 mt-0.5">Linked invoice: {usage.invoice_number}</p>
                           )}
                           <p className="text-xs text-blue-400 mt-0.5">Updated every 8 hrs</p>
                         </CardContent>

@@ -106,6 +106,21 @@ export interface TenantUpdatePayload {
   company_city?: string
 }
 
+export interface TenantSupportEmailUser {
+  id: number
+  email: string
+  name: string
+  is_superuser: boolean
+  is_active: boolean
+}
+
+export interface TenantSupportEmailInfo {
+  tenant_id: string
+  tenant_subdomain: string
+  company_email: string
+  admin_users: TenantSupportEmailUser[]
+}
+
 export interface TenantCreatePayload {
   company_name: string
   company_type: string
@@ -192,12 +207,15 @@ export interface SubscriptionInvoice {
   monthly_minimum: string
   minimum_adjustment: string
   calculated_total: string
+  effective_total?: string
   invoice: {
     id: number
     invoice_number: string
     status: string
     subtotal: string
     discount_amount: string
+    manual_adjustment_amount?: string
+    manual_adjustment_description?: string
     total_amount: string
     balance: string
     due_date: string | null
@@ -820,6 +838,20 @@ class SuperadminApiService {
     })
   }
 
+  async getTenantSupportEmailInfo(id: string): Promise<TenantSupportEmailInfo> {
+    return this.request(`/superadmin/tenants/${id}/support-email/`)
+  }
+
+  async updateTenantSupportEmails(
+    id: string,
+    data: { company_email?: string; tenant_admin_email?: string; user_id?: number | string },
+  ): Promise<Tenant & { detail?: string; support_email_info?: TenantSupportEmailInfo }> {
+    return this.request(`/superadmin/tenants/${id}/support-email/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+  }
+
   async getTenantStats(id: string): Promise<TenantStats> {
     return this.request(`/superadmin/tenants/${id}/stats/`)
   }
@@ -929,7 +961,12 @@ class SuperadminApiService {
 
   async updateSubscriptionInvoiceDiscount(
     id: string,
-    data: { discount_amount: string | number; discount_reason?: string },
+    data: {
+      discount_amount: string | number
+      discount_reason?: string
+      manual_adjustment_amount?: string | number
+      manual_adjustment_description?: string
+    },
   ): Promise<SubscriptionInvoice> {
     return this.request(`/superadmin/subscription-invoices/${id}/`, {
       method: "PATCH",

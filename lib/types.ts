@@ -2431,6 +2431,11 @@ export interface UsageStats {
   minimum_charge?: string | number
   minimum_adjustment?: string | number
   total_estimate?: string | number
+  invoice_adjustment_amount?: string | number
+  invoice_discount_amount?: string | number
+  invoice_total_estimate?: string | number | null
+  invoice_number?: string
+  invoice_adjustment_note?: string
   hotspot_revenue_note?: string
 }
 
