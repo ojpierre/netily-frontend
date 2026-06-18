@@ -18,6 +18,24 @@ const ROOT_DOMAINS = new Set([
   'netily.co.ke', 'netily.io', 'netily.com', 'localhost',
 ])
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  CUSTOM TENANT DOMAINS
+//  ISPs that bring their own domain (e.g. bentrextechnologies.com) instead of
+//  using a *.netily.co.ke subdomain. Each entry controls what the bare root "/"
+//  resolves to for that specific hostname — this is intentionally per-domain
+//  because different ISPs have asked for different default landing behavior.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CUSTOM_TENANT_DOMAIN_HOME: Record<string, string> = {
+  'bentrextechnologies.com': '/customer/login',
+  'www.bentrextechnologies.com': '/customer/login',
+}
+
+function getCustomTenantHome(hostname: string): string | null {
+  const host = hostname.split(':')[0].toLowerCase()
+  return CUSTOM_TENANT_DOMAIN_HOME[host] || null
+}
+
 /**
  * Returns the ISP tenant slug from the hostname, or null if the request is on
  * the main domain / a reserved subdomain.
@@ -80,7 +98,16 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hostname = request.headers.get('host') || ''
 
-  // ── 1. Tenant subdomain redirect (runs before any auth check) ─────────────
+  // ── 1a. Custom tenant domain redirect (e.g. bentrextechnologies.com) ──────
+  // Only the bare root "/" is redirected — /admin/login, /customer/login,
+  // /api/, static assets etc. all pass through untouched so the ISP's admin
+  // can still reach their dashboard by typing the URL manually.
+  const customHome = getCustomTenantHome(hostname)
+  if (customHome && pathname === '/') {
+    return NextResponse.redirect(new URL(customHome, request.url), { status: 302 })
+  }
+
+  // ── 1b. Tenant subdomain redirect (runs before any auth check) ────────────
   const tenantSubdomain = getTenantSubdomain(hostname)
   if (tenantSubdomain) {
     // Let panel routes and static assets through unchanged
