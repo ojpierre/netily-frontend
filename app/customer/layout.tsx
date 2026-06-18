@@ -85,7 +85,8 @@ export default function CustomerPortalLayout({
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Mobile Header */}
       <header className="sticky top-0 z-40 lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex h-14 items-center justify-between px-4">
+        {/* FIX: Changed h-14 to min-h-14 and added py-2 for wrapping */}
+        <div className="flex min-h-14 items-center justify-between px-4 py-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <Button
               variant="ghost"
@@ -95,7 +96,6 @@ export default function CustomerPortalLayout({
             >
               {mobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
-            {/* FIX: Added min-w-0 and flex-1 to allow truncation */}
             <Link href="/customer/dashboard" className="flex items-center gap-2 min-w-0 flex-1">
               {companyLogo ? (
                 <img src={companyLogo} alt={companyName} className="w-8 h-8 rounded-lg object-contain shrink-0" />
@@ -104,8 +104,8 @@ export default function CustomerPortalLayout({
                   <Wifi className="w-4 h-4 text-white" />
                 </div>
               )}
-              {/* FIX: Added min-w-0 to span to allow truncate to work */}
-              <span className="font-bold text-base text-slate-900 dark:text-white truncate min-w-0">
+              {/* FIX: Replace truncate with wrap-friendly classes */}
+              <span className="font-bold text-base text-slate-900 dark:text-white leading-tight break-words line-clamp-2 min-w-0">
                 {companyName}
               </span>
             </Link>
@@ -139,9 +139,9 @@ export default function CustomerPortalLayout({
         } lg:translate-x-0 ${sidebarCollapsed ? "lg:w-[68px]" : "lg:w-60"} w-64`}
       >
         {/* Sidebar Header */}
-        <div className="flex h-14 items-center justify-between px-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        {/* FIX: Changed h-14 to min-h-14 and added py-2 for wrapping */}
+        <div className="flex min-h-14 items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800 shrink-0">
           {!sidebarCollapsed && (
-            /* FIX: Added min-w-0 and overflow-hidden to allow truncation */
             <Link href="/customer/dashboard" className="flex items-center gap-2 min-w-0 overflow-hidden flex-1">
               {companyLogo ? (
                 <img src={companyLogo} alt={companyName} className="w-8 h-8 rounded-lg object-contain shrink-0" />
@@ -150,8 +150,8 @@ export default function CustomerPortalLayout({
                   <Wifi className="w-4 h-4 text-white" />
                 </div>
               )}
-              {/* FIX: Added min-w-0 to span to allow truncate to work */}
-              <span className="font-bold text-base text-slate-900 dark:text-white truncate min-w-0">
+              {/* FIX: Replace truncate with wrap-friendly classes */}
+              <span className="font-bold text-base text-slate-900 dark:text-white leading-tight break-words line-clamp-2 min-w-0">
                 {companyName}
               </span>
             </Link>
