@@ -698,6 +698,12 @@ export default function SettingsPage() {
   const [supportsOtpToggleField, setSupportsOtpToggleField] = useState(false)
   const [otpToggleFieldName, setOtpToggleFieldName] = useState<string | null>(null)
 
+  // Customer Portal Settings State
+  const [portalSettings, setPortalSettings] = useState({
+    hideLowerPlans: false,
+  })
+  const [portalSaving, setPortalSaving] = useState(false)
+
   const getTenantSecurityStorageKey = (): string => {
     if (typeof window === "undefined") return "tenant_security_settings_default"
     const host = window.location.hostname || "default"
@@ -863,6 +869,11 @@ export default function SettingsPage() {
           adminOtpEnabled: hasServerOtpField
             ? !!detectedOtp.value
             : (localOtpEnabled ?? false),
+        })
+
+        // Load portal settings
+        setPortalSettings({
+          hideLowerPlans: !!data.hide_lower_plans_in_customer_portal,
         })
       } catch (err: any) {
         console.error("Failed to load settings:", err)
@@ -1202,8 +1213,9 @@ export default function SettingsPage() {
           <ComingSoonTab label="Notifications" />
         </TabsContent>
 
-        {/* Security Tab - Complete Replacement */}
+        {/* Security Tab - Complete Replacement with Customer Portal Plans */}
         <TabsContent value="security" className="space-y-6">
+          {/* Admin Login Security Card */}
           <Card>
             <CardHeader>
               <CardTitle>Admin Login Security</CardTitle>
@@ -1268,6 +1280,74 @@ export default function SettingsPage() {
               >
                 <Save className="w-4 h-4 mr-2" />
                 Save Security Settings
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Customer Portal Plans Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer Portal Plans</CardTitle>
+              <CardDescription>
+                Control which plans customers see when they log in and view available plans.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                <div>
+                  <p className="font-medium text-slate-900 dark:text-slate-100">
+                    Hide lower-priced plans
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    When enabled, customers only see their current plan and plans priced
+                    the same or higher — no downgrade options shown.
+                  </p>
+                  <p className="text-xs text-slate-400 mt-2">
+                    Applies to this tenant only. Off by default.
+                  </p>
+                </div>
+                <Switch
+                  checked={portalSettings.hideLowerPlans}
+                  onCheckedChange={(checked) =>
+                    setPortalSettings((prev) => ({ ...prev, hideLowerPlans: checked }))
+                  }
+                />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button
+                onClick={async () => {
+                  const token = getAdminToken()
+                  if (!token) { toast.error("Not authenticated"); return }
+                  setPortalSaving(true)
+                  const apiBase = getAdminSettingsApiBase()
+                  try {
+                    const res = await fetch(`${apiBase}/core/settings/`, {
+                      method: "PATCH",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({
+                        hide_lower_plans_in_customer_portal: portalSettings.hideLowerPlans,
+                      }),
+                    })
+                    if (!res.ok) throw new Error("Save failed")
+                    toast.success(
+                      portalSettings.hideLowerPlans
+                        ? "Customers will now only see their plan and higher-tier plans."
+                        : "Customers will now see all available plans again."
+                    )
+                  } catch (e: any) {
+                    toast.error(e.message || "Failed to save portal settings")
+                  } finally {
+                    setPortalSaving(false)
+                  }
+                }}
+                disabled={portalSaving}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Portal Settings
               </Button>
             </CardFooter>
           </Card>

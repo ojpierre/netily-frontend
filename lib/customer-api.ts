@@ -248,15 +248,25 @@ class CustomerApiService {
   }
 
   // ------------------------------------------
-  // PLANS - PUBLIC
+  // PLANS - PUBLIC (with optional auth)
   // ------------------------------------------
 
   /**
-   * Get available ISP plans (public)
+   * Get available ISP plans (public, personalized if logged in)
    */
   async getPlans(): Promise<{ plans: CustomerPlan[]; branding: any }> {
+    const token = typeof window !== 'undefined'
+      ? localStorage.getItem('customerToken')
+      : null
+
+    const headers: HeadersInit = { 'Content-Type': 'application/json' }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch(`${this.baseUrl}/self-service/plans/`, {
-      headers: { 'Content-Type': 'application/json' },
+      headers,
+      credentials: 'include',
     })
     
     return this.handleResponse<{ plans: CustomerPlan[]; branding: any }>(response)
