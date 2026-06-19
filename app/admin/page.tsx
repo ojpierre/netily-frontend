@@ -233,7 +233,7 @@ export default function AdminDashboard() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-[-0.03em] text-slate-900 dark:text-white">Dashboard</h1>
           <p className="text-slate-500 mt-1">Overview of your ISP operations</p>
         </div>
         <Alert variant="destructive">
@@ -245,11 +245,24 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Refined radial gradient bloom background */}
+      <div
+        className="absolute inset-0 -mx-6 -mt-6 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 60% 50% at 20% 0%, rgba(99,102,241,0.06) 0%, transparent 70%),
+            radial-gradient(ellipse 40% 40% at 80% 0%, rgba(16,185,129,0.05) 0%, transparent 70%)
+          `,
+        }}
+      />
+
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between relative">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-[-0.03em] text-slate-900 dark:text-white">
+            Dashboard
+          </h1>
           <p className="text-slate-500 mt-1">
             Welcome back, {user?.first_name || user?.username || "Admin"}
           </p>
@@ -263,9 +276,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Row 1: Key Metrics ─── */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total Customers - UPDATED DESCRIPTION */}
-        <Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 relative">
+        {/* Total Customers */}
+        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
             <Users className="h-4 w-4 text-slate-500" />
@@ -275,17 +288,17 @@ export default function AdminDashboard() {
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold">
+                <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-slate-900 dark:text-slate-50 leading-none">
                   {(core?.total_customers ?? 0).toLocaleString()}
                 </div>
-                <p className="text-xs text-slate-500 mt-1">All PPPoE/Static users</p>
+                <p className="text-[11px] text-slate-400 mt-2 font-medium tracking-[0.02em]">All PPPoE/Static users</p>
               </>
             )}
           </CardContent>
         </Card>
 
-        {/* Active Customers - UPDATED TITLE & DESCRIPTION */}
-        <Card>
+        {/* Active Subscriptions */}
+        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
             <UserCheck className="h-4 w-4 text-green-500" />
@@ -295,11 +308,11 @@ export default function AdminDashboard() {
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-green-600 dark:text-green-400 leading-none">
                   {((activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0) || core?.active_customers || 0).toLocaleString()}
                 </div>
-                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3 text-green-600" />
+                <p className="text-[11px] text-slate-400 mt-2 font-medium tracking-[0.02em] flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3 text-emerald-500" />
                   <span>Customers with active sub</span>
                 </p>
               </>
@@ -307,9 +320,9 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Expired Customers - Uses fast single endpoint - NOW CLICKABLE */}
+        {/* Expired Customers - Clickable */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900 cursor-pointer hover:-translate-y-0.5"
           onClick={() => router.push('/admin/users?status=expired')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -321,11 +334,11 @@ export default function AdminDashboard() {
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-red-600 dark:text-red-400 leading-none">
                   {expiredCount.toLocaleString()}
                 </div>
-                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                  <TrendingDown className="w-3 h-3 text-red-600" />
+                <p className="text-[11px] text-slate-400 mt-2 font-medium tracking-[0.02em] flex items-center gap-1">
+                  <TrendingDown className="w-3 h-3 text-red-500" />
                   <span>Requires renewal</span>
                 </p>
               </>
@@ -333,16 +346,21 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Online / Active — clean ratio number + progress bar (REMOVED "Active subs" legend) */}
+        {/* Online / Active - Clickable with refined Live pill */}
         <Card
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900 cursor-pointer hover:-translate-y-0.5"
           onClick={() => router.push('/admin/users?tab=online-sessions')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Online / Active</CardTitle>
-            <span className="text-xs text-slate-400 flex items-center gap-1.5">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+              </span>
+              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 tracking-[0.08em] uppercase">
+                Live
+              </span>
             </span>
           </CardHeader>
           <CardContent>
@@ -370,7 +388,7 @@ export default function AdminDashboard() {
 
                   {/* Progress bar */}
                   <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs text-slate-400">
+                    <div className="flex justify-between text-[11px] text-slate-400 font-medium tracking-[0.02em]">
                       <span>Online now</span>
                       <span>{pct}% connected</span>
                     </div>
@@ -382,13 +400,13 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* Legend - REMOVED "Active subs" */}
+                  {/* Legend */}
                   <div className="flex gap-3 pt-0.5">
-                    <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                    <span className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium tracking-[0.02em]">
                       <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
                       PPPoE: {pppoe}
                     </span>
-                    <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                    <span className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium tracking-[0.02em]">
                       <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />
                       Hotspot: {hotspot}
                     </span>
@@ -401,9 +419,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Row 2: Network & Revenue ─── */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 relative">
         {/* Router Status */}
-        <Card>
+        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
@@ -427,7 +445,7 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
                     <span className="text-sm font-medium">Online</span>
@@ -436,7 +454,7 @@ export default function AdminDashboard() {
                     {routers?.online_routers ?? 0}
                   </span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                     <span className="text-sm font-medium">Offline</span>
@@ -445,7 +463,7 @@ export default function AdminDashboard() {
                     {routers?.offline_routers ?? 0}
                   </span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                     <span className="text-sm font-medium">Warning / Maintenance</span>
@@ -454,7 +472,7 @@ export default function AdminDashboard() {
                     {(routers?.warning_routers ?? 0) + (routers?.maintenance_routers ?? 0)}
                   </span>
                 </div>
-                <div className="pt-2 border-t">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Total Routers</span>
                     <span className="font-semibold">{routers?.total_routers ?? 0}</span>
@@ -469,8 +487,8 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Revenue Card — full-bleed tinted rows */}
-        <Card>
+        {/* Revenue Card */}
+        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
@@ -498,7 +516,7 @@ export default function AdminDashboard() {
                 {/* Today */}
                 <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/30">
                   <div>
-                    <p className="text-[10px] font-semibold tracking-widest text-blue-400 uppercase">Today</p>
+                    <p className="text-[10px] font-semibold tracking-[0.08em] text-blue-400 uppercase">Today</p>
                     <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
                       {formatKSh(data.reports?.overview?.today_revenue ?? payments?.amount_today)}
                     </p>
@@ -511,7 +529,7 @@ export default function AdminDashboard() {
                 {/* This week */}
                 <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
                   <div>
-                    <p className="text-[10px] font-semibold tracking-widest text-green-500 uppercase">This week</p>
+                    <p className="text-[10px] font-semibold tracking-[0.08em] text-green-500 uppercase">This week</p>
                     <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
                       {formatKSh(data.reports?.overview?.week_revenue ?? 0)}
                     </p>
@@ -524,7 +542,7 @@ export default function AdminDashboard() {
                 {/* This month */}
                 <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
                   <div>
-                    <p className="text-[10px] font-semibold tracking-widest text-amber-500 uppercase">This month</p>
+                    <p className="text-[10px] font-semibold tracking-[0.08em] text-amber-500 uppercase">This month</p>
                     <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
                       {formatKSh(data.reports?.overview?.month_revenue ?? payments?.amount_this_month)}
                     </p>
@@ -535,7 +553,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium tracking-[0.02em] pt-2 border-t border-slate-100 dark:border-slate-800">
                   <span>Transactions today</span>
                   <span className="font-medium text-slate-600 dark:text-slate-300">
                     {data.reports?.overview?.total_transactions_today ?? payments?.payments_today ?? 0}
@@ -547,7 +565,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Support Tickets */}
-        <Card>
+        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
@@ -591,7 +609,7 @@ export default function AdminDashboard() {
                     <p className="text-xs text-slate-500">Total</p>
                   </div>
                 </div>
-                <div className="pt-2 border-t flex items-center justify-between text-sm">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-sm">
                   <div className="flex items-center gap-1 text-slate-500">
                     <Clock className="w-3 h-3" />
                     Avg Response
@@ -605,10 +623,10 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Row 2.5: Weekly Income & Monthly Earnings ─── */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 relative">
 
         {/* Weekly Income Chart */}
-        <Card>
+        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -710,7 +728,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Monthly Earnings Chart */}
-        <Card>
+        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -814,9 +832,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Row 3: Quick Actions & Recent Activity ─── */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 relative">
         {/* Quick Actions */}
-        <Card>
+        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Zap className="w-4 h-4 text-amber-500" />
@@ -846,7 +864,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Recent Activity */}
-        <Card>
+        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader>
             <CardTitle className="text-base">Recent Activity</CardTitle>
             <CardDescription>Latest system events from audit log</CardDescription>
@@ -874,7 +892,7 @@ export default function AdminDashboard() {
                 {data.recentActivity.map((activity) => (
                   <div
                     key={activity.id}
-                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
                     <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
                       <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
