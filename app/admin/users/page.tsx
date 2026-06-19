@@ -410,6 +410,7 @@ export default function UsersPage() {
     email: "",
     phone: "",
     password: "",
+    location: "",   // <-- ADDED: location field
     radius_username: "",
     radius_password: "",
     connection_type: "pppoe" as "pppoe" | "static",
@@ -859,6 +860,7 @@ export default function UsersPage() {
         email: newCustomerForm.email || undefined,
         phone: newCustomerForm.phone, 
         password: newCustomerForm.password,
+        location: newCustomerForm.location || undefined,   // <-- ADDED: location
         status: 'active' as const,
       }
 
@@ -947,6 +949,7 @@ export default function UsersPage() {
         email: "",
         phone: "",
         password: "",
+        location: "",   // <-- ADDED: location reset
         radius_username: "",
         radius_password: "",
         connection_type: "pppoe",
@@ -1829,6 +1832,14 @@ export default function UsersPage() {
                   </div>
                 </div>
                 <div className="space-y-1">
+                  <Label>Location <span className="text-xs text-slate-400">(optional)</span></Label>
+                  <Input
+                    placeholder="e.g. Westlands, Nairobi"
+                    value={newCustomerForm.location}
+                    onChange={(e) => setNewCustomerForm({...newCustomerForm, location: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1">
                   <Label>Portal Password <span className="text-red-500">*</span></Label>
                   <Input
                     type="password"
@@ -2022,14 +2033,13 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              {/* Billing Account Notice */}
+              {/* Billing Account Notice - UPDATED TEXT */}
               <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex items-start gap-2">
                 <CreditCard className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-xs font-medium text-blue-900">M-Pesa Paybill Account</p>
                   <p className="text-xs text-blue-700 mt-0.5">
-                    A unique account number (e.g. <strong>JOH-001</strong>) is auto-generated. 
-                    The customer uses it as the account reference when paying via your Paybill shortcode.
+                    The account number is generated from the customer's phone number. 
                     You can edit it after creation.
                   </p>
                 </div>
