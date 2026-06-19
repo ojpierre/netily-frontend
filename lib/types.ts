@@ -865,12 +865,35 @@ export interface Invoice {
   terms?: string
   created_at: string
   updated_at?: string
-  // ADD THESE:
-  period_start?: string  // The start of the 30-day cycle
-  period_end?: string    // The end of the 30-day cycle
-  category?: 'subscription' | 'customer' // To distinguish Netily fees from ISP sales
+  
+  // ADD THESE (optional, for auto-generation and detailed views):
+  period_start?: string      // The start of the billing period
+  period_end?: string        // The end of the billing period
+  category?: 'subscription' | 'customer'  // To distinguish Netily fees from ISP sales
+  
+  // NEW: Add these for compatibility with the updated frontend
+  balance?: string           // Alias for balance_due (some code uses this)
+  billing_date?: string      // Alias for invoice_date (some code uses this)
+  
+  // NEW: For nested data when fetching full invoice details
+  customer_details?: {
+    id: number
+    user: {
+      first_name: string
+      last_name: string
+      full_name: string
+    }
+    customer_code: string
+  }
+  
+  // NEW: For auto-generated invoices
+  plan?: number | {
+    id: number
+    name: string
+    base_price: string
+  }
+  service_connection?: number
 }
-
 export interface InvoiceItem {
   id: number
   description: string
