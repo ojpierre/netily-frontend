@@ -1700,9 +1700,25 @@ export default function UsersPage() {
     if (!smsTarget || !smsMessage.trim()) return
     try {
       setSendingSms(true)
+      
+      // FIX: Normalize phone for portal credentials template
+      const rawPhone = smsTarget.phone || ""
+      const normalizedPhone = rawPhone.replace(/^254/, "0").replace(/^\+254/, "0")
+      
+      // If the message contains the portal credentials template pattern, use normalized phone
+      // Otherwise send the message as-is (backward compatibility)
+      let finalMessage = smsMessage.trim()
+      if (finalMessage.includes("Username:") && finalMessage.includes("Password:")) {
+        // This is the portal credentials template - use normalized phone for both username and password
+        const email = smsTarget.email && smsTarget.email !== "No email" ? smsTarget.email : "your email"
+        const portalUrl = `${tenantSubdomain}.netily.co.ke/customer/login`
+        // Reconstruct the message with normalized phone
+        finalMessage = `Hello ${smsTarget.name}, login to your customer portal at ${portalUrl} using: Username: ${normalizedPhone} | Password: ${normalizedPhone}`
+      }
+      
       await adminApi.sendSMS({
         recipient: smsTarget.phone,
-        message: smsMessage.trim(),
+        message: finalMessage,
       })
       toast.success(`SMS sent to ${smsTarget.name}`)
       setShowSmsDialog(false)
@@ -1722,9 +1738,18 @@ export default function UsersPage() {
       const usersToNotify = enrichedUsers.filter(u => selectedUsers.includes(u.id))
       for (const user of usersToNotify) {
         if (user.phone && user.phone !== 'No phone') {
+          // FIX: Normalize phone for portal credentials template
+          let finalMessage = smsMessage.trim()
+          if (finalMessage.includes("Username:") && finalMessage.includes("Password:")) {
+            const rawPhone = user.phone || ""
+            const normalizedPhone = rawPhone.replace(/^254/, "0").replace(/^\+254/, "0")
+            const email = user.email && user.email !== "No email" ? user.email : "your email"
+            const portalUrl = `${tenantSubdomain}.netily.co.ke/customer/login`
+            finalMessage = `Hello ${user.name}, login to your customer portal at ${portalUrl} using: Username: ${normalizedPhone} | Password: ${normalizedPhone}`
+          }
           await adminApi.sendSMS({
             recipient: user.phone,
-            message: smsMessage.trim(),
+            message: finalMessage,
           })
           await new Promise(resolve => setTimeout(resolve, 500))
         }
@@ -4546,13 +4571,13 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      const email = smsTarget.email && smsTarget.email !== "No email" ? smsTarget.email : "your email"
-                      const phone = smsTarget.phone && smsTarget.phone !== "No phone"
-                        ? smsTarget.phone.replace(/^0/, "+254").replace(/^(?!\+)/, "+254").replace(/^\+254254/, "+254")
-                        : smsTarget.phone
+                      // FIX: Normalize phone for portal credentials template
+                      const rawPhone = smsTarget?.phone || ""
+                      const normalizedPhone = rawPhone.replace(/^254/, "0").replace(/^\+254/, "0")
+                      const email = smsTarget?.email && smsTarget.email !== "No email" ? smsTarget.email : "your email"
                       const portalUrl = `${tenantSubdomain}.netily.co.ke/customer/login`
                       setSmsMessage(
-                        `Hello ${smsTarget.name}, login to your customer portal at ${portalUrl} using: Username: ${email} | Password: ${phone}`
+                        `Hello ${smsTarget?.name}, login to your customer portal at ${portalUrl} using: Username: ${normalizedPhone} | Password: ${normalizedPhone}`
                       )
                     }}
                     className="text-left px-3 py-2 rounded-lg border border-purple-200 bg-purple-50 hover:bg-purple-100 transition-colors text-xs"
@@ -4634,13 +4659,13 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      const email = userSmsTarget.email && userSmsTarget.email !== "No email" ? userSmsTarget.email : "your email"
-                      const phone = userSmsTarget.phone && userSmsTarget.phone !== "No phone"
-                        ? userSmsTarget.phone.replace(/^0/, "+254").replace(/^(?!\+)/, "+254").replace(/^\+254254/, "+254")
-                        : userSmsTarget.phone
+                      // FIX: Normalize phone for portal credentials template
+                      const rawPhone = userSmsTarget?.phone || ""
+                      const normalizedPhone = rawPhone.replace(/^254/, "0").replace(/^\+254/, "0")
+                      const email = userSmsTarget?.email && userSmsTarget.email !== "No email" ? userSmsTarget.email : "your email"
                       const portalUrl = `${tenantSubdomain}.netily.co.ke/customer/login`
                       setUserSmsMessage(
-                        `Hello ${userSmsTarget.name}, login to your customer portal at ${portalUrl} using: Username: ${email} | Password: ${phone}`
+                        `Hello ${userSmsTarget?.name}, login to your customer portal at ${portalUrl} using: Username: ${normalizedPhone} | Password: ${normalizedPhone}`
                       )
                     }}
                     className="text-left px-3 py-2 rounded-lg border border-purple-200 bg-purple-50 hover:bg-purple-100 transition-colors text-xs"
