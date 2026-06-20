@@ -247,11 +247,11 @@ function VerifyPageContent() {
             {/* Back Link */}
             <div className="text-center">
               <Link
-                href="/customer/register"
+                href="/customer/login"
                 className="text-sm text-slate-600 hover:text-slate-900 inline-flex items-center gap-1"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to registration
+                Back to login
               </Link>
             </div>
           </CardContent>

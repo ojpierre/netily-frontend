@@ -66,10 +66,9 @@ export default function CustomerPortalLayout({
     fetchBranding()
   }, [])
 
-  // Don't wrap login/register/verify pages in portal layout
+  // Don't wrap login/verify pages in portal layout
   if (
     pathname.startsWith("/customer/login") ||
-    pathname.startsWith("/customer/register") ||
     pathname.startsWith("/customer/verify")
   ) {
     return <>{children}</>

@@ -76,7 +76,7 @@ function BillingContent() {
       if (usageData && !(usageData as any).subscribers) {
         const raw = usageData as any
         setUsage({
-          subscribers: { current: raw.current_subscribers ?? 0, limit: raw.max_subscribers === 0 ? null : (raw.max_subscribers ?? null), percentage: raw.subscribers_usage_percent ?? null },
+          subscribers: { current: raw.current_subscribers ?? raw.pppoe_count ?? 0, limit: raw.max_subscribers === 0 ? null : (raw.max_subscribers ?? null), percentage: raw.subscribers_usage_percent ?? null },
           routers: { current: raw.current_routers ?? 0, limit: raw.max_routers === 0 ? null : (raw.max_routers ?? null), percentage: raw.routers_usage_percent ?? null },
           staff: { current: raw.current_staff ?? 0, limit: raw.max_staff === 0 ? null : (raw.max_staff ?? null), percentage: raw.staff_usage_percent ?? null },
           is_over_limit: raw.is_near_limit ?? false,
@@ -85,6 +85,10 @@ function BillingContent() {
           billing_cycle_id: raw.billing_cycle_id,
           billing_cycle_start: raw.billing_cycle_start,
           billing_cycle_end: raw.billing_cycle_end,
+          pppoe_count: raw.pppoe_count ?? raw.current_subscribers ?? 0,
+          pppoe_unit_price: raw.pppoe_unit_price ?? 25,
+          billable_pppoe: raw.billable_pppoe ?? raw.pppoe_count ?? raw.current_subscribers ?? 0,
+          pppoe_charge: raw.pppoe_charge ?? 0,
           hotspot_revenue_accrued: raw.hotspot_revenue_accrued ?? 0,
           hotspot_revenue_share_pct: raw.hotspot_revenue_share_pct ?? raw.hotspot_share_pct ?? 0,
           hotspot_revenue_share_amount: raw.hotspot_revenue_share_amount ?? raw.hotspot_share_amount ?? 0,
@@ -911,13 +915,13 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
               {subscription?.plan?.is_metered && (() => {
                 const plan = subscription.plan
                 const minimumCharge = Number(usage.minimum_charge ?? plan.base_license_fee) || 500
-                const pppoeCount = usage.subscribers?.current || 0
-                const pppoeUnitPrice = Number((plan as any).pppoe_unit_price) || 25
+                const pppoeCount = Number((usage as any).pppoe_count ?? usage.subscribers?.current ?? 0)
+                const pppoeUnitPrice = Number((usage as any).pppoe_unit_price ?? (plan as any).pppoe_unit_price) || 25
                 const hotspotSharePct = Number(usage.hotspot_revenue_share_pct ?? (plan as any).hotspot_revenue_share_pct) || 0
                 const hotspotRevenueAccrued = Number(usage.hotspot_revenue_accrued || 0)
                 const hotspotShareAmount = Number(usage.hotspot_revenue_share_amount || 0)
-                const billablePppoe = pppoeCount
-                const pppoeCharge = billablePppoe * pppoeUnitPrice
+                const billablePppoe = Number((usage as any).billable_pppoe ?? pppoeCount)
+                const pppoeCharge = Number((usage as any).pppoe_charge ?? (billablePppoe * pppoeUnitPrice))
                 const usageSubtotal = Number(usage.usage_subtotal ?? (pppoeCharge + hotspotShareAmount))
                 const minimumAdjustment = Number(usage.minimum_adjustment ?? Math.max(minimumCharge - usageSubtotal, 0))
                 const totalEstimate = Number(usage.total_estimate ?? (usageSubtotal + minimumAdjustment))

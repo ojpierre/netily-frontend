@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -142,14 +141,9 @@ export default function CustomerLoginPage() {
               )}
             </Button>
 
-            <div className="text-center text-sm text-muted-foreground pt-1">
-              <p>
-                Don&apos;t have an account?{" "}
-                <Link href="/customer/register" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-                  Register
-                </Link>
-              </p>
-            </div>
+            <p className="text-center text-sm text-muted-foreground pt-1">
+              Need access? Please contact your ISP support team.
+            </p>
           </form>
         </Card>
 

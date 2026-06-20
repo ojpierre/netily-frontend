@@ -1,13 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { User, Phone, Mail, MapPin, Wifi, Calendar } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { User, Phone, Mail, MapPin, Wifi, Calendar, Loader2 } from "lucide-react"
 import { customerApi } from "@/lib/customer-api"
+import { toast } from "sonner"
 
 interface ProfileData {
   id: number
@@ -27,7 +30,14 @@ interface ProfileData {
 export default function CustomerProfilePage() {
   const router = useRouter()
   const [profile, setProfile] = useState<ProfileData | null>(null)
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    address: "",
+  })
   const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("customerToken")
@@ -41,6 +51,12 @@ export default function CustomerProfilePage() {
         setIsLoading(true)
         const data = await customerApi.getProfile()
         setProfile(data)
+        setFormData({
+          first_name: data.first_name || "",
+          last_name: data.last_name || "",
+          email: data.email || "",
+          address: data.address || "",
+        })
       } catch (err: any) {
         if (err.message?.includes("401")) {
           router.push("/customer/login")
@@ -52,6 +68,38 @@ export default function CustomerProfilePage() {
 
     fetchProfile()
   }, [router])
+
+  const handleSaveProfile = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const email = formData.email.trim().toLowerCase()
+
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid email address")
+      return
+    }
+
+    try {
+      setIsSaving(true)
+      const updated = await customerApi.updateProfile({
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
+        email,
+        address: formData.address.trim(),
+      })
+      setProfile(updated)
+      setFormData({
+        first_name: updated.first_name || "",
+        last_name: updated.last_name || "",
+        email: updated.email || "",
+        address: updated.address || "",
+      })
+      toast.success("Profile updated successfully")
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update profile")
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -128,42 +176,79 @@ export default function CustomerProfilePage() {
         </Card>
       </div>
 
-      {/* Profile Details — read only */}
       <Card className="p-6">
-        <h3 className="font-semibold mb-6">Personal Information</h3>
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="flex items-center gap-3">
-            <User className="w-5 h-5 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Full Name</p>
-              <p className="font-medium">{profile.full_name}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Phone className="w-5 h-5 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Phone Number</p>
-              <p className="font-medium">{profile.phone_number}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Mail className="w-5 h-5 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Email</p>
-              <p className="font-medium">{profile.email || "Not set"}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <MapPin className="w-5 h-5 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Address</p>
-              <p className="font-medium">{profile.address || "Not set"}</p>
-            </div>
-          </div>
+        <div className="mb-6">
+          <h3 className="font-semibold">Personal Information</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Keep your contact details up to date for receipts and support follow-ups.
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground mt-6">
-          To update your details, contact your ISP support team.
-        </p>
+        <form onSubmit={handleSaveProfile} className="space-y-5">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="first_name" className="flex items-center gap-2">
+                <User className="w-4 h-4 text-muted-foreground" />
+                First Name
+              </Label>
+              <Input
+                id="first_name"
+                value={formData.first_name}
+                onChange={(event) => setFormData({ ...formData, first_name: event.target.value })}
+                disabled={isSaving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="last_name">Last Name</Label>
+              <Input
+                id="last_name"
+                value={formData.last_name}
+                onChange={(event) => setFormData({ ...formData, last_name: event.target.value })}
+                disabled={isSaving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone_number" className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-muted-foreground" />
+                Phone Number
+              </Label>
+              <Input id="phone_number" value={profile.phone_number} disabled />
+              <p className="text-xs text-muted-foreground">Phone number is your portal login and is managed by your ISP.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-muted-foreground" />
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(event) => setFormData({ ...formData, email: event.target.value })}
+                placeholder="name@example.com"
+                disabled={isSaving}
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="address" className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-muted-foreground" />
+                Address
+              </Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(event) => setFormData({ ...formData, address: event.target.value })}
+                placeholder="Estate, building, or installation location"
+                disabled={isSaving}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isSaving}>
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Profile
+            </Button>
+          </div>
+        </form>
       </Card>
 
       {/* Balance Card */}
