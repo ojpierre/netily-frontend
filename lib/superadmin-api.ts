@@ -279,6 +279,44 @@ export interface PlatformUserDetail extends PlatformUser {
   profile_picture: string | null
 }
 
+export interface SupportExecutive {
+  id: number
+  email: string
+  first_name: string
+  last_name: string
+  role: string
+  user_is_active: boolean
+  title: string
+  phone_number: string
+  can_register_tenants: boolean
+  can_manage_leads: boolean
+  can_view_tenants: boolean
+  is_active: boolean
+  last_seen_at: string | null
+  created_by_email: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SupportActivityLog {
+  id: number
+  support_user: number | null
+  support_email: string | null
+  support_name: string
+  action: string
+  area: string
+  summary: string
+  metadata: Record<string, unknown>
+  ip_address: string | null
+  user_agent: string
+  created_at: string
+}
+
+export interface SupportActivityResponse {
+  summary: Array<{ support_user__email: string | null; actions: number }>
+  results: SupportActivityLog[]
+}
+
 export interface SubscriptionPayment {
   id: string
   source?: string
@@ -1153,6 +1191,46 @@ class SuperadminApiService {
   async getUserLedger(params?: Record<string, string>): Promise<LedgerResponse> {
     const qs = params ? "?" + new URLSearchParams(params).toString() : ""
     return this.request(`/superadmin/user-ledger/${qs}`)
+  }
+
+  // ─── Platform Support Executives ───
+
+  async getSupportExecutives(): Promise<SupportExecutive[]> {
+    return this.request("/superadmin/support-executives/")
+  }
+
+  async createSupportExecutive(data: {
+    email: string
+    password: string
+    first_name?: string
+    last_name?: string
+    phone_number: string
+    title?: string
+    can_register_tenants?: boolean
+    can_manage_leads?: boolean
+    can_view_tenants?: boolean
+    is_active?: boolean
+  }): Promise<SupportExecutive> {
+    return this.request("/superadmin/support-executives/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateSupportExecutive(id: number, data: Partial<SupportExecutive> & { password?: string }): Promise<SupportExecutive> {
+    return this.request(`/superadmin/support-executives/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deactivateSupportExecutive(id: number): Promise<void> {
+    await this.request(`/superadmin/support-executives/${id}/`, { method: "DELETE" })
+  }
+
+  async getSupportActivity(params?: Record<string, string>): Promise<SupportActivityResponse> {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
+    return this.request(`/superadmin/support-activity/${qs}`)
   }
 }
 

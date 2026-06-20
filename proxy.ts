@@ -9,7 +9,7 @@ import type { NextRequest } from 'next/server'
 
 /** Subdomains that belong to the platform itself, not ISP tenants. */
 const RESERVED_SUBDOMAINS = new Set([
-  'www', 'api', 'admin', 'app', 'superadmin', 'dashboard',
+  'www', 'api', 'admin', 'app', 'superadmin', 'support', 'dashboard',
   'mail', 'smtp', 'ftp', 'cdn', 'static', 'assets', 'status', 'dev', 'staging',
 ])
 
@@ -124,6 +124,7 @@ export function proxy(request: NextRequest) {
   const userToken = request.cookies.get('access_token')?.value
   const adminToken = request.cookies.get('adminToken')?.value
   const superadminToken = request.cookies.get('superadminToken')?.value
+  const supportToken = request.cookies.get('supportToken')?.value
 
   // ── 3. Superadmin routes protection ───────────────────────────────────────
   if (pathname.startsWith('/superadmin')) {
@@ -141,11 +142,27 @@ export function proxy(request: NextRequest) {
     }
   }
 
+  // ── 3b. Platform support console protection ─────────────────────────────
+  if (pathname.startsWith('/support')) {
+    if (pathname === '/support/login') {
+      if (supportToken) {
+        return NextResponse.redirect(new URL('/support/dashboard', request.url))
+      }
+      return NextResponse.next()
+    }
+
+    if (!supportToken) {
+      const loginUrl = new URL('/support/login', request.url)
+      loginUrl.searchParams.set('from', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+  }
+
   // ── 4. Admin routes protection ────────────────────────────────────────────
   if (pathname.startsWith('/admin')) {
     if (pathname === '/admin/selfie') {
-      if (!superadminToken) {
-        const loginUrl = new URL('/superadmin/login', request.url)
+      if (!superadminToken && !supportToken) {
+        const loginUrl = new URL('/support/login', request.url)
         loginUrl.searchParams.set('from', pathname)
         return NextResponse.redirect(loginUrl)
       }

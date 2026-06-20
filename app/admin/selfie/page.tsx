@@ -50,6 +50,7 @@ import {
   getTenantFrontendUrl, 
   slugifyCompanyName,
 } from "@/lib/subdomain"
+import { supportApi } from "@/lib/support-api"
 
 // ==========================================
 // LOADING STEPS - Fun messages during account creation
@@ -526,6 +527,19 @@ export default function AdminSelfiePage() {
         toast.success(emailMessage)
       } else {
         toast.warning(emailMessage)
+      }
+
+      if (localStorage.getItem("supportToken") || sessionStorage.getItem("supportToken")) {
+        supportApi.logActivity({
+          action: "tenant_registered",
+          area: "onboarding",
+          summary: `Registered tenant ${formData.company_name}`,
+          metadata: {
+            company_name: formData.company_name,
+            company_email: formData.company_email,
+            tenant_subdomain: tenantSubdomain,
+          },
+        }).catch(() => undefined)
       }
 
       // Wait a moment to show the success animation
