@@ -160,7 +160,7 @@ export const blogPosts: BlogPost[] = [
         type: "table",
         headers: ["Software", "M-Pesa STK Push", "MikroTik API", "RADIUS", "Pricing", "Best For"],
         rows: [
-          ["Netily", "✅ Native", "✅ Native", "✅ Yes", "KES 500/mo + KES 20/user", "Kenyan & East African ISPs"],
+          ["Netily", "✅ Native", "✅ Native", "✅ Yes", "KES 500 minimum + KES 25/user", "Kenyan & East African ISPs"],
           ["Splynx", "❌ No", "✅ Yes", "✅ Yes", "$39–$89/mo USD", "European / large ISPs"],
           ["WHMCS", "❌ No", "⚠️ Plugin only", "⚠️ Plugin", "$15.95–$39.95/mo USD", "Web hosting companies"],
           ["ZAL ISP System", "❌ No", "✅ Yes", "✅ Yes", "Free (self-hosted)", "ISPs with a developer on staff"],
@@ -596,8 +596,8 @@ export const blogPosts: BlogPost[] = [
       {
         type: "ol",
         items: [
-          "<strong>Under 200 subscribers:</strong> Use Netily's metered plan (KES 500 activation + KES 20/subscriber). The free trial gives you full access before committing. Total cost at 100 subscribers: KES 2,500/month.",
-          "<strong>200–500 subscribers:</strong> Netily remains the most cost-effective option. At 300 subscribers you're paying KES 6,500/month — still a fraction of what maintaining a self-hosted solution costs.",
+          "<strong>Under 200 subscribers:</strong> Use Netily's metered plan (KES 500 activation + KES 25/subscriber, with a KES 500 monthly minimum). The free trial gives you full access before committing. Total cost at 100 subscribers: KES 2,500/month.",
+          "<strong>200–500 subscribers:</strong> Netily remains the most cost-effective option. At 300 subscribers you're paying KES 7,500/month — still a fraction of what maintaining a self-hosted solution costs.",
           "<strong>500–1,000 subscribers:</strong> Evaluate Netily's Enterprise plan for custom pricing, or Splynx with a custom M-Pesa integration if you need specific enterprise features not available in Netily.",
           "<strong>1,000+ subscribers with a dev team:</strong> A self-hosted solution or custom-built system becomes worth evaluating — the per-subscriber cost of SaaS starts to compete with engineering cost at this scale.",
         ],

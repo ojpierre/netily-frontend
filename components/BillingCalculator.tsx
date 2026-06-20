@@ -53,7 +53,7 @@ const METERED_PLAN = {
   base_fee: 0,
   activation_fee: 500,
   minimum_charge: 500,
-  pppoe_unit_price: 20,
+  pppoe_unit_price: 25,
   pppoe_min_clients: 0,
   hotspot_share_pct: 3,
   price_yearly: 0,

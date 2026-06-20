@@ -43,7 +43,7 @@ const emptyPlan: Partial<NetilyPlan> = {
   features: {},
   is_metered: false,
   base_license_fee: "500.00",
-  pppoe_unit_price: "20.00",
+  pppoe_unit_price: "25.00",
   pppoe_min_clients: 20,
   hotspot_revenue_share_pct: "3.00",
 }
