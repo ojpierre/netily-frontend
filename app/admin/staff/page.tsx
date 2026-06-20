@@ -21,6 +21,7 @@ import {
   ChevronDown,
   UserCog,
   RefreshCw,
+  Trash2,   // ← ADDED
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -700,6 +701,12 @@ export default function StaffManagementPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [deleteUser, setDeleteUser] = useState<User | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  
+  // ============================================================
+  // ADDED: Hard delete state
+  // ============================================================
+  const [hardDeleteUser, setHardDeleteUser] = useState<User | null>(null)
+  const [isHardDeleting, setIsHardDeleting] = useState(false)
 
   // Fetch staff users
   const fetchStaffUsers = async () => {
@@ -771,6 +778,25 @@ export default function StaffManagementPage() {
     } catch (error) {
       console.error("Failed to reactivate staff user:", error)
       toast.error("Failed to reactivate staff member")
+    }
+  }
+
+  // ============================================================
+  // ADDED: Handle hard delete
+  // ============================================================
+  const handleDelete = async () => {
+    if (!hardDeleteUser) return
+    setIsHardDeleting(true)
+    try {
+      await adminApi.deleteStaffUser(hardDeleteUser.id)
+      toast.success(`Staff account for ${hardDeleteUser.first_name} ${hardDeleteUser.last_name} permanently deleted`)
+      setHardDeleteUser(null)
+      fetchStaffUsers()
+    } catch (error: any) {
+      console.error("Failed to delete staff user:", error)
+      toast.error(error?.message || "Failed to delete staff account")
+    } finally {
+      setIsHardDeleting(false)
     }
   }
 
@@ -1005,7 +1031,6 @@ export default function StaffManagementPage() {
                               <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          {/* 🟢 FIX 3: Removed broken "View Details" and "Edit" routes */}
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
@@ -1026,6 +1051,17 @@ export default function StaffManagementPage() {
                                 Reactivate
                               </DropdownMenuItem>
                             )}
+                            {/* ============================================================
+                                ADDED: Delete Permanently menu item
+                                ============================================================ */}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-red-600 focus:text-red-600"
+                              onClick={() => setHardDeleteUser(user)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete Permanently
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -1072,6 +1108,42 @@ export default function StaffManagementPage() {
                 </>
               ) : (
                 "Deactivate"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ============================================================
+          ADDED: Delete Confirmation Dialog
+          ============================================================ */}
+      <AlertDialog open={!!hardDeleteUser} onOpenChange={() => setHardDeleteUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Permanently Delete Staff Account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will <strong>permanently delete</strong>{" "}
+              <strong>
+                {hardDeleteUser?.first_name} {hardDeleteUser?.last_name}
+              </strong>
+              's account. This action cannot be undone. If you just want to block
+              their access temporarily, use Deactivate instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isHardDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isHardDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isHardDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Permanently"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
