@@ -31,7 +31,7 @@ export default function SupportDashboardPage() {
           <p className="text-sm uppercase tracking-[0.35em] text-white/40">Support command center</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight md:text-5xl">Help tenants get moving.</h1>
           <p className="mt-3 max-w-2xl text-white/58">
-            Register new ISP accounts, follow up leads, and leave a clean operational trail for superadmin review.
+            Register new ISP accounts, follow up leads, and leave a clean operational trail.
           </p>
         </div>
         <Button asChild className="rounded-2xl bg-white text-black hover:bg-white/90">

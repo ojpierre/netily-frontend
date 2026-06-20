@@ -44,7 +44,7 @@ export default function SupportLoginPage() {
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 text-white" />
               <p className="text-sm leading-6 text-white/70">
-                Sign in with a support account created by superadmin. Superadmin can also enter here for first access.
+                Sign in with a support account.
               </p>
             </div>
           </div>
