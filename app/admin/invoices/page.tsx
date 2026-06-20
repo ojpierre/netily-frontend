@@ -574,6 +574,10 @@ export default function InvoiceManagementPage() {
     } catch { toast.error('Failed to delete invoice') }
   }
 
+  // ============================================================
+  // FIX 3: handleCreateInvoice - Fixed payload mapping
+  // Removed 'invoice' field from items and added service_period_start/end
+  // ============================================================
   const handleCreateInvoice = async () => {
     if (!createForm.customer) { toast.error('Please select a customer'); return }
     const validItems = createForm.items.filter(i => i.unit_price && parseFloat(i.unit_price) > 0)
@@ -583,19 +587,25 @@ export default function InvoiceManagementPage() {
     setIsSubmitting(true)
     try {
       const token = getToken()
-      const subtotal = validItems.reduce((s, i) => s + (parseFloat(i.unit_price) * i.quantity), 0)
 
+      // ============================================================
+      // FIX: Proper payload with no 'invoice' field in items
+      // Added service_period_start and service_period_end
+      // ============================================================
       const payload = {
         customer: createForm.customer.id,
         status: createForm.status,
         due_date: createForm.due_date,
         billing_date: new Date().toISOString().split('T')[0],
+        service_period_start: new Date().toISOString().split('T')[0],
+        service_period_end: createForm.due_date,
         notes: createForm.notes,
         items: validItems.map(i => ({
           description: i.description,
           quantity: i.quantity,
           unit_price: parseFloat(i.unit_price),
           tax_rate: 0,
+          // do NOT include 'invoice' here
         })),
       }
 
