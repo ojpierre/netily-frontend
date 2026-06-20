@@ -363,22 +363,39 @@ class AdminApiService {
     return null
   }
 
-  private async handleResponse<T>(response: Response): Promise<T> {
+  // ============================================================
+  // FIX 2: handleResponse - Show real error message instead of "Session expired"
+  // For login/auth endpoints, a 401 means "bad credentials", not "expired session".
+  // Never attempt a token refresh here — there's no valid session to refresh yet.
+  // ============================================================
+  private async handleResponse<T>(response: Response, opts?: { isAuthEndpoint?: boolean }): Promise<T> {
     if (!response.ok) {
-      // Handle 401 Unauthorized - token might be expired
-      if (response.status === 401) {
+      // For login/auth endpoints, a 401 means "bad credentials", not "expired session".
+      // Never attempt a token refresh here — there's no valid session to refresh yet,
+      // and doing so previously caused the real error message to be swallowed and
+      // replaced with a misleading "Session expired" string.
+      if (response.status === 401 && !opts?.isAuthEndpoint) {
         const refreshed = await this.tryRefreshToken()
         if (refreshed) {
-          // Token was refreshed, but caller needs to retry the request
           throw new Error('TOKEN_REFRESHED')
         }
         throw new Error('Session expired. Please login again.')
       }
-      
+
       // Parse error response - preserve field-specific errors for 400 responses
       const error = await response.json().catch(() => ({ 
         detail: `Server error: ${response.status}` 
       }))
+
+      // Auth endpoint 401 — surface the backend's actual message
+      if (response.status === 401) {
+        throw new Error(error.detail || error.message || 'Invalid email or password.')
+      }
+
+      // Handle 404 Not Found
+      if (response.status === 404) {
+        throw new Error(error.detail || error.message || 'Not found.')
+      }
 
       // Handle 402 Payment Required - don't block login flow, let TrialGuard handle it
       if (response.status === 402) {
@@ -573,6 +590,10 @@ class AdminApiService {
     return id
   }
 
+  // ============================================================
+  // FIX 2: login() - Pass isAuthEndpoint flag so 401 here is 
+  // treated as "bad credentials", not "expired session"
+  // ============================================================
   async login(
     email: string,
     password: string,
@@ -595,7 +616,8 @@ class AdminApiService {
       credentials: 'include',
     })
     
-    const data = await this.handleResponse<AdminLoginResponse | AdminLoginChallengeResponse>(response)
+    // Pass isAuthEndpoint so 401 here is treated as "bad credentials", not "expired session"
+    const data = await this.handleResponse<AdminLoginResponse | AdminLoginChallengeResponse>(response, { isAuthEndpoint: true })
     if ((data as AdminLoginChallengeResponse).requires_otp) {
       return data as AdminLoginChallengeResponse
     }
