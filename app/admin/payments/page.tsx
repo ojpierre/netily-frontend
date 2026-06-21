@@ -576,16 +576,13 @@ export default function PaymentsPage() {
     setPollingPaymentId(null)
   }
 
-  // Calculate local stats — map backend nested keys to flat keys the cards expect
+  // Calculate local stats — only total collected
   const localStats = useMemo(() => {
     const s = stats as any
     // If the API returned data with flat keys or nested keys, prefer flat keys
     if (s) {
-      const methodDist: { name: string; total: number }[] = s.method_distribution ?? []
-      const bankEntry = methodDist.find((m: any) => m.name?.toUpperCase()?.includes('BANK'))
       return {
         total_collected: s.total_collected ?? 0,
-        bank_total: bankEntry?.total ?? 0,
         completed_count: s.completed_count ?? s.status_distribution?.COMPLETED ?? 0,
       }
     }
@@ -593,7 +590,6 @@ export default function PaymentsPage() {
     const completed = payments.filter(p => p.status?.toUpperCase() === 'COMPLETED')
     return {
       total_collected: completed.reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0),
-      bank_total: payments.filter(p => p.payment_method?.toUpperCase() === 'BANK').reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0),
       completed_count: completed.length,
     }
   }, [payments, stats])
@@ -606,17 +602,15 @@ export default function PaymentsPage() {
           <Skeleton className="h-9 w-64" />
           <Skeleton className="h-10 w-24" />
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          {[...Array(2)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2">
-                <Skeleton className="h-4 w-20" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-24" />
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid gap-4 md:grid-cols-1">
+          <Card>
+            <CardHeader className="pb-2">
+              <Skeleton className="h-4 w-20" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-24" />
+            </CardContent>
+          </Card>
         </div>
         <Card>
           <CardContent className="pt-6">
@@ -669,8 +663,8 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      {/* Stats Cards - Only Total Collected and Bank Transfers */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Stats Cards - Only Total Collected */}
+      <div className="grid gap-4 md:grid-cols-1">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
@@ -681,18 +675,6 @@ export default function PaymentsPage() {
               {formatCurrency(localStats.total_collected ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">{localStats.completed_count ?? 0} payments</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Bank Transfers</CardTitle>
-            <Building2 className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(localStats.bank_total ?? 0)}
-            </div>
           </CardContent>
         </Card>
       </div>
