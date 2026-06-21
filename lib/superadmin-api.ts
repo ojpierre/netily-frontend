@@ -317,6 +317,47 @@ export interface SupportActivityResponse {
   results: SupportActivityLog[]
 }
 
+export interface SuperadminCredential {
+  id: number
+  email: string
+  first_name: string
+  last_name: string
+  full_name: string
+  phone_number: string
+  is_active: boolean
+  is_staff: boolean
+  is_superuser: boolean
+  role: string
+  date_joined: string
+  last_login: string | null
+}
+
+export interface SuperadminCredentialResponse {
+  active_count: number
+  results: SuperadminCredential[]
+}
+
+export interface SuperadminActivityLog {
+  id: number
+  actor: number | null
+  actor_email: string | null
+  actor_name: string
+  target_user: number | null
+  target_email: string | null
+  target_name: string
+  action: string
+  summary: string
+  metadata: Record<string, unknown>
+  ip_address: string | null
+  user_agent: string
+  created_at: string
+}
+
+export interface SuperadminActivityResponse {
+  summary: Array<{ actor__email: string | null; actions: number }>
+  results: SuperadminActivityLog[]
+}
+
 export interface SubscriptionPayment {
   id: string
   source?: string
@@ -792,6 +833,10 @@ class SuperadminApiService {
     localStorage.setItem(TOKEN_KEY, data.access)
     localStorage.setItem(REFRESH_KEY, data.refresh)
     document.cookie = `superadminToken=${data.access}; path=/; max-age=3600; SameSite=Lax`
+    this.logSuperadminActivity({
+      action: "login",
+      summary: "Signed in to superadmin console",
+    }).catch(() => undefined)
     return data
   }
 
@@ -1231,6 +1276,55 @@ class SuperadminApiService {
   async getSupportActivity(params?: Record<string, string>): Promise<SupportActivityResponse> {
     const qs = params ? "?" + new URLSearchParams(params).toString() : ""
     return this.request(`/superadmin/support-activity/${qs}`)
+  }
+
+  // ─── Hidden Superadmin Credential Management ───
+
+  async getSuperadminCredentials(): Promise<SuperadminCredentialResponse> {
+    return this.request("/superadmin/superadmins/")
+  }
+
+  async createSuperadminCredential(data: {
+    email: string
+    password: string
+    first_name?: string
+    last_name?: string
+    phone_number: string
+  }): Promise<SuperadminCredential> {
+    return this.request("/superadmin/superadmins/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateSuperadminCredential(
+    id: number,
+    data: Partial<SuperadminCredential> & { password?: string },
+  ): Promise<SuperadminCredential> {
+    return this.request(`/superadmin/superadmins/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteSuperadminCredential(id: number): Promise<void> {
+    await this.request(`/superadmin/superadmins/${id}/`, { method: "DELETE" })
+  }
+
+  async getSuperadminActivity(params?: Record<string, string>): Promise<SuperadminActivityResponse> {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
+    return this.request(`/superadmin/superadmin-activity/${qs}`)
+  }
+
+  async logSuperadminActivity(data: {
+    action: string
+    summary: string
+    metadata?: Record<string, unknown>
+  }): Promise<{ detail: string }> {
+    return this.request("/superadmin/superadmin-activity/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
   }
 }
 
