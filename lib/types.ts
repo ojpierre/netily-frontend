@@ -2809,14 +2809,10 @@ export interface SMSGatewayConfig {
   updated_at: string
 }
 
-// UPDATED: SMSNotificationSettings - removed deprecated fields, added new ones
+// UPDATED: SMSNotificationSettings - removed deprecated hotspot fields, kept only two
 export interface SMSNotificationSettings {
   use_inbuilt_system: boolean
-  hotspot_new_subscription: boolean
   hotspot_welcome: boolean
-  hotspot_session_expiry: boolean
-  hotspot_expiry_minutes_before: number
-  hotspot_payment_failed: boolean
   hotspot_session_expired: boolean
   pppoe_welcome: boolean
   pppoe_payment_confirmation: boolean  // MERGED: handles both payment AND renewal confirmations
@@ -3455,36 +3451,21 @@ export interface SMSTemplateVariable {
   example: string
 }
 
-// UPDATED: SMS_TEMPLATE_VARIABLES - matches backend context exactly
+// UPDATED: SMS_TEMPLATE_VARIABLES - removed deprecated hotspot templates, kept only two
 export const SMS_TEMPLATE_VARIABLES: Record<string, SMSTemplateVariable[]> = {
-  // Hotspot templates (unchanged)
+  // Hotspot templates - only two remain
   hotspot_welcome: [
     { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
-    { key: '{expiry_time}', label: 'Expiry Time', example: '3:45 PM' },
-    { key: '{access_code}', label: 'Access Code', example: 'ABCD-1234' },
-    { key: '{speed}', label: 'Speed', example: '5Mbps' },
-  ],
-  hotspot_expiry: [
-    { key: '{minutes_left}', label: 'Minutes Remaining', example: '15' },
-    { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
-    { key: '{access_code}', label: 'Access Code', example: 'ABCD-1234' },
+    { key: '{expiry_time}', label: 'Expiry Time', example: '22 Jun 2026 14:30' },
+    { key: '{access_code}', label: 'Access Code', example: 'BENT-06EU' },
+    { key: '{speed}', label: 'Speed', example: '5 Mbps' },
+    { key: '{duration}', label: 'Duration', example: '1 hour' },
   ],
   hotspot_session_expired: [
     { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
-    { key: '{router_name}', label: 'Location', example: 'Main Hall' },
-  ],
-  hotspot_new_subscription: [
-    { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
-    { key: '{amount}', label: 'Amount', example: '50' },
-    { key: '{session_id}', label: 'Session ID', example: 'abc123' },
-    { key: '{access_code}', label: 'Access Code', example: 'ABCD-1234' },
-  ],
-  hotspot_payment_failed: [
-    { key: '{plan_name}', label: 'Plan Name', example: '1 Hour' },
-    { key: '{reason}', label: 'Reason', example: 'Insufficient balance' },
   ],
 
-  // PPPoE templates (UPDATED to match backend context)
+  // PPPoE templates
   pppoe_welcome: [
     { key: '{customer_name}', label: 'Customer Name', example: 'John' },
     { key: '{username}', label: 'PPPoE Username', example: '712345678' },

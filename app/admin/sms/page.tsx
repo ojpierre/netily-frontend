@@ -47,14 +47,13 @@ const EMPTY_STATS = {
 // UPDATED: Removed deprecated fields to match backend
 const EMPTY_NOTIF_SETTINGS: SMSNotificationSettings = {
   use_inbuilt_system: false,
-  hotspot_new_subscription: true, hotspot_welcome: true,
-  hotspot_session_expiry: true, hotspot_expiry_minutes_before: 15,
-  hotspot_payment_failed: true, hotspot_session_expired: true,
-  pppoe_welcome: true, pppoe_payment_confirmation: true,
+  hotspot_welcome: true,
+  hotspot_session_expired: true,
+  pppoe_welcome: true,
+  pppoe_payment_confirmation: true,
   pppoe_expiry_reminder: true,
   pppoe_expiry_intervals: [{ value: 4, unit: 'days' }],
-  // Removed: pppoe_service_suspended, pppoe_service_resumed, pppoe_plan_changed, pppoe_renewal_confirmation, pppoe_new_subscription
-  pppoe_expiry_notification: true,  // NEW
+  pppoe_expiry_notification: true,
   system_router_offline: false,
   system_alert_phone: '',
   router_offline_numbers: [],
@@ -216,7 +215,6 @@ function TemplateEditor({
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="hotspot_welcome">Hotspot → Welcome</SelectItem>
-                  <SelectItem value="hotspot_expiry">Hotspot → Expiry Warning</SelectItem>
                   <SelectItem value="hotspot_session_expired">Hotspot → Session Expired</SelectItem>
                   <SelectItem value="pppoe_welcome">PPPoE → Welcome</SelectItem>
                   <SelectItem value="pppoe_payment">PPPoE → Payment / Renewal Confirmation</SelectItem>
@@ -1107,13 +1105,6 @@ export default function SMSPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <NotifToggle
-                    label="New Purchase"
-                    description="When a hotspot user successfully buys a plan"
-                    checked={notifSettings.hotspot_new_subscription}
-                    onCheckedChange={v => handleToggleNotif('hotspot_new_subscription', v)}
-                  />
-                  <Separator />
-                  <NotifToggle
                     label="Welcome / Session Active"
                     description="Confirm activation with access code and speed"
                     checked={notifSettings.hotspot_welcome}
@@ -1121,37 +1112,10 @@ export default function SMSPage() {
                   />
                   <Separator />
                   <NotifToggle
-                    label="Session Expiry Warning"
-                    description="Notify user before their session ends"
-                    checked={notifSettings.hotspot_session_expiry}
-                    onCheckedChange={v => handleToggleNotif('hotspot_session_expiry', v)}
-                  >
-                    <div className="ml-0 mt-2 flex items-center gap-2">
-                      <Label className="text-xs text-slate-500 whitespace-nowrap">Send</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={60}
-                        className="w-20 h-7 text-sm"
-                        value={notifSettings.hotspot_expiry_minutes_before}
-                        onChange={e => handleToggleNotif('hotspot_expiry_minutes_before', parseInt(e.target.value) || 15)}
-                      />
-                      <Label className="text-xs text-slate-500">minutes before</Label>
-                    </div>
-                  </NotifToggle>
-                  <Separator />
-                  <NotifToggle
                     label="Session Fully Expired"
                     description="Let user know they need to purchase again"
                     checked={notifSettings.hotspot_session_expired}
                     onCheckedChange={v => handleToggleNotif('hotspot_session_expired', v)}
-                  />
-                  <Separator />
-                  <NotifToggle
-                    label="Payment Failed"
-                    description="Alert when M-Pesa STK push is cancelled or fails"
-                    checked={notifSettings.hotspot_payment_failed}
-                    onCheckedChange={v => handleToggleNotif('hotspot_payment_failed', v)}
                   />
                 </CardContent>
               </Card>
