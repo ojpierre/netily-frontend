@@ -25,6 +25,7 @@ export default function HiddenSuperadminsPage() {
   const [activeCount, setActiveCount] = useState(0)
   const [logs, setLogs] = useState<SuperadminActivityLog[]>([])
   const [form, setForm] = useState(emptyForm)
+  const [passwordUpdates, setPasswordUpdates] = useState<Record<number, string>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -77,7 +78,7 @@ export default function HiddenSuperadminsPage() {
   }
 
   const deleteAccount = async (account: SuperadminCredential) => {
-    const ok = window.confirm(`Delete superadmin credentials for ${account.email}? This cannot remove the final active superadmin.`)
+    const ok = window.confirm(`Retire superadmin credentials for ${account.email}? This revokes access and frees the original email/phone for reuse.`)
     if (!ok) return
     setError("")
     try {
@@ -88,16 +89,31 @@ export default function HiddenSuperadminsPage() {
     }
   }
 
+  const changePassword = async (account: SuperadminCredential) => {
+    const password = passwordUpdates[account.id]?.trim()
+    if (!password) {
+      setError("Enter a new password before saving.")
+      return
+    }
+    setError("")
+    try {
+      await superadminApi.updateSuperadminCredential(account.id, { password })
+      setPasswordUpdates((current) => ({ ...current, [account.id]: "" }))
+      await fetchData()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update password.")
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-amber-100">
         <div className="flex items-start gap-3">
           <Shield className="mt-0.5 h-5 w-5" />
           <div>
-            <h1 className="text-xl font-bold text-white">Hidden Superadmin Credentials</h1>
+            <h1 className="text-xl font-bold text-white">Superadmins</h1>
             <p className="mt-1 text-sm text-amber-100/80">
-              This route is intentionally not linked in the sidebar. Use it only for platform-owner credential rotation and emergency access continuity.
-            </p>
+              All Supes with superpower</p>
           </div>
         </div>
       </div>
@@ -163,6 +179,23 @@ export default function HiddenSuperadminsPage() {
                         <p className="mt-1 text-xs text-slate-500">
                           Last login: {account.last_login ? new Date(account.last_login).toLocaleString() : "Never"}
                         </p>
+                        <div className="mt-4 flex max-w-xl flex-col gap-2 sm:flex-row">
+                          <Input
+                            type="password"
+                            value={passwordUpdates[account.id] || ""}
+                            onChange={(event) => setPasswordUpdates((current) => ({ ...current, [account.id]: event.target.value }))}
+                            placeholder="Set new password"
+                            className="border-slate-700 bg-slate-900 text-white"
+                          />
+                          <Button
+                            onClick={() => changePassword(account)}
+                            variant="outline"
+                            className="border-slate-700 bg-transparent text-slate-200"
+                          >
+                            <KeyRound className="mr-2 h-4 w-4" />
+                            Change password
+                          </Button>
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Button onClick={() => toggleAccount(account)} variant="outline" className="border-slate-700 bg-transparent text-slate-200">
@@ -171,7 +204,7 @@ export default function HiddenSuperadminsPage() {
                         </Button>
                         <Button onClick={() => deleteAccount(account)} variant="outline" className="border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/20">
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
+                          Retire
                         </Button>
                       </div>
                     </div>

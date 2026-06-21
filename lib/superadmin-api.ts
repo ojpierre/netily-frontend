@@ -1278,7 +1278,7 @@ class SuperadminApiService {
     return this.request(`/superadmin/support-activity/${qs}`)
   }
 
-  // ─── Hidden Superadmin Credential Management ───
+  // ───  Supes Credential Management ───
 
   async getSuperadminCredentials(): Promise<SuperadminCredentialResponse> {
     return this.request("/superadmin/superadmins/")
