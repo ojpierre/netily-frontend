@@ -57,13 +57,13 @@ const C = {
 function ChartTooltip({ active, payload, label, fmt }: { active?: boolean; payload?: any[]; label?: string; fmt?: (v: number) => string }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-lg border bg-background px-3 py-2 shadow-xl text-sm min-w-[140px]">
-      {label && <p className="font-semibold text-foreground mb-2">{label}</p>}
+    <div className="rounded-xl border-0 bg-slate-900 dark:bg-slate-800 px-3.5 py-2.5 shadow-2xl text-sm min-w-[150px]">
+      {label && <p className="text-[11px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">{label}</p>}
       {payload.map((p: any, i: number) => (
-        <div key={i} className="flex items-center gap-2 text-muted-foreground py-0.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: p.color ?? p.fill }} />
-          <span className="flex-1">{p.name}:</span>
-          <span className="font-semibold text-foreground">{fmt ? fmt(Number(p.value)) : Number(p.value).toLocaleString()}</span>
+        <div key={i} className="flex items-center gap-2 py-0.5">
+          <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color ?? p.fill }} />
+          <span className="flex-1 text-slate-300 text-[11px]">{p.name}</span>
+          <span className="font-bold text-white text-xs">{fmt ? fmt(Number(p.value)) : Number(p.value).toLocaleString()}</span>
         </div>
       ))}
     </div>
@@ -129,7 +129,6 @@ interface ReportsData {
     usage_summary: { total_upload: number; total_download: number; total_usage: number }
     performance: { peak_usage_day: string; avg_daily_usage: string; download_upload_ratio: string }
   }
-  // NEW: Top customers and plan analytics
   top_customers: {
     type: string
     display_name: string
@@ -158,10 +157,11 @@ export default function ReportsPage() {
   const [weekView, setWeekView] = useState<"this" | "last">("this")
   const [yearView, setYearView] = useState<"this" | "last">("this")
   
-  // ── NEW: Router Daily Revenue State ──
+  // ── Router Daily Revenue State ──
   const [routerRevData, setRouterRevData] = useState<any>(null)
   const [selectedRouter, setSelectedRouter] = useState<string | number>("")
   const [routerTimeRange, setRouterTimeRange] = useState("30d")
+  const [routerDropdownOpen, setRouterDropdownOpen] = useState(false)
   const routerFetchedRef = useRef(false)
   
   const fetchedRef = useRef(false)
@@ -178,7 +178,7 @@ export default function ReportsPage() {
     }
   }, [timeRange])
 
-  // ── NEW: Fetch Router Revenue ──
+  // ── Fetch Router Revenue ──
   const fetchRouterRevenue = useCallback(async (trRange: string, routerId?: string | number) => {
     try {
       const res = await adminApi.getRouterDailyRevenue(trRange, routerId)
@@ -205,6 +205,14 @@ export default function ReportsPage() {
     }
   }, []) // eslint-disable-line
 
+  // Click outside handler for router dropdown
+  useEffect(() => {
+    if (!routerDropdownOpen) return
+    const handler = () => setRouterDropdownOpen(false)
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [routerDropdownOpen])
+
   const handleRefresh = async () => { setRefreshing(true); await fetchData(); setRefreshing(false) }
 
   const handleExport = async () => {
@@ -219,6 +227,7 @@ export default function ReportsPage() {
   const handleRouterChange = (routerId: string | number) => {
     setSelectedRouter(routerId)
     fetchRouterRevenue(routerTimeRange, routerId)
+    setRouterDropdownOpen(false)
   }
 
   const handleRouterTimeRangeChange = (tr: string) => {
@@ -231,30 +240,29 @@ export default function ReportsPage() {
   const u = data?.users
   const n = data?.network
 
-  // ─── Change badge helper ────────────────────────────────────────────────────
-  const ChangeBadge = ({ value }: { value: number }) => {
-    const positive = value >= 0
+  // ─── Premium Revenue Stat Card ─────────────────────────────────────────────
+  const RevenueCard = ({ label, amount, change, extra, accent = "bg-blue-500" }: { 
+    label: string; amount: number; change: number; extra?: string; accent?: string 
+  }) => {
+    const positive = change >= 0
     return (
-      <Badge variant="outline" className={positive ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}>
-        {positive ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
-        {positive ? "+" : ""}{value}%
-      </Badge>
+      <Card className={`relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow`}>
+        <div className={`absolute inset-0 opacity-5 ${accent}`} />
+        <div className={`absolute top-0 left-0 w-1 h-full ${accent}`} />
+        <CardContent className="p-5 pl-6">
+          <div className="flex items-start justify-between mb-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
+            <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${positive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400"}`}>
+              {positive ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+              {positive ? "+" : ""}{change}%
+            </span>
+          </div>
+          <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{fmtKshFull(amount)}</p>
+          {extra && <p className="text-[11px] text-muted-foreground mt-1">{extra}</p>}
+        </CardContent>
+      </Card>
     )
   }
-
-  // ─── Revenue stat card ──────────────────────────────────────────────────────
-  const RevenueCard = ({ label, amount, change, extra }: { label: string; amount: number; change: number; extra?: string }) => (
-    <Card className="border-l-4 border-l-blue-500">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <ChangeBadge value={change} />
-        </div>
-        <p className="text-2xl font-bold">{fmtKshFull(amount)}</p>
-        {extra && <p className="text-xs text-muted-foreground mt-1">{extra}</p>}
-      </CardContent>
-    </Card>
-  )
 
   return (
     <div className="space-y-6">
@@ -301,25 +309,35 @@ export default function ReportsPage() {
             OVERVIEW TAB
            ════════════════════════════════════════════════ */}
         <TabsContent value="overview" className="mt-6 space-y-6">
-          {/* Revenue cards row */}
+          {/* Premium Revenue cards row */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <RevenueCard label="Today's Revenue" amount={o?.today_revenue ?? 0} change={o?.today_change ?? 0} extra="vs yesterday" />
-            <RevenueCard label="This Week" amount={o?.week_revenue ?? 0} change={o?.week_change ?? 0} extra="vs last week" />
-            <RevenueCard label="This Month" amount={o?.month_revenue ?? 0} change={o?.month_change ?? 0} extra="vs last month" />
-            <Card className="border-l-4 border-l-orange-500">
-              <CardContent className="p-5">
-                <p className="text-sm font-medium text-muted-foreground mb-1">Total Transactions</p>
-                <p className="text-2xl font-bold">{(o?.total_transactions_today ?? 0).toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground mt-1">Today&apos;s transactions</p>
+            <RevenueCard label="Today's Revenue" amount={o?.today_revenue ?? 0} change={o?.today_change ?? 0} extra="vs yesterday" accent="bg-blue-500" />
+            <RevenueCard label="This Week" amount={o?.week_revenue ?? 0} change={o?.week_change ?? 0} extra="vs last week" accent="bg-violet-500" />
+            <RevenueCard label="This Month" amount={o?.month_revenue ?? 0} change={o?.month_change ?? 0} extra="vs last month" accent="bg-emerald-500" />
+            <Card className="relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow">
+              <div className="absolute inset-0 opacity-5 bg-orange-500" />
+              <div className="absolute top-0 left-0 w-1 h-full bg-orange-500" />
+              <CardContent className="p-5 pl-6">
+                <div className="flex items-start justify-between mb-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Transactions Today</p>
+                  <Activity className="w-4 h-4 text-orange-400" />
+                </div>
+                <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{(o?.total_transactions_today ?? 0).toLocaleString()}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Completed payments</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Hourly Revenue Distribution */}
-          <Card>
+          {/* Hourly Revenue Distribution - Premium */}
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-blue-700">Hourly Income Distribution</CardTitle>
-              <CardDescription>Revenue breakdown by hour with peak analysis</CardDescription>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Hourly Income Distribution</CardTitle>
+                  <CardDescription className="text-[11px]">Revenue breakdown by hour with peak analysis</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {!o?.hourly_revenue?.length ? <div className="h-[260px] flex items-center justify-center"><EmptyChart /></div> : (
@@ -342,13 +360,16 @@ export default function ReportsPage() {
           {/* Weekly Income & Monthly Earnings */}
           <div className="grid lg:grid-cols-2 gap-6">
 
-            {/* Weekly Income Chart */}
-            <Card>
+            {/* Weekly Income Chart - Premium */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base font-semibold text-blue-700">Weekly Income</CardTitle>
-                    <CardDescription>Daily revenue for the selected week</CardDescription>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+                    <div>
+                      <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Weekly Income</CardTitle>
+                      <CardDescription className="text-[11px]">Daily revenue for the selected week</CardDescription>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 rounded-lg border p-1">
                     <button
@@ -405,13 +426,16 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            {/* Monthly Earnings Chart */}
-            <Card>
+            {/* Monthly Earnings Chart - Premium */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base font-semibold text-emerald-700">Monthly Earnings</CardTitle>
-                    <CardDescription>Revenue per month for the selected year</CardDescription>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-5 rounded-full bg-emerald-500" />
+                    <div>
+                      <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Monthly Earnings</CardTitle>
+                      <CardDescription className="text-[11px]">Revenue per month for the selected year</CardDescription>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 rounded-lg border p-1">
                     <button
@@ -472,11 +496,16 @@ export default function ReportsPage() {
 
           {/* User Registrations & Network Data Flow side by side */}
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* User Registrations */}
-            <Card>
+            {/* User Registrations - Premium */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold text-emerald-700">User Registrations</CardTitle>
-                <CardDescription>Daily new user registrations (Last {timeRange === "7d" ? "7" : timeRange === "30d" ? "30" : "90"} days)</CardDescription>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 rounded-full bg-emerald-500" />
+                  <div>
+                    <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">User Registrations</CardTitle>
+                    <CardDescription className="text-[11px]">Daily new user registrations (Last {timeRange === "7d" ? "7" : timeRange === "30d" ? "30" : "90"} days)</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {!u?.registration_trends?.length ? <div className="h-[220px] flex items-center justify-center"><EmptyChart /></div> : (
@@ -499,11 +528,16 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            {/* Network Data Flow */}
-            <Card>
+            {/* Network Data Flow - Premium */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold text-blue-700">Network Data Flow</CardTitle>
-                <CardDescription>Interactive download and upload data usage patterns with detailed insights</CardDescription>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 rounded-full bg-violet-500" />
+                  <div>
+                    <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Network Data Flow</CardTitle>
+                    <CardDescription className="text-[11px]">Interactive download and upload data usage patterns</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {!o?.network_data_flow?.length ? <div className="h-[220px] flex items-center justify-center"><EmptyChart /></div> : (
@@ -539,35 +573,46 @@ export default function ReportsPage() {
            ════════════════════════════════════════════════ */}
         <TabsContent value="financial" className="mt-6 space-y-6">
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* Income Comparison */}
-            <Card>
+            {/* Income Comparison - Premium */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-blue-700">Income Comparison</CardTitle>
-                <CardDescription>Current vs previous period performance</CardDescription>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+                  <div>
+                    <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Income Comparison</CardTitle>
+                    <CardDescription className="text-[11px]">Current vs previous period performance</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-0">
+              <CardContent className="p-0">
                 {[
-                  { label: "Today", data: f?.income_comparison?.today },
-                  { label: "Yesterday", data: f?.income_comparison?.yesterday },
-                  { label: "This Week", data: f?.income_comparison?.this_week },
-                  { label: "Last Week", data: f?.income_comparison?.last_week },
-                ].map(({ label, data }, i) => (
-                  <div key={label} className={`flex items-center justify-between py-4 ${i < 3 ? "border-b" : ""}`}>
-                    <span className="text-sm font-medium text-slate-700">{label}</span>
+                  { label: "Today", data: f?.income_comparison?.today, accent: "bg-blue-500" },
+                  { label: "Yesterday", data: f?.income_comparison?.yesterday, accent: "bg-slate-300" },
+                  { label: "This Week", data: f?.income_comparison?.this_week, accent: "bg-violet-500" },
+                  { label: "Last Week", data: f?.income_comparison?.last_week, accent: "bg-slate-300" },
+                ].map(({ label, data, accent }, i, arr) => (
+                  <div key={label} className={`flex items-center gap-3 px-5 py-3.5 ${i < arr.length - 1 ? "border-b" : ""} hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors`}>
+                    <div className={`w-1 h-8 rounded-full flex-shrink-0 ${accent}`} />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300 flex-1">{label}</span>
                     <div className="text-right">
-                      <span className="text-sm font-bold text-blue-700">{fmtKshFull(data?.amount ?? 0)}</span>
-                      <p className="text-xs text-muted-foreground">{data?.transactions ?? 0} transactions</p>
+                      <span className="text-sm font-bold text-blue-700 dark:text-blue-400">{fmtKshFull(data?.amount ?? 0)}</span>
+                      <p className="text-[10px] text-muted-foreground">{data?.transactions ?? 0} txns</p>
                     </div>
                   </div>
                 ))}
               </CardContent>
             </Card>
 
-            {/* Monthly Performance */}
-            <Card>
+            {/* Monthly Performance - Premium */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-orange-700">Monthly Performance</CardTitle>
-                <CardDescription>This month vs last month comparison</CardDescription>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 rounded-full bg-amber-500" />
+                  <div>
+                    <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Monthly Performance</CardTitle>
+                    <CardDescription className="text-[11px]">This month vs last month comparison</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-0">
                 <div className="flex items-center justify-between py-4 border-b bg-blue-50/50 -mx-6 px-6 rounded-t-lg">
@@ -586,17 +631,25 @@ export default function ReportsPage() {
                 </div>
                 <div className="flex items-center justify-between py-4">
                   <span className="text-sm font-medium text-slate-700">Growth Rate</span>
-                  <ChangeBadge value={f?.monthly_performance?.growth_rate ?? 0} />
+                  <Badge variant="outline" className={(f?.monthly_performance?.growth_rate ?? 0) >= 0 ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}>
+                    {(f?.monthly_performance?.growth_rate ?? 0) >= 0 ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
+                    {(f?.monthly_performance?.growth_rate ?? 0) >= 0 ? "+" : ""}{f?.monthly_performance?.growth_rate ?? 0}%
+                  </Badge>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Hourly Revenue Analysis */}
-          <Card>
+          {/* Hourly Revenue Analysis - Premium */}
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-amber-700">Hourly Revenue Analysis</CardTitle>
-              <CardDescription>Peak revenue hours and patterns with detailed insights</CardDescription>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-5 rounded-full bg-amber-500" />
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Hourly Revenue Analysis</CardTitle>
+                  <CardDescription className="text-[11px]">Peak revenue hours and patterns with detailed insights</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {!f?.hourly_revenue?.length ? <div className="h-[320px] flex items-center justify-center"><EmptyChart /></div> : (
@@ -617,12 +670,17 @@ export default function ReportsPage() {
           </Card>
 
           {/* ── Plan Transaction & Revenue Analytics ── */}
-          <Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-teal-700 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" /> Plan Performance
-              </CardTitle>
-              <CardDescription>All active plans — total transactions &amp; lifetime revenue generated</CardDescription>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-5 rounded-full bg-teal-500" />
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-teal-500" /> Plan Performance
+                  </CardTitle>
+                  <CardDescription className="text-[11px]">All active plans — total transactions &amp; lifetime revenue generated</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {!data?.plan_analytics?.length ? (
@@ -688,30 +746,64 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          {/* ── NEW: Per-Router Daily Hotspot Revenue ── */}
-          <Card>
+          {/* ── Per-Router Daily Hotspot Revenue with Premium Dropdown ── */}
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between flex-wrap gap-3">
-                <div>
-                  <CardTitle className="text-base font-semibold text-blue-700 flex items-center gap-2">
-                    <Wifi className="w-4 h-4" /> Daily Hotspot Revenue by Router
-                  </CardTitle>
-                  <CardDescription>Select a router to see its daily revenue trend</CardDescription>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+                  <div>
+                    <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                      <Wifi className="w-4 h-4 text-blue-500" /> Daily Hotspot Revenue by Router
+                    </CardTitle>
+                    <CardDescription className="text-[11px]">Select a router to see its daily revenue trend</CardDescription>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* Router selector */}
-                  <select
-                    value={String(selectedRouter)}
-                    onChange={(e) => handleRouterChange(e.target.value)}
-                    className="text-xs border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    {routerRevData?.routers?.map((r: any) => (
-                      <option key={r.id} value={String(r.id)}>{r.name}</option>
-                    ))}
-                    {!routerRevData?.routers?.length && (
-                      <option value="">No routers</option>
+                  {/* Premium Router Selector */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setRouterDropdownOpen(!routerDropdownOpen)}
+                      className="flex items-center gap-2 text-xs border rounded-lg px-3 py-1.5 bg-background hover:bg-slate-50 dark:hover:bg-slate-800 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all min-w-[140px] justify-between shadow-sm"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Wifi className="w-3 h-3 text-blue-500" />
+                        <span className="font-medium truncate max-w-[110px]">
+                          {routerRevData?.routers?.find((r: any) => String(r.id) === String(selectedRouter))?.name || "Select Router"}
+                        </span>
+                      </div>
+                      <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${routerDropdownOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {routerDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded-xl border bg-background shadow-xl overflow-hidden">
+                        <div className="px-3 py-2 border-b">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Select Router</p>
+                        </div>
+                        {routerRevData?.routers?.map((r: any) => {
+                          const isSelected = String(r.id) === String(selectedRouter)
+                          return (
+                            <button
+                              key={r.id}
+                              onClick={() => { handleRouterChange(r.id); setRouterDropdownOpen(false) }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-left transition-colors hover:bg-blue-50 dark:hover:bg-blue-950 ${isSelected ? "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300" : "text-slate-700 dark:text-slate-300"}`}
+                            >
+                              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isSelected ? "bg-blue-500" : "bg-slate-300"}`} />
+                              <span className="font-medium truncate">{r.name}</span>
+                              {isSelected && (
+                                <svg className="w-3 h-3 text-blue-500 ml-auto flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
                     )}
-                  </select>
+                  </div>
+
                   {/* Time range selector */}
                   <div className="flex items-center gap-1 rounded-lg border p-1">
                     {["7d", "30d", "90d"].map((tr) => (
@@ -740,7 +832,7 @@ export default function ReportsPage() {
                     { label: "Peak Amount", value: fmtKshFull(routerRevData.summary.peak_amount) },
                   ].map(({ label, value }) => (
                     <div key={label}>
-                      <p className="text-xs text-muted-foreground">{label}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
                       <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{value}</p>
                     </div>
                   ))}
@@ -792,10 +884,15 @@ export default function ReportsPage() {
             USERS TAB
            ════════════════════════════════════════════════ */}
         <TabsContent value="users" className="mt-6 space-y-6">
-          <Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-emerald-700">User Registration Trends</CardTitle>
-              <CardDescription>Daily new user registrations over the last {timeRange === "7d" ? "7" : timeRange === "30d" ? "30" : "90"} days</CardDescription>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-5 rounded-full bg-emerald-500" />
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">User Registration Trends</CardTitle>
+                  <CardDescription className="text-[11px]">Daily new user registrations over the last {timeRange === "7d" ? "7" : timeRange === "30d" ? "30" : "90"} days</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {!u?.registration_trends?.length ? <div className="h-[340px] flex items-center justify-center"><EmptyChart /></div> : (
@@ -818,10 +915,15 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          {/* Registration Summary */}
-          <Card className="max-w-lg">
+          {/* Registration Summary - Premium */}
+          <Card className="max-w-lg border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold">Registration Summary</CardTitle>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Registration Summary</CardTitle>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-0">
               {[
@@ -838,12 +940,17 @@ export default function ReportsPage() {
           </Card>
 
           {/* ── Top 10 Impactful Customers ── */}
-          <Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-violet-700 flex items-center gap-2">
-                <Users className="w-4 h-4" /> Top 10 Most Impactful Customers
-              </CardTitle>
-              <CardDescription>Ranked by lifetime spend — PPPoE &amp; Hotspot combined</CardDescription>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-5 rounded-full bg-violet-500" />
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-violet-500" /> Top 10 Most Impactful Customers
+                  </CardTitle>
+                  <CardDescription className="text-[11px]">Ranked by lifetime spend — PPPoE &amp; Hotspot combined</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {!data?.top_customers?.length ? (
@@ -928,10 +1035,15 @@ export default function ReportsPage() {
             NETWORK TAB
            ════════════════════════════════════════════════ */}
         <TabsContent value="network" className="mt-6 space-y-6">
-          <Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-blue-700">Network Data Usage</CardTitle>
-              <CardDescription>Daily Download &amp; Upload Traffic</CardDescription>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Network Data Usage</CardTitle>
+                  <CardDescription className="text-[11px]">Daily Download &amp; Upload Traffic</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {!n?.daily_usage?.length ? <div className="h-[340px] flex items-center justify-center"><EmptyChart /></div> : (
@@ -960,11 +1072,16 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          {/* Usage Summary + Network Performance */}
+          {/* Usage Summary + Network Performance - Premium */}
           <div className="grid lg:grid-cols-2 gap-6">
-            <Card>
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold">Usage Summary</CardTitle>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 rounded-full bg-emerald-500" />
+                  <div>
+                    <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Usage Summary</CardTitle>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-0">
                 {[
@@ -980,9 +1097,14 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold">Network Performance</CardTitle>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 rounded-full bg-violet-500" />
+                  <div>
+                    <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Network Performance</CardTitle>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-0">
                 {[
