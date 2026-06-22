@@ -173,6 +173,8 @@ import type {
   PointsTransaction,
   PointsRule,
   LoyaltyStats,
+  // Hotspot Client Detail types
+  HotspotClientDetailResponse,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -4225,6 +4227,36 @@ async activateService(
 
   async getHotspotClient(id: number): Promise<any> {
     return this.request(`/hotspot/admin/clients/${id}/`)
+  }
+
+  // ============================================================
+  // NEW HOTSPOT CLIENT DETAIL METHODS (ADDED)
+  // ============================================================
+
+  /**
+   * Get RADIUS session history for a specific hotspot client
+   * @param clientId - The HotspotClient ID
+   * @param params - Pagination parameters (page, page_size)
+   * @returns Hotspot client details with paginated RADIUS sessions
+   */
+  async getHotspotClientSessions(
+    clientId: number,
+    params?: { page?: number; page_size?: number }
+  ): Promise<HotspotClientDetailResponse> {
+    const qs = params ? '?' + new URLSearchParams(
+      Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)]))
+    ).toString() : ''
+    return this.request<HotspotClientDetailResponse>(`/hotspot/admin/clients/${clientId}/sessions/${qs}`)
+  }
+
+  /**
+   * Get payments for a hotspot client
+   * @param clientId - The HotspotClient ID
+   * @returns Payment history for the client
+   */
+  async getHotspotClientPayments(clientId: number): Promise<any> {
+    // Payments linked to sessions owned by this client's canonical_username
+    return this.request(`/hotspot/admin/clients/${clientId}/`)
   }
 
   async getActiveSubscriptions(): Promise<ActiveSubscriptionsResponse> {

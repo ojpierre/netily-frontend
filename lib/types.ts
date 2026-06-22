@@ -2174,6 +2174,44 @@ export type VoucherGenerateResponse = {
 };
 
 // ==========================================
+// HOTSPOT CLIENT DETAIL TYPES (ADDED)
+// ==========================================
+
+export interface HotspotRadiusSession {
+  id: number
+  mac_address: string
+  ip_address: string
+  router: string
+  nas_ip: string
+  start_time: string | null
+  stop_time: string | null
+  duration: string
+  duration_seconds: number
+  data_total: string
+  data_upload: string
+  data_download: string
+  terminate_cause: string
+  is_active: boolean
+}
+
+export interface HotspotClientDetailResponse {
+  client: {
+    id: number
+    canonical_username: string
+    canonical_phone: string | null
+    total_sessions: number
+    total_spend: number
+    first_seen_at: string | null
+    last_seen_at: string | null
+  }
+  sessions: HotspotRadiusSession[]
+  count: number
+  page: number
+  page_size: number
+  total_pages: number
+}
+
+// ==========================================
 // DASHBOARD STATS (Backend Aligned)
 // ==========================================
 
@@ -3059,6 +3097,10 @@ export interface ActiveSubscription {
   session_id: string | null
   client_total_sessions: number
   client_total_spend: number
+  // ADDED: Fields for hotspot client detail
+  subscription_status?: string        // 'active' | 'expired' | 'paid' | 'pending'
+  is_active_sub?: boolean             // convenience flag
+  client_id?: number                  // HotspotClient.id for detail fetch
 }
 
 export interface ActiveSubscriptionsResponse {
