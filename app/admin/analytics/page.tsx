@@ -205,12 +205,19 @@ export default function ReportsPage() {
     }
   }, []) // eslint-disable-line
 
-  // Click outside handler for router dropdown
+  // Click outside handler for router dropdown - FIXED
   useEffect(() => {
     if (!routerDropdownOpen) return
-    const handler = () => setRouterDropdownOpen(false)
-    document.addEventListener("mousedown", handler)
-    return () => document.removeEventListener("mousedown", handler)
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      // Check if click is outside the dropdown container
+      if (!target.closest('.router-dropdown-container')) {
+        setRouterDropdownOpen(false)
+      }
+    }
+    // Use mousedown to catch the event before click
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
   }, [routerDropdownOpen])
 
   const handleRefresh = async () => { setRefreshing(true); await fetchData(); setRefreshing(false) }
@@ -760,8 +767,8 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* Premium Router Selector */}
-                  <div className="relative">
+                  {/* Premium Router Selector - with container class for click-outside detection */}
+                  <div className="relative router-dropdown-container">
                     <button
                       onClick={() => setRouterDropdownOpen(!routerDropdownOpen)}
                       className="flex items-center gap-2 text-xs border rounded-lg px-3 py-1.5 bg-background hover:bg-slate-50 dark:hover:bg-slate-800 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all min-w-[140px] justify-between shadow-sm"
