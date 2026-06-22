@@ -1058,6 +1058,19 @@ export default function UsersPage() {
     }
   }
 
+  // NEW: Delete hotspot client handler
+  const handleDeleteHotspotClient = async (clientId: number, username: string) => {
+    if (!confirm(`Delete ${username}? This cannot be undone.`)) return
+    try {
+      await adminApi.deleteHotspotClient(clientId)
+      toast.success('Hotspot client deleted')
+      setHotspotDetailOpen(false)
+      await loadActiveSubscriptions()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete client')
+    }
+  }
+
   const generateUsernameFromPhone = (phone: string) => {
     const digits = phone.replace(/\D/g, '')
     let username = digits.startsWith('254') ? digits.slice(3) : 
@@ -4408,7 +4421,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* FIX 5: Hotspot Client Detail Dialog — Premium with crown incoming */}
+      {/* FIX 5: Hotspot Client Detail Dialog — Premium with crown incoming and delete button */}
       <Dialog open={hotspotDetailOpen} onOpenChange={setHotspotDetailOpen}>
         <DialogContent className="max-w-2xl w-[95vw] max-h-[92vh] overflow-hidden p-0 gap-0 rounded-2xl">
           {hotspotDetailClient && (() => {
@@ -4419,6 +4432,7 @@ export default function UsersPage() {
             const username = hotspotDetailClient.canonical_username || hotspotDetailClient.username || 'HS'
             const isOnline = hotspotOnlineSet.has(username)
             const liveUsage = hotspotLiveUsageMap.get(username)
+            const clientId = (hotspotDetailClient as any).client_id
             
             const daysLeft = hotspotDetailClient.expiry_date
               ? Math.ceil((new Date(hotspotDetailClient.expiry_date).getTime() - Date.now()) / 86400000)
@@ -4435,13 +4449,26 @@ export default function UsersPage() {
                   <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
                   <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/10 blur-xl" />
                   
-                  {/* Close button */}
-                  <button
-                    onClick={() => setHotspotDetailOpen(false)}
-                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-                  >
-                    <X className="w-4 h-4 text-white" />
-                  </button>
+                  {/* Header buttons — close + delete */}
+                  <div className="absolute top-4 right-4 flex items-center gap-2 relative z-10">
+                    {clientId && (
+                      <button
+                        onClick={async () => {
+                          await handleDeleteHotspotClient(clientId, username)
+                        }}
+                        className="w-8 h-8 rounded-full bg-red-500/30 hover:bg-red-500/50 transition-colors flex items-center justify-center backdrop-blur-sm hover:scale-110 active:scale-95"
+                        title="Delete client"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-white" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setHotspotDetailOpen(false)}
+                      className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                    >
+                      <X className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
 
                   {/* Identity row */}
                   <div className="flex items-center gap-4 relative z-10">
@@ -4539,8 +4566,8 @@ export default function UsersPage() {
                       key={id}
                       onClick={() => {
                         setHotspotDetailTab(id)
-                        if (id === 'sessions' && (hotspotDetailClient as any).client_id && hotspotClientSessions.length === 0) {
-                          loadHotspotClientSessions((hotspotDetailClient as any).client_id)
+                        if (id === 'sessions' && clientId && hotspotClientSessions.length === 0) {
+                          loadHotspotClientSessions(clientId)
                         }
                       }}
                       className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all duration-150 ${
@@ -4654,7 +4681,7 @@ export default function UsersPage() {
                           <p className="text-xs text-slate-400">{hotspotClientSessionsTotal} recorded</p>
                         </div>
                         <button
-                          onClick={() => (hotspotDetailClient as any).client_id && loadHotspotClientSessions((hotspotDetailClient as any).client_id, hotspotClientSessionsPage)}
+                          onClick={() => clientId && loadHotspotClientSessions(clientId, hotspotClientSessionsPage)}
                           disabled={hotspotClientSessionsLoading}
                           className="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors active:scale-95"
                         >
@@ -4735,12 +4762,12 @@ export default function UsersPage() {
                               <p className="text-xs text-slate-400">{hotspotClientSessionsPage}/{hotspotClientSessionsTotalPages}</p>
                               <div className="flex gap-2">
                                 <button disabled={hotspotClientSessionsPage === 1}
-                                  onClick={() => loadHotspotClientSessions((hotspotDetailClient as any).client_id, hotspotClientSessionsPage - 1)}
+                                  onClick={() => clientId && loadHotspotClientSessions(clientId, hotspotClientSessionsPage - 1)}
                                   className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-all active:scale-95">
                                   ← Prev
                                 </button>
                                 <button disabled={hotspotClientSessionsPage >= hotspotClientSessionsTotalPages}
-                                  onClick={() => loadHotspotClientSessions((hotspotDetailClient as any).client_id, hotspotClientSessionsPage + 1)}
+                                  onClick={() => clientId && loadHotspotClientSessions(clientId, hotspotClientSessionsPage + 1)}
                                   className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-all active:scale-95">
                                   Next →
                                 </button>

@@ -4228,7 +4228,15 @@ async activateService(
   async getHotspotClient(id: number): Promise<any> {
     return this.request(`/hotspot/admin/clients/${id}/`)
   }
-
+  
+    /**
+   * Delete a hotspot client and revoke their RADIUS credentials
+   * @param clientId - The HotspotClient ID
+   */
+  async deleteHotspotClient(clientId: number): Promise<void> {
+    await this.request(`/hotspot/admin/clients/${clientId}/`, { method: 'DELETE' })
+  }
+  
   // ============================================================
   // NEW HOTSPOT CLIENT DETAIL METHODS (ADDED)
   // ============================================================
