@@ -396,6 +396,11 @@ export default function UsersPage() {
   const [hotspotPage, setHotspotPage] = useState(1)
   const hotspotPageSize = 20
 
+  // NEW: Hotspot delete confirmation state
+  const [showHotspotDeleteDialog, setShowHotspotDeleteDialog] = useState(false)
+  const [hotspotDeleteTarget, setHotspotDeleteTarget] = useState<{ clientId: number; username: string } | null>(null)
+  const [deletingHotspot, setDeletingHotspot] = useState(false)
+
   // NEW: per-user SMS state (with variable insertion)
   const [showUserSmsDialog, setShowUserSmsDialog] = useState(false)
   const [userSmsTarget, setUserSmsTarget] = useState<User | null>(null)
@@ -1058,16 +1063,26 @@ export default function UsersPage() {
     }
   }
 
-  // NEW: Delete hotspot client handler
-  const handleDeleteHotspotClient = async (clientId: number, username: string) => {
-    if (!confirm(`Delete ${username}? This cannot be undone.`)) return
+  // NEW: Delete hotspot client handlers (no more confirm())
+  const handleDeleteHotspotClient = (clientId: number, username: string) => {
+    setHotspotDeleteTarget({ clientId, username })
+    setShowHotspotDeleteDialog(true)
+  }
+
+  const confirmDeleteHotspotClient = async () => {
+    if (!hotspotDeleteTarget) return
     try {
-      await adminApi.deleteHotspotClient(clientId)
+      setDeletingHotspot(true)
+      await adminApi.deleteHotspotClient(hotspotDeleteTarget.clientId)
       toast.success('Hotspot client deleted')
       setHotspotDetailOpen(false)
+      setShowHotspotDeleteDialog(false)
+      setHotspotDeleteTarget(null)
       await loadActiveSubscriptions()
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete client')
+    } finally {
+      setDeletingHotspot(false)
     }
   }
 
@@ -4453,11 +4468,10 @@ export default function UsersPage() {
                   <div className="absolute top-4 right-4 flex items-center gap-2 relative z-10">
                     {clientId && (
                       <button
-                        onClick={async () => {
-                          await handleDeleteHotspotClient(clientId, username)
-                        }}
+                        onClick={() => handleDeleteHotspotClient(clientId, username)}
                         className="w-8 h-8 rounded-full bg-red-500/30 hover:bg-red-500/50 transition-colors flex items-center justify-center backdrop-blur-sm hover:scale-110 active:scale-95"
                         title="Delete client"
+                        style={{ zIndex: 50, position: 'relative' }}
                       >
                         <Trash2 className="w-3.5 h-3.5 text-white" />
                       </button>
@@ -4860,6 +4874,23 @@ export default function UsersPage() {
                         </div>
                         <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-orange-400 transition-colors" />
                       </button>
+
+                      {/* Delete button in Actions tab */}
+                      {clientId && (
+                        <button
+                          onClick={() => handleDeleteHotspotClient(clientId, username)}
+                          className="w-full flex items-center gap-4 p-4 bg-white rounded-2xl border border-red-100 shadow-sm hover:border-red-300 hover:bg-red-50/50 transition-all group active:scale-[0.99] mt-2"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-red-100 group-hover:bg-red-200 flex items-center justify-center transition-colors">
+                            <Trash2 className="w-5 h-5 text-red-600" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="text-sm font-bold text-red-700">Delete Client</p>
+                            <p className="text-xs text-slate-400">Permanently remove this client</p>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-red-200 group-hover:text-red-400 transition-colors" />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -5289,6 +5320,42 @@ export default function UsersPage() {
               }
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hotspot Delete Confirmation - Apple Style */}
+      <Dialog open={showHotspotDeleteDialog} onOpenChange={(open) => {
+        if (!open) { setShowHotspotDeleteDialog(false); setHotspotDeleteTarget(null) }
+      }}>
+        <DialogContent className="max-w-sm w-[90vw] rounded-2xl p-0 overflow-hidden border-0 shadow-2xl">
+          {/* Icon */}
+          <div className="flex flex-col items-center pt-8 pb-2 px-6 bg-white">
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <Trash2 className="w-8 h-8 text-red-500" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-900 text-center">Delete Client?</h2>
+            <p className="text-sm text-slate-500 text-center mt-2 mb-6">
+              <span className="font-mono font-bold text-slate-700">{hotspotDeleteTarget?.username}</span> will be permanently removed along with their RADIUS credentials. This cannot be undone.
+            </p>
+          </div>
+          {/* Divider + Buttons */}
+          <div className="border-t border-slate-100">
+            <button
+              onClick={confirmDeleteHotspotClient}
+              disabled={deletingHotspot}
+              className="w-full py-4 text-sm font-semibold text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {deletingHotspot ? <><Loader2 className="w-4 h-4 animate-spin" />Deleting...</> : 'Delete'}
+            </button>
+            <div className="border-t border-slate-100" />
+            <button
+              onClick={() => { setShowHotspotDeleteDialog(false); setHotspotDeleteTarget(null) }}
+              disabled={deletingHotspot}
+              className="w-full py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
