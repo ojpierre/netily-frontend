@@ -38,6 +38,7 @@ import {
   MapPin,
   History,
   ChevronRight,
+  Settings,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
 import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession, ActiveSubscriptionsResponse, CustomerAvailablePlanOption, CustomerAvailablePlansResponse, PaymentEntry, CustomerRADIUSCredentials, HotspotRadiusSession, HotspotClientDetailResponse } from "@/lib/types"
