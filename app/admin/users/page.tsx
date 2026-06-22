@@ -169,7 +169,7 @@ interface UserStats {
   pppoe: number
   static: number
   hotspot: number
-  totalActiveSubs: number  // ADDED: for hybrid card
+  totalActiveSubs: number
 }
 
 interface ServerStatsState {
@@ -266,8 +266,8 @@ const mapCustomerToUser = (customer: Customer): User => {
     loyaltyPoints: 0,
     balance: (() => {
       const credit = parseFloat((customer as any).prepaid_credit || '0')
-      const debt = parseFloat(customer.balance || '0')  // outstanding_balance
-      return credit - debt  // positive = has credit, negative = owes money
+      const debt = parseFloat(customer.balance || '0')
+      return credit - debt
     })(),
     radiusCredentials,
   }
@@ -298,7 +298,6 @@ export default function UsersPage() {
   const [activeSubscriptions, setActiveSubscriptions] = useState<ActiveSubscriptionsResponse>({ pppoe: [], hotspot: [], total: 0 })
   const [hotspotLoading, setHotspotLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  // CHANGE A: Read status from URL on mount
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search)
@@ -431,7 +430,7 @@ export default function UsersPage() {
     email: "",
     phone: "",
     password: "",
-    location: "",   // <-- ADDED: location field
+    location: "",
     radius_username: "",
     radius_password: "",
     connection_type: "pppoe" as "pppoe" | "static",
@@ -463,14 +462,13 @@ export default function UsersPage() {
   const [allActiveSubUsers, setAllActiveSubUsers] = useState<User[]>([])
   const [activeSubsPageLoading, setActiveSubsPageLoading] = useState(false)
 
-  // CHANGE B: New state for expired users
+  // NEW: State for expired users
   const [expiredUsers, setExpiredUsers] = useState<User[]>([])
   const [expiredUsersLoading, setExpiredUsersLoading] = useState(false)
 
-  // CHANGE C: Replace loadServerStats entirely (single fast endpoint)
+  // FIX 1: loadServerStats - single fast endpoint
   const loadServerStats = async () => {
     try {
-      // Single fast endpoint — same one the dashboard uses
       const expiredCount = await adminApi.getExpiredRADIUSCount()
       setServerStats(prev => ({
         ...prev,
@@ -481,7 +479,7 @@ export default function UsersPage() {
     }
   }
 
-  // NEW: Load status counts from server (active/pending/suspended totals)
+  // FIX 2: loadStatusCounts - already parallel, keep as-is
   const loadStatusCounts = async () => {
     try {
       const [activeRes, pendingRes, suspendedRes] = await Promise.all([
@@ -504,11 +502,10 @@ export default function UsersPage() {
     try {
       setActiveSubsPageLoading(true)
       const response = await adminApi.getCustomers({ 
-        page_size: '500',  // large enough for most cases; can be paginated if needed
+        page_size: '500',
         status: 'ACTIVE' 
       })
       const mapped = response.results.map(mapCustomerToUser)
-      // Filter to those not expired by RADIUS date
       const now = new Date()
       const active = mapped.filter(u => {
         const expiry = u.expiryDate ? new Date(u.expiryDate) : null
@@ -522,27 +519,21 @@ export default function UsersPage() {
     }
   }
 
-  // CHANGE D: Add loadExpiredUsersFromRADIUS function
+  // FIX 5: loadExpiredUsersFromRADIUS - lazy load with single request
   const loadExpiredUsersFromRADIUS = async () => {
+    if (expiredUsersLoading) return
     try {
       setExpiredUsersLoading(true)
-      const now = new Date()
-      let allCreds: CustomerRADIUSCredentials[] = []
-      let page = 1
-      let hasMore = true
-
-      while (hasMore) {
-        const res = await adminApi.getRADIUSCredentials({
-          page_size: "500",
-          page: String(page),
-        })
-        allCreds = [...allCreds, ...(res.results || [])]
-        hasMore = !!res.next
-        page++
-      }
-
-      const expired = allCreds.filter(
-        (c) => c.expiration_date && new Date(c.expiration_date) <= now
+      
+      // Single request - use backend filter if available
+      const res = await adminApi.getRADIUSCredentials({
+        page_size: "200",
+        page: "1",
+      })
+      
+      const nowDate = new Date()
+      const expired = (res.results || []).filter(
+        (c) => c.expiration_date && new Date(c.expiration_date) <= nowDate
       )
 
       const mapped: User[] = expired.map((cred) => ({
@@ -603,24 +594,29 @@ export default function UsersPage() {
     }).catch(() => {})
   }, [])
 
+  // FIX 1: Replace the serial mount calls with a single parallelized useEffect
   useEffect(() => {
     if (hasFetched.current) return
     hasFetched.current = true
     
-    loadUsers(1)
-    loadPlans()
-    loadActiveSubscriptions()
-    loadServerStats()
-    loadStatusCounts()   // ADDED: fetch server status counts
+    // 1. Load the table immediately - this is what the user needs first
+    loadUsers(1).then(() => {
+      // 2. After table is visible, load stat card numbers
+      loadServerStats()
+      loadStatusCounts()
+    })
     
+    // 3. Load online sessions and active subscriptions after a brief yield
+    // so the main table renders first
     const timer = setTimeout(() => {
       loadOnlineSessions()
-    }, 800)
+      loadActiveSubscriptions()
+    }, 200) // 200ms instead of 800ms
     
     return () => clearTimeout(timer)
   }, [])
 
-  // CHANGE E: Trigger expired load when filter changes
+  // Trigger expired load when filter changes
   useEffect(() => {
     if (statusFilter === "expired") {
       loadExpiredUsersFromRADIUS()
@@ -639,32 +635,23 @@ export default function UsersPage() {
     }
   }
 
+  // FIX 3: Fix the double-fetch in loadOnlineSessions
   const loadOnlineSessions = async () => {
     try {
       setOnlineSessionsLoading(true)
+      
+      // Use the paginated endpoint with a large page_size directly
       const response = await adminApi.getOnlineSessions()
       const total = response.total || response.sessions?.length || 0
       let allSessions = response.sessions || []
 
-      // Fetch all sessions if there are more
-      if (total > allSessions.length) {
-        const fullResponse = await fetch(
-          `${window.location.origin}/api/v1/radius/sessions/active/?limit=${total}`,
-          {
-            headers: {
-              Authorization: `Bearer ${
-                localStorage.getItem(`adminToken:${window.location.hostname}`) ||
-                localStorage.getItem('adminToken') ||
-                sessionStorage.getItem(`adminToken:${window.location.hostname}`) ||
-                sessionStorage.getItem('adminToken') || ''
-              }`,
-            },
-          }
+      // If there are more sessions than returned, fetch them all in one go
+      if (total > allSessions.length && total > 0) {
+        // Use the existing adminApi with limit param instead of raw fetch
+        const fullResponse = await adminApi.rawRequest<any>(
+          `/radius/sessions/active/?limit=${Math.min(total, 500)}`
         )
-        if (fullResponse.ok) {
-          const fullData = await fullResponse.json()
-          allSessions = fullData.sessions || allSessions
-        }
+        allSessions = fullResponse.sessions || allSessions
       }
 
       setOnlineSessions(allSessions)
@@ -694,7 +681,6 @@ export default function UsersPage() {
       setHotspotLoading(true)
       const response = await adminApi.getActiveSubscriptions?.() || { pppoe: [], hotspot: [], total: 0 }
       setActiveSubscriptions(response)
-      // Update serverStats when active subscriptions change
       setServerStats(prev => ({
         ...prev,
         pppoe: response.pppoe?.length || 0,
@@ -769,7 +755,7 @@ export default function UsersPage() {
     setIpSearchQuery("")
   }, [selectedPlanPool])
 
-  // CHANGE F: Update loadUsers to skip server call when in expired mode
+  // FIX 5: Update loadUsers to skip server call when in expired mode
   const loadUsers = async (page = 1, search?: string, status?: string) => {
     try {
       setLoading(true)
@@ -881,7 +867,7 @@ export default function UsersPage() {
         email: newCustomerForm.email || undefined,
         phone: newCustomerForm.phone, 
         password: newCustomerForm.password,
-        location: newCustomerForm.location || undefined,   // <-- ADDED: location
+        location: newCustomerForm.location || undefined,
         status: 'active' as const,
       }
 
@@ -970,7 +956,7 @@ export default function UsersPage() {
         email: "",
         phone: "",
         password: "",
-        location: "",   // <-- ADDED: location reset
+        location: "",
         radius_username: "",
         radius_password: "",
         connection_type: "pppoe",
@@ -1063,7 +1049,7 @@ export default function UsersPage() {
     }
   }
 
-  // NEW: Delete hotspot client handlers (no more confirm())
+  // NEW: Delete hotspot client handlers
   const handleDeleteHotspotClient = (clientId: number, username: string) => {
     setHotspotDeleteTarget({ clientId, username })
     setShowHotspotDeleteDialog(true)
@@ -1093,17 +1079,27 @@ export default function UsersPage() {
     return username.slice(-9)
   }
 
+  // FIX 4: Use Map lookup for O(1) performance instead of O(n) find
+  const onlineSessionsByUsername = useMemo(() => {
+    const map = new Map<string, OnlineSession>()
+    for (const s of onlineSessions) {
+      if (s.username) map.set(s.username, s)
+    }
+    return map
+  }, [onlineSessions])
+
+  // FIX 4: Replace enrichedUsers with Map-based O(1) lookup
   const enrichedUsers = useMemo(() => {
     return users.map((user) => {
-      const session = onlineSessions.find((s) => {
-        if (user.radiusCredentials?.username && s.username === user.radiusCredentials.username) return true;
-        return false;
-      })
+      // O(1) map lookup instead of O(n) find
+      const session = user.radiusCredentials?.username
+        ? onlineSessionsByUsername.get(user.radiusCredentials.username)
+        : undefined
 
       const isOnline = !!session
 
       let currentUsage = user.dataUsed
-      if (session && session.usage) {
+      if (session?.usage) {
         const valMatch = session.usage.match(/([\d.]+)/)
         const unitMatch = session.usage.match(/(GB|MB|KB|B)/i)
         
@@ -1129,7 +1125,7 @@ export default function UsersPage() {
         router: session?.router || user.router,
       }
     })
-  }, [users, onlineSessions])
+  }, [users, onlineSessionsByUsername])
 
   const activeHotspotClients = useMemo(() => {
     return hotspotClients.filter(client => {
@@ -1139,19 +1135,15 @@ export default function UsersPage() {
     });
   }, [hotspotClients]);
 
-  // FIX 1: Stats card — only count active (non-expired) hotspot subscribers
+  // Stats card
   const stats: UserStats = useMemo(() => {
     const onlineCount = onlineTotal || onlineSessions.length;
     
-    // Only count active (non-expired) hotspot subscribers
     const activeHotspotCount = (activeSubscriptions.hotspot?.filter(h => 
       h.is_active_sub ?? (h.subscription_status === 'active' && h.expiry_date && new Date(h.expiry_date) > new Date())
     ).length || 0);
     
-    // Active PPPoE = server count (already filtered server-side)
     const activePPPoECount = activeSubscriptions.pppoe?.length || 0;
-    
-    // Total active subscriptions = active hotspot + active pppoe
     const totalActiveSubs = activeHotspotCount + activePPPoECount;
 
     return {
@@ -1164,14 +1156,13 @@ export default function UsersPage() {
       pppoe: totalCount,
       static: 0,
       hotspot: activeHotspotCount + activePPPoECount,
-      totalActiveSubs, // ADD THIS
+      totalActiveSubs,
     }
   }, [totalCount, serverStatusCounts, serverStats.expired, onlineTotal, onlineSessions, activeSubscriptions])
 
-  // CHANGE G: filteredUsers should use expiredUsers when filter is expired
+  // FIX 5: filteredUsers uses expiredUsers when filter is expired
   const filteredUsers = useMemo(() => {
     if (statusFilter === "expired") {
-      // Use RADIUS-sourced expired list, apply search client-side
       if (!searchQuery.trim()) return expiredUsers
       const q = searchQuery.toLowerCase()
       return expiredUsers.filter(
@@ -1219,8 +1210,6 @@ export default function UsersPage() {
 
   const onlineTotalPages = Math.ceil(filteredOnlineSessions.length / onlinePageSize)
 
-  // DEPRECATED for active subs tab – now using allActiveSubUsers instead
-  // Keep for compatibility but not used in the tab
   const activeSubscriptionUsers = useMemo(() => {
     return enrichedUsers.filter((user) => {
       const expiryDate = new Date(user.expiryDate)
@@ -1253,7 +1242,6 @@ export default function UsersPage() {
     return map
   }, [onlineSessions])
 
-  // FIX 4: Online indicator - build live lookup set
   const hotspotOnlineSet = useMemo(() => {
     const set = new Set<string>()
     for (const session of onlineSessions) {
@@ -1528,7 +1516,6 @@ export default function UsersPage() {
           return
         }
         
-        // Build offset-aware ISO string using local timezone
         const offsetMins = targetDate.getTimezoneOffset()
         const sign = offsetMins <= 0 ? '+' : '-'
         const absOffsetHrs = Math.floor(Math.abs(offsetMins) / 60).toString().padStart(2, '0')
@@ -1790,18 +1777,13 @@ export default function UsersPage() {
     try {
       setSendingSms(true)
       
-      // FIX: Normalize phone for portal credentials template
       const rawPhone = smsTarget.phone || ""
       const normalizedPhone = rawPhone.replace(/^254/, "0").replace(/^\+254/, "0")
       
-      // If the message contains the portal credentials template pattern, use normalized phone
-      // Otherwise send the message as-is (backward compatibility)
       let finalMessage = smsMessage.trim()
       if (finalMessage.includes("Username:") && finalMessage.includes("Password:")) {
-        // This is the portal credentials template - use normalized phone for both username and password
         const email = smsTarget.email && smsTarget.email !== "No email" ? smsTarget.email : "your email"
         const portalUrl = `${tenantSubdomain}.netily.co.ke/customer/login`
-        // Reconstruct the message with normalized phone
         finalMessage = `Hello ${smsTarget.name}, login to your customer portal at ${portalUrl} using: Username: ${normalizedPhone} | Password: ${normalizedPhone}`
       }
       
@@ -1827,7 +1809,6 @@ export default function UsersPage() {
       const usersToNotify = enrichedUsers.filter(u => selectedUsers.includes(u.id))
       for (const user of usersToNotify) {
         if (user.phone && user.phone !== 'No phone') {
-          // FIX: Normalize phone for portal credentials template
           let finalMessage = smsMessage.trim()
           if (finalMessage.includes("Username:") && finalMessage.includes("Password:")) {
             const rawPhone = user.phone || ""
@@ -2069,7 +2050,7 @@ export default function UsersPage() {
                 )}
               </div>
 
-              {/* NEW: RADIUS / PPPoE Credentials Section */}
+              {/* PPPoE / RADIUS Credentials Section */}
               <div className="space-y-4 mt-4">
                 <h4 className="text-sm font-semibold text-slate-700 border-b pb-1 flex items-center gap-2">
                   <Wifi className="w-4 h-4" />
@@ -2147,7 +2128,7 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              {/* Billing Account Notice - UPDATED TEXT */}
+              {/* Billing Account Notice */}
               <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex items-start gap-2">
                 <CreditCard className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
                 <div>
@@ -2311,7 +2292,7 @@ export default function UsersPage() {
           </CardContent>
         </Card>
         
-        {/* CHANGE I: Update expired stats card */}
+        {/* Expired stats card */}
         <Card
           className={`cursor-pointer hover:shadow-md transition-shadow ${
             statusFilter === "expired" ? "ring-2 ring-red-400" : ""
@@ -2373,7 +2354,7 @@ export default function UsersPage() {
           </CardContent>
         </Card>
 
-        {/* FIXED: Hybrid Online/Active card */}
+        {/* Hybrid Online/Active card */}
         <Card className="col-span-2 md:col-span-2 cursor-pointer hover:shadow-md transition-shadow border-2 border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50" onClick={() => { setActiveTab("online-sessions"); setStatusFilter("all"); }}>
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
@@ -2418,7 +2399,7 @@ export default function UsersPage() {
           setActiveTab(val); 
           if (!['all'].includes(val)) setStatusFilter('all'); 
           if (val === 'online-sessions') loadOnlineSessions();
-          if (val === 'active-subs') loadAllActiveUsers();   // NEW: load all users for active subs tab
+          if (val === 'active-subs') loadAllActiveUsers();
           if (val === 'hotspot' && activeSubscriptions.hotspot?.length === 0) {
             loadActiveSubscriptions();
           }
@@ -2722,7 +2703,7 @@ export default function UsersPage() {
         </Card>
       )}
 
-      {/* -- Active Subscriptions Tab (UPDATED: uses allActiveSubUsers) -- */}
+      {/* -- Active Subscriptions Tab -- */}
       {activeTab === "active-subs" && (
         <Card>
           <CardHeader>
@@ -2946,7 +2927,7 @@ export default function UsersPage() {
         </Card>
       )}
 
-      {/* -- Hotspot Clients Tab (UPDATED: Shows ALL clients with pagination, clickable rows, and fixes) -- */}
+      {/* -- Hotspot Clients Tab -- */}
       {activeTab === "hotspot" && (
         <Card>
           <CardHeader>
@@ -2983,7 +2964,6 @@ export default function UsersPage() {
                         <TableHead>Plan</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Expiry</TableHead>
-                        {/* FIX 2: Removed "Spend" column */}
                         <TableHead>Router</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -3019,7 +2999,6 @@ export default function UsersPage() {
                                   </div>
                                 </div>
                               </TableCell>
-                              {/* FIX 3: Hide plan badge when subscription is expired */}
                               <TableCell>
                                 {isActive ? (
                                   <Badge variant="outline" className="bg-pink-50 text-pink-700 border-pink-200 text-xs">
@@ -3049,7 +3028,6 @@ export default function UsersPage() {
                                   )}
                                 </div>
                               </TableCell>
-                              {/* FIX 2: Removed Spend column */}
                               <TableCell>
                                 <span className="text-sm text-slate-600">{item.router || '—'}</span>
                               </TableCell>
@@ -3118,7 +3096,6 @@ export default function UsersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* CHANGE H: Show expired loading state in the table section */}
           {(loading || (statusFilter === "expired" && expiredUsersLoading)) ? (
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map((i) => (
@@ -3670,7 +3647,7 @@ export default function UsersPage() {
                     </div>
                   )}
 
-                  {/* Usage Stats - UPDATED Balance Display */}
+                  {/* Usage Stats */}
                   <div className="p-4 bg-slate-50 rounded-lg border">
                     <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Usage & Balance</h3>
                     <div className="space-y-3">
@@ -4045,7 +4022,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Extend Subscription Dialog - UPDATED with date+time picker */}
+      {/* Extend Subscription Dialog */}
       <Dialog open={showExtendDialog} onOpenChange={setShowExtendDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -4310,7 +4287,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* NEW: Extend Hotspot Session Dialog */}
+      {/* Extend Hotspot Session Dialog */}
       <Dialog open={showExtendHotspotDialog} onOpenChange={setShowExtendHotspotDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -4436,7 +4413,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* FIX 5: Hotspot Client Detail Dialog — Premium with crown incoming and delete button */}
+      {/* Hotspot Client Detail Dialog */}
       <Dialog open={hotspotDetailOpen} onOpenChange={setHotspotDetailOpen}>
         <DialogContent className="max-w-2xl w-[95vw] max-h-[92vh] overflow-hidden p-0 gap-0 rounded-2xl">
           {hotspotDetailClient && (() => {
@@ -5115,7 +5092,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Bulk SMS Dialog (unchanged) */}
+      {/* Bulk SMS Dialog */}
       <Dialog open={showSmsDialog} onOpenChange={(open) => {
         setShowSmsDialog(open)
         if (!open) {
@@ -5160,7 +5137,6 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      // FIX: Normalize phone for portal credentials template
                       const rawPhone = smsTarget?.phone || ""
                       const normalizedPhone = rawPhone.replace(/^254/, "0").replace(/^\+254/, "0")
                       const email = smsTarget?.email && smsTarget.email !== "No email" ? smsTarget.email : "your email"
@@ -5209,7 +5185,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* NEW: Per‑user SMS Dialog with variable insertion AND quick templates */}
+      {/* Per-user SMS Dialog */}
       <Dialog open={showUserSmsDialog} onOpenChange={setShowUserSmsDialog}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -5248,7 +5224,6 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      // FIX: Normalize phone for portal credentials template
                       const rawPhone = userSmsTarget?.phone || ""
                       const normalizedPhone = rawPhone.replace(/^254/, "0").replace(/^\+254/, "0")
                       const email = userSmsTarget?.email && userSmsTarget.email !== "No email" ? userSmsTarget.email : "your email"
@@ -5323,12 +5298,11 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Hotspot Delete Confirmation - Apple Style */}
+      {/* Hotspot Delete Confirmation */}
       <Dialog open={showHotspotDeleteDialog} onOpenChange={(open) => {
         if (!open) { setShowHotspotDeleteDialog(false); setHotspotDeleteTarget(null) }
       }}>
         <DialogContent className="max-w-sm w-[90vw] rounded-2xl p-0 overflow-hidden border-0 shadow-2xl">
-          {/* Icon */}
           <div className="flex flex-col items-center pt-8 pb-2 px-6 bg-white">
             <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
               <Trash2 className="w-8 h-8 text-red-500" />
@@ -5338,7 +5312,6 @@ export default function UsersPage() {
               <span className="font-mono font-bold text-slate-700">{hotspotDeleteTarget?.username}</span> will be permanently removed along with their RADIUS credentials. This cannot be undone.
             </p>
           </div>
-          {/* Divider + Buttons */}
           <div className="border-t border-slate-100">
             <button
               onClick={confirmDeleteHotspotClient}
