@@ -3065,6 +3065,17 @@ async activateService(
     }
     return response.blob()
   }
+    // 👇 ADD THE NEW METHOD HERE 👇
+  /**
+   * Get router daily revenue for hotspot revenue tracking
+   * @param timeRange - Time range filter: 7d, 30d, 90d
+   * @param routerId - Optional router ID (uses first active router if not provided)
+   */
+  async getRouterDailyRevenue(timeRange: string = '30d', routerId?: string | number): Promise<any> {
+    const params = new URLSearchParams({ time_range: timeRange })
+    if (routerId) params.set('router_id', String(routerId))
+    return this.request<any>(`/analytics/router-revenue/?${params.toString()}`)
+  }
 
   // ============================================================
   // NEW: Analytics Contract Endpoints

@@ -157,6 +157,13 @@ export default function ReportsPage() {
   const [data, setData] = useState<ReportsData | null>(null)
   const [weekView, setWeekView] = useState<"this" | "last">("this")
   const [yearView, setYearView] = useState<"this" | "last">("this")
+  
+  // ── NEW: Router Daily Revenue State ──
+  const [routerRevData, setRouterRevData] = useState<any>(null)
+  const [selectedRouter, setSelectedRouter] = useState<string | number>("")
+  const [routerTimeRange, setRouterTimeRange] = useState("30d")
+  const routerFetchedRef = useRef(false)
+  
   const fetchedRef = useRef(false)
 
   const fetchData = useCallback(async () => {
@@ -171,11 +178,32 @@ export default function ReportsPage() {
     }
   }, [timeRange])
 
+  // ── NEW: Fetch Router Revenue ──
+  const fetchRouterRevenue = useCallback(async (trRange: string, routerId?: string | number) => {
+    try {
+      const res = await adminApi.getRouterDailyRevenue(trRange, routerId)
+      setRouterRevData(res)
+      if (!routerId && res.routers?.length) {
+        setSelectedRouter(res.routers[0].id)
+      }
+    } catch (err) {
+      console.error("Failed to fetch router revenue:", err)
+    }
+  }, [])
+
   useEffect(() => {
     if (!fetchedRef.current) { fetchedRef.current = true; fetchData() }
   }, [fetchData])
 
   useEffect(() => { if (fetchedRef.current) fetchData() }, [timeRange, fetchData])
+
+  // Fetch router revenue on mount
+  useEffect(() => {
+    if (!routerFetchedRef.current) {
+      routerFetchedRef.current = true
+      fetchRouterRevenue(routerTimeRange, selectedRouter || undefined)
+    }
+  }, []) // eslint-disable-line
 
   const handleRefresh = async () => { setRefreshing(true); await fetchData(); setRefreshing(false) }
 
@@ -186,6 +214,16 @@ export default function ReportsPage() {
       const a = document.createElement("a"); a.href = url; a.download = `reports-${timeRange}.csv`
       document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); document.body.removeChild(a)
     } catch { /* silent */ }
+  }
+
+  const handleRouterChange = (routerId: string | number) => {
+    setSelectedRouter(routerId)
+    fetchRouterRevenue(routerTimeRange, routerId)
+  }
+
+  const handleRouterTimeRangeChange = (tr: string) => {
+    setRouterTimeRange(tr)
+    fetchRouterRevenue(tr, selectedRouter || undefined)
   }
 
   const o = data?.overview
@@ -646,6 +684,105 @@ export default function ReportsPage() {
                     </tbody>
                   </table>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── NEW: Per-Router Daily Hotspot Revenue ── */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <CardTitle className="text-base font-semibold text-blue-700 flex items-center gap-2">
+                    <Wifi className="w-4 h-4" /> Daily Hotspot Revenue by Router
+                  </CardTitle>
+                  <CardDescription>Select a router to see its daily revenue trend</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* Router selector */}
+                  <select
+                    value={String(selectedRouter)}
+                    onChange={(e) => handleRouterChange(e.target.value)}
+                    className="text-xs border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    {routerRevData?.routers?.map((r: any) => (
+                      <option key={r.id} value={String(r.id)}>{r.name}</option>
+                    ))}
+                    {!routerRevData?.routers?.length && (
+                      <option value="">No routers</option>
+                    )}
+                  </select>
+                  {/* Time range selector */}
+                  <div className="flex items-center gap-1 rounded-lg border p-1">
+                    {["7d", "30d", "90d"].map((tr) => (
+                      <button
+                        key={tr}
+                        onClick={() => handleRouterTimeRangeChange(tr)}
+                        className={`px-2 py-1 text-xs rounded-md font-medium transition-colors ${
+                          routerTimeRange === tr
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "text-slate-500 hover:text-slate-700"
+                        }`}
+                      >
+                        {tr === "7d" ? "7D" : tr === "30d" ? "30D" : "90D"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* Summary row */}
+              {routerRevData?.summary && (
+                <div className="flex gap-6 mt-2 pt-2 border-t">
+                  {[
+                    { label: "Total", value: fmtKshFull(routerRevData.summary.total_revenue) },
+                    { label: "Avg/Day", value: fmtKshFull(routerRevData.summary.avg_daily) },
+                    { label: "Peak Day", value: routerRevData.summary.peak_day },
+                    { label: "Peak Amount", value: fmtKshFull(routerRevData.summary.peak_amount) },
+                  ].map(({ label, value }) => (
+                    <div key={label}>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardHeader>
+            <CardContent>
+              {!routerRevData?.daily_revenue?.length ? (
+                <div className="h-[260px] flex items-center justify-center">
+                  <EmptyChart label="No hotspot revenue data for this router" />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart
+                    data={routerRevData.daily_revenue}
+                    barSize={routerTimeRange === "90d" ? 4 : routerTimeRange === "30d" ? 8 : 16}
+                    margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 10 }}
+                      axisLine={false}
+                      tickLine={false}
+                      interval={Math.max(1, Math.floor((routerRevData.daily_revenue.length) / 10))}
+                    />
+                    <YAxis
+                      tickFormatter={fmtKsh}
+                      tick={{ fontSize: 10 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={65}
+                    />
+                    <Tooltip content={(p) => <ChartTooltip {...p} fmt={fmtKshFull} />} />
+                    <Bar
+                      dataKey="revenue"
+                      name="Revenue"
+                      fill={C.blue}
+                      radius={[3, 3, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               )}
             </CardContent>
           </Card>
