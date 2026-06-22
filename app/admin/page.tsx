@@ -139,6 +139,24 @@ export default function AdminDashboard() {
 
   // State for expired customers count (derived from RADIUS credentials)
   const [expiredCount, setExpiredCount] = useState<number>(0)
+  
+  // Derived: active subscriptions count (only active/non-expired)
+  const activeSubscriptionsCount = React.useMemo(() => {
+    const pppoeCount = activeSubscriptions.pppoe?.length || 0
+    
+    // Only count active (non-expired) hotspot subscribers
+    const hotspotActiveCount = (activeSubscriptions.hotspot || []).filter(h => 
+      h.is_active_sub ?? (h.subscription_status === 'active' && h.expiry_date && new Date(h.expiry_date) > new Date())
+    ).length || 0
+    
+    return pppoeCount + hotspotActiveCount
+  }, [activeSubscriptions])
+  
+  // Derived: online count with active filtering
+  const effectiveOnlineCount = React.useMemo(() => {
+    return onlineTotal || onlineSessions.length
+  }, [onlineTotal, onlineSessions])
+  
   const canOpenRoute = (href: string) => canAccess(user, getAccessRuleForPath(href))
   const quickActions = [
     { href: "/admin/users", label: "Manage Users", icon: Users, className: "text-blue-600" },
@@ -297,7 +315,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Active Subscriptions */}
+        {/* Active Subscriptions - FIXED: only count active (non-expired) hotspot subscribers */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
@@ -309,11 +327,11 @@ export default function AdminDashboard() {
             ) : (
               <>
                 <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-green-600 dark:text-green-400 leading-none">
-                  {((activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0) || core?.active_customers || 0).toLocaleString()}
+                  {activeSubscriptionsCount.toLocaleString()}
                 </div>
                 <p className="text-[11px] text-slate-400 mt-2 font-medium tracking-[0.02em] flex items-center gap-1">
                   <TrendingUp className="w-3 h-3 text-emerald-500" />
-                  <span>Customers with active sub</span>
+                  <span>Active PPPoE + Hotspot</span>
                 </p>
               </>
             )}
@@ -346,7 +364,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Online / Active - Clickable with refined Live pill */}
+        {/* Online / Active - FIXED: uses activeSubscriptionsCount for denominator */}
         <Card
           className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900 cursor-pointer hover:-translate-y-0.5"
           onClick={() => router.push('/admin/users?tab=online-sessions')}
@@ -367,10 +385,8 @@ export default function AdminDashboard() {
             {loading ? (
               <Skeleton className="h-20 w-full" />
             ) : (() => {
-              const onlineCount = onlineTotal || onlineSessions.length
-              const pppoe = activeSubscriptions.pppoe?.length || 0
-              const hotspot = activeSubscriptions.hotspot?.length || 0
-              const activeCount = pppoe + hotspot
+              const onlineCount = effectiveOnlineCount
+              const activeCount = activeSubscriptionsCount
               const pct = activeCount > 0 ? Math.round((onlineCount / activeCount) * 100) : 0
 
               return (
@@ -404,11 +420,13 @@ export default function AdminDashboard() {
                   <div className="flex gap-3 pt-0.5">
                     <span className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium tracking-[0.02em]">
                       <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                      PPPoE: {pppoe}
+                      PPPoE: {activeSubscriptions.pppoe?.length || 0}
                     </span>
                     <span className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium tracking-[0.02em]">
                       <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />
-                      Hotspot: {hotspot}
+                      Hotspot: {(activeSubscriptions.hotspot || []).filter(h => 
+                        h.is_active_sub ?? (h.subscription_status === 'active' && h.expiry_date && new Date(h.expiry_date) > new Date())
+                      ).length}
                     </span>
                   </div>
                 </div>
