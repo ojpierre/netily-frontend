@@ -36,6 +36,8 @@ import {
   CreditCard,
   ArrowRightLeft,
   MapPin,
+  History,
+  ChevronRight,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
 import type { Customer, CustomerService, CustomerStatus, Plan, Router, IPPool, AvailableIP, OnlineSession, ActiveSubscriptionsResponse, CustomerAvailablePlanOption, CustomerAvailablePlansResponse, PaymentEntry, CustomerRADIUSCredentials, HotspotRadiusSession, HotspotClientDetailResponse } from "@/lib/types"
@@ -166,6 +168,7 @@ interface UserStats {
   pppoe: number
   static: number
   hotspot: number
+  totalActiveSubs: number  // ADDED: for hybrid card
 }
 
 interface ServerStatsState {
@@ -1109,7 +1112,6 @@ export default function UsersPage() {
 
   // FIX 1: Stats card — only count active (non-expired) hotspot subscribers
   const stats: UserStats = useMemo(() => {
-    const pppoeCount = activeSubscriptions.pppoe?.length || 0;
     const onlineCount = onlineTotal || onlineSessions.length;
     
     // Only count active (non-expired) hotspot subscribers
@@ -1117,6 +1119,12 @@ export default function UsersPage() {
       h.is_active_sub ?? (h.subscription_status === 'active' && h.expiry_date && new Date(h.expiry_date) > new Date())
     ).length || 0);
     
+    // Active PPPoE = server count (already filtered server-side)
+    const activePPPoECount = activeSubscriptions.pppoe?.length || 0;
+    
+    // Total active subscriptions = active hotspot + active pppoe
+    const totalActiveSubs = activeHotspotCount + activePPPoECount;
+
     return {
       total: totalCount,
       active: serverStatusCounts.active,
@@ -1124,9 +1132,10 @@ export default function UsersPage() {
       suspended: serverStatusCounts.suspended,
       expired: serverStats.expired,
       online: onlineCount,
-      pppoe: totalCount,  // all customers = PPPoE + Static (for display)
+      pppoe: totalCount,
       static: 0,
-      hotspot: activeHotspotCount + pppoeCount,
+      hotspot: activeHotspotCount + activePPPoECount,
+      totalActiveSubs, // ADD THIS
     }
   }, [totalCount, serverStatusCounts, serverStats.expired, onlineTotal, onlineSessions, activeSubscriptions])
 
@@ -2201,7 +2210,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Stats Cards - UPDATED LABELS */}
+      {/* Stats Cards - FIXED HYBRID CARD */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
         <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'all' && activeTab === 'all' ? 'ring-2 ring-slate-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("all"); }}>
           <CardContent className="p-3">
@@ -2335,7 +2344,7 @@ export default function UsersPage() {
           </CardContent>
         </Card>
 
-        {/* Hybrid card - REMOVED "Active subs" legend */}
+        {/* FIXED: Hybrid Online/Active card */}
         <Card className="col-span-2 md:col-span-2 cursor-pointer hover:shadow-md transition-shadow border-2 border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50" onClick={() => { setActiveTab("online-sessions"); setStatusFilter("all"); }}>
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
@@ -2344,11 +2353,11 @@ export default function UsersPage() {
                   <Wifi className="w-4 h-4 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Online / Active</p>
+                  <p className="text-xs text-slate-500">Online / Active Subs</p>
                   <div className="flex items-baseline gap-1">
                     <p className="text-xl font-bold text-blue-600">{stats.online}</p>
                     <p className="text-sm text-slate-400">/</p>
-                    <p className="text-xl font-bold text-slate-700">{totalActiveSubscriptions}</p>
+                    <p className="text-xl font-bold text-slate-700">{stats.totalActiveSubs}</p>
                   </div>
                 </div>
               </div>
@@ -2357,15 +2366,15 @@ export default function UsersPage() {
                   <div
                     className="h-full bg-blue-500 rounded-full transition-all"
                     style={{
-                      width: `${Math.min(100, totalActiveSubscriptions > 0
-                        ? (stats.online / totalActiveSubscriptions) * 100
+                      width: `${Math.min(100, stats.totalActiveSubs > 0
+                        ? (stats.online / stats.totalActiveSubs) * 100
                         : 0)}%`
                     }}
                   />
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  {totalActiveSubscriptions > 0
-                    ? `${Math.round((stats.online / totalActiveSubscriptions) * 100)}%`
+                  {stats.totalActiveSubs > 0
+                    ? `${Math.round((stats.online / stats.totalActiveSubs) * 100)}%`
                     : '0%'} online
                 </p>
               </div>
@@ -4398,384 +4407,437 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* FIX 5: Hotspot Client Detail Dialog — Premium */}
+      {/* FIX 5: Hotspot Client Detail Dialog — Premium with crown incoming */}
       <Dialog open={hotspotDetailOpen} onOpenChange={setHotspotDetailOpen}>
-        <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-hidden p-0 gap-0">
-          
-          {/* Header gradient bar */}
-          <div className="bg-gradient-to-r from-pink-500 via-rose-500 to-orange-400 p-6 text-white relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '30px 30px'}} />
-            <div className="relative flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center font-bold text-lg shadow-lg">
-                {(hotspotDetailClient?.canonical_username || 'HS').slice(0, 2).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-lg font-mono tracking-wide">{hotspotDetailClient?.canonical_username || hotspotDetailClient?.username}</p>
-                <p className="text-white/70 text-sm">{hotspotDetailClient?.phone || 'Hotspot Client'}</p>
-              </div>
-              <button
-                onClick={() => setHotspotDetailOpen(false)}
-                className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[92vh] overflow-hidden p-0 gap-0 rounded-2xl">
+          {hotspotDetailClient && (() => {
+            const isActive = hotspotDetailClient.is_active_sub ?? 
+              (hotspotDetailClient.subscription_status === 'active' && 
+               hotspotDetailClient.expiry_date && 
+               new Date(hotspotDetailClient.expiry_date) > new Date())
+            const username = hotspotDetailClient.canonical_username || hotspotDetailClient.username || 'HS'
+            const isOnline = hotspotOnlineSet.has(username)
+            const liveUsage = hotspotLiveUsageMap.get(username)
+            
+            const daysLeft = hotspotDetailClient.expiry_date
+              ? Math.ceil((new Date(hotspotDetailClient.expiry_date).getTime() - Date.now()) / 86400000)
+              : null
+            const hoursLeft = hotspotDetailClient.expiry_date
+              ? Math.ceil((new Date(hotspotDetailClient.expiry_date).getTime() - Date.now()) / 3600000)
+              : null
 
-            {/* Quick stats row */}
-            <div className="grid grid-cols-3 gap-3 mt-5">
-              {[
-                { label: 'Total Sessions', value: hotspotDetailClient?.client_total_sessions ?? 0 },
-                { label: 'Total Spend', value: `KES ${(hotspotDetailClient?.client_total_spend ?? 0).toLocaleString()}` },
-                { label: 'Router', value: hotspotDetailClient?.router || '—' },
-              ].map(({ label, value }) => (
-                <div key={label} className="bg-white/15 backdrop-blur-sm rounded-xl p-3 border border-white/20">
-                  <p className="text-white/60 text-[10px] uppercase tracking-wider">{label}</p>
-                  <p className="text-white font-semibold text-sm mt-0.5 truncate">{value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {hotspotDetailClient && (
-            <div className="flex flex-col" style={{ maxHeight: 'calc(90vh - 200px)' }}>
-              {/* Tab bar */}
-              <div className="flex border-b bg-white px-6 gap-1">
-                {[
-                  { id: 'overview', label: 'Overview', icon: '◎' },
-                  { id: 'sessions', label: 'Sessions', icon: '⚡' },
-                  { id: 'payments', label: 'Payments', icon: '💳' },
-                  { id: 'voucher', label: 'Send Voucher', icon: '🎟' },
-                ].map((tab) => (
+            return (
+              <>
+                {/* Hero Header */}
+                <div className={`relative overflow-hidden p-6 ${isActive ? 'bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600' : 'bg-gradient-to-br from-slate-600 to-slate-800'}`}>
+                  {/* Animated background blobs */}
+                  <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
+                  <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/10 blur-xl" />
+                  
+                  {/* Close button */}
                   <button
-                    key={tab.id}
-                    onClick={() => {
-                      setHotspotDetailTab(tab.id)
-                      if (tab.id === 'sessions' && (hotspotDetailClient as any).client_id && hotspotClientSessions.length === 0) {
-                        loadHotspotClientSessions((hotspotDetailClient as any).client_id)
-                      }
-                    }}
-                    className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-all duration-200 ${
-                      hotspotDetailTab === tab.id
-                        ? 'border-pink-500 text-pink-600'
-                        : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-200'
-                    }`}
+                    onClick={() => setHotspotDetailOpen(false)}
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-all hover:scale-110 active:scale-95"
                   >
-                    <span className="text-xs">{tab.icon}</span>
-                    {tab.label}
+                    <X className="w-4 h-4 text-white" />
                   </button>
-                ))}
-              </div>
 
-              {/* Tab content — scrollable */}
-              <div className="overflow-y-auto flex-1 p-6 bg-slate-50/50">
-
-                {/* ── OVERVIEW ── */}
-                {hotspotDetailTab === 'overview' && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                    
-                    {/* FIX 4: Online status with live lookup */}
-                    {(() => {
-                      const username = hotspotDetailClient.canonical_username || hotspotDetailClient.username
-                      const isOnline = username ? hotspotOnlineSet.has(username) : false
-                      return (
-                        <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border-2 transition-all ${isOnline ? 'bg-emerald-50 border-emerald-200 shadow-emerald-100 shadow-sm' : 'bg-white border-slate-100'}`}>
-                          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isOnline ? 'bg-emerald-400 shadow-lg shadow-emerald-200 animate-pulse' : 'bg-slate-200'}`} />
-                          <div className="flex-1">
-                            <p className={`text-sm font-semibold ${isOnline ? 'text-emerald-700' : 'text-slate-400'}`}>
-                              {isOnline ? 'Currently Online' : 'Offline'}
-                            </p>
-                            <p className="text-xs text-slate-400">{isOnline ? 'Active RADIUS session' : 'No active session detected'}</p>
-                          </div>
-                          {isOnline && <Badge className="bg-emerald-100 text-emerald-700 gap-1 border-0"><Wifi className="w-3 h-3" />Live</Badge>}
-                        </div>
-                      )
-                    })()}
-
-                    {/* Subscription status */}
-                    {(() => {
-                      const isActive = hotspotDetailClient.is_active_sub ?? (hotspotDetailClient.subscription_status === 'active' && hotspotDetailClient.expiry_date && new Date(hotspotDetailClient.expiry_date) > new Date())
-                      return (
-                        <div className={`flex items-center justify-between p-4 rounded-2xl border-2 ${isActive ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-100'}`}>
-                          <div className="flex items-center gap-3">
-                            {isActive
-                              ? <CheckCircle2 className="w-5 h-5 text-green-500" />
-                              : <XCircle className="w-5 h-5 text-red-400" />
-                            }
-                            <div>
-                              <p className={`text-sm font-semibold ${isActive ? 'text-green-800' : 'text-red-700'}`}>
-                                {isActive ? 'Active Subscription' : 'Subscription Expired'}
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                {hotspotDetailClient.expiry_date
-                                  ? `${isActive ? 'Expires' : 'Expired'}: ${new Date(hotspotDetailClient.expiry_date).toLocaleString()}`
-                                  : 'No expiry recorded'}
-                              </p>
-                            </div>
-                          </div>
-                          {isActive && hotspotDetailClient.session_id && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-green-300 text-green-700 hover:bg-green-100 hover:scale-105 transition-all active:scale-95"
-                              onClick={() => { setHotspotDetailOpen(false); handleExtendHotspot(hotspotDetailClient) }}
-                            >
-                              <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                              Extend
-                            </Button>
-                          )}
-                        </div>
-                      )
-                    })()}
-
-                    {/* Connection details card */}
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Connection Details</p>
-                      <div className="grid grid-cols-2 gap-4">
-                        {[
-                          { label: 'Access Code', value: hotspotDetailClient.username, mono: true, accent: 'text-pink-600' },
-                          { label: 'MAC Address', value: hotspotDetailClient.mac_address || '—', mono: true },
-                          { label: 'Phone', value: hotspotDetailClient.phone || '—' },
-                          { label: 'Subscribed', value: hotspotDetailClient.subscribed_at ? new Date(hotspotDetailClient.subscribed_at).toLocaleDateString() : '—' },
-                        ].map(({ label, value, mono, accent }) => (
-                          <div key={label} className="space-y-1">
-                            <p className="text-xs text-slate-400">{label}</p>
-                            <p className={`text-sm font-medium ${mono ? 'font-mono' : ''} ${accent ?? 'text-slate-800'}`}>{value}</p>
-                          </div>
-                        ))}
+                  {/* Identity row */}
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className="relative">
+                      <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center shadow-xl">
+                        <span className="text-white font-black text-xl tracking-wider">
+                          {username.slice(0, 2).toUpperCase()}
+                        </span>
                       </div>
+                      {isOnline && (
+                        <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-400 border-2 border-white rounded-full flex items-center justify-center">
+                          <span className="w-2 h-2 bg-white rounded-full animate-ping absolute" />
+                          <span className="w-2 h-2 bg-white rounded-full" />
+                        </span>
+                      )}
                     </div>
-
-                    {/* Actions row */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button
-                        variant="outline"
-                        className="rounded-xl h-11 hover:bg-pink-50 hover:border-pink-200 hover:text-pink-600 transition-all active:scale-95"
-                        onClick={() => setHotspotDetailTab('sessions')}
-                      >
-                        <Activity className="w-4 h-4 mr-2" />
-                        View Sessions
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="rounded-xl h-11 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600 transition-all active:scale-95"
-                        onClick={() => setHotspotDetailTab('voucher')}
-                      >
-                        <Send className="w-4 h-4 mr-2" />
-                        Send Voucher
-                      </Button>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-white font-black text-xl font-mono tracking-wide">{username}</h2>
+                        {isOnline && (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-400/30 border border-emerald-300/50 text-emerald-100 text-xs font-semibold backdrop-blur-sm">
+                            ● LIVE
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-white/60 text-sm mt-0.5">{hotspotDetailClient.phone || 'No phone'}</p>
+                    </div>
+                    
+                    {/* Status pill */}
+                    <div className={`px-3 py-1.5 rounded-xl backdrop-blur-sm border text-xs font-bold uppercase tracking-wider ${
+                      isActive 
+                        ? 'bg-emerald-400/20 border-emerald-300/40 text-emerald-100' 
+                        : 'bg-red-400/20 border-red-300/40 text-red-100'
+                    }`}>
+                      {isActive ? '✓ Active' : '✗ Expired'}
                     </div>
                   </div>
-                )}
 
-                {/* ── SESSIONS ── */}
-                {hotspotDetailTab === 'sessions' && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-700">RADIUS Session History</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{hotspotClientSessionsTotal} total sessions recorded</p>
+                  {/* Stats bar */}
+                  <div className="grid grid-cols-4 gap-2 mt-5 relative z-10">
+                    {[
+                      { 
+                        label: 'Plan', 
+                        value: isActive ? (hotspotDetailClient.plan_name || '—') : '—',
+                        sub: isActive && hotspotDetailClient.plan_price ? `KES ${hotspotDetailClient.plan_price}` : 'Expired'
+                      },
+                      { 
+                        label: 'Time Left', 
+                        value: !hotspotDetailClient.expiry_date ? '—' 
+                          : daysLeft !== null && daysLeft > 1 ? `${daysLeft}d`
+                          : hoursLeft !== null && hoursLeft > 0 ? `${hoursLeft}h`
+                          : daysLeft !== null && daysLeft <= 0 ? 'Expired' : '—',
+                        sub: hotspotDetailClient.expiry_date 
+                          ? new Date(hotspotDetailClient.expiry_date).toLocaleDateString() 
+                          : 'No expiry',
+                        urgent: daysLeft !== null && daysLeft <= 1 && daysLeft > 0
+                      },
+                      { 
+                        label: 'Sessions', 
+                        value: hotspotDetailClient.client_total_sessions ?? 1,
+                        sub: 'All time'
+                      },
+                      { 
+                        label: 'Total Spend', 
+                        value: `KES ${((hotspotDetailClient.client_total_spend ?? 0)).toLocaleString()}`,
+                        sub: 'All time'
+                      },
+                    ].map(({ label, value, sub, urgent }) => (
+                      <div key={label} className={`rounded-xl p-2.5 backdrop-blur-sm border text-center ${urgent ? 'bg-amber-400/20 border-amber-300/40' : 'bg-white/10 border-white/20'}`}>
+                        <p className="text-white/50 text-[9px] uppercase tracking-widest font-semibold">{label}</p>
+                        <p className={`font-black text-sm mt-0.5 truncate ${urgent ? 'text-amber-300' : 'text-white'}`}>{value}</p>
+                        <p className="text-white/40 text-[9px] truncate mt-0.5">{sub}</p>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-xl hover:scale-105 transition-all active:scale-95"
-                        onClick={() => (hotspotDetailClient as any).client_id && loadHotspotClientSessions((hotspotDetailClient as any).client_id, hotspotClientSessionsPage)}
-                        disabled={hotspotClientSessionsLoading}
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${hotspotClientSessionsLoading ? 'animate-spin' : ''}`} />
-                      </Button>
+                    ))}
+                  </div>
+
+                  {/* Live usage bar */}
+                  {isOnline && liveUsage && (
+                    <div className="mt-3 flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2 backdrop-blur-sm border border-white/20 relative z-10">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+                      <span className="text-white/60 text-xs">Live Usage:</span>
+                      <span className="text-white font-bold text-xs">{liveUsage}</span>
                     </div>
+                  )}
+                </div>
 
-                    {hotspotClientSessionsLoading ? (
-                      <div className="space-y-3">
-                        {[1,2,3,4].map(i => (
-                          <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 animate-pulse">
-                            <div className="flex gap-3">
-                              <div className="w-10 h-10 bg-slate-100 rounded-lg" />
-                              <div className="flex-1 space-y-2">
-                                <div className="h-3 bg-slate-100 rounded w-1/3" />
-                                <div className="h-3 bg-slate-100 rounded w-1/2" />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : hotspotClientSessions.length === 0 ? (
-                      <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200">
-                        <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                          <Activity className="w-7 h-7 text-slate-300" />
+                {/* Tab bar */}
+                <div className="flex bg-white border-b px-4 gap-0">
+                  {[
+                    { id: 'overview', label: 'Overview', icon: Activity },
+                    { id: 'sessions', label: 'Sessions', icon: Signal },
+                    { id: 'actions', label: 'Actions', icon: Settings },
+                  ].map(({ id, label, icon: Icon }) => (
+                    <button
+                      key={id}
+                      onClick={() => {
+                        setHotspotDetailTab(id)
+                        if (id === 'sessions' && (hotspotDetailClient as any).client_id && hotspotClientSessions.length === 0) {
+                          loadHotspotClientSessions((hotspotDetailClient as any).client_id)
+                        }
+                      }}
+                      className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all duration-150 ${
+                        hotspotDetailTab === id
+                          ? 'border-violet-600 text-violet-600'
+                          : 'border-transparent text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tab content */}
+                <div className="overflow-y-auto bg-slate-50/50" style={{ maxHeight: 'calc(92vh - 320px)' }}>
+
+                  {/* OVERVIEW TAB */}
+                  {hotspotDetailTab === 'overview' && (
+                    <div className="p-5 space-y-3">
+                      {/* Connection card */}
+                      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
+                          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Connection</h3>
+                          {isOnline 
+                            ? <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />Online</span>
+                            : <span className="text-xs font-semibold text-slate-400">Offline</span>
+                          }
                         </div>
-                        <p className="text-sm font-medium text-slate-500">No sessions recorded yet</p>
-                        <p className="text-xs text-slate-400 mt-1">Sessions appear once the client authenticates via RADIUS</p>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="space-y-2">
-                          {hotspotClientSessions.map((s) => (
-                            <div
-                              key={s.id}
-                              className={`bg-white rounded-2xl border transition-all hover:shadow-sm ${s.is_active ? 'border-emerald-200 shadow-emerald-50 shadow-sm' : 'border-slate-100'}`}
-                            >
-                              <div className="p-4">
-                                <div className="flex items-start gap-3">
-                                  {/* Left: status dot + MAC */}
-                                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${s.is_active ? 'bg-emerald-100' : 'bg-slate-100'}`}>
-                                    <Wifi className={`w-4 h-4 ${s.is_active ? 'text-emerald-600' : 'text-slate-400'}`} />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="font-mono text-xs font-semibold text-slate-700">{s.mac_address || '—'}</span>
-                                      {s.ip_address && <span className="text-xs text-slate-400 font-mono">IP: {s.ip_address}</span>}
-                                      {s.is_active && (
-                                        <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px] gap-1 h-4">
-                                          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                                          Live
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-1 mt-0.5">
-                                      <Signal className="w-3 h-3 text-slate-400" />
-                                      <span className="text-xs text-slate-500">{s.router}</span>
-                                      <span className="text-slate-300">·</span>
-                                      <span className="text-xs text-slate-400 font-mono">NAS: {s.nas_ip}</span>
-                                    </div>
-                                  </div>
-                                  {/* Right: data used */}
-                                  <div className="text-right flex-shrink-0">
-                                    <p className="text-sm font-semibold text-slate-800">{s.data_total}</p>
-                                    <p className="text-[10px] text-slate-400">↑{s.data_upload} ↓{s.data_download}</p>
-                                  </div>
-                                </div>
-
-                                {/* Bottom row: times + duration + cause */}
-                                <div className="mt-3 pt-3 border-t border-slate-50 grid grid-cols-3 gap-2 text-xs">
-                                  <div>
-                                    <p className="text-slate-400 mb-0.5">Start</p>
-                                    <p className="font-medium text-slate-600">
-                                      {s.start_time ? new Date(s.start_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—'}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <p className="text-slate-400 mb-0.5">Stop</p>
-                                    <p className="font-medium text-slate-600">
-                                      {s.is_active ? (
-                                        <span className="text-emerald-600 font-semibold">Online now</span>
-                                      ) : s.stop_time ? new Date(s.stop_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—'}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <p className="text-slate-400 mb-0.5">Duration</p>
-                                    <p className="font-mono font-medium text-slate-700">{s.duration}</p>
-                                  </div>
-                                </div>
-                                {s.terminate_cause && (
-                                  <div className="mt-2">
-                                    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                                      <XCircle className="w-2.5 h-2.5" />{s.terminate_cause}
-                                    </span>
-                                  </div>
+                        <div className="p-4 grid grid-cols-2 gap-4">
+                          {[
+                            { label: 'Access Code', value: username, mono: true, accent: 'text-violet-600', copyable: true },
+                            { label: 'MAC Address', value: hotspotDetailClient.mac_address || '—', mono: true, copyable: !!hotspotDetailClient.mac_address },
+                            { label: 'Router', value: hotspotDetailClient.router || '—' },
+                            { label: 'Session ID', value: hotspotDetailClient.session_id ? hotspotDetailClient.session_id.slice(0, 8) + '…' : '—', mono: true },
+                          ].map(({ label, value, mono, accent, copyable }) => (
+                            <div key={label} className="space-y-1">
+                              <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{label}</p>
+                              <div className="flex items-center gap-1.5">
+                                <p className={`text-sm font-semibold truncate ${mono ? 'font-mono' : ''} ${accent ?? 'text-slate-800'}`}>{value}</p>
+                                {copyable && value !== '—' && (
+                                  <button
+                                    onClick={() => copyToClipboard(String(value), label)}
+                                    className="text-slate-300 hover:text-slate-600 transition-colors flex-shrink-0"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
                                 )}
                               </div>
                             </div>
                           ))}
                         </div>
+                      </div>
 
-                        {hotspotClientSessionsTotalPages > 1 && (
-                          <div className="flex items-center justify-between pt-2">
-                            <p className="text-xs text-slate-400">Page {hotspotClientSessionsPage} of {hotspotClientSessionsTotalPages} · {hotspotClientSessionsTotal} sessions</p>
-                            <div className="flex gap-2">
-                              <Button variant="outline" size="sm" className="rounded-lg active:scale-95 transition-transform" disabled={hotspotClientSessionsPage === 1}
-                                onClick={() => loadHotspotClientSessions((hotspotDetailClient as any).client_id, hotspotClientSessionsPage - 1)}>
-                                ← Prev
-                              </Button>
-                              <Button variant="outline" size="sm" className="rounded-lg active:scale-95 transition-transform" disabled={hotspotClientSessionsPage >= hotspotClientSessionsTotalPages}
-                                onClick={() => loadHotspotClientSessions((hotspotDetailClient as any).client_id, hotspotClientSessionsPage + 1)}>
-                                Next →
-                              </Button>
+                      {/* Subscription card */}
+                      <div className={`rounded-2xl border-2 overflow-hidden ${isActive ? 'border-violet-100' : 'border-red-100'}`}>
+                        <div className={`px-4 py-3 flex items-center justify-between ${isActive ? 'bg-violet-50' : 'bg-red-50'}`}>
+                          <div className="flex items-center gap-2">
+                            {isActive 
+                              ? <CheckCircle2 className="w-4 h-4 text-violet-600" />
+                              : <XCircle className="w-4 h-4 text-red-500" />
+                            }
+                            <span className={`text-sm font-bold ${isActive ? 'text-violet-700' : 'text-red-700'}`}>
+                              {isActive ? 'Active Subscription' : 'Subscription Expired'}
+                            </span>
+                          </div>
+                          {isActive && hotspotDetailClient.session_id && (
+                            <button
+                              onClick={() => { setHotspotDetailOpen(false); handleExtendHotspot(hotspotDetailClient) }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-bold hover:bg-violet-700 transition-colors active:scale-95"
+                            >
+                              <Calendar className="w-3 h-3" />
+                              Extend
+                            </button>
+                          )}
+                        </div>
+                        {hotspotDetailClient.expiry_date && (
+                          <div className="px-4 py-3 bg-white">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-slate-500">{isActive ? 'Expires' : 'Expired'}</span>
+                              <span className="font-semibold text-slate-800">
+                                {new Date(hotspotDetailClient.expiry_date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                              </span>
                             </div>
+                            {isActive && daysLeft !== null && (
+                              <div className="mt-2">
+                                <div className="flex justify-between text-xs text-slate-400 mb-1">
+                                  <span>Time remaining</span>
+                                  <span className="font-semibold">{daysLeft > 0 ? `${daysLeft}d ${hoursLeft! % 24}h` : `${hoursLeft}h`}</span>
+                                </div>
+                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full rounded-full transition-all ${daysLeft <= 1 ? 'bg-amber-400' : 'bg-violet-500'}`}
+                                    style={{ width: `${Math.max(2, Math.min(100, (daysLeft / 30) * 100))}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* ── PAYMENTS ── */}
-                {hotspotDetailTab === 'payments' && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
-                        <p className="text-xs text-slate-400 uppercase tracking-wide">Total Spend</p>
-                        <p className="text-2xl font-bold text-slate-900 mt-1">
-                          KES {hotspotDetailClient.client_total_spend?.toLocaleString() ?? '0'}
-                        </p>
-                      </div>
-                      <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
-                        <p className="text-xs text-slate-400 uppercase tracking-wide">Total Sessions</p>
-                        <p className="text-2xl font-bold text-slate-900 mt-1">{hotspotDetailClient.client_total_sessions}</p>
                       </div>
                     </div>
-                    <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-8 text-center">
-                      <CreditCard className="w-10 h-10 mx-auto mb-3 text-slate-200" />
-                      <p className="text-sm font-medium text-slate-500">Per-session payment records</p>
-                      <p className="text-xs text-slate-400 mt-1">Each session payment is tied to an M-Pesa receipt</p>
-                    </div>
-                  </div>
-                )}
+                  )}
 
-                {/* ── VOUCHER ── */}
-                {hotspotDetailTab === 'voucher' && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                    <div className={`p-4 rounded-2xl border-2 flex items-center gap-3 ${hotspotDetailClient.phone ? 'bg-blue-50 border-blue-200' : 'bg-amber-50 border-amber-200'}`}>
-                      <Smartphone className={`w-5 h-5 flex-shrink-0 ${hotspotDetailClient.phone ? 'text-blue-500' : 'text-amber-500'}`} />
-                      <div>
-                        <p className={`text-sm font-semibold ${hotspotDetailClient.phone ? 'text-blue-800' : 'text-amber-800'}`}>
-                          {hotspotDetailClient.phone ?? 'No phone number on record'}
-                        </p>
-                        <p className={`text-xs ${hotspotDetailClient.phone ? 'text-blue-500' : 'text-amber-600'}`}>
-                          {hotspotDetailClient.phone ? 'Voucher will be sent via SMS' : 'Cannot send SMS without a phone number'}
-                        </p>
+                  {/* SESSIONS TAB */}
+                  {hotspotDetailTab === 'sessions' && (
+                    <div className="p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-slate-700">RADIUS Sessions</p>
+                          <p className="text-xs text-slate-400">{hotspotClientSessionsTotal} recorded</p>
+                        </div>
+                        <button
+                          onClick={() => (hotspotDetailClient as any).client_id && loadHotspotClientSessions((hotspotDetailClient as any).client_id, hotspotClientSessionsPage)}
+                          disabled={hotspotClientSessionsLoading}
+                          className="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors active:scale-95"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${hotspotClientSessionsLoading ? 'animate-spin' : ''}`} />
+                        </button>
                       </div>
-                    </div>
 
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">Voucher Code</Label>
-                        <Input
-                          id="hs-voucher-code"
-                          placeholder="e.g. VCH-12345"
-                          className="font-mono rounded-xl h-11 border-slate-200 focus:border-pink-300 focus:ring-pink-100"
-                        />
-                        <p className="text-xs text-slate-400">Enter the voucher code from your voucher list</p>
-                      </div>
-                      <Button
-                        className="w-full h-11 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 hover:from-pink-600 hover:to-orange-500 border-0 shadow-md shadow-pink-100 transition-all hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
-                        disabled={!hotspotDetailClient.phone}
-                        onClick={async () => {
-                          const code = (document.getElementById('hs-voucher-code') as HTMLInputElement)?.value
-                          if (!code || !hotspotDetailClient.phone) return
-                          try {
-                            await adminApi.sendSMS({
-                              recipient: hotspotDetailClient.phone,
-                              message: `Your hotspot voucher code: ${code}. Use it at the WiFi login page to connect.`,
-                            })
-                            toast.success('Voucher SMS sent!')
-                            ;(document.getElementById('hs-voucher-code') as HTMLInputElement).value = ''
-                          } catch (err: any) {
-                            toast.error(err.message || 'Failed to send SMS')
-                          }
+                      {hotspotClientSessionsLoading ? (
+                        <div className="space-y-2">
+                          {[1,2,3].map(i => (
+                            <div key={i} className="bg-white rounded-xl border border-slate-100 p-4 animate-pulse">
+                              <div className="flex gap-3">
+                                <div className="w-9 h-9 bg-slate-100 rounded-lg flex-shrink-0" />
+                                <div className="flex-1 space-y-2 py-0.5">
+                                  <div className="h-3 bg-slate-100 rounded w-2/5" />
+                                  <div className="h-3 bg-slate-100 rounded w-3/5" />
+                                </div>
+                                <div className="w-12 h-6 bg-slate-100 rounded" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : hotspotClientSessions.length === 0 ? (
+                        <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-10 text-center">
+                          <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                            <Signal className="w-6 h-6 text-slate-300" />
+                          </div>
+                          <p className="text-sm font-semibold text-slate-500">No sessions yet</p>
+                          <p className="text-xs text-slate-400 mt-1">Sessions appear after RADIUS authentication</p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="space-y-2">
+                            {hotspotClientSessions.map((s) => (
+                              <div key={s.id} className={`bg-white rounded-xl border overflow-hidden transition-all hover:shadow-sm ${s.is_active ? 'border-emerald-200' : 'border-slate-100'}`}>
+                                <div className="p-3">
+                                  <div className="flex items-start gap-3">
+                                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${s.is_active ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+                                      <Wifi className={`w-4 h-4 ${s.is_active ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-mono text-xs font-bold text-slate-700">{s.mac_address || '—'}</span>
+                                        {s.ip_address && <span className="text-xs text-slate-400 font-mono">{s.ip_address}</span>}
+                                        {s.is_active && <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">LIVE</span>}
+                                      </div>
+                                      <p className="text-xs text-slate-400 mt-0.5">{s.router}</p>
+                                    </div>
+                                    <div className="text-right flex-shrink-0">
+                                      <p className="text-sm font-bold text-slate-800">{s.data_total}</p>
+                                      <p className="text-[10px] text-slate-400">↑{s.data_upload} ↓{s.data_download}</p>
+                                    </div>
+                                  </div>
+                                  <div className="mt-2.5 pt-2.5 border-t border-slate-50 grid grid-cols-3 gap-2 text-xs">
+                                    <div>
+                                      <p className="text-slate-400 text-[10px]">Start</p>
+                                      <p className="font-semibold text-slate-600 text-[11px]">
+                                        {s.start_time ? new Date(s.start_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-slate-400 text-[10px]">Stop</p>
+                                      <p className="font-semibold text-slate-600 text-[11px]">
+                                        {s.is_active ? <span className="text-emerald-600">Online</span> : s.stop_time ? new Date(s.stop_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-slate-400 text-[10px]">Duration</p>
+                                      <p className="font-mono font-bold text-slate-700 text-[11px]">{s.duration}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {hotspotClientSessionsTotalPages > 1 && (
+                            <div className="flex items-center justify-between pt-1">
+                              <p className="text-xs text-slate-400">{hotspotClientSessionsPage}/{hotspotClientSessionsTotalPages}</p>
+                              <div className="flex gap-2">
+                                <button disabled={hotspotClientSessionsPage === 1}
+                                  onClick={() => loadHotspotClientSessions((hotspotDetailClient as any).client_id, hotspotClientSessionsPage - 1)}
+                                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-all active:scale-95">
+                                  ← Prev
+                                </button>
+                                <button disabled={hotspotClientSessionsPage >= hotspotClientSessionsTotalPages}
+                                  onClick={() => loadHotspotClientSessions((hotspotDetailClient as any).client_id, hotspotClientSessionsPage + 1)}
+                                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-all active:scale-95">
+                                  Next →
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ACTIONS TAB */}
+                  {hotspotDetailTab === 'actions' && (
+                    <div className="p-5 space-y-3">
+                      {/* Extend */}
+                      {isActive && hotspotDetailClient.session_id && (
+                        <button
+                          onClick={() => { setHotspotDetailOpen(false); handleExtendHotspot(hotspotDetailClient) }}
+                          className="w-full flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-violet-200 hover:bg-violet-50/50 transition-all group active:scale-[0.99]"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-violet-100 group-hover:bg-violet-200 flex items-center justify-center transition-colors">
+                            <Calendar className="w-5 h-5 text-violet-600" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="text-sm font-bold text-slate-800">Extend Session</p>
+                            <p className="text-xs text-slate-400">Add time to current subscription</p>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-violet-400 transition-colors" />
+                        </button>
+                      )}
+
+                      {/* Send SMS */}
+                      {hotspotDetailClient.phone && (
+                        <button
+                          onClick={async () => {
+                            if (!hotspotDetailClient.phone) return
+                            try {
+                              await adminApi.sendSMS({
+                                recipient: hotspotDetailClient.phone,
+                                message: `Hello! Your hotspot access code is: ${username}. Thank you for using our service.`,
+                              })
+                              toast.success('SMS sent successfully')
+                            } catch (err: any) {
+                              toast.error(err.message || 'Failed to send SMS')
+                            }
+                          }}
+                          className="w-full flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-blue-200 hover:bg-blue-50/50 transition-all group active:scale-[0.99]"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
+                            <Send className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="text-sm font-bold text-slate-800">Send Access Code</p>
+                            <p className="text-xs text-slate-400">SMS code to {hotspotDetailClient.phone}</p>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-400 transition-colors" />
+                        </button>
+                      )}
+
+                      {/* Copy credentials */}
+                      <button
+                        onClick={() => {
+                          const text = `Username: ${username}\nPassword: ${username}`
+                          navigator.clipboard.writeText(text)
+                          toast.success('Credentials copied!')
                         }}
+                        className="w-full flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-emerald-200 hover:bg-emerald-50/50 transition-all group active:scale-[0.99]"
                       >
-                        <Send className="w-4 h-4 mr-2" />
-                        Send Voucher via SMS
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 group-hover:bg-emerald-200 flex items-center justify-center transition-colors">
+                          <Copy className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <p className="text-sm font-bold text-slate-800">Copy Credentials</p>
+                          <p className="text-xs text-slate-400 font-mono">{username} / {username}</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-400 transition-colors" />
+                      </button>
 
-              </div>
-            </div>
-          )}
+                      {/* Client history */}
+                      <button
+                        onClick={() => setHotspotDetailTab('sessions')}
+                        className="w-full flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-orange-200 hover:bg-orange-50/50 transition-all group active:scale-[0.99]"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-orange-100 group-hover:bg-orange-200 flex items-center justify-center transition-colors">
+                          <History className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <p className="text-sm font-bold text-slate-800">View Session History</p>
+                          <p className="text-xs text-slate-400">{hotspotDetailClient.client_total_sessions ?? 1} sessions recorded</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-orange-400 transition-colors" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )
+          })()}
         </DialogContent>
       </Dialog>
 
