@@ -185,13 +185,11 @@ const mapCustomerToUser = (customer: Customer): User => {
   const isOnline = primaryService?.is_online ?? false
   const serviceStatus = (primaryService?.status || '').toUpperCase()
   
-  // FIX: Check RADIUS expiration date and set status to 'expired' if necessary
   const mapStatus = (status: CustomerStatus): UserStatus => {
     if (serviceStatus === 'PENDING') return 'pending'
     if (serviceStatus === 'SUSPENDED') return 'suspended'
     if (serviceStatus === 'TERMINATED') return 'inactive'
     
-    // Check RADIUS expiration date
     const radiusCreds = (customer as any).radius_credentials
     if (radiusCreds?.expiration_date) {
       const expiry = new Date(radiusCreds.expiration_date)
@@ -336,7 +334,6 @@ export default function UsersPage() {
   const [extendManualTime, setExtendManualTime] = useState<string>("23:59")
   const [extendMode, setExtendMode] = useState<"duration" | "date">("duration")
   
-  // NEW: Hotspot session extension state
   const [showExtendHotspotDialog, setShowExtendHotspotDialog] = useState(false)
   const [hotspotSessionToExtend, setHotspotSessionToExtend] = useState<typeof activeSubscriptions.hotspot[0] | null>(null)
   const [hotspotExtendForm, setHotspotExtendForm] = useState({ duration_amount: 1, duration_unit: 'HOURS' as 'MINUTES' | 'HOURS' | 'DAYS' })
@@ -373,7 +370,6 @@ export default function UsersPage() {
   const [savingBilling, setSavingBilling] = useState(false)
   const itemsPerPage = 10
 
-  // Edit IP Dialog State
   const [showEditIPDialog, setShowEditIPDialog] = useState(false)
   const [userToEditIP, setUserToEditIP] = useState<User | null>(null)
   const [editIPAvailableIPs, setEditIPAvailableIPs] = useState<AvailableIP[]>([])
@@ -383,7 +379,6 @@ export default function UsersPage() {
   const [savingIP, setSavingIP] = useState(false)
   const [editIPPoolId, setEditIPPoolId] = useState<number | null>(null)
 
-  // NEW: Hotspot client detail drawer state
   const [hotspotDetailOpen, setHotspotDetailOpen] = useState(false)
   const [hotspotDetailClient, setHotspotDetailClient] = useState<typeof activeSubscriptions.hotspot[0] | null>(null)
   const [hotspotDetailTab, setHotspotDetailTab] = useState('overview')
@@ -395,22 +390,18 @@ export default function UsersPage() {
   const [hotspotPage, setHotspotPage] = useState(1)
   const hotspotPageSize = 20
 
-  // NEW: Hotspot delete confirmation state
   const [showHotspotDeleteDialog, setShowHotspotDeleteDialog] = useState(false)
   const [hotspotDeleteTarget, setHotspotDeleteTarget] = useState<{ clientId: number; username: string } | null>(null)
   const [deletingHotspot, setDeletingHotspot] = useState(false)
 
-  // NEW: per-user SMS state (with variable insertion)
   const [showUserSmsDialog, setShowUserSmsDialog] = useState(false)
   const [userSmsTarget, setUserSmsTarget] = useState<User | null>(null)
   const [userSmsMessage, setUserSmsMessage] = useState("")
   const [sendingUserSms, setSendingUserSms] = useState(false)
 
-  // Bulk SMS state (unchanged)
   const [smsTarget, setSmsTarget] = useState<User | null>(null)
   const [sendingSms, setSendingSms] = useState(false)
 
-  // M-Pesa config and tenant subdomain for SMS templates
   const [mpesaConfig, setMpesaConfig] = useState<{ business_shortcode?: string } | null>(null)
   const [tenantSubdomain, setTenantSubdomain] = useState<string>("")
 
@@ -443,7 +434,6 @@ export default function UsersPage() {
     initial_payment_reference: '',
   })
 
-  // Server-side stats state
   const [serverStats, setServerStats] = useState<ServerStatsState>({
     expired: 0,
     pppoe: 0,
@@ -451,22 +441,18 @@ export default function UsersPage() {
     hotspot: 0,
   })
 
-  // NEW: Server-side status counts (active/pending/suspended)
   const [serverStatusCounts, setServerStatusCounts] = useState({
     active: 0,
     pending: 0,
     suspended: 0,
   })
 
-  // NEW: For active subs tab – all active users (not just current page)
   const [allActiveSubUsers, setAllActiveSubUsers] = useState<User[]>([])
   const [activeSubsPageLoading, setActiveSubsPageLoading] = useState(false)
 
-  // NEW: State for expired users
   const [expiredUsers, setExpiredUsers] = useState<User[]>([])
   const [expiredUsersLoading, setExpiredUsersLoading] = useState(false)
 
-  // FIX 1: loadServerStats - single fast endpoint
   const loadServerStats = async () => {
     try {
       const expiredCount = await adminApi.getExpiredRADIUSCount()
@@ -479,7 +465,6 @@ export default function UsersPage() {
     }
   }
 
-  // FIX 2: loadStatusCounts - already parallel, keep as-is
   const loadStatusCounts = async () => {
     try {
       const [activeRes, pendingRes, suspendedRes] = await Promise.all([
@@ -497,7 +482,6 @@ export default function UsersPage() {
     }
   }
 
-  // NEW: Load all active users for the "Active Subs" tab
   const loadAllActiveUsers = async () => {
     try {
       setActiveSubsPageLoading(true)
@@ -519,14 +503,12 @@ export default function UsersPage() {
     }
   }
 
-  // FIX 5: loadExpiredUsersFromRADIUS - lazy load with single request and expired_only filter
   const loadExpiredUsersFromRADIUS = async () => {
     if (expiredUsersLoading) return
     try {
       setExpiredUsersLoading(true)
       console.log('🔄 Loading expired users...')
       
-      // Use the expired_only filter for server-side filtering
       const res = await adminApi.getRADIUSCredentials({
         page_size: "200",
         page: "1",
@@ -537,14 +519,12 @@ export default function UsersPage() {
       console.log('📊 Count:', res.count)
       console.log('📊 Results length:', res.results?.length)
       
-      // Check if we have results
       if (!res.results || res.results.length === 0) {
         console.warn('⚠️ No expired credentials found in API response')
         setExpiredUsers([])
         return
       }
       
-      // Map the credentials to User objects
       const mapped = res.results.map((cred) => {
         console.log('📝 Mapping credential:', cred.id, cred.username, cred.expiration_date)
         
@@ -598,7 +578,6 @@ export default function UsersPage() {
     }
   }
 
-  // NEW: Fetch M-Pesa config and tenant subdomain for SMS templates
   useEffect(() => {
     if (typeof window !== "undefined") {
       const host = window.location.hostname
@@ -610,29 +589,23 @@ export default function UsersPage() {
     }).catch(() => {})
   }, [])
 
-  // FIX 1: Replace the serial mount calls with a single parallelized useEffect
   useEffect(() => {
     if (hasFetched.current) return
     hasFetched.current = true
     
-    // 1. Load the table immediately - this is what the user needs first
     loadUsers(1).then(() => {
-      // 2. After table is visible, load stat card numbers
       loadServerStats()
       loadStatusCounts()
     })
     
-    // 3. Load online sessions and active subscriptions after a brief yield
-    // so the main table renders first
     const timer = setTimeout(() => {
       loadOnlineSessions()
       loadActiveSubscriptions()
-    }, 200) // 200ms instead of 800ms
+    }, 200)
     
     return () => clearTimeout(timer)
   }, [])
 
-  // Trigger expired load when filter changes
   useEffect(() => {
     if (statusFilter === "expired") {
       console.log('🔄 Status filter changed to expired, loading expired users...')
@@ -652,19 +625,15 @@ export default function UsersPage() {
     }
   }
 
-  // FIX 3: Fix the double-fetch in loadOnlineSessions
   const loadOnlineSessions = async () => {
     try {
       setOnlineSessionsLoading(true)
       
-      // Use the paginated endpoint with a large page_size directly
       const response = await adminApi.getOnlineSessions()
       const total = response.total || response.sessions?.length || 0
       let allSessions = response.sessions || []
 
-      // If there are more sessions than returned, fetch them all in one go
       if (total > allSessions.length && total > 0) {
-        // Use the existing adminApi with limit param instead of raw fetch
         const fullResponse = await adminApi.rawRequest<any>(
           `/radius/sessions/active/?limit=${Math.min(total, 500)}`
         )
@@ -772,7 +741,6 @@ export default function UsersPage() {
     setIpSearchQuery("")
   }, [selectedPlanPool])
 
-  // FIX 5: Update loadUsers to skip server call when in expired mode
   const loadUsers = async (page = 1, search?: string, status?: string) => {
     try {
       setLoading(true)
@@ -795,7 +763,6 @@ export default function UsersPage() {
         terminated: 'TERMINATED',
       }
 
-      // Don't hit the customer endpoint for expired — handled by loadExpiredUsersFromRADIUS
       if (effectiveStatus === "expired") {
         setLoading(false)
         return
@@ -1002,7 +969,6 @@ export default function UsersPage() {
     }
   }
 
-  // NEW: Hotspot client detail handlers
   const loadHotspotClientSessions = async (clientId: number, page = 1) => {
     try {
       setHotspotClientSessionsLoading(true)
@@ -1028,7 +994,6 @@ export default function UsersPage() {
     }
   }
 
-  // NEW: Hotspot session extension handlers
   const handleExtendHotspot = (item: typeof activeSubscriptions.hotspot[0]) => {
     setHotspotSessionToExtend(item)
     setHotspotExtendForm({ duration_amount: 1, duration_unit: 'HOURS' })
@@ -1066,7 +1031,6 @@ export default function UsersPage() {
     }
   }
 
-  // NEW: Delete hotspot client handlers
   const handleDeleteHotspotClient = (clientId: number, username: string) => {
     setHotspotDeleteTarget({ clientId, username })
     setShowHotspotDeleteDialog(true)
@@ -1096,7 +1060,6 @@ export default function UsersPage() {
     return username.slice(-9)
   }
 
-  // FIX 4: Use Map lookup for O(1) performance instead of O(n) find
   const onlineSessionsByUsername = useMemo(() => {
     const map = new Map<string, OnlineSession>()
     for (const s of onlineSessions) {
@@ -1105,10 +1068,8 @@ export default function UsersPage() {
     return map
   }, [onlineSessions])
 
-  // FIX 4: Replace enrichedUsers with Map-based O(1) lookup
   const enrichedUsers = useMemo(() => {
     return users.map((user) => {
-      // O(1) map lookup instead of O(n) find
       const session = user.radiusCredentials?.username
         ? onlineSessionsByUsername.get(user.radiusCredentials.username)
         : undefined
@@ -1152,7 +1113,6 @@ export default function UsersPage() {
     });
   }, [hotspotClients]);
 
-  // Stats card
   const stats: UserStats = useMemo(() => {
     const onlineCount = onlineTotal || onlineSessions.length;
     
@@ -1177,7 +1137,6 @@ export default function UsersPage() {
     }
   }, [totalCount, serverStatusCounts, serverStats.expired, onlineTotal, onlineSessions, activeSubscriptions])
 
-  // FIX 5: filteredUsers uses expiredUsers when filter is expired
   const filteredUsers = useMemo(() => {
     if (statusFilter === "expired") {
       console.log('🔍 Filtering expired users, count:', expiredUsers.length)
@@ -1227,28 +1186,6 @@ export default function UsersPage() {
   }, [filteredOnlineSessions, onlinePage, onlinePageSize])
 
   const onlineTotalPages = Math.ceil(filteredOnlineSessions.length / onlinePageSize)
-
-  const activeSubscriptionUsers = useMemo(() => {
-    return enrichedUsers.filter((user) => {
-      const expiryDate = new Date(user.expiryDate)
-      const now = new Date()
-      const isExpired = expiryDate <= now
-      
-      const hasPlan = user.plan !== "No Plan"
-      
-      const isActive = (user.status === "active" || user.status === "pending") && !isExpired && hasPlan
-
-      const matchesSearch = !activeSearchQuery || (
-        (user.name?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
-        (user.email?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
-        (user.phone || '').includes(activeSearchQuery) ||
-        (user.id?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
-        (user.plan?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase()) ||
-        (user.radiusCredentials?.username?.toLowerCase() || '').includes(activeSearchQuery.toLowerCase())
-      )
-      return isActive && matchesSearch
-    })
-  }, [enrichedUsers, activeSearchQuery])
 
   const hotspotLiveUsageMap = useMemo(() => {
     const map = new Map<string, string>()
@@ -1311,20 +1248,21 @@ export default function UsersPage() {
     )
   }
 
+  // NEW: Live pulse dot for online status
   const getConnectionBadge = (status: "online" | "offline") => {
     if (status === "online") {
       return (
-        <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200">
-          <Activity className="w-3 h-3 mr-1" />
-          Online
-        </Badge>
+        <div className="flex items-center gap-1.5">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+          <span className="text-sm font-medium text-emerald-600">Online</span>
+        </div>
       )
     }
     return (
-      <Badge variant="outline" className="bg-slate-100 text-slate-500 border-slate-200">
-        <XCircle className="w-3 h-3 mr-1" />
-        Offline
-      </Badge>
+      <span className="text-sm text-slate-400">Offline</span>
     )
   }
 
@@ -1738,7 +1676,7 @@ export default function UsersPage() {
     toast.success(`${label} copied to clipboard`)
   }
 
-  // ---------- NEW: Variable SMS Helpers ----------
+  // SMS Helpers
   const SMS_VARIABLES = [
     { key: '{firstname}', label: 'First Name' },
     { key: '{package}', label: 'Package' },
@@ -1787,9 +1725,7 @@ export default function UsersPage() {
       setSendingUserSms(false)
     }
   }
-  // ---------- End of variable SMS helpers ----------
 
-  // Bulk SMS handlers (unchanged)
   const handleSendSingleSms = async () => {
     if (!smsTarget || !smsMessage.trim()) return
     try {
@@ -1898,6 +1834,7 @@ export default function UsersPage() {
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto">
+              {/* Add User Dialog content - unchanged */}
               <DialogHeader>
                 <DialogTitle>Add New Customer</DialogTitle>
                 <DialogDescription>
@@ -2238,311 +2175,144 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
-        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'all' && activeTab === 'all' ? 'ring-2 ring-slate-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("all"); }}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-slate-100 rounded-lg">
-                <Users className="w-4 h-4 text-slate-600" />
-              </div>
-              <div>
-                <p className="text-xl font-bold">{stats.total}</p>
-                <p className="text-xs text-slate-500">Total PPPoE/Static</p>
-              </div>
+      {/* REPLACED: Stats Bar - Compact */}
+      <div className="flex items-center gap-2 p-3 bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+        {[
+          { label: "Total", value: stats.total, onClick: () => { setActiveTab("all"); setStatusFilter("all") }, active: statusFilter === "all" && activeTab === "all", color: "text-slate-800" },
+          { label: "Online", value: stats.online, onClick: () => { setActiveTab("online-sessions"); setStatusFilter("all") }, active: activeTab === "online-sessions", color: "text-emerald-600", pulse: true },
+          { label: "Active", value: stats.active, onClick: () => { setActiveTab("all"); setStatusFilter("active") }, active: statusFilter === "active", color: "text-green-600" },
+          { label: "Pending", value: stats.pending, onClick: () => { setActiveTab("all"); setStatusFilter("pending") }, active: statusFilter === "pending", color: "text-orange-500" },
+          { label: "Suspended", value: stats.suspended, onClick: () => { setActiveTab("all"); setStatusFilter("suspended") }, active: statusFilter === "suspended", color: "text-yellow-600" },
+          { label: "Expired", value: serverStats.expired, onClick: () => { setActiveTab("all"); setStatusFilter("expired") }, active: statusFilter === "expired", color: "text-red-500" },
+        ].map(({ label, value, onClick, active, color, pulse }) => (
+          <button
+            key={label}
+            onClick={onClick}
+            className={`flex flex-col items-center px-4 py-2 rounded-lg transition-all shrink-0 ${active ? "bg-slate-100 ring-1 ring-slate-300" : "hover:bg-slate-50"}`}
+          >
+            <div className="flex items-center gap-1.5">
+              {pulse && (
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+              )}
+              <span className={`text-2xl font-black tabular-nums ${color}`}>{value}</span>
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${activeTab === 'online-sessions' ? 'ring-2 ring-emerald-400' : ''}`} onClick={() => { setActiveTab("online-sessions"); setStatusFilter("all"); }}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-emerald-100 rounded-lg">
-                <Activity className="w-4 h-4 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-emerald-600">{stats.online}</p>
-                <p className="text-xs text-slate-500">Total Online</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'active' ? 'ring-2 ring-green-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("active"); }}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-green-100 rounded-lg">
-                <CheckCircle2 className="w-4 h-4 text-green-600" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-green-600">{stats.active}</p>
-                <p className="text-xs text-slate-500">Active Users</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'pending' ? 'ring-2 ring-orange-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("pending"); }}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-orange-100 rounded-lg">
-                <Clock className="w-4 h-4 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-orange-600">{stats.pending}</p>
-                <p className="text-xs text-slate-500">Pending</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'suspended' ? 'ring-2 ring-yellow-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("suspended"); }}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-yellow-100 rounded-lg">
-                <XCircle className="w-4 h-4 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-yellow-600">{stats.suspended}</p>
-                <p className="text-xs text-slate-500">Suspended</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Expired stats card */}
-        <Card
-          className={`cursor-pointer hover:shadow-md transition-shadow ${
-            statusFilter === "expired" ? "ring-2 ring-red-400" : ""
-          }`}
-          onClick={() => { setActiveTab("all"); setStatusFilter("expired"); }}
-        >
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-red-100 rounded-lg">
-                <XCircle className="w-4 h-4 text-red-600" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-red-600">{serverStats.expired}</p>
-                <p className="text-xs text-slate-500">Expired</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${activeTab === 'pppoe' ? 'ring-2 ring-purple-400' : ''}`} onClick={() => { setActiveTab("pppoe"); setStatusFilter("all"); }}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-purple-100 rounded-lg">
-                <Globe className="w-4 h-4 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-purple-600">{stats.pppoe}</p>
-                <p className="text-xs text-slate-500">PPPoE</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${activeTab === 'static' ? 'ring-2 ring-orange-400' : ''}`} onClick={() => { setActiveTab("static"); setStatusFilter("all"); }}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-orange-100 rounded-lg">
-                <Server className="w-4 h-4 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-orange-600">{stats.static}</p>
-                <p className="text-xs text-slate-500">Static IP</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={`cursor-pointer hover:shadow-md transition-shadow ${activeTab === 'hotspot' ? 'ring-2 ring-pink-400' : ''}`} onClick={() => { setActiveTab("hotspot"); setStatusFilter("all"); }}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-pink-100 rounded-lg">
-                <Smartphone className="w-4 h-4 text-pink-600" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-pink-600">{stats.hotspot}</p>
-                <p className="text-xs text-slate-500">Active Subs</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Hybrid Online/Active card */}
-        <Card className="col-span-2 md:col-span-2 cursor-pointer hover:shadow-md transition-shadow border-2 border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50" onClick={() => { setActiveTab("online-sessions"); setStatusFilter("all"); }}>
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-blue-100 rounded-lg">
-                  <Wifi className="w-4 h-4 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">Online / Active Subs</p>
-                  <div className="flex items-baseline gap-1">
-                    <p className="text-xl font-bold text-blue-600">{stats.online}</p>
-                    <p className="text-sm text-slate-400">/</p>
-                    <p className="text-xl font-bold text-slate-700">{stats.totalActiveSubs}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 rounded-full transition-all"
-                    style={{
-                      width: `${Math.min(100, stats.totalActiveSubs > 0
-                        ? (stats.online / stats.totalActiveSubs) * 100
-                        : 0)}%`
-                    }}
-                  />
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  {stats.totalActiveSubs > 0
-                    ? `${Math.round((stats.online / stats.totalActiveSubs) * 100)}%`
-                    : '0%'} online
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">{label}</span>
+          </button>
+        ))}
+        <div className="w-px h-10 bg-slate-200 mx-1 shrink-0" />
+        {[
+          { label: "Hotspot Subs", value: stats.hotspot, onClick: () => { setActiveTab("hotspot"); setStatusFilter("all") }, active: activeTab === "hotspot", color: "text-pink-600" },
+        ].map(({ label, value, onClick, active, color }) => (
+          <button
+            key={label}
+            onClick={onClick}
+            className={`flex flex-col items-center px-4 py-2 rounded-lg transition-all shrink-0 ${active ? "bg-slate-100 ring-1 ring-slate-300" : "hover:bg-slate-50"}`}
+          >
+            <span className={`text-2xl font-black tabular-nums ${color}`}>{value}</span>
+            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">{label}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Connection Type Tabs */}
-      <div className="flex flex-col gap-3">
-        <Tabs value={activeTab} onValueChange={(val) => { 
-          setActiveTab(val); 
-          if (!['all'].includes(val)) setStatusFilter('all'); 
-          if (val === 'online-sessions') loadOnlineSessions();
-          if (val === 'active-subs') loadAllActiveUsers();
-          if (val === 'hotspot' && activeSubscriptions.hotspot?.length === 0) {
-            loadActiveSubscriptions();
-          }
-        }} className="w-full">
-          <TabsList className="w-full lg:w-fit">
-            <TabsTrigger value="all" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">All Users</span>
-            </TabsTrigger>
-            <TabsTrigger value="online-sessions" className="flex items-center gap-2">
-              <Wifi className="w-4 h-4" />
-              <span className="hidden sm:inline">Online</span>
-            </TabsTrigger>
-            <TabsTrigger value="active-subs" className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Active Subs</span>
-            </TabsTrigger>
-            <TabsTrigger value="pppoe" className="flex items-center gap-2">
-              <Globe className="w-4 h-4" />
-              <span className="hidden sm:inline">PPPoE</span>
-            </TabsTrigger>
-            <TabsTrigger value="static" className="flex items-center gap-2">
-              <Server className="w-4 h-4" />
-              <span className="hidden sm:inline">Static IP</span>
-            </TabsTrigger>
-            <TabsTrigger value="hotspot" className="flex items-center gap-2">
-              <Smartphone className="w-4 h-4" />
-              <span className="hidden sm:inline">Hotspot</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        {/* Status Filter Chips */}
-        {!["online-sessions", "active-subs", "hotspot"].includes(activeTab) && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-medium text-slate-500 mr-1">Status:</span>
+      {/* REPLACED: Unified Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto">
           {[
-            { value: 'all', label: 'All', count: stats.total, activeClasses: 'bg-slate-100 text-slate-700 ring-2 ring-slate-300 ring-offset-1', badgeActive: 'bg-slate-200 text-slate-800' },
-            { value: 'active', label: 'Active', count: stats.active, activeClasses: 'bg-green-100 text-green-700 ring-2 ring-green-300 ring-offset-1', badgeActive: 'bg-green-200 text-green-800' },
-            { value: 'pending', label: 'Pending', count: stats.pending, activeClasses: 'bg-orange-100 text-orange-700 ring-2 ring-orange-300 ring-offset-1', badgeActive: 'bg-orange-200 text-orange-800' },
-            { value: 'suspended', label: 'Suspended', count: stats.suspended, activeClasses: 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-300 ring-offset-1', badgeActive: 'bg-yellow-200 text-yellow-800' },
-            { value: 'expired', label: 'Expired', count: stats.expired, activeClasses: 'bg-red-100 text-red-700 ring-2 ring-red-300 ring-offset-1', badgeActive: 'bg-red-200 text-red-800' },
-          ].map(({ value, label, count, activeClasses, badgeActive }) => (
+            { value: "all", label: "All PPPoE/Static", icon: Users },
+            { value: "online-sessions", label: "Online Now", icon: Wifi },
+            { value: "active-subs", label: "Active Subs", icon: CheckCircle2 },
+            { value: "hotspot", label: "Hotspot", icon: Smartphone },
+          ].map(({ value, label, icon: Icon }) => (
             <button
               key={value}
-              onClick={() => setStatusFilter(value)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                statusFilter === value
-                  ? activeClasses
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              onClick={() => {
+                setActiveTab(value)
+                if (!["all"].includes(value)) setStatusFilter("all")
+                if (value === "online-sessions") loadOnlineSessions()
+                if (value === "active-subs") loadAllActiveUsers()
+                if (value === "hotspot" && activeSubscriptions.hotspot?.length === 0) loadActiveSubscriptions()
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                activeTab === value
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
               }`}
             >
+              <Icon className="w-3.5 h-3.5" />
               {label}
-              <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
-                statusFilter === value ? badgeActive : 'bg-slate-200 text-slate-500'
-              }`}>
-                {count}
-              </span>
             </button>
           ))}
         </div>
+
+        {!["online-sessions", "active-subs", "hotspot"].includes(activeTab) && (
+          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto">
+            {[
+              { value: "all", label: "All" },
+              { value: "active", label: "Active" },
+              { value: "pending", label: "Pending" },
+              { value: "suspended", label: "Suspended" },
+              { value: "expired", label: "Expired" },
+            ].map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setStatusFilter(value)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                  statusFilter === value
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Filters & Search */}
+      {/* REPLACED: Search - inline without card wrapper */}
       {!["online-sessions", "active-subs", "hotspot"].includes(activeTab) && (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  placeholder="Search by name, email, phone, username, ID, or location..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    setSearchQuery(val)
-                    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
-                    searchDebounceRef.current = setTimeout(() => {
-                      setServerPage(1)
-                      loadUsers(1, val, statusFilter)
-                    }, 400)
-                  }}
-                  className="pl-9"
-                  autoComplete="off"
-                  name="users-search"
-                />
-              </div>
-            </div>
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-          </div>
+      <div className="flex flex-col md:flex-row gap-2">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            placeholder="Search name, phone, username, IP, billing account..."
+            value={searchQuery}
+            onChange={(e) => {
+              const val = e.target.value
+              setSearchQuery(val)
+              if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+              searchDebounceRef.current = setTimeout(() => {
+                setServerPage(1)
+                loadUsers(1, val, statusFilter)
+              }, 400)
+            }}
+            className="pl-9 bg-white"
+            autoComplete="off"
+          />
+        </div>
+        <Button variant="outline" className="shrink-0">
+          <Download className="w-4 h-4 mr-2" />
+          Export
+        </Button>
+      </div>
+      )}
 
-          {selectedUsers.length > 0 && (
-            <div className="mt-4 flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <span className="text-sm font-medium text-blue-900">
-                {selectedUsers.length} user(s) selected
-              </span>
-              <div className="flex-1" />
-              <Button size="sm" variant="outline" onClick={() => {
-                setSmsTarget(null)
-                setSmsMessage("")
-                setShowSmsDialog(true)
-              }}>
-                <Send className="w-4 h-4 mr-2" />
-                Send SMS
-              </Button>
-              <Button size="sm" variant="outline">
-                <Mail className="w-4 h-4 mr-2" />
-                Send Email
-              </Button>
-              <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" onClick={handleBulkDelete} disabled={deleting}>
-                {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                Delete
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setSelectedUsers([])}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {selectedUsers.length > 0 && (
+        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-200">
+          <span className="text-sm font-medium text-blue-900">{selectedUsers.length} selected</span>
+          <div className="flex-1" />
+          <Button size="sm" variant="outline" onClick={() => { setSmsTarget(null); setSmsMessage(""); setShowSmsDialog(true) }}>
+            <Send className="w-4 h-4 mr-2" />Send SMS
+          </Button>
+          <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" onClick={handleBulkDelete} disabled={deleting}>
+            {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+            Delete
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedUsers([])}><X className="w-4 h-4" /></Button>
+        </div>
       )}
 
       {/* -- Online Sessions Tab -- */}
@@ -3079,7 +2849,6 @@ export default function UsersPage() {
                   </Table>
                 </div>
 
-                {/* Pagination */}
                 {activeSubscriptions.hotspot.length > hotspotPageSize && (
                   <div className="flex items-center justify-between mt-4">
                     <p className="text-sm text-slate-500">
@@ -3100,18 +2869,19 @@ export default function UsersPage() {
       {/* Users Table (for All/PPPoE/Static tabs) */}
       {!["online-sessions", "active-subs", "hotspot"].includes(activeTab) && (
       <Card>
-        <CardHeader>
-          <CardTitle>
-            {activeTab === "all" && "All Users"}
-            {activeTab === "pppoe" && "PPPoE Users"}
-            {activeTab === "static" && "Static IP Users"}
-            {statusFilter !== "all" && ` - ${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`}
-            {" "}({filteredUsers.length})
-          </CardTitle>
-          <CardDescription>
-            Showing {filteredUsers.length} of {totalCount} total users
-            {statusFilter !== "all" && ` - Filtered by status: ${statusFilter}`}
-          </CardDescription>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">
+                {activeTab === "all" && "Users"}
+                {activeTab === "pppoe" && "PPPoE Users"}
+                {activeTab === "static" && "Static IP Users"}
+                {statusFilter !== "all" && <span className="text-slate-400 font-normal ml-1">· {statusFilter}</span>}
+                <span className="text-slate-400 font-normal ml-1">({filteredUsers.length})</span>
+              </CardTitle>
+            </div>
+            <p className="text-xs text-slate-400">{totalCount} total</p>
+          </div>
         </CardHeader>
         <CardContent>
           {(loading || (statusFilter === "expired" && expiredUsersLoading)) ? (
@@ -3155,7 +2925,7 @@ export default function UsersPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.map((user) => (
-                      <TableRow key={user.id} className="hover:bg-slate-50">
+                      <TableRow key={user.id} className="hover:bg-slate-50/80 group">
                         <TableCell>
                           <Checkbox
                             checked={selectedUsers.includes(user.id)}
@@ -3291,8 +3061,8 @@ export default function UsersPage() {
                 </Table>
               </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
+              {/* Pagination - Only show for non-expired filters */}
+              {totalPages > 1 && statusFilter !== "expired" && (
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-slate-600">
                     Page {serverPage} of {totalPages}
@@ -3323,7 +3093,7 @@ export default function UsersPage() {
       </Card>
       )}
 
-      {/* User Detail Dialog */}
+      {/* User Detail Dialog - unchanged */}
       <Dialog open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -3333,7 +3103,6 @@ export default function UsersPage() {
 
           {selectedUser && (
             <div className="mt-2">
-              {/* Tab switcher */}
               <div className="flex border-b mb-4">
                 <button
                   onClick={() => setDrawerTab("general")}
@@ -3362,17 +3131,14 @@ export default function UsersPage() {
                 </button>
               </div>
 
-              {/* General Information Tab */}
               {drawerTab === "general" && (
                 <div className="space-y-6">
-                  {/* Status Badges */}
                   <div className="flex flex-wrap items-center gap-2">
                     {getTypeBadge(selectedUser.type)}
                     {getStatusBadge(selectedUser.status)}
                     {getConnectionBadge(selectedUser.connectionStatus)}
                   </div>
 
-                  {/* Basic Info */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl">
@@ -3407,7 +3173,6 @@ export default function UsersPage() {
                     </div>
                   </div>
 
-                  {/* Connection Info */}
                   <div className="p-4 bg-slate-50 rounded-lg border">
                     <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                       <Signal className="w-4 h-4" />
@@ -3445,7 +3210,6 @@ export default function UsersPage() {
                     </div>
                   </div>
 
-                  {/* Subscription Info with editable billing account number */}
                   <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Subscription</h3>
                     <div className="space-y-2 text-sm">
@@ -3665,7 +3429,6 @@ export default function UsersPage() {
                     </div>
                   )}
 
-                  {/* Usage Stats */}
                   <div className="p-4 bg-slate-50 rounded-lg border">
                     <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Usage & Balance</h3>
                     <div className="space-y-3">
@@ -3697,7 +3460,6 @@ export default function UsersPage() {
                     </div>
                   </div>
 
-                  {/* Bandwidth Graph - Only for online PPPoE users */}
                   {selectedUser && selectedUser.connectionStatus === "online" && 
                   selectedUser.type === "pppoe" && 
                   selectedUser.radiusCredentials?.username && (
@@ -3719,7 +3481,6 @@ export default function UsersPage() {
                     </div>
                   )}
 
-                  {/* Actions */}
                   <div className="space-y-2 pt-4">
                     <div className="flex gap-2">
                       <Button className="flex-1" onClick={() => handleEditUser(selectedUser)}>
@@ -3793,7 +3554,6 @@ export default function UsersPage() {
                 </div>
               )}
 
-              {/* Payments Tab */}
               {drawerTab === "payments" && (
                 <div className="space-y-4">
                   {payments.length === 0 ? (
@@ -3804,7 +3564,6 @@ export default function UsersPage() {
                     </div>
                   ) : (
                     <>
-                      {/* Summary */}
                       <div className="grid grid-cols-2 gap-3">
                         <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                           <p className="text-xs text-slate-500">Total Paid</p>
@@ -3818,7 +3577,6 @@ export default function UsersPage() {
                         </div>
                       </div>
 
-                      {/* Payments list */}
                       <div className="space-y-2">
                         {payments.map((payment) => {
                           const isCompleted = ['completed', 'COMPLETED'].includes(payment.status)
@@ -3884,7 +3642,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit User Dialog */}
+      {/* Edit User Dialog - unchanged */}
       <Dialog open={showEditUserDialog} onOpenChange={setShowEditUserDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -3939,7 +3697,6 @@ export default function UsersPage() {
               />
             </div>
             
-            {/* RADIUS Credentials Section */}
             <div className="border-t pt-4">
               <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
                 <Wifi className="w-4 h-4" />
@@ -4002,7 +3759,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation Dialog - unchanged */}
       <Dialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -4040,7 +3797,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Extend Subscription Dialog */}
+      {/* Extend Subscription Dialog - unchanged */}
       <Dialog open={showExtendDialog} onOpenChange={setShowExtendDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -4052,7 +3809,6 @@ export default function UsersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Mode Toggle */}
             <div className="flex rounded-lg border overflow-hidden">
               <button
                 type="button"
@@ -4103,14 +3859,12 @@ export default function UsersPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Quick presets */}
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 1, duration_unit: 'HOURS' })}>+1 Hour</Button>
                   <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 1, duration_unit: 'DAYS' })}>+1 Day</Button>
                   <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 7, duration_unit: 'DAYS' })}>+7 Days</Button>
                   <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 30, duration_unit: 'DAYS' })}>+30 Days</Button>
                 </div>
-                {/* Expire Now button at bottom of duration mode */}
                 <div className="pt-4 border-t">
                   <Button
                     type="button"
@@ -4218,7 +3972,6 @@ export default function UsersPage() {
                     })()}
                   </div>
                 )}
-                {/* Expire Now button in date mode */}
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex-1 border-t border-slate-200" />
                   <span className="text-xs text-slate-400">or</span>
@@ -4265,7 +4018,6 @@ export default function UsersPage() {
               </div>
             )}
 
-            {/* Optional plan change */}
             <div className="space-y-2 pt-2 border-t">
               <Label>Change Plan <span className="text-xs text-slate-400 font-normal">(Optional)</span></Label>
               <Select
@@ -4305,7 +4057,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Extend Hotspot Session Dialog */}
+      {/* Extend Hotspot Session Dialog - unchanged */}
       <Dialog open={showExtendHotspotDialog} onOpenChange={setShowExtendHotspotDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -4431,7 +4183,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Hotspot Client Detail Dialog */}
+      {/* Hotspot Client Detail Dialog - unchanged */}
       <Dialog open={hotspotDetailOpen} onOpenChange={setHotspotDetailOpen}>
         <DialogContent className="max-w-2xl w-[95vw] max-h-[92vh] overflow-hidden p-0 gap-0 rounded-2xl">
           {hotspotDetailClient && (() => {
@@ -4453,13 +4205,10 @@ export default function UsersPage() {
 
             return (
               <>
-                {/* Hero Header */}
                 <div className={`relative overflow-hidden p-6 ${isActive ? 'bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600' : 'bg-gradient-to-br from-slate-600 to-slate-800'}`}>
-                  {/* Animated background blobs */}
                   <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
                   <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/10 blur-xl" />
                   
-                  {/* Header buttons — close + delete */}
                   <div className="absolute top-4 right-4 flex items-center gap-2 relative z-10">
                     {clientId && (
                       <button
@@ -4479,7 +4228,6 @@ export default function UsersPage() {
                     </button>
                   </div>
 
-                  {/* Identity row */}
                   <div className="flex items-center gap-4 relative z-10">
                     <div className="relative">
                       <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center shadow-xl">
@@ -4506,7 +4254,6 @@ export default function UsersPage() {
                       <p className="text-white/60 text-sm mt-0.5">{hotspotDetailClient.phone || 'No phone'}</p>
                     </div>
                     
-                    {/* Status pill */}
                     <div className={`px-3 py-1.5 rounded-xl backdrop-blur-sm border text-xs font-bold uppercase tracking-wider ${
                       isActive 
                         ? 'bg-emerald-400/20 border-emerald-300/40 text-emerald-100' 
@@ -4516,7 +4263,6 @@ export default function UsersPage() {
                     </div>
                   </div>
 
-                  {/* Stats bar */}
                   <div className="grid grid-cols-4 gap-2 mt-5 relative z-10">
                     {[
                       { 
@@ -4554,7 +4300,6 @@ export default function UsersPage() {
                     ))}
                   </div>
 
-                  {/* Live usage bar */}
                   {isOnline && liveUsage && (
                     <div className="mt-3 flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2 backdrop-blur-sm border border-white/20 relative z-10">
                       <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
@@ -4564,7 +4309,6 @@ export default function UsersPage() {
                   )}
                 </div>
 
-                {/* Tab bar */}
                 <div className="flex bg-white border-b px-4 gap-0">
                   {[
                     { id: 'overview', label: 'Overview', icon: Activity },
@@ -4591,13 +4335,9 @@ export default function UsersPage() {
                   ))}
                 </div>
 
-                {/* Tab content */}
                 <div className="overflow-y-auto bg-slate-50/50" style={{ maxHeight: 'calc(92vh - 320px)' }}>
-
-                  {/* OVERVIEW TAB */}
                   {hotspotDetailTab === 'overview' && (
                     <div className="p-5 space-y-3">
-                      {/* Connection card */}
                       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                         <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
                           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Connection</h3>
@@ -4631,7 +4371,6 @@ export default function UsersPage() {
                         </div>
                       </div>
 
-                      {/* Subscription card */}
                       <div className={`rounded-2xl border-2 overflow-hidden ${isActive ? 'border-violet-100' : 'border-red-100'}`}>
                         <div className={`px-4 py-3 flex items-center justify-between ${isActive ? 'bg-violet-50' : 'bg-red-50'}`}>
                           <div className="flex items-center gap-2">
@@ -4681,7 +4420,6 @@ export default function UsersPage() {
                     </div>
                   )}
 
-                  {/* SESSIONS TAB */}
                   {hotspotDetailTab === 'sessions' && (
                     <div className="p-5 space-y-3">
                       <div className="flex items-center justify-between">
@@ -4788,10 +4526,8 @@ export default function UsersPage() {
                     </div>
                   )}
 
-                  {/* ACTIONS TAB */}
                   {hotspotDetailTab === 'actions' && (
                     <div className="p-5 space-y-3">
-                      {/* Extend */}
                       {isActive && hotspotDetailClient.session_id && (
                         <button
                           onClick={() => { setHotspotDetailOpen(false); handleExtendHotspot(hotspotDetailClient) }}
@@ -4808,7 +4544,6 @@ export default function UsersPage() {
                         </button>
                       )}
 
-                      {/* Send SMS */}
                       {hotspotDetailClient.phone && (
                         <button
                           onClick={async () => {
@@ -4836,7 +4571,6 @@ export default function UsersPage() {
                         </button>
                       )}
 
-                      {/* Copy credentials */}
                       <button
                         onClick={() => {
                           const text = `Username: ${username}\nPassword: ${username}`
@@ -4855,7 +4589,6 @@ export default function UsersPage() {
                         <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-400 transition-colors" />
                       </button>
 
-                      {/* Client history */}
                       <button
                         onClick={() => setHotspotDetailTab('sessions')}
                         className="w-full flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-orange-200 hover:bg-orange-50/50 transition-all group active:scale-[0.99]"
@@ -4870,7 +4603,6 @@ export default function UsersPage() {
                         <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-orange-400 transition-colors" />
                       </button>
 
-                      {/* Delete button in Actions tab */}
                       {clientId && (
                         <button
                           onClick={() => handleDeleteHotspotClient(clientId, username)}
@@ -4895,7 +4627,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Change Plan Dialog */}
+      {/* Change Plan Dialog - unchanged */}
       <Dialog
         open={showChangePlanDialog}
         onOpenChange={(open) => {
@@ -4998,7 +4730,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit IP Dialog */}
+      {/* Edit IP Dialog - unchanged */}
       <Dialog open={showEditIPDialog} onOpenChange={(open) => {
         setShowEditIPDialog(open)
         if (!open) {
@@ -5110,7 +4842,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Bulk SMS Dialog */}
+      {/* Bulk SMS Dialog - unchanged */}
       <Dialog open={showSmsDialog} onOpenChange={(open) => {
         setShowSmsDialog(open)
         if (!open) {
@@ -5130,7 +4862,6 @@ export default function UsersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Quick Templates */}
             {smsTarget && (
               <div className="space-y-2">
                 <Label className="text-xs font-medium text-slate-500">Quick Templates</Label>
@@ -5203,7 +4934,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Per-user SMS Dialog */}
+      {/* Per-user SMS Dialog - unchanged */}
       <Dialog open={showUserSmsDialog} onOpenChange={setShowUserSmsDialog}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -5217,7 +4948,6 @@ export default function UsersPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Quick Templates (same as bulk SMS) */}
             {userSmsTarget && (
               <div className="space-y-2">
                 <p className="text-xs font-medium text-slate-500">Quick Templates</p>
@@ -5261,7 +4991,6 @@ export default function UsersPage() {
               </div>
             )}
 
-            {/* Variable chips */}
             <div>
               <p className="text-xs font-medium text-slate-500 mb-2">Insert variable</p>
               <div className="flex flex-wrap gap-1.5">
@@ -5278,7 +5007,6 @@ export default function UsersPage() {
               </div>
             </div>
 
-            {/* Message textarea */}
             <div className="space-y-1">
               <Label>Message</Label>
               <Textarea
@@ -5291,7 +5019,6 @@ export default function UsersPage() {
               <p className="text-xs text-slate-400">{userSmsMessage.length} / 160 characters</p>
             </div>
 
-            {/* Live preview */}
             {userSmsTarget && userSmsMessage && (
               <div className="p-3 bg-slate-50 rounded-lg border text-sm space-y-1">
                 <p className="text-xs font-medium text-slate-500">Preview (resolved)</p>
@@ -5316,7 +5043,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Hotspot Delete Confirmation */}
+      {/* Hotspot Delete Confirmation - unchanged */}
       <Dialog open={showHotspotDeleteDialog} onOpenChange={(open) => {
         if (!open) { setShowHotspotDeleteDialog(false); setHotspotDeleteTarget(null) }
       }}>
