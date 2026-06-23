@@ -309,7 +309,7 @@ async function phoneReconnect(data: {
 async function scanNetworkDevices(routerId: string, tenant: string): Promise<{ip: string; mac: string; label: string}[]> {
   try {
     const res = await fetch(
-      `${getApiBase()}/hotspot/scan-devices/?router_id=${routerId}&tenant=${encodeURIComponent(tenant)}`,
+      `${getApiBase()}/hotspot/scan-devices/?router_id=${encodeURIComponent(routerId)}&tenant=${encodeURIComponent(tenant)}`,
       { cache: 'no-store' }
     )
     if (!res.ok) return []
@@ -476,45 +476,6 @@ function AutoCompleteImage({ onComplete }: { onComplete: () => void }) {
     return () => clearTimeout(t)
   }, [onComplete])
   return null
-}
-
-// ==========================================
-// 3-LAYER HYBRID TV DETECTION
-// ==========================================
-function isSmartTV(): boolean {
-  if (typeof window === "undefined") return false
-
-  const params = new URLSearchParams(window.location.search)
-  
-  // Layer 1: explicit param from MikroTik login.html (admin override)
-  if (params.get("smart_tv") === "1" || params.get("force_tv") === "1") return true
-  if (params.get("smart_tv") === "0" || params.get("force_tv") === "0") return false
-
-  const ua = navigator.userAgent.toLowerCase()
-
-  // Layer 2: known TV UA patterns
-  if (/smart-?tv|webos|tizen|vidaa|hbbtv|roku|firetv|appletv|apple\s?tv|bravia|netcast|viera|aft[a-z]|crkey|tv safari/i.test(ua)) {
-    return true
-  }
-
-  // Android TV: android but no "mobile" token + wide screen (≥1280px)
-  if (/android/i.test(ua) && !/mobile/i.test(ua) && window.screen.width >= 1280) {
-    return true
-  }
-
-  // Layer 3: geometry heuristic (safe — desktop OSes are excluded)
-  const isDesktopOS = /windows nt|macintosh|\bx11\b|linux x86_64|cros/i.test(ua)
-  if (!isDesktopOS
-    && window.screen.width >= 1280
-    && window.screen.height >= 720
-    && (window.screen.width / window.screen.height) >= 1.5
-    && !("ontouchstart" in window)
-    && navigator.maxTouchPoints === 0
-  ) {
-    return true
-  }
-
-  return false
 }
 
 // ==========================================
@@ -1169,11 +1130,8 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     }
   }, [availableAd?.media_url])
 
-  // === TV MODE STATES (NEW MAC-based system) ===
-  const [isTvDevice, setIsTvDevice] = useState(false)
-  const [tvPaymentStatus, setTvPaymentStatus] = useState<"pending" | "paid">("pending")
-
-  // NEW: MAC-based TV payment
+  // === TV MODE STATES (MAC-based system - phone only) ===
+  // MAC-based TV payment (no TV-side detection or polling needed)
   const [tvMacInput, setTvMacInput] = useState("")
   const [tvMacLastDigits, setTvMacLastDigits] = useState("")
   const [tvScannedDevices, setTvScannedDevices] = useState<{ip: string; mac: string; label: string}[]>([])
@@ -1185,7 +1143,6 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
 
   // Phone paying for TV
   const [targetDevice, setTargetDevice] = useState<"this" | "tv">("this")
-  // REMOVED: tvInputCode, verifiedTV, isVerifyingTV, tvVerifyError (old code-based system)
 
   // ==========================================
 
@@ -1252,7 +1209,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     if (url) setLoginUrl(url)
   }, [routerId])
 
-  // ── Auto-login & TV Detection ──
+  // ── Auto-login check (no TV detection) ──
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
     if (searchParams.get("error")) return
@@ -1268,24 +1225,18 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             setReturningToRouter(true)
             returnTripToMikrotik(loginUrl, result.credentials.username, result.credentials.password)
           }
-        } else if (isSmartTV()) {
-          // TV detected — just set the flag, no code generation needed
-          setIsTvDevice(true)
         }
         setAutoLoginChecked(true)
       })
       .catch(() => {
         setAutoLoginChecked(true)
-        if (isSmartTV()) {
-          setIsTvDevice(true)
-        }
         setLoading(false)
       })
   }, [routerId, loginUrl, autoLoginChecked])
 
   // ── Load hotspot plans + portal config ──
   useEffect(() => {
-    if (isTvDevice) return
+    // No TV device check — always load plans
     fetchCaptivePortal(routerId)
       .then((data) => {
         setPlans(data.plans)
@@ -1297,19 +1248,19 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
         setError(err.message || "Failed to load plans")
         setLoading(false)
       })
-  }, [routerId, isTvDevice])
+  }, [routerId])
 
   // ── Fetch available ad ──
   useEffect(() => {
-    if (isTvDevice || loading) return
+    if (loading) return
     const tenant = getTenant()
     if (!tenant) return
     fetchServableAd(routerId, tenant).then(({ ad }) => setAvailableAd(ad))
-  }, [routerId, isTvDevice, loading])
+  }, [routerId, loading])
 
   // ── Fetch loyalty info after plans load ───────────────────────────────────
   useEffect(() => {
-    if (loading || isTvDevice) return
+    if (loading) return
     const mac = getMacAddress()
     if (mac === '00:00:00:00:00:00') return
     const tenant = getTenant()
@@ -1318,7 +1269,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     fetchHotspotLoyalty(mac, tenant, canonicalUsername || undefined).then(data => {
       if (data?.program_active) setLoyaltyData(data)
     })
-  }, [loading, isTvDevice, canonicalUsername])
+  }, [loading, canonicalUsername])
 
   // ── Poll payment status ──
   useEffect(() => {
@@ -1371,31 +1322,6 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     }, 1000)
     return () => clearInterval(timer)
   }, [paymentStatus])
-
-  // ── TV auto-show "paid" when payment was made on phone ──
-  // Uses checkAutoLogin endpoint to poll for active session
-  useEffect(() => {
-    if (!isTvDevice || !tvMacVerified || !tvSelectedDevice) return
-
-    const pollInterval = setInterval(async () => {
-      try {
-        const result = await checkAutoLogin(routerId, tvSelectedDevice.mac)
-        if (result.has_session && result.credentials) {
-          setTvPaymentStatus("paid")
-          setAccessCode(result.credentials.username)
-          if (loginUrl) {
-            setReturningToRouter(true)
-            const u = encodeURIComponent(result.credentials.username)
-            const p = encodeURIComponent(result.credentials.password)
-            setTimeout(() => { window.location.href = `${loginUrl}?username=${u}&password=${p}` }, 1500)
-          }
-          clearInterval(pollInterval)
-        }
-      } catch {}
-    }, 4000)
-
-    return () => clearInterval(pollInterval)
-  }, [isTvDevice, tvMacVerified, tvSelectedDevice, routerId, loginUrl])
 
   // Phone validation
   const handlePhoneChange = (value: string) => {
@@ -1463,18 +1389,19 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     setError(null)
     setCountdown(120)
 
-    // IMPORTANT: Use the TV's MAC and Router if verified, else use current device
+    // IMPORTANT: Use the TV's MAC if verified, else use current device
     let finalMac = getMacAddress()
     let finalRouter = routerId
-    let finalTvCode = undefined
 
     if (targetDevice === "tv" && tvMacVerified) {
-        const macToUse = tvSelectedDevice ? tvSelectedDevice.mac : tvMacInput
-        // Normalize MAC format
-        finalMac = macToUse.toUpperCase().replace(/[^A-F0-9:]/gi, s => s === ':' ? ':' : '').includes(':') 
-          ? macToUse.toUpperCase() 
-          : macToUse.toUpperCase().replace(/(.{2})/g, '$1:').slice(0,-1)
-        finalTvCode = undefined
+      const rawMac = tvSelectedDevice ? tvSelectedDevice.mac : tvMacInput.trim()
+      // Normalize to AA:BB:CC:DD:EE:FF format
+      const stripped = rawMac.replace(/[^a-fA-F0-9]/g, '').toUpperCase()
+      if (stripped.length === 12) {
+        finalMac = stripped.match(/.{2}/g)!.join(':')
+      } else {
+        finalMac = rawMac.toUpperCase()
+      }
     }
 
     try {
@@ -1484,7 +1411,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
         phone_number: formatPhoneNumber(phoneNumber),
         mac_address: finalMac,
         tenant: getTenant(),
-        tv_code: finalTvCode
+        tv_code: undefined
       })
       setSessionId(result.session_id)
       setPaymentStatus("waiting")
@@ -1521,11 +1448,9 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     let finalRouter = routerId
 
     if (targetDevice === "tv" && tvMacVerified) {
-        finalMac = tvSelectedDevice ? tvSelectedDevice.mac : tvMacInput
-        // Normalize MAC format
-        finalMac = finalMac.toUpperCase().replace(/[^A-F0-9:]/gi, s => s === ':' ? ':' : '').includes(':') 
-          ? finalMac.toUpperCase() 
-          : finalMac.toUpperCase().replace(/(.{2})/g, '$1:').slice(0,-1)
+      const rawMac = tvSelectedDevice ? tvSelectedDevice.mac : tvMacInput.trim()
+      const stripped = rawMac.replace(/[^a-fA-F0-9]/g, '').toUpperCase()
+      finalMac = stripped.length === 12 ? stripped.match(/.{2}/g)!.join(':') : rawMac.toUpperCase()
     }
 
     // If voucher redemption succeeds, we treat it as a successful "payment"
@@ -1670,52 +1595,6 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       setAdGranting(false)
       setAdCompleted(false)
     }
-  }
-
-  // ==========================================
-  // RENDER: TV MODE SCREEN
-  // ==========================================
-  if (isTvDevice) {
-    // Show success screen if payment was made
-    if (tvPaymentStatus === "paid") {
-      return (
-        <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-8 text-white text-center">
-          <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-12 h-12 text-white" />
-          </div>
-          <h1 className="text-4xl font-bold mb-4">Connected!</h1>
-          <p className="text-xl text-gray-400 mb-8">Your TV now has internet access.</p>
-          {accessCode && (
-            <div className="bg-gray-900 rounded-xl p-4 mb-6">
-              <p className="text-sm text-gray-400 mb-1">Access Code</p>
-              <p className="text-2xl font-mono font-bold text-green-400">{accessCode}</p>
-            </div>
-          )}
-          {returningToRouter && (
-            <div className="flex items-center gap-2 text-blue-400">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Connecting to internet...</span>
-            </div>
-          )}
-        </div>
-      )
-    }
-
-    // Show pairing screen
-    return (
-      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-8 text-white text-center">
-        <Monitor className="w-20 h-20 text-blue-400 mb-6" />
-        <h1 className="text-3xl font-bold mb-3">Smart TV Detected</h1>
-        <p className="text-lg text-gray-400 mb-8 max-w-md">
-          To get internet on this TV, use your phone to pay. Connect your phone to this same WiFi, open the portal, and select "Pay for TV".
-        </p>
-        <div className="bg-gray-900 rounded-xl p-6 max-w-sm w-full text-left">
-          <p className="text-sm font-semibold text-gray-300 mb-3">Your TV's MAC address:</p>
-          <p className="text-xs text-gray-500 mb-1">Go to TV Settings → Network → MAC Address</p>
-          <p className="text-xs text-gray-500">You'll need this to verify your TV when paying from your phone.</p>
-        </div>
-      </div>
-    )
   }
 
   // ==========================================
@@ -2097,7 +1976,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             </button>
           </div>
 
-          {/* TV MAC VERIFICATION BLOCK (NEW) */}
+          {/* TV MAC VERIFICATION BLOCK */}
           {targetDevice === 'tv' && (
             <div className="mb-6 p-4 border rounded-xl bg-blue-50/50 border-blue-100">
               {!tvMacVerified ? (
