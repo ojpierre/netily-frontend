@@ -73,6 +73,10 @@ interface ActivityItem {
   timestamp: string
 }
 
+// ──────────────────────────────────────
+// HELPER FUNCTIONS
+// ──────────────────────────────────────
+
 // Helper: format currency
 function formatKSh(amount: number | string | undefined): string {
   const num = typeof amount === "string" ? parseFloat(amount) : amount || 0
@@ -105,6 +109,71 @@ function ChangeBadge({ value }: { value: number }) {
       {isPositive ? "+" : "-"}{absValue}%
     </Badge>
   )
+}
+
+// ─── Conversational Helpers ───
+
+// Dynamic greeting based on time of day
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return "Good morning"
+  if (hour < 17) return "Good afternoon"
+  if (hour < 21) return "Good evening"
+  return "Still up?"
+}
+
+// Get shift label
+function getShiftLabel(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return "MORNING SHIFT"
+  if (hour < 17) return "AFTERNOON SHIFT"
+  if (hour < 21) return "EVENING SHIFT"
+  return "LATE NIGHT"
+}
+
+// Human-sounding router status commentary
+function getRouterStatuscommentary(online: number, offline: number, warning: number, total: number): {
+  headline: string
+  subtext: string
+  urgency: "good" | "warn" | "critical"
+} {
+  if (total === 0) return { headline: "No routers added yet.", subtext: "Add your first router to get started.", urgency: "warn" }
+  if (offline === 0 && warning === 0) return { headline: "All routers healthy.", subtext: `${online} of ${total} online and running clean.`, urgency: "good" }
+  if (offline >= Math.ceil(total / 2)) return { headline: `${offline} router${offline > 1 ? "s" : ""} down.`, subtext: "More than half your fleet is offline — needs urgent attention.", urgency: "critical" }
+  if (offline > 0 && warning > 0) return { headline: `${offline} offline · ${warning} with warnings.`, subtext: "A few things need your attention.", urgency: "warn" }
+  if (offline > 0) return { headline: `${offline} router${offline > 1 ? "s are" : " is"} offline.`, subtext: "Worth checking before it affects your customers.", urgency: "warn" }
+  if (warning > 0) return { headline: `${warning} router${warning > 1 ? "s" : ""} flagged a warning.`, subtext: "Not critical yet, but keep an eye on it.", urgency: "warn" }
+  return { headline: "Everything looks good.", subtext: `${online} routers online, no issues flagged.`, urgency: "good" }
+}
+
+// Dynamic revenue commentary
+function getRevenueCommentary(
+  todayRevenue: number,
+  weekRevenue: number,
+  monthRevenue: number,
+  todayChange: number
+): { message: string; tone: "positive" | "neutral" | "low" } {
+  if (todayRevenue === 0) return { message: "No revenue recorded yet today. Payments usually pick up later in the day.", tone: "neutral" }
+  if (todayChange > 20) return { message: `Today's revenue is up ${todayChange}% — strong day so far.`, tone: "positive" }
+  if (todayChange > 0) return { message: `Slight uptick from yesterday. Consistent is good.`, tone: "positive" }
+  if (todayChange < -30) return { message: `Today looks quieter than usual. Worth monitoring.`, tone: "low" }
+  if (todayChange < 0) return { message: `A little slower than yesterday, but the month is still tracking.`, tone: "neutral" }
+  return { message: `Revenue is steady. Nothing alarming, nothing to celebrate yet.`, tone: "neutral" }
+}
+
+// Get attention items for the greeting card
+function getAttentionItems(
+  offlineRouters: number,
+  smsBalance: number | null,
+  openTickets: number,
+  expiredCount: number
+): string[] {
+  const items: string[] = []
+  if (offlineRouters > 0) items.push(`${offlineRouters} router${offlineRouters > 1 ? "s" : ""} offline`)
+  if (smsBalance !== null && smsBalance < 50) items.push("SMS credit low")
+  if (openTickets > 3) items.push(`${openTickets} open tickets`)
+  if (expiredCount > 20) items.push(`${expiredCount} expired subscriptions`)
+  return items
 }
 
 // ──────────────────────────────────────
@@ -275,22 +344,101 @@ export default function AdminDashboard() {
         }}
       />
 
-      {/* Header */}
-      <div className="flex items-center justify-between relative">
-        <div>
-          <h1 className="text-3xl font-bold tracking-[-0.03em] text-slate-900 dark:text-white">
-            Dashboard
-          </h1>
-          <p className="text-slate-500 mt-1">
-            Welcome back, {user?.first_name || user?.username || "Admin"}
-          </p>
+      {/* ─── Greeting Hero Card ─── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 via-orange-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border border-orange-100 dark:border-slate-800 p-6 shadow-sm">
+        {/* Subtle decorative blob */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-orange-200/30 to-transparent rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-amber-100/20 to-transparent rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" />
+
+        <div className="relative flex items-start justify-between gap-4 flex-wrap">
+          <div className="space-y-1">
+            {/* Shift label + online status */}
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase">{getShiftLabel()}</span>
+              <span className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                </span>
+                {(routers?.online_routers ?? 0)} ONLINE RIGHT NOW
+              </span>
+            </div>
+
+            {/* Greeting */}
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              {getGreeting()},{" "}
+              <span className="text-orange-500 italic font-extrabold">
+                {user?.first_name || user?.username || "there"}.
+              </span>
+            </h1>
+
+            {/* Attention items + contextual subtext */}
+            {(() => {
+              const items = getAttentionItems(
+                routers?.offline_routers ?? 0,
+                null, // wire up SMS balance later if needed
+                tickets?.open ?? 0,
+                expiredCount
+              )
+              return items.length > 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-lg mt-1">
+                  {items.join(" · ")} — a few things need a minute.
+                </p>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Everything looks clean. Have a good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}.
+                </p>
+              )
+            })()}
+
+            {/* Day context */}
+            <p className="text-xs text-slate-400 italic mt-2 flex items-center gap-1.5">
+              {new Date().getHours() >= 6 && new Date().getHours() < 20 ? "☀️" : "🌙"}
+              {new Date().toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long" })}
+            </p>
+          </div>
+
+          {/* Right side: quick refresh */}
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="rounded-xl bg-white/70 dark:bg-slate-800 border-orange-200 dark:border-slate-700">
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-        </div>
+
+        {/* ── Needs Attention Banner (only if issues exist) ── */}
+        {!loading && (routers?.offline_routers ?? 0) > 0 && (
+          <div className="relative mt-4 pt-4 border-t border-orange-100 dark:border-slate-700">
+            <p className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase mb-2">NEEDS YOUR ATTENTION</p>
+            <div className="flex flex-wrap gap-2">
+              {Array.from({ length: Math.min(routers?.offline_routers ?? 0, 3) }).map((_, i) => (
+                <Link key={i} href="/admin/routers?status=offline">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-100 transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
+                    Router offline
+                  </div>
+                </Link>
+              ))}
+              {(tickets?.open ?? 0) > 3 && (
+                <Link href="/admin/tickets?status=open">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                    {tickets?.open} open tickets
+                  </div>
+                </Link>
+              )}
+              {expiredCount > 20 && (
+                <Link href="/admin/users?status=expired">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
+                    {expiredCount} expired subs
+                  </div>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ─── Row 1: Key Metrics ─── */}
@@ -438,7 +586,7 @@ export default function AdminDashboard() {
 
       {/* ─── Row 2: Network & Revenue ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 relative">
-        {/* Router Status */}
+        {/* Router Status - Human language */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -461,51 +609,61 @@ export default function AdminDashboard() {
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                    <span className="text-sm font-medium">Online</span>
+            ) : (() => {
+              const commentary = getRouterStatuscommentary(
+                routers?.online_routers ?? 0,
+                routers?.offline_routers ?? 0,
+                routers?.warning_routers ?? 0,
+                routers?.total_routers ?? 0
+              )
+              return (
+                <div className="space-y-4">
+                  {/* Human headline */}
+                  <div className={`p-3 rounded-xl ${
+                    commentary.urgency === "good" ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900" :
+                    commentary.urgency === "critical" ? "bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900" :
+                    "bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900"
+                  }`}>
+                    <p className={`text-sm font-semibold ${
+                      commentary.urgency === "good" ? "text-emerald-800 dark:text-emerald-300" :
+                      commentary.urgency === "critical" ? "text-red-800 dark:text-red-300" :
+                      "text-amber-800 dark:text-amber-300"
+                    }`}>{commentary.headline}</p>
+                    <p className={`text-xs mt-0.5 ${
+                      commentary.urgency === "good" ? "text-emerald-600 dark:text-emerald-400" :
+                      commentary.urgency === "critical" ? "text-red-600 dark:text-red-400" :
+                      "text-amber-600 dark:text-amber-400"
+                    }`}>{commentary.subtext}</p>
                   </div>
-                  <span className="text-lg font-bold text-green-600">
-                    {routers?.online_routers ?? 0}
-                  </span>
+
+                  {/* Status pills */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="flex flex-col items-center p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                      <span className="text-xl font-bold text-emerald-600">{routers?.online_routers ?? 0}</span>
+                      <span className="text-[10px] text-slate-400 font-medium mt-0.5">Online</span>
+                    </div>
+                    <div className="flex flex-col items-center p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                      <span className="text-xl font-bold text-red-600">{routers?.offline_routers ?? 0}</span>
+                      <span className="text-[10px] text-slate-400 font-medium mt-0.5">Offline</span>
+                    </div>
+                    <div className="flex flex-col items-center p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                      <span className="text-xl font-bold text-amber-600">{(routers?.warning_routers ?? 0) + (routers?.maintenance_routers ?? 0)}</span>
+                      <span className="text-[10px] text-slate-400 font-medium mt-0.5">Flagged</span>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between text-sm border-t border-slate-100 dark:border-slate-800 pt-3">
+                    <span className="text-slate-500">{routers?.total_routers ?? 0} total routers</span>
+                    <span className="text-xs text-slate-400">{routers?.total_connected_users ?? 0} users connected</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                    <span className="text-sm font-medium">Offline</span>
-                  </div>
-                  <span className="text-lg font-bold text-red-600">
-                    {routers?.offline_routers ?? 0}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                    <span className="text-sm font-medium">Warning / Maintenance</span>
-                  </div>
-                  <span className="text-lg font-bold text-amber-600">
-                    {(routers?.warning_routers ?? 0) + (routers?.maintenance_routers ?? 0)}
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-500">Total Routers</span>
-                    <span className="font-semibold">{routers?.total_routers ?? 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm mt-1">
-                    <span className="text-slate-500">Connected Users</span>
-                    <span className="font-semibold">{routers?.total_connected_users ?? 0}</span>
-                  </div>
-                </div>
-              </div>
-            )}
+              )
+            })()}
           </CardContent>
         </Card>
 
-        {/* Revenue Card */}
+        {/* Revenue Card - Human language */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -529,56 +687,70 @@ export default function AdminDashboard() {
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
               </div>
-            ) : (
-              <div className="space-y-2">
-                {/* Today */}
-                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/30">
-                  <div>
-                    <p className="text-[10px] font-semibold tracking-[0.08em] text-blue-400 uppercase">Today</p>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
-                      {formatKSh(data.reports?.overview?.today_revenue ?? payments?.amount_today)}
-                    </p>
-                  </div>
-                  {(data.reports?.overview?.today_change ?? 0) !== 0 && (
-                    <ChangeBadge value={data.reports?.overview?.today_change ?? 0} />
-                  )}
-                </div>
+            ) : (() => {
+              const todayRev = parseFloat(String(data.reports?.overview?.today_revenue ?? payments?.amount_today ?? 0))
+              const weekRev = parseFloat(String(data.reports?.overview?.week_revenue ?? 0))
+              const monthRev = parseFloat(String(data.reports?.overview?.month_revenue ?? payments?.amount_this_month ?? 0))
+              const todayChange = data.reports?.overview?.today_change ?? 0
+              const commentary = getRevenueCommentary(todayRev, weekRev, monthRev, todayChange)
+              return (
+                <div className="space-y-2">
+                  {/* Human revenue commentary */}
+                  <p className={`text-xs px-1 pb-1 ${
+                    commentary.tone === "positive" ? "text-emerald-600 dark:text-emerald-400" :
+                    commentary.tone === "low" ? "text-amber-600 dark:text-amber-400" :
+                    "text-slate-500 dark:text-slate-400"
+                  }`}>
+                    {commentary.message}
+                  </p>
 
-                {/* This week */}
-                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
-                  <div>
-                    <p className="text-[10px] font-semibold tracking-[0.08em] text-green-500 uppercase">This week</p>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
-                      {formatKSh(data.reports?.overview?.week_revenue ?? 0)}
-                    </p>
+                  {/* Today */}
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/30">
+                    <div>
+                      <p className="text-[10px] font-semibold tracking-[0.08em] text-blue-400 uppercase">Today</p>
+                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                        {formatKSh(todayRev)}
+                      </p>
+                    </div>
+                    {todayChange !== 0 && <ChangeBadge value={todayChange} />}
                   </div>
-                  {(data.reports?.overview?.week_change ?? 0) !== 0 && (
-                    <ChangeBadge value={data.reports?.overview?.week_change ?? 0} />
-                  )}
-                </div>
 
-                {/* This month */}
-                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
-                  <div>
-                    <p className="text-[10px] font-semibold tracking-[0.08em] text-amber-500 uppercase">This month</p>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
-                      {formatKSh(data.reports?.overview?.month_revenue ?? payments?.amount_this_month)}
-                    </p>
+                  {/* This week */}
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
+                    <div>
+                      <p className="text-[10px] font-semibold tracking-[0.08em] text-green-500 uppercase">This week</p>
+                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                        {formatKSh(weekRev)}
+                      </p>
+                    </div>
+                    {(data.reports?.overview?.week_change ?? 0) !== 0 && (
+                      <ChangeBadge value={data.reports?.overview?.week_change ?? 0} />
+                    )}
                   </div>
-                  {(data.reports?.overview?.month_change ?? 0) !== 0 && (
-                    <ChangeBadge value={data.reports?.overview?.month_change ?? 0} />
-                  )}
-                </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium tracking-[0.02em] pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <span>Transactions today</span>
-                  <span className="font-medium text-slate-600 dark:text-slate-300">
-                    {data.reports?.overview?.total_transactions_today ?? payments?.payments_today ?? 0}
-                  </span>
+                  {/* This month */}
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
+                    <div>
+                      <p className="text-[10px] font-semibold tracking-[0.08em] text-amber-500 uppercase">This month</p>
+                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                        {formatKSh(monthRev)}
+                      </p>
+                    </div>
+                    {(data.reports?.overview?.month_change ?? 0) !== 0 && (
+                      <ChangeBadge value={data.reports?.overview?.month_change ?? 0} />
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium tracking-[0.02em] pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <span>Transactions today</span>
+                    <span className="font-medium text-slate-600 dark:text-slate-300">
+                      {data.reports?.overview?.total_transactions_today ?? payments?.payments_today ?? 0}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
           </CardContent>
         </Card>
 
