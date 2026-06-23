@@ -72,6 +72,26 @@ function getTenantSubdomain(hostname: string): string | null {
   return null
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  SEO: X-ROBOTS-TAG
+//  Prevent tenant subdomains (*.netily.co.ke) and custom tenant domains from
+//  being indexed by search engines. Only the root marketing domain is indexable.
+//  This avoids crawl budget waste, duplicate content, and private data leaks.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function withNoIndexIfTenant(response: ReturnType<typeof NextResponse.next>, hostname: string) {
+  const host = hostname.split(':')[0].toLowerCase()
+  const isRootDomain =
+    ROOT_DOMAINS.has(host) ||
+    host === 'www.netily.co.ke' ||
+    host === 'www.netily.io' ||
+    host === 'www.netily.com'
+  if (!isRootDomain) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet')
+  }
+  return response
+}
+
 // Paths that should pass through untouched even on tenant subdomains
 const TENANT_PASSTHROUGH_PREFIXES = [
   '/_next/',
@@ -118,6 +138,8 @@ export function proxy(request: NextRequest) {
       // Root '/' or any marketing page on a tenant subdomain → admin login
       return NextResponse.redirect(new URL('/admin/login', request.url), { status: 302 })
     }
+    // Passthrough on tenant subdomain — suppress indexing
+    return withNoIndexIfTenant(NextResponse.next(), hostname)
   }
 
   // ── 2. Cookie-based auth tokens ───────────────────────────────────────────
@@ -196,7 +218,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  return NextResponse.next()
+  return withNoIndexIfTenant(NextResponse.next(), hostname)
 }
 
 export const config = {

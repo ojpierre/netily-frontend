@@ -469,7 +469,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                 <CardFooter className="flex flex-col items-stretch gap-4 pt-4 border-t border-slate-100">
                   {/* Trial expired - needs payment */}
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-3">
-                    <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                    <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-red-800">
                         Trial Expired
@@ -548,7 +548,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
             const dueDate = new Date(subscription.current_period_end).toLocaleDateString(undefined, {
               day: "numeric", month: "long", year: "numeric",
             })
-            const planAmount = subscription.plan?.base_price ?? subscription.plan?.price ?? null
+            const planAmount = subscription.plan?.base_license_fee ?? subscription.plan?.price_monthly ?? null
             return (
               <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-4">
                 <span className="text-amber-500 mt-0.5">⏰</span>
@@ -780,7 +780,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
             ))}
 
             {/* Enterprise & Custom — single card for all non-metered plans */}
-            <Card className="border-slate-800 bg-gradient-to-br from-slate-900 to-blue-950 text-white transition-all hover:shadow-xl col-span-1 sm:col-span-1 lg:col-span-2">
+            <Card className="border-slate-800 bg-linear-to-br from-slate-900 to-blue-950 text-white transition-all hover:shadow-xl col-span-1 sm:col-span-1 lg:col-span-2">
               <CardHeader>
                 <div className="flex justify-between items-start mb-2">
                   <CardTitle className="text-lg text-white flex items-center gap-2">
@@ -1039,7 +1039,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
               <Card className="border-slate-200 bg-slate-50/50">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
                       <Clock className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>

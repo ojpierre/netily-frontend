@@ -330,7 +330,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   N
                 </div>
               )}
-              <span className="block w-40 whitespace-normal break-words text-sm font-bold leading-tight text-slate-900 dark:text-white tracking-tight">
+              <span className="block w-40 whitespace-normal wrap-break-word text-sm font-bold leading-tight text-slate-900 dark:text-white tracking-tight">
                 {companyName}
               </span>
             </Link>
@@ -378,7 +378,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                               transition={{ type: "spring", stiffness: 420, damping: 34 }}
                             />
                           )}
-                          <item.icon className="relative z-10 w-[18px] h-[18px] flex-shrink-0" />
+                          <item.icon className="relative z-10 w-[18px] h-[18px] shrink-0" />
                           {!sidebarCollapsed && (
                             <span className="relative z-10 font-medium">{item.name}</span>
                           )}
@@ -419,7 +419,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                           transition={{ type: "spring", stiffness: 420, damping: 34 }}
                         />
                       )}
-                      <item.icon className="relative z-10 w-[18px] h-[18px] flex-shrink-0" />
+                      <item.icon className="relative z-10 w-[18px] h-[18px] shrink-0" />
                       {!sidebarCollapsed && (
                         <span className="relative z-10 font-medium">{item.name}</span>
                       )}

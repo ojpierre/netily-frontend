@@ -29,7 +29,7 @@ export function RoleGuard({ allowedRoles, allowedDepartments, areaLabel = "this 
   return (
     <div className="mx-auto flex min-h-[55vh] max-w-2xl items-center justify-center">
       <div className="w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 px-8 py-7 text-white">
+        <div className="bg-linear-to-br from-slate-950 via-slate-900 to-blue-950 px-8 py-7 text-white">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15">
             <LockKeyhole className="h-6 w-6" />
           </div>

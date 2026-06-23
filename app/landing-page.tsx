@@ -141,7 +141,7 @@ function InfiniteMarquee() {
             key={i}
             className="flex w-[260px] shrink-0 items-start gap-3 rounded-2xl border border-slate-200/80 bg-white/90 p-4 text-left shadow-sm shadow-slate-900/5 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80"
           >
-            <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${item.accent}`}>
+            <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br ${item.accent}`}>
               <item.icon className="h-5 w-5" />
             </div>
             <div className="min-w-0">
@@ -257,7 +257,7 @@ function OperationsShowcaseSection() {
             <Reveal key={signal.title} delay={index * 0.08}>
               <article className="rounded-[30px] border border-slate-200/80 bg-white/95 p-6 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900/90">
                 <div className="flex items-start justify-between gap-4">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${signal.accent}`}>
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br ${signal.accent}`}>
                     <signal.icon className="h-5 w-5" />
                   </div>
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400 dark:border-slate-700 dark:bg-slate-800">
@@ -267,7 +267,7 @@ function OperationsShowcaseSection() {
                 <p className="mt-5 text-lg font-semibold text-slate-900 dark:text-white">{signal.title}</p>
                 <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{signal.body}</p>
                 <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                  <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-blue-500 via-sky-500 to-emerald-400" />
+                  <div className="h-full w-2/3 rounded-full bg-linear-to-r from-blue-500 via-sky-500 to-emerald-400" />
                 </div>
               </article>
             </Reveal>
@@ -353,7 +353,7 @@ function OperatingJourneySection({ scrollTo }: { scrollTo: (id: string) => void 
           {stages.map((stage, index) => (
             <Reveal key={stage.title} delay={index * 0.08}>
               <article className="h-full rounded-[28px] border border-slate-200/80 bg-white/95 p-6 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900/90">
-                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${stage.accent}`}>
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-linear-to-br ${stage.accent}`}>
                   <stage.icon className="h-5 w-5" />
                 </div>
                 <p className="mt-5 text-xl font-semibold text-slate-900 dark:text-white">{stage.title}</p>
@@ -364,7 +364,7 @@ function OperatingJourneySection({ scrollTo }: { scrollTo: (id: string) => void 
         </div>
 
         <Reveal delay={0.2}>
-          <div className="mt-10 rounded-[32px] border border-slate-200/80 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 p-8 text-white shadow-xl shadow-slate-900/10 dark:border-slate-700">
+          <div className="mt-10 rounded-4xl border border-slate-200/80 bg-linear-to-r from-slate-900 via-blue-950 to-slate-900 p-8 text-white shadow-xl shadow-slate-900/10 dark:border-slate-700">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-2xl">
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-blue-200">Designed for momentum</p>
@@ -442,11 +442,11 @@ function AnimatedCounter({ value, suffix = "" }: { value: number; suffix?: strin
 function DashboardMockup() {
   return (
     <div className="relative mx-auto mt-12 max-w-6xl">
-      <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-purple-500/20 blur-3xl opacity-60" />
+      <div className="absolute -inset-4 rounded-3xl bg-linear-to-r from-blue-500/20 via-indigo-500/20 to-purple-500/20 blur-3xl opacity-60" />
       <div className="mb-6 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
         <div className="rounded-[28px] border border-white/70 bg-white/90 p-4 shadow-2xl shadow-slate-900/10 backdrop-blur dark:border-slate-700 dark:bg-slate-900/85">
           <div className="grid gap-4 sm:grid-cols-[168px_1fr] sm:items-center">
-            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
+            <div className="relative aspect-4/3 overflow-hidden rounded-2xl">
               <Image
                 src={HERO_SUPPORT_PHOTO}
                 alt="Support desk setup for internet service operations"
@@ -468,7 +468,7 @@ function DashboardMockup() {
         </div>
         <div className="rounded-[28px] border border-white/70 bg-slate-950/92 p-4 text-white shadow-2xl shadow-blue-950/20 backdrop-blur dark:border-slate-700">
           <div className="grid gap-4 sm:grid-cols-[152px_1fr] sm:items-center">
-            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
+            <div className="relative aspect-4/3 overflow-hidden rounded-2xl">
               <Image
                 src={HERO_NETWORK_PHOTO}
                 alt="Network infrastructure and wireless internet equipment"
@@ -486,7 +486,7 @@ function DashboardMockup() {
                   <span className="font-semibold text-emerald-300">89 / 92</span>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                  <div className="h-full w-[97%] rounded-full bg-gradient-to-r from-blue-400 to-emerald-400" />
+                  <div className="h-full w-[97%] rounded-full bg-linear-to-r from-blue-400 to-emerald-400" />
                 </div>
                 <p className="text-xs leading-relaxed text-slate-400">
                   Provisioning, session enforcement, and cash collection stay aligned across the live network.
@@ -571,7 +571,7 @@ function DashboardMockup() {
                 <div className="flex items-end gap-2 h-28">
                   {[45, 62, 38, 75, 58, 90, 82].map((h, i) => (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <div className="w-full rounded-t-sm bg-gradient-to-t from-blue-600 to-blue-400" style={{ height: `${h}%` }} />
+                      <div className="w-full rounded-t-sm bg-linear-to-t from-blue-600 to-blue-400" style={{ height: `${h}%` }} />
                       <span className="text-[8px] text-slate-400">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i]}</span>
                     </div>
                   ))}
@@ -769,8 +769,8 @@ function HeroSlider({ scrollTo }: { scrollTo: (id: string) => void }) {
             className="object-cover object-center"
           />
           {/* Layered gradient overlay */}
-          <div className={`absolute inset-0 bg-gradient-to-r ${s.overlay}`} />
-          <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent" />
+          <div className={`absolute inset-0 bg-linear-to-r ${s.overlay}`} />
+          <div className="absolute inset-x-0 bottom-0 h-64 bg-linear-to-t from-slate-950/90 via-slate-950/40 to-transparent" />
         </motion.div>
       ))}
 
@@ -1291,7 +1291,7 @@ export function LandingPage() {
                   <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{stat.detail}</p>
                   <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-blue-500 via-sky-500 to-emerald-400"
+                      className="h-full rounded-full bg-linear-to-r from-blue-500 via-sky-500 to-emerald-400"
                       style={{ width: `${Math.min(stat.value, 100)}%` }}
                     />
                   </div>
@@ -1623,7 +1623,7 @@ export function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-6 mb-8">
             {/* Metered — links to calculator */}
             <Reveal>
-              <div className="h-full rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-blue-950 border border-blue-200 dark:border-blue-800 p-8 md:p-10 shadow-sm hover:shadow-lg transition-shadow flex flex-col justify-between">
+              <div className="h-full rounded-2xl bg-linear-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-blue-950 border border-blue-200 dark:border-blue-800 p-8 md:p-10 shadow-sm hover:shadow-lg transition-shadow flex flex-col justify-between">
                 <div>
                   <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider mb-6">
                     <Clock className="w-3.5 h-3.5" />
@@ -1671,7 +1671,7 @@ export function LandingPage() {
 
             {/* Enterprise & Custom — replaces old flat-tier grid */}
             <Reveal delay={0.15}>
-              <div className="h-full rounded-2xl bg-gradient-to-br from-slate-900 to-blue-950 border border-blue-700/50 p-8 md:p-10 shadow-xl relative overflow-hidden flex flex-col">
+              <div className="h-full rounded-2xl bg-linear-to-br from-slate-900 to-blue-950 border border-blue-700/50 p-8 md:p-10 shadow-xl relative overflow-hidden flex flex-col">
                 {/* Decorative glow */}
                 <div className="absolute top-0 right-0 w-56 h-56 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/4 translate-x-1/4 pointer-events-none" />
                 <div className="relative z-10 flex flex-col h-full">
@@ -1943,7 +1943,7 @@ export function LandingPage() {
               return (
                 <Reveal key={post.slug} delay={i * 0.1}>
                   <article className="group flex flex-col bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full">
-                    <div className={`h-36 bg-gradient-to-br ${gradient} relative overflow-hidden flex items-end p-5`}>
+                    <div className={`h-36 bg-linear-to-br ${gradient} relative overflow-hidden flex items-end p-5`}>
                       <Image
                         src={post.coverImage}
                         alt={post.coverImageAlt}
@@ -1951,7 +1951,7 @@ export function LandingPage() {
                         sizes="(max-width: 768px) 100vw, 33vw"
                         className="object-cover opacity-70 transition duration-500 group-hover:scale-105"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-900/35 to-slate-900/10" />
+                      <div className="absolute inset-0 bg-linear-to-t from-slate-950/85 via-slate-900/35 to-slate-900/10" />
                       <span className="relative text-xs font-semibold px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white border border-white/30">
                         {post.category}
                       </span>
@@ -2228,7 +2228,7 @@ export function LandingPage() {
       <footer className="relative bg-slate-900 text-white overflow-hidden">
         {/* Giant background typography */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
-          <span className="text-[18vw] md:text-[16vw] font-black tracking-tighter text-white/[0.03] whitespace-nowrap leading-none">
+          <span className="text-[18vw] md:text-[16vw] font-black tracking-tighter text-white/3 whitespace-nowrap leading-none">
             NETILY
           </span>
         </div>

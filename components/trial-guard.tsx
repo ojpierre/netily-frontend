@@ -479,7 +479,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
 
                     {paymentError && (
                       <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                        <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                        <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
                         <p className="text-xs text-red-700 dark:text-red-400">{paymentError}</p>
                       </div>
                     )}
