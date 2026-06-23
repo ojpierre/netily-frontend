@@ -519,64 +519,80 @@ export default function UsersPage() {
     }
   }
 
-  // FIX 5: loadExpiredUsersFromRADIUS - lazy load with single request
+  // FIX 5: loadExpiredUsersFromRADIUS - lazy load with single request and expired_only filter
   const loadExpiredUsersFromRADIUS = async () => {
     if (expiredUsersLoading) return
     try {
       setExpiredUsersLoading(true)
+      console.log('🔄 Loading expired users...')
       
-      // Single request - use backend filter if available
+      // Use the expired_only filter for server-side filtering
       const res = await adminApi.getRADIUSCredentials({
         page_size: "200",
         page: "1",
+        expired_only: "true",
       })
       
-      const nowDate = new Date()
-      const expired = (res.results || []).filter(
-        (c) => c.expiration_date && new Date(c.expiration_date) <= nowDate
-      )
-
-      const mapped: User[] = expired.map((cred) => ({
-        id: cred.customer_code || `CRED-${cred.id}`,
-        customerId: parseInt(String(cred.customer)),
-        serviceId: null,
-        billingAccountNumber: undefined,
-        name: cred.customer_name || "Unknown",
-        email: "",
-        phone: "",
-        location: "",
-        status: "expired" as UserStatus,
-        serviceStatus: "ACTIVE",
-        connectionStatus: "offline" as const,
-        type: "pppoe" as UserType,
-        plan: cred.profile_name || "No Plan",
-        planPrice: 0,
-        joinedDate: cred.created_at,
-        expiryDate: cred.expiration_date || "",
-        lastOnline: "N/A",
-        dataUsed: 0,
-        dataLimit: null,
-        macAddress: undefined,
-        ipAddress: undefined,
-        router: cred.router_name || "",
-        downloadSpeed: 0,
-        uploadSpeed: 0,
-        loyaltyPoints: 0,
-        balance: 0,
-        radiusCredentials: {
-          id: String(cred.id),
-          username: cred.username,
-          password: "",
-          is_enabled: cred.is_enabled,
-          connection_type: cred.connection_type,
-          expiration_date: cred.expiration_date,
-          synced_to_radius: cred.synced_to_radius,
-        },
-      }))
-
+      console.log('📊 Expired API response:', res)
+      console.log('📊 Count:', res.count)
+      console.log('📊 Results length:', res.results?.length)
+      
+      // Check if we have results
+      if (!res.results || res.results.length === 0) {
+        console.warn('⚠️ No expired credentials found in API response')
+        setExpiredUsers([])
+        return
+      }
+      
+      // Map the credentials to User objects
+      const mapped = res.results.map((cred) => {
+        console.log('📝 Mapping credential:', cred.id, cred.username, cred.expiration_date)
+        
+        return {
+          id: cred.customer_code || `CRED-${cred.id}`,
+          customerId: parseInt(String(cred.customer)),
+          serviceId: null,
+          billingAccountNumber: undefined,
+          name: cred.customer_name || "Unknown",
+          email: "",
+          phone: "",
+          location: "",
+          status: "expired" as UserStatus,
+          serviceStatus: "ACTIVE",
+          connectionStatus: "offline" as const,
+          type: "pppoe" as UserType,
+          plan: cred.profile_name || "No Plan",
+          planPrice: 0,
+          joinedDate: cred.created_at || new Date().toISOString(),
+          expiryDate: cred.expiration_date || "",
+          lastOnline: "N/A",
+          dataUsed: 0,
+          dataLimit: null,
+          macAddress: undefined,
+          ipAddress: undefined,
+          router: cred.router_name || "",
+          downloadSpeed: 0,
+          uploadSpeed: 0,
+          loyaltyPoints: 0,
+          balance: 0,
+          radiusCredentials: {
+            id: String(cred.id),
+            username: cred.username,
+            password: "",
+            is_enabled: cred.is_enabled,
+            connection_type: cred.connection_type,
+            expiration_date: cred.expiration_date,
+            synced_to_radius: cred.synced_to_radius,
+          },
+        }
+      })
+      
+      console.log('✅ Mapped expired users:', mapped.length)
       setExpiredUsers(mapped)
+      
     } catch (err) {
-      console.error("Failed to load expired users from RADIUS:", err)
+      console.error('❌ Failed to load expired users from RADIUS:', err)
+      setExpiredUsers([])
     } finally {
       setExpiredUsersLoading(false)
     }
@@ -619,6 +635,7 @@ export default function UsersPage() {
   // Trigger expired load when filter changes
   useEffect(() => {
     if (statusFilter === "expired") {
+      console.log('🔄 Status filter changed to expired, loading expired users...')
       loadExpiredUsersFromRADIUS()
     }
   }, [statusFilter])
@@ -1163,6 +1180,7 @@ export default function UsersPage() {
   // FIX 5: filteredUsers uses expiredUsers when filter is expired
   const filteredUsers = useMemo(() => {
     if (statusFilter === "expired") {
+      console.log('🔍 Filtering expired users, count:', expiredUsers.length)
       if (!searchQuery.trim()) return expiredUsers
       const q = searchQuery.toLowerCase()
       return expiredUsers.filter(
@@ -2220,7 +2238,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Stats Cards - FIXED HYBRID CARD */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
         <Card className={`cursor-pointer hover:shadow-md transition-shadow ${statusFilter === 'all' && activeTab === 'all' ? 'ring-2 ring-slate-400' : ''}`} onClick={() => { setActiveTab("all"); setStatusFilter("all"); }}>
           <CardContent className="p-3">
