@@ -1132,7 +1132,7 @@ export default function UsersPage() {
       online: onlineCount,
       pppoe: totalCount,
       static: 0,
-      hotspot: activeHotspotCount + activePPPoECount,
+      hotspot: activeHotspotCount, 
       totalActiveSubs,
     }
   }, [totalCount, serverStatusCounts, serverStats.expired, onlineTotal, onlineSessions, activeSubscriptions])
