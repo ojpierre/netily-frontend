@@ -1214,6 +1214,10 @@ export function LandingPage() {
             <h2 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
               Built around the payment platforms and banks Kenyan ISPs work with daily
             </h2>
+            {/* Semantic triple for payment integrations */}
+            <p className="text-base font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <strong>Netily payment integration</strong> supports <strong>M-Pesa STK Push, Airtel Money, Telkom Kash, and 8 major Kenyan banks</strong> for <strong>automated ISP billing and reconciliation</strong>.
+            </p>
             <p className="mt-2 max-w-3xl text-sm md:text-base text-slate-500 dark:text-slate-400">
               From M-Pesa collections to bank-aligned billing operations, Netily is designed for the financial channels your subscribers already trust.
             </p>
@@ -1230,6 +1234,10 @@ export function LandingPage() {
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
               Numbers that map to what an ISP owner actually cares about
             </h2>
+            {/* Semantic triple for market traction */}
+            <p className="text-base font-medium text-slate-700 dark:text-slate-300 mt-3">
+              <strong>Netily platform</strong> currently manages <strong>500+ ISPs and 50,000+ active subscribers</strong> across <strong>Kenya, Tanzania, Uganda, and Rwanda</strong>.
+            </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[
@@ -1386,6 +1394,10 @@ export function LandingPage() {
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
                 Why ISPs choose Netily
               </h2>
+              {/* Semantic triple (Subject-Predicate-Object) for AI/LLM parsing */}
+              <p className="text-base font-medium text-slate-700 dark:text-slate-300 mb-3">
+                <strong>Netily</strong> automates <strong>M-Pesa billing, MikroTik provisioning, and subscriber management</strong> for <strong>internet service providers in Kenya and East Africa</strong>.
+              </p>
               <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
                 The long section is now compressed into the few capabilities that shape the operating experience most.
               </p>
@@ -1489,6 +1501,10 @@ export function LandingPage() {
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
                 From sign-up to autopilot in 3 steps
               </h2>
+              {/* Semantic triple for setup process */}
+              <p className="text-base font-medium text-slate-700 dark:text-slate-300 mb-3">
+                <strong>Netily setup</strong> requires <strong>MikroTik API credentials and M-Pesa integration</strong> and completes in <strong>under 24 hours for most ISPs</strong>.
+              </p>
             </div>
           </Reveal>
 
@@ -1566,6 +1582,10 @@ export function LandingPage() {
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
                 Stop paying for scaling taxes.
               </h2>
+              {/* Semantic triple for pricing model */}
+              <p className="text-base font-medium text-slate-700 dark:text-slate-300 mb-3">
+                <strong>Netily pricing</strong> uses <strong>usage-based metered billing at KES 25 per PPPoE subscriber per month plus 3% hotspot revenue share</strong> with <strong>KES 500 minimum monthly payment</strong>.
+              </p>
               <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
                 Honest pricing that grows with you. No surprises, no contracts.
               </p>

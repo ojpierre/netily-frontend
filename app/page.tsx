@@ -35,6 +35,22 @@ export const metadata: Metadata = {
     "isp management system with mikrotik api",
     "mikrotik isp management software",
     "isp management",
+    // ── 2026-specific keywords ────────────────────────
+    "isp billing software kenya 2026",
+    "best isp management software 2026",
+    "isp automation software 2026",
+    "cloud isp billing 2026",
+    "ai-powered isp billing 2026",
+    "modern isp management platform 2026",
+    "next-gen isp billing kenya 2026",
+    "isp saas platform 2026",
+    "isp billing automation 2026",
+    "smart isp management 2026",
+    "isp revenue optimization 2026",
+    "fiber isp billing 2026",
+    "wisp billing software 2026",
+    "5g isp billing kenya 2026",
+    "starlink isp billing kenya 2026",
     // ── Branded & geo ─────────────────────────────────
     "ISP billing software Kenya",
     "ISP management software Kenya 2026",
@@ -67,6 +83,22 @@ export const metadata: Metadata = {
     "East Africa ISP SaaS",
     "affordable ISP billing software Africa",
     "free trial ISP software",
+    // ── Emerging tech & trends 2026 ──────────────────
+    "ai isp billing kenya",
+    "machine learning isp churn prediction",
+    "predictive isp analytics 2026",
+    "isp revenue forecasting software",
+    "automated isp customer retention",
+    "isp business intelligence 2026",
+    "isp data analytics platform kenya",
+    "isp ml-powered billing",
+    "smart isp operations 2026",
+    "isp digital transformation kenya",
+    "cloud-native isp platform",
+    "kubernetes isp deployment",
+    "serverless isp billing",
+    "api-first isp management",
+    "headless isp billing cms",
     // ── Competitor comparisons ────────────────────────
     "Splynx alternative Kenya",
     "WHMCS alternative ISP Africa",
@@ -75,6 +107,9 @@ export const metadata: Metadata = {
     "better than Splynx for Kenya ISP",
     "affordable Splynx alternative East Africa",
     "ISP billing software better than Splynx",
+    "Splynx alternative 2026",
+    "modern splynx competitor",
+    "splynx replacement kenya",
     // ── Vertical / use-case ───────────────────────────
     "school WiFi billing software Kenya",
     "hotel WiFi billing system Kenya",
@@ -360,6 +395,294 @@ const faqSchema = {
   ],
 }
 
+// ─── LocalBusiness Schema (2026) — Enhanced GEO targeting ──────────────────────
+const localBusinessSchema = {
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "@id": "https://netily.co.ke/#business",
+  name: "Netily",
+  alternateName: "Netily ISP Billing Software",
+  description: "Cloud-based ISP billing and management platform for Kenya and East Africa. Automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, and hotspot billing for internet service providers.",
+  url: "https://netily.co.ke",
+  telephone: "+254-700-000-000",
+  email: "hello@netily.co.ke",
+  foundingDate: "2024",
+  foundingLocation: {
+    "@type": "Place",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Nairobi",
+      addressRegion: "Nairobi County",
+      addressCountry: "KE",
+    },
+  },
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Nairobi",
+    addressRegion: "Nairobi County",
+    addressCountry: "KE",
+  },
+  geo: {
+    "@type": "GeoCoordinates",
+    latitude: "-1.286389",
+    longitude: "36.817223",
+  },
+  areaServed: [
+    { "@type": "Country", name: "Kenya", "@id": "https://www.wikidata.org/wiki/Q114" },
+    { "@type": "Country", name: "Tanzania", "@id": "https://www.wikidata.org/wiki/Q924" },
+    { "@type": "Country", name: "Uganda", "@id": "https://www.wikidata.org/wiki/Q1036" },
+    { "@type": "Country", name: "Rwanda", "@id": "https://www.wikidata.org/wiki/Q1037" },
+    { "@type": "City", name: "Nairobi", containedInPlace: "Kenya" },
+    { "@type": "City", name: "Mombasa", containedInPlace: "Kenya" },
+    { "@type": "City", name: "Kisumu", containedInPlace: "Kenya" },
+    { "@type": "City", name: "Nakuru", containedInPlace: "Kenya" },
+    { "@type": "City", name: "Eldoret", containedInPlace: "Kenya" },
+    { "@type": "City", name: "Thika", containedInPlace: "Kenya" },
+    { "@type": "City", name: "Kampala", containedInPlace: "Uganda" },
+    { "@type": "City", name: "Dar es Salaam", containedInPlace: "Tanzania" },
+    { "@type": "City", name: "Kigali", containedInPlace: "Rwanda" },
+  ],
+  sameAs: [
+    "https://x.com/netily",
+    "https://linkedin.com/company/netily",
+    "https://facebook.com/netily",
+    "https://instagram.com/netily",
+    "https://github.com/netily",
+  ],
+  logo: {
+    "@type": "ImageObject",
+    url: "https://netily.co.ke/logo.png",
+    width: "512",
+    height: "512",
+  },
+  image: {
+    "@type": "ImageObject",
+    url: "https://netily.co.ke/og-image.svg",
+    width: "1200",
+    height: "630",
+  },
+  priceRange: "KES 500 - KES 50000",
+  paymentAccepted: ["M-Pesa", "Airtel Money", "Telkom Kash", "Bank Transfer", "Credit Card"],
+  currenciesAccepted: "KES",
+  openingHours: "Mo-Fr 08:00-18:00",
+  openingHoursSpecification: [
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      opens: "08:00",
+      closes: "18:00",
+    },
+  ],
+  contactPoint: [
+    {
+      "@type": "ContactPoint",
+      telephone: "+254-700-000-000",
+      contactType: "customer support",
+      email: "support@netily.co.ke",
+      areaServed: "KE",
+      availableLanguage: ["English", "Swahili"],
+      hoursAvailable: {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        opens: "08:00",
+        closes: "18:00",
+      },
+    },
+    {
+      "@type": "ContactPoint",
+      telephone: "+254-700-000-000",
+      contactType: "sales",
+      email: "sales@netily.co.ke",
+      areaServed: ["KE", "TZ", "UG", "RW"],
+      availableLanguage: ["English", "Swahili"],
+    },
+    {
+      "@type": "ContactPoint",
+      contactType: "technical support",
+      email: "support@netily.co.ke",
+      areaServed: ["KE", "TZ", "UG", "RW"],
+      availableLanguage: ["English", "Swahili"],
+    },
+  ],
+  makesOffer: [
+    {
+      "@type": "Offer",
+      name: "Starter Plan — ISP Billing Software",
+      description: "Usage-based metered billing for small to medium ISPs. KES 500 activation + KES 25/PPPoE subscriber + 3% hotspot revenue share.",
+      price: "500",
+      priceCurrency: "KES",
+      priceSpecification: {
+        "@type": "UnitPriceSpecification",
+        price: "25",
+        priceCurrency: "KES",
+        unitText: "per PPPoE subscriber per month",
+      },
+      availability: "https://schema.org/InStock",
+      url: "https://netily.co.ke/register",
+      eligibleRegion: ["KE", "TZ", "UG", "RW"],
+      itemOffered: {
+        "@type": "SoftwareApplication",
+        name: "Netily Starter Plan",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+      },
+    },
+    {
+      "@type": "Offer",
+      name: "Enterprise Plan — Custom ISP Billing",
+      description: "Custom pricing for large ISPs with white-label branding, dedicated support, and SLA guarantees.",
+      price: "0",
+      priceCurrency: "KES",
+      availability: "https://schema.org/InStock",
+      url: "https://netily.co.ke/register",
+      eligibleRegion: ["KE", "TZ", "UG", "RW"],
+      itemOffered: {
+        "@type": "SoftwareApplication",
+        name: "Netily Enterprise Plan",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+      },
+    },
+  ],
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "ISP Billing Software Services",
+    itemListElement: [
+      {
+        "@type": "OfferCatalog",
+        name: "M-Pesa Integration Services",
+        itemListElement: [
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "M-Pesa STK Push Integration",
+              description: "Automated M-Pesa payment collection via Safaricom Daraja API with real-time subscriber activation",
+            },
+          },
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "M-Pesa Payment Reconciliation",
+              description: "Automatic payment reconciliation from M-Pesa paybill and till number transactions",
+            },
+          },
+        ],
+      },
+      {
+        "@type": "OfferCatalog",
+        name: "MikroTik Router Management",
+        itemListElement: [
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "MikroTik PPPoE Auto-Provisioning",
+              description: "Zero-touch subscriber provisioning on MikroTik RouterOS with automatic suspend/restore",
+            },
+          },
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "MikroTik Hotspot Billing",
+              description: "Captive portal management with voucher generation and session control",
+            },
+          },
+        ],
+      },
+      {
+        "@type": "OfferCatalog",
+        name: "ISP Management Features",
+        itemListElement: [
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "RADIUS Authentication",
+              description: "FreeRADIUS integration for PPPoE and hotspot authentication",
+            },
+          },
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "Customer Self-Service Portal",
+              description: "Subscriber portal for balance checks, M-Pesa payments, and support tickets",
+            },
+          },
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "Automated ISP Invoicing",
+              description: "Recurring invoice generation with SMS payment reminders",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  knowsAbout: [
+    "ISP billing software Kenya 2026",
+    "M-Pesa STK Push integration",
+    "MikroTik RouterOS API automation",
+    "RADIUS authentication systems",
+    "PPPoE subscriber management",
+    "Hotspot captive portal billing",
+    "ISP payment automation East Africa",
+    "Fiber ISP management Kenya",
+    "WISP billing software",
+    "Internet service provider SaaS",
+    "Safaricom Daraja API integration",
+    "Kenyan mobile money billing",
+    "ISP customer self-service portals",
+    "Bandwidth management systems",
+    "ISP analytics and reporting",
+  ],
+  aggregateRating: {
+    "@type": "AggregateRating",
+    ratingValue: "4.8",
+    ratingCount: "17",
+    reviewCount: "17",
+    bestRating: "5",
+    worstRating: "1",
+  },
+}
+
+// ─── BreadcrumbList Schema (2026) — Helps Google understand site hierarchy ────
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: "https://netily.co.ke",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "ISP Billing Software",
+      item: "https://netily.co.ke/#features",
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: "Pricing",
+      item: "https://netily.co.ke/#pricing",
+    },
+    {
+      "@type": "ListItem",
+      position: 4,
+      name: "Blog",
+      item: "https://netily.co.ke/blog",
+    },
+  ],
+}
+
 export default function Page() {
   // Blog list schema — helps Google understand the content cluster
   const blogListSchema = {
@@ -406,6 +729,14 @@ export default function Page() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(blogListSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <LandingPage />
     </>
