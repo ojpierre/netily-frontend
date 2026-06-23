@@ -2174,52 +2174,44 @@ export default function UsersPage() {
       </div>
 
       {/* Stats Bar - Compact with sliding pill */}
-      <div className="flex items-center gap-2 p-3 bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+      <div className="relative flex items-center gap-0 p-1.5 bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
         {[
-          { label: "Total", value: stats.total, onClick: () => { setActiveTab("all"); setStatusFilter("all") }, active: statusFilter === "all" && activeTab === "all", color: "text-slate-800" },
-          { label: "Online", value: stats.online, onClick: () => { setActiveTab("online-sessions"); setStatusFilter("all") }, active: activeTab === "online-sessions", color: "text-emerald-600", pulse: true },
-          { label: "Active", value: stats.active, onClick: () => { setActiveTab("all"); setStatusFilter("active") }, active: statusFilter === "active", color: "text-green-600" },
-          { label: "Pending", value: stats.pending, onClick: () => { setActiveTab("all"); setStatusFilter("pending") }, active: statusFilter === "pending", color: "text-orange-500" },
-          { label: "Suspended", value: stats.suspended, onClick: () => { setActiveTab("all"); setStatusFilter("suspended") }, active: statusFilter === "suspended", color: "text-yellow-600" },
-          { label: "Expired", value: serverStats.expired, onClick: () => { setActiveTab("all"); setStatusFilter("expired") }, active: statusFilter === "expired", color: "text-red-500" },
-        ].map(({ label, value, onClick, active, color, pulse }) => (
-          <button
-            key={label}
-            onClick={onClick}
-            className={`flex flex-col items-center px-4 py-2 rounded-lg transition-all shrink-0 ${active ? "bg-slate-100 ring-1 ring-slate-300" : "hover:bg-slate-50"}`}
-            style={{ transition: "background-color 0.18s cubic-bezier(0.4,0,0.2,1), color 0.18s cubic-bezier(0.4,0,0.2,1)" }}
-          >
-            <div className="flex items-center gap-1.5">
-              {pulse && (
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                </span>
-              )}
-              <span className={`text-2xl font-black tabular-nums ${color}`}>{value}</span>
-            </div>
-            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">{label}</span>
-          </button>
-        ))}
-        <div className="w-px h-10 bg-slate-200 mx-1 shrink-0" />
-        {[
-          { label: "Hotspot Subs", value: stats.hotspot, onClick: () => { setActiveTab("hotspot"); setStatusFilter("all") }, active: activeTab === "hotspot", color: "text-pink-600" },
-        ].map(({ label, value, onClick, active, color }) => (
-          <button
-            key={label}
-            onClick={onClick}
-            className={`flex flex-col items-center px-4 py-2 rounded-lg transition-all shrink-0 ${active ? "bg-slate-100 ring-1 ring-slate-300" : "hover:bg-slate-50"}`}
-            style={{ transition: "background-color 0.18s cubic-bezier(0.4,0,0.2,1), color 0.18s cubic-bezier(0.4,0,0.2,1)" }}
-          >
-            <span className={`text-2xl font-black tabular-nums ${color}`}>{value}</span>
-            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">{label}</span>
-          </button>
-        ))}
+          { label: "Total", value: stats.total, filterFn: () => { setActiveTab("all"); setStatusFilter("all") }, active: statusFilter === "all" && activeTab === "all", color: "text-slate-800" },
+          { label: "Online", value: stats.online, filterFn: () => { setActiveTab("online-sessions"); setStatusFilter("all") }, active: activeTab === "online-sessions", color: "text-emerald-600", pulse: true },
+          { label: "Active", value: stats.active, filterFn: () => { setActiveTab("all"); setStatusFilter("active") }, active: statusFilter === "active" && activeTab !== "online-sessions", color: "text-green-600" },
+          { label: "Pending", value: stats.pending, filterFn: () => { setActiveTab("all"); setStatusFilter("pending") }, active: statusFilter === "pending", color: "text-orange-500" },
+          { label: "Suspended", value: stats.suspended, filterFn: () => { setActiveTab("all"); setStatusFilter("suspended") }, active: statusFilter === "suspended", color: "text-yellow-600" },
+          { label: "Expired", value: serverStats.expired, filterFn: () => { setActiveTab("all"); setStatusFilter("expired") }, active: statusFilter === "expired", color: "text-red-500" },
+          null, // divider
+          { label: "Hotspot", value: stats.hotspot, filterFn: () => { setActiveTab("hotspot"); setStatusFilter("all") }, active: activeTab === "hotspot", color: "text-pink-600" },
+        ].map((item, i) => {
+          if (item === null) return <div key="divider" className="w-px h-8 bg-slate-200 mx-1 shrink-0" />
+          const { label, value, filterFn, active, color, pulse } = item
+          return (
+            <button
+              key={label}
+              onClick={filterFn}
+              className={`relative flex flex-col items-center px-4 py-2 rounded-lg transition-colors duration-200 shrink-0 ${active ? "bg-slate-100" : "hover:bg-slate-50"}`}
+              style={{ transition: "background-color 0.2s ease" }}
+            >
+              <div className="flex items-center gap-1.5">
+                {pulse && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
+                )}
+                <span className={`text-2xl font-black tabular-nums transition-colors duration-200 ${color}`}>{value}</span>
+              </div>
+              <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">{label}</span>
+            </button>
+          )
+        })}
       </div>
 
       {/* Unified Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-2">
-        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto">
+        <div className="relative flex items-center bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto">
           {[
             { value: "all", label: "All PPPoE/Static", icon: Users },
             { value: "online-sessions", label: "Online Now", icon: Wifi },
@@ -2235,7 +2227,7 @@ export default function UsersPage() {
                 if (value === "active-subs") loadAllActiveUsers()
                 if (value === "hotspot" && activeSubscriptions.hotspot?.length === 0) loadActiveSubscriptions()
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 z-10 transition-all duration-200 ease-out whitespace-nowrap ${
                 activeTab === value
                   ? "bg-slate-900 text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
@@ -4233,7 +4225,7 @@ export default function UsersPage() {
 
       {/* REDESIGNED: Hotspot Client Detail Dialog - Clean & Minimal */}
       <Dialog open={hotspotDetailOpen} onOpenChange={setHotspotDetailOpen}>
-        <DialogContent className="max-w-lg w-[95vw] h-[88vh] overflow-hidden p-0 gap-0 rounded-xl border border-slate-200 shadow-xl">
+        <DialogContent className="max-w-lg w-[95vw] h-[88vh] overflow-hidden p-0 gap-0 rounded-xl border border-slate-200 shadow-xl" hideCloseButton>
           {hotspotDetailClient && (() => {
             const isActive = hotspotDetailClient.is_active_sub ??
               (hotspotDetailClient.subscription_status === 'active' &&
@@ -4252,7 +4244,7 @@ export default function UsersPage() {
 
             return (
               <div className="flex flex-col h-full">
-                {/* Header */}
+                {/* Header - No duplicate X button */}
                 <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-slate-100">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-black tracking-wider flex-shrink-0 ${isActive ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'}`}>
@@ -4336,7 +4328,7 @@ export default function UsersPage() {
                   ))}
                 </div>
 
-                {/* Tab content */}
+                {/* Tab content - with constrained height for scrolling */}
                 <div className="overflow-y-auto flex-1 bg-slate-50/40">
 
                   {/* OVERVIEW */}
