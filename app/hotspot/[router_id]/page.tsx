@@ -304,24 +304,20 @@ async function phoneReconnect(data: {
   return json
 }
 
-// === TV API FUNCTIONS ===
-async function generateTVCode(routerId: string, mac: string, tenant: string) {
-  const res = await fetch(`${getApiBase()}/hotspot/tv/generate-code/?tenant=${tenant}&router_id=${routerId}&mac_address=${mac}`)
-  if (!res.ok) throw new Error("Failed to generate TV code")
-  return res.json()
-}
-
-async function verifyTVCode(code: string, tenant: string) {
-  const res = await fetch(`${getApiBase()}/hotspot/tv/verify-code/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, tenant })
-  })
-  if (!res.ok) {
-      const err = await res.json().catch(()=>({}))
-      throw new Error(err.error || err.message || "Failed to verify TV code")
+// === NEW MAC-based TV API FUNCTIONS ===
+// scanNetworkDevices - calls backend to scan for devices on the network
+async function scanNetworkDevices(routerId: string, tenant: string): Promise<{ip: string; mac: string; label: string}[]> {
+  try {
+    const res = await fetch(
+      `${getApiBase()}/hotspot/scan-devices/?router_id=${routerId}&tenant=${encodeURIComponent(tenant)}`,
+      { cache: 'no-store' }
+    )
+    if (!res.ok) return []
+    const data = await res.json()
+    return data.devices || []
+  } catch {
+    return []
   }
-  return res.json()
 }
 
 // === AD API FUNCTIONS ===
@@ -1173,19 +1169,24 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     }
   }, [availableAd?.media_url])
 
-  // === TV MODE STATES ===
+  // === TV MODE STATES (NEW MAC-based system) ===
   const [isTvDevice, setIsTvDevice] = useState(false)
-  const [tvDisplayCode, setTvDisplayCode] = useState<string | null>(null)
-  const [tvCodeLoading, setTvCodeLoading] = useState(false)
-  const [tvExpiresAtMs, setTvExpiresAtMs] = useState<number | null>(null)
   const [tvPaymentStatus, setTvPaymentStatus] = useState<"pending" | "paid">("pending")
+
+  // NEW: MAC-based TV payment
+  const [tvMacInput, setTvMacInput] = useState("")
+  const [tvMacLastDigits, setTvMacLastDigits] = useState("")
+  const [tvScannedDevices, setTvScannedDevices] = useState<{ip: string; mac: string; label: string}[]>([])
+  const [tvScanLoading, setTvScanLoading] = useState(false)
+  const [tvSelectedDevice, setTvSelectedDevice] = useState<{ip: string; mac: string; label: string} | null>(null)
+  const [tvMacVerified, setTvMacVerified] = useState(false)
+  const [tvMacError, setTvMacError] = useState<string | null>(null)
+  const [tvPayMode, setTvPayMode] = useState<"scan" | "manual">("scan")
 
   // Phone paying for TV
   const [targetDevice, setTargetDevice] = useState<"this" | "tv">("this")
-  const [tvInputCode, setTvInputCode] = useState("")
-  const [verifiedTV, setVerifiedTV] = useState<{ mac_address: string; router_id?: string; code: string } | null>(null)
-  const [isVerifyingTV, setIsVerifyingTV] = useState(false)
-  const [tvVerifyError, setTvVerifyError] = useState<string | null>(null)
+  // REMOVED: tvInputCode, verifiedTV, isVerifyingTV, tvVerifyError (old code-based system)
+
   // ==========================================
 
   // FIX #2: Theme derived from portal_config — handle encoded template_id
@@ -1262,40 +1263,23 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     checkAutoLogin(routerId, mac)
       .then((result) => {
         if (result.has_session && result.credentials) {
-          setCanonicalUsername(result.credentials.username)  // ← ADDED: Track canonical username from auto-login
+          setCanonicalUsername(result.credentials.username)
           if (loginUrl) {
             setReturningToRouter(true)
             returnTripToMikrotik(loginUrl, result.credentials.username, result.credentials.password)
           }
         } else if (isSmartTV()) {
-            setIsTvDevice(true)
-            const fetchCode = async () => {
-                setTvCodeLoading(true)
-                try {
-                    const data = await generateTVCode(routerId, mac, getTenant())
-                    setTvDisplayCode(data.code)
-                    const expiresIn = Number(data.expires_in ?? 300)
-                    setTvExpiresAtMs(Date.now() + expiresIn * 1000)
-                } finally {
-                    setTvCodeLoading(false)
-                }
-            }
-            fetchCode()
+          // TV detected — just set the flag, no code generation needed
+          setIsTvDevice(true)
         }
         setAutoLoginChecked(true)
       })
       .catch(() => {
-         setAutoLoginChecked(true)
-         if (isSmartTV()) {
-            setIsTvDevice(true)
-            generateTVCode(routerId, mac, getTenant())
-               .then(data => {
-                   setTvDisplayCode(data.code)
-                   const expiresIn = Number(data.expires_in ?? 300)
-                   setTvExpiresAtMs(Date.now() + expiresIn * 1000)
-               })
-               .finally(() => setLoading(false))
-         }
+        setAutoLoginChecked(true)
+        if (isSmartTV()) {
+          setIsTvDevice(true)
+        }
+        setLoading(false)
       })
   }, [routerId, loginUrl, autoLoginChecked])
 
@@ -1347,7 +1331,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           setPaymentStatus("success")
           setAccessCode(result.access_code || null)
           setExpiresAt(result.expires_at || null)
-          if (result.access_code) setCanonicalUsername(result.access_code)  // ← ADDED: Track canonical username from payment
+          if (result.access_code) setCanonicalUsername(result.access_code)
           clearInterval(pollInterval)
           
           // ONLY auto-login if we are paying for THIS device (not for TV)
@@ -1388,71 +1372,30 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     return () => clearInterval(timer)
   }, [paymentStatus])
 
-  // TV countdown based on real expiry
+  // ── TV auto-show "paid" when payment was made on phone ──
+  // Uses checkAutoLogin endpoint to poll for active session
   useEffect(() => {
-    if (!isTvDevice || !tvExpiresAtMs) return
+    if (!isTvDevice || !tvMacVerified || !tvSelectedDevice) return
 
-    const timer = setInterval(() => {
-      const secondsLeft = Math.max(0, Math.ceil((tvExpiresAtMs - Date.now()) / 1000))
-      setCountdown(secondsLeft)
-
-      // Refresh only when truly expired
-      if (secondsLeft <= 0 && !tvCodeLoading) {
-        const fetchCode = async () => {
-          setTvCodeLoading(true)
-          try {
-            const data = await generateTVCode(routerId, getMacAddress(), getTenant())
-            setTvDisplayCode(data.code)
-            const expiresIn = Number(data.expires_in ?? 300)
-            setTvExpiresAtMs(Date.now() + expiresIn * 1000)
-          } finally {
-            setTvCodeLoading(false)
-          }
-        }
-        fetchCode()
-      }
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [isTvDevice, tvExpiresAtMs, routerId, tvCodeLoading])
-
-  // FIX #2: TV auto-show "paid" when payment was made on phone
-  // Uses existing checkAutoLogin endpoint instead of non-existent pollTvPaidStatus
-  useEffect(() => {
-    if (!isTvDevice || !tvDisplayCode) return
-
-    const mac = getMacAddress()
-
-    // Poll the backend every 4 seconds using the existing checkAutoLogin endpoint!
     const pollInterval = setInterval(async () => {
       try {
-        const result = await checkAutoLogin(routerId, mac)
-
-        // If the backend says this MAC now has an active session, auto-login!
+        const result = await checkAutoLogin(routerId, tvSelectedDevice.mac)
         if (result.has_session && result.credentials) {
           setTvPaymentStatus("paid")
           setAccessCode(result.credentials.username)
-
-          // Auto-login TV via MikroTik login_url
           if (loginUrl) {
             setReturningToRouter(true)
-            const username = encodeURIComponent(result.credentials.username)
-            const password = encodeURIComponent(result.credentials.password)
-            const targetUrl = `${loginUrl}?username=${username}&password=${password}`
-            setTimeout(() => {
-              window.location.href = targetUrl
-            }, 1500)
+            const u = encodeURIComponent(result.credentials.username)
+            const p = encodeURIComponent(result.credentials.password)
+            setTimeout(() => { window.location.href = `${loginUrl}?username=${u}&password=${p}` }, 1500)
           }
-          
           clearInterval(pollInterval)
         }
-      } catch {
-        // silent retry (wait for the phone to pay)
-      }
+      } catch {}
     }, 4000)
 
     return () => clearInterval(pollInterval)
-  }, [isTvDevice, tvDisplayCode, routerId, loginUrl])
+  }, [isTvDevice, tvMacVerified, tvSelectedDevice, routerId, loginUrl])
 
   // Phone validation
   const handlePhoneChange = (value: string) => {
@@ -1460,37 +1403,44 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     setPhoneError(value && !isValidKenyanPhone(value) ? "Enter a valid Safaricom or Airtel number" : null)
   }
 
-  // TV code handlers - Updated for 9-character format with auto-hyphen
-  const handleTvCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Remove all non-alphanumeric characters, then uppercase
-    let rawValue = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    
-    // Automatically insert the hyphen after the 4th character
-    if (rawValue.length > 4) {
-      rawValue = rawValue.slice(0, 4) + '-' + rawValue.slice(4, 8);
+  // ── TV MAC verification handlers ──
+  const handleScanDevices = async () => {
+    setTvScanLoading(true)
+    setTvMacError(null)
+    const devices = await scanNetworkDevices(routerId, getTenant())
+    if (devices.length === 0) {
+      setTvMacError("No devices found on this network. Try entering the MAC address manually.")
     }
-    
-    setTvInputCode(rawValue);
-    if (verifiedTV) setVerifiedTV(null);
-    if (tvVerifyError) setTvVerifyError(null);
+    setTvScannedDevices(devices)
+    setTvScanLoading(false)
   }
 
-  const handleVerifyTV = async () => {
-    if (tvInputCode.length !== 9) {
-        setTvVerifyError("Code must be 9 characters (e.g., ABCD-1234)")
-        return
+  const handleSelectScannedDevice = (device: {ip: string; mac: string; label: string}) => {
+    setTvSelectedDevice(device)
+    setTvMacLastDigits("")
+    setTvMacVerified(false)
+    setTvMacError(null)
+  }
+
+  const handleVerifyMacDigits = () => {
+    if (!tvSelectedDevice && !tvMacInput) {
+      setTvMacError("Please select or enter a device MAC address")
+      return
     }
-    setIsVerifyingTV(true)
-    setTvVerifyError(null)
-    try {
-        const res = await verifyTVCode(tvInputCode, getTenant())
-        setVerifiedTV({ mac_address: res.mac_address, router_id: res.router_id, code: tvInputCode })
-    } catch(err: any) {
-        setTvVerifyError(err.message)
-        setVerifiedTV(null)
-    } finally {
-        setIsVerifyingTV(false)
+    const targetMac = tvSelectedDevice ? tvSelectedDevice.mac : tvMacInput
+    const normalized = targetMac.replace(/[^a-fA-F0-9]/g, '').toUpperCase()
+    const lastFour = normalized.slice(-4)
+    const inputNorm = tvMacLastDigits.replace(/[^a-fA-F0-9]/g, '').toUpperCase()
+    if (inputNorm.length < 2) {
+      setTvMacError("Enter at least the last 2 digits of the MAC address")
+      return
     }
+    if (!lastFour.endsWith(inputNorm) && !lastFour.includes(inputNorm)) {
+      setTvMacError("MAC digits don't match. Check your TV's Settings → About → MAC Address")
+      return
+    }
+    setTvMacVerified(true)
+    setTvMacError(null)
   }
 
   // ── Select plan and open payment modal ──
@@ -1507,7 +1457,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     if (!phoneNumber) { setPhoneError("Phone number is required"); return }
     if (!isValidKenyanPhone(phoneNumber)) { setPhoneError("Enter a valid Safaricom or Airtel number"); return }
     
-    if (targetDevice === "tv" && !verifiedTV) { setTvVerifyError("Please verify the TV code first"); return }
+    if (targetDevice === "tv" && !tvMacVerified) { setTvMacError("Please verify the TV device first"); return }
 
     setPaymentStatus("sending")
     setError(null)
@@ -1518,11 +1468,13 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     let finalRouter = routerId
     let finalTvCode = undefined
 
-    if (targetDevice === "tv" && verifiedTV) {
-        finalMac = verifiedTV.mac_address
-        // Ensure we pay to the router the TV is actually connected to
-        if (verifiedTV.router_id) finalRouter = String(verifiedTV.router_id)
-        finalTvCode = verifiedTV.code
+    if (targetDevice === "tv" && tvMacVerified) {
+        const macToUse = tvSelectedDevice ? tvSelectedDevice.mac : tvMacInput
+        // Normalize MAC format
+        finalMac = macToUse.toUpperCase().replace(/[^A-F0-9:]/gi, s => s === ':' ? ':' : '').includes(':') 
+          ? macToUse.toUpperCase() 
+          : macToUse.toUpperCase().replace(/(.{2})/g, '$1:').slice(0,-1)
+        finalTvCode = undefined
     }
 
     try {
@@ -1549,15 +1501,15 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     setCountdown(120)
   }
 
-  // ── Redeem voucher (now top-level) ──
+  // ── Redeem voucher ──
   const handleVoucherRedeem = async () => {
     if (!voucherCode.trim()) {
       setVoucherError("Enter your voucher code")
       return
     }
     
-    if (targetDevice === "tv" && !verifiedTV) { 
-      setTvVerifyError("Please verify the TV code first"); 
+    if (targetDevice === "tv" && !tvMacVerified) { 
+      setTvMacError("Please verify the TV device first"); 
       return 
     }
 
@@ -1568,9 +1520,12 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     let finalMac = getMacAddress()
     let finalRouter = routerId
 
-    if (targetDevice === "tv" && verifiedTV) {
-        finalMac = verifiedTV.mac_address
-        if (verifiedTV.router_id) finalRouter = String(verifiedTV.router_id)
+    if (targetDevice === "tv" && tvMacVerified) {
+        finalMac = tvSelectedDevice ? tvSelectedDevice.mac : tvMacInput
+        // Normalize MAC format
+        finalMac = finalMac.toUpperCase().replace(/[^A-F0-9:]/gi, s => s === ':' ? ':' : '').includes(':') 
+          ? finalMac.toUpperCase() 
+          : finalMac.toUpperCase().replace(/(.{2})/g, '$1:').slice(0,-1)
     }
 
     // If voucher redemption succeeds, we treat it as a successful "payment"
@@ -1580,7 +1535,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       const result = await redeemVoucher({
         code: voucherCode.trim(),
         router_id: finalRouter,
-        mac_address: finalMac, // Use TV's MAC if in TV mode
+        mac_address: finalMac,
         tenant: getTenant(),
       })
 
@@ -1729,10 +1684,10 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             <CheckCircle2 className="w-12 h-12 text-white" />
           </div>
           <h1 className="text-4xl font-bold mb-4">Connected!</h1>
-          <p className="text-xl text-gray-400 mb-8">You now have internet access. Enjoy!</p>
+          <p className="text-xl text-gray-400 mb-8">Your TV now has internet access.</p>
           {accessCode && (
             <div className="bg-gray-900 rounded-xl p-4 mb-6">
-              <p className="text-sm text-gray-400 mb-1">Your Access Code</p>
+              <p className="text-sm text-gray-400 mb-1">Access Code</p>
               <p className="text-2xl font-mono font-bold text-green-400">{accessCode}</p>
             </div>
           )}
@@ -1748,44 +1703,18 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
 
     // Show pairing screen
     return (
-        <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-8 text-white text-center">
-            <Monitor className="w-24 h-24 text-blue-500 mb-6" />
-            <h1 className="text-4xl font-bold mb-4">Pair Your TV</h1>
-            <p className="text-xl text-gray-400 mb-8 max-w-lg">
-               Enter this code on your phone to connect this TV:
-            </p>
-            <div className="bg-gray-900 border-2 border-blue-500 rounded-3xl p-10 mb-6 shadow-[0_0_50px_rgba(59,130,246,0.2)]">
-                <div className="text-8xl font-mono font-bold tracking-[0.3em] text-blue-400 uppercase">
-                    {tvDisplayCode || "Loading"}
-                </div>
-            </div>
-            
-            {/* Expiry Countdown */}
-            <div className="flex items-center gap-2 text-gray-500 mb-8">
-                <Clock className="w-4 h-4" />
-                <span>Code expires in {countdown}s</span>
-            </div>
-
-            <button 
-              onClick={() => {
-                const fetchCode = async () => {
-                  setTvCodeLoading(true)
-                  try {
-                    const data = await generateTVCode(routerId, getMacAddress(), getTenant())
-                    setTvDisplayCode(data.code)
-                    const expiresIn = Number(data.expires_in ?? 300)
-                    setTvExpiresAtMs(Date.now() + expiresIn * 1000)
-                  } finally {
-                    setTvCodeLoading(false)
-                  }
-                }
-                fetchCode()
-              }} 
-              className="flex items-center gap-2 text-blue-500 font-semibold underline"
-            >
-                <RefreshCw className="w-4 h-4" /> Refresh Now
-            </button>
+      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-8 text-white text-center">
+        <Monitor className="w-20 h-20 text-blue-400 mb-6" />
+        <h1 className="text-3xl font-bold mb-3">Smart TV Detected</h1>
+        <p className="text-lg text-gray-400 mb-8 max-w-md">
+          To get internet on this TV, use your phone to pay. Connect your phone to this same WiFi, open the portal, and select "Pay for TV".
+        </p>
+        <div className="bg-gray-900 rounded-xl p-6 max-w-sm w-full text-left">
+          <p className="text-sm font-semibold text-gray-300 mb-3">Your TV's MAC address:</p>
+          <p className="text-xs text-gray-500 mb-1">Go to TV Settings → Network → MAC Address</p>
+          <p className="text-xs text-gray-500">You'll need this to verify your TV when paying from your phone.</p>
         </div>
+      </div>
     )
   }
 
@@ -2168,30 +2097,107 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             </button>
           </div>
 
-          {/* TV CODE VERIFICATION BLOCK */}
+          {/* TV MAC VERIFICATION BLOCK (NEW) */}
           {targetDevice === 'tv' && (
-              <div className="mb-6 p-4 border rounded-xl bg-blue-50/50 border-blue-100">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Enter code shown on TV</label>
-                  <div className="flex gap-2 items-center">
-                      <input 
-                          type="text" 
-                          maxLength={9}
-                          value={tvInputCode}
-                          onChange={handleTvCodeChange}
-                          placeholder="e.g. ABCD-1234"
-                          className="flex-1 min-w-0 px-2 py-2 border border-blue-200 rounded-lg font-mono uppercase text-center text-lg tracking-[0.1em] focus:ring-2 focus:ring-blue-500 outline-none"
-                      />
-                      <button 
-                          onClick={handleVerifyTV}
-                          disabled={tvInputCode.length !== 9 || isVerifyingTV || !!verifiedTV}
-                          className="flex-shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-lg transition-colors flex items-center justify-center whitespace-nowrap"
-                      >
-                          {isVerifyingTV ? <Loader2 className="w-4 h-4 animate-spin" /> : (verifiedTV ? <CheckCircle2 className="w-4 h-4" /> : 'Verify')}
-                      </button>
+            <div className="mb-6 p-4 border rounded-xl bg-blue-50/50 border-blue-100">
+              {!tvMacVerified ? (
+                <>
+                  <div className="flex gap-2 mb-3">
+                    <button
+                      onClick={() => { setTvPayMode("scan"); setTvSelectedDevice(null); setTvMacVerified(false); setTvMacError(null) }}
+                      className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${tvPayMode === 'scan' ? 'bg-blue-600 text-white' : 'bg-white border border-blue-200 text-gray-600'}`}
+                    >
+                      Scan for TV
+                    </button>
+                    <button
+                      onClick={() => { setTvPayMode("manual"); setTvSelectedDevice(null); setTvMacVerified(false); setTvMacError(null) }}
+                      className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${tvPayMode === 'manual' ? 'bg-blue-600 text-white' : 'bg-white border border-blue-200 text-gray-600'}`}
+                    >
+                      Enter MAC
+                    </button>
                   </div>
-                  {tvVerifyError && <p className="text-red-500 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" /> {tvVerifyError}</p>}
-                  {verifiedTV && <p className="text-green-600 text-sm mt-2 flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> TV Verified Successfully!</p>}
-              </div>
+
+                  {tvPayMode === 'scan' ? (
+                    <div>
+                      <button
+                        onClick={handleScanDevices}
+                        disabled={tvScanLoading}
+                        className="w-full mb-3 py-2.5 text-sm font-medium bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+                      >
+                        {tvScanLoading ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Scanning network...</>
+                        ) : (
+                          <><Monitor className="w-4 h-4" /> Scan for devices on this WiFi</>
+                        )}
+                      </button>
+                      {tvScannedDevices.length > 0 && (
+                        <div className="space-y-2 mb-3 max-h-40 overflow-y-auto">
+                          {tvScannedDevices.map((d, i) => (
+                            <button
+                              key={i}
+                              onClick={() => handleSelectScannedDevice(d)}
+                              className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${tvSelectedDevice?.mac === d.mac ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
+                            >
+                              <div className="font-medium text-gray-800">{d.label || `Device ${i+1}`}</div>
+                              <div className="text-xs text-gray-400 font-mono">{d.ip} · {d.mac}</div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mb-3">
+                      <label className="block text-xs text-gray-500 mb-1">
+                        TV MAC address (found in TV Settings → Network → MAC Address)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. AA:BB:CC:DD:EE:FF"
+                        value={tvMacInput}
+                        onChange={(e) => { setTvMacInput(e.target.value); setTvMacError(null) }}
+                        className="w-full px-3 py-2 border border-blue-200 rounded-lg font-mono text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      />
+                    </div>
+                  )}
+
+                  {(tvSelectedDevice || tvMacInput) && (
+                    <div className="mt-3">
+                      <label className="block text-xs text-gray-600 mb-1 font-medium">
+                        Confirm: enter last 4 digits of MAC (e.g. for AA:BB:CC:DD:EE:FF enter EEFF)
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          maxLength={4}
+                          placeholder="Last 4 digits"
+                          value={tvMacLastDigits}
+                          onChange={(e) => { setTvMacLastDigits(e.target.value.toUpperCase()); setTvMacError(null) }}
+                          className="flex-1 px-3 py-2 border border-blue-200 rounded-lg font-mono text-center uppercase focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                        <button
+                          onClick={handleVerifyMacDigits}
+                          disabled={tvMacLastDigits.length < 2}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+                        >
+                          Verify
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {tvMacError && (
+                    <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> {tvMacError}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-center gap-2 text-green-700 text-sm font-medium">
+                  <CheckCircle2 className="w-4 h-4" />
+                  TV device verified — internet will connect to this device after payment
+                </div>
+              )}
+            </div>
           )}
 
           <p className={`${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"} mb-6 ${theme.bodyText}`}>
@@ -2452,7 +2458,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             {/* CTA Button */}
             <button
               onClick={handlePay}
-              disabled={!phoneNumber || !!phoneError || (targetDevice === "tv" && !verifiedTV)}
+              disabled={!phoneNumber || !!phoneError || (targetDevice === "tv" && !tvMacVerified)}
               className={`w-full py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg rounded-xl ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover}`}
               style={brandingCtaStyle}
             >
