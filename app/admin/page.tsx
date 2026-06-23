@@ -396,6 +396,45 @@ export default function AdminDashboard() {
               {new Date().getHours() >= 6 && new Date().getHours() < 20 ? "☀️" : "🌙"}
               {new Date().toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long" })}
             </p>
+
+            {/* ── Smart performance sentence ── */}
+            {!loading && (() => {
+              const todayRev = parseFloat(String(data.reports?.overview?.today_revenue ?? 0))
+              const todayChange = data.reports?.overview?.today_change ?? 0
+              const onlineCount = effectiveOnlineCount
+              const offlineRouters = routers?.offline_routers ?? 0
+              const openTickets = tickets?.open ?? 0
+
+              // Build a single sentence from the most important signal
+              let sentence = ""
+              let sentenceColor = "text-slate-400"
+
+              if (offlineRouters > 0) {
+                sentence = `⚠️ ${offlineRouters} router${offlineRouters > 1 ? "s are" : " is"} offline right now.`
+                sentenceColor = "text-red-500"
+              } else if (todayChange > 15) {
+                sentence = `📈 Revenue is up ${todayChange}% today — solid day so far.`
+                sentenceColor = "text-emerald-600"
+              } else if (todayChange < -20) {
+                sentence = `📉 Today is trending slower than usual. Worth a look.`
+                sentenceColor = "text-amber-500"
+              } else if (openTickets > 5) {
+                sentence = `🎫 ${openTickets} support tickets are waiting for attention.`
+                sentenceColor = "text-amber-500"
+              } else if (onlineCount > 0) {
+                sentence = `✅ ${onlineCount} customer${onlineCount > 1 ? "s" : ""} connected right now. All quiet.`
+                sentenceColor = "text-emerald-600"
+              } else {
+                sentence = `Network is running. Nothing urgent flagged.`
+                sentenceColor = "text-slate-400"
+              }
+
+              return (
+                <p className={`text-xs font-medium mt-2 italic ${sentenceColor}`}>
+                  {sentence}
+                </p>
+              )
+            })()}
           </div>
 
           {/* Right side: quick refresh */}
@@ -444,40 +483,51 @@ export default function AdminDashboard() {
       {/* ─── Row 1: Key Metrics ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 relative">
         {/* Total Customers */}
-        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
-            <Users className="h-4 w-4 text-slate-500" />
+        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900 overflow-hidden relative">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-500" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-5">
+            <CardTitle className="text-sm font-medium text-slate-500">Total Customers</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
+              <Users className="h-4 w-4 text-blue-500" />
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-slate-900 dark:text-slate-50 leading-none">
+                <div className="text-[32px] font-extrabold tabular-nums tracking-[-0.04em] text-slate-900 dark:text-slate-50 leading-none">
                   {(core?.total_customers ?? 0).toLocaleString()}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-2 font-medium tracking-[0.02em]">All PPPoE/Static users</p>
+                <p className="text-[11px] text-slate-400 mt-2 font-medium flex items-center gap-1.5">
+                  <TrendingUp className="w-3 h-3 text-blue-400" />
+                  {(core?.new_customers_this_month ?? 0) > 0
+                    ? `+${core?.new_customers_this_month} joined this month`
+                    : "All PPPoE & static users"}
+                </p>
               </>
             )}
           </CardContent>
         </Card>
 
         {/* Active Subscriptions - FIXED: only count active (non-expired) hotspot subscribers */}
-        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-500" />
+        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900 overflow-hidden relative">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-400 to-teal-500" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-5">
+            <CardTitle className="text-sm font-medium text-slate-500">Active Subscriptions</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
+              <UserCheck className="h-4 w-4 text-emerald-500" />
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-green-600 dark:text-green-400 leading-none">
+                <div className="text-[32px] font-extrabold tabular-nums tracking-[-0.04em] text-emerald-600 dark:text-emerald-400 leading-none">
                   {activeSubscriptionsCount.toLocaleString()}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-2 font-medium tracking-[0.02em] flex items-center gap-1">
+                <p className="text-[11px] text-slate-400 mt-2 font-medium flex items-center gap-1.5">
                   <TrendingUp className="w-3 h-3 text-emerald-500" />
                   <span>Active PPPoE + Hotspot</span>
                 </p>
@@ -488,22 +538,25 @@ export default function AdminDashboard() {
 
         {/* Expired Customers - Clickable */}
         <Card
-          className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900 cursor-pointer hover:-translate-y-0.5"
+          className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900 overflow-hidden relative cursor-pointer hover:-translate-y-0.5"
           onClick={() => router.push('/admin/users?status=expired')}
         >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expired</CardTitle>
-            <UserX className="h-4 w-4 text-red-500" />
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-red-400 to-rose-500" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-5">
+            <CardTitle className="text-sm font-medium text-slate-500">Expired</CardTitle>
+            <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-950/40 flex items-center justify-center">
+              <UserX className="h-4 w-4 text-red-500" />
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-red-600 dark:text-red-400 leading-none">
+                <div className="text-[32px] font-extrabold tabular-nums tracking-[-0.04em] text-red-600 dark:text-red-400 leading-none">
                   {expiredCount.toLocaleString()}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-2 font-medium tracking-[0.02em] flex items-center gap-1">
+                <p className="text-[11px] text-slate-400 mt-2 font-medium flex items-center gap-1.5">
                   <TrendingDown className="w-3 h-3 text-red-500" />
                   <span>Requires renewal</span>
                 </p>
@@ -514,11 +567,12 @@ export default function AdminDashboard() {
 
         {/* Online / Active - FIXED: uses activeSubscriptionsCount for denominator */}
         <Card
-          className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900 cursor-pointer hover:-translate-y-0.5"
+          className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900 overflow-hidden relative cursor-pointer hover:-translate-y-0.5"
           onClick={() => router.push('/admin/users?tab=online-sessions')}
         >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Online / Active</CardTitle>
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-400 to-violet-500" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pt-5">
+            <CardTitle className="text-sm font-medium text-slate-500">Online / Active</CardTitle>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
@@ -663,13 +717,22 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Revenue Card - Human language */}
+        {/* Revenue Card - Human language with live pulse */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-green-600" />
                 Revenue
+                {!loading && parseFloat(String(data.reports?.overview?.today_revenue ?? 0)) > 0 && (
+                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-950/40 text-[10px] font-semibold text-green-600 dark:text-green-400">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+                    </span>
+                    Active
+                  </span>
+                )}
               </CardTitle>
               {canOpenRoute("/admin/payments") && (
                 <Link href="/admin/payments">
@@ -754,7 +817,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Support Tickets */}
+        {/* Support Tickets with SLA bar */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -799,12 +862,32 @@ export default function AdminDashboard() {
                     <p className="text-xs text-slate-500">Total</p>
                   </div>
                 </div>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-1 text-slate-500">
-                    <Clock className="w-3 h-3" />
-                    Avg Response
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-1 text-slate-500">
+                      <Clock className="w-3 h-3" />
+                      Avg Response
+                    </div>
+                    <span className="font-medium">{tickets?.avg_response_time ?? "—"}</span>
                   </div>
-                  <span className="font-medium">{tickets?.avg_response_time ?? "—"}</span>
+                  {/* SLA compliance bar */}
+                  {tickets && tickets.total > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px] text-slate-400 font-medium">
+                        <span>SLA compliance</span>
+                        <span>{tickets?.sla_compliance_rate ?? 0}%</span>
+                      </div>
+                      <div className="h-1 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ${
+                            (tickets?.sla_compliance_rate ?? 0) >= 80 ? "bg-emerald-500" :
+                            (tickets?.sla_compliance_rate ?? 0) >= 60 ? "bg-amber-500" : "bg-red-500"
+                          }`}
+                          style={{ width: `${tickets?.sla_compliance_rate ?? 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
