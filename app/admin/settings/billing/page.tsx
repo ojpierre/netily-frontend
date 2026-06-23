@@ -43,11 +43,10 @@ function BillingContent() {
   const [pendingPaymentId, setPendingPaymentId] = useState<string | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<string>("")
 
-  // Pay Now dialog state (for active metered subscription)
+  // Pay Now dialog state (for expired trial activation)
   const [payNowOpen, setPayNowOpen] = useState(false)
   const [payNowPhone, setPayNowPhone] = useState("")
   const [payNowLoading, setPayNowLoading] = useState(false)
-  const [deferBilling, setDeferBilling] = useState(true) // default: billing starts after trial
 
   const loadBillingData = async (showSpinner = false) => {
     if (showSpinner) setIsLoading(true)
@@ -307,7 +306,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
     }
   }
 
-  // STK Push payment for Pay Now on active subscription (trial or active metered)
+  // STK Push payment for Pay Now on active subscription (post-trial activation)
   const handlePayNow = async () => {
     if (!subscription?.plan) return
     const phone = payNowPhone.trim()
@@ -322,7 +321,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
         payment_method: 'mpesa_stk',
         phone_number: phone.startsWith('0') ? `254${phone.slice(1)}` : phone,
         billing_period: subscription.billing_period || 'monthly',
-        defer_billing_to_trial_end: subscription.is_trial ? deferBilling : undefined,
+        defer_billing_to_trial_end: false, // Trial has already expired, start billing immediately
       })
       toast.success("STK Push sent! Check your phone and enter your M-Pesa PIN.")
       setPayNowOpen(false)
@@ -465,34 +464,32 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
               </CardContent>
 
               {/* --- Pay Now Section --- */}
-              {subscription.plan?.is_metered && (subscription.status === 'active' || subscription.status === 'trialing' || subscription.is_trial) && (
+              {/* Show Pay Now ONLY when trial has expired and activation fee hasn't been paid */}
+              {subscription.plan?.is_metered && subscription.trial_expired && (subscription.status === 'expired' || subscription.status === 'past_due') && (
                 <CardFooter className="flex flex-col items-stretch gap-4 pt-4 border-t border-slate-100">
-                  {/* Trial badge + days remaining */}
-                  {subscription.is_trial && subscription.trial_ends_at && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3">
-                      <Clock className="w-5 h-5 text-amber-500 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-amber-800">
-                          Trial ends {new Date(subscription.trial_ends_at).toLocaleDateString('en-KE', { dateStyle: 'long' })}
-                        </p>
-                        <p className="text-xs text-amber-600 mt-0.5">
-                          {Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} days remaining - pay now to secure your subscription
-                        </p>
-                      </div>
+                  {/* Trial expired - needs payment */}
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-3">
+                    <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-red-800">
+                        Trial Expired
+                      </p>
+                      <p className="text-xs text-red-600 mt-0.5">
+                        Pay the activation fee to continue using Netily
+                      </p>
                     </div>
-                  )}
+                  </div>
 
                   <Button
                     className="w-full sm:w-auto bg-green-600 hover:bg-green-700 font-bold"
                     onClick={() => {
                       setPayNowOpen(true)
                       setPayNowPhone("")
-                      setDeferBilling(!!subscription.is_trial) // default: defer if on trial
                     }}
                     disabled={!!pendingPaymentId}
                   >
                     <Phone className="w-4 h-4 mr-2" />
-                    {subscription.is_trial ? 'Pay Now - Activate Subscription' : 'Pay Now'}
+                    Pay Now - Activate Subscription
                   </Button>
                 </CardFooter>
               )}
@@ -502,54 +499,12 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
             <Dialog open={payNowOpen} onOpenChange={(open) => { if (!open) { setPayNowOpen(false); setPayNowPhone("") } }}>
               <DialogContent className="sm:max-w-[440px]">
                 <DialogHeader>
-                  <DialogTitle>
-                    {subscription?.is_trial ? 'Activate Your Subscription' : 'Pay for Current Cycle'}
-                  </DialogTitle>
+                  <DialogTitle>Activate Your Subscription</DialogTitle>
                   <DialogDescription>
-                    {subscription?.plan?.is_metered
-                      ? `Activation fee: ${kes(Number(subscription?.plan?.base_license_fee) || 500)}. Monthly invoices use usage or the KES 500 minimum, whichever is higher.`
-                      : `Amount: ${kes(Number(subscription?.plan?.price_monthly) || 0)}`
-                    }
+                    Pay the one-time activation fee of {kes(Number(subscription?.plan?.base_license_fee) || 500)} to activate your subscription. Monthly invoices will be based on usage or the KES 500 minimum, whichever is higher.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="mt-4 space-y-4">
-                  {/* Billing cycle start options - only shown during trial */}
-                  {subscription?.is_trial && subscription?.trial_ends_at && (
-                    <div className="space-y-3 bg-slate-50 rounded-lg p-4 border border-slate-200">
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">When should billing start?</p>
-                      <label className="flex items-start gap-3 cursor-pointer group">
-                        <input
-                          type="radio"
-                          name="billing_start"
-                          checked={deferBilling}
-                          onChange={() => setDeferBilling(true)}
-                          className="mt-1 accent-green-600"
-                        />
-                        <div>
-                          <p className="text-sm font-semibold text-slate-800 group-hover:text-green-700">Start billing after trial ends</p>
-                          <p className="text-xs text-slate-500">
-                            Pay now, but your 30-day billing cycle starts on {new Date(subscription.trial_ends_at).toLocaleDateString('en-KE', { dateStyle: 'medium' })}. Continue using your trial until then.
-                          </p>
-                        </div>
-                      </label>
-                      <label className="flex items-start gap-3 cursor-pointer group">
-                        <input
-                          type="radio"
-                          name="billing_start"
-                          checked={!deferBilling}
-                          onChange={() => setDeferBilling(false)}
-                          className="mt-1 accent-blue-600"
-                        />
-                        <div>
-                          <p className="text-sm font-semibold text-slate-800 group-hover:text-blue-700">Start billing immediately</p>
-                          <p className="text-xs text-slate-500">
-                            Your 30-day paid billing cycle starts today. Trial ends immediately.
-                          </p>
-                        </div>
-                      </label>
-                    </div>
-                  )}
-
                   <div>
                     <label className="text-sm font-medium text-slate-700 block mb-1.5">M-Pesa Phone Number</label>
                     <Input
