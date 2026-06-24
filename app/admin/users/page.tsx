@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import CountUp from "react-countup"
 import {
   Search,
   Filter,
@@ -210,7 +209,7 @@ interface ServerStatsState {
   hotspot: number
 }
 
-// Animation variants
+// Animation variants - kept for other animations
 const containerVariants = {
   hidden: {},
   show: {
@@ -225,10 +224,9 @@ const itemVariants = {
   show: { opacity: 1, y: 0 },
 }
 
-const fadeInUp = {
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.25, ease: "easeOut" },
+// FIX: PageWrapper defined OUTSIDE the component for stable reference
+function PageWrapper({ children }: { children: React.ReactNode }) {
+  return <div className="space-y-6">{children}</div>
 }
 
 // Helper: Map backend Customer to frontend User display type
@@ -1227,6 +1225,7 @@ export default function UsersPage() {
 
   const totalPages = Math.ceil(totalCount / 50)
 
+  // FIX: Filtered online sessions with proper pagination
   const filteredOnlineSessions = useMemo(() => {
     return onlineSessions.filter((session) => {
       const matchesSearch = !onlineSearchQuery || (
@@ -1241,6 +1240,7 @@ export default function UsersPage() {
     })
   }, [onlineSessions, onlineSearchQuery, onlineServiceFilter])
 
+  // FIX: Proper pagination for online sessions
   const paginatedOnlineSessions = useMemo(() => {
     const start = (onlinePage - 1) * onlinePageSize
     return filteredOnlineSessions.slice(start, start + onlinePageSize)
@@ -1859,18 +1859,6 @@ export default function UsersPage() {
 
   const totalActiveSubscriptions = (activeSubscriptions.pppoe?.length || 0) + (activeSubscriptions.hotspot?.length || 0)
 
-  // Page animation wrapper
-  const PageWrapper = ({ children }: { children: React.ReactNode }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
-      className="space-y-6"
-    >
-      {children}
-    </motion.div>
-  )
-
   if (error) {
     return (
       <PageWrapper>
@@ -2270,13 +2258,8 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Stats Bar - With animated indicator and Hotspot filter tabs */}
-      <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-        className="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-x-auto relative"
-      >
+      {/* FIX: Stats Bar - No motion, no CountUp, just plain values */}
+      <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-x-auto relative">
         {[
           { label: "Total", value: stats.total, key: "all", tab: "all", status: "all", color: "text-slate-800 dark:text-slate-200" },
           { label: "Online", value: stats.online, key: "online", tab: "online-sessions", status: "all", color: "text-emerald-600 dark:text-emerald-400", pulse: true },
@@ -2287,11 +2270,8 @@ export default function UsersPage() {
         ].map(({ label, value, key, tab, status, color, pulse }) => {
           const isActive = activeStatFilter === key
           return (
-            <motion.button
+            <button
               key={key}
-              variants={itemVariants}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
               onClick={() => {
                 setActiveStatFilter(key)
                 setActiveTab(tab)
@@ -2309,18 +2289,15 @@ export default function UsersPage() {
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                   </span>
                 )}
-                <span className={`text-2xl font-black tabular-nums transition-all duration-200 ${color}`}>
-                  <CountUp end={value} duration={1.2} separator="," />
+                <span className={`text-2xl font-black tabular-nums ${color}`}>
+                  {value.toLocaleString()}
                 </span>
               </div>
               <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">{label}</span>
               {isActive && (
-                <motion.span 
-                  layoutId="active-stat-indicator"
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-slate-800 dark:bg-slate-200 rounded-full"
-                />
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-slate-800 dark:bg-slate-200 rounded-full" />
               )}
-            </motion.button>
+            </button>
           )
         })}
         <div className="w-px h-10 bg-slate-200 dark:bg-slate-700 mx-1 shrink-0" />
@@ -2329,11 +2306,8 @@ export default function UsersPage() {
         ].map(({ label, value, key, tab, color }) => {
           const isActive = activeStatFilter === key
           return (
-            <motion.button
+            <button
               key={key}
-              variants={itemVariants}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
               onClick={() => {
                 setActiveStatFilter(key)
                 setActiveTab(tab)
@@ -2345,19 +2319,16 @@ export default function UsersPage() {
               }`}
             >
               <span className={`text-2xl font-black tabular-nums ${color}`}>
-                <CountUp end={value} duration={1.2} separator="," />
+                {value.toLocaleString()}
               </span>
               <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">{label}</span>
               {isActive && (
-                <motion.span 
-                  layoutId="active-stat-indicator"
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-pink-500 rounded-full"
-                />
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-pink-500 rounded-full" />
               )}
-            </motion.button>
+            </button>
           )
         })}
-      </motion.div>
+      </div>
 
       {/* Unified Filter Bar - With sliding pill */}
       <motion.div 
