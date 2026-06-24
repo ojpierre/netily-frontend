@@ -1266,9 +1266,16 @@ export default function UsersPage() {
     return set
   }, [onlineSessions])
 
+  // FIX 2: Debounced search via useEffect - prevents input losing focus
   useEffect(() => {
-    setServerPage(1)
-    loadUsers(1, searchQuery, statusFilter)
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    searchDebounceRef.current = setTimeout(() => {
+      setServerPage(1)
+      loadUsers(1, searchQuery, statusFilter)
+    }, 400)
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    }
   }, [searchQuery, statusFilter])
 
   const handlePageChange = (newPage: number) => {
@@ -2480,15 +2487,8 @@ export default function UsersPage() {
             <Input
               placeholder="Search name, phone, username, IP, billing account..."
               value={searchQuery}
-              onChange={(e) => {
-                const val = e.target.value
-                setSearchQuery(val)
-                if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
-                searchDebounceRef.current = setTimeout(() => {
-                  setServerPage(1)
-                  loadUsers(1, val, statusFilter)
-                }, 400)
-              }}
+              // FIX 2: Only update state, debounce is handled in useEffect
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 bg-white dark:bg-slate-900 transition-all duration-300 focus:ring-4 focus:ring-violet-100 dark:focus:ring-violet-900/30 focus:border-violet-500"
               autoComplete="off"
             />
@@ -3250,8 +3250,9 @@ export default function UsersPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.15 }}
+                            // FIX 1: Fixed dark mode hover row
                             whileHover={{ backgroundColor: "#faf5ff" }}
-                            className="transition-all duration-200 hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:shadow-sm group dark:border-slate-700"
+                            className="transition-all duration-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:shadow-sm group dark:border-slate-700"
                           >
                             <TableCell>
                               <Checkbox
