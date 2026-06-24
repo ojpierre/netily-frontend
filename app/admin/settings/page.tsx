@@ -1,6 +1,7 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect } from "react"
+import { useTheme } from "next-themes"
 import {
   Settings as SettingsIcon,
   Server,
@@ -31,6 +32,10 @@ import {
   Phone,
   Plus,
   XCircle,
+  Palette,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -61,6 +66,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
+import { useColorTheme } from "@/components/theme-provider"
 
 // Account Settings Tab Component
 // -- Coming Soon placeholder --
@@ -72,6 +78,219 @@ function ComingSoonTab({ label }: { label: string }) {
       </div>
       <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{label} — Coming Soon</h3>
       <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">This section is still being built. Check back soon.</p>
+    </div>
+  )
+}
+function AppearanceTab() {
+  const { theme, setTheme } = useTheme()
+  const { colorTheme, setColorTheme } = useColorTheme()
+
+  const modes = [
+    {
+      id: "light",
+      label: "Light",
+      desc: "Clean white interface",
+      icon: Sun,
+      preview: (
+        <div className="w-full h-16 rounded-lg bg-white border border-slate-200 overflow-hidden flex flex-col">
+          <div className="h-4 bg-slate-100 border-b border-slate-200 flex items-center px-2 gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+            <div className="w-6 h-1 rounded bg-slate-300" />
+          </div>
+          <div className="flex-1 p-1.5 flex flex-col gap-1">
+            <div className="h-1.5 w-2/3 rounded bg-slate-200" />
+            <div className="h-3 w-full rounded bg-blue-100" />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "dark",
+      label: "Dark",
+      desc: "Easy on the eyes at night",
+      icon: Moon,
+      preview: (
+        <div className="w-full h-16 rounded-lg bg-slate-900 border border-slate-700 overflow-hidden flex flex-col">
+          <div className="h-4 bg-slate-800 border-b border-slate-700 flex items-center px-2 gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+            <div className="w-6 h-1 rounded bg-slate-600" />
+          </div>
+          <div className="flex-1 p-1.5 flex flex-col gap-1">
+            <div className="h-1.5 w-2/3 rounded bg-slate-700" />
+            <div className="h-3 w-full rounded bg-blue-900/60" />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "system",
+      label: "System",
+      desc: "Follows your OS setting",
+      icon: Monitor,
+      preview: (
+        <div className="w-full h-16 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden flex">
+          <div className="w-1/2 bg-white flex flex-col">
+            <div className="h-4 bg-slate-100 border-b border-slate-200 border-r" />
+            <div className="flex-1 p-1 flex flex-col gap-0.5">
+              <div className="h-1 w-full rounded bg-slate-200" />
+              <div className="h-2 w-full rounded bg-blue-100" />
+            </div>
+          </div>
+          <div className="w-1/2 bg-slate-900 flex flex-col">
+            <div className="h-4 bg-slate-800 border-b border-slate-700" />
+            <div className="flex-1 p-1 flex flex-col gap-0.5">
+              <div className="h-1 w-full rounded bg-slate-700" />
+              <div className="h-2 w-full rounded bg-blue-900/60" />
+            </div>
+          </div>
+        </div>
+      ),
+    },
+  ]
+
+  const colorOptions: { value: "blue" | "green" | "pink" | "purple"; label: string; accent: string; ring: string; bg: string; dark: string; swatch: string }[] = [
+    {
+      value: "blue",
+      label: "Ocean Blue",
+      accent: "text-blue-600",
+      ring: "ring-blue-500",
+      bg: "bg-blue-50",
+      dark: "dark:bg-blue-950/30",
+      swatch: "bg-blue-500",
+    },
+    {
+      value: "green",
+      label: "Emerald Green",
+      accent: "text-emerald-600",
+      ring: "ring-emerald-500",
+      bg: "bg-emerald-50",
+      dark: "dark:bg-emerald-950/30",
+      swatch: "bg-emerald-500",
+    },
+    {
+      value: "pink",
+      label: "Rose Pink",
+      accent: "text-pink-600",
+      ring: "ring-pink-500",
+      bg: "bg-pink-50",
+      dark: "dark:bg-pink-950/30",
+      swatch: "bg-pink-500",
+    },
+    {
+      value: "purple",
+      label: "Deep Purple",
+      accent: "text-purple-600",
+      ring: "ring-purple-500",
+      bg: "bg-purple-50",
+      dark: "dark:bg-purple-950/30",
+      swatch: "bg-purple-500",
+    },
+  ]
+
+  return (
+    <div className="space-y-6">
+      {/* Dark / Light Mode */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <Monitor className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Interface Mode</CardTitle>
+              <CardDescription>Choose between light, dark, or automatic mode</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {modes.map(({ id, label, desc, icon: Icon, preview }) => {
+              const isActive = theme === id
+              return (
+                <button
+                  key={id}
+                  onClick={() => setTheme(id)}
+                  className={`group relative rounded-2xl border-2 p-4 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    isActive
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-md"
+                      : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-900"
+                  }`}
+                >
+                  {isActive && (
+                    <span className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500 text-white text-[10px] font-semibold">
+                      <CheckCircle className="w-2.5 h-2.5" />
+                      Active
+                    </span>
+                  )}
+                  <div className="mb-3">{preview}</div>
+                  <div className="flex items-center gap-2">
+                    <Icon className={`w-4 h-4 ${isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                    <span className={`font-semibold text-sm ${isActive ? "text-blue-700 dark:text-blue-300" : "text-slate-700 dark:text-slate-300"}`}>
+                      {label}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-slate-500 ml-6">{desc}</p>
+                </button>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Colour Palette */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/40 flex items-center justify-center">
+              <Palette className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Accent Colour</CardTitle>
+              <CardDescription>Pick the brand colour used across buttons, links, and highlights</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {colorOptions.map(({ value, label, ring, bg, dark, swatch }) => {
+              const isActive = colorTheme === value
+              return (
+                <button
+                  key={value}
+                  onClick={() => setColorTheme(value)}
+                  className={`relative flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 focus:outline-none focus-visible:ring-2 ${ring} ${
+                    isActive
+                      ? `border-current ${bg} ${dark} shadow-md`
+                      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-600"
+                  }`}
+                >
+                  {isActive && (
+                    <span className="absolute top-2 right-2">
+                      <CheckCircle className={`w-4 h-4 ${swatch.replace("bg-", "text-")}`} />
+                    </span>
+                  )}
+                  {/* Colour swatch */}
+                  <div className={`w-12 h-12 rounded-full ${swatch} shadow-md flex items-center justify-center`}>
+                    {isActive && <CheckCircle className="w-5 h-5 text-white drop-shadow" />}
+                  </div>
+                  <span className={`text-xs font-semibold ${isActive ? swatch.replace("bg-", "text-") : "text-slate-600 dark:text-slate-400"}`}>
+                    {label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="mt-5 flex items-center gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+            <div className={`w-6 h-6 rounded-full ${colorOptions.find(c => c.value === colorTheme)?.swatch} shadow flex-shrink-0`} />
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Active accent: <span className={`font-semibold capitalize ${colorOptions.find(c => c.value === colorTheme)?.accent}`}>
+                {colorOptions.find(c => c.value === colorTheme)?.label}
+              </span>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -1074,6 +1293,10 @@ export default function SettingsPage() {
               <Bell className="w-4 h-4" />
               <span className="hidden sm:inline">Notifications</span>
             </TabsTrigger>
+            <TabsTrigger value="appearance" className="flex items-center gap-2">
+              <Palette className="w-4 h-4" />
+              <span className="hidden sm:inline">Appearance</span>
+            </TabsTrigger>
           </TabsList>
         </ScrollArea>
 
@@ -1351,6 +1574,11 @@ export default function SettingsPage() {
               </Button>
             </CardFooter>
           </Card>
+        </TabsContent>
+
+        {/* Appearance Tab */}
+        <TabsContent value="appearance" className="space-y-6">
+          <AppearanceTab />
         </TabsContent>
       </Tabs>
     </div>
