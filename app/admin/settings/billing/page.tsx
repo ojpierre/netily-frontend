@@ -42,6 +42,7 @@ function BillingContent() {
   const [planPayLoading, setPlanPayLoading] = useState(false)
   const [pendingPaymentId, setPendingPaymentId] = useState<string | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<string>("")
+  const [enterpriseSupportOpen, setEnterpriseSupportOpen] = useState(false)
 
   // Pay Now dialog state (for expired trial activation)
   const [payNowOpen, setPayNowOpen] = useState(false)
@@ -212,6 +213,11 @@ function BillingContent() {
         <span className="text-sm text-slate-500">/mo</span>
       </div>
     )
+  }
+
+  const isEnterprisePlan = (plan: NetilyPlan | null | undefined) => {
+    if (!plan) return false
+    return plan.code === 'enterprise' || plan.name.toLowerCase().includes('enterprise')
   }
 
   // Client-side PDF generation via print window
@@ -719,8 +725,8 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
         {/* 3. AVAILABLE PLANS - Added Array check to prevent k.map crash */}
         <TabsContent value="plans">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {/* Metered plan */}
-            {Array.isArray(apiPlans) && apiPlans.filter((p) => p.is_metered).map((plan) => (
+            {/* Metered plans excluding Enterprise (handled by unified card below) */}
+            {Array.isArray(apiPlans) && apiPlans.filter((p) => p.is_metered && !isEnterprisePlan(p)).map((plan) => (
               <Card 
                 key={plan.id} 
                 className={`${
@@ -779,7 +785,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
               </Card>
             ))}
 
-            {/* Enterprise & Custom — single card for all non-metered plans */}
+            {/* Enterprise & Custom — unified card (no direct pay flow) */}
             <Card className="border-slate-800 bg-linear-to-br from-slate-900 to-blue-950 text-white transition-all hover:shadow-xl col-span-1 sm:col-span-1 lg:col-span-2">
               <CardHeader>
                 <div className="flex justify-between items-start mb-2">
@@ -787,7 +793,11 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                     <Shield className="w-5 h-5 text-blue-400" />
                     Enterprise &amp; Custom Plans
                   </CardTitle>
-                  <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px]">CUSTOM PRICING</Badge>
+                  {isEnterprisePlan(subscription?.plan) ? (
+                    <Badge className="bg-blue-600 text-[10px] font-bold">CURRENT PLAN</Badge>
+                  ) : (
+                    <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px]">CUSTOM PRICING</Badge>
+                  )}
                 </div>
                 <CardDescription className="text-slate-400 text-xs">
                   White-label, dedicated infrastructure, custom integrations, SLA guarantee, and a pricing model built around your ISP.
@@ -812,14 +822,42 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                 </div>
               </CardContent>
               <CardFooter>
-                <a
-                  href="mailto:sales@netily.co.ke?subject=Enterprise%20Plan%20Enquiry"
-                  className="w-full inline-flex items-center justify-center gap-2 h-10 rounded-lg bg-blue-600 hover:bg-blue-500 font-bold text-white text-sm transition-colors"
+                <Button
+                  type="button"
+                  className="w-full bg-blue-600 hover:bg-blue-500 font-bold"
+                  onClick={() => setEnterpriseSupportOpen(true)}
                 >
-                  Contact Sales →
-                </a>
+                  Contact Support
+                </Button>
               </CardFooter>
             </Card>
+
+            <Dialog open={enterpriseSupportOpen} onOpenChange={setEnterpriseSupportOpen}>
+              <DialogContent className="max-w-[92vw] sm:max-w-[460px]">
+                <DialogHeader>
+                  <DialogTitle>Talk to Netily Support</DialogTitle>
+                  <DialogDescription>
+                    Enterprise and custom plans are configured directly by our support team based on your current billing cycle and ISP requirements.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="mt-4 space-y-3">
+                  <a
+                    href="https://wa.me/254741670603?text=Hello%20Netily%20Support%2C%20I%20need%20help%20with%20Enterprise%20plan%20billing."
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full inline-flex items-center justify-center gap-2 h-10 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-bold text-white text-sm transition-colors"
+                  >
+                    Continue on WhatsApp
+                  </a>
+                  <a
+                    href="mailto:support@netily.co.ke?subject=Enterprise%20Plan%20Support%20Request"
+                    className="w-full inline-flex items-center justify-center gap-2 h-10 rounded-lg border border-slate-300 hover:bg-slate-100 font-semibold text-slate-700 text-sm transition-colors"
+                  >
+                    Send Email to Support
+                  </a>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* Single shared dialog for plan selection lives outside the map to avoid controlled/uncontrolled conflicts. */}
