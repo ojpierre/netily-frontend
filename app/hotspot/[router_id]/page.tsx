@@ -306,7 +306,8 @@ async function phoneReconnect(data: {
 
 // === NEW MAC-based TV API FUNCTIONS ===
 // scanNetworkDevices - calls backend to scan for devices on the network
-async function scanNetworkDevices(routerId: string, tenant: string): Promise<{ip: string; mac: string; label: string}[]> {
+// Updated to include mac_masked field
+async function scanNetworkDevices(routerId: string, tenant: string): Promise<{ip: string; mac: string; mac_masked: string; label: string}[]> {
   try {
     const res = await fetch(
       `${getApiBase()}/hotspot/scan-devices/?router_id=${encodeURIComponent(routerId)}&tenant=${encodeURIComponent(tenant)}`,
@@ -1134,9 +1135,10 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   // MAC-based TV payment (no TV-side detection or polling needed)
   const [tvMacInput, setTvMacInput] = useState("")
   const [tvMacLastDigits, setTvMacLastDigits] = useState("")
-  const [tvScannedDevices, setTvScannedDevices] = useState<{ip: string; mac: string; label: string}[]>([])
+  // Updated to include mac_masked field
+  const [tvScannedDevices, setTvScannedDevices] = useState<{ip: string; mac: string; mac_masked: string; label: string}[]>([])
   const [tvScanLoading, setTvScanLoading] = useState(false)
-  const [tvSelectedDevice, setTvSelectedDevice] = useState<{ip: string; mac: string; label: string} | null>(null)
+  const [tvSelectedDevice, setTvSelectedDevice] = useState<{ip: string; mac: string; mac_masked: string; label: string} | null>(null)
   const [tvMacVerified, setTvMacVerified] = useState(false)
   const [tvMacError, setTvMacError] = useState<string | null>(null)
   const [tvPayMode, setTvPayMode] = useState<"scan" | "manual">("scan")
@@ -1341,7 +1343,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     setTvScanLoading(false)
   }
 
-  const handleSelectScannedDevice = (device: {ip: string; mac: string; label: string}) => {
+  const handleSelectScannedDevice = (device: {ip: string; mac: string; mac_masked: string; label: string}) => {
     setTvSelectedDevice(device)
     setTvMacLastDigits("")
     setTvMacVerified(false)
@@ -2018,7 +2020,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                               className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${tvSelectedDevice?.mac === d.mac ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
                             >
                               <div className="font-medium text-gray-800">{d.label || `Device ${i+1}`}</div>
-                              <div className="text-xs text-gray-400 font-mono">{d.ip} · {d.mac}</div>
+                              <div className="text-xs text-gray-400 font-mono">{d.ip} · {d.mac_masked || d.mac}</div>
                             </button>
                           ))}
                         </div>
@@ -2042,13 +2044,13 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                   {(tvSelectedDevice || tvMacInput) && (
                     <div className="mt-3">
                       <label className="block text-xs text-gray-600 mb-1 font-medium">
-                        Confirm: enter last 4 digits of MAC (e.g. for AA:BB:CC:DD:EE:FF enter EEFF)
+                        Confirm: enter the 4 hidden characters shown as **** on your TV&apos;s Settings → Network
                       </label>
                       <div className="flex gap-2">
                         <input
                           type="text"
                           maxLength={4}
-                          placeholder="Last 4 digits"
+                          placeholder="Hidden chars"
                           value={tvMacLastDigits}
                           onChange={(e) => { setTvMacLastDigits(e.target.value.toUpperCase()); setTvMacError(null) }}
                           className="flex-1 px-3 py-2 border border-blue-200 rounded-lg font-mono text-center uppercase focus:outline-none focus:ring-2 focus:ring-blue-400"
