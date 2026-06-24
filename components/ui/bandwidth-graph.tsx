@@ -189,8 +189,8 @@ export function BandwidthGraph({ username, isOnline, baseUrl, authToken, maxPoin
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div className="flex items-center gap-2">
           <div className={`relative flex h-2 w-2`}>
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isLive ? "bg-emerald-400" : "bg-amber-400"}`} />
-            <span className={`relative inline-flex rounded-full h-2 w-2 ${isLive ? "bg-emerald-500" : phase === "error" ? "bg-red-500" : "bg-amber-400"}`} />
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isLive ? "bg-emerald-400" : "bg-warning"}`} />
+            <span className={`relative inline-flex rounded-full h-2 w-2 ${isLive ? "bg-emerald-500" : phase === "error" ? "bg-destructive" : "bg-warning"}`} />
           </div>
           <span className="text-xs font-semibold text-slate-300 tracking-wide uppercase">Live Bandwidth</span>
         </div>

@@ -81,7 +81,7 @@ export default function CustomerDashboardPage() {
     return (
       <div className="flex items-center justify-center py-20">
         <Card className="p-8 text-center max-w-md">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-bold mb-2">Error Loading Dashboard</h2>
           <p className="text-muted-foreground mb-4">{error}</p>
           <Button onClick={() => window.location.reload()}>Try Again</Button>
@@ -99,8 +99,8 @@ export default function CustomerDashboardPage() {
     <div className="space-y-6">
       {/* Welcome Banner */}
       <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center">
-          <Wifi className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="w-10 h-10 bg-primary/15 dark:bg-blue-950 rounded-lg flex items-center justify-center">
+          <Wifi className="w-5 h-5 text-primary dark:text-primary/80" />
         </div>
         <div>
           <h1 className="font-bold text-lg">Welcome, {data.customer.full_name}</h1>
@@ -120,8 +120,8 @@ export default function CustomerDashboardPage() {
                   KSh {parseFloat(data.customer.balance || "0").toLocaleString()}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="w-10 h-10 bg-primary/15 dark:bg-blue-950 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-primary dark:text-primary/80" />
               </div>
             </div>
           </Card>
@@ -133,11 +133,11 @@ export default function CustomerDashboardPage() {
                 {data.current_plan ? (
                   <p className="text-xl font-bold">{data.current_plan.name}</p>
                 ) : (
-                  <p className="text-lg font-bold text-orange-600 dark:text-orange-400">No Plan</p>
+                  <p className="text-lg font-bold text-warning dark:text-warning">No Plan</p>
                 )}
               </div>
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-950 rounded-lg flex items-center justify-center">
-                <Wifi className="w-5 h-5 text-green-600 dark:text-green-400" />
+              <div className="w-10 h-10 bg-success/15 dark:bg-green-950 rounded-lg flex items-center justify-center">
+                <Wifi className="w-5 h-5 text-success dark:text-success" />
               </div>
             </div>
           </Card>
@@ -146,12 +146,12 @@ export default function CustomerDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Days Left</p>
-                <p className={`text-2xl font-bold ${daysRemaining < 3 ? "text-red-600 dark:text-red-400" : ""}`}>
+                <p className={`text-2xl font-bold ${daysRemaining < 3 ? "text-destructive dark:text-destructive" : ""}`}>
                   {data.current_plan ? daysRemaining : "—"}
                 </p>
               </div>
-              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-950 rounded-lg flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              <div className="w-10 h-10 bg-warning/15 dark:bg-orange-950 rounded-lg flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-warning dark:text-warning" />
               </div>
             </div>
           </Card>
@@ -191,16 +191,16 @@ export default function CustomerDashboardPage() {
 
         {/* Expiry Warning */}
         {data.current_plan && daysRemaining <= 5 && daysRemaining >= 0 && (
-          <Card className="p-5 bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800">
+          <Card className="p-5 bg-warning/10 dark:bg-orange-950/30 border-warning/20 dark:border-orange-800">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-950 rounded-lg flex items-center justify-center flex-shrink-0">
-                <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              <div className="w-10 h-10 bg-warning/15 dark:bg-orange-950 rounded-lg flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="w-5 h-5 text-warning dark:text-warning" />
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-orange-900 dark:text-orange-300">
                   {daysRemaining === 0 ? "Service Expired!" : "Expiring Soon!"}
                 </h3>
-                <p className="text-sm text-orange-800 dark:text-orange-400 mb-3">
+                <p className="text-sm text-orange-800 dark:text-warning mb-3">
                   {daysRemaining === 0 
                     ? "Your subscription has expired. Renew now to restore service."
                     : `Your service expires in ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""}. Renew now.`}
@@ -220,16 +220,16 @@ export default function CustomerDashboardPage() {
 
         {/* Pending Invoices */}
         {data.pending_invoices && data.pending_invoices.length > 0 && (
-          <Card className="p-5 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800">
+          <Card className="p-5 bg-destructive/10 dark:bg-red-950/30 border-destructive/20 dark:border-destructive/20">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-red-100 dark:bg-red-950 rounded-lg flex items-center justify-center flex-shrink-0">
-                <FileText className="w-5 h-5 text-red-600 dark:text-red-400" />
+              <div className="w-10 h-10 bg-destructive/15 dark:bg-red-950 rounded-lg flex items-center justify-center flex-shrink-0">
+                <FileText className="w-5 h-5 text-destructive dark:text-destructive" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-red-900 dark:text-red-300">
+                <h3 className="font-semibold text-red-900 dark:text-destructive/80">
                   {data.pending_invoices.length} Unpaid Invoice{data.pending_invoices.length > 1 ? "s" : ""}
                 </h3>
-                <p className="text-sm text-red-800 dark:text-red-400 mb-3">
+                <p className="text-sm text-red-800 dark:text-destructive mb-3">
                   Pay your outstanding invoices to avoid service interruption.
                 </p>
                 <Button size="sm" variant="destructive" onClick={() => setShowPaymentModal(true)}>
@@ -327,7 +327,7 @@ export default function CustomerDashboardPage() {
           <Card className="p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Recent Payments</h3>
-              <Link href="/customer/payments" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+              <Link href="/customer/payments" className="text-sm text-primary dark:text-primary/80 hover:underline">
                 View all
               </Link>
             </div>
@@ -338,8 +338,8 @@ export default function CustomerDashboardPage() {
                   className="flex items-center justify-between p-3 bg-muted rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-green-100 dark:bg-green-950 rounded-full flex items-center justify-center">
-                      <CreditCard className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <div className="w-8 h-8 bg-success/15 dark:bg-green-950 rounded-full flex items-center justify-center">
+                      <CreditCard className="w-4 h-4 text-success dark:text-success" />
                     </div>
                     <div>
                       <p className="font-medium text-sm">
@@ -352,7 +352,7 @@ export default function CustomerDashboardPage() {
                   </div>
                   <Badge
                     variant={payment.status === "completed" ? "default" : "secondary"}
-                    className={payment.status === "completed" ? "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400" : ""}
+                    className={payment.status === "completed" ? "bg-success/15 dark:bg-green-950 text-success dark:text-success" : ""}
                   >
                     {payment.status}
                   </Badge>

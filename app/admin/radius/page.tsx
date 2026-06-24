@@ -150,7 +150,7 @@ function getExpirationStatus(expirationDate: string | null): {
       status: 'unlimited',
       label: 'Unlimited',
       timeRemaining: null,
-      badgeClass: 'bg-blue-100 text-blue-700'
+      badgeClass: 'bg-primary/15 text-primary'
     }
   }
 
@@ -163,7 +163,7 @@ function getExpirationStatus(expirationDate: string | null): {
       status: 'expired',
       label: 'Expired',
       timeRemaining: 'Expired',
-      badgeClass: 'bg-red-100 text-red-700'
+      badgeClass: 'bg-destructive/15 text-destructive'
     }
   }
 
@@ -186,7 +186,7 @@ function getExpirationStatus(expirationDate: string | null): {
       status: 'expiring',
       label: 'Expiring Soon',
       timeRemaining,
-      badgeClass: 'bg-yellow-100 text-yellow-700'
+      badgeClass: 'bg-warning/15 text-warning'
     }
   }
 
@@ -194,7 +194,7 @@ function getExpirationStatus(expirationDate: string | null): {
     status: 'active',
     label: 'Active',
     timeRemaining,
-    badgeClass: 'bg-green-100 text-green-700'
+    badgeClass: 'bg-success/15 text-success'
   }
 }
 
@@ -479,9 +479,9 @@ export default function RADIUSPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "enabled":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Enabled</Badge>
+        return <Badge className="bg-success/15 text-green-800 hover:bg-success/15">Enabled</Badge>
       case "disabled":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Disabled</Badge>
+        return <Badge className="bg-destructive/15 text-red-800 hover:bg-destructive/15">Disabled</Badge>
       default:
         return <Badge variant="secondary">{status}</Badge>
     }
@@ -531,9 +531,9 @@ export default function RADIUSPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats?.total_users || 0}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">{stats?.active_users || 0} active</span>
+              <span className="text-success">{stats?.active_users || 0} active</span>
               {" · "}
-              <span className="text-red-600">{stats?.disabled_users || 0} disabled</span>
+              <span className="text-destructive">{stats?.disabled_users || 0} disabled</span>
             </p>
           </CardContent>
         </Card>
@@ -557,7 +557,7 @@ export default function RADIUSPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats?.total_nas || 0}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">{stats?.online_nas || 0} online</span>
+              <span className="text-success">{stats?.online_nas || 0} online</span>
             </p>
           </CardContent>
         </Card>
@@ -570,11 +570,11 @@ export default function RADIUSPage() {
           <CardContent>
             <div className="text-sm">
               <div className="flex items-center gap-2">
-                <Download className="h-3 w-3 text-green-500" />
+                <Download className="h-3 w-3 text-success" />
                 <span>{formatBytes(stats?.total_data_in || 0)}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Upload className="h-3 w-3 text-blue-500" />
+                <Upload className="h-3 w-3 text-primary" />
                 <span>{formatBytes(stats?.total_data_out || 0)}</span>
               </div>
             </div>
@@ -681,7 +681,7 @@ export default function RADIUSPage() {
                       <TableCell>{getStatusBadge(user.status)}</TableCell>
                       <TableCell>
                         {user.public_sync_status === 'synced' ? (
-                          <Badge className="bg-green-100 text-green-700 flex items-center gap-1 w-fit">
+                          <Badge className="bg-success/15 text-success flex items-center gap-1 w-fit">
                             <CheckCircle className="h-3 w-3" />
                             Synced
                           </Badge>
@@ -729,7 +729,7 @@ export default function RADIUSPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              className="text-red-600"
+                              className="text-destructive"
                               onClick={() => {
                                 setSelectedItem(user)
                                 setDeleteType("user")
@@ -766,7 +766,7 @@ export default function RADIUSPage() {
                     <CardTitle className="text-lg">{profile.name}</CardTitle>
                     <div className="flex items-center gap-2">
                       {profile.is_default && (
-                        <Badge className="bg-blue-100 text-blue-800">Default</Badge>
+                        <Badge className="bg-primary/15 text-primary">Default</Badge>
                       )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -776,7 +776,7 @@ export default function RADIUSPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            className="text-red-600"
+                            className="text-destructive"
                             onClick={() => {
                               setSelectedItem(profile)
                               setDeleteType("profile")
@@ -862,7 +862,7 @@ export default function RADIUSPage() {
                       <TableCell>{nas.router_name || "—"}</TableCell>
                       <TableCell>
                         {nas.is_active ? (
-                          <Badge className="bg-green-100 text-green-800">Active</Badge>
+                          <Badge className="bg-success/15 text-green-800">Active</Badge>
                         ) : (
                           <Badge variant="secondary">Inactive</Badge>
                         )}
@@ -876,7 +876,7 @@ export default function RADIUSPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              className="text-red-600"
+                              className="text-destructive"
                               onClick={() => {
                                 setSelectedItem(nas)
                                 setDeleteType("nas")
@@ -944,11 +944,11 @@ export default function RADIUSPage() {
                       <TableCell>
                         <div className="text-sm">
                           <div className="flex items-center gap-1">
-                            <Download className="h-3 w-3 text-green-500" />
+                            <Download className="h-3 w-3 text-success" />
                             {formatBytes(session.acctinputoctets)}
                           </div>
                           <div className="flex items-center gap-1">
-                            <Upload className="h-3 w-3 text-blue-500" />
+                            <Upload className="h-3 w-3 text-primary" />
                             {formatBytes(session.acctoutputoctets)}
                           </div>
                         </div>
@@ -1011,9 +1011,9 @@ export default function RADIUSPage() {
                       <TableCell>
                         {cred.is_enabled ? (
                           expStatus.status === 'expired' ? (
-                            <Badge className="bg-red-100 text-red-700">Expired</Badge>
+                            <Badge className="bg-destructive/15 text-destructive">Expired</Badge>
                           ) : (
-                            <Badge className="bg-green-100 text-green-700">Active</Badge>
+                            <Badge className="bg-success/15 text-success">Active</Badge>
                           )
                         ) : (
                           <Badge variant="destructive">Disabled</Badge>
@@ -1041,12 +1041,12 @@ export default function RADIUSPage() {
                       </TableCell>
                       <TableCell>
                         {cred.synced_to_radius ? (
-                          <div className="flex items-center gap-1 text-green-600">
+                          <div className="flex items-center gap-1 text-success">
                             <CheckCircle className="h-4 w-4" />
                             <span className="text-xs">{cred.last_sync ? formatDateTime(cred.last_sync) : 'Synced'}</span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1 text-yellow-600">
+                          <div className="flex items-center gap-1 text-warning">
                             <Clock className="h-4 w-4" />
                             <span className="text-xs">Not synced</span>
                           </div>
@@ -1081,7 +1081,7 @@ export default function RADIUSPage() {
                             {/* Renewal Option */}
                             {(expStatus.status === 'expired' || expStatus.status === 'expiring') && (
                               <DropdownMenuItem 
-                                className="text-blue-600"
+                                className="text-primary"
                                 onClick={async () => {
                                   try {
                                     await adminApi.renewRADIUSCredential(cred.id)
@@ -1097,7 +1097,7 @@ export default function RADIUSPage() {
                             )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              className={cred.is_enabled ? "text-red-600" : "text-green-600"}
+                              className={cred.is_enabled ? "text-destructive" : "text-success"}
                               onClick={async () => {
                                 try {
                                   if (cred.is_enabled) {

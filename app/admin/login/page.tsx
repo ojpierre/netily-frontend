@@ -248,7 +248,7 @@ export default function AdminLoginPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -259,7 +259,7 @@ export default function AdminLoginPage() {
         {step === "credentials" ? (
           <>
             <CardHeader className="text-center space-y-4">
-              <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+              <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center">
                 <Shield className="w-9 h-9 text-white" />
               </div>
               <CardTitle className="text-2xl font-bold">Admin Portal</CardTitle>
@@ -357,7 +357,7 @@ export default function AdminLoginPage() {
         ) : (
           <>
             <CardHeader className="text-center space-y-4">
-              <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+              <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center">
                 <Mail className="w-9 h-9 text-white" />
               </div>
               <CardTitle className="text-2xl font-bold">Verify Your Identity</CardTitle>
@@ -415,7 +415,7 @@ export default function AdminLoginPage() {
                   <button
                     onClick={handleResendOtp}
                     disabled={otpResendCount >= otpMaxResends}
-                    className="text-blue-600 hover:underline font-medium"
+                    className="text-primary hover:underline font-medium"
                   >
                     Resend OTP
                   </button>

@@ -100,8 +100,8 @@ export function OtpGuard({ children, title = "Verification Required", descriptio
     <div className="min-h-[60vh] flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-3">
-          <div className="mx-auto w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
-            <ShieldCheck className="w-7 h-7 text-blue-600" />
+          <div className="mx-auto w-14 h-14 bg-primary/15 rounded-full flex items-center justify-center">
+            <ShieldCheck className="w-7 h-7 text-primary" />
           </div>
           <CardTitle className="text-xl font-bold">{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
@@ -147,7 +147,7 @@ export function OtpGuard({ children, title = "Verification Required", descriptio
               </Button>
               <p className="text-sm text-center text-slate-400">
                 {cooldown > 0 ? `Resend in ${cooldown}s` : (
-                  <button onClick={sendOtp} className="text-blue-600 hover:underline font-medium">Resend code</button>
+                  <button onClick={sendOtp} className="text-primary hover:underline font-medium">Resend code</button>
                 )}
               </p>
             </>

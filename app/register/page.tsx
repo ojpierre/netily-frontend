@@ -88,10 +88,10 @@ export default function RegisterPage() {
       <div className="max-w-md mx-auto">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8 mt-8">
-          <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
             <Zap className="w-7 h-7 text-white" />
           </div>
-          <span className="text-2xl font-bold text-blue-600">Netily</span>
+          <span className="text-2xl font-bold text-primary">Netily</span>
         </Link>
 
         {/* Form */}
@@ -110,9 +110,9 @@ export default function RegisterPage() {
                   setFormData({ ...formData, name: e.target.value })
                   if (errors.name) setErrors({ ...errors, name: "" })
                 }}
-                className={errors.name ? "border-red-500" : ""}
+                className={errors.name ? "border-destructive" : ""}
               />
-              {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
+              {errors.name && <p className="text-destructive text-sm mt-1">{errors.name}</p>}
             </div>
 
             <div>
@@ -125,9 +125,9 @@ export default function RegisterPage() {
                   setFormData({ ...formData, email: e.target.value })
                   if (errors.email) setErrors({ ...errors, email: "" })
                 }}
-                className={errors.email ? "border-red-500" : ""}
+                className={errors.email ? "border-destructive" : ""}
               />
-              {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
+              {errors.email && <p className="text-destructive text-sm mt-1">{errors.email}</p>}
             </div>
 
             <div>
@@ -140,9 +140,9 @@ export default function RegisterPage() {
                   setFormData({ ...formData, phone: e.target.value })
                   if (errors.phone) setErrors({ ...errors, phone: "" })
                 }}
-                className={errors.phone ? "border-red-500" : ""}
+                className={errors.phone ? "border-destructive" : ""}
               />
-              {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
+              {errors.phone && <p className="text-destructive text-sm mt-1">{errors.phone}</p>}
             </div>
 
             <div>
@@ -155,9 +155,9 @@ export default function RegisterPage() {
                   setFormData({ ...formData, address: e.target.value })
                   if (errors.address) setErrors({ ...errors, address: "" })
                 }}
-                className={errors.address ? "border-red-500" : ""}
+                className={errors.address ? "border-destructive" : ""}
               />
-              {errors.address && <p className="text-red-600 text-sm mt-1">{errors.address}</p>}
+              {errors.address && <p className="text-destructive text-sm mt-1">{errors.address}</p>}
             </div>
 
             <div>
@@ -170,9 +170,9 @@ export default function RegisterPage() {
                   setFormData({ ...formData, zipcode: e.target.value })
                   if (errors.zipcode) setErrors({ ...errors, zipcode: "" })
                 }}
-                className={errors.zipcode ? "border-red-500" : ""}
+                className={errors.zipcode ? "border-destructive" : ""}
               />
-              {errors.zipcode && <p className="text-red-600 text-sm mt-1">{errors.zipcode}</p>}
+              {errors.zipcode && <p className="text-destructive text-sm mt-1">{errors.zipcode}</p>}
             </div>
 
             <div>
@@ -185,9 +185,9 @@ export default function RegisterPage() {
                   setFormData({ ...formData, password: e.target.value })
                   if (errors.password) setErrors({ ...errors, password: "" })
                 }}
-                className={errors.password ? "border-red-500" : ""}
+                className={errors.password ? "border-destructive" : ""}
               />
-              {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password}</p>}
+              {errors.password && <p className="text-destructive text-sm mt-1">{errors.password}</p>}
             </div>
 
             <div>
@@ -200,15 +200,15 @@ export default function RegisterPage() {
                   setFormData({ ...formData, confirmPassword: e.target.value })
                   if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: "" })
                 }}
-                className={errors.confirmPassword ? "border-red-500" : ""}
+                className={errors.confirmPassword ? "border-destructive" : ""}
               />
-              {errors.confirmPassword && <p className="text-red-600 text-sm mt-1">{errors.confirmPassword}</p>}
+              {errors.confirmPassword && <p className="text-destructive text-sm mt-1">{errors.confirmPassword}</p>}
             </div>
 
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg font-medium mt-6"
+              className="w-full bg-primary hover:bg-primary text-white py-6 text-lg font-medium mt-6"
             >
               {isLoading ? "Creating account..." : "Create Account"}
             </Button>
@@ -217,7 +217,7 @@ export default function RegisterPage() {
           <div className="mt-6 border-t border-slate-200 pt-6">
             <p className="text-slate-600 text-center">
               Already have an account?{" "}
-              <Link href="/login" className="text-blue-600 font-semibold hover:underline">
+              <Link href="/login" className="text-primary font-semibold hover:underline">
                 Sign in
               </Link>
             </p>

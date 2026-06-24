@@ -155,22 +155,22 @@ export default function NotificationsPage() {
   const getIcon = (type: string) => {
     switch (type) {
       case "success":
-        return <CheckCircle2 className="w-5 h-5 text-green-600" />
+        return <CheckCircle2 className="w-5 h-5 text-success" />
       case "warning":
-        return <AlertTriangle className="w-5 h-5 text-orange-600" />
+        return <AlertTriangle className="w-5 h-5 text-warning" />
       case "error":
-        return <AlertTriangle className="w-5 h-5 text-red-600" />
+        return <AlertTriangle className="w-5 h-5 text-destructive" />
       default:
-        return <Info className="w-5 h-5 text-blue-600" />
+        return <Info className="w-5 h-5 text-primary" />
     }
   }
 
   const getColor = (type: string) => {
     switch (type) {
-      case "success": return "bg-green-100 border-green-200"
-      case "warning": return "bg-orange-100 border-orange-200"
-      case "error": return "bg-red-100 border-red-200"
-      default: return "bg-blue-100 border-blue-200"
+      case "success": return "bg-success/15 border-success/20"
+      case "warning": return "bg-warning/15 border-warning/20"
+      case "error": return "bg-destructive/15 border-destructive/20"
+      default: return "bg-primary/15 border-primary/20"
     }
   }
 
@@ -179,7 +179,7 @@ export default function NotificationsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -192,7 +192,7 @@ export default function NotificationsPage() {
           <p className="text-slate-600 mt-1">
             Stay updated with your account activity
             {unreadCount > 0 && (
-              <Badge className="ml-3 bg-blue-600">{unreadCount} unread</Badge>
+              <Badge className="ml-3 bg-primary">{unreadCount} unread</Badge>
             )}
           </p>
         </div>
@@ -267,7 +267,7 @@ export default function NotificationsPage() {
                       <h3 className="font-semibold text-slate-900 mb-1">
                         {notification.title}
                         {!notification.read && (
-                          <Badge className="ml-2 bg-blue-600 text-xs">New</Badge>
+                          <Badge className="ml-2 bg-primary text-xs">New</Badge>
                         )}
                       </h3>
                       <p className="text-slate-600 text-sm">{notification.message}</p>
@@ -291,7 +291,7 @@ export default function NotificationsPage() {
                         variant="outline"
                         onClick={() => setDeleteId(notification.id)}
                       >
-                        <Trash2 className="w-4 h-4 text-red-600" />
+                        <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>
                     </div>
                   </div>
@@ -315,7 +315,7 @@ export default function NotificationsPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteNotification(deleteId)}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               Delete
             </AlertDialogAction>

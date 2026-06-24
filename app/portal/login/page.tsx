@@ -335,7 +335,7 @@ function PortalLoginContent() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
-          <Loader2 className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-800">Welcome Back!</h2>
           <p className="text-gray-500 mt-2">You have an active session. Reconnecting...</p>
         </div>
@@ -347,7 +347,7 @@ function PortalLoginContent() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
-          <Loader2 className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-800">Loading...</h2>
           <p className="text-gray-500 mt-2">Fetching available plans</p>
         </div>
@@ -359,12 +359,12 @@ function PortalLoginContent() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
-          <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <XCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-800">Connection Error</h2>
           <p className="text-gray-500 mt-2 break-words">{loadError}</p>
           <button
             onClick={() => { setLoadError(""); loadPlans() }}
-            className="mt-4 px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 mx-auto"
+            className="mt-4 px-6 py-2 bg-destructive text-white rounded-lg hover:bg-destructive transition-colors flex items-center gap-2 mx-auto"
           >
             <RefreshCw className="w-4 h-4" /> Retry
           </button>
@@ -379,39 +379,39 @@ function PortalLoginContent() {
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
           {paymentStatus === "sending" && (
             <>
-              <Loader2 className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
+              <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
               <h2 className="text-xl font-bold text-gray-800">Initiating Payment</h2>
             </>
           )}
           {paymentStatus === "waiting" && (
             <>
-              <Phone className="w-12 h-12 text-green-500 mx-auto mb-4 animate-bounce" />
+              <Phone className="w-12 h-12 text-success mx-auto mb-4 animate-bounce" />
               <h2 className="text-xl font-bold text-gray-800">Check Your Phone</h2>
             </>
           )}
           {paymentStatus === "success" && (
             <>
-              <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-green-600">Payment Successful!</h2>
+              <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-success">Payment Successful!</h2>
             </>
           )}
           {paymentStatus === "failed" && (
             <>
-              <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-red-600">Payment Failed</h2>
+              <XCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-destructive">Payment Failed</h2>
             </>
           )}
           {paymentStatus === "timeout" && (
             <>
-              <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-yellow-600">Timed Out</h2>
+              <AlertCircle className="w-12 h-12 text-warning mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-warning">Timed Out</h2>
             </>
           )}
           <p className="text-gray-500 mt-2">{paymentMessage}</p>
           {(paymentStatus === "failed" || paymentStatus === "timeout") && (
             <button
               onClick={() => { setPaymentStatus("idle"); setPaymentMessage("") }}
-              className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="mt-4 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary transition-colors"
             >
               Try Again
             </button>
@@ -432,7 +432,7 @@ function PortalLoginContent() {
           Connect to {routerName} WiFi
         </p>
         {error && (
-          <div className="mt-2 bg-red-500/20 text-red-100 text-xs px-3 py-1 rounded-full inline-block">
+          <div className="mt-2 bg-destructive/20 text-red-100 text-xs px-3 py-1 rounded-full inline-block">
             {decodeURIComponent(error)}
           </div>
         )}
@@ -455,7 +455,7 @@ function PortalLoginContent() {
                   <div className="flex items-center gap-2">
                     <h3 className="text-white font-semibold text-lg">{plan.name}</h3>
                     {plan.is_popular && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-yellow-400 text-yellow-900">POPULAR</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-warning text-yellow-900">POPULAR</span>
                     )}
                   </div>
                   <div className="flex items-center gap-3 mt-1">
@@ -502,12 +502,12 @@ function PortalLoginContent() {
                   placeholder="07XXXXXXXX"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-gray-800"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-ring focus:border-primary transition-all text-gray-800"
                   maxLength={13}
                 />
               </div>
               {phoneNumber && !isValidKenyanPhone(phoneNumber) && (
-                <p className="text-red-500 text-xs mt-1">Enter a valid Safaricom or Airtel number</p>
+                <p className="text-destructive text-xs mt-1">Enter a valid Safaricom or Airtel number</p>
               )}
             </div>
 

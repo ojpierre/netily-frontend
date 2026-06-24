@@ -25,22 +25,22 @@ export default function WhatsNewPage() {
 
   const getIcon = (type: string) => {
     switch(type) {
-      case 'feature': return <Star className="w-5 h-5 text-amber-500" />
-      case 'improvement': return <Sparkles className="w-5 h-5 text-blue-500" />
+      case 'feature': return <Star className="w-5 h-5 text-warning" />
+      case 'improvement': return <Sparkles className="w-5 h-5 text-primary" />
       case 'bugfix': return <Bug className="w-5 h-5 text-rose-500" />
       default: return <Wrench className="w-5 h-5 text-slate-500" />
     }
   }
 
   if (isLoading) {
-    return <div className="flex p-8 justify-center"><Loader2 className="w-6 h-6 animate-spin text-blue-600"/></div>
+    return <div className="flex p-8 justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary"/></div>
   }
 
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
       <div className="text-center mb-12">
-        <div className="bg-blue-100 dark:bg-blue-900/30 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Megaphone className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+        <div className="bg-primary/15 dark:bg-primary/30 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Megaphone className="w-8 h-8 text-primary dark:text-primary/80" />
         </div>
         <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">What's New in Netily</h1>
         <p className="text-slate-500 mt-2">The latest features, improvements, and bug fixes to your platform.</p>

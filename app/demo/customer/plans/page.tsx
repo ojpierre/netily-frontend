@@ -18,14 +18,14 @@ export default function DemoCustomerPlansPage() {
         <p className="mt-1 text-sm text-muted-foreground">Demo plan selection using the same overall presentation style as the real portal.</p>
       </div>
 
-      <Card className="border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950/30">
+      <Card className="border-primary/20 bg-primary/10 p-4 dark:border-primary/20 dark:bg-blue-950/30">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/40">
-            <Wifi className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 dark:bg-primary/40">
+            <Wifi className="h-5 w-5 text-primary dark:text-primary/60" />
           </div>
           <div>
-            <p className="font-semibold text-blue-900 dark:text-blue-200">Your current plan: Home 10Mbps</p>
-            <p className="text-sm text-blue-700 dark:text-blue-300">10 Mbps · KSh 1,000 / 30 days · 22 days left</p>
+            <p className="font-semibold text-primary dark:text-primary/40">Your current plan: Home 10Mbps</p>
+            <p className="text-sm text-primary dark:text-primary/60">10 Mbps · KSh 1,000 / 30 days · 22 days left</p>
           </div>
         </div>
       </Card>
@@ -34,14 +34,14 @@ export default function DemoCustomerPlansPage() {
         {plans.map((plan) => {
           const isCurrent = plan.id === currentPlanId
           return (
-            <Card key={plan.id} className={`relative overflow-hidden ${isCurrent ? "border-blue-500 ring-2 ring-blue-500/20" : plan.isPopular ? "border-orange-400" : ""}`}>
+            <Card key={plan.id} className={`relative overflow-hidden ${isCurrent ? "border-primary ring-2 ring-ring/20" : plan.isPopular ? "border-orange-400" : ""}`}>
               {plan.isPopular && !isCurrent && (
-                <div className="absolute right-0 top-0 flex items-center gap-1 rounded-bl-lg bg-orange-500 px-3 py-1 text-xs font-semibold text-white">
+                <div className="absolute right-0 top-0 flex items-center gap-1 rounded-bl-lg bg-warning px-3 py-1 text-xs font-semibold text-white">
                   <Star className="h-3 w-3" />
                   Popular
                 </div>
               )}
-              {isCurrent && <div className="absolute right-0 top-0 rounded-bl-lg bg-blue-600 px-3 py-1 text-xs font-semibold text-white">Current Plan</div>}
+              {isCurrent && <div className="absolute right-0 top-0 rounded-bl-lg bg-primary px-3 py-1 text-xs font-semibold text-white">Current Plan</div>}
               <div className="p-6">
                 <h3 className="text-lg font-bold">{plan.name}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
@@ -50,7 +50,7 @@ export default function DemoCustomerPlansPage() {
                   <span className="ml-1 text-sm text-muted-foreground">/{plan.validity}</span>
                 </div>
                 <div className="mt-5 space-y-2.5 text-sm">
-                  <div className="flex items-center gap-2.5"><Zap className="h-4 w-4 text-blue-500" /><span><strong>{plan.speedDown}</strong> Mbps download / <strong>{plan.speedUp}</strong> Mbps upload</span></div>
+                  <div className="flex items-center gap-2.5"><Zap className="h-4 w-4 text-primary" /><span><strong>{plan.speedDown}</strong> Mbps download / <strong>{plan.speedUp}</strong> Mbps upload</span></div>
                   <div className="flex items-center gap-2.5"><Clock className="h-4 w-4 text-emerald-500" /><span>Valid for {plan.validity}</span></div>
                   <div className="flex items-center gap-2.5"><HardDrive className="h-4 w-4 text-violet-500" /><span>{plan.dataLimit}</span></div>
                   {plan.features.map((feature) => (

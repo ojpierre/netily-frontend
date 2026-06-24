@@ -59,19 +59,19 @@ export default function RouterSLAPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "excellent": return "bg-green-100 text-green-700"
-      case "good": return "bg-blue-100 text-blue-700"
-      case "warning": return "bg-yellow-100 text-yellow-700"
-      case "critical": return "bg-red-100 text-red-700"
+      case "excellent": return "bg-success/15 text-success"
+      case "good": return "bg-primary/15 text-primary"
+      case "warning": return "bg-warning/15 text-warning"
+      case "critical": return "bg-destructive/15 text-destructive"
       default: return "bg-slate-100 text-slate-700"
     }
   }
 
   const getUptimeColor = (uptime: number) => {
-    if (uptime >= 99.9) return "text-green-600"
-    if (uptime >= 99.5) return "text-blue-600"
-    if (uptime >= 99) return "text-yellow-600"
-    return "text-red-600"
+    if (uptime >= 99.9) return "text-success"
+    if (uptime >= 99.5) return "text-primary"
+    if (uptime >= 99) return "text-warning"
+    return "text-destructive"
   }
 
   return (
@@ -98,7 +98,7 @@ export default function RouterSLAPage() {
                   {slaOverview.overallUptime}%
                 </p>
               </div>
-              <Activity className="w-8 h-8 text-green-600" />
+              <Activity className="w-8 h-8 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -110,7 +110,7 @@ export default function RouterSLAPage() {
                 <p className="text-sm text-slate-500">Avg Response</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{slaOverview.avgResponseTime}ms</p>
               </div>
-              <Clock className="w-8 h-8 text-blue-600" />
+              <Clock className="w-8 h-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -122,7 +122,7 @@ export default function RouterSLAPage() {
                 <p className="text-sm text-slate-500">Total Incidents</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{slaOverview.totalIncidents}</p>
               </div>
-              <AlertTriangle className="w-8 h-8 text-orange-600" />
+              <AlertTriangle className="w-8 h-8 text-warning" />
             </div>
           </CardContent>
         </Card>
@@ -132,9 +132,9 @@ export default function RouterSLAPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Resolved</p>
-                <p className="text-2xl font-bold text-green-600">{slaOverview.resolvedIncidents}</p>
+                <p className="text-2xl font-bold text-success">{slaOverview.resolvedIncidents}</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-600" />
+              <CheckCircle className="w-8 h-8 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -247,16 +247,16 @@ export default function RouterSLAPage() {
                       <TableCell>
                         <Badge
                           className={
-                            incident.impact === "High" ? "bg-red-100 text-red-700" :
-                            incident.impact === "Medium" ? "bg-yellow-100 text-yellow-700" :
-                            "bg-blue-100 text-blue-700"
+                            incident.impact === "High" ? "bg-destructive/15 text-destructive" :
+                            incident.impact === "Medium" ? "bg-warning/15 text-warning" :
+                            "bg-primary/15 text-primary"
                           }
                         >
                           {incident.impact}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className={incident.status === "resolved" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}>
+                        <Badge className={incident.status === "resolved" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}>
                           {incident.status}
                         </Badge>
                       </TableCell>

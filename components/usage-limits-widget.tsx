@@ -38,17 +38,17 @@ import type { UsageStats } from "@/lib/types"
 // ==========================================
 
 function getProgressColor(percentage: number | null): string {
-  if (percentage === null) return "bg-green-500"
-  if (percentage >= 90) return "bg-red-500"
-  if (percentage >= 75) return "bg-amber-500"
-  return "bg-green-500"
+  if (percentage === null) return "bg-success"
+  if (percentage >= 90) return "bg-destructive"
+  if (percentage >= 75) return "bg-warning"
+  return "bg-success"
 }
 
 function getTextColor(percentage: number | null): string {
-  if (percentage === null) return "text-green-600"
-  if (percentage >= 90) return "text-red-600"
-  if (percentage >= 75) return "text-amber-600"
-  return "text-green-600"
+  if (percentage === null) return "text-success"
+  if (percentage >= 90) return "text-destructive"
+  if (percentage >= 75) return "text-warning"
+  return "text-success"
 }
 
 // ==========================================
@@ -165,7 +165,7 @@ export function UsageLimitsWidget({ className, compact = false }: UsageLimitsWid
     <Card className={className}>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-blue-600" />
+          <TrendingUp className="w-5 h-5 text-primary" />
           Plan Usage
         </CardTitle>
         <CardDescription>Current usage against your plan limits</CardDescription>
@@ -191,8 +191,8 @@ export function UsageLimitsWidget({ className, compact = false }: UsageLimitsWid
 
         {/* Warnings */}
         {usage.warnings.length > 0 && !usage.is_over_limit && (
-          <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <Alert className="bg-warning/10 border-warning/20 dark:bg-amber-950/20 dark:border-amber-800">
+            <AlertTriangle className="h-4 w-4 text-warning" />
             <AlertDescription className="text-amber-800 dark:text-amber-200">
               {usage.warnings[0]}
             </AlertDescription>

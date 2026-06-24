@@ -26,8 +26,8 @@ export default function DemoAdminPlansPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Published plans</CardTitle><Package className="h-4 w-4 text-slate-500" /></CardHeader><CardContent><div className="text-2xl font-bold">8</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Most popular</CardTitle><Zap className="h-4 w-4 text-amber-500" /></CardHeader><CardContent><div className="text-2xl font-bold">Home 10Mbps</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Active subscribers</CardTitle><Users className="h-4 w-4 text-blue-600" /></CardHeader><CardContent><div className="text-2xl font-bold">483</div></CardContent></Card>
+        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Most popular</CardTitle><Zap className="h-4 w-4 text-warning" /></CardHeader><CardContent><div className="text-2xl font-bold">Home 10Mbps</div></CardContent></Card>
+        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Active subscribers</CardTitle><Users className="h-4 w-4 text-primary" /></CardHeader><CardContent><div className="text-2xl font-bold">483</div></CardContent></Card>
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Billing cycle</CardTitle><Clock className="h-4 w-4 text-emerald-600" /></CardHeader><CardContent><div className="text-2xl font-bold">Monthly</div></CardContent></Card>
       </div>
 
@@ -44,14 +44,14 @@ export default function DemoAdminPlansPage() {
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((plan) => (
-            <Card key={plan.id} className={`border ${plan.popular ? "border-blue-500 ring-1 ring-blue-500/20" : ""}`}>
+            <Card key={plan.id} className={`border ${plan.popular ? "border-primary ring-1 ring-ring/20" : ""}`}>
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <CardTitle className="text-lg">{plan.name}</CardTitle>
                     <CardDescription className="mt-1">{plan.description}</CardDescription>
                   </div>
-                  {plan.popular && <Badge className="bg-blue-600 text-white">Popular</Badge>}
+                  {plan.popular && <Badge className="bg-primary text-white">Popular</Badge>}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -60,9 +60,9 @@ export default function DemoAdminPlansPage() {
                   <p className="text-sm text-muted-foreground">per {plan.validity.toLowerCase()}</p>
                 </div>
                 <div className="space-y-2 text-sm">
-                  <p className="flex items-center gap-2"><Wifi className="h-4 w-4 text-blue-600" />{plan.speed}</p>
+                  <p className="flex items-center gap-2"><Wifi className="h-4 w-4 text-primary" />{plan.speed}</p>
                   <p className="flex items-center gap-2"><Briefcase className="h-4 w-4 text-emerald-600" />{plan.type}</p>
-                  <p className="flex items-center gap-2"><Users className="h-4 w-4 text-amber-600" />{plan.subscribers} subscribers</p>
+                  <p className="flex items-center gap-2"><Users className="h-4 w-4 text-warning" />{plan.subscribers} subscribers</p>
                 </div>
               </CardContent>
             </Card>

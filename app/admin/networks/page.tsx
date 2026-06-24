@@ -399,14 +399,14 @@ export default function IPv4NetworksPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSubTab('pools')}>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg"><Network className="w-5 h-5 text-blue-600" /></div>
+            <div className="p-2 bg-primary/15 rounded-lg"><Network className="w-5 h-5 text-primary" /></div>
             <div><p className="text-2xl font-bold">{stats.totalPools}</p><p className="text-xs text-muted-foreground">IP Pools</p></div>
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSubTab('pools')}>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg"><Check className="w-5 h-5 text-green-600" /></div>
-            <div><p className="text-2xl font-bold text-green-600">{stats.activePools}</p><p className="text-xs text-muted-foreground">Active Pools</p></div>
+            <div className="p-2 bg-success/15 rounded-lg"><Check className="w-5 h-5 text-success" /></div>
+            <div><p className="text-2xl font-bold text-success">{stats.activePools}</p><p className="text-xs text-muted-foreground">Active Pools</p></div>
           </CardContent>
         </Card>
         <Card>
@@ -423,14 +423,14 @@ export default function IPv4NetworksPage() {
         </Card>
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSubTab('mapping')}>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 bg-indigo-100 rounded-lg"><LinkIcon className="w-5 h-5 text-indigo-600" /></div>
-            <div><p className="text-2xl font-bold text-indigo-600">{stats.plansLinked}</p><p className="text-xs text-muted-foreground">Plans Linked</p></div>
+            <div className="p-2 bg-primary/15 rounded-lg"><LinkIcon className="w-5 h-5 text-primary" /></div>
+            <div><p className="text-2xl font-bold text-primary">{stats.plansLinked}</p><p className="text-xs text-muted-foreground">Plans Linked</p></div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 bg-amber-100 rounded-lg"><Activity className="w-5 h-5 text-amber-600" /></div>
-            <div><p className="text-2xl font-bold text-amber-600">{stats.utilization}%</p><p className="text-xs text-muted-foreground">Utilization</p></div>
+            <div className="p-2 bg-warning/15 rounded-lg"><Activity className="w-5 h-5 text-warning" /></div>
+            <div><p className="text-2xl font-bold text-warning">{stats.utilization}%</p><p className="text-xs text-muted-foreground">Utilization</p></div>
           </CardContent>
         </Card>
       </div>
@@ -542,7 +542,7 @@ export default function IPv4NetworksPage() {
                     <tbody>
                       {filteredPools.map((pool) => {
                         const utilPct = pool.total_ips > 0 ? ((pool.used_ips / pool.total_ips) * 100) : 0
-                        const utilColor = utilPct > 90 ? 'text-red-600' : utilPct > 70 ? 'text-amber-600' : 'text-green-600'
+                        const utilColor = utilPct > 90 ? 'text-destructive' : utilPct > 70 ? 'text-warning' : 'text-success'
                         const linkedPlans = plans.filter(p => p.ip_pool === pool.id)
                         const isExpanded = expandedPoolId === pool.id
                         return (
@@ -561,8 +561,8 @@ export default function IPv4NetworksPage() {
                                   <div className="font-medium">{pool.name}</div>
                                   <Badge variant="outline" className={
                                     pool.pool_type === 'PPPOE' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                    pool.pool_type === 'STATIC' ? 'bg-orange-50 text-orange-700 border-orange-200' :
-                                    pool.pool_type === 'HOTSPOT' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                    pool.pool_type === 'STATIC' ? 'bg-warning/10 text-warning border-warning/20' :
+                                    pool.pool_type === 'HOTSPOT' ? 'bg-primary/10 text-primary border-primary/20' :
                                     'bg-gray-50'
                                   }>
                                     {pool.pool_type}
@@ -595,13 +595,13 @@ export default function IPv4NetworksPage() {
                               <td className="p-3 font-mono text-xs">{pool.start_ip}</td>
                               <td className="p-3 font-mono text-xs">{pool.end_ip}</td>
                               <td className="p-3 text-center">
-                                <span className="text-green-600 font-medium">{pool.available_ips ?? pool.total_ips - pool.used_ips}</span>
+                                <span className="text-success font-medium">{pool.available_ips ?? pool.total_ips - pool.used_ips}</span>
                                 <span className="text-muted-foreground">/{pool.total_ips}</span>
                                </td>
                               <td className="p-3">
                                 <div className="flex items-center justify-center gap-2">
                                   <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div className={`h-full rounded-full ${utilPct > 90 ? 'bg-red-500' : utilPct > 70 ? 'bg-amber-500' : 'bg-green-500'}`}
+                                    <div className={`h-full rounded-full ${utilPct > 90 ? 'bg-destructive' : utilPct > 70 ? 'bg-warning' : 'bg-success'}`}
                                       style={{ width: `${Math.min(utilPct, 100)}%` }} />
                                   </div>
                                   <span className={`text-xs font-medium ${utilColor}`}>{utilPct.toFixed(0)}%</span>
@@ -631,7 +631,7 @@ export default function IPv4NetworksPage() {
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                       onClick={() => { setSelectedPool(pool); setIsPoolDeleteOpen(true) }}
-                                      className="text-red-600"
+                                      className="text-destructive"
                                     >
                                       <Trash2 className="w-4 h-4 mr-2" />
                                       Delete Pool
@@ -730,13 +730,13 @@ export default function IPv4NetworksPage() {
                           <p className="text-sm text-muted-foreground font-mono">{pool.cidr_notation || `${pool.start_ip} — ${pool.end_ip}`}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-bold text-green-600">{pool.available_ips ?? pool.total_ips - pool.used_ips}</p>
+                          <p className="text-lg font-bold text-success">{pool.available_ips ?? pool.total_ips - pool.used_ips}</p>
                           <p className="text-xs text-muted-foreground">of {pool.total_ips} available</p>
                         </div>
                       </div>
                       <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-3">
                         <div
-                          className={`h-full ${utilPct > 90 ? 'bg-red-500' : utilPct > 70 ? 'bg-amber-500' : 'bg-green-500'}`}
+                          className={`h-full ${utilPct > 90 ? 'bg-destructive' : utilPct > 70 ? 'bg-warning' : 'bg-success'}`}
                           style={{ width: `${utilPct}%` }}
                         />
                       </div>
@@ -799,8 +799,8 @@ export default function IPv4NetworksPage() {
                           <td className="p-3">
                             <Badge variant="outline" className={
                               plan.plan_type === 'PPPOE' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                              plan.plan_type === 'HOTSPOT' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                              plan.plan_type === 'STATIC' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                              plan.plan_type === 'HOTSPOT' ? 'bg-primary/10 text-primary border-primary/20' :
+                              plan.plan_type === 'STATIC' ? 'bg-warning/10 text-warning border-warning/20' :
                               'bg-gray-50 text-gray-700'
                             }>
                               {plan.plan_type}
@@ -822,7 +822,7 @@ export default function IPv4NetworksPage() {
                                 )}
                               </div>
                             ) : (
-                              <span className="text-xs text-amber-600 flex items-center gap-1">
+                              <span className="text-xs text-warning flex items-center gap-1">
                                 <Unlink className="w-3 h-3" />
                                 No pool assigned
                               </span>
@@ -981,7 +981,7 @@ export default function IPv4NetworksPage() {
                       </Select>
                       {/* Show hint when 3rd octet is hidden */}
                       {!octetConfig.show && (
-                        <p className="text-xs text-amber-600 mt-1">
+                        <p className="text-xs text-warning mt-1">
                           3rd octet not needed — entire /16 block will be used
                         </p>
                       )}
@@ -1003,12 +1003,12 @@ export default function IPv4NetworksPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Usable IPs:</span>
-                    <span className="font-medium text-green-600">
+                    <span className="font-medium text-success">
                       {poolSubnetPreview.usableIPs.toLocaleString()}
                     </span>
                   </div>
                   {poolSubnetPreview.isLarge && (
-                    <div className="flex items-start gap-1.5 pt-1 border-t text-amber-700 text-xs">
+                    <div className="flex items-start gap-1.5 pt-1 border-t text-warning text-xs">
                       <span>⚠</span>
                       <span>
                         Large pool — IP addresses will be generated in the background after creation. 
@@ -1138,7 +1138,7 @@ export default function IPv4NetworksPage() {
       <AlertDialog open={isPoolDeleteOpen} onOpenChange={setIsPoolDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <Trash2 className="w-5 h-5" />
               Delete IP Pool
             </AlertDialogTitle>
@@ -1148,7 +1148,7 @@ export default function IPv4NetworksPage() {
                 const linkedPlans = selectedPool ? plans.filter(p => p.ip_pool === selectedPool.id) : []
                 if (linkedPlans.length > 0) {
                   return (
-                    <span className="block mt-2 text-amber-600">
+                    <span className="block mt-2 text-warning">
                       <AlertTriangle className="w-4 h-4 inline mr-1" />
                       Warning: This pool is linked to {linkedPlans.length} plan{linkedPlans.length !== 1 ? 's' : ''}: {linkedPlans.map(p => p.name).join(', ')}.
                       Deleting it will remove the pool assignment from these plans.
@@ -1164,7 +1164,7 @@ export default function IPv4NetworksPage() {
             <AlertDialogAction
               onClick={handleDeletePool}
               disabled={poolSubmitting}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               {poolSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
               Delete

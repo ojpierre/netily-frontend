@@ -274,7 +274,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
+          <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
           <p className="text-slate-500">Loading...</p>
         </div>
       </div>
@@ -287,7 +287,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
+          <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
           <p className="text-slate-500 font-medium animate-pulse">Redirecting to login...</p>
         </div>
       </div>
@@ -326,7 +326,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               {companyLogo ? (
                 <img src={companyLogo} alt="Company Logo" className="h-8 w-8 shrink-0 rounded-lg object-contain bg-white border border-slate-200" />
               ) : (
-                <div className="h-8 w-8 shrink-0 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-sm">
+                <div className="h-8 w-8 shrink-0 rounded-lg bg-primary flex items-center justify-center font-bold text-white shadow-sm">
                   N
                 </div>
               )}
@@ -374,7 +374,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                           {isActive && (
                             <motion.span
                               layoutId="admin-active-nav"
-                              className="absolute inset-0 rounded-lg bg-blue-600"
+                              className="absolute inset-0 rounded-lg bg-primary"
                               transition={{ type: "spring", stiffness: 420, damping: 34 }}
                             />
                           )}
@@ -415,7 +415,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                       {isActive && (
                         <motion.span
                           layoutId="admin-active-nav"
-                          className="absolute inset-0 rounded-lg bg-blue-600"
+                          className="absolute inset-0 rounded-lg bg-primary"
                           transition={{ type: "spring", stiffness: 420, damping: 34 }}
                         />
                       )}
@@ -496,7 +496,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="w-5 h-5" />
                 {unreadNotifCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-600 text-white text-xs">
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-destructive text-white text-xs">
                     {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
                   </Badge>
                 )}
@@ -509,7 +509,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 <Button variant="ghost" className="flex items-center gap-2">
                   <Avatar className="w-8 h-8">
                     <AvatarImage src="" alt="Admin" />
-                    <AvatarFallback className="bg-blue-600 text-white">
+                    <AvatarFallback className="bg-primary text-white">
                       {user?.username?.charAt(0).toUpperCase() || "A"}
                     </AvatarFallback>
                   </Avatar>
@@ -532,7 +532,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600" onClick={logout}>
+                <DropdownMenuItem className="text-destructive" onClick={logout}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
                 </DropdownMenuItem>

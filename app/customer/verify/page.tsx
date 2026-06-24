@@ -136,14 +136,14 @@ function VerifyPageContent() {
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="pt-8 pb-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+            <div className="w-16 h-16 bg-success/15 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-success" />
             </div>
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Verified!</h2>
             <p className="text-slate-600 mb-4">
               Your phone number has been verified successfully.
             </p>
-            <div className="flex items-center justify-center gap-2 text-blue-600">
+            <div className="flex items-center justify-center gap-2 text-primary">
               <Loader2 className="w-4 h-4 animate-spin" />
               <span>Redirecting to dashboard...</span>
             </div>
@@ -163,7 +163,7 @@ function VerifyPageContent() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-6">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
             <Wifi className="w-6 h-6 text-white" />
           </div>
           <span className="text-xl font-bold text-slate-900">Customer Portal</span>
@@ -171,8 +171,8 @@ function VerifyPageContent() {
 
         <Card>
           <CardHeader className="text-center">
-            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Phone className="w-7 h-7 text-blue-600" />
+            <div className="w-14 h-14 bg-primary/15 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Phone className="w-7 h-7 text-primary" />
             </div>
             <CardTitle className="text-2xl">Verify Your Phone</CardTitle>
             <CardDescription>
@@ -223,7 +223,7 @@ function VerifyPageContent() {
                   variant="ghost"
                   onClick={handleResend}
                   disabled={isResending}
-                  className="text-blue-600 hover:text-blue-700"
+                  className="text-primary hover:text-primary"
                 >
                   {isResending ? (
                     <>
@@ -265,7 +265,7 @@ export default function VerifyPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     }>
       <VerifyPageContent />

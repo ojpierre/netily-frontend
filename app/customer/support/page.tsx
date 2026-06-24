@@ -47,10 +47,10 @@ interface TicketRecord {
 }
 
 const statusConfig: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
-  open: { icon: AlertCircle, color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-950" },
-  in_progress: { icon: Clock, color: "text-yellow-700 dark:text-yellow-400", bg: "bg-yellow-100 dark:bg-yellow-950" },
-  pending: { icon: Clock, color: "text-orange-700 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-950" },
-  resolved: { icon: CheckCircle2, color: "text-green-700 dark:text-green-400", bg: "bg-green-100 dark:bg-green-950" },
+  open: { icon: AlertCircle, color: "text-primary dark:text-primary/80", bg: "bg-primary/15 dark:bg-blue-950" },
+  in_progress: { icon: Clock, color: "text-warning dark:text-warning", bg: "bg-warning/15 dark:bg-yellow-950" },
+  pending: { icon: Clock, color: "text-warning dark:text-warning", bg: "bg-warning/15 dark:bg-orange-950" },
+  resolved: { icon: CheckCircle2, color: "text-success dark:text-success", bg: "bg-success/15 dark:bg-green-950" },
   closed: { icon: CheckCircle2, color: "text-slate-700 dark:text-slate-400", bg: "bg-slate-100 dark:bg-slate-800" },
 }
 
@@ -250,7 +250,7 @@ export default function CustomerSupportPage() {
               <div key={ticket.id}>
                 <Card
                   className={`p-4 cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                    isSelected ? "ring-2 ring-blue-500" : ""
+                    isSelected ? "ring-2 ring-ring" : ""
                   }`}
                   onClick={() => handleTicketClick(ticket)}
                 >
@@ -304,7 +304,7 @@ export default function CustomerSupportPage() {
                                   key={msg.id}
                                   className={`p-3 rounded-lg text-sm ${
                                     isStaff
-                                      ? "bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800"
+                                      ? "bg-primary/10 dark:bg-blue-950 border border-primary/20 dark:border-primary/20"
                                       : "bg-slate-50 dark:bg-slate-800"
                                   }`}
                                 >

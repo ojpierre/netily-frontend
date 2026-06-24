@@ -57,7 +57,7 @@ function PortTypeIcon({ type, className }: { type: string; className?: string })
   return type === "wireless" ? (
     <Wifi className={className ?? "w-5 h-5 text-purple-600"} />
   ) : (
-    <Network className={className ?? "w-5 h-5 text-blue-600"} />
+    <Network className={className ?? "w-5 h-5 text-primary"} />
   )
 }
 
@@ -67,7 +67,7 @@ function PortTypePill({ type }: { type: string }) {
       <Wifi className="w-2.5 h-2.5" /> Wireless
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+    <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary">
       <Network className="w-2.5 h-2.5" /> Ethernet
     </span>
   )
@@ -183,7 +183,7 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
       <div className="flex flex-col items-center justify-center py-16 px-4">
         {/* Icon ring */}
         <div className="relative mb-6">
-          <div className="absolute inset-0 rounded-full bg-blue-500/10 scale-150 animate-pulse" />
+          <div className="absolute inset-0 rounded-full bg-primary/10 scale-150 animate-pulse" />
           <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-blue-500/30">
             <Cable className="w-9 h-9 text-white" />
           </div>
@@ -237,7 +237,7 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
             <div>
               <CardTitle>Scanning Router Interfaces…</CardTitle>
               <CardDescription>Discovering all physical and virtual ports</CardDescription>
@@ -269,8 +269,8 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
       <div className="space-y-5 max-w-2xl">
         {/* Header */}
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
-            <Globe className="w-6 h-6 text-amber-600" />
+          <div className="w-12 h-12 rounded-xl bg-warning/15 flex items-center justify-center flex-shrink-0">
+            <Globe className="w-6 h-6 text-warning" />
           </div>
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -285,9 +285,9 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
 
         {/* Suggestion callout */}
         {wanInterface && (
-          <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
-            <CheckCircle2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
-            <span className="text-blue-700">
+          <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm">
+            <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+            <span className="text-primary">
               We detected <span className="font-mono font-semibold">{wanInterface}</span> as likely WAN — confirm or choose another below.
             </span>
           </div>
@@ -303,9 +303,9 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
               <button
                 key={port.name}
                 onClick={() => setUserWan(port.name)}
-                className={`w-full text-left rounded-xl border-2 p-4 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                className={`w-full text-left rounded-xl border-2 p-4 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   isChosen
-                    ? "border-amber-400 bg-amber-50 dark:bg-amber-950/30"
+                    ? "border-amber-400 bg-warning/10 dark:bg-amber-950/30"
                     : "border-slate-200 hover:border-slate-300 bg-white dark:bg-slate-900"
                 }`}
               >
@@ -329,13 +329,13 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
                         </span>
                         <PortTypePill type={port.type} />
                         {isSuggested && (
-                          <span className="inline-flex items-center rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          <span className="inline-flex items-center rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-white">
                             Suggested
                           </span>
                         )}
                         {port.running ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-green-600">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                          <span className="inline-flex items-center gap-1 text-[10px] text-success">
+                            <span className="w-1.5 h-1.5 rounded-full bg-success inline-block" />
                             Link up
                           </span>
                         ) : (
@@ -354,7 +354,7 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
                   {/* Selection indicator */}
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
                     isChosen
-                      ? "border-amber-500 bg-amber-500"
+                      ? "border-warning bg-warning"
                       : "border-slate-300"
                   }`}>
                     {isChosen && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
@@ -395,8 +395,8 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
       <Card>
         <CardHeader className="flex flex-row items-start justify-between pb-4">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Cable className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Cable className="w-5 h-5 text-primary" />
             </div>
             <div>
               <CardTitle className="text-base">Select Bridge Ports</CardTitle>
@@ -414,7 +414,7 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
             {/* WAN chip — click to go back and change */}
             <button
               onClick={() => setStep("wan-select")}
-              className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
+              className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-warning/10 px-3 py-1 text-xs font-medium text-warning hover:bg-warning/15 transition-colors"
               title="Click to change WAN port"
             >
               <ShieldAlert className="w-3 h-3" />
@@ -434,16 +434,16 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
 
         <CardContent className="space-y-2.5">
           {/* WAN port — locked, shown at top for context */}
-          <div className="flex items-center gap-3 rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 px-4 py-3 opacity-80">
-            <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-              <Globe className="w-5 h-5 text-amber-600" />
+          <div className="flex items-center gap-3 rounded-xl border-2 border-dashed border-warning/20 bg-warning/10/60 dark:bg-amber-950/20 px-4 py-3 opacity-80">
+            <div className="w-10 h-10 rounded-lg bg-warning/15 flex items-center justify-center flex-shrink-0">
+              <Globe className="w-5 h-5 text-warning" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
                   {userWan}
                 </span>
-                <Badge variant="outline" className="border-amber-300 text-amber-700 bg-amber-50 text-[10px] px-1.5 py-0">
+                <Badge variant="outline" className="border-amber-300 text-warning bg-warning/10 text-[10px] px-1.5 py-0">
                   <ShieldAlert className="w-2.5 h-2.5 mr-0.5" />
                   WAN — Locked
                 </Badge>
@@ -479,7 +479,7 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
                   key={port.name}
                   className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3.5 transition-all duration-150 ${
                     isChecked
-                      ? "border-blue-400 bg-blue-50 dark:bg-blue-950/30"
+                      ? "border-primary/40 bg-primary/10 dark:bg-blue-950/30"
                       : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
                   }`}
                 >
@@ -498,8 +498,8 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
                       </span>
                       <PortTypePill type={port.type} />
                       {port.running ? (
-                        <span className="flex items-center gap-1 text-[10px] text-green-600">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                        <span className="flex items-center gap-1 text-[10px] text-success">
+                          <span className="w-1.5 h-1.5 rounded-full bg-success" />
                           Link up
                         </span>
                       ) : (
@@ -513,7 +513,7 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
                       )}
                     </div>
                     {isChecked && (
-                      <p className="text-[11px] text-blue-600 mt-0.5 font-medium">
+                      <p className="text-[11px] text-primary mt-0.5 font-medium">
                         Will be added to Hotspot bridge
                       </p>
                     )}
@@ -539,7 +539,7 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
           <Button
             onClick={handleSave}
             disabled={saving || !hasChanges}
-            className="gap-2 bg-green-600 hover:bg-green-700 text-white shadow-sm shadow-green-600/30"
+            className="gap-2 bg-success hover:bg-green-700 text-white shadow-sm shadow-green-600/30"
           >
             {saving ? (
               <><Loader2 className="w-4 h-4 animate-spin" />Saving…</>
@@ -552,12 +552,12 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
 
       {/* Save result */}
       {saveResult && (
-        <Alert className="border-green-200 bg-green-50 dark:bg-green-950/30">
-          <CheckCircle2 className="w-4 h-4 text-green-600" />
-          <AlertTitle className="text-green-800 dark:text-green-300">
+        <Alert className="border-success/20 bg-success/10 dark:bg-green-950/30">
+          <CheckCircle2 className="w-4 h-4 text-success" />
+          <AlertTitle className="text-green-800 dark:text-success/80">
             {saveResult.message || "Ports synchronized!"}
           </AlertTitle>
-          <AlertDescription className="text-green-700 dark:text-green-400 text-sm">
+          <AlertDescription className="text-success dark:text-success text-sm">
             {saveResult.added?.length ? (
               <span>Added: <span className="font-mono">{saveResult.added.join(", ")}</span>. </span>
             ) : null}

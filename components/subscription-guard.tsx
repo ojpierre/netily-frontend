@@ -167,8 +167,8 @@ function ExpiredSubscriptionMessage() {
     <div className="flex items-center justify-center min-h-[60vh] p-6">
       <Card className="max-w-md w-full text-center">
         <CardHeader>
-          <div className="mx-auto w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
-            <Lock className="w-6 h-6 text-red-600" />
+          <div className="mx-auto w-12 h-12 rounded-full bg-destructive/15 flex items-center justify-center mb-4">
+            <Lock className="w-6 h-6 text-destructive" />
           </div>
           <CardTitle>Subscription Expired</CardTitle>
           <CardDescription>
@@ -210,7 +210,7 @@ export function TrialBanner({ className }: TrialBannerProps) {
 
   const isUrgent = daysRemaining <= 3
   const bgColor = isUrgent
-    ? "bg-red-600"
+    ? "bg-destructive"
     : "bg-gradient-to-r from-blue-600 to-indigo-600"
 
   return (
@@ -253,7 +253,7 @@ export function OverLimitBanner({ className }: OverLimitBannerProps) {
   if (loading || !usage?.is_over_limit) return null
 
   return (
-    <div className={`bg-amber-500 text-white px-4 py-2 ${className}`}>
+    <div className={`bg-warning text-white px-4 py-2 ${className}`}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-4 h-4" />

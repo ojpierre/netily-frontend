@@ -109,12 +109,12 @@ export default function UsageAnalyticsPage() {
                 <p className="text-sm text-slate-500">Total Download</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{usageStats.totalDownload} TB</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <ArrowUpRight className="w-4 h-4 text-green-600" />
-                  <span className="text-sm text-green-600">+8.5%</span>
+                  <ArrowUpRight className="w-4 h-4 text-success" />
+                  <span className="text-sm text-success">+8.5%</span>
                 </div>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Download className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-primary/15 rounded-full flex items-center justify-center">
+                <Download className="w-6 h-6 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -127,12 +127,12 @@ export default function UsageAnalyticsPage() {
                 <p className="text-sm text-slate-500">Total Upload</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{usageStats.totalUpload} TB</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <ArrowUpRight className="w-4 h-4 text-green-600" />
-                  <span className="text-sm text-green-600">+5.2%</span>
+                  <ArrowUpRight className="w-4 h-4 text-success" />
+                  <span className="text-sm text-success">+5.2%</span>
                 </div>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <Upload className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-success/15 rounded-full flex items-center justify-center">
+                <Upload className="w-6 h-6 text-success" />
               </div>
             </div>
           </CardContent>
@@ -146,8 +146,8 @@ export default function UsageAnalyticsPage() {
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{usageStats.peakHour}</p>
                 <p className="text-xs text-slate-500 mt-1">Highest traffic</p>
               </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <Clock className="w-6 h-6 text-orange-600" />
+              <div className="w-12 h-12 bg-warning/15 rounded-full flex items-center justify-center">
+                <Clock className="w-6 h-6 text-warning" />
               </div>
             </div>
           </CardContent>

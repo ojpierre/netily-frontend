@@ -93,11 +93,11 @@ import type { ONU, OLT } from "@/lib/types"
 
 const getStatusBadge = (status: string) => {
   const config: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode; color: string }> = {
-    online: { variant: "default", icon: <Wifi className="h-3 w-3" />, color: "text-green-600" },
+    online: { variant: "default", icon: <Wifi className="h-3 w-3" />, color: "text-success" },
     offline: { variant: "secondary", icon: <WifiOff className="h-3 w-3" />, color: "text-gray-600" },
-    los: { variant: "destructive", icon: <AlertTriangle className="h-3 w-3" />, color: "text-red-600" },
-    dying_gasp: { variant: "destructive", icon: <Zap className="h-3 w-3" />, color: "text-orange-600" },
-    power_fail: { variant: "destructive", icon: <Power className="h-3 w-3" />, color: "text-red-600" },
+    los: { variant: "destructive", icon: <AlertTriangle className="h-3 w-3" />, color: "text-destructive" },
+    dying_gasp: { variant: "destructive", icon: <Zap className="h-3 w-3" />, color: "text-warning" },
+    power_fail: { variant: "destructive", icon: <Power className="h-3 w-3" />, color: "text-destructive" },
   }
   const c = config[status] || config.offline
   return (
@@ -122,15 +122,15 @@ const getRegistrationBadge = (status: string) => {
 }
 
 const getPowerColor = (power: number) => {
-  if (power > -20) return "text-green-600"
-  if (power > -25) return "text-yellow-600"
-  return "text-red-600"
+  if (power > -20) return "text-success"
+  if (power > -25) return "text-warning"
+  return "text-destructive"
 }
 
 const getPowerStatus = (power: number) => {
-  if (power > -20) return { status: "Good", color: "text-green-600" }
-  if (power > -25) return { status: "Warning", color: "text-yellow-600" }
-  return { status: "Critical", color: "text-red-600" }
+  if (power > -20) return { status: "Good", color: "text-success" }
+  if (power > -25) return { status: "Warning", color: "text-warning" }
+  return { status: "Critical", color: "text-destructive" }
 }
 
 export default function ONUManagementPage() {
@@ -290,10 +290,10 @@ export default function ONUManagementPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Online</CardTitle>
-            <Wifi className="h-4 w-4 text-green-500" />
+            <Wifi className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.online}</div>
+            <div className="text-2xl font-bold text-success">{stats.online}</div>
             <p className="text-xs text-muted-foreground">
               {Math.round((stats.online / stats.total) * 100)}% of total
             </p>
@@ -313,20 +313,20 @@ export default function ONUManagementPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">LOS / Fault</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-500" />
+            <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.los}</div>
+            <div className="text-2xl font-bold text-destructive">{stats.los}</div>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Unregistered</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
+            <Clock className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.unregistered}</div>
+            <div className="text-2xl font-bold text-warning">{stats.unregistered}</div>
             <p className="text-xs text-muted-foreground">Pending setup</p>
           </CardContent>
         </Card>
@@ -540,7 +540,7 @@ export default function ONUManagementPage() {
                               Run Diagnostics
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem className="text-destructive">
                               <Unplug className="mr-2 h-4 w-4" />
                               Deregister
                             </DropdownMenuItem>
@@ -566,7 +566,7 @@ export default function ONUManagementPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                <AlertTriangle className="h-5 w-5 text-warning" />
                 Unregistered ONUs
               </CardTitle>
               <CardDescription>
@@ -744,7 +744,7 @@ export default function ONUManagementPage() {
                           <CardTitle className="text-sm">Tx Power</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold text-green-600">
+                          <div className="text-2xl font-bold text-success">
                             {selectedONU.tx_power?.toFixed(2)} dBm
                           </div>
                           <p className="text-xs text-muted-foreground">Normal</p>
@@ -756,15 +756,15 @@ export default function ONUManagementPage() {
                       <h4 className="font-medium mb-2">Signal Quality Guide</h4>
                       <div className="space-y-1 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-green-600">● Good</span>
+                          <span className="text-success">● Good</span>
                           <span className="text-muted-foreground">Better than -20 dBm</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-yellow-600">● Warning</span>
+                          <span className="text-warning">● Warning</span>
                           <span className="text-muted-foreground">-20 to -25 dBm</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-red-600">● Critical</span>
+                          <span className="text-destructive">● Critical</span>
                           <span className="text-muted-foreground">Worse than -25 dBm</span>
                         </div>
                       </div>
@@ -794,11 +794,11 @@ export default function ONUManagementPage() {
                     <Separator />
                     
                     <div className="space-y-3">
-                      <Button variant="outline" className="w-full justify-start text-yellow-600">
+                      <Button variant="outline" className="w-full justify-start text-warning">
                         <RotateCcw className="mr-2 h-4 w-4" />
                         Reboot ONU
                       </Button>
-                      <Button variant="outline" className="w-full justify-start text-red-600">
+                      <Button variant="outline" className="w-full justify-start text-destructive">
                         <Power className="mr-2 h-4 w-4" />
                         Factory Reset
                       </Button>

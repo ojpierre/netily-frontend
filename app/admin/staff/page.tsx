@@ -411,7 +411,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserCog className="w-5 h-5 text-blue-600" />
+            <UserCog className="w-5 h-5 text-primary" />
             Create Staff Account
           </DialogTitle>
           <DialogDescription>
@@ -424,7 +424,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
           {/* Role Selection */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">
-              Select Role <span className="text-red-500">*</span>
+              Select Role <span className="text-destructive">*</span>
             </Label>
             <div className="grid grid-cols-2 gap-3">
               {STAFF_ROLES.map((role) => {
@@ -437,13 +437,13 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                     onClick={() => handleInputChange("role", role.value)}
                     className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all ${
                       isSelected
-                        ? "border-blue-600 bg-blue-50"
+                        ? "border-primary bg-primary/10"
                         : "border-slate-200 hover:border-slate-300"
                     }`}
                   >
                     <div
                       className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        isSelected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+                        isSelected ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
                       }`}
                     >
                       <Icon className="w-5 h-5" />
@@ -451,7 +451,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                     <div className="flex-1 min-w-0">
                       <p
                         className={`font-medium ${
-                          isSelected ? "text-blue-600" : "text-slate-900 dark:text-white"
+                          isSelected ? "text-primary" : "text-slate-900 dark:text-white"
                         }`}
                       >
                         {role.label}
@@ -462,7 +462,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                 )
               })}
             </div>
-            {errors.role && <p className="text-sm text-red-500">{errors.role}</p>}
+            {errors.role && <p className="text-sm text-destructive">{errors.role}</p>}
           </div>
 
           <Separator />
@@ -474,39 +474,39 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="first_name">
-                  First Name <span className="text-red-500">*</span>
+                  First Name <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="first_name"
                   placeholder="Jane"
                   value={formData.first_name}
                   onChange={(e) => handleInputChange("first_name", e.target.value)}
-                  className={errors.first_name ? "border-red-500" : ""}
+                  className={errors.first_name ? "border-destructive" : ""}
                 />
                 {errors.first_name && (
-                  <p className="text-sm text-red-500">{errors.first_name}</p>
+                  <p className="text-sm text-destructive">{errors.first_name}</p>
                 )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="last_name">
-                  Last Name <span className="text-red-500">*</span>
+                  Last Name <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="last_name"
                   placeholder="Doe"
                   value={formData.last_name}
                   onChange={(e) => handleInputChange("last_name", e.target.value)}
-                  className={errors.last_name ? "border-red-500" : ""}
+                  className={errors.last_name ? "border-destructive" : ""}
                 />
-                {errors.last_name && <p className="text-sm text-red-500">{errors.last_name}</p>}
+                {errors.last_name && <p className="text-sm text-destructive">{errors.last_name}</p>}
               </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="email">
-                  Email Address <span className="text-red-500">*</span>
+                  Email Address <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -516,15 +516,15 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                     placeholder="staff@example.com"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
-                    className={`pl-10 ${errors.email ? "border-red-500" : ""}`}
+                    className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
                   />
                 </div>
-                {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="phone_number">
-                  Phone Number <span className="text-red-500">*</span>
+                  Phone Number <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -534,10 +534,10 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                     placeholder="+254712345678"
                     value={formData.phone_number}
                     onChange={(e) => handleInputChange("phone_number", e.target.value)}
-                    className={`pl-10 ${errors.phone_number ? "border-red-500" : ""}`}
+                    className={`pl-10 ${errors.phone_number ? "border-destructive" : ""}`}
                   />
                 </div>
-                {errors.phone_number && <p className="text-sm text-red-500">{errors.phone_number}</p>}
+                {errors.phone_number && <p className="text-sm text-destructive">{errors.phone_number}</p>}
               </div>
             </div>
           </div>
@@ -549,7 +549,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="password">
-                  Password <span className="text-red-500">*</span>
+                  Password <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="password"
@@ -557,14 +557,14 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => handleInputChange("password", e.target.value)}
-                  className={errors.password ? "border-red-500" : ""}
+                  className={errors.password ? "border-destructive" : ""}
                 />
-                {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
+                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">
-                  Confirm Password <span className="text-red-500">*</span>
+                  Confirm Password <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="confirmPassword"
@@ -572,10 +572,10 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                   placeholder="••••••••"
                   value={formData.confirmPassword}
                   onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                  className={errors.confirmPassword ? "border-red-500" : ""}
+                  className={errors.confirmPassword ? "border-destructive" : ""}
                 />
                 {errors.confirmPassword && (
-                  <p className="text-sm text-red-500">{errors.confirmPassword}</p>
+                  <p className="text-sm text-destructive">{errors.confirmPassword}</p>
                 )}
               </div>
             </div>
@@ -592,7 +592,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                   <Badge
                     key={req.label}
                     variant={req.met ? "default" : "secondary"}
-                    className={req.met ? "bg-green-100 text-green-700" : ""}
+                    className={req.met ? "bg-success/15 text-success" : ""}
                   >
                     {req.met && <CheckCircle className="w-3 h-3 mr-1" />}
                     {req.label}
@@ -965,8 +965,8 @@ export default function StaffManagementPage() {
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <span className="text-blue-600 font-medium">
+                          <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
+                            <span className="text-primary font-medium">
                               {user.first_name?.charAt(0) || ""}
                               {user.last_name?.charAt(0) || ""}
                             </span>
@@ -984,7 +984,7 @@ export default function StaffManagementPage() {
                       <TableCell>
                         <a
                           href={`mailto:${user.email}`}
-                          className="text-blue-600 hover:underline"
+                          className="text-primary hover:underline"
                         >
                           {user.email}
                         </a>
@@ -1009,12 +1009,12 @@ export default function StaffManagementPage() {
                       </TableCell>
                       <TableCell>
                         {user.is_active ? (
-                          <Badge variant="outline" className="text-green-600 border-green-200">
+                          <Badge variant="outline" className="text-success border-success/20">
                             <CheckCircle className="w-3 h-3 mr-1" />
                             Active
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-red-600 border-red-200">
+                          <Badge variant="outline" className="text-destructive border-destructive/20">
                             <XCircle className="w-3 h-3 mr-1" />
                             Inactive
                           </Badge>
@@ -1036,7 +1036,7 @@ export default function StaffManagementPage() {
                             <DropdownMenuSeparator />
                             {user.is_active ? (
                               <DropdownMenuItem
-                                className="text-amber-600"
+                                className="text-warning"
                                 onClick={() => setDeleteUser(user)}
                               >
                                 <XCircle className="w-4 h-4 mr-2" />
@@ -1044,7 +1044,7 @@ export default function StaffManagementPage() {
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem
-                                className="text-green-600"
+                                className="text-success"
                                 onClick={() => handleReactivate(user)}
                               >
                                 <CheckCircle className="w-4 h-4 mr-2" />
@@ -1056,7 +1056,7 @@ export default function StaffManagementPage() {
                                 ============================================================ */}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              className="text-red-600 focus:text-red-600"
+                              className="text-destructive focus:text-destructive"
                               onClick={() => setHardDeleteUser(user)}
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
@@ -1135,7 +1135,7 @@ export default function StaffManagementPage() {
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isHardDeleting}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              className="bg-destructive hover:bg-destructive/90 focus:ring-red-600"
             >
               {isHardDeleting ? (
                 <>

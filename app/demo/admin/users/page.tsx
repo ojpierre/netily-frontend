@@ -30,11 +30,11 @@ function statusClass(status: string) {
     case "online":
       return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
     case "active":
-      return "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300"
+      return "bg-primary/15 text-primary dark:bg-blue-950/30 dark:text-primary/60"
     case "expired":
       return "bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300"
     default:
-      return "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300"
+      return "bg-warning/15 text-warning dark:bg-amber-950/30 dark:text-amber-300"
   }
 }
 

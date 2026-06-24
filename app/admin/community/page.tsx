@@ -73,9 +73,9 @@ export default function CommunityBoardPage() {
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = { 
-      pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-      planned: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300", 
-      in_progress: "bg-amber-100 text-amber-700 animate-pulse dark:bg-amber-900/30 dark:text-amber-300", 
+      pending: "bg-warning/15 text-warning dark:bg-amber-900/30 dark:text-amber-300",
+      planned: "bg-primary/15 text-primary dark:bg-primary/30 dark:text-primary/60", 
+      in_progress: "bg-warning/15 text-warning animate-pulse dark:bg-amber-900/30 dark:text-amber-300", 
       completed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
       rejected: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" 
     }
@@ -85,10 +85,10 @@ export default function CommunityBoardPage() {
   const getCategoryBadge = (category: string) => {
     const colors: Record<string, string> = {
       network: "bg-purple-100 text-purple-700",
-      billing: "bg-green-100 text-green-700",
-      hotspot: "bg-orange-100 text-orange-700",
+      billing: "bg-success/15 text-success",
+      hotspot: "bg-warning/15 text-warning",
       ui_ux: "bg-pink-100 text-pink-700",
-      automation: "bg-indigo-100 text-indigo-700",
+      automation: "bg-primary/15 text-primary",
       other: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
     }
     return <Badge variant="outline" className={`text-[10px] uppercase font-bold ${colors[category] || "text-slate-400"}`}>{category.replace('_', ' ')}</Badge>
@@ -177,7 +177,7 @@ export default function CommunityBoardPage() {
           </Card>
         ) : (
           requests.map(req => (
-            <Card key={req.id} className="group hover:border-blue-200 transition-all border-slate-200 shadow-sm overflow-hidden">
+            <Card key={req.id} className="group hover:border-primary/20 transition-all border-slate-200 shadow-sm overflow-hidden">
               <div className="flex flex-col md:flex-row">
                 <div className="p-6 flex-grow space-y-4">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -185,14 +185,14 @@ export default function CommunityBoardPage() {
                     {getStatusBadge(req.status)}
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{req.title}</h3>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-primary/80 transition-colors">{req.title}</h3>
                     <p className="text-slate-600 text-sm mt-1 line-clamp-2">{req.description}</p>
                   </div>
                   {req.admin_comment && (
-                    <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex gap-3">
-                      <Lightbulb className="w-5 h-5 text-blue-600 shrink-0" />
+                    <div className="bg-primary/10/50 p-4 rounded-xl border border-primary/15 flex gap-3">
+                      <Lightbulb className="w-5 h-5 text-primary shrink-0" />
                       <div>
-                        <p className="text-[10px] font-black uppercase text-blue-600 tracking-widest">Netily Team Response</p>
+                        <p className="text-[10px] font-black uppercase text-primary tracking-widest">Netily Team Response</p>
                         <p className="text-sm text-slate-700 mt-1 italic">"{req.admin_comment}"</p>
                       </div>
                     </div>
@@ -208,7 +208,7 @@ export default function CommunityBoardPage() {
                   <Button 
                     variant={req.has_upvoted ? "default" : "outline"} 
                     size="sm" 
-                    className={`w-full font-bold ${req.has_upvoted ? "bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/20" : ""}`}
+                    className={`w-full font-bold ${req.has_upvoted ? "bg-primary hover:bg-primary shadow-md shadow-blue-500/20" : ""}`}
                     onClick={() => handleUpvote(req.id)}
                   >
                     <ThumbsUp className={`w-3 h-3 mr-2 ${req.has_upvoted ? "fill-white" : ""}`} />

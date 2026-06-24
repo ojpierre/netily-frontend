@@ -521,16 +521,16 @@ function AccountSettingsTab() {
       </Card>
       
       {/* Danger Zone */}
-      <Card className="border-red-200">
+      <Card className="border-destructive/20">
         <CardHeader>
-          <CardTitle className="text-red-600">Danger Zone</CardTitle>
+          <CardTitle className="text-destructive">Danger Zone</CardTitle>
           <CardDescription>Irreversible actions for your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert className="bg-red-50 border-red-200">
-            <AlertCircle className="w-4 h-4 text-red-600" />
+          <Alert className="bg-destructive/10 border-destructive/20">
+            <AlertCircle className="w-4 h-4 text-destructive" />
             <AlertTitle className="text-red-800">Delete Account</AlertTitle>
-            <AlertDescription className="text-red-700">
+            <AlertDescription className="text-destructive">
               Once you delete your account, there is no going back. Please be certain.
             </AlertDescription>
           </Alert>
@@ -1047,13 +1047,13 @@ export default function SettingsPage() {
 
       {/* Alerts */}
       {saveSuccess && (
-        <Alert className="bg-green-50 text-green-900 border-green-200">
+        <Alert className="bg-success/10 text-green-900 border-success/20">
           <AlertDescription>Settings saved successfully!</AlertDescription>
         </Alert>
       )}
 
       {error && (
-        <Alert className="bg-red-50 text-red-900 border-red-200">
+        <Alert className="bg-destructive/10 text-red-900 border-destructive/20">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -1085,10 +1085,10 @@ export default function SettingsPage() {
         {/* System Notifications Tab */}
         <TabsContent value="system-notifications" className="space-y-6">
           {!smsGatewayConfigured && (
-            <Alert className="border-amber-200 bg-amber-50">
-              <AlertCircle className="h-4 w-4 text-amber-600" />
+            <Alert className="border-warning/20 bg-warning/10">
+              <AlertCircle className="h-4 w-4 text-warning" />
               <AlertTitle className="text-amber-800">SMS Gateway Required</AlertTitle>
-              <AlertDescription className="text-amber-700">
+              <AlertDescription className="text-warning">
                 You must configure an SMS gateway (your own provider or Netily Inbuilt) in the{' '}
                 <a href="/admin/sms" className="underline font-medium">SMS → Gateway tab</a>{' '}
                 before enabling system notifications.
@@ -1115,9 +1115,9 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className={`flex items-center gap-3 rounded-xl p-3 text-sm ${
-                routerAlertEnabled ? 'bg-orange-50 border border-orange-200 text-orange-800' : 'bg-slate-50 border border-slate-100 text-slate-500'
+                routerAlertEnabled ? 'bg-warning/10 border border-warning/20 text-orange-800' : 'bg-slate-50 border border-slate-100 text-slate-500'
               }`}>
-                <div className={`w-2 h-2 rounded-full shrink-0 ${routerAlertEnabled ? 'bg-orange-500 animate-pulse' : 'bg-slate-300'}`} />
+                <div className={`w-2 h-2 rounded-full shrink-0 ${routerAlertEnabled ? 'bg-warning animate-pulse' : 'bg-slate-300'}`} />
                 {routerAlertEnabled
                   ? `Active — ${routerPhoneList.length} recipient(s) configured`
                   : 'Disabled — toggle on to configure recipients'}
@@ -1140,32 +1140,32 @@ export default function SettingsPage() {
                           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddRouterNumber() } }}
                         />
                       </div>
-                      <Button size="sm" className="h-9 bg-orange-500 hover:bg-orange-600 text-white" onClick={handleAddRouterNumber} disabled={routerAlertLoading}>
+                      <Button size="sm" className="h-9 bg-warning hover:bg-orange-600 text-white" onClick={handleAddRouterNumber} disabled={routerAlertLoading}>
                         <Plus className="w-3.5 h-3.5 mr-1" />Add
                       </Button>
                     </div>
                     {routerPhoneError && (
-                      <p className="flex items-center gap-1 text-xs text-red-500">
+                      <p className="flex items-center gap-1 text-xs text-destructive">
                         <AlertCircle className="w-3 h-3" />{routerPhoneError}
                       </p>
                     )}
                   </div>
 
                   {routerPhoneList.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-orange-100 bg-orange-50/50 py-8 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-orange-100 bg-warning/10/50 py-8 text-center">
                       <Phone className="w-8 h-8 text-orange-200" />
-                      <p className="text-sm font-medium text-orange-700">No recipients yet</p>
-                      <p className="text-xs text-orange-400">Add a number above to start receiving alerts</p>
+                      <p className="text-sm font-medium text-warning">No recipients yet</p>
+                      <p className="text-xs text-warning">Add a number above to start receiving alerts</p>
                     </div>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {routerPhoneList.map((num, i) => (
-                        <div key={num} className="group flex items-center gap-2 bg-white border border-orange-200 rounded-full px-3 py-1.5 shadow-sm hover:border-orange-400 transition-all">
-                          <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-                            <span className="text-[10px] font-bold text-orange-600">{i + 1}</span>
+                        <div key={num} className="group flex items-center gap-2 bg-white border border-warning/20 rounded-full px-3 py-1.5 shadow-sm hover:border-orange-400 transition-all">
+                          <div className="w-5 h-5 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+                            <span className="text-[10px] font-bold text-warning">{i + 1}</span>
                           </div>
                           <span className="text-sm font-medium text-slate-700 tabular-nums">{num}</span>
-                          <button onClick={() => handleRemoveRouterNumber(num)} className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 text-slate-300 hover:text-red-500">
+                          <button onClick={() => handleRemoveRouterNumber(num)} className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 text-slate-300 hover:text-destructive">
                             <XCircle className="w-3.5 h-3.5" />
                           </button>
                         </div>

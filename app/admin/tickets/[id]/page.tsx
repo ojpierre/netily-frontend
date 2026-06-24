@@ -112,9 +112,9 @@ export default function TicketDetailPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "open": return "bg-blue-100 text-blue-700"
-      case "in-progress": return "bg-yellow-100 text-yellow-700"
-      case "resolved": return "bg-green-100 text-green-700"
+      case "open": return "bg-primary/15 text-primary"
+      case "in-progress": return "bg-warning/15 text-warning"
+      case "resolved": return "bg-success/15 text-success"
       case "closed": return "bg-slate-100 text-slate-700"
       default: return "bg-slate-100 text-slate-700"
     }
@@ -123,9 +123,9 @@ export default function TicketDetailPage() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "low": return "bg-slate-100 text-slate-700"
-      case "medium": return "bg-blue-100 text-blue-700"
-      case "high": return "bg-orange-100 text-orange-700"
-      case "urgent": return "bg-red-100 text-red-700"
+      case "medium": return "bg-primary/15 text-primary"
+      case "high": return "bg-warning/15 text-warning"
+      case "urgent": return "bg-destructive/15 text-destructive"
       default: return "bg-slate-100 text-slate-700"
     }
   }
@@ -182,7 +182,7 @@ export default function TicketDetailPage() {
                   className={`flex gap-4 ${message.sender === "support" ? "flex-row-reverse" : ""}`}
                 >
                   <Avatar className="w-10 h-10">
-                    <AvatarFallback className={message.sender === "support" ? "bg-blue-100 text-blue-700" : "bg-slate-100"}>
+                    <AvatarFallback className={message.sender === "support" ? "bg-primary/15 text-primary" : "bg-slate-100"}>
                       {message.name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
@@ -195,7 +195,7 @@ export default function TicketDetailPage() {
                     <div
                       className={`rounded-lg p-4 ${
                         message.sender === "support"
-                          ? "bg-blue-50 text-slate-800"
+                          ? "bg-primary/10 text-slate-800"
                           : "bg-slate-100 text-slate-800"
                       }`}
                     >
@@ -204,7 +204,7 @@ export default function TicketDetailPage() {
                         <div className="mt-2 flex items-center gap-2">
                           <Paperclip className="w-4 h-4 text-slate-400" />
                           {message.attachments.map((attachment, i) => (
-                            <span key={i} className="text-xs text-blue-600 hover:underline cursor-pointer">
+                            <span key={i} className="text-xs text-primary hover:underline cursor-pointer">
                               {attachment}
                             </span>
                           ))}
@@ -255,7 +255,7 @@ export default function TicketDetailPage() {
                   <AvatarFallback>{ticket.user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <Link href={`/admin/users/${ticket.user.id}`} className="font-medium hover:text-blue-600">
+                  <Link href={`/admin/users/${ticket.user.id}`} className="font-medium hover:text-primary">
                     {ticket.user.name}
                   </Link>
                   <p className="text-sm text-slate-500">{ticket.user.email}</p>

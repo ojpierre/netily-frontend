@@ -15,8 +15,8 @@ const payments = [
 
 const statusConfig = {
   completed: { icon: CheckCircle2, className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300" },
-  processing: { icon: Clock, className: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300" },
-  pending: { icon: Clock, className: "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300" },
+  processing: { icon: Clock, className: "bg-primary/15 text-primary dark:bg-blue-950/30 dark:text-primary/60" },
+  pending: { icon: Clock, className: "bg-warning/15 text-warning dark:bg-amber-950/30 dark:text-amber-300" },
   failed: { icon: XCircle, className: "bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300" },
 } as const
 

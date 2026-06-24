@@ -109,7 +109,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm uppercase tracking-[0.28em] text-slate-400">Not found</p>
           <h1 className="mt-4 text-4xl font-bold">Solution page unavailable</h1>
-          <Link href="/" className="mt-8 inline-flex items-center gap-2 text-blue-600 dark:text-blue-400">
+          <Link href="/" className="mt-8 inline-flex items-center gap-2 text-primary dark:text-primary/80">
             Back to homepage
             <ArrowRight className="h-4 w-4" />
           </Link>
@@ -132,7 +132,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
       <section className="relative overflow-hidden px-4 py-24 sm:px-6 lg:px-8">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-slate-50 dark:from-blue-950/30 dark:via-slate-950 dark:to-slate-950" />
         <div className="relative mx-auto max-w-5xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-medium text-primary dark:border-primary/20 dark:bg-blue-950/40 dark:text-primary/60">
             <HeroIcon className="h-4 w-4" />
             {solution.eyebrow}
           </div>
@@ -151,7 +151,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
               <div className="mt-4 space-y-3">
                 {solution.bullets.map((item) => (
                   <div key={item} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-400">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                     <span>{item}</span>
                   </div>
                 ))}
@@ -161,14 +161,14 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <Link
               href="/#contact"
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary"
             >
               Talk to Netily
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/#pricing"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-primary dark:text-primary/80"
             >
               View pricing
               <ArrowRight className="h-4 w-4" />

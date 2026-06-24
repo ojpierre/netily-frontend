@@ -165,7 +165,7 @@ export default function LeadsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Not Yet</CardDescription>
-            <CardTitle className="text-3xl text-amber-600">{stats.notYet}</CardTitle>
+            <CardTitle className="text-3xl text-warning">{stats.notYet}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
@@ -261,7 +261,7 @@ export default function LeadsPage() {
                         {lead.status === "converted" || lead.is_contacted ? (
                           <Badge className="bg-emerald-600"><CheckCircle2 className="mr-1 h-3 w-3" />Converted</Badge>
                         ) : (
-                          <Badge variant="outline" className="text-amber-700">Not yet</Badge>
+                          <Badge variant="outline" className="text-warning">Not yet</Badge>
                         )}
                       </TableCell>
                       <TableCell className="max-w-xs truncate text-sm text-muted-foreground">{lead.message || "-"}</TableCell>
@@ -275,7 +275,7 @@ export default function LeadsPage() {
                             {lead.status === "converted" || lead.is_contacted ? "Mark Not Yet" : "Convert"}
                           </Button>
                           <Button size="icon" variant="ghost" onClick={() => deleteLead(lead)}>
-                            <Trash2 className="h-4 w-4 text-red-600" />
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
                       </TableCell>

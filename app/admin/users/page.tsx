@@ -1244,12 +1244,12 @@ export default function UsersPage() {
 
   const getStatusBadge = (status: UserStatus) => {
     const variants: Record<UserStatus, string> = {
-      active: "bg-green-100 text-green-700 border-green-200",
+      active: "bg-success/15 text-success border-success/20",
       inactive: "bg-gray-100 text-gray-700 border-gray-200",
-      expired: "bg-red-100 text-red-700 border-red-200",
-      suspended: "bg-yellow-100 text-yellow-700 border-yellow-200",
-      pending: "bg-orange-100 text-orange-700 border-orange-200",
-      online: "bg-blue-100 text-blue-700 border-blue-200",
+      expired: "bg-destructive/15 text-destructive border-destructive/20",
+      suspended: "bg-warning/15 text-warning border-warning/20",
+      pending: "bg-warning/15 text-warning border-warning/20",
+      online: "bg-primary/15 text-primary border-primary/20",
       offline: "bg-slate-100 text-slate-700 border-slate-200",
     }
     return (
@@ -1279,7 +1279,7 @@ export default function UsersPage() {
   const getTypeBadge = (type: UserType) => {
     const config: Record<UserType, { icon: typeof Wifi; class: string; label: string }> = {
       pppoe: { icon: Globe, class: "bg-purple-100 text-purple-700 border-purple-200", label: "PPPoE" },
-      static: { icon: Server, class: "bg-orange-100 text-orange-700 border-orange-200", label: "Static IP" },
+      static: { icon: Server, class: "bg-warning/15 text-warning border-warning/20", label: "Static IP" },
       fiber: { icon: Signal, class: "bg-teal-100 text-teal-700 border-teal-200", label: "Fiber" },
       wireless: { icon: Wifi, class: "bg-cyan-100 text-cyan-700 border-cyan-200", label: "Wireless" },
     }
@@ -1856,7 +1856,7 @@ export default function UsersPage() {
                 <h4 className="text-sm font-semibold text-slate-700 border-b pb-1">Personal Information</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label>First Name <span className="text-red-500">*</span></Label>
+                    <Label>First Name <span className="text-destructive">*</span></Label>
                     <Input
                       placeholder="John"
                       value={newCustomerForm.first_name}
@@ -1864,7 +1864,7 @@ export default function UsersPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label>Last Name <span className="text-red-500">*</span></Label>
+                    <Label>Last Name <span className="text-destructive">*</span></Label>
                     <Input
                       placeholder="Doe"
                       value={newCustomerForm.last_name}
@@ -1874,7 +1874,7 @@ export default function UsersPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label>Phone <span className="text-red-500">*</span></Label>
+                    <Label>Phone <span className="text-destructive">*</span></Label>
                     <Input
                       placeholder="07XXXXXXXX"
                       value={newCustomerForm.phone}
@@ -1899,7 +1899,7 @@ export default function UsersPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Portal Password <span className="text-red-500">*</span></Label>
+                  <Label>Portal Password <span className="text-destructive">*</span></Label>
                   <Input
                     type="password"
                     placeholder="Enter password for customer portal"
@@ -1930,7 +1930,7 @@ export default function UsersPage() {
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label>Plan <span className="text-red-500 text-xs">*</span></Label>
+                    <Label>Plan <span className="text-destructive text-xs">*</span></Label>
                     <Select
                       value={newCustomerForm.plan_id || "none"}
                       onValueChange={(value) => setNewCustomerForm({...newCustomerForm, plan_id: value === "none" ? "" : value})}
@@ -2093,11 +2093,11 @@ export default function UsersPage() {
               </div>
 
               {/* Billing Account Notice */}
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex items-start gap-2">
-                <CreditCard className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+              <div className="mt-4 p-3 bg-primary/10 rounded-lg border border-primary/20 flex items-start gap-2">
+                <CreditCard className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-xs font-medium text-blue-900">M-Pesa Paybill Account</p>
-                  <p className="text-xs text-blue-700 mt-0.5">
+                  <p className="text-xs font-medium text-primary">M-Pesa Paybill Account</p>
+                  <p className="text-xs text-primary mt-0.5">
                     The account number is generated from the customer's phone number. 
                     You can edit it after creation.
                   </p>
@@ -2119,7 +2119,7 @@ export default function UsersPage() {
                       onClick={() => setNewCustomerForm({ ...newCustomerForm, activate_now: opt.activate, activation_delay_minutes: opt.delay })}
                       className={`p-2.5 rounded-lg border text-left transition-all ${
                         newCustomerForm.activate_now === opt.activate && newCustomerForm.activation_delay_minutes === opt.delay
-                          ? "bg-blue-50 border-blue-400 ring-1 ring-blue-400"
+                          ? "bg-primary/10 border-primary/40 ring-1 ring-blue-400"
                           : "bg-white border-slate-200 hover:border-slate-300"
                       }`}
                     >
@@ -2150,7 +2150,7 @@ export default function UsersPage() {
                   {newCustomerForm.record_initial_payment && (
                     <div className="grid grid-cols-2 gap-3 pl-6">
                       <div className="space-y-1">
-                        <Label className="text-xs">Amount (KES) <span className="text-red-500">*</span></Label>
+                        <Label className="text-xs">Amount (KES) <span className="text-destructive">*</span></Label>
                         <Input
                           type="number"
                           placeholder="0.00"
@@ -2189,10 +2189,10 @@ export default function UsersPage() {
         {[
           { label: "Total", value: stats.total, key: "all", tab: "all", status: "all", color: "text-slate-800" },
           { label: "Online", value: stats.online, key: "online", tab: "online-sessions", status: "all", color: "text-emerald-600", pulse: true },
-          { label: "Active", value: stats.active, key: "active", tab: "all", status: "active", color: "text-green-600" },
-          { label: "Pending", value: stats.pending, key: "pending", tab: "all", status: "pending", color: "text-orange-500" },
-          { label: "Suspended", value: stats.suspended, key: "suspended", tab: "all", status: "suspended", color: "text-yellow-600" },
-          { label: "Expired", value: serverStats.expired, key: "expired", tab: "all", status: "expired", color: "text-red-500" },
+          { label: "Active", value: stats.active, key: "active", tab: "all", status: "active", color: "text-success" },
+          { label: "Pending", value: stats.pending, key: "pending", tab: "all", status: "pending", color: "text-warning" },
+          { label: "Suspended", value: stats.suspended, key: "suspended", tab: "all", status: "suspended", color: "text-warning" },
+          { label: "Expired", value: serverStats.expired, key: "expired", tab: "all", status: "expired", color: "text-destructive" },
         ].map(({ label, value, key, tab, status, color, pulse }) => {
           const isActive = activeStatFilter === key
           return (
@@ -2314,15 +2314,15 @@ export default function UsersPage() {
         {activeTab === "hotspot" && (
           <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto">
             {[
-              { value: "active" as const, label: "Active", color: "bg-green-600" },
-              { value: "expired" as const, label: "Expired", color: "bg-red-600" },
+              { value: "active" as const, label: "Active", color: "bg-success" },
+              { value: "expired" as const, label: "Expired", color: "bg-destructive" },
             ].map(({ value, label, color }) => (
               <button
                 key={value}
                 onClick={() => setHotspotSubFilter(value)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   hotspotSubFilter === value
-                    ? `${value === "active" ? "bg-green-600" : "bg-red-600"} text-white shadow-sm`
+                    ? `${value === "active" ? "bg-success" : "bg-destructive"} text-white shadow-sm`
                     : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                 }`}
               >
@@ -2362,13 +2362,13 @@ export default function UsersPage() {
       )}
 
       {selectedUsers.length > 0 && (
-        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-200">
-          <span className="text-sm font-medium text-blue-900">{selectedUsers.length} selected</span>
+        <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-xl border border-primary/20">
+          <span className="text-sm font-medium text-primary">{selectedUsers.length} selected</span>
           <div className="flex-1" />
           <Button size="sm" variant="outline" onClick={() => { setSmsTarget(null); setSmsMessage(""); setShowSmsDialog(true) }}>
             <Send className="w-4 h-4 mr-2" />Send SMS
           </Button>
-          <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" onClick={handleBulkDelete} disabled={deleting}>
+          <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={handleBulkDelete} disabled={deleting}>
             {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
             Delete
           </Button>
@@ -2488,8 +2488,8 @@ export default function UsersPage() {
                           <TableCell>
                             <Badge variant="outline" className={
                               session.service_type === 'PPPOE' ? 'border-purple-300 text-purple-700 bg-purple-50' :
-                              session.service_type === 'HOTSPOT' ? 'border-orange-300 text-orange-700 bg-orange-50' :
-                              'border-blue-300 text-blue-700 bg-blue-50'
+                              session.service_type === 'HOTSPOT' ? 'border-orange-300 text-warning bg-warning/10' :
+                              'border-primary/30 text-primary bg-primary/10'
                             }>
                               {session.service_type === 'PPPOE' ? 'PPPoE' : session.service_type === 'HOTSPOT' ? 'Hotspot' : session.service_type}
                             </Badge>
@@ -2499,7 +2499,7 @@ export default function UsersPage() {
                               {session.ip_address
                                 ? session.ip_address
                                 : (session as any).accounting_pending && !session.ip_address
-                                  ? <span className="text-amber-500 text-xs italic">router connecting...</span>
+                                  ? <span className="text-warning text-xs italic">router connecting...</span>
                                   : "..."}
                             </span>
                           </TableCell>
@@ -2512,7 +2512,7 @@ export default function UsersPage() {
                           <TableCell>
                             <div className="flex items-center gap-1.5">
                               {(session as any).accounting_pending && !session.ip_address ? (
-                                <span className="flex items-center gap-1 text-amber-600 text-xs">
+                                <span className="flex items-center gap-1 text-warning text-xs">
                                   <RefreshCw className="w-3 h-3 animate-spin" />
                                   {session.uptime}
                                 </span>
@@ -2570,7 +2570,7 @@ export default function UsersPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <CheckCircle2 className="w-5 h-5 text-success" />
                   Active Subscriptions ({allActiveSubUsers.length})
                 </CardTitle>
                 <CardDescription>Users with active or pending subscriptions - manage extensions and removals</CardDescription>
@@ -2658,9 +2658,9 @@ export default function UsersPage() {
                           </TableCell>
                           <TableCell>
                             {user.status === "active" ? (
-                              <Badge className="bg-green-100 text-green-700">Active</Badge>
+                              <Badge className="bg-success/15 text-success">Active</Badge>
                             ) : (
-                              <Badge className="bg-orange-100 text-orange-700">Pending</Badge>
+                              <Badge className="bg-warning/15 text-warning">Pending</Badge>
                             )}
                           </TableCell>
                           <TableCell>
@@ -2696,11 +2696,11 @@ export default function UsersPage() {
                             {isExpired ? (
                               <Badge variant="destructive" className="text-xs">Expired</Badge>
                             ) : daysLeft <= 1 ? (
-                              <Badge className="bg-red-100 text-red-700 text-xs">{hoursLeft}h left</Badge>
+                              <Badge className="bg-destructive/15 text-destructive text-xs">{hoursLeft}h left</Badge>
                             ) : daysLeft <= 3 ? (
-                              <Badge className="bg-yellow-100 text-yellow-700 text-xs">{daysLeft}d left</Badge>
+                              <Badge className="bg-warning/15 text-warning text-xs">{daysLeft}d left</Badge>
                             ) : (
-                              <Badge className="bg-green-100 text-green-700 text-xs">{daysLeft}d left</Badge>
+                              <Badge className="bg-success/15 text-success text-xs">{daysLeft}d left</Badge>
                             )}
                           </TableCell>
                           <TableCell className="text-right">
@@ -2740,7 +2740,7 @@ export default function UsersPage() {
                                 {user.status === "pending" && (
                                   <DropdownMenuItem 
                                     onClick={() => handleActivateUser(user)}
-                                    className="text-green-600"
+                                    className="text-success"
                                   >
                                     <UserCheck className="w-4 h-4 mr-2" />
                                     Activate Now
@@ -2750,7 +2750,7 @@ export default function UsersPage() {
                                 {user.radiusCredentials && (
                                   <DropdownMenuItem 
                                     onClick={() => handleToggleRadius(user, !user.radiusCredentials!.is_enabled)}
-                                    className={user.radiusCredentials.is_enabled ? "text-yellow-600" : "text-green-600"}
+                                    className={user.radiusCredentials.is_enabled ? "text-warning" : "text-success"}
                                   >
                                     <Power className="w-4 h-4 mr-2" />
                                     {user.radiusCredentials.is_enabled ? 'Disable RADIUS' : 'Enable RADIUS'}
@@ -2759,7 +2759,7 @@ export default function UsersPage() {
                                 {user.connectionStatus === "online" && (
                                   <DropdownMenuItem 
                                     onClick={() => handleDisconnectUser(user)}
-                                    className="text-yellow-600"
+                                    className="text-warning"
                                   >
                                     <Power className="w-4 h-4 mr-2" />
                                     Disconnect
@@ -2768,7 +2768,7 @@ export default function UsersPage() {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem 
                                   onClick={() => handleDeleteUser(user)}
-                                  className="text-red-600"
+                                  className="text-destructive"
                                 >
                                   <Trash2 className="w-4 h-4 mr-2" />
                                   Remove User
@@ -2893,19 +2893,19 @@ export default function UsersPage() {
                               </TableCell>
                               <TableCell>
                                 {isActive ? (
-                                  <Badge className="bg-green-100 text-green-700 gap-1 text-xs">
-                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                                  <Badge className="bg-success/15 text-success gap-1 text-xs">
+                                    <div className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
                                     Active
                                   </Badge>
                                 ) : (
-                                  <Badge className="bg-red-100 text-red-700 text-xs">Expired</Badge>
+                                  <Badge className="bg-destructive/15 text-destructive text-xs">Expired</Badge>
                                 )}
                               </TableCell>
                               <TableCell>
                                 <div>
                                   <p className="text-sm">{expiryLabel}</p>
                                   {daysLeft !== null && (
-                                    <p className={`text-xs ${daysLeft > 0 ? 'text-slate-400' : 'text-red-500'}`}>
+                                    <p className={`text-xs ${daysLeft > 0 ? 'text-slate-400' : 'text-destructive'}`}>
                                       {daysLeft > 0 ? `${daysLeft}d left` : `${Math.abs(daysLeft)}d ago`}
                                     </p>
                                   )}
@@ -3146,7 +3146,7 @@ export default function UsersPage() {
                               {user.status === "pending" && (
                                 <DropdownMenuItem 
                                   onClick={() => handleActivateUser(user)}
-                                  className="text-green-600"
+                                  className="text-success"
                                 >
                                   <UserCheck className="w-4 h-4 mr-2" />
                                   Activate Now
@@ -3156,7 +3156,7 @@ export default function UsersPage() {
                               {user.radiusCredentials && (
                                 <DropdownMenuItem 
                                   onClick={() => handleToggleRadius(user, !user.radiusCredentials!.is_enabled)}
-                                  className={user.radiusCredentials.is_enabled ? "text-yellow-600" : "text-green-600"}
+                                  className={user.radiusCredentials.is_enabled ? "text-warning" : "text-success"}
                                 >
                                   <Power className="w-4 h-4 mr-2" />
                                   {user.radiusCredentials.is_enabled ? 'Disable RADIUS' : 'Enable RADIUS'}
@@ -3165,7 +3165,7 @@ export default function UsersPage() {
                               {user.connectionStatus === "online" && (
                                 <DropdownMenuItem 
                                   onClick={() => handleDisconnectUser(user)}
-                                  className="text-yellow-600"
+                                  className="text-warning"
                                 >
                                   <Power className="w-4 h-4 mr-2" />
                                   Disconnect
@@ -3174,7 +3174,7 @@ export default function UsersPage() {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteUser(user)}
-                                className="text-red-600"
+                                className="text-destructive"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Delete User
@@ -3235,7 +3235,7 @@ export default function UsersPage() {
                   onClick={() => setDrawerTab("general")}
                   className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                     drawerTab === "general"
-                      ? "border-blue-600 text-blue-600"
+                      ? "border-primary text-primary"
                       : "border-transparent text-slate-500 hover:text-slate-700"
                   }`}
                 >
@@ -3245,13 +3245,13 @@ export default function UsersPage() {
                   onClick={() => setDrawerTab("payments")}
                   className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                     drawerTab === "payments"
-                      ? "border-blue-600 text-blue-600"
+                      ? "border-primary text-primary"
                       : "border-transparent text-slate-500 hover:text-slate-700"
                   }`}
                 >
                   Payments
                   {payments.length > 0 && (
-                    <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                    <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-primary/15 text-primary rounded-full">
                       {payments.length}
                     </span>
                   )}
@@ -3337,7 +3337,7 @@ export default function UsersPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
                     <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Subscription</h3>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
@@ -3360,7 +3360,7 @@ export default function UsersPage() {
                           {selectedUser.plan === "No Plan" ? "Managed by Voucher" : new Date(selectedUser.expiryDate).toLocaleDateString()}
                         </span>
                       </div>
-                      <div className="flex items-start justify-between gap-2 pt-1 border-t border-blue-200">
+                      <div className="flex items-start justify-between gap-2 pt-1 border-t border-primary/20">
                         <span className="text-slate-600 text-sm shrink-0">Billing Account No.</span>
                         <div className="flex items-center gap-1.5 flex-1 justify-end">
                           {editingBilling ? (
@@ -3375,7 +3375,7 @@ export default function UsersPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 px-2 text-green-600"
+                                className="h-7 px-2 text-success"
                                 onClick={handleSaveBillingNumber}
                                 disabled={savingBilling}
                               >
@@ -3394,7 +3394,7 @@ export default function UsersPage() {
                             <>
                               {selectedUser.billingAccountNumber ? (
                                 <>
-                                  <code className="text-sm font-mono font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
+                                  <code className="text-sm font-mono font-bold text-primary bg-primary/15 px-2 py-0.5 rounded">
                                     {selectedUser.billingAccountNumber}
                                   </code>
                                   <Button
@@ -3427,7 +3427,7 @@ export default function UsersPage() {
                         </div>
                       </div>
                       {selectedUser.billingAccountNumber && !editingBilling && (
-                        <div className="mt-1 p-2 bg-blue-100 rounded text-xs text-blue-800">
+                        <div className="mt-1 p-2 bg-primary/15 rounded text-xs text-primary">
                           💡 Pay via Paybill ➜ Account Ref: <strong>{selectedUser.billingAccountNumber}</strong>
                         </div>
                       )}
@@ -3436,12 +3436,12 @@ export default function UsersPage() {
 
                   {/* RADIUS Network Credentials */}
                   {selectedUser.serviceStatus === 'PENDING' && !selectedUser.radiusCredentials && (
-                    <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                    <div className="p-4 bg-warning/10 rounded-lg border border-warning/20">
                       <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                        <Wifi className="w-4 h-4 text-orange-600" />
+                        <Wifi className="w-4 h-4 text-warning" />
                         Network Login (PPPoE/Hotspot)
                       </h3>
-                      <p className="text-sm text-orange-700">
+                      <p className="text-sm text-warning">
                         RADIUS credentials will be created when the service is activated.
                         Click <strong>"Activate Now"</strong> below to start the connection.
                       </p>
@@ -3512,14 +3512,14 @@ export default function UsersPage() {
                                   )
                                 } else if (diffHours < 24) {
                                   return (
-                                    <Badge className="bg-yellow-100 text-yellow-700 flex items-center gap-1">
+                                    <Badge className="bg-warning/15 text-warning flex items-center gap-1">
                                       <Clock className="w-3 h-3" />
                                       {diffHours}h remaining
                                     </Badge>
                                   )
                                 } else {
                                   return (
-                                    <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
+                                    <Badge className="bg-success/15 text-success flex items-center gap-1">
                                       <Clock className="w-3 h-3" />
                                       {diffDays}d remaining
                                     </Badge>
@@ -3527,7 +3527,7 @@ export default function UsersPage() {
                                 }
                               })()
                             ) : (
-                              <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
+                              <Badge className="bg-primary/15 text-primary flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
                                 Unlimited
                               </Badge>
@@ -3547,7 +3547,7 @@ export default function UsersPage() {
                             {selectedUser.radiusCredentials.connection_type}
                           </span>
                           {selectedUser.radiusCredentials.synced_to_radius && (
-                            <Badge variant="outline" className="text-green-600 border-green-300">
+                            <Badge variant="outline" className="text-success border-success/30">
                               ✅ Synced
                             </Badge>
                           )}
@@ -3573,7 +3573,7 @@ export default function UsersPage() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-600">Account Balance</span>
-                        <span className={`font-medium ${selectedUser.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className={`font-medium ${selectedUser.balance >= 0 ? 'text-success' : 'text-destructive'}`}>
                           {selectedUser.balance >= 0 
                             ? `+KES ${selectedUser.balance.toLocaleString()} credit`
                             : `-KES ${Math.abs(selectedUser.balance).toLocaleString()} owed`
@@ -3582,7 +3582,7 @@ export default function UsersPage() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-600">Loyalty Points</span>
-                        <span className="font-medium text-amber-600">{selectedUser.loyaltyPoints.toLocaleString()} pts</span>
+                        <span className="font-medium text-warning">{selectedUser.loyaltyPoints.toLocaleString()} pts</span>
                       </div>
                     </div>
                   </div>
@@ -3627,7 +3627,7 @@ export default function UsersPage() {
                     ) : null}
                     {selectedUser.status === "pending" && (
                       <Button 
-                        className="w-full bg-green-600 hover:bg-green-700" 
+                        className="w-full bg-success hover:bg-green-700" 
                         onClick={() => handleActivateUser(selectedUser)}
                         disabled={activating}
                       >
@@ -3638,7 +3638,7 @@ export default function UsersPage() {
                     {selectedUser.radiusCredentials && (
                       <Button 
                         variant="outline" 
-                        className={`w-full ${selectedUser.radiusCredentials.is_enabled ? 'text-yellow-600 hover:text-yellow-700' : 'text-green-600 hover:text-green-700'}`}
+                        className={`w-full ${selectedUser.radiusCredentials.is_enabled ? 'text-warning hover:text-warning' : 'text-success hover:text-success'}`}
                         onClick={() => handleToggleRadius(selectedUser, !selectedUser.radiusCredentials!.is_enabled)}
                         disabled={togglingRadius}
                       >
@@ -3662,7 +3662,7 @@ export default function UsersPage() {
                     {selectedUser.connectionStatus === "online" && (
                       <Button 
                         variant="outline" 
-                        className="w-full text-yellow-600 hover:text-yellow-700"
+                        className="w-full text-warning hover:text-warning"
                         onClick={() => handleDisconnectUser(selectedUser)}
                       >
                         <Power className="w-4 h-4 mr-2" />
@@ -3671,7 +3671,7 @@ export default function UsersPage() {
                     )}
                     <Button 
                       variant="outline" 
-                      className="w-full text-red-600 hover:text-red-700 border-red-200"
+                      className="w-full text-destructive hover:text-destructive border-destructive/20"
                       onClick={() => handleDeleteUser(selectedUser)}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
@@ -3692,15 +3692,15 @@ export default function UsersPage() {
                   ) : (
                     <>
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                        <div className="p-3 bg-success/10 rounded-lg border border-success/20">
                           <p className="text-xs text-slate-500">Total Paid</p>
-                          <p className="text-lg font-bold text-green-700">
+                          <p className="text-lg font-bold text-success">
                             KES {payments.filter(p => p.status === 'COMPLETED' || p.status === 'completed').reduce((sum, p) => sum + (Number(p.amount) || 0), 0).toLocaleString()}
                           </p>
                         </div>
-                        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
                           <p className="text-xs text-slate-500">Transactions</p>
-                          <p className="text-lg font-bold text-blue-700">{payments.length}</p>
+                          <p className="text-lg font-bold text-primary">{payments.length}</p>
                         </div>
                       </div>
 
@@ -3716,14 +3716,14 @@ export default function UsersPage() {
                             >
                               <div className="flex items-center gap-3">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                  isCompleted ? 'bg-green-100' : isFailed ? 'bg-red-100' : 'bg-yellow-100'
+                                  isCompleted ? 'bg-success/15' : isFailed ? 'bg-destructive/15' : 'bg-warning/15'
                                 }`}>
                                   {isCompleted ? (
-                                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                    <CheckCircle2 className="w-4 h-4 text-success" />
                                   ) : isFailed ? (
-                                    <XCircle className="w-4 h-4 text-red-600" />
+                                    <XCircle className="w-4 h-4 text-destructive" />
                                   ) : (
-                                    <Clock className="w-4 h-4 text-yellow-600" />
+                                    <Clock className="w-4 h-4 text-warning" />
                                   )}
                                 </div>
                                 <div>
@@ -3749,9 +3749,9 @@ export default function UsersPage() {
                               </div>
                               <Badge
                                 className={
-                                  isCompleted ? 'bg-green-100 text-green-700' :
-                                  isFailed ? 'bg-red-100 text-red-700' :
-                                  'bg-yellow-100 text-yellow-700'
+                                  isCompleted ? 'bg-success/15 text-success' :
+                                  isFailed ? 'bg-destructive/15 text-destructive' :
+                                  'bg-warning/15 text-warning'
                                 }
                               >
                                 {isCompleted ? 'Paid' : isFailed ? 'Failed' : 'Pending'}
@@ -3890,14 +3890,14 @@ export default function UsersPage() {
       <Dialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-red-600">Delete User</DialogTitle>
+            <DialogTitle className="text-destructive">Delete User</DialogTitle>
             <DialogDescription>
               This action cannot be undone. This will permanently delete the customer account,
               all service connections, RADIUS credentials, and the associated login user.
             </DialogDescription>
           </DialogHeader>
           {userToDelete && (
-            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+            <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
               <p className="font-medium text-slate-900 dark:text-white">{userToDelete.name}</p>
               <p className="text-sm text-slate-600">{userToDelete.email} • {userToDelete.phone}</p>
               <p className="text-sm text-slate-600">Plan: {userToDelete.plan}</p>
@@ -3942,7 +3942,7 @@ export default function UsersPage() {
                 onClick={() => setExtendMode("duration")}
                 className={`flex-1 py-2 text-sm font-medium transition-colors ${
                   extendMode === "duration"
-                    ? "bg-blue-600 text-white"
+                    ? "bg-primary text-white"
                     : "bg-white text-slate-600 hover:bg-slate-50"
                 }`}
               >
@@ -3953,7 +3953,7 @@ export default function UsersPage() {
                 onClick={() => setExtendMode("date")}
                 className={`flex-1 py-2 text-sm font-medium transition-colors ${
                   extendMode === "date"
-                    ? "bg-blue-600 text-white"
+                    ? "bg-primary text-white"
                     : "bg-white text-slate-600 hover:bg-slate-50"
                 }`}
               >
@@ -3997,7 +3997,7 @@ export default function UsersPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    className="w-full border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={async () => {
                       if (!userToExtend?.serviceId) {
                         toast.error("No active service to expire")
@@ -4038,8 +4038,8 @@ export default function UsersPage() {
               <div className="space-y-3">
                 <Label>New Expiry Date & Time</Label>
                 {userToExtend?.expiryDate && userToExtend.plan !== "No Plan" && (
-                  <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm">
-                    <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                  <div className="flex items-center gap-2 p-2 bg-warning/10 border border-warning/20 rounded text-sm">
+                    <Clock className="w-4 h-4 text-warning shrink-0" />
                     <span className="text-amber-800">
                       Current expiry: <strong>{new Date(userToExtend.expiryDate).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
                     </span>
@@ -4055,7 +4055,7 @@ export default function UsersPage() {
                       onChange={(e) => {
                         setExtendManualDate(e.target.value)
                       }}
-                      className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary"
                       style={{ colorScheme: 'light' }}
                     />
                   </div>
@@ -4065,14 +4065,14 @@ export default function UsersPage() {
                       type="time"
                       value={extendManualTime}
                       onChange={(e) => setExtendManualTime(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary"
                       style={{ colorScheme: 'light' }}
                     />
                   </div>
                 </div>
                 {extendManualDate && (
-                  <div className="p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
-                    <CheckCircle2 className="w-4 h-4 inline mr-1 text-green-600" />
+                  <div className="p-2 bg-success/10 border border-success/20 rounded text-sm text-green-800">
+                    <CheckCircle2 className="w-4 h-4 inline mr-1 text-success" />
                     Will expire on:{" "}
                     <strong>
                       {new Date(`${extendManualDate}T${extendManualTime || "23:59"}:00`).toLocaleString('en-GB', {
@@ -4088,13 +4088,13 @@ export default function UsersPage() {
                       const now = new Date()
                       const target = new Date(`${extendManualDate}T${extendManualTime || "23:59"}:00`)
                       const diffMs = target.getTime() - now.getTime()
-                      if (diffMs <= 0) return <span className="text-red-600 ml-1"> (in the past — please select future date/time)</span>
+                      if (diffMs <= 0) return <span className="text-destructive ml-1"> (in the past — please select future date/time)</span>
                       const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
                       const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
                       const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-                      if (days > 0) return <span className="text-green-700 ml-1"> ({days}d {hours}h from now)</span>
-                      if (hours > 0) return <span className="text-green-700 ml-1"> ({hours}h {minutes}m from now)</span>
-                      if (minutes > 0) return <span className="text-green-700 ml-1"> ({minutes}m from now)</span>
+                      if (days > 0) return <span className="text-success ml-1"> ({days}d {hours}h from now)</span>
+                      if (hours > 0) return <span className="text-success ml-1"> ({hours}h {minutes}m from now)</span>
+                      if (minutes > 0) return <span className="text-success ml-1"> ({minutes}m from now)</span>
                       return null
                     })()}
                   </div>
@@ -4107,7 +4107,7 @@ export default function UsersPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  className="w-full border-destructive/20 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={async () => {
                     if (!userToExtend?.serviceId) {
                       toast.error("No active service to expire")
@@ -4192,7 +4192,7 @@ export default function UsersPage() {
             <DialogDescription>
               {hotspotSessionToExtend?.canonical_username || hotspotSessionToExtend?.username} — {hotspotSessionToExtend?.plan_name}
               {hotspotSessionToExtend?.expiry_date && (
-                <span className="block text-amber-600 mt-1">
+                <span className="block text-warning mt-1">
                   Current expiry: {new Date(hotspotSessionToExtend.expiry_date).toLocaleString()}
                 </span>
               )}
@@ -4204,7 +4204,7 @@ export default function UsersPage() {
                 type="button"
                 onClick={() => setHotspotExtendMode("duration")}
                 className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                  hotspotExtendMode === "duration" ? "bg-blue-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50"
+                  hotspotExtendMode === "duration" ? "bg-primary text-white" : "bg-white text-slate-600 hover:bg-slate-50"
                 }`}
               >
                 Add Duration
@@ -4213,7 +4213,7 @@ export default function UsersPage() {
                 type="button"
                 onClick={() => setHotspotExtendMode("date")}
                 className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                  hotspotExtendMode === "date" ? "bg-blue-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50"
+                  hotspotExtendMode === "date" ? "bg-primary text-white" : "bg-white text-slate-600 hover:bg-slate-50"
                 }`}
               >
                 Set Expiry
@@ -4288,7 +4288,7 @@ export default function UsersPage() {
                   </div>
                 </div>
                 {hotspotExtendManualDate && (
-                  <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded p-2">
+                  <p className="text-xs text-success bg-success/10 border border-success/20 rounded p-2">
                     New expiry: <strong>{new Date(`${hotspotExtendManualDate}T${hotspotExtendManualTime}:00`).toLocaleString()}</strong>
                   </p>
                 )}
@@ -4339,7 +4339,7 @@ export default function UsersPage() {
                 <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-6 pt-6 pb-5">
                   {/* Decorative blur blobs */}
                   <div className="absolute top-0 right-0 w-48 h-48 bg-pink-500/10 rounded-full blur-3xl pointer-events-none" />
-                  <div className="absolute bottom-0 left-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+                  <div className="absolute bottom-0 left-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
 
                   <div className="relative flex items-start justify-between gap-3">
                     <div className="flex items-center gap-4 min-w-0">
@@ -4368,7 +4368,7 @@ export default function UsersPage() {
                             </span>
                           )}
                           {!isActive && (
-                            <span className="text-[10px] font-bold text-red-400 bg-red-400/10 border border-red-400/30 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                            <span className="text-[10px] font-bold text-destructive bg-red-400/10 border border-red-400/30 px-2 py-0.5 rounded-full uppercase tracking-widest">
                               Expired
                             </span>
                           )}
@@ -4436,7 +4436,7 @@ export default function UsersPage() {
                       <div key={label} className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-center">
                         <p className="text-[9px] text-slate-400 uppercase tracking-widest font-semibold mb-1">{label}</p>
                         <p className={`text-sm font-black leading-tight ${
-                          highlight ? 'text-emerald-400' : warn ? 'text-red-400' : 'text-white'
+                          highlight ? 'text-emerald-400' : warn ? 'text-destructive' : 'text-white'
                         }`}>{value}</p>
                         <p className="text-[10px] text-slate-500 mt-0.5 truncate">{sub}</p>
                       </div>
@@ -4495,14 +4495,14 @@ export default function UsersPage() {
                                 label: 'First connection',
                                 sub: hotspotDetailClient.router ? `via ${hotspotDetailClient.router}` : 'Connected to network',
                                 date: hotspotDetailClient.subscribed_at,
-                                color: 'bg-blue-500',
+                                color: 'bg-primary',
                               },
                               hotspotDetailClient.plan_price && {
                                 icon: '💳',
                                 label: 'Payment received',
                                 sub: `KES ${hotspotDetailClient.plan_price} · ${hotspotDetailClient.plan_name || 'Plan'}`,
                                 date: hotspotDetailClient.subscribed_at,
-                                color: 'bg-green-500',
+                                color: 'bg-success',
                               },
                               hotspotDetailClient.expiry_date && !isActive && {
                                 icon: '⏰',
@@ -4677,8 +4677,8 @@ export default function UsersPage() {
                           onClick={() => { setHotspotDetailOpen(false); handleExtendHotspot(hotspotDetailClient) }}
                           className="w-full flex items-center gap-4 px-4 py-4 bg-white rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-sm active:scale-[0.99] transition-all group"
                         >
-                          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors flex-shrink-0">
-                            <Calendar className="w-5 h-5 text-blue-600" />
+                          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors flex-shrink-0">
+                            <Calendar className="w-5 h-5 text-primary" />
                           </div>
                           <div className="flex-1 text-left">
                             <p className="text-sm font-semibold text-slate-800">Extend session</p>
@@ -4698,8 +4698,8 @@ export default function UsersPage() {
                           }}
                           className="w-full flex items-center gap-4 px-4 py-4 bg-white rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-sm active:scale-[0.99] transition-all group"
                         >
-                          <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors flex-shrink-0">
-                            <Send className="w-5 h-5 text-green-600" />
+                          <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center group-hover:bg-success/15 transition-colors flex-shrink-0">
+                            <Send className="w-5 h-5 text-success" />
                           </div>
                           <div className="flex-1 text-left">
                             <p className="text-sm font-semibold text-slate-800">Send access code via SMS</p>
@@ -4727,8 +4727,8 @@ export default function UsersPage() {
                         onClick={() => setHotspotDetailTab('sessions')}
                         className="w-full flex items-center gap-4 px-4 py-4 bg-white rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-sm active:scale-[0.99] transition-all group"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center group-hover:bg-orange-100 transition-colors flex-shrink-0">
-                          <History className="w-5 h-5 text-orange-600" />
+                        <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center group-hover:bg-warning/15 transition-colors flex-shrink-0">
+                          <History className="w-5 h-5 text-warning" />
                         </div>
                         <div className="flex-1 text-left">
                           <p className="text-sm font-semibold text-slate-800">View session history</p>
@@ -4740,16 +4740,16 @@ export default function UsersPage() {
                       {clientId && (
                         <button
                           onClick={() => handleDeleteHotspotClient(clientId, username)}
-                          className="w-full flex items-center gap-4 px-4 py-4 bg-white rounded-xl border border-red-100 hover:border-red-200 hover:bg-red-50/30 active:scale-[0.99] transition-all group mt-3"
+                          className="w-full flex items-center gap-4 px-4 py-4 bg-white rounded-xl border border-red-100 hover:border-destructive/20 hover:bg-destructive/10/30 active:scale-[0.99] transition-all group mt-3"
                         >
-                          <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center group-hover:bg-red-100 transition-colors flex-shrink-0">
-                            <Trash2 className="w-5 h-5 text-red-500" />
+                          <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center group-hover:bg-destructive/15 transition-colors flex-shrink-0">
+                            <Trash2 className="w-5 h-5 text-destructive" />
                           </div>
                           <div className="flex-1 text-left">
-                            <p className="text-sm font-semibold text-red-600">Delete client</p>
+                            <p className="text-sm font-semibold text-destructive">Delete client</p>
                             <p className="text-xs text-slate-400 mt-0.5">Permanently removes RADIUS credentials</p>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-red-200 group-hover:text-red-400 group-hover:translate-x-0.5 transition-all" />
+                          <ChevronRight className="w-4 h-4 text-red-200 group-hover:text-destructive group-hover:translate-x-0.5 transition-all" />
                         </button>
                       )}
                     </div>
@@ -4887,8 +4887,8 @@ export default function UsersPage() {
 
           <div className="space-y-4">
             {userToEditIP?.ipAddress && (
-              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
-                <Server className="w-4 h-4 text-amber-600 shrink-0" />
+              <div className="flex items-center gap-2 p-3 bg-warning/10 border border-warning/20 rounded-lg text-sm">
+                <Server className="w-4 h-4 text-warning shrink-0" />
                 <span className="text-amber-800">
                   Current IP: <code className="font-mono font-bold">{userToEditIP.ipAddress}</code>
                 </span>
@@ -5009,10 +5009,10 @@ export default function UsersPage() {
                         `Hello ${smsTarget.name}, make payments via M-Pesa Paybill: ${paybill}, Account No: ${billingAcc}. Thank you!`
                       )
                     }}
-                    className="text-left px-3 py-2 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors text-xs"
+                    className="text-left px-3 py-2 rounded-lg border border-primary/20 bg-primary/10 hover:bg-primary/15 transition-colors text-xs"
                   >
-                    <p className="font-medium text-blue-800">💳 Payment Details</p>
-                    <p className="text-blue-600 mt-0.5 line-clamp-2">
+                    <p className="font-medium text-primary">💳 Payment Details</p>
+                    <p className="text-primary mt-0.5 line-clamp-2">
                       Paybill + billing account number template
                     </p>
                   </button>
@@ -5095,10 +5095,10 @@ export default function UsersPage() {
                         `Hello ${userSmsTarget.name}, make payments via M-Pesa Paybill: ${paybill}, Account No: ${billingAcc}. Thank you!`
                       )
                     }}
-                    className="text-left px-3 py-2 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors text-xs"
+                    className="text-left px-3 py-2 rounded-lg border border-primary/20 bg-primary/10 hover:bg-primary/15 transition-colors text-xs"
                   >
-                    <p className="font-medium text-blue-800">💳 Payment Details</p>
-                    <p className="text-blue-600 mt-0.5 line-clamp-2">
+                    <p className="font-medium text-primary">💳 Payment Details</p>
+                    <p className="text-primary mt-0.5 line-clamp-2">
                       Paybill + billing account number template
                     </p>
                   </button>
@@ -5133,7 +5133,7 @@ export default function UsersPage() {
                     key={key}
                     type="button"
                     onClick={() => setUserSmsMessage(prev => prev + key)}
-                    className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+                    className="px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 transition-colors"
                   >
                     {label}
                   </button>
@@ -5183,8 +5183,8 @@ export default function UsersPage() {
       }}>
         <DialogContent className="max-w-sm w-[90vw] rounded-2xl p-0 overflow-hidden border-0 shadow-2xl">
           <div className="flex flex-col items-center pt-8 pb-2 px-6 bg-white">
-            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
-              <Trash2 className="w-8 h-8 text-red-500" />
+            <div className="w-16 h-16 rounded-full bg-destructive/15 flex items-center justify-center mb-4">
+              <Trash2 className="w-8 h-8 text-destructive" />
             </div>
             <h2 className="text-lg font-bold text-slate-900 text-center">Delete Client?</h2>
             <p className="text-sm text-slate-500 text-center mt-2 mb-6">
@@ -5195,7 +5195,7 @@ export default function UsersPage() {
             <button
               onClick={confirmDeleteHotspotClient}
               disabled={deletingHotspot}
-              className="w-full py-4 text-sm font-semibold text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-4 text-sm font-semibold text-destructive hover:bg-destructive/10 active:bg-destructive/15 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {deletingHotspot ? <><Loader2 className="w-4 h-4 animate-spin" />Deleting...</> : 'Delete'}
             </button>

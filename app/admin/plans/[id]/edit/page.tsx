@@ -637,7 +637,7 @@ export default function EditPlanPage() {
                 )}
 
                 {formData.ip_pool && !formData.router_id && (
-                  <p className="text-xs text-amber-600">
+                  <p className="text-xs text-warning">
                     This plan has an existing IP pool assigned. Select a router above to change it.
                   </p>
                 )}

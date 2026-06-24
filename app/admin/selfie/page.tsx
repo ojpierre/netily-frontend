@@ -229,9 +229,9 @@ function CreatingAccountOverlay({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/40/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-300/10 rounded-full blur-3xl animate-pulse delay-500" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/30/10 rounded-full blur-3xl animate-pulse delay-500" />
       </div>
 
       {/* Content */}
@@ -260,7 +260,7 @@ function CreatingAccountOverlay({
         {(completionNote || warningNote) && (
           <div className={`mx-auto mb-6 max-w-sm rounded-2xl border px-4 py-3 text-left backdrop-blur-sm ${
             warningNote
-              ? "border-amber-300/30 bg-amber-400/10 text-amber-50"
+              ? "border-amber-300/30 bg-warning/10 text-amber-50"
               : "border-emerald-300/30 bg-emerald-400/10 text-emerald-50"
           }`}>
             {completionNote && <p className="text-sm font-semibold">{completionNote}</p>}
@@ -276,7 +276,7 @@ function CreatingAccountOverlay({
               style={{ width: `${isComplete ? 100 : progress}%` }}
             />
           </div>
-          <div className="mt-2 flex justify-between text-xs text-blue-200">
+          <div className="mt-2 flex justify-between text-xs text-primary/40">
             <span>Step {currentStep + 1} of {SETUP_STEPS.length}</span>
             <span>{Math.round(isComplete ? 100 : progress)}%</span>
           </div>
@@ -617,7 +617,7 @@ export default function AdminSelfiePage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4 py-8">
         <Card className="w-full max-w-2xl">
           <CardHeader className="text-center space-y-4">
-            <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+            <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center">
               <Building2 className="w-9 h-9 text-white" />
             </div>
             <CardTitle className="text-2xl font-bold">Create Your ISP Account</CardTitle>
@@ -638,7 +638,7 @@ export default function AdminSelfiePage() {
             {/* Company Details Section */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-blue-600" />
+                <Building2 className="w-5 h-5 text-primary" />
                 <h3 className="text-lg font-semibold">Company Details</h3>
               </div>
               <Separator />
@@ -646,7 +646,7 @@ export default function AdminSelfiePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="company_name">
-                    Company Name <span className="text-red-500">*</span>
+                    Company Name <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="company_name"
@@ -654,16 +654,16 @@ export default function AdminSelfiePage() {
                     placeholder="e.g., BlueNet Kenya"
                     value={formData.company_name}
                     onChange={handleInputChange}
-                    className={getFieldError("company_name") ? "border-red-500" : ""}
+                    className={getFieldError("company_name") ? "border-destructive" : ""}
                   />
                   {getFieldError("company_name") && (
-                    <p className="text-sm text-red-500">{getFieldError("company_name")}</p>
+                    <p className="text-sm text-destructive">{getFieldError("company_name")}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="company_email">
-                    Company Email <span className="text-red-500">*</span>
+                    Company Email <span className="text-destructive">*</span>
                   </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -674,11 +674,11 @@ export default function AdminSelfiePage() {
                       placeholder="info@yourcompany.co.ke"
                       value={formData.company_email}
                       onChange={handleInputChange}
-                      className={`pl-10 ${getFieldError("company_email") ? "border-red-500" : ""}`}
+                      className={`pl-10 ${getFieldError("company_email") ? "border-destructive" : ""}`}
                     />
                   </div>
                   {getFieldError("company_email") && (
-                    <p className="text-sm text-red-500">{getFieldError("company_email")}</p>
+                    <p className="text-sm text-destructive">{getFieldError("company_email")}</p>
                   )}
                 </div>
               </div>
@@ -709,11 +709,11 @@ export default function AdminSelfiePage() {
                           placeholder="+254712345678"
                           value={formData.company_phone}
                           onChange={handleInputChange}
-                          className={`pl-10 ${getFieldError("company_phone") ? "border-red-500" : ""}`}
+                          className={`pl-10 ${getFieldError("company_phone") ? "border-destructive" : ""}`}
                         />
                       </div>
                       {getFieldError("company_phone") && (
-                        <p className="text-sm text-red-500">{getFieldError("company_phone")}</p>
+                        <p className="text-sm text-destructive">{getFieldError("company_phone")}</p>
                       )}
                     </div>
 
@@ -727,11 +727,11 @@ export default function AdminSelfiePage() {
                           placeholder="https://yourcompany.co.ke"
                           value={formData.company_website}
                           onChange={handleInputChange}
-                          className={`pl-10 ${getFieldError("company_website") ? "border-red-500" : ""}`}
+                          className={`pl-10 ${getFieldError("company_website") ? "border-destructive" : ""}`}
                         />
                       </div>
                       {getFieldError("company_website") && (
-                        <p className="text-sm text-red-500">{getFieldError("company_website")}</p>
+                        <p className="text-sm text-destructive">{getFieldError("company_website")}</p>
                       )}
                     </div>
 
@@ -805,7 +805,7 @@ export default function AdminSelfiePage() {
             {/* Admin Account Section */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <User className="w-5 h-5 text-blue-600" />
+                <User className="w-5 h-5 text-primary" />
                 <h3 className="text-lg font-semibold">Admin Account</h3>
               </div>
               <Separator />
@@ -813,7 +813,7 @@ export default function AdminSelfiePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="admin_first_name">
-                    First Name <span className="text-red-500">*</span>
+                    First Name <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="admin_first_name"
@@ -821,16 +821,16 @@ export default function AdminSelfiePage() {
                     placeholder="John"
                     value={formData.admin_first_name}
                     onChange={handleInputChange}
-                    className={getFieldError("admin_first_name") ? "border-red-500" : ""}
+                    className={getFieldError("admin_first_name") ? "border-destructive" : ""}
                   />
                   {getFieldError("admin_first_name") && (
-                    <p className="text-sm text-red-500">{getFieldError("admin_first_name")}</p>
+                    <p className="text-sm text-destructive">{getFieldError("admin_first_name")}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="admin_last_name">
-                    Last Name <span className="text-red-500">*</span>
+                    Last Name <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="admin_last_name"
@@ -838,16 +838,16 @@ export default function AdminSelfiePage() {
                     placeholder="Doe"
                     value={formData.admin_last_name}
                     onChange={handleInputChange}
-                    className={getFieldError("admin_last_name") ? "border-red-500" : ""}
+                    className={getFieldError("admin_last_name") ? "border-destructive" : ""}
                   />
                   {getFieldError("admin_last_name") && (
-                    <p className="text-sm text-red-500">{getFieldError("admin_last_name")}</p>
+                    <p className="text-sm text-destructive">{getFieldError("admin_last_name")}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="admin_email">
-                    Email <span className="text-red-500">*</span>
+                    Email <span className="text-destructive">*</span>
                   </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -858,17 +858,17 @@ export default function AdminSelfiePage() {
                       placeholder="john@yourcompany.co.ke"
                       value={formData.admin_email}
                       onChange={handleInputChange}
-                      className={`pl-10 ${getFieldError("admin_email") ? "border-red-500" : ""}`}
+                      className={`pl-10 ${getFieldError("admin_email") ? "border-destructive" : ""}`}
                     />
                   </div>
                   {getFieldError("admin_email") && (
-                    <p className="text-sm text-red-500">{getFieldError("admin_email")}</p>
+                    <p className="text-sm text-destructive">{getFieldError("admin_email")}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="admin_phone">
-                    Phone <span className="text-red-500">*</span>
+                    Phone <span className="text-destructive">*</span>
                   </Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -878,17 +878,17 @@ export default function AdminSelfiePage() {
                       placeholder="+254700123456"
                       value={formData.admin_phone}
                       onChange={handleInputChange}
-                      className={`pl-10 ${getFieldError("admin_phone") ? "border-red-500" : ""}`}
+                      className={`pl-10 ${getFieldError("admin_phone") ? "border-destructive" : ""}`}
                     />
                   </div>
                   {getFieldError("admin_phone") && (
-                    <p className="text-sm text-red-500">{getFieldError("admin_phone")}</p>
+                    <p className="text-sm text-destructive">{getFieldError("admin_phone")}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="admin_password">
-                    Password <span className="text-red-500">*</span>
+                    Password <span className="text-destructive">*</span>
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -899,7 +899,7 @@ export default function AdminSelfiePage() {
                       placeholder="••••••••"
                       value={formData.admin_password}
                       onChange={handleInputChange}
-                      className={`pl-10 pr-10 ${getFieldError("admin_password") ? "border-red-500" : ""}`}
+                      className={`pl-10 pr-10 ${getFieldError("admin_password") ? "border-destructive" : ""}`}
                     />
                     <button
                       type="button"
@@ -910,7 +910,7 @@ export default function AdminSelfiePage() {
                     </button>
                   </div>
                   {getFieldError("admin_password") && (
-                    <p className="text-sm text-red-500">{getFieldError("admin_password")}</p>
+                    <p className="text-sm text-destructive">{getFieldError("admin_password")}</p>
                   )}
                   {/* Password Strength Indicator */}
                   {formData.admin_password && (
@@ -922,8 +922,8 @@ export default function AdminSelfiePage() {
                             className={`h-1 flex-1 rounded ${
                               passwordStrength.errors.length <= 5 - i
                                 ? passwordStrength.valid
-                                  ? "bg-green-500"
-                                  : "bg-amber-500"
+                                  ? "bg-success"
+                                  : "bg-warning"
                                 : "bg-slate-200"
                             }`}
                           />
@@ -931,12 +931,12 @@ export default function AdminSelfiePage() {
                       </div>
                       <div className="flex flex-wrap gap-1 text-xs">
                         {passwordStrength.errors.map((error) => (
-                          <span key={error} className="text-amber-600">
+                          <span key={error} className="text-warning">
                             • {error}
                           </span>
                         ))}
                         {passwordStrength.valid && (
-                          <span className="text-green-600 flex items-center gap-1">
+                          <span className="text-success flex items-center gap-1">
                             <CheckCircle className="w-3 h-3" /> Strong password
                           </span>
                         )}
@@ -947,7 +947,7 @@ export default function AdminSelfiePage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="admin_password_confirm">
-                    Confirm Password <span className="text-red-500">*</span>
+                    Confirm Password <span className="text-destructive">*</span>
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -958,7 +958,7 @@ export default function AdminSelfiePage() {
                       placeholder="••••••••"
                       value={formData.admin_password_confirm}
                       onChange={handleInputChange}
-                      className={`pl-10 pr-10 ${getFieldError("admin_password_confirm") ? "border-red-500" : ""}`}
+                      className={`pl-10 pr-10 ${getFieldError("admin_password_confirm") ? "border-destructive" : ""}`}
                     />
                     <button
                       type="button"
@@ -969,11 +969,11 @@ export default function AdminSelfiePage() {
                     </button>
                   </div>
                   {getFieldError("admin_password_confirm") && (
-                    <p className="text-sm text-red-500">{getFieldError("admin_password_confirm")}</p>
+                    <p className="text-sm text-destructive">{getFieldError("admin_password_confirm")}</p>
                   )}
                   {formData.admin_password_confirm &&
                     formData.admin_password === formData.admin_password_confirm && (
-                      <p className="text-sm text-green-600 flex items-center gap-1">
+                      <p className="text-sm text-success flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" /> Passwords match
                       </p>
                     )}
@@ -984,11 +984,11 @@ export default function AdminSelfiePage() {
             {/* Terms */}
             <p className="text-xs text-slate-500 text-center">
               By creating an account, you agree to our{" "}
-              <Link href="/terms" className="text-blue-600 hover:underline">
+              <Link href="/terms" className="text-primary hover:underline">
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="text-blue-600 hover:underline">
+              <Link href="/privacy" className="text-primary hover:underline">
                 Privacy Policy
               </Link>
               .
@@ -1009,7 +1009,7 @@ export default function AdminSelfiePage() {
 
             <p className="text-sm text-slate-600 text-center">
               Already have an account?{" "}
-              <Link href="/admin/login" className="text-blue-600 hover:underline font-medium">
+              <Link href="/admin/login" className="text-primary hover:underline font-medium">
                 Sign in
               </Link>
             </p>

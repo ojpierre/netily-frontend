@@ -97,10 +97,10 @@ export default function LeadDetailPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "new": return "bg-blue-100 text-blue-700"
-      case "contacted": return "bg-yellow-100 text-yellow-700"
-      case "qualified": return "bg-green-100 text-green-700"
-      case "lost": return "bg-red-100 text-red-700"
+      case "new": return "bg-primary/15 text-primary"
+      case "contacted": return "bg-warning/15 text-warning"
+      case "qualified": return "bg-success/15 text-success"
+      case "lost": return "bg-destructive/15 text-destructive"
       case "converted": return "bg-purple-100 text-purple-700"
       default: return "bg-slate-100 text-slate-700"
     }

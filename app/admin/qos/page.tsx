@@ -710,9 +710,9 @@ export default function QoSPage() {
                           </Button>
                           <Button size="sm" variant="ghost">
                             {app.blocked ? (
-                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <CheckCircle className="h-4 w-4 text-success" />
                             ) : (
-                              <Ban className="h-4 w-4 text-red-600" />
+                              <Ban className="h-4 w-4 text-destructive" />
                             )}
                           </Button>
                         </div>
@@ -784,13 +784,13 @@ export default function QoSPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <ArrowDownToLine className="h-3 w-3 text-blue-600" />
+                            <ArrowDownToLine className="h-3 w-3 text-primary" />
                             {schedule.downloadLimit}%
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <ArrowUpFromLine className="h-3 w-3 text-green-600" />
+                            <ArrowUpFromLine className="h-3 w-3 text-success" />
                             {schedule.uploadLimit}%
                           </div>
                         </TableCell>
@@ -829,7 +829,7 @@ export default function QoSPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <ArrowDownToLine className="h-4 w-4 text-blue-600" />
+                      <ArrowDownToLine className="h-4 w-4 text-primary" />
                       <span>Download</span>
                     </div>
                     <span className="font-bold">2.4 Gbps</span>
@@ -837,7 +837,7 @@ export default function QoSPage() {
                   <Progress value={48} className="h-2" />
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <ArrowUpFromLine className="h-4 w-4 text-green-600" />
+                      <ArrowUpFromLine className="h-4 w-4 text-success" />
                       <span>Upload</span>
                     </div>
                     <span className="font-bold">890 Mbps</span>

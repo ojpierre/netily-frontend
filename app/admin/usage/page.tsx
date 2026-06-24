@@ -173,9 +173,9 @@ export default function UsagePage() {
 
   const getStatusBadge = (status: AccountingLog["status"]) => {
     const variants = {
-      active: "bg-green-100 text-green-700 border-green-200",
-      completed: "bg-blue-100 text-blue-700 border-blue-200",
-      terminated: "bg-red-100 text-red-700 border-red-200",
+      active: "bg-success/15 text-success border-success/20",
+      completed: "bg-primary/15 text-primary border-primary/20",
+      terminated: "bg-destructive/15 text-destructive border-destructive/20",
     }
     return (
       <Badge variant="outline" className={variants[status]}>
@@ -227,14 +227,14 @@ export default function UsagePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
-            <Wifi className="h-4 w-4 text-green-500" />
+            <Wifi className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             {loading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-green-600">{activeSessions}</div>
+                <div className="text-2xl font-bold text-success">{activeSessions}</div>
                 <p className="text-xs text-slate-500 mt-1">Currently online</p>
               </>
             )}
@@ -244,7 +244,7 @@ export default function UsagePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
-            <BarChart3 className="h-4 w-4 text-blue-500" />
+            <BarChart3 className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -258,14 +258,14 @@ export default function UsagePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Time Online</CardTitle>
-            <Clock className="h-4 w-4 text-indigo-500" />
+            <Clock className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             {loading ? (
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-indigo-600">
+                <div className="text-2xl font-bold text-primary">
                   {Math.floor(totalTimeOnline / 60)}h
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
@@ -498,7 +498,7 @@ export default function UsagePage() {
                     <CardContent className="space-y-2">
                       <div>
                         <p className="text-xs text-slate-500">Duration</p>
-                        <p className="font-bold text-lg text-indigo-600">
+                        <p className="font-bold text-lg text-primary">
                           {formatDuration(selectedLog.duration)}
                         </p>
                       </div>
@@ -520,17 +520,17 @@ export default function UsagePage() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <HardDrive className="w-5 h-5 mx-auto mb-2 text-blue-600" />
+                      <div className="text-center p-4 bg-primary/10 rounded-lg">
+                        <HardDrive className="w-5 h-5 mx-auto mb-2 text-primary" />
                         <p className="text-xs text-slate-600">Upload</p>
-                        <p className="font-bold text-blue-600">
+                        <p className="font-bold text-primary">
                           {formatBytes(selectedLog.dataUpload)}
                         </p>
                       </div>
-                      <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <HardDrive className="w-5 h-5 mx-auto mb-2 text-green-600" />
+                      <div className="text-center p-4 bg-success/10 rounded-lg">
+                        <HardDrive className="w-5 h-5 mx-auto mb-2 text-success" />
                         <p className="text-xs text-slate-600">Download</p>
-                        <p className="font-bold text-green-600">
+                        <p className="font-bold text-success">
                           {formatBytes(selectedLog.dataDownload)}
                         </p>
                       </div>

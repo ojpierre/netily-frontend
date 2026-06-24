@@ -226,7 +226,7 @@ export default function KnowledgeBasePage() {
 
   const getStatusBadge = (status: KBArticle["status"]) => {
     switch (status) {
-      case "published": return <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Published</Badge>
+      case "published": return <Badge className="bg-success/10 text-success border-success/20">Published</Badge>
       case "draft": return <Badge variant="outline">Draft</Badge>
       case "archived": return <Badge variant="secondary">Archived</Badge>
     }
@@ -242,10 +242,10 @@ export default function KnowledgeBasePage() {
 
   const getNetworkStatusBadge = (status: NetworkStatus["status"]) => {
     switch (status) {
-      case "operational": return <Badge className="bg-green-500/10 text-green-600 border-green-500/20"><CheckCircle className="w-3 h-3 mr-1" /> Operational</Badge>
-      case "degraded": return <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"><AlertCircle className="w-3 h-3 mr-1" /> Degraded</Badge>
+      case "operational": return <Badge className="bg-success/10 text-success border-success/20"><CheckCircle className="w-3 h-3 mr-1" /> Operational</Badge>
+      case "degraded": return <Badge className="bg-warning/10 text-warning border-warning/20"><AlertCircle className="w-3 h-3 mr-1" /> Degraded</Badge>
       case "outage": return <Badge variant="destructive"><AlertCircle className="w-3 h-3 mr-1" /> Outage</Badge>
-      case "maintenance": return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20"><Settings className="w-3 h-3 mr-1" /> Maintenance</Badge>
+      case "maintenance": return <Badge className="bg-primary/10 text-primary border-primary/20"><Settings className="w-3 h-3 mr-1" /> Maintenance</Badge>
     }
   }
 
@@ -284,17 +284,17 @@ export default function KnowledgeBasePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Published</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.published}</div>
+            <div className="text-2xl font-bold text-success">{stats.published}</div>
             <p className="text-xs text-muted-foreground">{stats.draft} drafts</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Views</CardTitle>
-            <Eye className="h-4 w-4 text-blue-500" />
+            <Eye className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalViews.toLocaleString()}</div>
@@ -304,7 +304,7 @@ export default function KnowledgeBasePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Helpful Rate</CardTitle>
-            <ThumbsUp className="h-4 w-4 text-green-500" />
+            <ThumbsUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.avgHelpful}%</div>
@@ -314,10 +314,10 @@ export default function KnowledgeBasePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Network Status</CardTitle>
-            <Wifi className="h-4 w-4 text-green-500" />
+            <Wifi className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-success">
               {networkStatus.filter(s => s.status === "operational").length}/{networkStatus.length}
             </div>
             <p className="text-xs text-muted-foreground">Areas operational</p>
@@ -532,9 +532,9 @@ export default function KnowledgeBasePage() {
                   <div key={status.id} className="flex items-center justify-between p-4">
                     <div className="flex items-center gap-4">
                       <div className={`w-3 h-3 rounded-full ${
-                        status.status === "operational" ? "bg-green-500" :
-                        status.status === "degraded" ? "bg-yellow-500" :
-                        status.status === "outage" ? "bg-red-500" : "bg-blue-500"
+                        status.status === "operational" ? "bg-success" :
+                        status.status === "degraded" ? "bg-warning" :
+                        status.status === "outage" ? "bg-destructive" : "bg-primary"
                       }`} />
                       <div>
                         <div className="font-medium">{status.area}</div>
@@ -572,7 +572,7 @@ export default function KnowledgeBasePage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                         <Calendar className="w-5 h-5" />
                       </div>
                       <div>
@@ -580,7 +580,7 @@ export default function KnowledgeBasePage() {
                         <CardDescription>{maintenance.description}</CardDescription>
                       </div>
                     </div>
-                    <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                    <Badge className="bg-primary/10 text-primary border-primary/20">
                       {maintenance.status}
                     </Badge>
                   </div>

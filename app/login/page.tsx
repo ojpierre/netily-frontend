@@ -60,10 +60,10 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
             <Zap className="w-7 h-7 text-white" />
           </div>
-          <span className="text-2xl font-bold text-blue-600">Netily</span>
+          <span className="text-2xl font-bold text-primary">Netily</span>
         </Link>
 
         {/* Form */}
@@ -82,9 +82,9 @@ export default function LoginPage() {
                   setFormData({ ...formData, email: e.target.value })
                   if (errors.email) setErrors({ ...errors, email: "" })
                 }}
-                className={errors.email ? "border-red-500" : ""}
+                className={errors.email ? "border-destructive" : ""}
               />
-              {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
+              {errors.email && <p className="text-destructive text-sm mt-1">{errors.email}</p>}
             </div>
 
             <div>
@@ -97,9 +97,9 @@ export default function LoginPage() {
                   setFormData({ ...formData, password: e.target.value })
                   if (errors.password) setErrors({ ...errors, password: "" })
                 }}
-                className={errors.password ? "border-red-500" : ""}
+                className={errors.password ? "border-destructive" : ""}
               />
-              {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password}</p>}
+              {errors.password && <p className="text-destructive text-sm mt-1">{errors.password}</p>}
             </div>
 
             <div className="flex items-center justify-between">
@@ -107,7 +107,7 @@ export default function LoginPage() {
                 <input type="checkbox" className="rounded border-slate-300" />
                 <span className="text-sm text-slate-600">Remember me</span>
               </label>
-              <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+              <Link href="/forgot-password" className="text-sm text-primary hover:underline">
                 Forgot password?
               </Link>
             </div>
@@ -115,7 +115,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg font-medium mt-6"
+              className="w-full bg-primary hover:bg-primary text-white py-6 text-lg font-medium mt-6"
             >
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
@@ -124,7 +124,7 @@ export default function LoginPage() {
           <div className="mt-6 border-t border-slate-200 pt-6">
             <p className="text-slate-600 text-center">
               Don't have an account?{" "}
-              <Link href="/register" className="text-blue-600 font-semibold hover:underline">
+              <Link href="/register" className="text-primary font-semibold hover:underline">
                 Create one
               </Link>
             </p>

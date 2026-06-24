@@ -243,10 +243,10 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
 
   const getTypeBadge = (type: string) => {
     const colors: Record<string, string> = {
-      ether: "bg-blue-100 text-blue-700",
+      ether: "bg-primary/15 text-primary",
       bridge: "bg-purple-100 text-purple-700",
-      wlan: "bg-green-100 text-green-700",
-      vlan: "bg-orange-100 text-orange-700",
+      wlan: "bg-success/15 text-success",
+      vlan: "bg-warning/15 text-warning",
       pppoe: "bg-cyan-100 text-cyan-700",
     }
     return <Badge className={colors[type] || "bg-slate-100 text-slate-700"}>{type}</Badge>
@@ -255,7 +255,7 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -265,7 +265,7 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-2">
-          <Network className="w-5 h-5 text-blue-600" />
+          <Network className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold">Network Interfaces</h2>
           <Badge variant="outline">{interfaces.length} interfaces</Badge>
         </div>
@@ -339,7 +339,7 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
                         ) : (
                           <DropdownMenuItem 
                             onClick={() => requestDisableInterface(iface.name)}
-                            className="text-red-600"
+                            className="text-destructive"
                           >
                             <Pause className="w-4 h-4 mr-2" />
                             Disable
@@ -356,7 +356,7 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => setBridgeConfirmInterface({ name: iface.name, action: 'remove' })}
-                              className="text-orange-600"
+                              className="text-warning"
                             >
                               <Unlink className="w-4 h-4 mr-2" />
                               Remove from Bridge
@@ -382,13 +382,13 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
           </DialogHeader>
           {isLoadingTraffic ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : trafficData ? (
             <div className="grid grid-cols-2 gap-4 py-4">
               <Card>
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-2 text-green-600 mb-2">
+                  <div className="flex items-center gap-2 text-success mb-2">
                     <ArrowDown className="w-4 h-4" />
                     <span className="font-medium">Download (RX)</span>
                   </div>
@@ -398,7 +398,7 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-2 text-blue-600 mb-2">
+                  <div className="flex items-center gap-2 text-primary mb-2">
                     <ArrowUp className="w-4 h-4" />
                     <span className="font-medium">Upload (TX)</span>
                   </div>
@@ -436,7 +436,7 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              <AlertTriangle className="w-5 h-5 text-warning" />
               Disable Interface
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -448,7 +448,7 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => disableConfirmInterface && handleDisableInterface(disableConfirmInterface)}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               Disable Interface
             </AlertDialogAction>
@@ -462,9 +462,9 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               {bridgeConfirmInterface?.action === 'add' ? (
-                <Link className="w-5 h-5 text-blue-500" />
+                <Link className="w-5 h-5 text-primary" />
               ) : (
-                <Unlink className="w-5 h-5 text-orange-500" />
+                <Unlink className="w-5 h-5 text-warning" />
               )}
               {bridgeConfirmInterface?.action === 'add' ? 'Add to Hotspot Bridge' : 'Remove from Bridge'}
             </AlertDialogTitle>
@@ -493,7 +493,7 @@ export function RouterInterfacesTab({ routerId, isDemo = false }: RouterInterfac
                   handleRemoveFromBridge(bridgeConfirmInterface.name)
                 }
               }}
-              className={bridgeConfirmInterface?.action === 'add' ? "bg-blue-600 hover:bg-blue-700" : "bg-orange-600 hover:bg-orange-700"}
+              className={bridgeConfirmInterface?.action === 'add' ? "bg-primary hover:bg-primary" : "bg-orange-600 hover:bg-orange-700"}
             >
               {bridgeConfirmInterface?.action === 'add' ? 'Add to Bridge' : 'Remove from Bridge'}
             </AlertDialogAction>

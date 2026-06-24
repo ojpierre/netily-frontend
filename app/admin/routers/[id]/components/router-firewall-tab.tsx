@@ -133,11 +133,11 @@ export function RouterFirewallTab({ routerId, isDemo = false }: RouterFirewallTa
   const getActionBadge = (action: string) => {
     switch (action) {
       case "accept":
-        return <Badge className="bg-green-100 text-green-700"><Check className="w-3 h-3 mr-1" />Accept</Badge>
+        return <Badge className="bg-success/15 text-success"><Check className="w-3 h-3 mr-1" />Accept</Badge>
       case "drop":
-        return <Badge className="bg-red-100 text-red-700"><Ban className="w-3 h-3 mr-1" />Drop</Badge>
+        return <Badge className="bg-destructive/15 text-destructive"><Ban className="w-3 h-3 mr-1" />Drop</Badge>
       case "reject":
-        return <Badge className="bg-orange-100 text-orange-700"><AlertTriangle className="w-3 h-3 mr-1" />Reject</Badge>
+        return <Badge className="bg-warning/15 text-warning"><AlertTriangle className="w-3 h-3 mr-1" />Reject</Badge>
       default:
         return <Badge variant="secondary">{action}</Badge>
     }
@@ -146,7 +146,7 @@ export function RouterFirewallTab({ routerId, isDemo = false }: RouterFirewallTa
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -156,7 +156,7 @@ export function RouterFirewallTab({ routerId, isDemo = false }: RouterFirewallTa
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-blue-600" />
+          <Shield className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold">Firewall Filter Rules</h2>
           <Badge variant="outline">{rules.length} rules</Badge>
         </div>

@@ -53,7 +53,7 @@ export function DemoAdminShell({ children }: { children: ReactNode }) {
         } lg:translate-x-0`}
       >
         <div className="flex h-16 items-center gap-3 border-b border-slate-200 px-4 dark:border-slate-800">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white font-semibold">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white font-semibold">
             N
           </div>
           <div className="min-w-0 flex-1">
@@ -65,8 +65,8 @@ export function DemoAdminShell({ children }: { children: ReactNode }) {
           </Button>
         </div>
 
-        <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800 dark:bg-amber-950/30">
-          <Badge variant="outline" className="border-amber-300 bg-transparent text-amber-700 dark:border-amber-700 dark:text-amber-300">
+        <div className="border-b border-warning/20 bg-warning/10 px-4 py-2 dark:border-amber-800 dark:bg-amber-950/30">
+          <Badge variant="outline" className="border-amber-300 bg-transparent text-warning dark:border-amber-700 dark:text-amber-300">
             Demo Data Only
           </Badge>
         </div>
@@ -81,7 +81,7 @@ export function DemoAdminShell({ children }: { children: ReactNode }) {
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   active
-                    ? "bg-blue-600 text-white"
+                    ? "bg-primary text-white"
                     : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                 }`}
               >
@@ -109,14 +109,14 @@ export function DemoAdminShell({ children }: { children: ReactNode }) {
             <p className="text-sm text-muted-foreground">Netily Demo</p>
             <h1 className="text-base font-semibold">{title}</h1>
           </div>
-          <Badge variant="outline" className="hidden border-blue-200 bg-blue-50 text-blue-700 md:inline-flex dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
+          <Badge variant="outline" className="hidden border-primary/20 bg-primary/10 text-primary md:inline-flex dark:border-primary/20 dark:bg-blue-950/30 dark:text-primary/60">
             Read Only
           </Badge>
           <Button variant="ghost" size="icon">
             <Bell className="h-5 w-5 text-muted-foreground" />
           </Button>
           <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-blue-600 text-xs text-white">DA</AvatarFallback>
+            <AvatarFallback className="bg-primary text-xs text-white">DA</AvatarFallback>
           </Avatar>
         </header>
 

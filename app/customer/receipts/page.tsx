@@ -102,15 +102,15 @@ export default function CustomerReceiptsPage() {
           {receipts.map((receipt) => (
             <Card key={receipt.id} className="p-5">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-950 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <div className="w-10 h-10 bg-success/15 dark:bg-green-950 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="w-5 h-5 text-success dark:text-success" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-bold text-lg">
                       KSh {parseFloat(receipt.amount).toLocaleString()}
                     </p>
-                    <Badge className="bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400 text-xs">
+                    <Badge className="bg-success/15 dark:bg-green-950 text-success dark:text-success text-xs">
                       Paid
                     </Badge>
                   </div>

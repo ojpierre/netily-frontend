@@ -95,8 +95,8 @@ const formatDate = (dateString: string) => {
 const getVoucherStatusBadge = (status: string) => {
   const normalizedStatus = status?.toUpperCase() || 'UNKNOWN'
   const badges: Record<string, { variant: 'default' | 'secondary' | 'outline' | 'destructive'; label: string; icon: any; className?: string }> = {
-    'ACTIVE': { variant: 'default' as const, label: 'Active', icon: CheckCircle, className: 'bg-green-500' },
-    'UNUSED': { variant: 'default' as const, label: 'Unused', icon: Ticket, className: 'bg-blue-500' },
+    'ACTIVE': { variant: 'default' as const, label: 'Active', icon: CheckCircle, className: 'bg-success' },
+    'UNUSED': { variant: 'default' as const, label: 'Unused', icon: Ticket, className: 'bg-primary' },
     'USED': { variant: 'secondary' as const, label: 'Used', icon: ShoppingCart },
     'REDEEMED': { variant: 'outline' as const, label: 'Redeemed', icon: CheckCircle },
     'EXPIRED': { variant: 'destructive' as const, label: 'Expired', icon: XCircle },
@@ -353,20 +353,20 @@ export default function VouchersPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Unused</CardTitle>
-            <Ticket className="h-4 w-4 text-green-500" />
+            <Ticket className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{summary.unused}</div>
+            <div className="text-2xl font-bold text-success">{summary.unused}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Used</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-blue-500" />
+            <ShoppingCart className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{summary.used}</div>
+            <div className="text-2xl font-bold text-primary">{summary.used}</div>
           </CardContent>
         </Card>
       </div>
@@ -458,7 +458,7 @@ export default function VouchersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-red-500 hover:text-red-700"
+                          className="text-destructive hover:text-destructive"
                           onClick={() => {
                             setSelectedVoucher(voucher)
                             setIsDeleteOpen(true)
@@ -548,7 +548,7 @@ export default function VouchersPage() {
       <Dialog open={isGeneratedModalOpen} onOpenChange={setIsGeneratedModalOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle className="text-green-600 flex items-center gap-2">
+            <DialogTitle className="text-success flex items-center gap-2">
               <CheckCircle className="h-5 w-5" />
               Generation Successful
             </DialogTitle>
@@ -632,7 +632,7 @@ export default function VouchersPage() {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
               onClick={handleDelete}
               disabled={isSubmitting}
             >

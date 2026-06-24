@@ -132,18 +132,18 @@ export function SettlementWidget({ className, showViewAll = true }: SettlementWi
     <Card className={className}>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
-          <DollarSign className="w-5 h-5 text-green-600" />
+          <DollarSign className="w-5 h-5 text-success" />
           Settlement Overview
         </CardTitle>
         <CardDescription>Your earnings from customer payments</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Pending Balance */}
-        <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg border border-green-200 dark:border-green-800">
+        <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg border border-success/20 dark:border-success/20">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Available for Payout</p>
-              <p className="text-2xl font-bold text-green-700 dark:text-green-400">
+              <p className="text-2xl font-bold text-success dark:text-success">
                 {formatCurrency(summary.pending_balance)}
               </p>
             </div>
@@ -174,7 +174,7 @@ export function SettlementWidget({ className, showViewAll = true }: SettlementWi
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Platform Fee (5%)</p>
-            <p className="text-lg font-semibold text-orange-600">
+            <p className="text-lg font-semibold text-warning">
               {formatCurrency(summary.total_commission)}
             </p>
           </div>
@@ -204,13 +204,13 @@ export function SettlementWidget({ className, showViewAll = true }: SettlementWi
 
         {/* Last Payout Info */}
         {summary.last_payout && (
-          <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-            <CheckCircle2 className="w-4 h-4 text-green-600" />
+          <div className="flex items-center gap-2 p-3 bg-success/10 dark:bg-green-950/20 rounded-lg">
+            <CheckCircle2 className="w-4 h-4 text-success" />
             <div className="flex-1">
               <p className="text-sm font-medium text-green-800 dark:text-green-200">
                 Last Payout: {formatCurrency(summary.last_payout.amount)}
               </p>
-              <p className="text-xs text-green-600 dark:text-green-400">
+              <p className="text-xs text-success dark:text-success">
                 {formatDate(summary.last_payout.date)}
               </p>
             </div>
@@ -218,9 +218,9 @@ export function SettlementWidget({ className, showViewAll = true }: SettlementWi
               variant="outline"
               className={
                 summary.last_payout.status === "completed"
-                  ? "text-green-700 border-green-300"
+                  ? "text-success border-success/30"
                   : summary.last_payout.status === "processing"
-                  ? "text-blue-700 border-blue-300"
+                  ? "text-primary border-primary/30"
                   : "text-gray-700 border-gray-300"
               }
             >
@@ -291,12 +291,12 @@ export function SettlementCard() {
 
   return (
     <div className="flex items-center gap-3 p-4 rounded-lg border bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/20">
-      <div className="p-2 bg-green-100 dark:bg-green-900 rounded-full">
-        <TrendingUp className="w-5 h-5 text-green-600" />
+      <div className="p-2 bg-success/15 dark:bg-success/15 rounded-full">
+        <TrendingUp className="w-5 h-5 text-success" />
       </div>
       <div>
         <p className="text-sm text-muted-foreground">Pending Balance</p>
-        <p className="text-lg font-bold text-green-700 dark:text-green-400">
+        <p className="text-lg font-bold text-success dark:text-success">
           {formatCurrency(summary.pending_balance)}
         </p>
       </div>

@@ -138,9 +138,9 @@ const getONUStatusBadge = (status: string) => {
 }
 
 const getPowerColor = (power: number) => {
-  if (power > -20) return "text-green-600"
-  if (power > -25) return "text-yellow-600"
-  return "text-red-600"
+  if (power > -20) return "text-success"
+  if (power > -25) return "text-warning"
+  return "text-destructive"
 }
 
 export default function OLTDetailPage() {
@@ -304,7 +304,7 @@ export default function OLTDetailPage() {
             <div className="text-2xl font-bold">{stats.activePorts}/{olt.total_pon_ports}</div>
             <p className="text-xs text-muted-foreground">
               {stats.faultPorts > 0 && (
-                <span className="text-red-600">{stats.faultPorts} fault</span>
+                <span className="text-destructive">{stats.faultPorts} fault</span>
               )}
             </p>
           </CardContent>
@@ -318,7 +318,7 @@ export default function OLTDetailPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalOnus}</div>
             <p className="text-xs">
-              <span className="text-green-600">{stats.onlineOnus}</span>
+              <span className="text-success">{stats.onlineOnus}</span>
               <span className="text-muted-foreground"> online ({Math.round(stats.onlineOnus / stats.totalOnus * 100)}%)</span>
             </p>
           </CardContent>
@@ -407,7 +407,7 @@ export default function OLTDetailPage() {
               <Card 
                 key={port.id} 
                 className={`cursor-pointer transition-all hover:shadow-md ${
-                  port.status === 'fault' ? 'border-red-300 dark:border-red-800' :
+                  port.status === 'fault' ? 'border-destructive/30 dark:border-destructive/20' :
                   port.status === 'inactive' ? 'border-gray-300 dark:border-gray-700' : ''
                 }`}
                 onClick={() => handlePortClick(port)}
@@ -428,7 +428,7 @@ export default function OLTDetailPage() {
                     <div>
                       <span className="text-muted-foreground">ONUs:</span>
                       <div className="font-medium">
-                        <span className="text-green-600">{port.online_onus}</span>
+                        <span className="text-success">{port.online_onus}</span>
                         <span className="text-muted-foreground">/{port.total_onus}</span>
                       </div>
                     </div>
@@ -596,13 +596,13 @@ export default function OLTDetailPage() {
                       <Thermometer className="h-4 w-4" />
                       Temperature
                     </Label>
-                    <span className={`font-medium ${olt.temperature && olt.temperature > 55 ? 'text-red-600' : ''}`}>
+                    <span className={`font-medium ${olt.temperature && olt.temperature > 55 ? 'text-destructive' : ''}`}>
                       {olt.temperature}°C
                     </span>
                   </div>
                   <Progress 
                     value={(olt.temperature || 0) / 80 * 100} 
-                    className={olt.temperature && olt.temperature > 55 ? "bg-red-100" : ""}
+                    className={olt.temperature && olt.temperature > 55 ? "bg-destructive/15" : ""}
                   />
                 </div>
               </CardContent>
@@ -673,7 +673,7 @@ export default function OLTDetailPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        <span className="text-green-600">{selectedPort.online_onus}</span>
+                        <span className="text-success">{selectedPort.online_onus}</span>
                         <span className="text-muted-foreground">/{selectedPort.total_onus}</span>
                       </div>
                       <Progress 

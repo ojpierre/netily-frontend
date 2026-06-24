@@ -404,10 +404,10 @@ export default function TicketsPage() {
   // ─── Badge helpers ────────────────────────────────────────────────────────
   const getStatusBadge = (status: TicketStatus) => {
     const cfg: Record<string, { cls: string; Icon: React.ElementType }> = {
-      open: { cls: "bg-blue-100 text-blue-700 border-blue-200", Icon: AlertCircle },
-      in_progress: { cls: "bg-yellow-100 text-yellow-700 border-yellow-200", Icon: Clock },
-      pending: { cls: "bg-orange-100 text-orange-700 border-orange-200", Icon: Clock },
-      resolved: { cls: "bg-green-100 text-green-700 border-green-200", Icon: CheckCircle2 },
+      open: { cls: "bg-primary/15 text-primary border-primary/20", Icon: AlertCircle },
+      in_progress: { cls: "bg-warning/15 text-warning border-warning/20", Icon: Clock },
+      pending: { cls: "bg-warning/15 text-warning border-warning/20", Icon: Clock },
+      resolved: { cls: "bg-success/15 text-success border-success/20", Icon: CheckCircle2 },
       closed: { cls: "bg-slate-100 text-slate-700 border-slate-200", Icon: XCircle },
     }
     const c = cfg[status] ?? cfg.open
@@ -422,9 +422,9 @@ export default function TicketsPage() {
   const getPriorityBadge = (priority: TicketPriority) => {
     const cfg: Record<string, string> = {
       low: "bg-slate-100 text-slate-600 border-slate-200",
-      medium: "bg-blue-100 text-blue-600 border-blue-200",
-      high: "bg-orange-100 text-orange-600 border-orange-200",
-      urgent: "bg-red-100 text-red-600 border-red-200",
+      medium: "bg-primary/15 text-primary border-primary/20",
+      high: "bg-warning/15 text-warning border-warning/20",
+      urgent: "bg-destructive/15 text-destructive border-destructive/20",
     }
     return (
       <Badge variant="outline" className={cfg[priority] ?? cfg.medium}>
@@ -437,8 +437,8 @@ export default function TicketsPage() {
     const cfg: Record<string, string> = {
       technical: "bg-purple-100 text-purple-700",
       billing: "bg-emerald-100 text-emerald-700",
-      account: "bg-blue-100 text-blue-700",
-      service: "bg-amber-100 text-amber-700",
+      account: "bg-primary/15 text-primary",
+      service: "bg-warning/15 text-warning",
       other: "bg-slate-100 text-slate-700",
     }
     return (
@@ -510,13 +510,13 @@ export default function TicketsPage() {
                 {/* Customer Search */}
                 <div className="space-y-2">
                   <Label>
-                    Customer <span className="text-red-500">*</span>
+                    Customer <span className="text-destructive">*</span>
                   </Label>
 
                   {selectedCustomer ? (
                     <div className="flex items-center gap-3 p-3 border rounded-lg bg-slate-50 dark:bg-slate-800">
                       <Avatar className="w-8 h-8">
-                        <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
+                        <AvatarFallback className="bg-primary/15 text-primary text-xs">
                           {selectedCustomer.full_name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
@@ -576,7 +576,7 @@ export default function TicketsPage() {
                                 }}
                               >
                                 <Avatar className="w-7 h-7 shrink-0">
-                                  <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
+                                  <AvatarFallback className="bg-primary/15 text-primary text-xs">
                                     {c.full_name.charAt(0)}
                                   </AvatarFallback>
                                 </Avatar>
@@ -598,7 +598,7 @@ export default function TicketsPage() {
                 {/* Subject */}
                 <div className="space-y-2">
                   <Label>
-                    Subject <span className="text-red-500">*</span>
+                    Subject <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     placeholder="Brief description of the issue"
@@ -655,7 +655,7 @@ export default function TicketsPage() {
                 {/* Description */}
                 <div className="space-y-2">
                   <Label>
-                    Description <span className="text-red-500">*</span>
+                    Description <span className="text-destructive">*</span>
                   </Label>
                   <Textarea
                     placeholder="Describe the issue in detail..."
@@ -917,7 +917,7 @@ export default function TicketsPage() {
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                className="text-red-600"
+                                className="text-destructive"
                                 onClick={() => handleUpdateStatus(ticket.id, "closed")}
                               >
                                 <XCircle className="w-4 h-4 mr-2" />
@@ -991,7 +991,7 @@ export default function TicketsPage() {
               <div className="p-4 bg-slate-50 dark:bg-slate-800 border-b">
                 <div className="flex items-center gap-3">
                   <Avatar className="w-10 h-10">
-                    <AvatarFallback className="bg-blue-100 text-blue-700">
+                    <AvatarFallback className="bg-primary/15 text-primary">
                       {(selectedTicket.customer_name ?? "U")
                         .split(" ")
                         .map((n) => n[0])
@@ -1049,7 +1049,7 @@ export default function TicketsPage() {
                         <div
                           className={`max-w-[80%] rounded-lg p-3 ${
                             message.sender_type === "agent"
-                              ? "bg-blue-500 text-white"
+                              ? "bg-primary text-white"
                               : "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white"
                           }`}
                         >
@@ -1066,7 +1066,7 @@ export default function TicketsPage() {
                             <span
                               className={`text-xs ${
                                 message.sender_type === "agent"
-                                  ? "text-blue-200"
+                                  ? "text-primary/40"
                                   : "text-slate-400"
                               }`}
                             >
@@ -1105,7 +1105,7 @@ export default function TicketsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                    className="text-warning border-warning/20 hover:bg-warning/10"
                     onClick={() => handleEscalate(selectedTicket.id)}
                     disabled={selectedTicket.priority === "urgent"}
                   >

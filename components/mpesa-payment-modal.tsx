@@ -174,7 +174,7 @@ export function MpesaPaymentModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-green-600" />
+            <CreditCard className="w-5 h-5 text-success" />
             M-Pesa Payment
           </DialogTitle>
           <DialogDescription>
@@ -204,8 +204,8 @@ export function MpesaPaymentModal({
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700">{error}</p>
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <p className="text-sm text-destructive">{error}</p>
               </div>
             )}
 
@@ -220,7 +220,7 @@ export function MpesaPaymentModal({
               </Button>
               <Button
                 type="submit"
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className="flex-1 bg-success hover:bg-green-700"
                 disabled={!phoneNumber.trim()}
               >
                 Pay KSh {parseFloat(amount).toLocaleString()}
@@ -231,7 +231,7 @@ export function MpesaPaymentModal({
 
         {status === "initiating" && (
           <div className="py-8 text-center">
-            <Loader2 className="w-12 h-12 animate-spin mx-auto text-green-600 mb-4" />
+            <Loader2 className="w-12 h-12 animate-spin mx-auto text-success mb-4" />
             <p className="font-medium text-slate-900">Initiating payment...</p>
             <p className="text-sm text-slate-500 mt-1">
               Please wait while we connect to M-Pesa
@@ -241,8 +241,8 @@ export function MpesaPaymentModal({
 
         {(status === "waiting" || status === "polling") && (
           <div className="py-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Smartphone className="w-8 h-8 text-green-600 animate-pulse" />
+            <div className="w-16 h-16 bg-success/15 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Smartphone className="w-8 h-8 text-success animate-pulse" />
             </div>
             <p className="font-medium text-slate-900">Check your phone</p>
             <p className="text-sm text-slate-500 mt-1">
@@ -253,7 +253,7 @@ export function MpesaPaymentModal({
               Waiting for confirmation...
             </div>
             {pollCount > 10 && (
-              <p className="text-xs text-orange-600 mt-2">
+              <p className="text-xs text-warning mt-2">
                 Taking longer than expected. Please check your M-Pesa messages.
               </p>
             )}
@@ -262,8 +262,8 @@ export function MpesaPaymentModal({
 
         {status === "success" && (
           <div className="py-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-8 h-8 text-green-600" />
+            <div className="w-16 h-16 bg-success/15 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-8 h-8 text-success" />
             </div>
             <p className="font-medium text-slate-900">Payment Successful!</p>
             <p className="text-sm text-slate-500 mt-1">
@@ -274,11 +274,11 @@ export function MpesaPaymentModal({
 
         {status === "failed" && (
           <div className="py-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <XCircle className="w-8 h-8 text-red-600" />
+            <div className="w-16 h-16 bg-destructive/15 rounded-full flex items-center justify-center mx-auto mb-4">
+              <XCircle className="w-8 h-8 text-destructive" />
             </div>
             <p className="font-medium text-slate-900">Payment Failed</p>
-            <p className="text-sm text-red-600 mt-1">{error}</p>
+            <p className="text-sm text-destructive mt-1">{error}</p>
             <Button
               className="mt-4"
               onClick={() => {

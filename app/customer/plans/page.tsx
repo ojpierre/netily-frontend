@@ -108,16 +108,16 @@ export default function CustomerPlansPage() {
 
       {/* Current Plan Highlight */}
       {dashboard?.current_plan && (
-        <Card className="p-4 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+        <Card className="p-4 bg-primary/10 dark:bg-blue-950/30 border-primary/20 dark:border-primary/20">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center">
-              <Wifi className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="w-10 h-10 bg-primary/15 dark:bg-blue-950 rounded-lg flex items-center justify-center">
+              <Wifi className="w-5 h-5 text-primary dark:text-primary/80" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-blue-900 dark:text-blue-300">
+              <p className="font-semibold text-primary dark:text-primary/60">
                 Your Current Plan: {dashboard.current_plan.name}
               </p>
-              <p className="text-sm text-blue-700 dark:text-blue-400">
+              <p className="text-sm text-primary dark:text-primary/80">
                 {dashboard.current_plan.speed_down} Mbps &middot; KSh {parseFloat(dashboard.current_plan.price).toLocaleString()}/mo
                 {dashboard.current_plan.days_remaining !== null && (
                   <> &middot; {dashboard.current_plan.days_remaining} days left</>
@@ -149,20 +149,20 @@ export default function CustomerPlansPage() {
                 key={plan.id}
                 className={`relative overflow-hidden transition-all ${
                   isCurrent
-                    ? "border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/20"
+                    ? "border-primary dark:border-primary/40 ring-2 ring-ring/20"
                     : plan.is_popular
-                    ? "border-orange-400 dark:border-orange-500"
+                    ? "border-orange-400 dark:border-warning"
                     : "hover:border-foreground/20"
                 }`}
               >
                 {/* Popular Badge */}
                 {plan.is_popular && !isCurrent && (
-                  <div className="absolute top-0 right-0 bg-orange-500 text-white px-3 py-1 text-xs font-semibold rounded-bl-lg flex items-center gap-1">
+                  <div className="absolute top-0 right-0 bg-warning text-white px-3 py-1 text-xs font-semibold rounded-bl-lg flex items-center gap-1">
                     <Star className="w-3 h-3" /> Popular
                   </div>
                 )}
                 {isCurrent && (
-                  <div className="absolute top-0 right-0 bg-blue-600 text-white px-3 py-1 text-xs font-semibold rounded-bl-lg">
+                  <div className="absolute top-0 right-0 bg-primary text-white px-3 py-1 text-xs font-semibold rounded-bl-lg">
                     Current Plan
                   </div>
                 )}
@@ -191,7 +191,7 @@ export default function CustomerPlansPage() {
                   {/* Speed & Details */}
                   <div className="space-y-2.5 mb-6">
                     <div className="flex items-center gap-2.5 text-sm">
-                      <Zap className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                      <Zap className="w-4 h-4 text-primary flex-shrink-0" />
                       <span>
                         <strong>{speedDown}</strong> Mbps download
                         {speedUp > 0 && <> / <strong>{speedUp}</strong> Mbps upload</>}
@@ -200,7 +200,7 @@ export default function CustomerPlansPage() {
 
                     {plan.validity_display && (
                       <div className="flex items-center gap-2.5 text-sm">
-                        <Clock className="w-4 h-4 text-green-500 flex-shrink-0" />
+                        <Clock className="w-4 h-4 text-success flex-shrink-0" />
                         <span>Valid for {plan.validity_display}</span>
                       </div>
                     )}
@@ -217,7 +217,7 @@ export default function CustomerPlansPage() {
                       <>
                         {plan.features.slice(0, 4).map((feature, idx) => (
                           <div key={idx} className="flex items-center gap-2.5 text-sm">
-                            <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            <Check className="w-4 h-4 text-success flex-shrink-0" />
                             <span>{feature}</span>
                           </div>
                         ))}

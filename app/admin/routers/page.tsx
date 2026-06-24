@@ -353,19 +353,19 @@ export default function RoutersPage() {
 
   const getStatusIcon = (status: RouterStatus) => {
     switch (status) {
-      case "online": return <CheckCircle className="w-4 h-4 text-green-600" />
-      case "offline": return <XCircle className="w-4 h-4 text-red-600" />
-      case "warning": return <AlertTriangle className="w-4 h-4 text-amber-600" />
-      case "maintenance": return <Settings className="w-4 h-4 text-blue-600 animate-spin" />
+      case "online": return <CheckCircle className="w-4 h-4 text-success" />
+      case "offline": return <XCircle className="w-4 h-4 text-destructive" />
+      case "warning": return <AlertTriangle className="w-4 h-4 text-warning" />
+      case "maintenance": return <Settings className="w-4 h-4 text-primary animate-spin" />
     }
   }
 
   const getStatusBadge = (status: RouterStatus) => {
     const styles: Record<RouterStatus, string> = {
-      online: "bg-green-100 text-green-700 border-green-200",
-      offline: "bg-red-100 text-red-700 border-red-200",
-      warning: "bg-amber-100 text-amber-700 border-amber-200",
-      maintenance: "bg-blue-100 text-blue-700 border-blue-200",
+      online: "bg-success/15 text-success border-success/20",
+      offline: "bg-destructive/15 text-destructive border-destructive/20",
+      warning: "bg-warning/15 text-warning border-warning/20",
+      maintenance: "bg-primary/15 text-primary border-primary/20",
     }
     return (
       <Badge variant="outline" className={styles[status]}>
@@ -378,7 +378,7 @@ export default function RoutersPage() {
   const getTypeBadge = (type: RouterType) => {
     const styles: Record<RouterType, string> = {
       mikrotik: "bg-purple-100 text-purple-700",
-      cisco: "bg-blue-100 text-blue-700",
+      cisco: "bg-primary/15 text-primary",
       ubiquiti: "bg-teal-100 text-teal-700",
       other: "bg-slate-100 text-slate-700",
     }
@@ -483,10 +483,10 @@ export default function RoutersPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-gradient-to-br from-red-100 to-red-200 dark:from-red-500/20 dark:to-red-500/10 rounded-xl">
-                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                <XCircle className="w-5 h-5 text-destructive dark:text-destructive" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{localStats.offline_routers}</p>
+                <p className="text-2xl font-bold text-destructive dark:text-destructive">{localStats.offline_routers}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Offline</p>
               </div>
             </div>
@@ -589,33 +589,33 @@ export default function RoutersPage() {
                 },
                 offline: {
                   glow: "shadow-red-500/20",
-                  dot: "bg-red-500",
+                  dot: "bg-destructive",
                   dotRing: "ring-red-500/30",
                   gradient: "from-red-400 via-rose-400 to-pink-400",
                   meshFrom: "rgba(239,68,68,0.15)",
                   meshTo: "rgba(244,63,94,0.05)",
-                  badge: "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20",
-                  textAccent: "text-red-600 dark:text-red-400",
+                  badge: "bg-destructive/10 text-destructive border-destructive/20 dark:bg-destructive/10 dark:text-destructive dark:border-destructive/20",
+                  textAccent: "text-destructive dark:text-destructive",
                 },
                 warning: {
                   glow: "shadow-amber-500/20",
-                  dot: "bg-amber-500",
+                  dot: "bg-warning",
                   dotRing: "ring-amber-500/30",
                   gradient: "from-amber-400 via-orange-400 to-yellow-400",
                   meshFrom: "rgba(245,158,11,0.15)",
                   meshTo: "rgba(251,191,36,0.05)",
-                  badge: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
-                  textAccent: "text-amber-600 dark:text-amber-400",
+                  badge: "bg-warning/10 text-warning border-warning/20 dark:bg-warning/10 dark:text-warning dark:border-warning/20",
+                  textAccent: "text-warning dark:text-warning",
                 },
                 maintenance: {
                   glow: "shadow-blue-500/20",
-                  dot: "bg-blue-500",
-                  dotRing: "ring-blue-500/30",
+                  dot: "bg-primary",
+                  dotRing: "ring-ring/30",
                   gradient: "from-blue-400 via-indigo-400 to-violet-400",
                   meshFrom: "rgba(59,130,246,0.15)",
                   meshTo: "rgba(139,92,246,0.05)",
-                  badge: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
-                  textAccent: "text-blue-600 dark:text-blue-400",
+                  badge: "bg-primary/10 text-primary border-primary/20 dark:bg-primary/10 dark:text-primary/80 dark:border-primary/20",
+                  textAccent: "text-primary dark:text-primary/80",
                 },
               }[r.status]
 
@@ -701,7 +701,7 @@ export default function RoutersPage() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            className="text-red-600"
+                            className="text-destructive"
                             onClick={(e) => { e.stopPropagation(); setSelectedRouter(r); setIsDeleteDialogOpen(true) }}
                           >
                             <Trash2 className="w-4 h-4 mr-2" /> Delete
@@ -733,7 +733,7 @@ export default function RoutersPage() {
                     <div className="flex items-center justify-between rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/60 dark:to-slate-800/20 px-4 py-3 border border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">
-                          <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          <Users className="w-4 h-4 text-primary dark:text-primary/80" />
                         </div>
                         <div>
                           <p className="text-2xl font-extrabold text-slate-900 dark:text-white leading-none tracking-tight">
@@ -746,7 +746,7 @@ export default function RoutersPage() {
                       <div className="text-right">
                         <p className={`text-sm font-bold leading-none ${
                           r.uptime_percentage && r.uptime_percentage > 0
-                            ? meetsSla ? statusConfig.textAccent : "text-red-600"
+                            ? meetsSla ? statusConfig.textAccent : "text-destructive"
                             : r.status === 'online' ? statusConfig.textAccent : "text-slate-400"
                         }`}>
                           {r.uptime_percentage && r.uptime_percentage > 0
@@ -764,7 +764,7 @@ export default function RoutersPage() {
                     <div className="space-y-1.5">
                       <Progress
                         value={r.uptime_percentage && r.uptime_percentage > 0 ? r.uptime_percentage : r.status === 'online' ? 100 : 0}
-                        className={`h-1.5 rounded-full ${!meetsSla && r.status !== 'online' ? "[&>div]:bg-red-500" : `[&>div]:bg-gradient-to-r [&>div]:${statusConfig.gradient}`}`}
+                        className={`h-1.5 rounded-full ${!meetsSla && r.status !== 'online' ? "[&>div]:bg-destructive" : `[&>div]:bg-gradient-to-r [&>div]:${statusConfig.gradient}`}`}
                       />
                     </div>
 
@@ -775,8 +775,8 @@ export default function RoutersPage() {
                           { label: "CPU", value: r.metrics.cpu_usage },
                           { label: "Memory", value: r.metrics.memory_usage },
                         ].map(({ label, value }) => {
-                          const barClass = value > 80 ? "bg-red-500" : value > 60 ? "bg-amber-500" : "bg-blue-500"
-                          const textClass = value > 80 ? "text-red-600 dark:text-red-400" : value > 60 ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"
+                          const barClass = value > 80 ? "bg-destructive" : value > 60 ? "bg-warning" : "bg-primary"
+                          const textClass = value > 80 ? "text-destructive dark:text-destructive" : value > 60 ? "text-warning dark:text-warning" : "text-primary dark:text-primary/80"
                           const R = 13; const circ = 2 * Math.PI * R
                           const dash = (value / 100) * circ
                           return (
@@ -880,7 +880,7 @@ export default function RoutersPage() {
                       <TableCell className="font-semibold">{r.active_users}</TableCell>
                       <TableCell>{r.uptime || "-"}</TableCell>
                       <TableCell>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${(r.uptime_percentage || 0) >= (r.sla_target || 99) ? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400"}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${(r.uptime_percentage || 0) >= (r.sla_target || 99) ? "bg-success/15 text-success dark:bg-success/20 dark:text-success" : "bg-destructive/15 text-destructive dark:bg-destructive/20 dark:text-destructive"}`}>
                           {Number(r.uptime_percentage || 0).toFixed(1)}%
                         </span>
                       </TableCell>
@@ -889,11 +889,11 @@ export default function RoutersPage() {
                           <div className="flex items-center gap-1.5">
                             <div className="w-12 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all ${r.metrics.cpu_usage > 80 ? 'bg-red-500' : r.metrics.cpu_usage > 60 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                                className={`h-full rounded-full transition-all ${r.metrics.cpu_usage > 80 ? 'bg-destructive' : r.metrics.cpu_usage > 60 ? 'bg-warning' : 'bg-primary'}`}
                                 style={{ width: `${r.metrics.cpu_usage}%` }}
                               />
                             </div>
-                            <span className={`text-xs font-medium ${r.metrics.cpu_usage > 80 ? 'text-red-600 dark:text-red-400' : r.metrics.cpu_usage > 60 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-600 dark:text-slate-300'}`}>
+                            <span className={`text-xs font-medium ${r.metrics.cpu_usage > 80 ? 'text-destructive dark:text-destructive' : r.metrics.cpu_usage > 60 ? 'text-warning dark:text-warning' : 'text-slate-600 dark:text-slate-300'}`}>
                               {r.metrics.cpu_usage}%
                             </span>
                           </div>
@@ -906,11 +906,11 @@ export default function RoutersPage() {
                           <div className="flex items-center gap-1.5">
                             <div className="w-12 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all ${r.metrics.memory_usage > 80 ? 'bg-red-500' : r.metrics.memory_usage > 60 ? 'bg-amber-500' : 'bg-purple-500'}`}
+                                className={`h-full rounded-full transition-all ${r.metrics.memory_usage > 80 ? 'bg-destructive' : r.metrics.memory_usage > 60 ? 'bg-warning' : 'bg-purple-500'}`}
                                 style={{ width: `${r.metrics.memory_usage}%` }}
                               />
                             </div>
-                            <span className={`text-xs font-medium ${r.metrics.memory_usage > 80 ? 'text-red-600 dark:text-red-400' : r.metrics.memory_usage > 60 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-600 dark:text-slate-300'}`}>
+                            <span className={`text-xs font-medium ${r.metrics.memory_usage > 80 ? 'text-destructive dark:text-destructive' : r.metrics.memory_usage > 60 ? 'text-warning dark:text-warning' : 'text-slate-600 dark:text-slate-300'}`}>
                               {r.metrics.memory_usage}%
                             </span>
                           </div>
@@ -945,7 +945,7 @@ export default function RoutersPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
-                              className="text-red-600"
+                              className="text-destructive"
                               onClick={(e) => { e.stopPropagation(); setSelectedRouter(r); setIsDeleteDialogOpen(true) }}
                             >
                               <Trash2 className="w-4 h-4 mr-2" /> Delete

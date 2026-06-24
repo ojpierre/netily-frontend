@@ -99,7 +99,7 @@ const formatDateTime = (dateString: string) => {
 const getStatusBadge = (status: ReceiptStatus) => {
   const badges: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string; icon: typeof Clock; className?: string }> = {
     'DRAFT': { variant: 'secondary' as const, label: 'Draft', icon: Clock, className: '' },
-    'ISSUED': { variant: 'default' as const, label: 'Issued', icon: CheckCircle, className: 'bg-green-500' },
+    'ISSUED': { variant: 'default' as const, label: 'Issued', icon: CheckCircle, className: 'bg-success' },
     'CANCELLED': { variant: 'destructive' as const, label: 'Cancelled', icon: XCircle, className: '' },
   }
   const badge = badges[status] || { variant: 'outline' as const, label: status, icon: Clock, className: '' }
@@ -300,30 +300,30 @@ export default function ReceiptsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Issued</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.issued}</div>
+            <div className="text-2xl font-bold text-success">{stats.issued}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Draft</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
+            <Clock className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.draft}</div>
+            <div className="text-2xl font-bold text-warning">{stats.draft}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Receipted</CardTitle>
-            <FileText className="h-4 w-4 text-blue-500" />
+            <FileText className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{formatCurrency(stats.totalAmount)}</div>
+            <div className="text-2xl font-bold text-primary">{formatCurrency(stats.totalAmount)}</div>
           </CardContent>
         </Card>
       </div>

@@ -26,6 +26,8 @@ import {
   CreditCard,
   BarChart3,
 } from "lucide-react"
+import { NetilyLoader } from "@/components/ui/netily-loader"
+import { FadeIn } from "@/components/page-transition"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import {
   BarChart,
@@ -442,7 +444,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Row 1: Key Metrics ─── */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 relative">
+      <FadeIn delay={0.1}><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 relative">
         {/* Total Customers */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -813,7 +815,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Row 2.5: Weekly Income & Monthly Earnings ─── */}
-      <div className="grid gap-4 md:grid-cols-2 relative">
+      <FadeIn delay={0.3}><div className="grid gap-4 md:grid-cols-2 relative">
 
         {/* Weekly Income Chart */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
@@ -854,7 +856,7 @@ export default function AdminDashboard() {
           <CardContent>
             {loading ? (
               <div className="h-[220px] flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
+                <NetilyLoader size={32} className="opacity-50" />
               </div>
             ) : !(weekView === "this"
                 ? data.reports?.overview?.weekly_income
@@ -956,7 +958,7 @@ export default function AdminDashboard() {
           <CardContent>
             {loading ? (
               <div className="h-[220px] flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
+                <NetilyLoader size={32} className="opacity-50" />
               </div>
             ) : !(yearView === "this"
                 ? data.reports?.overview?.monthly_earnings
@@ -1022,7 +1024,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Row 3: Quick Actions & Recent Activity ─── */}
-      <div className="grid gap-4 md:grid-cols-2 relative">
+      <FadeIn delay={0.3}><div className="grid gap-4 md:grid-cols-2 relative">
         {/* Quick Actions */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader>

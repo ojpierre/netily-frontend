@@ -155,7 +155,7 @@ function configSummary(m: PaymentMethod): string {
 
 const colorMap: Record<string, { bg: string; text: string; icon: string; ring: string }> = {
   emerald: { bg: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-emerald-700 dark:text-emerald-400", icon: "text-emerald-600", ring: "ring-emerald-200 dark:ring-emerald-800" },
-  blue:    { bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-700 dark:text-blue-400", icon: "text-blue-600", ring: "ring-blue-200 dark:ring-blue-800" },
+  blue:    { bg: "bg-primary/10 dark:bg-blue-950/30", text: "text-primary dark:text-primary/80", icon: "text-primary", ring: "ring-blue-200 dark:ring-blue-800" },
   violet:  { bg: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-700 dark:text-violet-400", icon: "text-violet-600", ring: "ring-violet-200 dark:ring-violet-800" },
   slate:   { bg: "bg-slate-50 dark:bg-slate-900/30", text: "text-slate-700 dark:text-slate-400", icon: "text-slate-600", ring: "ring-slate-200 dark:ring-slate-800" },
 }
@@ -364,7 +364,7 @@ export default function PaymentMethodsPage() {
       fields = (
         <>
           <div className="space-y-2">
-            <Label>Mobile Provider <span className="text-red-500">*</span></Label>
+            <Label>Mobile Provider <span className="text-destructive">*</span></Label>
             <Select value={c.mobile_provider || ""} onValueChange={(v) => set("mobile_provider", v)}>
               <SelectTrigger><SelectValue placeholder="Select provider..." /></SelectTrigger>
               <SelectContent>
@@ -401,7 +401,7 @@ export default function PaymentMethodsPage() {
       fields = (
         <>
           <div className="space-y-2">
-            <Label>Bank <span className="text-red-500">*</span></Label>
+            <Label>Bank <span className="text-destructive">*</span></Label>
             <Select value={c.bank_name || ""} onValueChange={(v) => set("bank_name", v)}>
               <SelectTrigger><SelectValue placeholder="Select bank..." /></SelectTrigger>
               <SelectContent className="max-h-60">
@@ -506,7 +506,7 @@ export default function PaymentMethodsPage() {
                 Add Your First Payment Method
               </Button>
               <p className="text-center text-xs text-muted-foreground mt-3">
-                Powered by <a href="https://netily.co.ke" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">Netily</a>
+                Powered by <a href="https://netily.co.ke" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">Netily</a>
               </p>
             </div>
           ) : (
@@ -521,9 +521,9 @@ export default function PaymentMethodsPage() {
 
               {/* Error banner */}
               {methodsError && (
-                <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-950/30 p-4">
-                  <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-                  <p className="text-sm font-medium text-red-800 dark:text-red-300 flex-1">{methodsError}</p>
+                <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 dark:border-red-900/50 dark:bg-red-950/30 p-4">
+                  <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <p className="text-sm font-medium text-red-800 dark:text-destructive/80 flex-1">{methodsError}</p>
                   <Button variant="outline" size="sm" onClick={() => { setMethodsLoading(true); fetchMethods() }}>
                     <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Retry
                   </Button>
@@ -544,8 +544,8 @@ export default function PaymentMethodsPage() {
                   title="Today"
                   value={statsLoading ? "—" : `KES ${todayAmount.toLocaleString()}`}
                   icon={TrendingUp}
-                  iconColor="text-blue-600"
-                  iconBg="bg-blue-50 dark:bg-blue-950/30"
+                  iconColor="text-primary"
+                  iconBg="bg-primary/10 dark:bg-blue-950/30"
                   sub={stats?.payments_today ? `${stats.payments_today} payments` : undefined}
                 />
                 <StatCard
@@ -561,8 +561,8 @@ export default function PaymentMethodsPage() {
                   title="Active Channels"
                   value={`${activeMethods.length} / ${methods.length}`}
                   icon={Zap}
-                  iconColor="text-amber-600"
-                  iconBg="bg-amber-50 dark:bg-amber-950/30"
+                  iconColor="text-warning"
+                  iconBg="bg-warning/10 dark:bg-amber-950/30"
                   sub={`${methods.length} total configured`}
                 />
               </div>
@@ -637,7 +637,7 @@ export default function PaymentMethodsPage() {
                           {/* Provider badge */}
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             {(m as any).mpesa_configuration_details?.business_shortcode ? (
-                              <Badge variant="outline" className="text-[10px] border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-400">
+                              <Badge variant="outline" className="text-[10px] border-primary/20 text-primary dark:border-primary/20 dark:text-primary/80">
                                 Direct M-Pesa · {(m as any).mpesa_configuration_details.business_shortcode}
                               </Badge>
                             ) : (m.method_type?.startsWith('MPESA')) ? (
@@ -898,7 +898,7 @@ function Field({ label, ph, value, onChange, required, type }: {
 }) {
   return (
     <div className="space-y-2">
-      <Label>{label}{required && <span className="text-red-500"> *</span>}</Label>
+      <Label>{label}{required && <span className="text-destructive"> *</span>}</Label>
       <Input type={type || "text"} placeholder={ph} value={value || ""} onChange={(e) => onChange(e.target.value)} />
     </div>
   )

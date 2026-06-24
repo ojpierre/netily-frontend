@@ -110,12 +110,12 @@ export default function RevenueAnalyticsPage() {
                 <p className="text-sm text-slate-500">Total Revenue</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {(revenueStats.total / 1000000).toFixed(2)}M</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <ArrowUpRight className="w-4 h-4 text-green-600" />
-                  <span className="text-sm text-green-600">+{revenueStats.growth}%</span>
+                  <ArrowUpRight className="w-4 h-4 text-success" />
+                  <span className="text-sm text-success">+{revenueStats.growth}%</span>
                 </div>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-success/15 rounded-full flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-success" />
               </div>
             </div>
           </CardContent>
@@ -128,12 +128,12 @@ export default function RevenueAnalyticsPage() {
                 <p className="text-sm text-slate-500">MRR</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {(revenueStats.mrr / 1000000).toFixed(2)}M</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <ArrowUpRight className="w-4 h-4 text-green-600" />
-                  <span className="text-sm text-green-600">+{revenueStats.mrrGrowth}%</span>
+                  <ArrowUpRight className="w-4 h-4 text-success" />
+                  <span className="text-sm text-success">+{revenueStats.mrrGrowth}%</span>
                 </div>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-primary/15 rounded-full flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -146,8 +146,8 @@ export default function RevenueAnalyticsPage() {
                 <p className="text-sm text-slate-500">ARPU</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {revenueStats.arpu.toLocaleString()}</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <ArrowUpRight className="w-4 h-4 text-green-600" />
-                  <span className="text-sm text-green-600">+{revenueStats.arpuGrowth}%</span>
+                  <ArrowUpRight className="w-4 h-4 text-success" />
+                  <span className="text-sm text-success">+{revenueStats.arpuGrowth}%</span>
                 </div>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
@@ -165,8 +165,8 @@ export default function RevenueAnalyticsPage() {
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {(revenueStats.arr / 1000000).toFixed(1)}M</p>
                 <p className="text-xs text-slate-500 mt-1">Projected</p>
               </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-orange-600" />
+              <div className="w-12 h-12 bg-warning/15 rounded-full flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-warning" />
               </div>
             </div>
           </CardContent>
@@ -205,11 +205,11 @@ export default function RevenueAnalyticsPage() {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           {item.growth >= 0 ? (
-                            <ArrowUpRight className="w-4 h-4 text-green-600" />
+                            <ArrowUpRight className="w-4 h-4 text-success" />
                           ) : (
-                            <ArrowDownRight className="w-4 h-4 text-red-600" />
+                            <ArrowDownRight className="w-4 h-4 text-destructive" />
                           )}
-                          <span className={item.growth >= 0 ? "text-green-600" : "text-red-600"}>
+                          <span className={item.growth >= 0 ? "text-success" : "text-destructive"}>
                             {item.growth >= 0 ? "+" : ""}{item.growth}%
                           </span>
                         </div>

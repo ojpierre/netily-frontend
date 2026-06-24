@@ -104,10 +104,10 @@ function Slider({
     <div>
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-          <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <Icon className="h-4 w-4 text-primary dark:text-primary/80" />
           {label}
         </div>
-        <span className="rounded-lg bg-blue-50 px-2.5 py-0.5 text-sm font-bold tabular-nums text-blue-700 dark:bg-blue-950 dark:text-blue-400">
+        <span className="rounded-lg bg-primary/10 px-2.5 py-0.5 text-sm font-bold tabular-nums text-primary dark:bg-blue-950 dark:text-primary/80">
           {formatValue(value)}
         </span>
       </div>
@@ -130,14 +130,14 @@ function Slider({
             [&::-webkit-slider-thumb]:appearance-none
             [&::-webkit-slider-thumb]:rounded-full
             [&::-webkit-slider-thumb]:border-2
-            [&::-webkit-slider-thumb]:border-blue-600
+            [&::-webkit-slider-thumb]:border-primary
             [&::-webkit-slider-thumb]:bg-white
             [&::-webkit-slider-thumb]:shadow-md
             [&::-moz-range-thumb]:h-5
             [&::-moz-range-thumb]:w-5
             [&::-moz-range-thumb]:rounded-full
             [&::-moz-range-thumb]:border-2
-            [&::-moz-range-thumb]:border-blue-600
+            [&::-moz-range-thumb]:border-primary
             [&::-moz-range-thumb]:bg-white"
         />
       </div>
@@ -163,14 +163,14 @@ function PlanCard({
   return (
     <motion.div
       layout
-      className="relative flex flex-col rounded-2xl border-2 border-blue-600 bg-white p-6 shadow-lg shadow-blue-100 transition-shadow hover:shadow-xl dark:bg-slate-900"
+      className="relative flex flex-col rounded-2xl border-2 border-primary bg-white p-6 shadow-lg shadow-blue-100 transition-shadow hover:shadow-xl dark:bg-slate-900"
     >
-      <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow">
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow">
         Most Popular
       </div>
 
       <div className="mb-4">
-        <span className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-blue-700">
+        <span className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
           <Zap className="h-3 w-3" />
           Pay As You Grow
         </span>
@@ -180,7 +180,7 @@ function PlanCard({
 
       <div className="mb-5">
         <div className="flex items-baseline gap-1">
-          <span className="text-4xl font-extrabold text-blue-600">
+          <span className="text-4xl font-extrabold text-primary">
             {fmtCurrency(plan.activation_fee, geo)}
           </span>
           <span className="text-sm font-medium text-slate-500">activation</span>
@@ -228,13 +228,13 @@ function PlanCard({
             </span>
           </div>
           {minimumApplied && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            <div className="rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
               Your usage subtotal is below {fmtCurrency(plan.minimum_charge, geo)}, so the monthly estimate is rounded up to the minimum charge.
             </div>
           )}
           <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-sm dark:border-slate-700">
             <span className="font-semibold text-slate-700 dark:text-slate-300">Monthly estimate</span>
-            <span className="font-bold text-blue-600">{fmtCurrency(plan.estimated_monthly, geo)}/mo</span>
+            <span className="font-bold text-primary">{fmtCurrency(plan.estimated_monthly, geo)}/mo</span>
           </div>
         </div>
       </div>
@@ -242,7 +242,7 @@ function PlanCard({
       <ul className="mb-6 flex-1 space-y-2">
         {plan.features.map((feature) => (
           <li key={feature} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300">
-            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600" />
+            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
             {feature}
           </li>
         ))}
@@ -250,7 +250,7 @@ function PlanCard({
 
       <button
         onClick={onGetStarted}
-        className="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-700"
+        className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white transition-all hover:bg-primary"
       >
         Start Free Trial
       </button>
@@ -284,6 +284,7 @@ export function BillingCalculator({
   const estimatedMonthly = Math.max(usageSubtotal, METERED_PLAN.minimum_charge)
   const meteredPlan: PlanEstimate = {
     ...METERED_PLAN,
+    features: [...METERED_PLAN.features],
     input_pppoe_clients: pppoeClients,
     billable_pppoe_clients: pppoeClients,
     pppoe_charge: pppoeCharge,
@@ -307,7 +308,7 @@ export function BillingCalculator({
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="mb-10 text-center"
         >
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-blue-700">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
             <Zap className="h-3.5 w-3.5" />
             Billing Calculator
           </div>
@@ -365,8 +366,8 @@ export function BillingCalculator({
                 }}
                 className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
                   pppoeClients === preset.pppoe && hotspotRevenue === preset.hotspot
-                    ? "border-blue-600 bg-blue-600 text-white"
-                    : "border-slate-200 bg-slate-50 text-slate-600 hover:border-blue-300 hover:text-blue-700"
+                    ? "border-primary bg-primary text-white"
+                    : "border-slate-200 bg-slate-50 text-slate-600 hover:border-primary/30 hover:text-primary"
                 }`}
               >
                 {preset.label}
@@ -383,10 +384,10 @@ export function BillingCalculator({
             className="flex flex-col rounded-2xl border border-blue-700/50 bg-gradient-to-br from-slate-900 to-blue-950 p-6 shadow-xl"
           >
             <div className="mb-4 flex items-center gap-2">
-              <div className="rounded-lg bg-blue-500/20 p-1.5">
-                <Shield className="h-4 w-4 text-blue-400" />
+              <div className="rounded-lg bg-primary/20 p-1.5">
+                <Shield className="h-4 w-4 text-primary/80" />
               </div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-blue-300">
+              <span className="text-xs font-semibold uppercase tracking-wider text-primary/60">
                 Enterprise &amp; Custom
               </span>
             </div>
@@ -409,7 +410,7 @@ export function BillingCalculator({
                 "Priority 24/7 support",
               ].map((feature) => (
                 <li key={feature} className="flex items-center gap-2 text-sm text-slate-300">
-                  <Check className="h-4 w-4 shrink-0 text-blue-400" />
+                  <Check className="h-4 w-4 shrink-0 text-primary/80" />
                   {feature}
                 </li>
               ))}
@@ -417,7 +418,7 @@ export function BillingCalculator({
 
             <button
               onClick={onContactSales ?? onGetStarted}
-              className="mt-auto w-full rounded-xl bg-blue-600 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+              className="mt-auto w-full rounded-xl bg-primary py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-primary"
             >
               Contact Sales →
             </button>

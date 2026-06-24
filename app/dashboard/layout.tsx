@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-slate-600">Loading...</p>
         </div>
       </div>
@@ -63,10 +63,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Mobile Header */}
       <div className="lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between sticky top-0 z-50">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <Zap className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-bold text-blue-600">Netily</span>
+          <span className="text-xl font-bold text-primary">Netily</span>
         </Link>
         <Button
           variant="ghost"
@@ -85,16 +85,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         {/* Logo */}
         <div className="h-16 flex items-center gap-2 px-6 border-b border-slate-200 dark:border-slate-800">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <Zap className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-bold text-blue-600">Netily</span>
+          <span className="text-xl font-bold text-primary">Netily</span>
         </div>
 
         {/* User Info */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-semibold">
               {currentUser.full_name.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">
@@ -103,8 +103,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
           {!user && (
-            <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-950 rounded-lg">
-              <p className="text-xs text-blue-700 dark:text-blue-300">Demo Mode Active</p>
+            <div className="mt-3 p-2 bg-primary/10 dark:bg-blue-950 rounded-lg">
+              <p className="text-xs text-primary dark:text-primary/60">Demo Mode Active</p>
             </div>
           )}
         </div>
@@ -129,7 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {isActive && (
                       <motion.span
                         layoutId="dashboard-active-nav"
-                        className="absolute inset-0 rounded-lg bg-blue-600 shadow-sm"
+                        className="absolute inset-0 rounded-lg bg-primary shadow-sm"
                         transition={{ type: "spring", stiffness: 420, damping: 34 }}
                       />
                     )}
@@ -147,7 +147,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {user ? (
             <Button
               variant="outline"
-              className="w-full justify-start text-red-600 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-700"
+              className="w-full justify-start text-destructive hover:bg-destructive/10 dark:hover:bg-red-950 hover:text-destructive"
               onClick={logout}
             >
               <LogOut className="w-5 h-5 mr-3" />

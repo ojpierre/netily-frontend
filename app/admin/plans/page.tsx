@@ -115,13 +115,13 @@ const getPlanSubscriberCount = (plan?: Plan | null) => {
 
 const getTypeBadge = (type: PlanType) => {
   const config: Record<string, { icon: typeof Wifi; class: string; label: string }> = {
-    INTERNET: { icon: Globe, class: "bg-green-100 text-green-700 border-green-200", label: "Internet" },
-    ADDON: { icon: Package, class: "bg-yellow-100 text-yellow-700 border-yellow-200", label: "Add-on" },
-    BUNDLE: { icon: Package, class: "bg-indigo-100 text-indigo-700 border-indigo-200", label: "Bundle" },
+    INTERNET: { icon: Globe, class: "bg-success/15 text-success border-success/20", label: "Internet" },
+    ADDON: { icon: Package, class: "bg-warning/15 text-warning border-warning/20", label: "Add-on" },
+    BUNDLE: { icon: Package, class: "bg-primary/15 text-primary border-primary/20", label: "Bundle" },
     TOPUP: { icon: CreditCard, class: "bg-pink-100 text-pink-700 border-pink-200", label: "Top-up" },
-    HOTSPOT: { icon: Wifi, class: "bg-blue-100 text-blue-700 border-blue-200", label: "Hotspot" },
+    HOTSPOT: { icon: Wifi, class: "bg-primary/15 text-primary border-primary/20", label: "Hotspot" },
     PPPOE: { icon: Globe, class: "bg-purple-100 text-purple-700 border-purple-200", label: "PPPoE" },
-    STATIC: { icon: Server, class: "bg-orange-100 text-orange-700 border-orange-200", label: "Static IP" },
+    STATIC: { icon: Server, class: "bg-warning/15 text-warning border-warning/20", label: "Static IP" },
   }
   const c = config[type] || { icon: Globe, class: "bg-gray-100 text-gray-700 border-gray-200", label: type }
   const Icon = c.icon
@@ -192,17 +192,17 @@ interface HotspotPreset {
 
 const HOTSPOT_PRESETS: HotspotPreset[] = [
   {
-    id: 'hotspot-30min', name: '30 Minutes', icon: Coffee, color: 'bg-amber-500',
+    id: 'hotspot-30min', name: '30 Minutes', icon: Coffee, color: 'bg-warning',
     description: 'Quick browse session',
     config: { name: '30 Min Access', base_price: 20, validity_type: 'MINUTES', validity_minutes: 30, download_speed: 5, upload_speed: 5, max_sessions: 1, features: ['5 Mbps Speed', '30 Minutes', 'Single Device'] }
   },
   {
-    id: 'hotspot-1hr', name: '1 Hour', icon: Timer, color: 'bg-blue-500',
+    id: 'hotspot-1hr', name: '1 Hour', icon: Timer, color: 'bg-primary',
     description: 'Standard session',
     config: { name: '1 Hour Access', base_price: 30, validity_type: 'HOURS', validity_hours: 1, download_speed: 10, upload_speed: 5, max_sessions: 1, features: ['10 Mbps Speed', '1 Hour', 'Single Device'] }
   },
   {
-    id: 'hotspot-3hr', name: '3 Hours', icon: Globe, color: 'bg-green-500',
+    id: 'hotspot-3hr', name: '3 Hours', icon: Globe, color: 'bg-success',
     description: 'Extended session',
     config: { name: '3 Hour Access', base_price: 70, validity_type: 'HOURS', validity_hours: 3, download_speed: 15, upload_speed: 10, max_sessions: 2, features: ['15 Mbps Speed', '3 Hours', '2 Devices'] }
   },
@@ -212,7 +212,7 @@ const HOTSPOT_PRESETS: HotspotPreset[] = [
     config: { name: 'Daily Pass', base_price: 150, validity_type: 'HOURS', validity_hours: 24, download_speed: 20, upload_speed: 10, max_sessions: 3, features: ['20 Mbps Speed', '24 Hours', '3 Devices'] }
   },
   {
-    id: 'hotspot-weekly', name: '7 Days', icon: Zap, color: 'bg-orange-500',
+    id: 'hotspot-weekly', name: '7 Days', icon: Zap, color: 'bg-warning',
     description: 'Weekly pass',
     config: { name: 'Weekly Pass', base_price: 500, validity_type: 'DAYS', duration_days: 7, download_speed: 25, upload_speed: 15, max_sessions: 3, features: ['25 Mbps Speed', '7 Days', '3 Devices', 'Unlimited Data'] }
   },
@@ -234,10 +234,10 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
   deletingId: number | null
 }) {
   return (
-    <Card className={`relative ${plan.is_popular ? "ring-2 ring-blue-500" : ""}`}>
+    <Card className={`relative ${plan.is_popular ? "ring-2 ring-ring" : ""}`}>
       {plan.is_popular && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <Badge className="bg-blue-500 text-white">
+          <Badge className="bg-primary text-white">
             <Zap className="w-3 h-3 mr-1" />
             Popular
           </Badge>
@@ -287,7 +287,7 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
               <DropdownMenuItem
                 onClick={() => onDelete(plan)}
                 disabled={deletingId === plan.id}
-                className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                className="text-destructive focus:text-destructive focus:bg-destructive/10"
               >
                 {deletingId === plan.id ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -317,13 +317,13 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
         <div className="grid grid-cols-2 gap-3 text-sm">
           {plan.download_speed && (
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-green-500" />
+              <TrendingUp className="w-4 h-4 text-success" />
               <span>{plan.download_speed} {plan.speed_unit || 'Mbps'} ↓</span>
             </div>
           )}
           {plan.upload_speed && (
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-blue-500 rotate-180" />
+              <TrendingUp className="w-4 h-4 text-primary rotate-180" />
               <span>{plan.upload_speed} {plan.speed_unit || 'Mbps'} ↑</span>
             </div>
           )}
@@ -331,7 +331,7 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
 
         {/* Data limit badge */}
         {(plan as any).limitation_type === 'DATA' && (plan as any).data_limit_value && (
-          <div className="flex items-center gap-2 text-sm text-orange-700 bg-orange-50 px-2 py-1 rounded">
+          <div className="flex items-center gap-2 text-sm text-warning bg-warning/10 px-2 py-1 rounded">
             <Database className="w-3.5 h-3.5" />
             <span>
               {(plan as any).data_limit_value} {(plan as any).data_limit_unit || 'MB'} cap
@@ -343,7 +343,7 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
           <div className="space-y-2">
             {plan.features.slice(0, 3).map((feature, idx) => (
               <div key={idx} className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-green-500" />
+                <Check className="w-4 h-4 text-success" />
                 <span>{feature}</span>
               </div>
             ))}
@@ -1251,7 +1251,7 @@ export default function PlansPage() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {([
             { value: "all", label: "All Plans", icon: Package, count: stats.total, activeBorder: "border-slate-500", activeBg: "bg-slate-50", activeIconBg: "bg-slate-100", activeIconColor: "text-slate-600", activeCountColor: "text-slate-600", inactiveIconBg: "bg-muted", bottomBar: "bg-slate-500" },
-            { value: "hotspot", label: "Hotspot", icon: Wifi, count: stats.hotspot, activeBorder: "border-blue-500", activeBg: "bg-blue-50", activeIconBg: "bg-blue-100", activeIconColor: "text-blue-600", activeCountColor: "text-blue-600", inactiveIconBg: "bg-muted", bottomBar: "bg-blue-500" },
+            { value: "hotspot", label: "Hotspot", icon: Wifi, count: stats.hotspot, activeBorder: "border-primary", activeBg: "bg-primary/10", activeIconBg: "bg-primary/15", activeIconColor: "text-primary", activeCountColor: "text-primary", inactiveIconBg: "bg-muted", bottomBar: "bg-primary" },
             { value: "pppoe", label: "PPPoE", icon: Globe, count: stats.pppoe, activeBorder: "border-purple-500", activeBg: "bg-purple-50", activeIconBg: "bg-purple-100", activeIconColor: "text-purple-600", activeCountColor: "text-purple-600", inactiveIconBg: "bg-muted", bottomBar: "bg-purple-500" },
           ] as const).map((tab) => {
             const Icon = tab.icon
@@ -1339,7 +1339,7 @@ export default function PlansPage() {
           </DialogHeader>
           <div className="grid grid-cols-1 gap-3 py-4">
             {[
-              { type: "hotspot" as const, label: "Hotspot Plan", description: "Time-based WiFi access for captive portals", icon: Wifi, color: "bg-blue-500" },
+              { type: "hotspot" as const, label: "Hotspot Plan", description: "Time-based WiFi access for captive portals", icon: Wifi, color: "bg-primary" },
               { type: "pppoe" as const, label: "PPPoE Plan", description: "Point-to-point subscriber connections", icon: Globe, color: "bg-purple-500" },
             ].map((opt) => {
               const Icon = opt.icon
@@ -1382,10 +1382,10 @@ export default function PlansPage() {
       {activeTab === 'hotspot' && (
         <>
           {/* Router Selector - Updated with "All Routers" option */}
-          <Card className="border-blue-200 bg-blue-50/30">
+          <Card className="border-primary/20 bg-primary/10/30">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Signal className="w-5 h-5 text-blue-500" />
+                <Signal className="w-5 h-5 text-primary" />
                 Select Router
               </CardTitle>
               <CardDescription>
@@ -1398,7 +1398,7 @@ export default function PlansPage() {
               {routersLoading ? (
                 <Skeleton className="h-10 w-full max-w-sm" />
               ) : routers.length === 0 ? (
-                <div className="flex items-center gap-2 text-amber-600">
+                <div className="flex items-center gap-2 text-warning">
                   <AlertTriangle className="w-4 h-4" />
                   <span className="text-sm">No routers found. Add a router in the Network section first.</span>
                 </div>
@@ -1420,14 +1420,14 @@ export default function PlansPage() {
                   <SelectContent>
                     <SelectItem value="all">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        <div className="w-2 h-2 rounded-full bg-primary" />
                         All Routers
                       </div>
                     </SelectItem>
                     {routers.map((r) => (
                       <SelectItem key={r.id} value={r.id.toString()}>
                         <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${r.is_active ? 'bg-green-500' : 'bg-gray-400'}`} />
+                          <div className={`w-2 h-2 rounded-full ${r.is_active ? 'bg-success' : 'bg-gray-400'}`} />
                           {r.name} <span className="text-muted-foreground ml-1">({r.ip_address})</span>
                         </div>
                       </SelectItem>
@@ -1443,7 +1443,7 @@ export default function PlansPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Zap className="w-5 h-5 text-yellow-500" />
+                <Zap className="w-5 h-5 text-warning" />
                 Quick Create Hotspot Plans
               </CardTitle>
               <CardDescription>
@@ -1616,7 +1616,7 @@ export default function PlansPage() {
                 </div>
               )}
               {planForm.subnet_prefix === '192.168' && (
-                <p className="text-xs text-amber-600 flex items-center gap-1 mt-1">
+                <p className="text-xs text-warning flex items-center gap-1 mt-1">
                   <AlertTriangle className="w-3 h-3" />
                   192.168.x.x is typically used for local LANs — consider 10.x or 172.16-31.x for PPPoE pools
                 </p>
@@ -2179,7 +2179,7 @@ export default function PlansPage() {
                 <Switch checked={planForm.is_popular}
                   onCheckedChange={(c) => setPlanForm({ ...planForm, is_popular: c })} />
                 <Label className="text-sm">
-                  <Zap className="w-3 h-3 inline mr-1 text-yellow-500" />
+                  <Zap className="w-3 h-3 inline mr-1 text-warning" />
                   Popular
                 </Label>
               </div>
@@ -2208,7 +2208,7 @@ export default function PlansPage() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Wifi className="w-5 h-5 text-blue-500" />
+              <Wifi className="w-5 h-5 text-primary" />
               {isEditingHotspot ? 'Edit Hotspot Plan' : 'Create Custom Hotspot Plan'}
             </DialogTitle>
             <DialogDescription>
@@ -2307,7 +2307,7 @@ export default function PlansPage() {
                     onClick={() => setHotspotForm({ ...hotspotForm, limitation_type: 'UNLIMITED' })}
                     className={`px-3 py-1.5 transition-colors ${
                       hotspotForm.limitation_type === 'UNLIMITED'
-                        ? 'bg-blue-600 text-white font-semibold'
+                        ? 'bg-primary text-white font-semibold'
                         : 'bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                   >
@@ -2318,7 +2318,7 @@ export default function PlansPage() {
                     onClick={() => setHotspotForm({ ...hotspotForm, limitation_type: 'DATA' })}
                     className={`px-3 py-1.5 transition-colors ${
                       hotspotForm.limitation_type === 'DATA'
-                        ? 'bg-blue-600 text-white font-semibold'
+                        ? 'bg-primary text-white font-semibold'
                         : 'bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                   >
@@ -2328,9 +2328,9 @@ export default function PlansPage() {
               </div>
 
               {hotspotForm.limitation_type === 'DATA' && (
-                <div className="flex gap-2 items-center p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <div className="flex gap-2 items-center p-3 bg-warning/10 border border-warning/20 rounded-lg">
                   <div className="flex-1 space-y-1">
-                    <Label className="text-xs text-orange-700">Data Cap</Label>
+                    <Label className="text-xs text-warning">Data Cap</Label>
                     <Input
                       type="number"
                       min={1}
@@ -2341,7 +2341,7 @@ export default function PlansPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-orange-700">Unit</Label>
+                    <Label className="text-xs text-warning">Unit</Label>
                     <Select
                       value={hotspotForm.data_limit_unit}
                       onValueChange={(v) => setHotspotForm({ ...hotspotForm, data_limit_unit: v as 'MB' | 'GB' })}
@@ -2392,7 +2392,7 @@ export default function PlansPage() {
                 <Switch checked={hotspotForm.is_popular}
                   onCheckedChange={(c) => setHotspotForm({ ...hotspotForm, is_popular: c })} />
                 <Label className="text-sm">
-                  <Zap className="w-3 h-3 inline mr-1 text-yellow-500" />
+                  <Zap className="w-3 h-3 inline mr-1 text-warning" />
                   Popular
                 </Label>
               </div>
@@ -2424,7 +2424,7 @@ export default function PlansPage() {
                   {selectedPlan.is_active ? "Active" : "Inactive"}
                 </Badge>
                 {selectedPlan.is_popular && (
-                  <Badge className="bg-blue-500 text-white">
+                  <Badge className="bg-primary text-white">
                     <Zap className="w-3 h-3 mr-1" />
                     Popular
                   </Badge>
@@ -2491,7 +2491,7 @@ export default function PlansPage() {
                     <div className="space-y-2">
                       {selectedPlan.features.map((feature, idx) => (
                         <div key={idx} className="flex items-center gap-2">
-                          <Check className="w-4 h-4 text-green-500" />
+                          <Check className="w-4 h-4 text-success" />
                           <span>{feature}</span>
                         </div>
                       ))}
@@ -2542,7 +2542,7 @@ export default function PlansPage() {
               Are you sure you want to delete <span className="font-semibold">&ldquo;{planToDelete?.name}&rdquo;</span>?
               This action cannot be undone. The plan will be permanently removed from the system.
               {getPlanSubscriberCount(planToDelete) > 0 && (
-                <span className="block mt-2 text-red-600 font-medium">
+                <span className="block mt-2 text-destructive font-medium">
                   Warning: This plan has {getPlanSubscriberCount(planToDelete)} active subscriber(s).
                 </span>
               )}
@@ -2553,7 +2553,7 @@ export default function PlansPage() {
             <AlertDialogAction
               onClick={handleConfirmDelete}
               disabled={!!deletingId}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              className="bg-destructive hover:bg-destructive/90 focus:ring-red-600"
             >
               {deletingId ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

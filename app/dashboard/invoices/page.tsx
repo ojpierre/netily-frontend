@@ -294,7 +294,7 @@ export default function InvoicesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -307,11 +307,11 @@ export default function InvoicesPage() {
       </div>
 
       {useMockData && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-            <span className="text-blue-600 text-sm">ℹ️</span>
+        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-center gap-2">
+          <div className="w-8 h-8 bg-primary/15 rounded-full flex items-center justify-center">
+            <span className="text-primary text-sm">ℹ️</span>
           </div>
-          <p className="text-sm text-blue-800">
+          <p className="text-sm text-primary">
             <strong>Demo Mode:</strong> Using mock data. Login to see your actual invoices.
           </p>
         </div>
@@ -327,8 +327,8 @@ export default function InvoicesPage() {
                 KSh {totalAmount.toFixed(2)}
               </p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 bg-primary/15 rounded-lg flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-primary" />
             </div>
           </div>
         </Card>
@@ -337,12 +337,12 @@ export default function InvoicesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-600 mb-1">Paid</p>
-              <p className="text-2xl font-bold text-green-600">
+              <p className="text-2xl font-bold text-success">
                 KSh {paidAmount.toFixed(2)}
               </p>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <CheckCircle2 className="w-6 h-6 text-green-600" />
+            <div className="w-12 h-12 bg-success/15 rounded-lg flex items-center justify-center">
+              <CheckCircle2 className="w-6 h-6 text-success" />
             </div>
           </div>
         </Card>
@@ -351,12 +351,12 @@ export default function InvoicesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-600 mb-1">Unpaid</p>
-              <p className="text-2xl font-bold text-orange-600">
+              <p className="text-2xl font-bold text-warning">
                 KSh {unpaidAmount.toFixed(2)}
               </p>
             </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-6 h-6 text-orange-600" />
+            <div className="w-12 h-12 bg-warning/15 rounded-lg flex items-center justify-center">
+              <Clock className="w-6 h-6 text-warning" />
             </div>
           </div>
         </Card>
@@ -431,12 +431,12 @@ export default function InvoicesPage() {
                   </TableCell>
                   <TableCell>
                     {invoice.paid ? (
-                      <Badge className="bg-green-100 text-green-700">
+                      <Badge className="bg-success/15 text-success">
                         <CheckCircle2 className="w-3 h-3 mr-1" />
                         Paid
                       </Badge>
                     ) : (
-                      <Badge className="bg-orange-100 text-orange-700">
+                      <Badge className="bg-warning/15 text-warning">
                         <Clock className="w-3 h-3 mr-1" />
                         Pending
                       </Badge>
@@ -448,7 +448,7 @@ export default function InvoicesPage() {
                         <Button 
                           size="sm" 
                           onClick={() => openPayNowDialog(invoice)}
-                          className="bg-green-600 hover:bg-green-700"
+                          className="bg-success hover:bg-green-700"
                         >
                           <CreditCard className="w-4 h-4 mr-1" />
                           Pay Now
@@ -493,7 +493,7 @@ export default function InvoicesPage() {
                 <div className="p-4 bg-slate-100 rounded-lg">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-slate-600">Amount to Pay</span>
-                    <span className="text-xl font-bold text-green-600">
+                    <span className="text-xl font-bold text-success">
                       KSh {parseFloat(selectedInvoice.amount).toFixed(2)}
                     </span>
                   </div>
@@ -539,7 +539,7 @@ export default function InvoicesPage() {
           {/* Processing Step */}
           {paymentStep === 'processing' && (
             <div className="py-8 flex flex-col items-center justify-center gap-4">
-              <Loader2 className="h-12 w-12 animate-spin text-green-600" />
+              <Loader2 className="h-12 w-12 animate-spin text-success" />
               <p className="text-slate-600">Initiating payment...</p>
             </div>
           )}
@@ -549,8 +549,8 @@ export default function InvoicesPage() {
             <div className="grid gap-4 py-4">
               {/* STK Push Instructions */}
               {payHeroResponse.checkout_request_id && (
-                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex items-center gap-2 text-green-700 mb-2">
+                <div className="p-4 bg-success/10 rounded-lg border border-success/20">
+                  <div className="flex items-center gap-2 text-success mb-2">
                     <Smartphone className="h-5 w-5" />
                     <span className="font-semibold">Check Your Phone</span>
                   </div>
@@ -568,8 +568,8 @@ export default function InvoicesPage() {
 
               {/* Paybill Instructions */}
               {payHeroResponse.paybill_number && (
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2 text-blue-700 mb-3">
+                <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2 text-primary mb-3">
                     <Phone className="h-5 w-5" />
                     <span className="font-semibold">M-Pesa Paybill</span>
                   </div>
@@ -603,8 +603,8 @@ export default function InvoicesPage() {
 
               {/* Till Instructions */}
               {payHeroResponse.till_number && !payHeroResponse.paybill_number && (
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2 text-blue-700 mb-3">
+                <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2 text-primary mb-3">
                     <Phone className="h-5 w-5" />
                     <span className="font-semibold">M-Pesa Till (Buy Goods)</span>
                   </div>
@@ -681,7 +681,7 @@ export default function InvoicesPage() {
                 <Button 
                   onClick={handleInitiatePayment} 
                   disabled={isSubmitting}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-success hover:bg-green-700"
                 >
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   <CreditCard className="mr-2 h-4 w-4" />

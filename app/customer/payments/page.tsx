@@ -32,10 +32,10 @@ interface PaymentRecord {
 }
 
 const statusConfig: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
-  completed: { icon: CheckCircle2, color: "text-green-700 dark:text-green-400", bg: "bg-green-100 dark:bg-green-950" },
-  pending: { icon: Clock, color: "text-yellow-700 dark:text-yellow-400", bg: "bg-yellow-100 dark:bg-yellow-950" },
-  processing: { icon: Loader2, color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-950" },
-  failed: { icon: XCircle, color: "text-red-700 dark:text-red-400", bg: "bg-red-100 dark:bg-red-950" },
+  completed: { icon: CheckCircle2, color: "text-success dark:text-success", bg: "bg-success/15 dark:bg-green-950" },
+  pending: { icon: Clock, color: "text-warning dark:text-warning", bg: "bg-warning/15 dark:bg-yellow-950" },
+  processing: { icon: Loader2, color: "text-primary dark:text-primary/80", bg: "bg-primary/15 dark:bg-blue-950" },
+  failed: { icon: XCircle, color: "text-destructive dark:text-destructive", bg: "bg-destructive/15 dark:bg-red-950" },
   cancelled: { icon: XCircle, color: "text-slate-700 dark:text-slate-400", bg: "bg-slate-100 dark:bg-slate-800" },
 }
 

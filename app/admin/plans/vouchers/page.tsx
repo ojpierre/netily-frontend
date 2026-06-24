@@ -245,20 +245,20 @@ export default function VouchersPage() {
                 <p className="text-sm text-slate-500">Total Vouchers</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.total}</p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Ticket className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-primary/15 rounded-full flex items-center justify-center">
+                <Ticket className="w-6 h-6 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-green-50 border-green-200">
+        <Card className="bg-success/10 border-success/20">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-700">Unused</p>
+                <p className="text-sm text-success">Unused</p>
                 <p className="text-2xl font-bold text-green-800">{stats.unused}</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-600" />
+              <CheckCircle className="w-8 h-8 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -273,14 +273,14 @@ export default function VouchersPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-red-50 border-red-200">
+        <Card className="bg-destructive/10 border-destructive/20">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-red-700">Expired</p>
+                <p className="text-sm text-destructive">Expired</p>
                 <p className="text-2xl font-bold text-red-800">{stats.expired}</p>
               </div>
-              <XCircle className="w-8 h-8 text-red-600" />
+              <XCircle className="w-8 h-8 text-destructive" />
             </div>
           </CardContent>
         </Card>
@@ -364,9 +364,9 @@ export default function VouchersPage() {
                   <TableCell>
                     <Badge
                       className={
-                        voucher.status === "unused" ? "bg-green-100 text-green-700" :
+                        voucher.status === "unused" ? "bg-success/15 text-success" :
                         voucher.status === "used" ? "bg-slate-100 text-slate-700" :
-                        "bg-red-100 text-red-700"
+                        "bg-destructive/15 text-destructive"
                       }
                     >
                       {voucher.status}
@@ -375,7 +375,7 @@ export default function VouchersPage() {
                   <TableCell>{new Date(voucher.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     {voucher.usedBy ? (
-                      <Link href={`/admin/users?q=${voucher.usedBy}`} className="text-blue-600 hover:underline">
+                      <Link href={`/admin/users?q=${voucher.usedBy}`} className="text-primary hover:underline">
                         {voucher.usedBy}
                       </Link>
                     ) : (

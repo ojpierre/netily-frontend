@@ -248,7 +248,7 @@ export default function ReportsPage() {
   const n = data?.network
 
   // ─── Premium Revenue Stat Card ─────────────────────────────────────────────
-  const RevenueCard = ({ label, amount, change, extra, accent = "bg-blue-500" }: { 
+  const RevenueCard = ({ label, amount, change, extra, accent = "bg-primary" }: { 
     label: string; amount: number; change: number; extra?: string; accent?: string 
   }) => {
     const positive = change >= 0
@@ -259,7 +259,7 @@ export default function ReportsPage() {
         <CardContent className="p-5 pl-6">
           <div className="flex items-start justify-between mb-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
-            <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${positive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400"}`}>
+            <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${positive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-destructive/15 text-destructive dark:bg-red-950 dark:text-destructive"}`}>
               {positive ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
               {positive ? "+" : ""}{change}%
             </span>
@@ -288,7 +288,7 @@ export default function ReportsPage() {
             <Calendar className="w-4 h-4 mr-1.5" />
             Last {timeRange === "7d" ? "7 Days" : timeRange === "30d" ? "30 Days" : "90 Days"}
           </Button>
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={handleExport}>
+          <Button size="sm" className="bg-primary hover:bg-primary" onClick={handleExport}>
             <Download className="w-4 h-4 mr-1.5" />
             Export
           </Button>
@@ -318,16 +318,16 @@ export default function ReportsPage() {
         <TabsContent value="overview" className="mt-6 space-y-6">
           {/* Premium Revenue cards row */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <RevenueCard label="Today's Revenue" amount={o?.today_revenue ?? 0} change={o?.today_change ?? 0} extra="vs yesterday" accent="bg-blue-500" />
+            <RevenueCard label="Today's Revenue" amount={o?.today_revenue ?? 0} change={o?.today_change ?? 0} extra="vs yesterday" accent="bg-primary" />
             <RevenueCard label="This Week" amount={o?.week_revenue ?? 0} change={o?.week_change ?? 0} extra="vs last week" accent="bg-violet-500" />
             <RevenueCard label="This Month" amount={o?.month_revenue ?? 0} change={o?.month_change ?? 0} extra="vs last month" accent="bg-emerald-500" />
             <Card className="relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow">
-              <div className="absolute inset-0 opacity-5 bg-orange-500" />
-              <div className="absolute top-0 left-0 w-1 h-full bg-orange-500" />
+              <div className="absolute inset-0 opacity-5 bg-warning" />
+              <div className="absolute top-0 left-0 w-1 h-full bg-warning" />
               <CardContent className="p-5 pl-6">
                 <div className="flex items-start justify-between mb-3">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Transactions Today</p>
-                  <Activity className="w-4 h-4 text-orange-400" />
+                  <Activity className="w-4 h-4 text-warning" />
                 </div>
                 <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{(o?.total_transactions_today ?? 0).toLocaleString()}</p>
                 <p className="text-[11px] text-muted-foreground mt-1">Completed payments</p>
@@ -339,7 +339,7 @@ export default function ReportsPage() {
           <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+                <div className="w-1.5 h-5 rounded-full bg-primary" />
                 <div>
                   <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Hourly Income Distribution</CardTitle>
                   <CardDescription className="text-[11px]">Revenue breakdown by hour with peak analysis</CardDescription>
@@ -372,7 +372,7 @@ export default function ReportsPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+                    <div className="w-1.5 h-5 rounded-full bg-primary" />
                     <div>
                       <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Weekly Income</CardTitle>
                       <CardDescription className="text-[11px]">Daily revenue for the selected week</CardDescription>
@@ -383,7 +383,7 @@ export default function ReportsPage() {
                       onClick={() => setWeekView("this")}
                       className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
                         weekView === "this"
-                          ? "bg-blue-600 text-white shadow-sm"
+                          ? "bg-primary text-white shadow-sm"
                           : "text-slate-500 hover:text-slate-700"
                       }`}
                     >
@@ -393,7 +393,7 @@ export default function ReportsPage() {
                       onClick={() => setWeekView("last")}
                       className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
                         weekView === "last"
-                          ? "bg-blue-600 text-white shadow-sm"
+                          ? "bg-primary text-white shadow-sm"
                           : "text-slate-500 hover:text-slate-700"
                       }`}
                     >
@@ -584,7 +584,7 @@ export default function ReportsPage() {
             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+                  <div className="w-1.5 h-5 rounded-full bg-primary" />
                   <div>
                     <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Income Comparison</CardTitle>
                     <CardDescription className="text-[11px]">Current vs previous period performance</CardDescription>
@@ -593,7 +593,7 @@ export default function ReportsPage() {
               </CardHeader>
               <CardContent className="p-0">
                 {[
-                  { label: "Today", data: f?.income_comparison?.today, accent: "bg-blue-500" },
+                  { label: "Today", data: f?.income_comparison?.today, accent: "bg-primary" },
                   { label: "Yesterday", data: f?.income_comparison?.yesterday, accent: "bg-slate-300" },
                   { label: "This Week", data: f?.income_comparison?.this_week, accent: "bg-violet-500" },
                   { label: "Last Week", data: f?.income_comparison?.last_week, accent: "bg-slate-300" },
@@ -602,7 +602,7 @@ export default function ReportsPage() {
                     <div className={`w-1 h-8 rounded-full flex-shrink-0 ${accent}`} />
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300 flex-1">{label}</span>
                     <div className="text-right">
-                      <span className="text-sm font-bold text-blue-700 dark:text-blue-400">{fmtKshFull(data?.amount ?? 0)}</span>
+                      <span className="text-sm font-bold text-primary dark:text-primary/80">{fmtKshFull(data?.amount ?? 0)}</span>
                       <p className="text-[10px] text-muted-foreground">{data?.transactions ?? 0} txns</p>
                     </div>
                   </div>
@@ -614,7 +614,7 @@ export default function ReportsPage() {
             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-5 rounded-full bg-amber-500" />
+                  <div className="w-1.5 h-5 rounded-full bg-warning" />
                   <div>
                     <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Monthly Performance</CardTitle>
                     <CardDescription className="text-[11px]">This month vs last month comparison</CardDescription>
@@ -622,7 +622,7 @@ export default function ReportsPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-0">
-                <div className="flex items-center justify-between py-4 border-b bg-blue-50/50 -mx-6 px-6 rounded-t-lg">
+                <div className="flex items-center justify-between py-4 border-b bg-primary/10/50 -mx-6 px-6 rounded-t-lg">
                   <span className="text-sm font-medium text-slate-700">This Month</span>
                   <div className="text-right">
                     <span className="text-lg font-bold text-slate-900 dark:text-white">{fmtKshFull(f?.monthly_performance?.this_month?.amount ?? 0)}</span>
@@ -638,7 +638,7 @@ export default function ReportsPage() {
                 </div>
                 <div className="flex items-center justify-between py-4">
                   <span className="text-sm font-medium text-slate-700">Growth Rate</span>
-                  <Badge variant="outline" className={(f?.monthly_performance?.growth_rate ?? 0) >= 0 ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}>
+                  <Badge variant="outline" className={(f?.monthly_performance?.growth_rate ?? 0) >= 0 ? "bg-success/10 text-success border-success/20" : "bg-destructive/10 text-destructive border-destructive/20"}>
                     {(f?.monthly_performance?.growth_rate ?? 0) >= 0 ? <ArrowUpRight className="w-3 h-3 mr-0.5" /> : <ArrowDownRight className="w-3 h-3 mr-0.5" />}
                     {(f?.monthly_performance?.growth_rate ?? 0) >= 0 ? "+" : ""}{f?.monthly_performance?.growth_rate ?? 0}%
                   </Badge>
@@ -651,7 +651,7 @@ export default function ReportsPage() {
           <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-5 rounded-full bg-amber-500" />
+                <div className="w-1.5 h-5 rounded-full bg-warning" />
                 <div>
                   <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Hourly Revenue Analysis</CardTitle>
                   <CardDescription className="text-[11px]">Peak revenue hours and patterns with detailed insights</CardDescription>
@@ -723,7 +723,7 @@ export default function ReportsPage() {
                                 variant="outline"
                                 className={
                                   isHotspot
-                                    ? "text-[10px] bg-blue-50 text-blue-700 border-blue-200"
+                                    ? "text-[10px] bg-primary/10 text-primary border-primary/20"
                                     : "text-[10px] bg-purple-50 text-purple-700 border-purple-200"
                                 }
                               >
@@ -758,10 +758,10 @@ export default function ReportsPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+                  <div className="w-1.5 h-5 rounded-full bg-primary" />
                   <div>
                     <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                      <Wifi className="w-4 h-4 text-blue-500" /> Daily Hotspot Revenue by Router
+                      <Wifi className="w-4 h-4 text-primary" /> Daily Hotspot Revenue by Router
                     </CardTitle>
                     <CardDescription className="text-[11px]">Select a router to see its daily revenue trend</CardDescription>
                   </div>
@@ -771,10 +771,10 @@ export default function ReportsPage() {
                   <div className="relative router-dropdown-container">
                     <button
                       onClick={() => setRouterDropdownOpen(!routerDropdownOpen)}
-                      className="flex items-center gap-2 text-xs border rounded-lg px-3 py-1.5 bg-background hover:bg-slate-50 dark:hover:bg-slate-800 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all min-w-[140px] justify-between shadow-sm"
+                      className="flex items-center gap-2 text-xs border rounded-lg px-3 py-1.5 bg-background hover:bg-slate-50 dark:hover:bg-slate-800 text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 transition-all min-w-[140px] justify-between shadow-sm"
                     >
                       <div className="flex items-center gap-1.5">
-                        <Wifi className="w-3 h-3 text-blue-500" />
+                        <Wifi className="w-3 h-3 text-primary" />
                         <span className="font-medium truncate max-w-[110px]">
                           {routerRevData?.routers?.find((r: any) => String(r.id) === String(selectedRouter))?.name || "Select Router"}
                         </span>
@@ -795,12 +795,12 @@ export default function ReportsPage() {
                             <button
                               key={r.id}
                               onClick={() => { handleRouterChange(r.id); setRouterDropdownOpen(false) }}
-                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-left transition-colors hover:bg-blue-50 dark:hover:bg-blue-950 ${isSelected ? "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300" : "text-slate-700 dark:text-slate-300"}`}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-left transition-colors hover:bg-primary/10 dark:hover:bg-blue-950 ${isSelected ? "bg-primary/10 dark:bg-blue-950 text-primary dark:text-primary/60" : "text-slate-700 dark:text-slate-300"}`}
                             >
-                              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isSelected ? "bg-blue-500" : "bg-slate-300"}`} />
+                              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isSelected ? "bg-primary" : "bg-slate-300"}`} />
                               <span className="font-medium truncate">{r.name}</span>
                               {isSelected && (
-                                <svg className="w-3 h-3 text-blue-500 ml-auto flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-3 h-3 text-primary ml-auto flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                 </svg>
                               )}
@@ -819,7 +819,7 @@ export default function ReportsPage() {
                         onClick={() => handleRouterTimeRangeChange(tr)}
                         className={`px-2 py-1 text-xs rounded-md font-medium transition-colors ${
                           routerTimeRange === tr
-                            ? "bg-blue-600 text-white shadow-sm"
+                            ? "bg-primary text-white shadow-sm"
                             : "text-slate-500 hover:text-slate-700"
                         }`}
                       >
@@ -926,7 +926,7 @@ export default function ReportsPage() {
           <Card className="max-w-lg border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+                <div className="w-1.5 h-5 rounded-full bg-primary" />
                 <div>
                   <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Registration Summary</CardTitle>
                 </div>
@@ -934,9 +934,9 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent className="space-y-0">
               {[
-                { label: "Total Registrations", value: u?.summary?.total_registrations ?? 0, color: "text-blue-600" },
-                { label: "Average per Day", value: u?.summary?.avg_per_day ?? 0, color: "text-blue-600" },
-                { label: "Peak Day", value: u?.summary?.peak_day ?? "-", color: "text-orange-600" },
+                { label: "Total Registrations", value: u?.summary?.total_registrations ?? 0, color: "text-primary" },
+                { label: "Average per Day", value: u?.summary?.avg_per_day ?? 0, color: "text-primary" },
+                { label: "Peak Day", value: u?.summary?.peak_day ?? "-", color: "text-warning" },
               ].map(({ label, value, color }, i) => (
                 <div key={label} className={`flex items-center justify-between py-3.5 ${i < 2 ? "border-b" : ""}`}>
                   <span className="text-sm text-slate-600">{label}</span>
@@ -968,13 +968,13 @@ export default function ReportsPage() {
                     const rank = i + 1
                     const badgeConfig =
                       rank === 1
-                        ? { label: "👑 Most Valuable", cls: "bg-yellow-100 text-yellow-800 border-yellow-300" }
+                        ? { label: "👑 Most Valuable", cls: "bg-warning/15 text-yellow-800 border-warning/30" }
                         : rank === 2
                         ? { label: "🥈 Elite Client", cls: "bg-slate-100 text-slate-700 border-slate-300" }
                         : rank === 3
-                        ? { label: "🥉 Top Performer", cls: "bg-orange-100 text-orange-700 border-orange-300" }
+                        ? { label: "🥉 Top Performer", cls: "bg-warning/15 text-warning border-orange-300" }
                         : rank <= 5
-                        ? { label: "⭐ High Value", cls: "bg-blue-50 text-blue-700 border-blue-200" }
+                        ? { label: "⭐ High Value", cls: "bg-primary/10 text-primary border-primary/20" }
                         : { label: c.type === "HOTSPOT" ? "📶 Hotspot Pro" : "🔌 PPPoE Client", cls: "bg-gray-50 text-gray-600 border-gray-200" }
 
                     const isTop3 = rank <= 3
@@ -991,7 +991,7 @@ export default function ReportsPage() {
                         <div
                           className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
                             rank === 1
-                              ? "bg-yellow-400 text-yellow-900"
+                              ? "bg-warning text-yellow-900"
                               : rank === 2
                               ? "bg-slate-300 text-slate-800"
                               : rank === 3
@@ -1045,7 +1045,7 @@ export default function ReportsPage() {
           <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+                <div className="w-1.5 h-5 rounded-full bg-primary" />
                 <div>
                   <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Network Data Usage</CardTitle>
                   <CardDescription className="text-[11px]">Daily Download &amp; Upload Traffic</CardDescription>

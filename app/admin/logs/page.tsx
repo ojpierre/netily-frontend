@@ -146,22 +146,22 @@ export default function LogsPage() {
   const getLevelIcon = (level: LogEntry["level"]) => {
     switch (level) {
       case "info":
-        return <Info className="w-4 h-4 text-blue-500" />
+        return <Info className="w-4 h-4 text-primary" />
       case "warning":
-        return <AlertCircle className="w-4 h-4 text-yellow-500" />
+        return <AlertCircle className="w-4 h-4 text-warning" />
       case "error":
-        return <XCircle className="w-4 h-4 text-red-500" />
+        return <XCircle className="w-4 h-4 text-destructive" />
       case "success":
-        return <CheckCircle className="w-4 h-4 text-green-500" />
+        return <CheckCircle className="w-4 h-4 text-success" />
     }
   }
 
   const getLevelBadge = (level: LogEntry["level"]) => {
     const variants = {
-      info: "bg-blue-100 text-blue-700 border-blue-200",
-      warning: "bg-yellow-100 text-yellow-700 border-yellow-200",
-      error: "bg-red-100 text-red-700 border-red-200",
-      success: "bg-green-100 text-green-700 border-green-200",
+      info: "bg-primary/15 text-primary border-primary/20",
+      warning: "bg-warning/15 text-warning border-warning/20",
+      error: "bg-destructive/15 text-destructive border-destructive/20",
+      success: "bg-success/15 text-success border-success/20",
     }
     return (
       <Badge variant="outline" className={variants[level]}>
@@ -233,13 +233,13 @@ export default function LogsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Info</CardTitle>
-            <Info className="h-4 w-4 text-blue-500" />
+            <Info className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             {loading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-2xl font-bold text-blue-600">{logCounts.info}</div>
+              <div className="text-2xl font-bold text-primary">{logCounts.info}</div>
             )}
           </CardContent>
         </Card>
@@ -247,13 +247,13 @@ export default function LogsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Warnings</CardTitle>
-            <AlertCircle className="h-4 w-4 text-yellow-500" />
+            <AlertCircle className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
             {loading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-2xl font-bold text-yellow-600">{logCounts.warning}</div>
+              <div className="text-2xl font-bold text-warning">{logCounts.warning}</div>
             )}
           </CardContent>
         </Card>
@@ -261,13 +261,13 @@ export default function LogsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Errors</CardTitle>
-            <XCircle className="h-4 w-4 text-red-500" />
+            <XCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
             {loading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-2xl font-bold text-red-600">{logCounts.error}</div>
+              <div className="text-2xl font-bold text-destructive">{logCounts.error}</div>
             )}
           </CardContent>
         </Card>
@@ -275,13 +275,13 @@ export default function LogsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Success</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             {loading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-2xl font-bold text-green-600">{logCounts.success}</div>
+              <div className="text-2xl font-bold text-success">{logCounts.success}</div>
             )}
           </CardContent>
         </Card>

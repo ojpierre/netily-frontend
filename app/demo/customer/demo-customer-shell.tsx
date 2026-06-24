@@ -40,8 +40,8 @@ export function DemoCustomerShell({ children }: { children: ReactNode }) {
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800 dark:bg-amber-950/30">
-          <Badge variant="outline" className="border-amber-300 bg-transparent text-amber-700 dark:border-amber-700 dark:text-amber-300">Demo Account</Badge>
+        <div className="border-b border-warning/20 bg-warning/10 px-4 py-2 dark:border-amber-800 dark:bg-amber-950/30">
+          <Badge variant="outline" className="border-amber-300 bg-transparent text-warning dark:border-amber-700 dark:text-amber-300">Demo Account</Badge>
         </div>
         <nav className="space-y-1 p-3">
           {navItems.map((item) => {

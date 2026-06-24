@@ -40,7 +40,7 @@ const fmtPts = (v: number) => v.toLocaleString() + " pts"
 const tierColors: Record<TierLevel | string, string> = {
   bronze: "bg-amber-600 text-white",
   silver: "bg-slate-400 text-white",
-  gold: "bg-yellow-500 text-white",
+  gold: "bg-warning text-white",
   platinum: "bg-cyan-600 text-white",
   diamond: "bg-purple-600 text-white",
 }
@@ -275,7 +275,7 @@ export default function LoyaltyPage() {
   if (loading && members.length === 0) {
     return (
       <div className="flex items-center justify-center h-72">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -286,11 +286,11 @@ export default function LoyaltyPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <Trophy className="w-6 h-6 text-yellow-500" /> Loyalty Program
+            <Trophy className="w-6 h-6 text-warning" /> Loyalty Program
           </h1>
           <p className="text-slate-500 text-sm mt-1">
             Manage points, rewards, and member tiers
-            <span className="ml-2 text-xs text-green-500 font-medium">● Live</span>
+            <span className="ml-2 text-xs text-success font-medium">● Live</span>
           </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
@@ -308,16 +308,16 @@ export default function LoyaltyPage() {
 
       {/* API not deployed warning */}
       {!apiReady && (
-        <Card className="border-amber-200 bg-amber-50">
+        <Card className="border-warning/20 bg-warning/10">
           <CardContent className="p-4 flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-amber-100 shrink-0">
-              <Trophy className="w-5 h-5 text-amber-600" />
+            <div className="p-2 rounded-lg bg-warning/15 shrink-0">
+              <Trophy className="w-5 h-5 text-warning" />
             </div>
             <div>
               <p className="font-semibold text-amber-800">Loyalty backend not deployed yet</p>
-              <p className="text-sm text-amber-700 mt-1">
-                Run the migration <code className="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded text-xs font-mono">docker compose exec web python manage.py migrate_schemas</code> and then{" "}
-                <code className="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded text-xs font-mono">docker compose exec web python manage.py populate_loyalty_members</code> to seed tiers and enroll existing customers.
+              <p className="text-sm text-warning mt-1">
+                Run the migration <code className="bg-warning/15 text-amber-900 px-1.5 py-0.5 rounded text-xs font-mono">docker compose exec web python manage.py migrate_schemas</code> and then{" "}
+                <code className="bg-warning/15 text-amber-900 px-1.5 py-0.5 rounded text-xs font-mono">docker compose exec web python manage.py populate_loyalty_members</code> to seed tiers and enroll existing customers.
               </p>
             </div>
           </CardContent>
@@ -326,11 +326,11 @@ export default function LoyaltyPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard icon={<Users className="w-5 h-5 text-blue-600" />} label="Total Members" value={(stats?.total_members ?? 0).toLocaleString()} />
-        <StatCard icon={<Star className="w-5 h-5 text-yellow-500" />} label="Points Issued" value={fmtCompact(stats?.total_points_issued ?? 0)} />
-        <StatCard icon={<Gift className="w-5 h-5 text-green-600" />} label="Redemptions" value={(stats?.total_redemptions ?? 0).toLocaleString()} />
+        <StatCard icon={<Users className="w-5 h-5 text-primary" />} label="Total Members" value={(stats?.total_members ?? 0).toLocaleString()} />
+        <StatCard icon={<Star className="w-5 h-5 text-warning" />} label="Points Issued" value={fmtCompact(stats?.total_points_issued ?? 0)} />
+        <StatCard icon={<Gift className="w-5 h-5 text-success" />} label="Redemptions" value={(stats?.total_redemptions ?? 0).toLocaleString()} />
         <StatCard icon={<TrendingUp className="w-5 h-5 text-purple-600" />} label="Avg Points" value={Math.round(stats?.avg_points_per_member ?? 0).toLocaleString()} />
-        <StatCard icon={<Award className="w-5 h-5 text-orange-500" />} label="Active Rewards" value={(stats?.active_rewards ?? 0).toLocaleString()} />
+        <StatCard icon={<Award className="w-5 h-5 text-warning" />} label="Active Rewards" value={(stats?.active_rewards ?? 0).toLocaleString()} />
         <StatCard icon={<TrendingUp className="w-5 h-5 text-cyan-600" />} label="Total Spent" value={kes(stats?.total_spent ?? 0)} />
       </div>
 
@@ -395,7 +395,7 @@ export default function LoyaltyPage() {
                       >
                         {/* Rank circle */}
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                          rank === 1 ? "bg-yellow-400 text-yellow-900" :
+                          rank === 1 ? "bg-warning text-yellow-900" :
                           rank === 2 ? "bg-slate-300 text-slate-800" :
                           rank === 3 ? "bg-orange-300 text-orange-900" :
                           "bg-slate-100 text-slate-500"
@@ -489,7 +489,7 @@ export default function LoyaltyPage() {
                         <ul className="space-y-1">
                           {tier.benefits.map((b, i) => (
                             <li key={i} className="text-xs text-slate-600 flex items-start gap-1">
-                              <span className="text-green-500 mt-0.5">✓</span> {b}
+                              <span className="text-success mt-0.5">✓</span> {b}
                             </li>
                           ))}
                         </ul>
@@ -524,10 +524,10 @@ export default function LoyaltyPage() {
                   {rewards.map(r => (
                     <div key={r.id} className="flex items-center gap-4 rounded-xl px-4 py-3 border bg-white hover:border-slate-200 transition-all">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                        r.category === "voucher" ? "bg-blue-100 text-blue-600" :
-                        r.category === "credit" ? "bg-green-100 text-green-600" :
+                        r.category === "voucher" ? "bg-primary/15 text-primary" :
+                        r.category === "credit" ? "bg-success/15 text-success" :
                         r.category === "internet" ? "bg-purple-100 text-purple-600" :
-                        r.category === "discount" ? "bg-orange-100 text-orange-600" :
+                        r.category === "discount" ? "bg-warning/15 text-warning" :
                         "bg-slate-100 text-slate-600"
                       }`}>
                         {r.category === "voucher" ? <Ticket className="w-5 h-5" /> :
@@ -547,7 +547,7 @@ export default function LoyaltyPage() {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="font-bold text-blue-600 text-base">{r.points_cost.toLocaleString()}</p>
+                        <p className="font-bold text-primary text-base">{r.points_cost.toLocaleString()}</p>
                         <p className="text-[10px] text-muted-foreground">points</p>
                       </div>
                       <div className="text-right shrink-0 min-w-[60px] hidden sm:block">
@@ -558,7 +558,7 @@ export default function LoyaltyPage() {
                         <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditReward(r)}>
                           <Edit className="w-3.5 h-3.5 text-slate-500" />
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500 hover:text-red-600" onClick={() => handleDeleteReward(r.id)}>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDeleteReward(r.id)}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
@@ -582,10 +582,10 @@ export default function LoyaltyPage() {
                   {transactions.map(tx => (
                     <div key={tx.id} className="flex items-center gap-4 rounded-lg px-3 py-2.5 border border-slate-100 hover:border-slate-200 transition-all">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-bold ${
-                        tx.transaction_type === "earned" ? "bg-green-100 text-green-700" :
-                        tx.transaction_type === "redeemed" ? "bg-orange-100 text-orange-700" :
-                        tx.transaction_type === "bonus" ? "bg-blue-100 text-blue-700" :
-                        tx.transaction_type === "expired" ? "bg-red-100 text-red-700" :
+                        tx.transaction_type === "earned" ? "bg-success/15 text-success" :
+                        tx.transaction_type === "redeemed" ? "bg-warning/15 text-warning" :
+                        tx.transaction_type === "bonus" ? "bg-primary/15 text-primary" :
+                        tx.transaction_type === "expired" ? "bg-destructive/15 text-destructive" :
                         "bg-slate-100 text-slate-600"
                       }`}>
                         {tx.transaction_type === "earned" ? "+" :
@@ -602,13 +602,13 @@ export default function LoyaltyPage() {
                         <p className="text-[10px] text-muted-foreground">{new Date(tx.created_at).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}</p>
                       </div>
                       <div className="text-right shrink-0 min-w-[80px]">
-                        <p className={`font-bold ${tx.points >= 0 ? "text-green-600" : "text-red-500"}`}>
+                        <p className={`font-bold ${tx.points >= 0 ? "text-success" : "text-destructive"}`}>
                           {tx.points >= 0 ? "+" : ""}{tx.points.toLocaleString()}
                         </p>
                         <Badge variant="secondary" className={`text-[9px] uppercase ${
-                          tx.transaction_type === "earned" ? "bg-green-50 text-green-700" :
-                          tx.transaction_type === "redeemed" ? "bg-orange-50 text-orange-700" :
-                          tx.transaction_type === "bonus" ? "bg-blue-50 text-blue-700" :
+                          tx.transaction_type === "earned" ? "bg-success/10 text-success" :
+                          tx.transaction_type === "redeemed" ? "bg-warning/10 text-warning" :
+                          tx.transaction_type === "bonus" ? "bg-primary/10 text-primary" :
                           "bg-slate-50 text-slate-600"
                         }`}>
                           {tx.transaction_type}
@@ -741,7 +741,7 @@ export default function LoyaltyPage() {
       <Dialog open={awardDialog} onOpenChange={open => { if (!open) { setAwardDialog(false); setAwardMemberId(""); setAwardPointsValue(""); setAwardReason(""); setAwardSMS(true) } }}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Zap className="w-5 h-5 text-yellow-500" /> Award Points</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Zap className="w-5 h-5 text-warning" /> Award Points</DialogTitle>
             <DialogDescription>Manually award loyalty points to a member</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
@@ -762,7 +762,7 @@ export default function LoyaltyPage() {
               <Label className="text-sm mb-1.5 block">Points to Award</Label>
               <Input type="number" min={1} placeholder="e.g. 100" value={awardPoints} onChange={e => setAwardPointsValue(e.target.value)} />
               {awardPoints && Number(awardPoints) > 0 && awardMemberId && (
-                <p className="text-xs text-green-600 mt-1">
+                <p className="text-xs text-success mt-1">
                   Member will have {(
                     (members.find(m => String(m.id) === awardMemberId)?.current_points ?? 0) + Number(awardPoints)
                   ).toLocaleString()} total points after award
@@ -801,7 +801,7 @@ export default function LoyaltyPage() {
       <Dialog open={voucherDialog} onOpenChange={open => { if (!open) { setVoucherDialog(false); setVoucherMemberId(""); setVoucherBatchId(""); setVoucherSMS(true) } }}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Ticket className="w-5 h-5 text-blue-500" /> Award Voucher</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Ticket className="w-5 h-5 text-primary" /> Award Voucher</DialogTitle>
             <DialogDescription>Award a hotspot voucher to a loyalty member via SMS</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
@@ -823,14 +823,14 @@ export default function LoyaltyPage() {
               <Input type="number" min={1} placeholder="Leave blank for default batch" value={voucherBatchId} onChange={e => setVoucherBatchId(e.target.value)} />
               <p className="text-xs text-muted-foreground mt-1">Links to a specific voucher batch if configured</p>
             </div>
-            <div className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2">
+            <div className="flex items-center justify-between bg-primary/10 rounded-lg px-3 py-2">
               <div className="flex items-center gap-2">
-                <Send className="w-4 h-4 text-blue-500" />
-                <Label className="text-sm text-blue-700">Send voucher code via SMS</Label>
+                <Send className="w-4 h-4 text-primary" />
+                <Label className="text-sm text-primary">Send voucher code via SMS</Label>
               </div>
               <Switch checked={voucherSMS} onCheckedChange={setVoucherSMS} />
             </div>
-            <Button className="w-full bg-blue-600 hover:bg-blue-700" disabled={voucherLoading || !voucherMemberId} onClick={handleAwardVoucher}>
+            <Button className="w-full bg-primary hover:bg-primary" disabled={voucherLoading || !voucherMemberId} onClick={handleAwardVoucher}>
               {voucherLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Awarding…</> : <><Ticket className="w-4 h-4 mr-2" /> Award Voucher</>}
             </Button>
           </div>
@@ -977,7 +977,7 @@ function LeaderboardSection({
 }) {
   const colorMap = {
     violet: { header: "text-violet-700", gradient: "from-violet-50 to-white", border: "border-violet-200", value: "text-violet-700" },
-    green: { header: "text-green-700", gradient: "from-green-50 to-white", border: "border-green-200", value: "text-green-700" },
+    green: { header: "text-success", gradient: "from-green-50 to-white", border: "border-success/20", value: "text-success" },
     purple: { header: "text-purple-700", gradient: "from-purple-50 to-white", border: "border-purple-200", value: "text-purple-700" },
   }
   const c = colorMap[color]
@@ -999,10 +999,10 @@ function LeaderboardSection({
               const rank = i + 1
               const isTop3 = rank <= 3
               const badgeConfig =
-                rank === 1 ? { label: "👑 Most Valuable", cls: "bg-yellow-100 text-yellow-800 border-yellow-300" } :
+                rank === 1 ? { label: "👑 Most Valuable", cls: "bg-warning/15 text-yellow-800 border-warning/30" } :
                 rank === 2 ? { label: "🥈 Elite Client", cls: "bg-slate-100 text-slate-700 border-slate-300" } :
-                rank === 3 ? { label: "🥉 Top Performer", cls: "bg-orange-100 text-orange-700 border-orange-300" } :
-                rank <= 5 ? { label: "⭐ High Value", cls: "bg-blue-50 text-blue-700 border-blue-200" } :
+                rank === 3 ? { label: "🥉 Top Performer", cls: "bg-warning/15 text-warning border-orange-300" } :
+                rank <= 5 ? { label: "⭐ High Value", cls: "bg-primary/10 text-primary border-primary/20" } :
                 { label: m.tier_name || "Member", cls: "bg-gray-50 text-gray-600 border-gray-200" }
 
               return (
@@ -1016,7 +1016,7 @@ function LeaderboardSection({
                 >
                   {/* Rank */}
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                    rank === 1 ? "bg-yellow-400 text-yellow-900" :
+                    rank === 1 ? "bg-warning text-yellow-900" :
                     rank === 2 ? "bg-slate-300 text-slate-800" :
                     rank === 3 ? "bg-orange-300 text-orange-900" :
                     "bg-slate-100 text-slate-500"
@@ -1062,10 +1062,10 @@ function LeaderboardSection({
                   {/* Quick actions */}
                   <div className="flex gap-1 shrink-0">
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onAward(m.id)} title="Award Points">
-                      <Zap className="w-3.5 h-3.5 text-yellow-600" />
+                      <Zap className="w-3.5 h-3.5 text-warning" />
                     </Button>
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => onVoucher(m.id)} title="Award Voucher">
-                      <Ticket className="w-3.5 h-3.5 text-blue-600" />
+                      <Ticket className="w-3.5 h-3.5 text-primary" />
                     </Button>
                   </div>
                 </div>

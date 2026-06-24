@@ -617,7 +617,7 @@ function DashboardMockup() {
 const HERO_SLIDES = [
   {
     id: "billing",
-    bg: "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1800&q=80",
+    bg: "/images/hero1.png",
     overlay: "from-slate-950/70 via-blue-950/40 to-transparent",
     accent: "text-blue-200",
     badgeBg: "bg-blue-600/20 border-blue-400/30 text-blue-200",
@@ -638,7 +638,7 @@ const HERO_SLIDES = [
   },
   {
     id: "mikrotik",
-    bg: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1800&q=80",
+    bg: "/images/hero2.png",
     overlay: "from-slate-950/75 via-cyan-950/35 to-transparent",
     accent: "text-cyan-200",
     badgeBg: "bg-cyan-600/20 border-cyan-400/30 text-cyan-200",
@@ -659,7 +659,7 @@ const HERO_SLIDES = [
   },
   {
     id: "mpesa",
-    bg: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1800&q=80",
+    bg: "/images/hero1.png",
     overlay: "from-slate-950/72 via-emerald-950/40 to-transparent",
     accent: "text-emerald-200",
     badgeBg: "bg-emerald-600/20 border-emerald-400/30 text-emerald-200",
@@ -680,7 +680,7 @@ const HERO_SLIDES = [
   },
   {
     id: "hotspot",
-    bg: "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1800&q=80",
+    bg: "/images/hero2.png",
     overlay: "from-slate-950/70 via-violet-950/38 to-transparent",
     accent: "text-violet-200",
     badgeBg: "bg-violet-600/20 border-violet-400/30 text-violet-200",
@@ -701,7 +701,7 @@ const HERO_SLIDES = [
   },
   {
     id: "operations",
-    bg: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1800&q=80",
+    bg: "/images/hero1.png",
     overlay: "from-slate-950/72 via-indigo-950/35 to-transparent",
     accent: "text-indigo-200",
     badgeBg: "bg-indigo-600/20 border-indigo-400/30 text-indigo-200",
@@ -2383,10 +2383,10 @@ export function LandingPage() {
 }
 
 const HERO_SUPPORT_PHOTO =
-  "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=900&q=80"
+  "/images/hero2.png"
 
 const HERO_NETWORK_PHOTO =
-  "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=900&q=80"
+  "/images/hero1.png"
 
 const HERO_PHOTO =
-  "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1800&q=80"
+  "/images/hero1.png"

@@ -60,7 +60,7 @@ export default function TermsPage() {
       </div>
 
       <div className="mt-8 text-sm text-slate-600 dark:text-slate-400">
-        <Link href="/" className="text-blue-600 hover:underline">
+        <Link href="/" className="text-primary hover:underline">
           Back to registration
         </Link>
       </div>

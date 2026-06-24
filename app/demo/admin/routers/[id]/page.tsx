@@ -132,7 +132,7 @@ export default async function DemoAdminRouterDetailPage({ params }: { params: Pr
           </div>
           <p className="mt-1 text-sm text-muted-foreground">{router.model} · {router.ip} · {router.location}</p>
         </div>
-        <Badge variant="outline" className="w-fit border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
+        <Badge variant="outline" className="w-fit border-primary/20 bg-primary/10 text-primary dark:border-primary/20 dark:bg-blue-950/30 dark:text-primary/60">
           Demo Router Detail
         </Badge>
       </div>

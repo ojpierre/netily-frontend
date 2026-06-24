@@ -261,10 +261,10 @@ export default function SettingsPage() {
             </div>
           </Card>
 
-          <Card className="p-8 bg-red-50 border-red-200">
+          <Card className="p-8 bg-destructive/10 border-destructive/20">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="w-10 h-10 bg-destructive/15 rounded-lg flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-red-900 mb-2">Danger Zone</h3>
@@ -290,7 +290,7 @@ export default function SettingsPage() {
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleDeleteAccount}
-                        className="bg-red-600 hover:bg-red-700"
+                        className="bg-destructive hover:bg-destructive/90"
                       >
                         Yes, delete my account
                       </AlertDialogAction>
@@ -558,16 +558,16 @@ export default function SettingsPage() {
             </div>
           </Card>
 
-          <Card className="p-8 bg-blue-50 border-blue-200">
+          <Card className="p-8 bg-primary/10 border-primary/20">
             <div className="flex items-start gap-4">
-              <Shield className="w-6 h-6 text-blue-600 flex-shrink-0" />
+              <Shield className="w-6 h-6 text-primary flex-shrink-0" />
               <div>
-                <h3 className="font-semibold text-blue-900 mb-2">Data Protection</h3>
-                <p className="text-sm text-blue-800 mb-4">
+                <h3 className="font-semibold text-primary mb-2">Data Protection</h3>
+                <p className="text-sm text-primary mb-4">
                   We take your privacy seriously. Your data is encrypted and never shared
                   with third parties without your explicit consent.
                 </p>
-                <Button variant="outline" size="sm" className="border-blue-300 text-blue-700">
+                <Button variant="outline" size="sm" className="border-primary/30 text-primary">
                   Learn More
                 </Button>
               </div>

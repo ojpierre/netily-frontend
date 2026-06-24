@@ -80,19 +80,19 @@ interface RouterHotspotIPConfigTabProps {
 // ==========================================
 
 const BASE_IP_DESCRIPTIONS: Record<string, { tag: string; desc: string; color: string }> = {
-  "172.12.0.1":    { tag: "Recommended", desc: "Best for large public hotspots", color: "bg-green-100 text-green-700" },
-  "192.168.88.1":  { tag: "MikroTik",    desc: "MikroTik factory default",       color: "bg-blue-100 text-blue-700" },
+  "172.12.0.1":    { tag: "Recommended", desc: "Best for large public hotspots", color: "bg-success/15 text-success" },
+  "192.168.88.1":  { tag: "MikroTik",    desc: "MikroTik factory default",       color: "bg-primary/15 text-primary" },
   "192.168.0.1":   { tag: "Home",        desc: "Common in home routers",          color: "bg-slate-100 text-slate-700" },
   "10.0.0.1":      { tag: "Enterprise",  desc: "Enterprise / data center use",    color: "bg-purple-100 text-purple-700" },
-  "172.16.0.1":    { tag: "Private",     desc: "RFC 1918 private range",          color: "bg-amber-100 text-amber-700" },
+  "172.16.0.1":    { tag: "Private",     desc: "RFC 1918 private range",          color: "bg-warning/15 text-warning" },
   "192.168.100.1": { tag: "Alt",         desc: "Alternative private range",       color: "bg-slate-100 text-slate-700" },
 }
 
 const CIDR_DESCRIPTIONS: Record<number, { use: string; color: string }> = {
-  8:  { use: "Massive ISP infrastructure",  color: "bg-red-100 text-red-700" },
-  12: { use: "Regional ISP networks",       color: "bg-orange-100 text-orange-700" },
-  16: { use: "Large public hotspots",        color: "bg-green-100 text-green-700" },
-  20: { use: "Medium venues / campuses",     color: "bg-blue-100 text-blue-700" },
+  8:  { use: "Massive ISP infrastructure",  color: "bg-destructive/15 text-destructive" },
+  12: { use: "Regional ISP networks",       color: "bg-warning/15 text-warning" },
+  16: { use: "Large public hotspots",        color: "bg-success/15 text-success" },
+  20: { use: "Medium venues / campuses",     color: "bg-primary/15 text-primary" },
   24: { use: "Small office / café WiFi",     color: "bg-slate-100 text-slate-700" },
   28: { use: "Tiny / test networks",         color: "bg-gray-100 text-gray-600" },
 }
@@ -317,8 +317,8 @@ export function RouterHotspotIPConfigTab({ routerId, isDemo = false }: RouterHot
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <Network className="w-6 h-6 text-blue-600" />
+          <div className="p-2 bg-primary/15 rounded-lg">
+            <Network className="w-6 h-6 text-primary" />
           </div>
           <div>
             <h2 className="text-xl font-bold">Hotspot IP Configuration</h2>
@@ -334,10 +334,10 @@ export function RouterHotspotIPConfigTab({ routerId, isDemo = false }: RouterHot
       </div>
 
       {/* Info Alert */}
-      <Alert className="border-blue-200 bg-blue-50/50">
-        <Info className="h-4 w-4 text-blue-600" />
-        <AlertTitle className="text-blue-900">How Hotspot IP Works</AlertTitle>
-        <AlertDescription className="text-blue-700">
+      <Alert className="border-primary/20 bg-primary/10/50">
+        <Info className="h-4 w-4 text-primary" />
+        <AlertTitle className="text-primary">How Hotspot IP Works</AlertTitle>
+        <AlertDescription className="text-primary">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2 text-xs">
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="font-mono">/16</Badge>
@@ -366,7 +366,7 @@ export function RouterHotspotIPConfigTab({ routerId, isDemo = false }: RouterHot
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Globe className="w-5 h-5 text-blue-600" />
+                <Globe className="w-5 h-5 text-primary" />
                 <div>
                   <CardTitle className="text-base">Hotspot IP Address</CardTitle>
                   <CardDescription>Gateway IP for your hotspot network</CardDescription>
@@ -410,7 +410,7 @@ export function RouterHotspotIPConfigTab({ routerId, isDemo = false }: RouterHot
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-indigo-600" />
+                <Shield className="w-5 h-5 text-primary" />
                 <div>
                   <CardTitle className="text-base">Subnet Mask</CardTitle>
                   <CardDescription>Number of available IP addresses</CardDescription>
@@ -451,7 +451,7 @@ export function RouterHotspotIPConfigTab({ routerId, isDemo = false }: RouterHot
           </Card>
 
           {/* Save Button */}
-          <Card className="border-2 border-dashed border-blue-200">
+          <Card className="border-2 border-dashed border-primary/20">
             <CardContent className="pt-6">
               <Button
                 className="w-full gap-2"
@@ -467,12 +467,12 @@ export function RouterHotspotIPConfigTab({ routerId, isDemo = false }: RouterHot
                 {isSaving ? "Applying to Router..." : isDirty ? "Save Network Config" : "No Changes"}
               </Button>
               {isDirty && (
-                <p className="text-xs text-amber-600 mt-2 text-center">
+                <p className="text-xs text-warning mt-2 text-center">
                   Unsaved changes — clicking save will update the live router
                 </p>
               )}
               {!isDirty && config && (
-                <p className="text-xs text-green-600 mt-2 text-center flex items-center justify-center gap-1">
+                <p className="text-xs text-success mt-2 text-center flex items-center justify-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
                   Configuration is in sync with the router
                 </p>
@@ -488,14 +488,14 @@ export function RouterHotspotIPConfigTab({ routerId, isDemo = false }: RouterHot
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Wifi className="w-5 h-5 text-blue-400" />
+                  <Wifi className="w-5 h-5 text-primary/80" />
                   <CardTitle className="text-white text-base">Configured Range</CardTitle>
                 </div>
-                {isPreviewing && <Loader2 className="w-4 h-4 animate-spin text-blue-400" />}
+                {isPreviewing && <Loader2 className="w-4 h-4 animate-spin text-primary/80" />}
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold font-mono tracking-wider text-blue-400">
+              <div className="text-3xl font-bold font-mono tracking-wider text-primary/80">
                 {preview?.interface_address || `${selectedIP}/${selectedCIDR}`}
               </div>
               <p className="text-slate-400 text-sm mt-1">
@@ -522,7 +522,7 @@ export function RouterHotspotIPConfigTab({ routerId, isDemo = false }: RouterHot
                     label="Gateway"
                     value={preview.gateway}
                     badge="Router IP"
-                    badgeColor="bg-green-100 text-green-700"
+                    badgeColor="bg-success/15 text-success"
                   />
                   <Separator />
                   <NetworkDetailRow
@@ -536,20 +536,20 @@ export function RouterHotspotIPConfigTab({ routerId, isDemo = false }: RouterHot
                     label="Subnet Mask"
                     value={preview.subnet_mask}
                     badge={`/${selectedCIDR}`}
-                    badgeColor="bg-indigo-100 text-indigo-700"
+                    badgeColor="bg-primary/15 text-primary"
                   />
                   <Separator />
                   <NetworkDetailRow
                     label="Broadcast"
                     value={preview.broadcast}
                     badge="Last IP"
-                    badgeColor="bg-amber-100 text-amber-700"
+                    badgeColor="bg-warning/15 text-warning"
                   />
                   <Separator />
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-slate-500">DHCP Pool Range</span>
-                      <Badge variant="outline" className="font-mono text-xs bg-blue-50 text-blue-700 border-blue-200">
+                      <Badge variant="outline" className="font-mono text-xs bg-primary/10 text-primary border-primary/20">
                         Pool
                       </Badge>
                     </div>
@@ -563,8 +563,8 @@ export function RouterHotspotIPConfigTab({ routerId, isDemo = false }: RouterHot
                       </p>
                       <p className="text-xs text-slate-500">Total Hosts</p>
                     </div>
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                      <p className="text-2xl font-bold text-green-700">
+                    <div className="text-center p-3 bg-success/10 rounded-lg">
+                      <p className="text-2xl font-bold text-success">
                         {preview.usable_hosts?.toLocaleString()}
                       </p>
                       <p className="text-xs text-slate-500">Usable (Pool)</p>
@@ -581,10 +581,10 @@ export function RouterHotspotIPConfigTab({ routerId, isDemo = false }: RouterHot
           </Card>
 
           {/* Warning / Info box */}
-          <Alert className="border-amber-200 bg-amber-50/50">
-            <Zap className="h-4 w-4 text-amber-600" />
+          <Alert className="border-warning/20 bg-warning/10/50">
+            <Zap className="h-4 w-4 text-warning" />
             <AlertTitle className="text-amber-900 text-sm">What happens when you save?</AlertTitle>
-            <AlertDescription className="text-amber-700 text-xs space-y-1">
+            <AlertDescription className="text-warning text-xs space-y-1">
               <p>1. IP Pool is updated (DHCP stays intact)</p>
               <p>2. Bridge interface gets the new IP</p>
               <p>3. DHCP server network is reconfigured</p>

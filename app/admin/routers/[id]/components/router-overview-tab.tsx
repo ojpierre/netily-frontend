@@ -50,11 +50,11 @@ function ArcGauge({ value, color, size = 120 }: { value: number; color: string; 
   const cy = size / 2
 
   const colorMap: Record<string, { stroke: string; glow: string; text: string }> = {
-    blue:   { stroke: '#3b82f6', glow: 'rgba(59,130,246,0.2)',   text: 'text-blue-600 dark:text-blue-400' },
+    blue:   { stroke: '#3b82f6', glow: 'rgba(59,130,246,0.2)',   text: 'text-primary dark:text-primary/80' },
     purple: { stroke: '#8b5cf6', glow: 'rgba(139,92,246,0.2)',   text: 'text-purple-600 dark:text-purple-400' },
     emerald:{ stroke: '#10b981', glow: 'rgba(16,185,129,0.2)',   text: 'text-emerald-600 dark:text-emerald-400' },
-    amber:  { stroke: '#f59e0b', glow: 'rgba(245,158,11,0.2)',   text: 'text-amber-600 dark:text-amber-400' },
-    red:    { stroke: '#ef4444', glow: 'rgba(239,68,68,0.2)',    text: 'text-red-600 dark:text-red-400' },
+    amber:  { stroke: '#f59e0b', glow: 'rgba(245,158,11,0.2)',   text: 'text-warning dark:text-warning' },
+    red:    { stroke: '#ef4444', glow: 'rgba(239,68,68,0.2)',    text: 'text-destructive dark:text-destructive' },
   }
 
   const activeColor = value >= 85 ? 'red' : value >= 65 ? 'amber' : color
@@ -134,7 +134,7 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-full border-2 border-blue-500/30 border-t-blue-500 animate-spin" />
+          <div className="w-12 h-12 rounded-full border-2 border-primary/30 border-t-blue-500 animate-spin" />
           <p className="text-sm text-slate-400">Connecting to router…</p>
         </div>
       </div>
@@ -144,8 +144,8 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
   if (!liveStatus) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
-          <XCircle className="w-8 h-8 text-red-500" />
+        <div className="w-16 h-16 rounded-2xl bg-destructive/10 dark:bg-destructive/10 flex items-center justify-center">
+          <XCircle className="w-8 h-8 text-destructive" />
         </div>
         <p className="text-lg font-semibold text-slate-900 dark:text-white">Unable to connect</p>
         <p className="text-sm text-slate-400">Router may be offline or credentials invalid</p>
@@ -171,9 +171,9 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold border ${
             liveStatus.online
               ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
-              : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
+              : 'bg-destructive/10 text-destructive border-destructive/20 dark:bg-destructive/10 dark:text-destructive dark:border-destructive/20'
           }`}>
-            <span className={`w-2 h-2 rounded-full ${liveStatus.online ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+            <span className={`w-2 h-2 rounded-full ${liveStatus.online ? 'bg-emerald-500 animate-pulse' : 'bg-destructive'}`} />
             {liveStatus.online ? 'Online' : 'Offline'}
           </div>
           {lastUpdated && (
@@ -237,7 +237,7 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
                   />
                 </div>
                 <div className="flex gap-3">
-                  {[{ label: 'Normal', dot: 'bg-blue-400' }, { label: 'High', dot: 'bg-amber-400' }, { label: 'Critical', dot: 'bg-red-400' }].map(t => (
+                  {[{ label: 'Normal', dot: 'bg-primary/40' }, { label: 'High', dot: 'bg-warning' }, { label: 'Critical', dot: 'bg-red-400' }].map(t => (
                     <div key={t.label} className="flex items-center gap-1">
                       <div className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />
                       <span className="text-[10px] text-slate-400">{t.label}</span>
@@ -276,7 +276,7 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
                   />
                 </div>
                 <div className="flex gap-3">
-                  {[{ label: 'Normal', dot: 'bg-purple-400' }, { label: 'High', dot: 'bg-amber-400' }, { label: 'Critical', dot: 'bg-red-400' }].map(t => (
+                  {[{ label: 'Normal', dot: 'bg-purple-400' }, { label: 'High', dot: 'bg-warning' }, { label: 'Critical', dot: 'bg-red-400' }].map(t => (
                     <div key={t.label} className="flex items-center gap-1">
                       <div className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />
                       <span className="text-[10px] text-slate-400">{t.label}</span>
@@ -306,8 +306,8 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
                 <div className="flex items-center gap-1.5">
                   {online
                     ? <CheckCircle className="w-4 h-4 text-emerald-500" />
-                    : <XCircle className="w-4 h-4 text-red-500" />}
-                  <span className={`text-sm font-semibold ${online ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{value}</span>
+                    : <XCircle className="w-4 h-4 text-destructive" />}
+                  <span className={`text-sm font-semibold ${online ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive dark:text-destructive'}`}>{value}</span>
                 </div>
               ) : (
                 <p className={`text-sm font-semibold text-slate-900 dark:text-white capitalize ${mono ? 'font-mono' : ''}`}>{value}</p>

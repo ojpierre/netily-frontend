@@ -117,10 +117,10 @@ import type {
 // Helper Functions
 const getStatusBadge = (status: EquipmentStatus) => {
   const badges: Record<EquipmentStatus, { variant: "default" | "secondary" | "destructive" | "outline"; label: string; className?: string }> = {
-    'in_stock': { variant: 'default', label: 'In Stock', className: 'bg-green-500' },
-    'assigned': { variant: 'secondary', label: 'Assigned', className: 'bg-blue-500 text-white' },
+    'in_stock': { variant: 'default', label: 'In Stock', className: 'bg-success' },
+    'assigned': { variant: 'secondary', label: 'Assigned', className: 'bg-primary text-white' },
     'in_use': { variant: 'secondary', label: 'In Use', className: 'bg-purple-500 text-white' },
-    'maintenance': { variant: 'secondary', label: 'Maintenance', className: 'bg-yellow-500 text-black' },
+    'maintenance': { variant: 'secondary', label: 'Maintenance', className: 'bg-warning text-black' },
     'faulty': { variant: 'destructive', label: 'Faulty' },
     'retired': { variant: 'outline', label: 'Retired' },
     'lost': { variant: 'destructive', label: 'Lost' },
@@ -722,10 +722,10 @@ export default function InventoryPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Available</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.available}</div>
+            <div className="text-2xl font-bold text-success">{stats.available}</div>
             <p className="text-xs text-muted-foreground">Ready to assign</p>
           </CardContent>
         </Card>
@@ -733,10 +733,10 @@ export default function InventoryPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Assigned</CardTitle>
-            <UserCheck className="h-4 w-4 text-blue-500" />
+            <UserCheck className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.assigned}</div>
+            <div className="text-2xl font-bold text-primary">{stats.assigned}</div>
             <p className="text-xs text-muted-foreground">With employees</p>
           </CardContent>
         </Card>
@@ -755,10 +755,10 @@ export default function InventoryPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Maintenance</CardTitle>
-            <Wrench className="h-4 w-4 text-yellow-500" />
+            <Wrench className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.maintenance}</div>
+            <div className="text-2xl font-bold text-warning">{stats.maintenance}</div>
             <p className="text-xs text-muted-foreground">Under repair</p>
           </CardContent>
         </Card>
@@ -777,10 +777,10 @@ export default function InventoryPage() {
 
       {/* Stock Alerts */}
       {stockAlerts.length > 0 && (
-        <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
+        <Card className="border-warning/20 bg-warning/10 dark:bg-yellow-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertCircle className="h-4 w-4 text-warning" />
               Stock Alerts
             </CardTitle>
           </CardHeader>
@@ -967,7 +967,7 @@ export default function InventoryPage() {
                               Send to Maintenance
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteEquipment(item)}>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteEquipment(item)}>
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete
                             </DropdownMenuItem>
@@ -1036,7 +1036,7 @@ export default function InventoryPage() {
                             assignment.status === 'returned' ? 'secondary' :
                             assignment.status === 'overdue' ? 'destructive' : 'default'
                           }
-                          className={assignment.status === 'active' ? 'bg-blue-500' : ''}
+                          className={assignment.status === 'active' ? 'bg-primary' : ''}
                         >
                           {assignment.status}
                         </Badge>
@@ -1084,7 +1084,7 @@ export default function InventoryPage() {
                   const stockPercent = type.min_stock_level > 0 ? (type.available_count / type.min_stock_level) * 100 : 100
                   const isLow = type.available_count < type.min_stock_level
                   return (
-                    <Card key={type.id} className={isLow ? 'border-yellow-300' : ''}>
+                    <Card key={type.id} className={isLow ? 'border-warning/30' : ''}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-lg">{type.name}</CardTitle>
@@ -1099,7 +1099,7 @@ export default function InventoryPage() {
                         </div>
                         <div className="flex justify-between text-sm">
                           <span>Available</span>
-                          <span className={`font-medium ${isLow ? 'text-yellow-600' : 'text-green-600'}`}>
+                          <span className={`font-medium ${isLow ? 'text-warning' : 'text-success'}`}>
                             {type.available_count}
                           </span>
                         </div>
@@ -1109,10 +1109,10 @@ export default function InventoryPage() {
                         </div>
                         <Progress
                           value={Math.min(stockPercent, 100)}
-                          className={`h-2 ${isLow ? '[&>div]:bg-yellow-500' : ''}`}
+                          className={`h-2 ${isLow ? '[&>div]:bg-warning' : ''}`}
                         />
                         {isLow && (
-                          <p className="text-xs text-yellow-600 flex items-center gap-1">
+                          <p className="text-xs text-warning flex items-center gap-1">
                             <AlertTriangle className="h-3 w-3" />
                             Below minimum stock level
                           </p>
@@ -1842,7 +1842,7 @@ export default function InventoryPage() {
               disabled={isSubmitting}
               className={pendingDestructiveAction === "dispose"
                 ? "bg-amber-600 hover:bg-amber-700 focus-visible:ring-amber-500"
-                : "bg-red-600 hover:bg-red-700 focus-visible:ring-red-500"}
+                : "bg-destructive hover:bg-destructive/90 focus-visible:ring-red-500"}
             >
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {pendingDestructiveAction === "dispose" ? "Dispose Equipment" : "Delete Equipment"}

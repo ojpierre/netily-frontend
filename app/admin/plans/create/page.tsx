@@ -96,7 +96,7 @@ const PLAN_PRESETS: { hotspot: PlanPreset[]; pppoe: PlanPreset[] } = {
       id: 'hotspot-30min',
       name: '30 Minutes',
       icon: Coffee,
-      color: 'bg-amber-500',
+      color: 'bg-warning',
       description: 'Quick browse session',
       config: {
         name: '30 Min Access',
@@ -114,7 +114,7 @@ const PLAN_PRESETS: { hotspot: PlanPreset[]; pppoe: PlanPreset[] } = {
       id: 'hotspot-1hr',
       name: '1 Hour',
       icon: Timer,
-      color: 'bg-blue-500',
+      color: 'bg-primary',
       description: 'Standard session',
       config: {
         name: '1 Hour Access',
@@ -132,7 +132,7 @@ const PLAN_PRESETS: { hotspot: PlanPreset[]; pppoe: PlanPreset[] } = {
       id: 'hotspot-3hr',
       name: '3 Hours',
       icon: Globe,
-      color: 'bg-green-500',
+      color: 'bg-success',
       description: 'Extended session',
       config: {
         name: '3 Hour Access',
@@ -168,7 +168,7 @@ const PLAN_PRESETS: { hotspot: PlanPreset[]; pppoe: PlanPreset[] } = {
       id: 'hotspot-weekly',
       name: '7 Days',
       icon: Zap,
-      color: 'bg-orange-500',
+      color: 'bg-warning',
       description: 'Weekly pass',
       config: {
         name: 'Weekly Pass',
@@ -243,7 +243,7 @@ const PLAN_PRESETS: { hotspot: PlanPreset[]; pppoe: PlanPreset[] } = {
       id: 'pppoe-daily',
       name: '24 Hours',
       icon: Coffee,
-      color: 'bg-indigo-500',
+      color: 'bg-primary',
       description: 'Full day PPPoE access',
       config: {
         name: 'PPPoE Daily',
@@ -316,7 +316,7 @@ const PLAN_PRESETS: { hotspot: PlanPreset[]; pppoe: PlanPreset[] } = {
       id: 'pppoe-standard',
       name: 'Standard Home',
       icon: Wifi,
-      color: 'bg-blue-500',
+      color: 'bg-primary',
       description: 'Streaming & social media',
       config: {
         name: 'Standard Home',
@@ -334,7 +334,7 @@ const PLAN_PRESETS: { hotspot: PlanPreset[]; pppoe: PlanPreset[] } = {
       id: 'pppoe-premium',
       name: 'Premium Home',
       icon: Signal,
-      color: 'bg-green-500',
+      color: 'bg-success',
       description: '4K streaming & gaming',
       config: {
         name: 'Premium Home',
@@ -370,7 +370,7 @@ const PLAN_PRESETS: { hotspot: PlanPreset[]; pppoe: PlanPreset[] } = {
       id: 'pppoe-soho',
       name: 'Small Office',
       icon: Briefcase,
-      color: 'bg-amber-500',
+      color: 'bg-warning',
       description: 'Small business needs',
       config: {
         name: 'SOHO Business',
@@ -696,7 +696,7 @@ export default function CreatePlanPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-yellow-500" />
+            <Zap className="w-5 h-5 text-warning" />
             Quick Create
           </CardTitle>
           <CardDescription>
@@ -1222,7 +1222,7 @@ export default function CreatePlanPage() {
                               </SelectContent>
                             </Select>
                             {!octetConfig.show && (
-                              <p className="text-xs text-amber-600">
+                              <p className="text-xs text-warning">
                                 3rd octet not needed — entire /16 block used
                               </p>
                             )}
@@ -1233,7 +1233,7 @@ export default function CreatePlanPage() {
 
                     {/* 192.168 Warning */}
                     {formData.subnet_prefix.startsWith('192.168') && (
-                      <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md text-sm text-amber-700 dark:text-amber-300">
+                      <div className="flex items-center gap-2 p-3 bg-warning/10 dark:bg-amber-950 border border-warning/20 dark:border-amber-800 rounded-md text-sm text-warning dark:text-amber-300">
                         <Zap className="w-4 h-4 flex-shrink-0" />
                         <span>192.168.x.x is typically used for local LANs. Consider using 10.x.x.x or 172.x.x.x for subscriber pools.</span>
                       </div>
@@ -1259,7 +1259,7 @@ export default function CreatePlanPage() {
                           <p className="text-sm font-medium">{subnetPreview.totalHosts.toLocaleString()}</p>
                         </div>
                         {subnetPreview.isLarge && (
-                          <div className="col-span-2 text-xs text-amber-700 bg-amber-50 rounded p-2">
+                          <div className="col-span-2 text-xs text-warning bg-warning/10 rounded p-2">
                             ⚠ Large pool — IP records generated in background after save.
                           </div>
                         )}

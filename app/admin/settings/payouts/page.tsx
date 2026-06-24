@@ -273,10 +273,10 @@ export default function PayoutSettingsPage() {
 
       {/* Pending Balance Card */}
       {summary && (
-        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-primary/20 dark:border-primary/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-blue-600" />
+              <DollarSign className="w-5 h-5 text-primary" />
               Pending Balance
             </CardTitle>
           </CardHeader>
@@ -284,7 +284,7 @@ export default function PayoutSettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Available for Payout</p>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                <p className="text-2xl font-bold text-primary dark:text-primary/80">
                   {formatCurrency(summary.pending_balance)}
                 </p>
               </div>
@@ -296,7 +296,7 @@ export default function PayoutSettingsPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Platform Commission (5%)</p>
-                <p className="text-xl font-semibold text-orange-600">
+                <p className="text-xl font-semibold text-warning">
                   {formatCurrency(summary.total_commission)}
                 </p>
               </div>
@@ -309,7 +309,7 @@ export default function PayoutSettingsPage() {
             )}
             {summary.last_payout && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CheckCircle className="w-4 h-4 text-green-600" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 Last payout: {formatCurrency(summary.last_payout.amount)} on {formatDate(summary.last_payout.date)}
               </div>
             )}
@@ -319,7 +319,7 @@ export default function PayoutSettingsPage() {
 
       {/* Alert for unverified config */}
       {config && !config.is_verified && (
-        <Alert variant="destructive" className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-100">
+        <Alert variant="destructive" className="border-warning/20 bg-warning/10 text-amber-900 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-100">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Verification Required</AlertTitle>
           <AlertDescription>
@@ -529,7 +529,7 @@ export default function PayoutSettingsPage() {
         <CardFooter className="flex justify-between">
           <div className="flex items-center gap-2">
             {config?.is_verified ? (
-              <Badge variant="outline" className="text-green-700 border-green-300 bg-green-50">
+              <Badge variant="outline" className="text-success border-success/30 bg-success/10">
                 <CheckCircle className="w-3 h-3 mr-1" />
                 Verified
               </Badge>
@@ -570,14 +570,14 @@ export default function PayoutSettingsPage() {
       </Card>
 
       {/* Info Card */}
-      <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20">
+      <Card className="border-primary/20 bg-primary/10/50 dark:border-primary/20 dark:bg-blue-950/20">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2 text-blue-800 dark:text-blue-200">
+          <CardTitle className="text-base flex items-center gap-2 text-primary dark:text-primary/40">
             <Info className="w-4 h-4" />
             How Payouts Work
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-blue-700 dark:text-blue-300 space-y-2">
+        <CardContent className="text-sm text-primary dark:text-primary/60 space-y-2">
           <p>
             When your customers make payments (subscriptions, recharges, or hotspot purchases), 
             the funds are collected by Netily&apos;s payment processor.

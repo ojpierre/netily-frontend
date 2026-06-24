@@ -189,7 +189,7 @@ function BillingContent() {
       return (
         <div className="flex flex-col">
           <span className="text-2xl font-black">{kes(activationFee)}</span>
-          <span className="text-[10px] text-blue-600 font-bold uppercase">Activation + Usage Minimum</span>
+          <span className="text-[10px] text-primary font-bold uppercase">Activation + Usage Minimum</span>
         </div>
       )
     }
@@ -364,10 +364,10 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
       )}
 
       {pendingPaymentId && (
-        <Alert className="border-blue-200 bg-blue-50">
-          <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-          <AlertTitle className="text-blue-800">Processing Payment</AlertTitle>
-          <AlertDescription className="text-blue-700">
+        <Alert className="border-primary/20 bg-primary/10">
+          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          <AlertTitle className="text-primary">Processing Payment</AlertTitle>
+          <AlertDescription className="text-primary">
             {paymentStatus || "Waiting for M-Pesa confirmation..."} This page will update automatically once your payment is confirmed.
           </AlertDescription>
         </Alert>
@@ -389,7 +389,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="space-y-1">
                   <CardTitle className="text-xl flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-blue-600" /> {subscription.plan?.name || 'Standard Plan'}
+                    <Zap className="w-5 h-5 text-primary" /> {subscription.plan?.name || 'Standard Plan'}
                   </CardTitle>
                   <CardDescription>{subscription.plan?.description || ''}</CardDescription>
                 </div>
@@ -474,20 +474,20 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
               {subscription.plan?.is_metered && subscription.trial_expired && (subscription.status === 'expired' || subscription.status === 'past_due') && (
                 <CardFooter className="flex flex-col items-stretch gap-4 pt-4 border-t border-slate-100">
                   {/* Trial expired - needs payment */}
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-3">
-                    <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-center gap-3">
+                    <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-red-800">
                         Trial Expired
                       </p>
-                      <p className="text-xs text-red-600 mt-0.5">
+                      <p className="text-xs text-destructive mt-0.5">
                         Pay the activation fee to continue using Netily
                       </p>
                     </div>
                   </div>
 
                   <Button
-                    className="w-full sm:w-auto bg-green-600 hover:bg-green-700 font-bold"
+                    className="w-full sm:w-auto bg-success hover:bg-green-700 font-bold"
                     onClick={() => {
                       setPayNowOpen(true)
                       setPayNowPhone("")
@@ -522,7 +522,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                     <p className="text-xs text-slate-400 mt-1">You&apos;ll receive an STK push prompt on this number</p>
                   </div>
                   <Button
-                    className="w-full bg-green-600 hover:bg-green-700"
+                    className="w-full bg-success hover:bg-green-700"
                     disabled={payNowLoading || !payNowPhone.trim()}
                     onClick={handlePayNow}
                   >
@@ -556,13 +556,13 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
             })
             const planAmount = subscription.plan?.base_license_fee ?? subscription.plan?.price_monthly ?? null
             return (
-              <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-4">
-                <span className="text-amber-500 mt-0.5">⏰</span>
+              <div className="mb-4 flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/10 dark:bg-amber-950/30 dark:border-amber-800 p-4">
+                <span className="text-warning mt-0.5">⏰</span>
                 <div className="flex-1">
                   <p className="font-semibold text-amber-800 dark:text-amber-200 text-sm">
                     Upcoming Invoice — due in {daysLeft === 0 ? "today" : `${daysLeft} day${daysLeft !== 1 ? "s" : ""}`}
                   </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                  <p className="text-xs text-warning dark:text-amber-300 mt-0.5">
                     Your next subscription invoice is due on <strong>{dueDate}</strong>
                     {planAmount ? ` · Estimated KES ${Number(planAmount).toLocaleString()}` : ""}.
                     Ensure your M-Pesa wallet is funded to avoid service interruption.
@@ -609,7 +609,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
 
                       return (
                         <TableRow key={inv?.id || Math.random()} className="hover:bg-slate-50/50 transition-colors">
-                          <TableCell className="font-mono font-bold text-blue-600">{inv?.invoice_number || '---'}</TableCell>
+                          <TableCell className="font-mono font-bold text-primary">{inv?.invoice_number || '---'}</TableCell>
                           <TableCell>{billingDate ? new Date(billingDate).toLocaleDateString() : '---'}</TableCell>
                           <TableCell className="text-slate-600 text-sm hidden sm:table-cell">
                             {pStart && pEnd ? (
@@ -668,7 +668,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                                   )}
                                   <div className="mt-6 flex justify-between items-center border-t pt-4">
                                     <span className="font-bold uppercase text-xs tracking-widest text-slate-500">Total Due</span>
-                                    <span className="font-black text-xl text-blue-600">{kes(inv?.total_amount || 0)}</span>
+                                    <span className="font-black text-xl text-primary">{kes(inv?.total_amount || 0)}</span>
                                   </div>
                                 </div>
                               </DialogContent>
@@ -679,7 +679,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                             {inv?.status !== 'paid' && (
                               <Dialog open={payingInvoiceId === inv.id} onOpenChange={(open) => { if (!open) { setPayingInvoiceId(null); setPayPhone("") } }}>
                                 <DialogTrigger asChild>
-                                  <Button size="sm" className="ml-2 h-8 bg-green-600 hover:bg-green-700" onClick={() => setPayingInvoiceId(inv.id)}>
+                                  <Button size="sm" className="ml-2 h-8 bg-success hover:bg-green-700" onClick={() => setPayingInvoiceId(inv.id)}>
                                     <Phone className="w-3 h-3 mr-2" /> Pay
                                   </Button>
                                 </DialogTrigger>
@@ -700,7 +700,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                                       <p className="text-xs text-slate-400 mt-1">You&apos;ll receive an STK push prompt on this number</p>
                                     </div>
                                     <Button
-                                      className="w-full bg-green-600 hover:bg-green-700"
+                                      className="w-full bg-success hover:bg-green-700"
                                       disabled={payLoading || !payPhone.trim()}
                                       onClick={() => handlePayInvoice(inv.id)}
                                     >
@@ -731,7 +731,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                 key={plan.id} 
                 className={`${
                   plan.code === subscription?.plan?.code 
-                    ? 'border-blue-600 border-2 shadow-md ring-1 ring-blue-600/10' 
+                    ? 'border-primary border-2 shadow-md ring-1 ring-ring/10' 
                     : 'border-slate-200'
                 } transition-all hover:shadow-lg`}
               >
@@ -739,7 +739,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   <div className="flex justify-between items-start mb-2">
                     <CardTitle className="text-lg">{plan.name}</CardTitle>
                     {plan.code === subscription?.plan?.code && (
-                      <Badge className="bg-blue-600 text-[10px] font-bold">CURRENT PLAN</Badge>
+                      <Badge className="bg-primary text-[10px] font-bold">CURRENT PLAN</Badge>
                     )}
                   </div>
                   <CardDescription className="text-xs h-8 line-clamp-2">
@@ -765,8 +765,8 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                       {(plan as any).max_staff || plan.max_staff_users || 'Unlimited'} Staff Accounts
                     </div>
                   </div>
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <p className="text-xs text-blue-700 font-medium">
+                  <div className="bg-primary/10 p-3 rounded-lg">
+                    <p className="text-xs text-primary font-medium">
                       KES 500 activation after trial, then usage billing with a KES 500 monthly minimum
                     </p>
                   </div>
@@ -790,13 +790,13 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
               <CardHeader>
                 <div className="flex justify-between items-start mb-2">
                   <CardTitle className="text-lg text-white flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-blue-400" />
+                    <Shield className="w-5 h-5 text-primary/80" />
                     Enterprise &amp; Custom Plans
                   </CardTitle>
                   {isEnterprisePlan(subscription?.plan) ? (
-                    <Badge className="bg-blue-600 text-[10px] font-bold">CURRENT PLAN</Badge>
+                    <Badge className="bg-primary text-[10px] font-bold">CURRENT PLAN</Badge>
                   ) : (
-                    <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px]">CUSTOM PRICING</Badge>
+                    <Badge className="bg-primary/20 text-primary/60 border border-primary/30 text-[10px]">CUSTOM PRICING</Badge>
                   )}
                 </div>
                 <CardDescription className="text-slate-400 text-xs">
@@ -815,7 +815,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                     "Priority 24/7 phone support",
                   ].map((f) => (
                     <div key={f} className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-blue-400 shrink-0" />
+                      <Check className="w-4 h-4 text-primary/80 shrink-0" />
                       <span>{f}</span>
                     </div>
                   ))}
@@ -824,7 +824,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
               <CardFooter>
                 <Button
                   type="button"
-                  className="w-full bg-blue-600 hover:bg-blue-500 font-bold"
+                  className="w-full bg-primary hover:bg-primary font-bold"
                   onClick={() => setEnterpriseSupportOpen(true)}
                 >
                   Contact Support
@@ -884,7 +884,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   <p className="text-xs text-slate-400 mt-1">You&apos;ll receive an STK push prompt on this number</p>
                 </div>
                 <Button
-                  className="w-full bg-green-600 hover:bg-green-700"
+                  className="w-full bg-success hover:bg-green-700"
                   disabled={planPayLoading || !planPayPhone.trim()}
                   onClick={handleSelectPlan}
                 >
@@ -924,14 +924,14 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                 return (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-1">
-                      <Receipt className="w-4 h-4 text-blue-600" />
+                      <Receipt className="w-4 h-4 text-primary" />
                       <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">Billing Estimate - Current Cycle</h3>
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                       {/* Monthly Minimum */}
-                      <Card className="border-blue-200 bg-blue-50/40">
+                      <Card className="border-primary/20 bg-primary/10/40">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-xs font-black uppercase text-blue-500 tracking-widest">Monthly Minimum</CardTitle>
+                          <CardTitle className="text-xs font-black uppercase text-primary tracking-widest">Monthly Minimum</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{kes(minimumCharge)}</p>
@@ -940,9 +940,9 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                       </Card>
 
                       {/* PPPoE Clients */}
-                      <Card className="border-indigo-200 bg-indigo-50/40">
+                      <Card className="border-primary/20 bg-primary/10/40">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-xs font-black uppercase text-indigo-500 tracking-widest">PPPoE Clients</CardTitle>
+                          <CardTitle className="text-xs font-black uppercase text-primary tracking-widest">PPPoE Clients</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{kes(pppoeCharge)}</p>
@@ -966,9 +966,9 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                       </Card>
 
                       {/* Netily Hotspot Share */}
-                      <Card className="border-amber-200 bg-amber-50/50">
+                      <Card className="border-warning/20 bg-warning/10/50">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-xs font-black uppercase text-amber-600 tracking-widest">Hotspot Share</CardTitle>
+                          <CardTitle className="text-xs font-black uppercase text-warning tracking-widest">Hotspot Share</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{kes(hotspotShareAmount)}</p>
@@ -995,9 +995,9 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                             <p className="text-xs text-emerald-300 mt-0.5">Includes {kes(invoiceDiscountAmount)} support-approved discount</p>
                           )}
                           {hasInvoiceAdjustment && usage.invoice_number && (
-                            <p className="text-xs text-blue-300 mt-0.5">Linked invoice: {usage.invoice_number}</p>
+                            <p className="text-xs text-primary/60 mt-0.5">Linked invoice: {usage.invoice_number}</p>
                           )}
-                          <p className="text-xs text-blue-400 mt-0.5">Updated every 8 hrs</p>
+                          <p className="text-xs text-primary/80 mt-0.5">Updated every 8 hrs</p>
                         </CardContent>
                       </Card>
                     </div>
@@ -1077,15 +1077,15 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
               <Card className="border-slate-200 bg-slate-50/50">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                      <Clock className="w-5 h-5 text-blue-600" />
+                    <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                      <Clock className="w-5 h-5 text-primary" />
                     </div>
                     <div>
                       <p className="font-medium text-slate-900 dark:text-white">Usage resets every billing cycle</p>
                       <p className="text-sm text-slate-500 mt-1">
                         Your resource usage counts reset at the start of each new 30-day billing period.
                         {subscription?.plan?.is_metered && (
-                          <span className="block mt-2 text-blue-600">
+                          <span className="block mt-2 text-primary">
                             Metered usage beyond plan limits will be calculated and added to your next invoice.
                           </span>
                         )}
@@ -1111,7 +1111,7 @@ export default function BillingPage() {
   return (
     <Suspense fallback={
       <div className="p-8 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" /> 
+        <Loader2 className="w-6 h-6 animate-spin text-primary mr-2" /> 
         <span>Loading billing information...</span>
       </div>
     }>

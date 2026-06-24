@@ -20,7 +20,7 @@ export default function DemoPage() {
       <header className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
               <Wifi className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -52,7 +52,7 @@ export default function DemoPage() {
           {/* Demo Cards */}
           <div className="grid sm:grid-cols-2 gap-6">
             {/* ISP Admin Demo */}
-            <Card className="overflow-hidden border-2 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+            <Card className="overflow-hidden border-2 hover:border-primary/30 dark:hover:border-blue-700 transition-colors">
               <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
@@ -83,7 +83,7 @@ export default function DemoPage() {
                   </div>
                 </div>
                 <Button
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-primary hover:bg-primary"
                   size="lg"
                   asChild
                 >
@@ -96,7 +96,7 @@ export default function DemoPage() {
             </Card>
 
             {/* Customer Portal Demo */}
-            <Card className="overflow-hidden border-2 hover:border-green-300 dark:hover:border-green-700 transition-colors">
+            <Card className="overflow-hidden border-2 hover:border-success/30 dark:hover:border-green-700 transition-colors">
               <div className="bg-gradient-to-br from-green-600 to-emerald-700 p-6 text-white">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
@@ -127,7 +127,7 @@ export default function DemoPage() {
                   </div>
                 </div>
                 <Button
-                  className="w-full bg-green-600 hover:bg-green-700"
+                  className="w-full bg-success hover:bg-green-700"
                   size="lg"
                   asChild
                 >

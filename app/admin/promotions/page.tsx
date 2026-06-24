@@ -207,10 +207,10 @@ export default function PromotionsPage() {
 
   const getStatusBadge = (status: Promotion["status"]) => {
     switch (status) {
-      case "active": return <Badge className="bg-green-500/10 text-green-600 border-green-500/20"><CheckCircle className="w-3 h-3 mr-1" /> Active</Badge>
-      case "scheduled": return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20"><Clock className="w-3 h-3 mr-1" /> Scheduled</Badge>
+      case "active": return <Badge className="bg-success/10 text-success border-success/20"><CheckCircle className="w-3 h-3 mr-1" /> Active</Badge>
+      case "scheduled": return <Badge className="bg-primary/10 text-primary border-primary/20"><Clock className="w-3 h-3 mr-1" /> Scheduled</Badge>
       case "expired": return <Badge variant="secondary"><XCircle className="w-3 h-3 mr-1" /> Expired</Badge>
-      case "paused": return <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"><Pause className="w-3 h-3 mr-1" /> Paused</Badge>
+      case "paused": return <Badge className="bg-warning/10 text-warning border-warning/20"><Pause className="w-3 h-3 mr-1" /> Paused</Badge>
     }
   }
 
@@ -283,7 +283,7 @@ export default function PromotionsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Usage</CardTitle>
-            <Users className="h-4 w-4 text-blue-500" />
+            <Users className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalUsage.toLocaleString()}</div>
@@ -293,7 +293,7 @@ export default function PromotionsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Customer Savings</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-500" />
+            <DollarSign className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(stats.totalSavings)}</div>
@@ -313,7 +313,7 @@ export default function PromotionsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Referrals</CardTitle>
-            <Sparkles className="h-4 w-4 text-yellow-500" />
+            <Sparkles className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{referralProgram.totalReferrals.toLocaleString()}</div>
@@ -487,7 +487,7 @@ export default function PromotionsPage() {
                         {voucher.valueType === "percentage" ? `${voucher.value}%` : formatCurrency(voucher.value)}
                       </TableCell>
                       <TableCell>
-                        {voucher.status === "unused" && <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Available</Badge>}
+                        {voucher.status === "unused" && <Badge className="bg-success/10 text-success border-success/20">Available</Badge>}
                         {voucher.status === "used" && <Badge variant="secondary">Used</Badge>}
                         {voucher.status === "expired" && <Badge variant="outline">Expired</Badge>}
                       </TableCell>

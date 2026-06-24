@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Users, Wifi, CreditCard, Package, Settings, ArrowRight, Activity } from "lucide-react"
 
 const highlights = [
-  { label: "Active customers", value: "482", icon: Users, tone: "text-blue-600" },
+  { label: "Active customers", value: "482", icon: Users, tone: "text-primary" },
   { label: "Online routers", value: "14 / 16", icon: Wifi, tone: "text-emerald-600" },
   { label: "Collected today", value: "KSh 48,700", icon: CreditCard, tone: "text-violet-600" },
-  { label: "Published plans", value: "8", icon: Package, tone: "text-amber-600" },
+  { label: "Published plans", value: "8", icon: Package, tone: "text-warning" },
 ]
 
 const sections = [
@@ -49,7 +49,7 @@ export default function DemoAdminPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <Badge variant="outline" className="mb-3 border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
+          <Badge variant="outline" className="mb-3 border-primary/20 bg-primary/10 text-primary dark:border-primary/20 dark:bg-blue-950/30 dark:text-primary/60">
             Admin Product Tour
           </Badge>
           <h2 className="text-3xl font-bold tracking-tight">Show the real workflow, minus the real risk.</h2>
@@ -57,7 +57,7 @@ export default function DemoAdminPage() {
             These demo routes follow the same structure as the live admin screens so interested customers can explore the product with confidence.
           </p>
         </div>
-        <Button asChild className="bg-blue-600 hover:bg-blue-700">
+        <Button asChild className="bg-primary hover:bg-primary">
           <Link href="/demo/admin/users">
             Start with Users
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -83,15 +83,15 @@ export default function DemoAdminPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-blue-600" />
+            <Activity className="h-5 w-5 text-primary" />
             Demo Routes Ready
           </CardTitle>
           <CardDescription>Only routes that exist are linked in the sidebar.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {sections.map((section) => (
-            <Link key={section.href} href={section.href} className="rounded-xl border bg-card p-4 transition-colors hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-800 dark:hover:bg-blue-950/20">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+            <Link key={section.href} href={section.href} className="rounded-xl border bg-card p-4 transition-colors hover:border-primary/30 hover:bg-primary/10/40 dark:hover:border-blue-800 dark:hover:bg-blue-950/20">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary dark:bg-blue-950/40 dark:text-primary/60">
                 <section.icon className="h-5 w-5" />
               </div>
               <h3 className="font-semibold">{section.title}</h3>

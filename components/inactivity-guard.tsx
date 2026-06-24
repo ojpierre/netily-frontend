@@ -136,8 +136,8 @@ export function InactivityGuard({ children, timeoutMinutes = 5 }: InactivityGuar
           {/* Modal */}
           <div className="relative z-10 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4">
             <div className="text-center mb-6">
-              <div className="mx-auto w-14 h-14 bg-amber-100 dark:bg-amber-950 rounded-full flex items-center justify-center mb-4">
-                <ShieldAlert className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+              <div className="mx-auto w-14 h-14 bg-warning/15 dark:bg-amber-950 rounded-full flex items-center justify-center mb-4">
+                <ShieldAlert className="w-7 h-7 text-warning dark:text-warning" />
               </div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Session Timeout</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -146,8 +146,8 @@ export function InactivityGuard({ children, timeoutMinutes = 5 }: InactivityGuar
             </div>
 
             {error && (
-              <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
-                <p className="text-sm text-red-600">{error}</p>
+              <div className="bg-destructive/10 dark:bg-red-950 border border-destructive/20 dark:border-destructive/20 rounded-lg p-3 mb-4">
+                <p className="text-sm text-destructive">{error}</p>
               </div>
             )}
 
@@ -160,7 +160,7 @@ export function InactivityGuard({ children, timeoutMinutes = 5 }: InactivityGuar
                     <><Mail className="mr-2 h-4 w-4" />Send Verification Code</>
                   )}
                 </Button>
-                <Button variant="outline" onClick={logout} className="w-full text-red-600 hover:text-red-700 hover:bg-red-50">
+                <Button variant="outline" onClick={logout} className="w-full text-destructive hover:text-destructive hover:bg-destructive/10">
                   <LogOut className="mr-2 h-4 w-4" />
                   Log Out
                 </Button>
@@ -192,10 +192,10 @@ export function InactivityGuard({ children, timeoutMinutes = 5 }: InactivityGuar
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-slate-400">
                     {cooldown > 0 ? `Resend in ${cooldown}s` : (
-                      <button onClick={sendOtp} className="text-blue-600 hover:underline font-medium">Resend</button>
+                      <button onClick={sendOtp} className="text-primary hover:underline font-medium">Resend</button>
                     )}
                   </p>
-                  <button onClick={logout} className="text-sm text-red-500 hover:text-red-700 font-medium">
+                  <button onClick={logout} className="text-sm text-destructive hover:text-destructive font-medium">
                     Log Out
                   </button>
                 </div>

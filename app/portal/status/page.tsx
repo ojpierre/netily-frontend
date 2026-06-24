@@ -123,7 +123,7 @@ function PortalStatusContent() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
-          <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <XCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-800">Error</h2>
           <p className="text-gray-500 mt-2">{error}</p>
         </div>
@@ -141,7 +141,7 @@ function PortalStatusContent() {
           <p className="text-gray-500 mt-2">You don&apos;t have an active internet session.</p>
           <a
             href={`/portal/login?mac=${mac}&ip=${ip}&router_id=${routerId}&tenant=${tenant}`}
-            className="mt-4 inline-block px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
+            className="mt-4 inline-block px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary transition-colors"
           >
             <CreditCard className="w-4 h-4 inline mr-2" />
             Buy a Plan
@@ -152,7 +152,7 @@ function PortalStatusContent() {
   }
 
   // ── Active session ──
-  const timeColor = (session.remaining_minutes ?? 0) <= 10 ? "text-red-500" : "text-emerald-600"
+  const timeColor = (session.remaining_minutes ?? 0) <= 10 ? "text-destructive" : "text-emerald-600"
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center p-4">
@@ -179,8 +179,8 @@ function PortalStatusContent() {
 
           {/* Speed */}
           <div className="bg-gray-50 rounded-xl p-3 text-center">
-            <ArrowUpDown className="w-5 h-5 text-blue-500 mx-auto mb-1" />
-            <p className="text-lg font-bold text-blue-500">
+            <ArrowUpDown className="w-5 h-5 text-primary mx-auto mb-1" />
+            <p className="text-lg font-bold text-primary">
               {session.speed || "Standard"}
             </p>
             <p className="text-xs text-gray-400">Speed</p>
@@ -230,7 +230,7 @@ function PortalStatusContent() {
         <div className="space-y-2">
           <a
             href={`/portal/login?mac=${mac}&ip=${ip}&router_id=${routerId}&tenant=${tenant}`}
-            className="block w-full py-3 bg-indigo-600 text-white rounded-xl text-center font-semibold hover:bg-indigo-700 transition-colors"
+            className="block w-full py-3 bg-primary text-white rounded-xl text-center font-semibold hover:bg-primary transition-colors"
           >
             <CreditCard className="w-4 h-4 inline mr-2" />
             Buy More Time

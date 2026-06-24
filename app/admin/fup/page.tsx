@@ -140,18 +140,18 @@ export interface FupUsageWindowDto {
 // --- MAPPERS ---
 const getStatusBadge = (status: string) => {
   switch (status) {
-    case "ACTIVE": return <Badge className="bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400">Active</Badge>
+    case "ACTIVE": return <Badge className="bg-success/15 dark:bg-green-950 text-success dark:text-success">Active</Badge>
     case "INACTIVE": return <Badge className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300">Inactive</Badge>
-    case "DRAFT": return <Badge className="bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300">Draft</Badge>
+    case "DRAFT": return <Badge className="bg-warning/15 dark:bg-yellow-950 text-warning dark:text-yellow-300">Draft</Badge>
     default: return <Badge variant="outline">{status}</Badge>
   }
 }
 
 const getViolationBadge = (status: string) => {
   switch (status) {
-    case "OPEN": return <Badge className="bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400">Open</Badge>
-    case "RESOLVED": return <Badge className="bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400">Resolved</Badge>
-    case "ACKNOWLEDGED": return <Badge className="bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-400">Acknowledged</Badge>
+    case "OPEN": return <Badge className="bg-destructive/15 dark:bg-red-950 text-destructive dark:text-destructive">Open</Badge>
+    case "RESOLVED": return <Badge className="bg-success/15 dark:bg-green-950 text-success dark:text-success">Resolved</Badge>
+    case "ACKNOWLEDGED": return <Badge className="bg-primary/15 dark:bg-blue-950 text-primary dark:text-primary/80">Acknowledged</Badge>
     default: return <Badge variant="outline">{status}</Badge>
   }
 }
@@ -483,15 +483,15 @@ export default function FUPPage() {
         onClick={() => togglePlan(plan.id)}
         className={`w-full rounded-lg border p-4 text-left transition-all duration-200 ${
           isSelected
-            ? "border-blue-500 bg-blue-50 shadow-sm"
-            : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50"
+            ? "border-primary bg-primary/10 shadow-sm"
+            : "border-slate-200 bg-white hover:border-primary/20 hover:bg-slate-50"
         }`}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <Checkbox checked={isSelected} className="mt-0.5 pointer-events-none data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" />
+            <Checkbox checked={isSelected} className="mt-0.5 pointer-events-none data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
             <div>
-              <p className={`text-sm font-semibold ${isSelected ? "text-blue-900" : "text-slate-800"}`}>{plan.name}</p>
+              <p className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-slate-800"}`}>{plan.name}</p>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 {plan.already_linked && (
                   <Badge variant="outline" className="border-slate-300 text-slate-600">Previously linked</Badge>
@@ -500,27 +500,27 @@ export default function FUPPage() {
                   <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">New link</Badge>
                 )}
                 {plan.already_linked && !isSelected && (
-                  <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Will unlink</Badge>
+                  <Badge className="bg-destructive/15 text-destructive hover:bg-destructive/15">Will unlink</Badge>
                 )}
               </div>
             </div>
           </div>
-          <Badge className={active ? "bg-blue-100 text-blue-700 hover:bg-blue-100" : "bg-slate-100 text-slate-600 hover:bg-slate-100"}>
+          <Badge className={active ? "bg-primary/15 text-primary hover:bg-primary/15" : "bg-slate-100 text-slate-600 hover:bg-slate-100"}>
             {active ? "active" : "inactive"}
           </Badge>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2 text-sm text-slate-700">
           <div className="flex items-center gap-1.5">
-            <DollarSign className="h-3.5 w-3.5 text-green-600" />
+            <DollarSign className="h-3.5 w-3.5 text-success" />
             <span>{formatPlanPrice(plan)}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Clock3 className="h-3.5 w-3.5 text-blue-600" />
+            <Clock3 className="h-3.5 w-3.5 text-primary" />
             <span>{formatPlanDuration(plan)}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Zap className="h-3.5 w-3.5 text-orange-600" />
+            <Zap className="h-3.5 w-3.5 text-warning" />
             <span>{getPlanSpeed(plan)}</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -572,10 +572,10 @@ export default function FUPPage() {
 
       {/* DASHBOARD CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card><CardContent className="p-4 flex justify-between items-center"><div><p className="text-sm text-slate-600">Active Policies</p><p className="text-2xl font-bold text-green-600">{dashboard.active_policies}</p></div><div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"><Gauge className="w-5 h-5 text-green-600" /></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex justify-between items-center"><div><p className="text-sm text-slate-600">Users Under FUP</p><p className="text-2xl font-bold">{dashboard.users_under_fup}</p></div><div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-blue-600" /></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex justify-between items-center"><div><p className="text-sm text-slate-600">Active Violations</p><p className="text-2xl font-bold text-orange-600">{dashboard.active_violations}</p></div><div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-orange-600" /></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex justify-between items-center"><div><p className="text-sm text-slate-600">Currently Throttled</p><p className="text-2xl font-bold text-red-600">{dashboard.currently_throttled}</p></div><div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center"><Activity className="w-5 h-5 text-red-600" /></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex justify-between items-center"><div><p className="text-sm text-slate-600">Active Policies</p><p className="text-2xl font-bold text-success">{dashboard.active_policies}</p></div><div className="w-10 h-10 bg-success/15 rounded-lg flex items-center justify-center"><Gauge className="w-5 h-5 text-success" /></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex justify-between items-center"><div><p className="text-sm text-slate-600">Users Under FUP</p><p className="text-2xl font-bold">{dashboard.users_under_fup}</p></div><div className="w-10 h-10 bg-primary/15 rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-primary" /></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex justify-between items-center"><div><p className="text-sm text-slate-600">Active Violations</p><p className="text-2xl font-bold text-warning">{dashboard.active_violations}</p></div><div className="w-10 h-10 bg-warning/15 rounded-lg flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-warning" /></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex justify-between items-center"><div><p className="text-sm text-slate-600">Currently Throttled</p><p className="text-2xl font-bold text-destructive">{dashboard.currently_throttled}</p></div><div className="w-10 h-10 bg-destructive/15 rounded-lg flex items-center justify-center"><Activity className="w-5 h-5 text-destructive" /></div></CardContent></Card>
       </div>
 
       {/* TABS */}
@@ -625,7 +625,7 @@ export default function FUPPage() {
                           <TableCell>
                             <div className="space-y-1.5">
                               <div className="flex justify-between text-xs font-medium">
-                                <span className={isOverLimit ? "text-red-600" : "text-slate-700"}>
+                                <span className={isOverLimit ? "text-destructive" : "text-slate-700"}>
                                   {Number(uw.total_gb || 0).toFixed(1)} GB used
                                 </span>
                                 <span className="text-slate-500">
@@ -634,15 +634,15 @@ export default function FUPPage() {
                               </div>
                               <Progress 
                                 value={Math.min(Number(uw.usage_percent || 0), 100)} 
-                                className={`h-2 ${isOverLimit ? '[&>div]:bg-red-500' : '[&>div]:bg-blue-500'}`} 
+                                className={`h-2 ${isOverLimit ? '[&>div]:bg-destructive' : '[&>div]:bg-primary'}`} 
                               />
                             </div>
                           </TableCell>
                           <TableCell>
                             {isOverLimit ? (
-                              <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Throttled</Badge>
+                              <Badge className="bg-destructive/15 text-destructive hover:bg-destructive/15">Throttled</Badge>
                             ) : (
-                              <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Normal</Badge>
+                              <Badge className="bg-success/15 text-success hover:bg-success/15">Normal</Badge>
                             )}
                           </TableCell>
                         </TableRow>
@@ -674,10 +674,10 @@ export default function FUPPage() {
                         {policy.status === "ACTIVE" ? (
                           <DropdownMenuItem onClick={() => handleTogglePolicyStatus(policy)}><AlertTriangle className="w-4 h-4 mr-2" /> Deactivate</DropdownMenuItem>
                         ) : (
-                          <DropdownMenuItem onClick={() => handleTogglePolicyStatus(policy)}><CheckCircle className="w-4 h-4 mr-2 text-green-600" /> Activate</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleTogglePolicyStatus(policy)}><CheckCircle className="w-4 h-4 mr-2 text-success" /> Activate</DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDeletePolicy(policy.id)} className="text-red-600"><Trash2 className="w-4 h-4 mr-2" /> Delete</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeletePolicy(policy.id)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Delete</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -759,7 +759,7 @@ export default function FUPPage() {
                         <TableCell className="font-medium">{t.customer_name}</TableCell>
                         <TableCell>{t.policy_name}</TableCell>
                         <TableCell className="text-slate-500">{t.original_download_mbps}↓ / {t.original_upload_mbps}↑</TableCell>
-                        <TableCell className="text-red-600 font-medium">{t.throttled_download_mbps}↓ / {t.throttled_upload_mbps}↑</TableCell>
+                        <TableCell className="text-destructive font-medium">{t.throttled_download_mbps}↓ / {t.throttled_upload_mbps}↑</TableCell>
                         <TableCell className="text-sm text-slate-500">{new Date(t.applied_at).toLocaleString()}</TableCell>
                       </TableRow>
                     ))}
@@ -832,7 +832,7 @@ export default function FUPPage() {
                     return (
                       <div key={idx} className="space-y-2">
                         <div className="flex justify-between text-sm"><span>{pd.policy_name}</span><span className="font-medium">{pd.users} users</span></div>
-                        <Progress value={pct} className="h-2 bg-slate-100 [&>div]:bg-blue-600" />
+                        <Progress value={pct} className="h-2 bg-slate-100 [&>div]:bg-primary" />
                       </div>
                     )
                   })}
@@ -922,7 +922,7 @@ export default function FUPPage() {
 
               {/* Peak hours time picker — only shown when PEAK_HOURS selected */}
               {policyForm.reset_period === "PEAK_HOURS" && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
+                <div className="rounded-lg border border-warning/20 bg-warning/10 p-4 space-y-3">
                   <p className="text-xs font-medium text-amber-800">
                     ⏱ Peak Hours (Nairobi EAT time) — Usage only tracked during this window
                   </p>
@@ -944,7 +944,7 @@ export default function FUPPage() {
                       />
                     </div>
                   </div>
-                  <p className="text-xs text-amber-700">
+                  <p className="text-xs text-warning">
                     Default: 7:00 PM – 10:00 PM EAT (Nairobi)
                   </p>
                 </div>
@@ -1022,7 +1022,7 @@ export default function FUPPage() {
             <div className="mt-2 flex flex-wrap gap-2">
               <Badge variant="outline" className="border-slate-300 text-slate-700">Available: {totalAvailablePlans}</Badge>
               <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">To link: {pendingLinksCount}</Badge>
-              <Badge className="bg-red-100 text-red-700 hover:bg-red-100">To unlink: {pendingUnlinksCount}</Badge>
+              <Badge className="bg-destructive/15 text-destructive hover:bg-destructive/15">To unlink: {pendingUnlinksCount}</Badge>
             </div>
           </DialogHeader>
 

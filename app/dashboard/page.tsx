@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/app/auth-context"
+import { NetilyLoader } from "@/components/ui/netily-loader"
+import { FadeIn } from "@/components/page-transition"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -107,7 +109,7 @@ export default function DashboardPage() {
           <Skeleton className="h-9 w-64 mb-2" />
           <Skeleton className="h-5 w-48" />
         </div>
-        <div className="grid md:grid-cols-4 gap-4">
+        <FadeIn delay={0.1}><div className="grid md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="p-6">
               <Skeleton className="h-4 w-24 mb-2" />
@@ -149,7 +151,7 @@ export default function DashboardPage() {
       )}
 
       {/* Quick Stats */}
-      <div className="grid md:grid-cols-4 gap-4">
+      <FadeIn delay={0.1}><div className="grid md:grid-cols-4 gap-4">
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>

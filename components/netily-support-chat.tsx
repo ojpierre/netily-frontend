@@ -93,7 +93,7 @@ export function NetilySupportChat() {
                 <div
                   className={`inline-block max-w-[88%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${
                     item.role === "user"
-                      ? "bg-blue-600 text-white"
+                      ? "bg-primary text-white"
                       : "bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100"
                   }`}
                 >
@@ -108,7 +108,7 @@ export function NetilySupportChat() {
             ))}
             {loading && (
               <div className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-sm text-slate-500 dark:bg-slate-900">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
+                <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
                 Searching approved docs...
               </div>
             )}
@@ -118,7 +118,7 @@ export function NetilySupportChat() {
                   <button
                     key={prompt}
                     onClick={() => sendMessage(prompt)}
-                    className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-left text-xs font-semibold text-blue-700 transition hover:border-blue-200 hover:bg-blue-100 dark:border-blue-900/60 dark:bg-blue-950/50 dark:text-blue-200"
+                    className="rounded-full border border-primary/15 bg-primary/10 px-3 py-1.5 text-left text-xs font-semibold text-primary transition hover:border-primary/20 hover:bg-primary/15 dark:border-blue-900/60 dark:bg-blue-950/50 dark:text-primary/40"
                   >
                     {prompt}
                   </button>
@@ -136,7 +136,7 @@ export function NetilySupportChat() {
                   if (event.key === "Enter") sendMessage()
                 }}
                 placeholder="Ask about billing, routers, hotspot..."
-                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2 dark:border-slate-800 dark:bg-slate-900"
+                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-ring focus:ring-2 dark:border-slate-800 dark:bg-slate-900"
               />
               <Button onClick={() => sendMessage()} disabled={loading || !message.trim()} size="icon" className="rounded-xl">
                 <Send className="h-4 w-4" />
@@ -151,7 +151,7 @@ export function NetilySupportChat() {
 
       <button
         onClick={() => setOpen((value) => !value)}
-        className="flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-xl shadow-blue-600/30 transition hover:bg-blue-700"
+        className="flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-bold text-white shadow-xl shadow-blue-600/30 transition hover:bg-primary"
       >
         <Bot className="h-5 w-5" />
         Support

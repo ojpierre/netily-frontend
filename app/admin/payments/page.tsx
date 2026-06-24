@@ -105,7 +105,7 @@ const formatDateTime = (dateString: string) => {
 const getStatusBadge = (status: string) => {
   const s = status?.toUpperCase() || 'PENDING'
   const config: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode; className?: string }> = {
-    COMPLETED: { variant: "default", icon: <CheckCircle className="h-3 w-3" />, className: "bg-green-500" },
+    COMPLETED: { variant: "default", icon: <CheckCircle className="h-3 w-3" />, className: "bg-success" },
     PENDING: { variant: "secondary", icon: <Clock className="h-3 w-3" /> },
     PROCESSING: { variant: "secondary", icon: <Loader2 className="h-3 w-3 animate-spin" /> },
     FAILED: { variant: "destructive", icon: <XCircle className="h-3 w-3" /> },
@@ -136,11 +136,11 @@ const getMethodIcon = (method: string) => {
 const getMethodBadge = (method: string) => {
   const m = method?.toUpperCase() || ''
   const config: Record<string, { label: string; class: string }> = {
-    MPESA: { label: 'M-Pesa', class: 'bg-green-100 text-green-700 border-green-200' },
-    BANK: { label: 'Bank', class: 'bg-blue-100 text-blue-700 border-blue-200' },
-    CASH: { label: 'Cash', class: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+    MPESA: { label: 'M-Pesa', class: 'bg-success/15 text-success border-success/20' },
+    BANK: { label: 'Bank', class: 'bg-primary/15 text-primary border-primary/20' },
+    CASH: { label: 'Cash', class: 'bg-warning/15 text-warning border-warning/20' },
     CARD: { label: 'Card', class: 'bg-purple-100 text-purple-700 border-purple-200' },
-    VOUCHER: { label: 'Voucher', class: 'bg-orange-100 text-orange-700 border-orange-200' },
+    VOUCHER: { label: 'Voucher', class: 'bg-warning/15 text-warning border-warning/20' },
   }
   const c = config[m] || { label: method, class: '' }
   return (
@@ -155,8 +155,8 @@ const getMethodBadge = (method: string) => {
 const getServiceTypeBadge = (serviceType: string | undefined) => {
   const type = serviceType || 'Other'
   const config: Record<string, { label: string; class: string }> = {
-    Hotspot: { label: 'Hotspot WiFi', class: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400' },
-    PPPoE: { label: 'Fiber / DSL', class: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400' },
+    Hotspot: { label: 'Hotspot WiFi', class: 'bg-warning/10 text-warning border-warning/20 dark:bg-orange-950/30 dark:text-warning' },
+    PPPoE: { label: 'Fiber / DSL', class: 'bg-primary/10 text-primary border-primary/20 dark:bg-blue-950/30 dark:text-primary/80' },
     Other: { label: 'Other', class: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-950/30 dark:text-gray-400' },
   }
   const c = config[type] || config.Other
@@ -668,10 +668,10 @@ export default function PaymentsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
+            <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-success">
               {formatCurrency(localStats.total_collected ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">{localStats.completed_count ?? 0} payments</p>
@@ -1177,8 +1177,8 @@ export default function PaymentsPage() {
             <div className="grid gap-4 py-4">
               {/* STK Push Instructions */}
               {payHeroResponse.checkout_request_id && (
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-2 text-green-700 dark:text-green-300 mb-2">
+                <div className="p-4 bg-success/10 dark:bg-success/15/20 rounded-lg border border-success/20 dark:border-success/20">
+                  <div className="flex items-center gap-2 text-success dark:text-success/80 mb-2">
                     <Smartphone className="h-5 w-5" />
                     <span className="font-semibold">Check Your Phone</span>
                   </div>
@@ -1196,8 +1196,8 @@ export default function PaymentsPage() {
 
               {/* Paybill Instructions */}
               {payHeroResponse.paybill_number && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 mb-3">
+                <div className="p-4 bg-primary/10 dark:bg-primary/20 rounded-lg border border-primary/20 dark:border-primary/20">
+                  <div className="flex items-center gap-2 text-primary dark:text-primary/60 mb-3">
                     <Phone className="h-5 w-5" />
                     <span className="font-semibold">M-Pesa Paybill</span>
                   </div>
@@ -1231,8 +1231,8 @@ export default function PaymentsPage() {
 
               {/* Till Instructions */}
               {payHeroResponse.till_number && !payHeroResponse.paybill_number && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 mb-3">
+                <div className="p-4 bg-primary/10 dark:bg-primary/20 rounded-lg border border-primary/20 dark:border-primary/20">
+                  <div className="flex items-center gap-2 text-primary dark:text-primary/60 mb-3">
                     <Phone className="h-5 w-5" />
                     <span className="font-semibold">M-Pesa Till (Buy Goods)</span>
                   </div>

@@ -177,7 +177,7 @@ export function RouterQueuesTab({ routerId, isDemo = false }: RouterQueuesTabPro
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -187,7 +187,7 @@ export function RouterQueuesTab({ routerId, isDemo = false }: RouterQueuesTabPro
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-2">
-          <Gauge className="w-5 h-5 text-blue-600" />
+          <Gauge className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold">Simple Queues (Bandwidth Limits)</h2>
           <Badge variant="outline">{queues.length} queues</Badge>
         </div>

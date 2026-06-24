@@ -90,9 +90,9 @@ const formatDate = (dateString: string) => {
 
 const getStatusBadge = (status: BillingCycleStatus) => {
   const badges = {
-    'OPEN': { variant: 'default' as const, label: 'Open', className: 'bg-green-500' },
+    'OPEN': { variant: 'default' as const, label: 'Open', className: 'bg-success' },
     'CLOSED': { variant: 'secondary' as const, label: 'Closed', className: 'bg-gray-500 text-white' },
-    'PROCESSING': { variant: 'secondary' as const, label: 'Processing', className: 'bg-blue-500 text-white' },
+    'PROCESSING': { variant: 'secondary' as const, label: 'Processing', className: 'bg-primary text-white' },
   }
   const badge = badges[status] || { variant: 'outline' as const, label: status }
   return <Badge variant={badge.variant} className={badge.className}>{badge.label}</Badge>
@@ -304,10 +304,10 @@ export default function BillingCyclesPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Open Cycles</CardTitle>
-            <Clock className="h-4 w-4 text-green-500" />
+            <Clock className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.openCycles}</div>
+            <div className="text-2xl font-bold text-success">{stats.openCycles}</div>
           </CardContent>
         </Card>
 
@@ -324,32 +324,32 @@ export default function BillingCyclesPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Invoiced</CardTitle>
-            <FileText className="h-4 w-4 text-blue-500" />
+            <FileText className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{formatCurrency(stats.totalInvoiced)}</div>
+            <div className="text-2xl font-bold text-primary">{formatCurrency(stats.totalInvoiced)}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
+            <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalCollected)}</div>
+            <div className="text-2xl font-bold text-success">{formatCurrency(stats.totalCollected)}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Current Cycle Banner */}
       {currentCycle && (
-        <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+        <Card className="border-primary/20 bg-primary/10 dark:bg-blue-950/20">
           <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Calendar className="h-6 w-6 text-blue-600" />
+                <div className="p-2 bg-primary/15 rounded-lg">
+                  <Calendar className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                   <h3 className="font-semibold">Current Billing Cycle: {currentCycle.name}</h3>
@@ -448,7 +448,7 @@ export default function BillingCyclesPage() {
                       {formatCurrency(cycle.total_invoiced || 0)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="font-medium text-green-600">
+                      <div className="font-medium text-success">
                         {formatCurrency(cycle.total_collected || 0)}
                       </div>
                       {collectionRate > 0 && (
@@ -458,7 +458,7 @@ export default function BillingCyclesPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className={outstanding > 0 ? 'text-red-600' : 'text-green-600'}>
+                      <span className={outstanding > 0 ? 'text-destructive' : 'text-success'}>
                         {formatCurrency(outstanding)}
                       </span>
                     </TableCell>
@@ -483,7 +483,7 @@ export default function BillingCyclesPage() {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => handleCloseCycle(cycle)}
-                                className="text-red-600"
+                                className="text-destructive"
                               >
                                 <Lock className="mr-2 h-4 w-4" />
                                 Close Cycle
@@ -615,17 +615,17 @@ export default function BillingCyclesPage() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="p-3 bg-green-50 rounded-lg">
+                  <div className="p-3 bg-success/10 rounded-lg">
                     <p className="text-xs text-muted-foreground">Paid</p>
-                    <p className="text-lg font-bold text-green-600">{cycleSummary.paid_count}</p>
+                    <p className="text-lg font-bold text-success">{cycleSummary.paid_count}</p>
                   </div>
-                  <div className="p-3 bg-yellow-50 rounded-lg">
+                  <div className="p-3 bg-warning/10 rounded-lg">
                     <p className="text-xs text-muted-foreground">Pending</p>
-                    <p className="text-lg font-bold text-yellow-600">{cycleSummary.pending_count}</p>
+                    <p className="text-lg font-bold text-warning">{cycleSummary.pending_count}</p>
                   </div>
-                  <div className="p-3 bg-red-50 rounded-lg">
+                  <div className="p-3 bg-destructive/10 rounded-lg">
                     <p className="text-xs text-muted-foreground">Overdue</p>
-                    <p className="text-lg font-bold text-red-600">{cycleSummary.overdue_count}</p>
+                    <p className="text-lg font-bold text-destructive">{cycleSummary.overdue_count}</p>
                   </div>
                 </div>
 
@@ -634,11 +634,11 @@ export default function BillingCyclesPage() {
                     <span>Total Invoiced</span>
                     <span className="font-medium">{formatCurrency(cycleSummary.total_invoiced)}</span>
                   </div>
-                  <div className="flex justify-between text-green-600">
+                  <div className="flex justify-between text-success">
                     <span>Total Collected</span>
                     <span className="font-medium">{formatCurrency(cycleSummary.total_collected)}</span>
                   </div>
-                  <div className="flex justify-between text-red-600">
+                  <div className="flex justify-between text-destructive">
                     <span>Outstanding</span>
                     <span className="font-medium">{formatCurrency(cycleSummary.total_outstanding)}</span>
                   </div>

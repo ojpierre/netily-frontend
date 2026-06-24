@@ -17,8 +17,8 @@ const payments = [
 
 const statusStyles: Record<string, string> = {
   completed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300",
-  pending: "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300",
-  processing: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300",
+  pending: "bg-warning/15 text-warning dark:bg-amber-950/30 dark:text-amber-300",
+  processing: "bg-primary/15 text-primary dark:bg-blue-950/30 dark:text-primary/60",
   failed: "bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300",
 }
 
@@ -50,9 +50,9 @@ export default function DemoAdminPaymentsPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Today</CardTitle><CheckCircle2 className="h-4 w-4 text-emerald-600" /></CardHeader><CardContent><div className="text-2xl font-bold">KSh 48,700</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Pending</CardTitle><Clock className="h-4 w-4 text-amber-600" /></CardHeader><CardContent><div className="text-2xl font-bold">6</div></CardContent></Card>
+        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Pending</CardTitle><Clock className="h-4 w-4 text-warning" /></CardHeader><CardContent><div className="text-2xl font-bold">6</div></CardContent></Card>
         <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Failed</CardTitle><XCircle className="h-4 w-4 text-rose-600" /></CardHeader><CardContent><div className="text-2xl font-bold">2</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">M-Pesa share</CardTitle><Smartphone className="h-4 w-4 text-blue-600" /></CardHeader><CardContent><div className="text-2xl font-bold">83%</div></CardContent></Card>
+        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">M-Pesa share</CardTitle><Smartphone className="h-4 w-4 text-primary" /></CardHeader><CardContent><div className="text-2xl font-bold">83%</div></CardContent></Card>
       </div>
 
       <Card>

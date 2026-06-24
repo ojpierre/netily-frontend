@@ -86,11 +86,11 @@ export default function CustomerLoyaltyPage() {
 
       {/* Points Overview */}
       <div className="grid md:grid-cols-3 gap-6">
-        <Card className="md:col-span-2 bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
+        <Card className="md:col-span-2 bg-gradient-to-br from-amber-50 to-orange-50 border-warning/20">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-amber-700 font-medium">Available Points</p>
+                <p className="text-warning font-medium">Available Points</p>
                 <p className="text-5xl font-bold text-amber-900 mt-2">{loyaltyData.points.toLocaleString()}</p>
                 <div className="flex items-center gap-2 mt-4">
                   <Badge className="bg-amber-600 text-white">
@@ -100,13 +100,13 @@ export default function CustomerLoyaltyPage() {
                 </div>
               </div>
               <div className="w-24 h-24 bg-amber-200 rounded-full flex items-center justify-center">
-                <Trophy className="w-12 h-12 text-amber-600" />
+                <Trophy className="w-12 h-12 text-warning" />
               </div>
             </div>
             <div className="mt-6">
               <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-amber-700">{loyaltyData.pointsToNextTier} points to {loyaltyData.nextTier}</span>
-                <span className="text-amber-700">{loyaltyData.points} / {loyaltyData.points + loyaltyData.pointsToNextTier}</span>
+                <span className="text-warning">{loyaltyData.pointsToNextTier} points to {loyaltyData.nextTier}</span>
+                <span className="text-warning">{loyaltyData.points} / {loyaltyData.points + loyaltyData.pointsToNextTier}</span>
               </div>
               <Progress value={(loyaltyData.points / (loyaltyData.points + loyaltyData.pointsToNextTier)) * 100} className="h-2 bg-amber-200" />
             </div>
@@ -116,7 +116,7 @@ export default function CustomerLoyaltyPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
-              <Star className="w-5 h-5 text-yellow-500" />
+              <Star className="w-5 h-5 text-warning" />
               Quick Stats
             </CardTitle>
           </CardHeader>
@@ -131,7 +131,7 @@ export default function CustomerLoyaltyPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Current Tier</span>
-              <Badge className="bg-amber-100 text-amber-700">{loyaltyData.tier}</Badge>
+              <Badge className="bg-warning/15 text-warning">{loyaltyData.tier}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -141,22 +141,22 @@ export default function CustomerLoyaltyPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-yellow-500" />
+            <Zap className="w-5 h-5 text-warning" />
             Ways to Earn Points
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-4 gap-4">
             <div className="p-4 bg-slate-50 rounded-lg text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Clock className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-primary/15 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Clock className="w-6 h-6 text-primary" />
               </div>
               <p className="font-semibold">Monthly Payment</p>
               <p className="text-sm text-slate-500">+100 points</p>
             </div>
             <div className="p-4 bg-slate-50 rounded-lg text-center">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Target className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-success/15 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Target className="w-6 h-6 text-success" />
               </div>
               <p className="font-semibold">Referral</p>
               <p className="text-sm text-slate-500">+500 points</p>
@@ -169,8 +169,8 @@ export default function CustomerLoyaltyPage() {
               <p className="text-sm text-slate-500">+50 bonus</p>
             </div>
             <div className="p-4 bg-slate-50 rounded-lg text-center">
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Gift className="w-6 h-6 text-orange-600" />
+              <div className="w-12 h-12 bg-warning/15 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Gift className="w-6 h-6 text-warning" />
               </div>
               <p className="font-semibold">Birthday Bonus</p>
               <p className="text-sm text-slate-500">+200 points</p>
@@ -194,7 +194,7 @@ export default function CustomerLoyaltyPage() {
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-lg">{reward.name}</CardTitle>
-                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
                       {reward.points} pts
                     </Badge>
                   </div>
@@ -240,11 +240,11 @@ export default function CustomerLoyaltyPage() {
                       <TableCell>{new Date(item.date).toLocaleDateString()}</TableCell>
                       <TableCell>{item.description}</TableCell>
                       <TableCell>
-                        <Badge className={item.type === "earn" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}>
+                        <Badge className={item.type === "earn" ? "bg-success/15 text-success" : "bg-primary/15 text-primary"}>
                           {item.type === "earn" ? "Earned" : "Redeemed"}
                         </Badge>
                       </TableCell>
-                      <TableCell className={`text-right font-medium ${item.points > 0 ? "text-green-600" : "text-blue-600"}`}>
+                      <TableCell className={`text-right font-medium ${item.points > 0 ? "text-success" : "text-primary"}`}>
                         {item.points > 0 ? "+" : ""}{item.points}
                       </TableCell>
                     </TableRow>
@@ -261,7 +261,7 @@ export default function CustomerLoyaltyPage() {
             {tiers.map((tier, index) => (
               <Card 
                 key={tier.name} 
-                className={`${index === currentTierIndex ? "border-amber-400 bg-amber-50" : ""}`}
+                className={`${index === currentTierIndex ? "border-amber-400 bg-warning/10" : ""}`}
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -278,7 +278,7 @@ export default function CustomerLoyaltyPage() {
                   <ul className="space-y-2">
                     {tier.benefits.map((benefit, i) => (
                       <li key={i} className="flex items-center gap-2 text-sm">
-                        <Star className="w-4 h-4 text-amber-500" />
+                        <Star className="w-4 h-4 text-warning" />
                         {benefit}
                       </li>
                     ))}

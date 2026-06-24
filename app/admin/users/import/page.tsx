@@ -331,7 +331,7 @@ export default function UsersImportPage() {
               (i === 0 && importStatus === "idle") ||
               (i === 1 && importStatus === "preview") ||
               (i === 2 && (importStatus === "importing" || importStatus === "done"))
-                ? "text-blue-600 dark:text-blue-400" : "text-slate-400"
+                ? "text-primary dark:text-primary/80" : "text-slate-400"
             }`}>{i + 1}. {step}</span>
             {i < 2 && <ChevronRight className="w-4 h-4 text-slate-400" />}
           </React.Fragment>
@@ -345,7 +345,7 @@ export default function UsersImportPage() {
             <CardHeader>
               <CardTitle>Upload CSV File</CardTitle>
               <CardDescription>
-                <span className="text-red-500">*</span> Required: <code className="bg-slate-100 px-1 rounded text-xs">{REQUIRED_HEADERS.join(", ")}</code>
+                <span className="text-destructive">*</span> Required: <code className="bg-slate-100 px-1 rounded text-xs">{REQUIRED_HEADERS.join(", ")}</code>
                 <br />
                 Optional: <code className="bg-slate-100 px-1 rounded text-xs">{OPTIONAL_HEADERS.join(", ")}</code>
                 <br />
@@ -362,7 +362,7 @@ export default function UsersImportPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Router selector */}
-              <div className="flex items-center gap-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
                 <div className="flex-1">
                   <Label className="text-sm font-medium">Default Router (for IP pool assignment)</Label>
                   <p className="text-xs text-slate-500">Optional — applied to all imported users</p>
@@ -399,8 +399,8 @@ export default function UsersImportPage() {
                 }}
                 className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors ${
                   isDragging
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-slate-200 hover:border-blue-400 hover:bg-slate-50"
+                    ? "border-primary bg-primary/10"
+                    : "border-slate-200 hover:border-primary/40 hover:bg-slate-50"
                 }`}
               >
                 <Upload className="w-10 h-10 mx-auto mb-3 text-slate-400" />
@@ -438,10 +438,10 @@ export default function UsersImportPage() {
                     <p className="text-xs text-purple-600 mt-1">
                       💡 <strong>New:</strong> Add pppoe_username and pppoe_password columns for custom RADIUS credentials
                     </p>
-                    <p className="text-xs text-blue-600 mt-1">
+                    <p className="text-xs text-primary mt-1">
                       📅 <strong>expires_at:</strong> Add custom expiry date (M/DD/YYYY, DD/MM/YYYY, or YYYY-MM-DD) to override plan default
                     </p>
-                    <p className="text-xs text-green-600 mt-1">
+                    <p className="text-xs text-success mt-1">
                       ✅ <strong>Example:</strong> 5/17/2026 = May 17, 2026 (US format supported)
                     </p>
                   </div>
@@ -492,33 +492,33 @@ export default function UsersImportPage() {
           {/* Summary cards */}
           <div className="grid grid-cols-3 gap-4">
             <Card><CardContent className="pt-6 flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-primary/15 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-primary" />
               </div>
               <div><p className="text-xs text-slate-500">Total</p><p className="text-xl font-bold">{rows.length}</p></div>
             </CardContent></Card>
             <Card><CardContent className="pt-6 flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+              <div className="w-10 h-10 bg-success/15 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-success" />
               </div>
               <div><p className="text-xs text-slate-500">Valid</p><p className="text-xl font-bold">{validRows.length}</p></div>
             </CardContent></Card>
             <Card><CardContent className="pt-6 flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <XCircle className="w-5 h-5 text-red-600" />
+              <div className="w-10 h-10 bg-destructive/15 rounded-lg flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-destructive" />
               </div>
               <div><p className="text-xs text-slate-500">Errors</p><p className="text-xl font-bold">{errorRows.length}</p></div>
             </CardContent></Card>
           </div>
 
           {errorRows.length > 0 && (
-            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+            <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/20 rounded-lg text-sm text-warning">
               <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span>{errorRows.length} rows have errors and will be skipped. {validRows.length} valid rows will be imported.</span>
             </div>
           )}
           {warningRows.length > 0 && (
-            <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+            <div className="flex items-start gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg text-sm text-primary">
               <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span>{warningRows.length} rows have warnings (e.g. plan not found) — they'll still be imported.</span>
             </div>
@@ -546,18 +546,18 @@ export default function UsersImportPage() {
                   </TableHeader>
                   <TableBody>
                     {rows.map((row) => (
-                      <TableRow key={row.row} className={row.status === "error" ? "bg-red-50/50" : ""}>
+                      <TableRow key={row.row} className={row.status === "error" ? "bg-destructive/10/50" : ""}>
                         <TableCell className="text-slate-400 text-xs">{row.row}</TableCell>
                         <TableCell className="font-medium">
                           {row.first_name} {row.last_name}
                           {row.email && <span className="block text-xs text-slate-400">{row.email}</span>}
                         </TableCell>
-                        <TableCell className="font-mono text-sm">{row.phone || <span className="text-red-500 text-xs italic">missing</span>}</TableCell>
+                        <TableCell className="font-mono text-sm">{row.phone || <span className="text-destructive text-xs italic">missing</span>}</TableCell>
                         <TableCell>
                           {row.plan_id
-                            ? <Badge className="bg-green-100 text-green-700 text-xs">{row.plan_name}</Badge>
+                            ? <Badge className="bg-success/15 text-success text-xs">{row.plan_name}</Badge>
                             : row.plan_name
-                            ? <Badge className="bg-amber-100 text-amber-700 text-xs">{row.plan_name} (not found)</Badge>
+                            ? <Badge className="bg-warning/15 text-warning text-xs">{row.plan_name} (not found)</Badge>
                             : <span className="text-slate-400 text-xs">no plan</span>
                           }
                         </TableCell>
@@ -570,7 +570,7 @@ export default function UsersImportPage() {
                                 </Badge>
                               )}
                               {row.pppoe_password && (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs ml-1">
+                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs ml-1">
                                   pass: custom
                                 </Badge>
                               )}
@@ -587,8 +587,8 @@ export default function UsersImportPage() {
                             <div>
                               <Badge className={
                                 row.expires_at_parsed < new Date()
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-green-100 text-green-700"
+                                  ? "bg-destructive/15 text-destructive"
+                                  : "bg-success/15 text-success"
                               }>
                                 {row.expires_at_parsed.toLocaleDateString()}
                               </Badge>
@@ -604,7 +604,7 @@ export default function UsersImportPage() {
                         </TableCell>
                         <TableCell>
                           {row.status === "valid"
-                            ? <Badge className="bg-green-100 text-green-700"><CheckCircle className="w-3 h-3 mr-1" />Valid</Badge>
+                            ? <Badge className="bg-success/15 text-success"><CheckCircle className="w-3 h-3 mr-1" />Valid</Badge>
                             : <Badge variant="destructive" className="gap-1">
                                 <XCircle className="w-3 h-3" />{row.errors[0]}
                               </Badge>
@@ -633,8 +633,8 @@ export default function UsersImportPage() {
         <div className="space-y-4">
           <Card>
             <CardContent className="pt-10 pb-10 text-center space-y-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+              <div className="w-16 h-16 bg-primary/15 rounded-full flex items-center justify-center mx-auto">
+                <RefreshCw className="w-8 h-8 text-primary animate-spin" />
               </div>
               <h3 className="text-2xl font-semibold">Importing Users...</h3>
               <p className="text-slate-500 text-sm">{currentRowLabel}</p>
@@ -655,7 +655,7 @@ export default function UsersImportPage() {
                 <div className="space-y-1 max-h-48 overflow-y-auto">
                   {results.map((r) => (
                     <div key={r.row} className={`flex items-center justify-between text-xs p-1.5 rounded ${
-                      r.status === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                      r.status === "success" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
                     }`}>
                       <span className="font-medium">{r.name} ({r.phone})</span>
                       <span>
@@ -678,13 +678,13 @@ export default function UsersImportPage() {
         <div className="space-y-4">
           <Card>
             <CardContent className="pt-10 pb-10 text-center space-y-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 bg-success/15 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle className="w-8 h-8 text-success" />
               </div>
               <h3 className="text-2xl font-semibold">Import Complete!</h3>
               <p className="text-slate-500">
-                <span className="font-bold text-green-600">{successCount}</span> created
-                {failedCount > 0 && <>, <span className="font-bold text-red-500">{failedCount}</span> failed</>}
+                <span className="font-bold text-success">{successCount}</span> created
+                {failedCount > 0 && <>, <span className="font-bold text-destructive">{failedCount}</span> failed</>}
               </p>
               <div className="flex justify-center gap-3 pt-2">
                 <Button variant="outline" onClick={handleReset}><Upload className="w-4 h-4 mr-2" />Import More</Button>
@@ -718,13 +718,13 @@ export default function UsersImportPage() {
                         <TableCell>{r.customer_code || "—"}</TableCell>
                         <TableCell>
                           {r.billing_account
-                            ? <code className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-xs font-mono">{r.billing_account}</code>
+                            ? <code className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-xs font-mono">{r.billing_account}</code>
                             : "—"
                           }
                         </TableCell>
                         <TableCell>
                           {r.status === "success"
-                            ? <Badge className="bg-green-100 text-green-700">Created</Badge>
+                            ? <Badge className="bg-success/15 text-success">Created</Badge>
                             : <Badge variant="destructive" className="text-xs">{r.error}</Badge>
                           }
                         </TableCell>

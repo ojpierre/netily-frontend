@@ -270,11 +270,11 @@ export default function VPNPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Active</Badge>
+        return <Badge className="bg-success/15 text-green-800 hover:bg-success/15">Active</Badge>
       case "revoked":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Revoked</Badge>
+        return <Badge className="bg-destructive/15 text-red-800 hover:bg-destructive/15">Revoked</Badge>
       case "expired":
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Expired</Badge>
+        return <Badge className="bg-warning/15 text-yellow-800 hover:bg-warning/15">Expired</Badge>
       default:
         return <Badge variant="secondary">{status}</Badge>
     }
@@ -329,8 +329,8 @@ export default function VPNPage() {
             <div className="flex items-center gap-2">
               {stats?.server_status === "running" ? (
                 <>
-                  <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-2xl font-bold text-green-600">Running</span>
+                  <div className="h-3 w-3 bg-success rounded-full animate-pulse" />
+                  <span className="text-2xl font-bold text-success">Running</span>
                 </>
               ) : stats?.server_status === "stopped" ? (
                 <>
@@ -339,8 +339,8 @@ export default function VPNPage() {
                 </>
               ) : (
                 <>
-                  <div className="h-3 w-3 bg-red-500 rounded-full" />
-                  <span className="text-2xl font-bold text-red-600">Error</span>
+                  <div className="h-3 w-3 bg-destructive rounded-full" />
+                  <span className="text-2xl font-bold text-destructive">Error</span>
                 </>
               )}
             </div>
@@ -392,11 +392,11 @@ export default function VPNPage() {
           <CardContent>
             <div className="text-sm">
               <div className="flex items-center gap-2">
-                <Download className="h-3 w-3 text-green-500" />
+                <Download className="h-3 w-3 text-success" />
                 <span>{formatBytes(stats?.total_bytes_in || 0)}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Upload className="h-3 w-3 text-blue-500" />
+                <Upload className="h-3 w-3 text-primary" />
                 <span>{formatBytes(stats?.total_bytes_out || 0)}</span>
               </div>
             </div>
@@ -491,7 +491,7 @@ export default function VPNPage() {
                               <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  className="text-red-600"
+                                  className="text-destructive"
                                   onClick={() => {
                                     setSelectedCertificate(cert)
                                     setRevokeDialogOpen(true)
@@ -550,11 +550,11 @@ export default function VPNPage() {
                       <TableCell>
                         <div className="text-sm">
                           <div className="flex items-center gap-1">
-                            <Download className="h-3 w-3 text-green-500" />
+                            <Download className="h-3 w-3 text-success" />
                             {formatBytes(conn.bytes_received)}
                           </div>
                           <div className="flex items-center gap-1">
-                            <Upload className="h-3 w-3 text-blue-500" />
+                            <Upload className="h-3 w-3 text-primary" />
                             {formatBytes(conn.bytes_sent)}
                           </div>
                         </div>
@@ -563,7 +563,7 @@ export default function VPNPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-red-600 hover:text-red-700"
+                          className="text-destructive hover:text-destructive"
                           onClick={() => handleDisconnectUser(conn.common_name)}
                         >
                           <WifiOff className="h-4 w-4 mr-1" />

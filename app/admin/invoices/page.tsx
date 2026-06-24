@@ -100,13 +100,13 @@ const formatDate = (dateString: string) => {
 const getStatusBadge = (status: string) => {
   const s = (status || '').toUpperCase()
   const config: Record<string, any> = {
-    PAID: { className: "bg-green-100 text-green-800", icon: <CheckCircle className="h-3 w-3" /> },
-    ISSUED: { className: "bg-blue-100 text-blue-800", icon: <Send className="h-3 w-3" /> },
-    PENDING: { className: "bg-yellow-100 text-yellow-800", icon: <Clock className="h-3 w-3" /> },
-    OVERDUE: { className: "bg-red-100 text-red-800", icon: <AlertTriangle className="h-3 w-3" /> },
+    PAID: { className: "bg-success/15 text-green-800", icon: <CheckCircle className="h-3 w-3" /> },
+    ISSUED: { className: "bg-primary/15 text-primary", icon: <Send className="h-3 w-3" /> },
+    PENDING: { className: "bg-warning/15 text-yellow-800", icon: <Clock className="h-3 w-3" /> },
+    OVERDUE: { className: "bg-destructive/15 text-red-800", icon: <AlertTriangle className="h-3 w-3" /> },
     DRAFT: { className: "bg-gray-100 text-gray-800", icon: <FileText className="h-3 w-3" /> },
     CANCELLED: { className: "bg-gray-100 text-gray-500", icon: <XCircle className="h-3 w-3" /> },
-    PARTIAL: { className: "bg-orange-100 text-orange-800", icon: <DollarSign className="h-3 w-3" /> },
+    PARTIAL: { className: "bg-warning/15 text-orange-800", icon: <DollarSign className="h-3 w-3" /> },
   }
   const c = config[s] || config.DRAFT
   return (
@@ -245,7 +245,7 @@ function LineItemsEditor({ items, onChange }: {
             />
           </div>
           <div className="col-span-1 flex justify-center">
-            <button onClick={() => remove(i)} className="text-red-400 hover:text-red-600">
+            <button onClick={() => remove(i)} className="text-destructive hover:text-destructive">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -278,7 +278,7 @@ function InvoicePreviewModal({ invoice, open, onClose, companyName }: {
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-xl font-bold text-gray-900">{companyName}</h2>
-              <p className="text-blue-600 font-semibold text-lg mt-1">INVOICE</p>
+              <p className="text-primary font-semibold text-lg mt-1">INVOICE</p>
             </div>
             <div className="text-right space-y-1">
               <div><span className="font-medium">Invoice #:</span> {invoice.invoice_number || invoice.id}</div>
@@ -301,7 +301,7 @@ function InvoicePreviewModal({ invoice, open, onClose, companyName }: {
           {/* Items */}
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-blue-600 text-white">
+              <tr className="bg-primary text-white">
                 <th className="text-left py-2 px-3 rounded-tl">Description</th>
                 <th className="text-center py-2 px-3">Qty</th>
                 <th className="text-right py-2 px-3">Unit Price</th>
@@ -334,7 +334,7 @@ function InvoicePreviewModal({ invoice, open, onClose, companyName }: {
                 </div>
               )}
               {invoice.discount_amount && parseFloat(invoice.discount_amount) > 0 && (
-                <div className="flex justify-between text-green-600">
+                <div className="flex justify-between text-success">
                   <span>Discount</span>
                   <span>-{formatCurrency(invoice.discount_amount)}</span>
                 </div>
@@ -346,7 +346,7 @@ function InvoicePreviewModal({ invoice, open, onClose, companyName }: {
               </div>
               {paid > 0 && (
                 <>
-                  <div className="flex justify-between text-green-600">
+                  <div className="flex justify-between text-success">
                     <span>Paid</span>
                     <span>{formatCurrency(paid)}</span>
                   </div>
@@ -686,7 +686,7 @@ export default function InvoiceManagementPage() {
               onCheckedChange={handleToggleAutoGen}
               disabled={autoGenLoading}
             />
-            {autoGenEnabled && <span className="text-xs text-green-600 font-medium">ON</span>}
+            {autoGenEnabled && <span className="text-xs text-success font-medium">ON</span>}
           </div>
           <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />Refresh
@@ -709,30 +709,30 @@ export default function InvoiceManagementPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Collected</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
+            <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(localStats.total_paid ?? 0)}</div>
+            <div className="text-2xl font-bold text-success">{formatCurrency(localStats.total_paid ?? 0)}</div>
             <p className="text-xs text-muted-foreground">{localStats.paid_count ?? 0} paid</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
+            <Clock className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{formatCurrency(localStats.total_pending ?? 0)}</div>
+            <div className="text-2xl font-bold text-warning">{formatCurrency(localStats.total_pending ?? 0)}</div>
             <p className="text-xs text-muted-foreground">{localStats.pending_count ?? 0} awaiting</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-500" />
+            <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(localStats.total_overdue ?? 0)}</div>
+            <div className="text-2xl font-bold text-destructive">{formatCurrency(localStats.total_overdue ?? 0)}</div>
             <p className="text-xs text-muted-foreground">{localStats.overdue_count ?? 0} overdue</p>
           </CardContent>
         </Card>
@@ -810,7 +810,7 @@ export default function InvoiceManagementPage() {
                           <Download className="mr-2 h-4 w-4" />Download PDF
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDeleteInvoice(inv)} className="text-red-600">
+                        <DropdownMenuItem onClick={() => handleDeleteInvoice(inv)} className="text-destructive">
                           <Trash2 className="mr-2 h-4 w-4" />Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -853,7 +853,7 @@ export default function InvoiceManagementPage() {
                 <div><p className="text-muted-foreground">Customer</p><p className="font-medium">{selectedInvoice.customer_name}</p></div>
                 <div><p className="text-muted-foreground">Due Date</p><p className="font-medium">{formatDate(selectedInvoice.due_date)}</p></div>
                 <div><p className="text-muted-foreground">Total</p><p className="font-bold">{formatCurrency(selectedInvoice.total_amount)}</p></div>
-                <div><p className="text-muted-foreground">Paid</p><p className="font-medium text-green-600">{formatCurrency(selectedInvoice.amount_paid || 0)}</p></div>
+                <div><p className="text-muted-foreground">Paid</p><p className="font-medium text-success">{formatCurrency(selectedInvoice.amount_paid || 0)}</p></div>
               </div>
               {invoicePayments.length > 0 && (
                 <>

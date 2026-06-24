@@ -60,10 +60,10 @@ function formatBytes(bytes: number | string): string {
 // Get signal strength color
 function getSignalColor(signal: string): string {
   const strength = parseInt(signal)
-  if (strength >= -50) return "text-green-600"
+  if (strength >= -50) return "text-success"
   if (strength >= -65) return "text-lime-600"
-  if (strength >= -75) return "text-amber-600"
-  return "text-red-600"
+  if (strength >= -75) return "text-warning"
+  return "text-destructive"
 }
 
 function getSignalBars(signal: string): number {
@@ -117,7 +117,7 @@ export function RouterWirelessTab({ routerId, isDemo = false }: RouterWirelessTa
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -127,7 +127,7 @@ export function RouterWirelessTab({ routerId, isDemo = false }: RouterWirelessTa
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-2">
-          <Wifi className="w-5 h-5 text-blue-600" />
+          <Wifi className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold">Wireless</h2>
           <Badge variant="outline">{interfaces.length} interfaces</Badge>
           <Badge variant="outline">{registrations.length} clients</Badge>

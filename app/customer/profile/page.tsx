@@ -122,9 +122,9 @@ export default function CustomerProfilePage() {
   if (!profile) return null
 
   const statusColor: Record<string, string> = {
-    ACTIVE: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400",
-    SUSPENDED: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400",
-    PENDING: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-400",
+    ACTIVE: "bg-success/15 text-success dark:bg-green-950 dark:text-success",
+    SUSPENDED: "bg-destructive/15 text-destructive dark:bg-red-950 dark:text-destructive",
+    PENDING: "bg-warning/15 text-warning dark:bg-yellow-950 dark:text-warning",
     INACTIVE: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400",
   }
 
@@ -140,8 +140,8 @@ export default function CustomerProfilePage() {
       {/* Account Overview */}
       <div className="grid md:grid-cols-3 gap-4">
         <Card className="p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-100 dark:bg-blue-950 rounded-full flex items-center justify-center">
-            <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          <div className="w-12 h-12 bg-primary/15 dark:bg-blue-950 rounded-full flex items-center justify-center">
+            <User className="w-6 h-6 text-primary dark:text-primary/80" />
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Account</p>
@@ -150,8 +150,8 @@ export default function CustomerProfilePage() {
         </Card>
 
         <Card className="p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-100 dark:bg-green-950 rounded-full flex items-center justify-center">
-            <Wifi className="w-6 h-6 text-green-600 dark:text-green-400" />
+          <div className="w-12 h-12 bg-success/15 dark:bg-green-950 rounded-full flex items-center justify-center">
+            <Wifi className="w-6 h-6 text-success dark:text-success" />
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Status</p>

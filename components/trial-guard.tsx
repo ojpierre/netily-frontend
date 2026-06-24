@@ -280,8 +280,8 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-950 flex items-center justify-center">
-              <ShieldAlert className="w-5 h-5 text-red-600" />
+            <div className="w-9 h-9 rounded-lg bg-destructive/15 dark:bg-red-950 flex items-center justify-center">
+              <ShieldAlert className="w-5 h-5 text-destructive" />
             </div>
             <div>
               <DialogTitle className="text-lg">
@@ -297,7 +297,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
           <Button
             variant="ghost" size="sm"
             onClick={() => logout()}
-            className="text-slate-400 hover:text-red-600 h-8 px-2"
+            className="text-slate-400 hover:text-destructive h-8 px-2"
           >
             <LogOut className="w-4 h-4 mr-1" />
             <span className="text-xs">Logout</span>
@@ -319,7 +319,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
 
                 {plansLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   </div>
                 ) : plans.length === 0 ? (
                   <div className="text-center py-10">
@@ -337,7 +337,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                           onClick={() => handleSelectPlan(plan)}
                           className={`w-full text-left p-4 rounded-lg border transition-all hover:shadow-md ${
                             isPopular
-                              ? "border-blue-500 bg-blue-50/50 dark:bg-blue-950/30 hover:border-blue-600"
+                              ? "border-primary bg-primary/10/50 dark:bg-blue-950/30 hover:border-primary"
                               : "border-slate-200 dark:border-slate-700 hover:border-slate-400"
                           }`}
                         >
@@ -345,7 +345,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                             <div className="flex items-center gap-2">
                               <span className="font-semibold">{plan.name}</span>
                               {isPopular && (
-                                <Badge className="bg-blue-600 text-white text-[10px] px-1.5 py-0">
+                                <Badge className="bg-primary text-white text-[10px] px-1.5 py-0">
                                   Recommended
                                 </Badge>
                               )}
@@ -358,13 +358,13 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                           <div className="flex flex-wrap gap-x-4 gap-y-1">
                             {features.slice(0, 4).map((f, i) => (
                               <span key={i} className="text-xs text-slate-500 flex items-center gap-1">
-                                <Check className="w-3 h-3 text-green-600" />
+                                <Check className="w-3 h-3 text-success" />
                                 {f}
                               </span>
                             ))}
                           </div>
                           {plan.is_metered && (
-                            <p className="text-[10px] text-blue-600 font-medium mt-1">+ Usage-based fees</p>
+                            <p className="text-[10px] text-primary font-medium mt-1">+ Usage-based fees</p>
                           )}
                         </button>
                       )
@@ -430,38 +430,38 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
 
                 {/* ── Waiting / Countdown overlay ── */}
                 {paymentStatus === "waiting" && (
-                  <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/40 p-5 text-center space-y-4">
-                    <div className="w-14 h-14 mx-auto rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                      <Smartphone className="w-7 h-7 text-green-600 animate-pulse" />
+                  <div className="rounded-xl border border-success/20 dark:border-success/20 bg-success/10 dark:bg-green-950/40 p-5 text-center space-y-4">
+                    <div className="w-14 h-14 mx-auto rounded-full bg-success/15 dark:bg-success/15 flex items-center justify-center">
+                      <Smartphone className="w-7 h-7 text-success animate-pulse" />
                     </div>
                     <div>
                       <p className="font-semibold text-green-800 dark:text-green-200">
                         Waiting for M-Pesa confirmation
                       </p>
-                      <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">
+                      <p className="text-xs text-success dark:text-success mt-0.5">
                         Check your phone and enter your PIN
                       </p>
                     </div>
 
                     {/* Progress bar */}
-                    <div className="w-full bg-green-200 dark:bg-green-900 rounded-full h-2 overflow-hidden">
+                    <div className="w-full bg-green-200 dark:bg-success/15 rounded-full h-2 overflow-hidden">
                       <div
-                        className="bg-green-500 h-2 rounded-full transition-all duration-1000"
+                        className="bg-success h-2 rounded-full transition-all duration-1000"
                         style={{ width: `${progressPct}%` }}
                       />
                     </div>
 
                     {/* Countdown */}
-                    <div className="flex items-center justify-center gap-1.5 text-sm text-green-700 dark:text-green-300">
+                    <div className="flex items-center justify-center gap-1.5 text-sm text-success dark:text-success/80">
                       <Clock className="w-4 h-4" />
                       <span className="font-mono font-bold">{formatCountdown(countdown)}</span>
-                      <span className="text-xs text-green-600 dark:text-green-400">remaining</span>
+                      <span className="text-xs text-success dark:text-success">remaining</span>
                     </div>
 
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-green-300 text-green-700 hover:bg-green-100"
+                      className="border-success/30 text-success hover:bg-success/15"
                       onClick={handleRetry}
                     >
                       Cancel &amp; Try Again
@@ -473,14 +473,14 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                 {paymentStatus === "idle" && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Smartphone className="w-4 h-4 text-green-600" />
+                      <Smartphone className="w-4 h-4 text-success" />
                       <span className="text-sm font-semibold">Pay via M-Pesa STK Push</span>
                     </div>
 
                     {paymentError && (
-                      <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                        <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
-                        <p className="text-xs text-red-700 dark:text-red-400">{paymentError}</p>
+                      <div className="flex items-start gap-2 p-3 bg-destructive/10 dark:bg-red-950 border border-destructive/20 dark:border-destructive/20 rounded-lg">
+                        <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                        <p className="text-xs text-destructive dark:text-destructive">{paymentError}</p>
                       </div>
                     )}
 
@@ -498,7 +498,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                         }}
                       />
                       {phoneError ? (
-                        <p className="text-[10px] text-red-500">{phoneError}</p>
+                        <p className="text-[10px] text-destructive">{phoneError}</p>
                       ) : (
                         <p className="text-[10px] text-slate-400">
                           You will receive an STK push prompt on this number
@@ -507,7 +507,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                     </div>
 
                     <Button
-                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      className="w-full bg-success hover:bg-green-700 text-white"
                       onClick={handlePay}
                       disabled={!phoneNumber.trim()}
                     >
@@ -530,8 +530,8 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
             {/* ── STEP: SUCCESS ── */}
             {step === "success" && (
               <div className="text-center py-8 space-y-4">
-                <div className="w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center">
-                  <CheckCircle2 className="w-10 h-10 text-green-600" />
+                <div className="w-16 h-16 mx-auto rounded-full bg-success/15 dark:bg-green-950 flex items-center justify-center">
+                  <CheckCircle2 className="w-10 h-10 text-success" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold">Payment Confirmed!</h3>
@@ -549,7 +549,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                   <Loader2 className="w-3 h-3 animate-spin" />
                   Redirecting to dashboard...
                 </div>
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => window.location.reload()}>
+                <Button className="bg-primary hover:bg-primary" onClick={() => window.location.reload()}>
                   Continue to Dashboard
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -559,8 +559,8 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
             {/* ── STEP: TIMEOUT ── */}
             {step === "timeout" && (
               <div className="text-center py-8 space-y-4">
-                <div className="w-16 h-16 mx-auto rounded-full bg-amber-100 dark:bg-amber-950 flex items-center justify-center">
-                  <Clock className="w-10 h-10 text-amber-600" />
+                <div className="w-16 h-16 mx-auto rounded-full bg-warning/15 dark:bg-amber-950 flex items-center justify-center">
+                  <Clock className="w-10 h-10 text-warning" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold">Request Timed Out</h3>
@@ -571,7 +571,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 max-w-xs mx-auto">
-                  <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleCheckAndRefresh}>
+                  <Button className="bg-primary hover:bg-primary" onClick={handleCheckAndRefresh}>
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Check Status &amp; Refresh
                   </Button>
@@ -586,8 +586,8 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
             {/* ── STEP: FAILED ── */}
             {step === "failed" && (
               <div className="text-center py-8 space-y-4">
-                <div className="w-16 h-16 mx-auto rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
-                  <XCircle className="w-10 h-10 text-red-600" />
+                <div className="w-16 h-16 mx-auto rounded-full bg-destructive/15 dark:bg-red-950 flex items-center justify-center">
+                  <XCircle className="w-10 h-10 text-destructive" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold">Payment Failed</h3>
@@ -596,7 +596,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 max-w-xs mx-auto">
-                  <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={handleRetry}>
+                  <Button className="bg-success hover:bg-green-700 text-white" onClick={handleRetry}>
                     <Phone className="w-4 h-4 mr-2" />
                     Try Again
                   </Button>
@@ -782,7 +782,7 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
   if (isChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }

@@ -729,19 +729,19 @@ export default function RouterDetailPage() {
 
   const getStatusIcon = (status: RouterStatus) => {
     switch (status) {
-      case "online": return <CheckCircle className="w-5 h-5 text-green-600" />
-      case "offline": return <XCircle className="w-5 h-5 text-red-600" />
-      case "warning": return <AlertTriangle className="w-5 h-5 text-amber-600" />
-      case "maintenance": return <Settings className="w-5 h-5 text-blue-600 animate-spin" />
+      case "online": return <CheckCircle className="w-5 h-5 text-success" />
+      case "offline": return <XCircle className="w-5 h-5 text-destructive" />
+      case "warning": return <AlertTriangle className="w-5 h-5 text-warning" />
+      case "maintenance": return <Settings className="w-5 h-5 text-primary animate-spin" />
     }
   }
 
   const getEventIcon = (eventType: string) => {
     switch (eventType) {
-      case "up": return <CheckCircle className="w-4 h-4 text-green-600" />
-      case "down": return <XCircle className="w-4 h-4 text-red-600" />
-      case "warning": return <AlertTriangle className="w-4 h-4 text-amber-600" />
-      case "reboot": return <RotateCcw className="w-4 h-4 text-blue-600" />
+      case "up": return <CheckCircle className="w-4 h-4 text-success" />
+      case "down": return <XCircle className="w-4 h-4 text-destructive" />
+      case "warning": return <AlertTriangle className="w-4 h-4 text-warning" />
+      case "reboot": return <RotateCcw className="w-4 h-4 text-primary" />
       case "config_change": return <Settings className="w-4 h-4 text-purple-600" />
       default: return <Info className="w-4 h-4 text-slate-600" />
     }
@@ -858,20 +858,20 @@ export default function RouterDetailPage() {
                   {authScript}
                 </div>
                 {routerData.is_authenticated && (
-                  <div className="flex items-center gap-2 text-green-700 text-sm mb-2">
+                  <div className="flex items-center gap-2 text-success text-sm mb-2">
                     <CheckCircle className="w-4 h-4" />
                     Authenticated on {formatDate(routerData.authenticated_at!)}
                   </div>
                 )}
                 {isUsingDemoData && (
-                  <Badge variant="outline" className="text-amber-600 mb-2">Demo Authentication</Badge>
+                  <Badge variant="outline" className="text-warning mb-2">Demo Authentication</Badge>
                 )}
                 <div className="text-xs text-slate-500 mt-2">
                   After running the script, click Refresh to update status.
                 </div>
               </>
             ) : (
-              <div className="p-4 text-red-500">Failed to load script.</div>
+              <div className="p-4 text-destructive">Failed to load script.</div>
             )}
             <DialogFooter>
               <Button onClick={handleCopyAuthScript} disabled={!authScript}>
@@ -886,14 +886,14 @@ export default function RouterDetailPage() {
       )}
 
             <div className={`p-3 rounded-lg ${
-              routerData.status === "online" ? "bg-green-100" :
-              routerData.status === "offline" ? "bg-red-100" :
-              routerData.status === "warning" ? "bg-amber-100" : "bg-blue-100"
+              routerData.status === "online" ? "bg-success/15" :
+              routerData.status === "offline" ? "bg-destructive/15" :
+              routerData.status === "warning" ? "bg-warning/15" : "bg-primary/15"
             }`}>
               <Server className={`w-6 h-6 ${
-                routerData.status === "online" ? "text-green-600" :
-                routerData.status === "offline" ? "text-red-600" :
-                routerData.status === "warning" ? "text-amber-600" : "text-blue-600"
+                routerData.status === "online" ? "text-success" :
+                routerData.status === "offline" ? "text-destructive" :
+                routerData.status === "warning" ? "text-warning" : "text-primary"
               }`} />
             </div>
 
@@ -901,7 +901,7 @@ export default function RouterDetailPage() {
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold">{routerData.name}</h1>
                 {isUsingDemoData && (
-                  <Badge variant="outline" className="text-amber-600 border-amber-300">Demo</Badge>
+                  <Badge variant="outline" className="text-warning border-amber-300">Demo</Badge>
                 )}
               </div>
               {/* Fix 2d: Updated badges to show model from live status */}
@@ -936,7 +936,7 @@ export default function RouterDetailPage() {
                 size="sm" 
                 onClick={handleReboot}
                 disabled={isRebooting}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-primary hover:bg-primary"
               >
                 {isRebooting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -948,10 +948,10 @@ export default function RouterDetailPage() {
               <Badge
                 variant="outline"
                 className={`px-3 py-1 ${
-                  routerData.status === "online" ? "bg-green-100 text-green-700 border-green-300" :
-                  routerData.status === "offline" ? "bg-red-100 text-red-700 border-red-300" :
-                  routerData.status === "warning" ? "bg-amber-100 text-amber-700 border-amber-300" :
-                  "bg-blue-100 text-blue-700 border-blue-300"
+                  routerData.status === "online" ? "bg-success/15 text-success border-success/30" :
+                  routerData.status === "offline" ? "bg-destructive/15 text-destructive border-destructive/30" :
+                  routerData.status === "warning" ? "bg-warning/15 text-warning border-amber-300" :
+                  "bg-primary/15 text-primary border-primary/30"
                 }`}
               >
                 {getStatusIcon(routerData.status)}
@@ -1012,7 +1012,7 @@ export default function RouterDetailPage() {
               <p className={`text-2xl font-extrabold leading-none ${
                 routerData.uptime_percentage && routerData.uptime_percentage >= (routerData.sla_target || 99)
                   ? 'text-purple-600 dark:text-purple-400'
-                  : 'text-red-600 dark:text-red-400'
+                  : 'text-destructive dark:text-destructive'
               }`}>
                 {routerData.uptime_percentage && routerData.uptime_percentage > 0
                   ? `${Number(routerData.uptime_percentage).toFixed(1)}%`
@@ -1219,7 +1219,7 @@ export default function RouterDetailPage() {
                   {routerData.status === "maintenance" ? "Exit Maintenance" : "Enter Maintenance"}
                 </Button>
                 <Button 
-                  className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50" 
+                  className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10" 
                   variant="outline"
                   onClick={() => setIsDeleteDialogOpen(true)}
                 >
@@ -1302,14 +1302,14 @@ export default function RouterDetailPage() {
             <Card className={`border-2 ${
               routerData.vpn_provisioned
                 ? vpnStatus?.tunnel_status === 'connected'
-                  ? 'border-green-200 bg-green-50/50'
-                  : 'border-yellow-200 bg-yellow-50/50'
+                  ? 'border-success/20 bg-success/10/50'
+                  : 'border-warning/20 bg-warning/10/50'
                 : 'border-slate-200 bg-slate-50/50'
             }`}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <CloudCog className="w-6 h-6 text-blue-600" />
+                    <CloudCog className="w-6 h-6 text-primary" />
                     <div>
                       <CardTitle>Cloud Controller VPN</CardTitle>
                       <CardDescription>OpenVPN tunnel between this router and Netily cloud</CardDescription>
@@ -1317,7 +1317,7 @@ export default function RouterDetailPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {routerData.vpn_provisioned ? (
-                      <Badge className="bg-green-600 gap-1"><ShieldCheck className="w-3 h-3" /> Provisioned</Badge>
+                      <Badge className="bg-success gap-1"><ShieldCheck className="w-3 h-3" /> Provisioned</Badge>
                     ) : (
                       <Badge variant="secondary" className="gap-1"><Unlink className="w-3 h-3" /> Not Provisioned</Badge>
                     )}
@@ -1417,11 +1417,11 @@ export default function RouterDetailPage() {
 
             {/* Remote Access Card */}
             {routerData.remote_access_url && (
-              <Card className="border-2 border-green-200 bg-green-50/30">
+              <Card className="border-2 border-success/20 bg-success/10/30">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <MonitorSpeaker className="w-6 h-6 text-green-600" />
+                      <MonitorSpeaker className="w-6 h-6 text-success" />
                       <div>
                         <CardTitle>Remote Access</CardTitle>
                         <CardDescription>
@@ -1429,7 +1429,7 @@ export default function RouterDetailPage() {
                         </CardDescription>
                       </div>
                     </div>
-                    <Badge className="bg-green-600 gap-1">
+                    <Badge className="bg-success gap-1">
                       <CheckCircle className="w-3 h-3" /> Active
                     </Badge>
                   </div>
@@ -1441,7 +1441,7 @@ export default function RouterDetailPage() {
                       Winbox Address
                     </p>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-900 text-green-400 font-mono text-sm px-4 py-2.5 rounded-lg">
+                      <div className="flex-1 bg-slate-900 text-success font-mono text-sm px-4 py-2.5 rounded-lg">
                         {(routerData.remote_access_url as any).winbox}
                       </div>
                       <Button
@@ -1470,7 +1470,7 @@ export default function RouterDetailPage() {
                       API Address
                     </p>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-900 text-blue-400 font-mono text-sm px-4 py-2.5 rounded-lg">
+                      <div className="flex-1 bg-slate-900 text-primary/80 font-mono text-sm px-4 py-2.5 rounded-lg">
                         {(routerData.remote_access_url as any).api}
                       </div>
                       <Button
@@ -1514,13 +1514,13 @@ export default function RouterDetailPage() {
             )}
 
             {/* Cloud Provision Script Card */}
-            <Card className="border-2 border-blue-200 bg-blue-50/50">
+            <Card className="border-2 border-primary/20 bg-primary/10/50">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Code className="w-5 h-5 text-blue-600" />
+                    <Code className="w-5 h-5 text-primary" />
                     <CardTitle className="text-base">MikroTik Provisioning Script</CardTitle>
-                    <Badge className="bg-blue-600">Cloud Controller v4</Badge>
+                    <Badge className="bg-primary">Cloud Controller v4</Badge>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -1566,7 +1566,7 @@ export default function RouterDetailPage() {
                 <div className="mb-4">
                   <p className="text-xs text-slate-500 mb-2 font-medium">Magic Link — paste into MikroTik terminal:</p>
                   <div className="relative">
-                    <pre className="bg-slate-900 text-green-400 p-4 pr-12 rounded-md text-sm overflow-x-auto font-mono">
+                    <pre className="bg-slate-900 text-success p-4 pr-12 rounded-md text-sm overflow-x-auto font-mono">
                       <code>{routerData.magic_link || `/tool fetch url="${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'}/network/provision/${routerData.auth_key || 'NOT_GENERATED'}/${routerData.provision_slug || 'pending'}/script.rsc" dst-path="netily.rsc" mode=http; :delay 2s; /import netily.rsc`}</code>
                     </pre>
                     <Button
@@ -1597,8 +1597,8 @@ export default function RouterDetailPage() {
                   <p className="text-sm text-slate-500">Click "Load Script" to preview the generated .rsc provisioning script.</p>
                 )}
 
-                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
-                  <p className="text-xs text-amber-700">
+                <div className="mt-3 p-3 bg-warning/10 border border-warning/20 rounded-md">
+                  <p className="text-xs text-warning">
                     ⚠️ This script will <strong>reset the router configuration</strong> including identity, IP pool, DHCP, hotspot, RADIUS, and OpenVPN settings. Only run on routers you intend to manage via Netily Cloud Controller.
                   </p>
                 </div>
@@ -1657,15 +1657,15 @@ export default function RouterDetailPage() {
             <CardContent>
               <div className="space-y-4">
                 {/* Authentication Script - Always show */}
-                <Card className="border-2 border-blue-200 bg-blue-50/50">
+                <Card className="border-2 border-primary/20 bg-primary/10/50">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Shield className="w-5 h-5 text-blue-600" />
+                        <Shield className="w-5 h-5 text-primary" />
                         <CardTitle className="text-base font-mono">netily-auth</CardTitle>
-                        <Badge className="bg-blue-600">Authentication</Badge>
+                        <Badge className="bg-primary">Authentication</Badge>
                         {routerData.is_authenticated && (
-                          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                          <Badge variant="outline" className="bg-success/15 text-success border-success/30">
                             <CheckCircle className="w-3 h-3 mr-1" />
                             Authenticated
                           </Badge>
@@ -1692,7 +1692,7 @@ export default function RouterDetailPage() {
                     {/* One-liner command to fetch and import config */}
                     <div className="mb-4">
                       <p className="text-xs text-slate-500 mb-2 font-medium">One-liner command (paste in MikroTik terminal):</p>
-                      <pre className="bg-slate-900 text-green-400 p-4 rounded-md text-sm overflow-x-auto font-mono">
+                      <pre className="bg-slate-900 text-success p-4 rounded-md text-sm overflow-x-auto font-mono">
                         <code>{`/tool fetch url="http://127.0.0.1:8000/api/v1/network/routers/${routerData.id}/config/?auth_key=${routerData.auth_key || 'NOT_GENERATED'}" dst-path=netily.rsc; :delay 2s; /import netily.rsc;`}</code>
                       </pre>
                     </div>
@@ -1702,7 +1702,7 @@ export default function RouterDetailPage() {
                         <strong>How to use:</strong> Open your MikroTik terminal (via Winbox or SSH), paste this command, and press Enter.
                       </p>
                       {!routerData.auth_key && (
-                        <p className="text-xs text-red-500">
+                        <p className="text-xs text-destructive">
                           ⚠️ Auth key not generated yet. Backend needs to implement auth_key generation.
                         </p>
                       )}
@@ -1722,7 +1722,7 @@ export default function RouterDetailPage() {
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <FileCode className="w-5 h-5 text-blue-600" />
+                            <FileCode className="w-5 h-5 text-primary" />
                             <CardTitle className="text-base font-mono">{script.name}</CardTitle>
                             {script.scheduled && (
                               <Badge variant="secondary" className="text-xs">Scheduled</Badge>
@@ -1750,7 +1750,7 @@ export default function RouterDetailPage() {
                               size="sm"
                               onClick={() => handleRunScript(script.id)}
                               disabled={isRunningScript === script.id}
-                              className="text-green-600 hover:text-green-700"
+                              className="text-success hover:text-success"
                               title="Run script"
                             >
                               {isRunningScript === script.id ? (
@@ -1763,7 +1763,7 @@ export default function RouterDetailPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDeleteScript(script.id)}
-                              className="text-red-600 hover:text-red-700"
+                              className="text-destructive hover:text-destructive"
                               title="Delete script"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1893,9 +1893,9 @@ export default function RouterDetailPage() {
               <CardDescription>Current router configuration — read only. Contact support to make changes.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
-                <Shield className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-700">Router configuration is locked to prevent accidental changes. Please contact <strong>Netily Support</strong> if you need to update any of these values.</p>
+              <div className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 flex items-start gap-3">
+                <Shield className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+                <p className="text-sm text-warning">Router configuration is locked to prevent accidental changes. Please contact <strong>Netily Support</strong> if you need to update any of these values.</p>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">

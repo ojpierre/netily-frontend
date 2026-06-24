@@ -85,12 +85,12 @@ function StorageBar({ storage, loading }: { storage: StorageInfo | null; loading
     <div className="h-2 w-full bg-gray-100 rounded-full animate-pulse" />
   )
   const { used_mb, total_mb, percentage } = storage
-  const color = percentage > 85 ? 'bg-red-500' : percentage > 65 ? 'bg-amber-500' : 'bg-emerald-500'
+  const color = percentage > 85 ? 'bg-destructive' : percentage > 65 ? 'bg-warning' : 'bg-emerald-500'
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs text-gray-500">
         <span className="flex items-center gap-1"><HardDrive className="w-3 h-3" />Ad Storage</span>
-        <span className={percentage > 85 ? 'text-red-600 font-semibold' : ''}>
+        <span className={percentage > 85 ? 'text-destructive font-semibold' : ''}>
           {used_mb.toFixed(1)} / {total_mb} MB
         </span>
       </div>
@@ -98,7 +98,7 @@ function StorageBar({ storage, loading }: { storage: StorageInfo | null; loading
         <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${Math.min(percentage, 100)}%` }} />
       </div>
       {percentage > 85 && (
-        <p className="text-xs text-red-600 flex items-center gap-1">
+        <p className="text-xs text-destructive flex items-center gap-1">
           <AlertCircle className="w-3 h-3" />
           Almost full — delete inactive ads to free space
         </p>
@@ -294,7 +294,7 @@ export default function AdsPage() {
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700">
+        <div className="flex items-center gap-2 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive">
           <AlertCircle className="w-5 h-5" />
           <span>{error}</span>
         </div>
@@ -304,14 +304,14 @@ export default function AdsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card><CardContent className="p-4 flex items-center justify-between">
           <div><p className="text-sm text-slate-500">Impressions</p><p className="text-2xl font-bold">{totalImpressions.toLocaleString()}</p></div>
-          <Eye className="w-8 h-8 text-blue-400 opacity-60" />
+          <Eye className="w-8 h-8 text-primary/80 opacity-60" />
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center justify-between">
           <div><p className="text-sm text-slate-500">Completions</p><p className="text-2xl font-bold">{totalCompletions.toLocaleString()}</p></div>
-          <CheckCircle className="w-8 h-8 text-green-400 opacity-60" />
+          <CheckCircle className="w-8 h-8 text-success opacity-60" />
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center justify-between">
-          <div><p className="text-sm text-slate-500">Active Ads</p><p className="text-2xl font-bold text-green-600">{activeCount}</p></div>
+          <div><p className="text-sm text-slate-500">Active Ads</p><p className="text-2xl font-bold text-success">{activeCount}</p></div>
           <TrendingUp className="w-8 h-8 text-emerald-400 opacity-60" />
         </CardContent></Card>
         <Card><CardContent className="p-4 space-y-2">
@@ -329,7 +329,7 @@ export default function AdsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>
+            <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
           ) : filteredAds.length === 0 ? (
             <div className="text-center py-12">
               <Play className="w-12 h-12 mx-auto text-slate-300 mb-3" />
@@ -339,7 +339,7 @@ export default function AdsPage() {
           ) : (
             <div className="space-y-3">
               {filteredAds.map(ad => (
-                <div key={ad.id} className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${ad.is_active ? 'border-green-200 bg-green-50/40' : 'border-slate-200 bg-white opacity-70'}`}>
+                <div key={ad.id} className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${ad.is_active ? 'border-success/20 bg-success/10/40' : 'border-slate-200 bg-white opacity-70'}`}>
                   {/* Thumbnail */}
                   <div className="w-16 h-12 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {ad.media_url ? (
@@ -353,7 +353,7 @@ export default function AdsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-slate-900 truncate">{ad.name}</span>
-                      <Badge variant="outline" className={ad.media_type === 'VIDEO' ? 'border-blue-200 text-blue-700' : 'border-purple-200 text-purple-700'}>
+                      <Badge variant="outline" className={ad.media_type === 'VIDEO' ? 'border-primary/20 text-primary' : 'border-purple-200 text-purple-700'}>
                         {ad.media_type}
                       </Badge>
                       {ad.reward_enabled && ad.reward_minutes > 0 && (
@@ -376,7 +376,7 @@ export default function AdsPage() {
                   <Switch
                     checked={ad.is_active}
                     onCheckedChange={() => handleToggleActive(ad)}
-                    className="data-[state=checked]:bg-green-500"
+                    className="data-[state=checked]:bg-success"
                   />
 
                   {/* Actions */}
@@ -388,7 +388,7 @@ export default function AdsPage() {
                       <DropdownMenuItem onClick={() => setPreviewAd(ad)}><Eye className="w-4 h-4 mr-2" />Preview</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => openEdit(ad)}><Edit className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(ad)}><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(ad)}><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -413,7 +413,7 @@ export default function AdsPage() {
             <div className="space-y-5 pr-4">
 
               {saveError && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
                   <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   {saveError}
                 </div>
@@ -433,7 +433,7 @@ export default function AdsPage() {
                   {(['VIDEO', 'IMAGE'] as const).map(t => (
                     <button key={t} type="button"
                       onClick={() => setForm(f => ({ ...f, media_type: t }))}
-                      className={`py-2 rounded-lg border text-sm font-medium transition-colors ${form.media_type === t ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                      className={`py-2 rounded-lg border text-sm font-medium transition-colors ${form.media_type === t ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
                     >{t === 'VIDEO' ? '🎬 Video' : '🖼️ Image'}</button>
                   ))}
                 </div>
@@ -443,12 +443,12 @@ export default function AdsPage() {
               <div className="space-y-2">
                 <Label>Upload File</Label>
                 <div
-                  className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                  className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-primary/40 hover:bg-primary/10 transition-colors"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {selectedFile ? (
                     <div>
-                      <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                      <CheckCircle className="w-8 h-8 text-success mx-auto mb-2" />
                       <p className="text-sm font-medium text-gray-700">{selectedFile.name}</p>
                       <p className="text-xs text-gray-500">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
                     </div>

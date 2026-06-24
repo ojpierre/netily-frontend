@@ -18,7 +18,7 @@ export function RoleGuard({ allowedRoles, allowedDepartments, areaLabel = "this 
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     )
   }
@@ -39,11 +39,11 @@ export function RoleGuard({ allowedRoles, allowedDepartments, areaLabel = "this 
           </p>
         </div>
         <div className="space-y-4 p-8">
-          <div className="flex gap-3 rounded-2xl bg-blue-50 p-4 text-sm text-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+          <div className="flex gap-3 rounded-2xl bg-primary/10 p-4 text-sm text-primary dark:bg-blue-950/40 dark:text-blue-100">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             <div>
               <p className="font-semibold">Who can access this area?</p>
-              <p className="mt-1 text-blue-800/80 dark:text-blue-100/80">
+              <p className="mt-1 text-primary/80 dark:text-blue-100/80">
                 {allowedRoles?.length ? `Roles: ${list(allowedRoles)}. ` : ""}
                 {allowedDepartments?.length ? `Departments: ${list(allowedDepartments)}.` : ""}
               </p>

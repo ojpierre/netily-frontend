@@ -68,8 +68,8 @@ const TEMPLATES: TemplateOption[] = [
     preview: {
       bg: "bg-gradient-to-br from-blue-50 to-indigo-100",
       card: "bg-white",
-      accent: "bg-blue-600",
-      text: "text-blue-600",
+      accent: "bg-primary",
+      text: "text-primary",
     },
   },
   {
@@ -116,8 +116,8 @@ const TEMPLATES: TemplateOption[] = [
     preview: {
       bg: "bg-gradient-to-br from-amber-400 to-orange-500",
       card: "bg-white",
-      accent: "bg-orange-500",
-      text: "text-orange-500",
+      accent: "bg-warning",
+      text: "text-warning",
     },
   },
   {
@@ -162,10 +162,10 @@ const TEMPLATES: TemplateOption[] = [
     description: "Earthy terracotta tones — warm, welcoming, local feel",
     icon: <Globe className="w-5 h-5" />,
     preview: {
-      bg: "bg-amber-50",
+      bg: "bg-warning/10",
       card: "bg-white",
       accent: "bg-amber-700",
-      text: "text-amber-700",
+      text: "text-warning",
     },
   },
   {
@@ -187,9 +187,9 @@ const TEMPLATES: TemplateOption[] = [
     icon: <Building2 className="w-5 h-5" />,
     preview: {
       bg: "bg-slate-900",
-      card: "bg-slate-800 border border-yellow-500/20",
-      accent: "bg-yellow-500",
-      text: "text-yellow-400",
+      card: "bg-slate-800 border border-warning/20",
+      accent: "bg-warning",
+      text: "text-warning",
     },
   },
   {
@@ -416,7 +416,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
         </div>
         <div className="flex items-center gap-2">
           {dirty && (
-            <Badge variant="outline" className="text-amber-600 border-amber-300 animate-pulse">
+            <Badge variant="outline" className="text-warning border-amber-300 animate-pulse">
               Unsaved changes
             </Badge>
           )}
@@ -707,7 +707,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                           setLogoPreview("")
                           if (existingLogo) setExistingLogo("")
                         }}
-                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
+                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center hover:bg-destructive"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -856,7 +856,7 @@ function PortalPreview({
             ) : (
               <div className="flex justify-center mb-2">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  styles.headerBg === 'bg-white border-b' ? 'bg-blue-100' : 'bg-white/20'
+                  styles.headerBg === 'bg-white border-b' ? 'bg-primary/15' : 'bg-white/20'
                 }`}>
                   <Wifi className={`w-6 h-6 ${styles.headerIcon}`} />
                 </div>
@@ -1021,16 +1021,16 @@ function getTemplateStyles(id: number): TemplateStyles {
         headerIcon: "text-white",
         headerText: "text-white",
         headerSubtext: "text-amber-100",
-        announcementBg: "bg-amber-50 border border-amber-200",
-        announcementIcon: "text-amber-600",
-        announcementText: "text-amber-700",
-        planSelected: "border-orange-500 bg-orange-50",
+        announcementBg: "bg-warning/10 border border-warning/20",
+        announcementIcon: "text-warning",
+        announcementText: "text-warning",
+        planSelected: "border-warning bg-warning/10",
         planNormal: "border-gray-200 hover:border-orange-300",
         planTitle: "text-gray-900",
         planSub: "text-gray-500",
-        planPrice: "text-orange-600",
+        planPrice: "text-warning",
         inputStyles: "border-gray-200 bg-white text-gray-700",
-        ctaStyles: "bg-orange-500 text-white hover:bg-orange-600",
+        ctaStyles: "bg-warning text-white hover:bg-orange-600",
         footer: "text-gray-400",
       }
     case 6: // Corporate
@@ -1095,20 +1095,20 @@ function getTemplateStyles(id: number): TemplateStyles {
       }
     case 9: // Safari Warmth
       return {
-        containerBg: "bg-amber-50",
+        containerBg: "bg-warning/10",
         cardBg: "bg-white shadow-xl",
         headerBg: "bg-amber-700",
         headerIcon: "text-white",
         headerText: "text-white",
         headerSubtext: "text-amber-100",
-        announcementBg: "bg-amber-100 border border-amber-200",
-        announcementIcon: "text-amber-600",
+        announcementBg: "bg-warning/15 border border-warning/20",
+        announcementIcon: "text-warning",
         announcementText: "text-amber-800",
-        planSelected: "border-amber-700 bg-amber-50",
+        planSelected: "border-amber-700 bg-warning/10",
         planNormal: "border-gray-200 hover:border-amber-300",
         planTitle: "text-gray-900",
         planSub: "text-gray-500",
-        planPrice: "text-amber-700",
+        planPrice: "text-warning",
         inputStyles: "border-gray-200 bg-white text-gray-700",
         ctaStyles: "bg-amber-700 text-white hover:bg-amber-800",
         footer: "text-gray-400",
@@ -1136,21 +1136,21 @@ function getTemplateStyles(id: number): TemplateStyles {
     case 11: // Midnight Luxury
       return {
         containerBg: "bg-slate-900",
-        cardBg: "bg-slate-800 border border-yellow-500/20",
-        headerBg: "bg-gradient-to-r from-slate-800 to-slate-700 border-b border-yellow-500/30",
-        headerIcon: "text-yellow-400",
-        headerText: "text-yellow-400",
-        headerSubtext: "text-yellow-500/70",
-        announcementBg: "bg-yellow-950/30 border border-yellow-500/20",
-        announcementIcon: "text-yellow-400",
+        cardBg: "bg-slate-800 border border-warning/20",
+        headerBg: "bg-gradient-to-r from-slate-800 to-slate-700 border-b border-warning/30",
+        headerIcon: "text-warning",
+        headerText: "text-warning",
+        headerSubtext: "text-warning/70",
+        announcementBg: "bg-yellow-950/30 border border-warning/20",
+        announcementIcon: "text-warning",
         announcementText: "text-yellow-300",
-        planSelected: "border-yellow-500 bg-yellow-950/20 text-white",
-        planNormal: "border-slate-700 text-gray-300 hover:border-yellow-500/30",
+        planSelected: "border-warning bg-yellow-950/20 text-white",
+        planNormal: "border-slate-700 text-gray-300 hover:border-warning/30",
         planTitle: "text-white",
         planSub: "text-gray-400",
-        planPrice: "text-yellow-400",
+        planPrice: "text-warning",
         inputStyles: "border-slate-700 bg-slate-800 text-gray-300",
-        ctaStyles: "bg-yellow-500 text-slate-900 font-bold hover:bg-yellow-400",
+        ctaStyles: "bg-warning text-slate-900 font-bold hover:bg-warning",
         footer: "text-gray-500",
       }
     case 12: // Blossom
@@ -1177,20 +1177,20 @@ function getTemplateStyles(id: number): TemplateStyles {
       return {
         containerBg: "bg-gradient-to-br from-blue-50 to-indigo-100",
         cardBg: "bg-white shadow-xl",
-        headerBg: "bg-blue-600",
+        headerBg: "bg-primary",
         headerIcon: "text-white",
         headerText: "text-white",
         headerSubtext: "text-blue-100",
-        announcementBg: "bg-blue-50 border border-blue-200",
-        announcementIcon: "text-blue-500",
-        announcementText: "text-blue-700",
-        planSelected: "border-blue-500 bg-blue-50",
-        planNormal: "border-gray-200 hover:border-blue-300",
+        announcementBg: "bg-primary/10 border border-primary/20",
+        announcementIcon: "text-primary",
+        announcementText: "text-primary",
+        planSelected: "border-primary bg-primary/10",
+        planNormal: "border-gray-200 hover:border-primary/30",
         planTitle: "text-gray-900",
         planSub: "text-gray-500",
-        planPrice: "text-blue-600",
+        planPrice: "text-primary",
         inputStyles: "border-gray-200 bg-white text-gray-700",
-        ctaStyles: "bg-blue-600 text-white hover:bg-blue-700",
+        ctaStyles: "bg-primary text-white hover:bg-primary",
         footer: "text-gray-400",
       }
   }

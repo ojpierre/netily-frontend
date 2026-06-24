@@ -18,7 +18,7 @@ const demoRouters = [
 
 const statusStyles: Record<string, string> = {
   online: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300",
-  warning: "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300",
+  warning: "bg-warning/15 text-warning dark:bg-amber-950/30 dark:text-amber-300",
   offline: "bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300",
 }
 
@@ -52,11 +52,11 @@ export default function DemoAdminRoutersPage() {
           <CardContent><div className="text-2xl font-bold">14</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Warnings</CardTitle><AlertTriangle className="h-4 w-4 text-amber-600" /></CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Warnings</CardTitle><AlertTriangle className="h-4 w-4 text-warning" /></CardHeader>
           <CardContent><div className="text-2xl font-bold">1</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Connected users</CardTitle><Server className="h-4 w-4 text-blue-600" /></CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Connected users</CardTitle><Server className="h-4 w-4 text-primary" /></CardHeader>
           <CardContent><div className="text-2xl font-bold">461</div></CardContent>
         </Card>
       </div>

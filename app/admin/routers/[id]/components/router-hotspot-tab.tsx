@@ -412,9 +412,9 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
 
   const portStatusColor = (s: string) => {
     switch (s) {
-      case "open": return "bg-green-100 text-green-700 border-green-200"
-      case "closed": return "bg-red-50 text-red-600 border-red-200"
-      case "filtered": return "bg-yellow-50 text-yellow-700 border-yellow-200"
+      case "open": return "bg-success/15 text-success border-success/20"
+      case "closed": return "bg-destructive/10 text-destructive border-destructive/20"
+      case "filtered": return "bg-warning/10 text-warning border-warning/20"
       default: return "bg-slate-100 text-slate-600 border-slate-200"
     }
   }
@@ -450,8 +450,8 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <WifiOff className="w-8 h-8 text-red-500" />
+          <div className="w-16 h-16 bg-destructive/15 rounded-full flex items-center justify-center mx-auto mb-4">
+            <WifiOff className="w-8 h-8 text-destructive" />
           </div>
           <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Router Offline</h3>
           <p className="text-slate-600 mb-2 max-w-md mx-auto">
@@ -473,7 +473,7 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
 
           {isScanning && (
             <div className="mt-6">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
+              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
               <p className="text-sm text-slate-500 mt-2">Scanning ports...</p>
             </div>
           )}
@@ -517,20 +517,20 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
                   <React.Fragment key={step}>
                     <div className="flex flex-col items-center">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                        isComplete ? "bg-green-500 text-white" :
-                        isCurrent ? "bg-blue-500 text-white" :
+                        isComplete ? "bg-success text-white" :
+                        isCurrent ? "bg-primary text-white" :
                         "bg-slate-200 text-slate-500"
                       }`}>
                         {isComplete ? <CheckCircle2 className="w-5 h-5" /> : index + 1}
                       </div>
-                      <span className={`text-xs mt-1 ${isCurrent ? "font-semibold text-blue-600" : "text-slate-500"}`}>
+                      <span className={`text-xs mt-1 ${isCurrent ? "font-semibold text-primary" : "text-slate-500"}`}>
                         {stepLabels[step]}
                       </span>
                     </div>
                     {index < visibleSteps.length - 1 && (
                       <div className={`flex-1 h-1 mx-2 rounded ${
-                        (currentStep === "complete" || currentStep === "applying") ? "bg-green-500" :
-                        index < currentVisibleIndex ? "bg-green-500" : "bg-slate-200"
+                        (currentStep === "complete" || currentStep === "applying") ? "bg-success" :
+                        index < currentVisibleIndex ? "bg-success" : "bg-slate-200"
                       }`} />
                     )}
                   </React.Fragment>
@@ -555,8 +555,8 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
             <CardContent>
               {!scanResult && !isScanning && (
                 <div className="text-center py-10">
-                  <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Activity className="w-8 h-8 text-blue-500" />
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Activity className="w-8 h-8 text-primary" />
                   </div>
                   <p className="text-slate-600 mb-4">
                     Start a port scan to check which services are available on this router.
@@ -570,7 +570,7 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
 
               {isScanning && (
                 <div className="text-center py-10">
-                  <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto mb-4" />
+                  <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
                   <p className="font-medium text-slate-700">Scanning router ports...</p>
                   <p className="text-sm text-slate-500 mt-1">Checking 10 common MikroTik services</p>
                 </div>
@@ -624,7 +624,7 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
             <CardContent>
               {isCheckingPorts ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-600 mr-3" />
+                  <Loader2 className="w-8 h-8 animate-spin text-primary mr-3" />
                   <span>Querying router interfaces...</span>
                 </div>
               ) : portsError ? (
@@ -658,7 +658,7 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
                           onClick={() => !isWan && handlePortSelect(port.name)}
                           className={`p-4 border-2 rounded-lg transition-all ${
                             isSelected
-                              ? "border-blue-500 bg-blue-50 cursor-pointer"
+                              ? "border-primary bg-primary/10 cursor-pointer"
                               : isWan
                               ? "border-slate-200 bg-slate-50 cursor-not-allowed opacity-60"
                               : "border-slate-200 hover:border-slate-300 cursor-pointer"
@@ -668,15 +668,15 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
                             <div className="flex items-center gap-3">
                               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                                 port.type === "wlan" ? "bg-purple-100" :
-                                port.type === "bridge" ? "bg-orange-100" :
-                                "bg-blue-100"
+                                port.type === "bridge" ? "bg-warning/15" :
+                                "bg-primary/15"
                               }`}>
                                 {port.type === "wlan" ? (
                                   <Radio className="w-5 h-5 text-purple-600" />
                                 ) : port.type === "bridge" ? (
-                                  <Cable className="w-5 h-5 text-orange-600" />
+                                  <Cable className="w-5 h-5 text-warning" />
                                 ) : (
-                                  <Network className="w-5 h-5 text-blue-600" />
+                                  <Network className="w-5 h-5 text-primary" />
                                 )}
                               </div>
                               <div>
@@ -691,7 +691,7 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
                             </div>
                             <div className="flex items-center gap-2">
                               {port.running ? (
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Active</Badge>
+                                <Badge variant="outline" className="bg-success/10 text-success border-success/20">Active</Badge>
                               ) : (
                                 <Badge variant="outline" className="bg-slate-50 text-slate-600">Inactive</Badge>
                               )}
@@ -701,11 +701,11 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
                                 </Badge>
                               )}
                               {isHotspot && port.hotspot_server && (
-                                <Badge className="bg-orange-500 hover:bg-orange-600 text-xs">
+                                <Badge className="bg-warning hover:bg-orange-600 text-xs">
                                   Hotspot: {port.hotspot_server}
                                 </Badge>
                               )}
-                              {isSelected && <CheckCircle2 className="w-5 h-5 text-blue-600" />}
+                              {isSelected && <CheckCircle2 className="w-5 h-5 text-primary" />}
                             </div>
                           </div>
                         </div>
@@ -890,14 +890,14 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
                       }}
                       className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
                         serverConfig.login_by.includes(method.id)
-                          ? "border-blue-500 bg-blue-50"
+                          ? "border-primary bg-primary/10"
                           : "border-slate-200 hover:border-slate-300"
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                           serverConfig.login_by.includes(method.id)
-                            ? "border-blue-500 bg-blue-500"
+                            ? "border-primary bg-primary"
                             : "border-slate-300"
                         }`}>
                           {serverConfig.login_by.includes(method.id) && (
@@ -1055,10 +1055,10 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
                 </div>
               </div>
 
-              <Alert className="border-amber-200 bg-amber-50">
-                <AlertCircle className="w-4 h-4 text-amber-600" />
+              <Alert className="border-warning/20 bg-warning/10">
+                <AlertCircle className="w-4 h-4 text-warning" />
                 <AlertTitle className="text-amber-800">Before You Continue</AlertTitle>
-                <AlertDescription className="text-amber-700">
+                <AlertDescription className="text-warning">
                   This will create IP addresses, pools, and a hotspot server on the router. Existing configurations with the same names will be replaced. Ensure you have a backup.
                 </AlertDescription>
               </Alert>
@@ -1068,7 +1068,7 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
               <Button
                 onClick={handleConfigureHotspot}
                 disabled={isConfiguring}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-success hover:bg-green-700"
               >
                 {isConfiguring ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Applying...</>
@@ -1086,9 +1086,9 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 {configError ? (
-                  <XCircle className="w-5 h-5 text-red-500" />
+                  <XCircle className="w-5 h-5 text-destructive" />
                 ) : (
-                  <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
                 )}
                 {configError ? "Configuration Error" : "Applying Configuration..."}
               </CardTitle>
@@ -1101,16 +1101,16 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
                 <div className="space-y-3">
                   {configProgress.map((step, idx) => (
                     <div key={idx} className={`flex items-start gap-3 p-3 rounded-lg ${
-                      step.status === "success" ? "bg-green-50" :
-                      step.status === "error" ? "bg-red-50" :
-                      "bg-blue-50"
+                      step.status === "success" ? "bg-success/10" :
+                      step.status === "error" ? "bg-destructive/10" :
+                      "bg-primary/10"
                     }`}>
                       {step.status === "success" ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                        <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
                       ) : step.status === "error" ? (
-                        <XCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                        <XCircle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
                       ) : (
-                        <Loader2 className="w-5 h-5 text-blue-600 animate-spin mt-0.5 flex-shrink-0" />
+                        <Loader2 className="w-5 h-5 text-primary animate-spin mt-0.5 flex-shrink-0" />
                       )}
                       <div>
                         <p className="font-medium text-sm">{step.step}</p>
@@ -1121,7 +1121,7 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto mb-4" />
+                  <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
                   <p className="text-slate-600">Connecting to router...</p>
                 </div>
               )}
@@ -1149,8 +1149,8 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
         {currentStep === "complete" && (
           <Card>
             <CardContent className="py-12 text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 bg-success/15 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-8 h-8 text-success" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Hotspot Configured Successfully!</h3>
               <p className="text-slate-600 mb-4">
@@ -1161,7 +1161,7 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
                 <div className="max-w-md mx-auto mb-6">
                   {configProgress.map((step, idx) => (
                     <div key={idx} className="flex items-center gap-2 text-sm text-left py-1">
-                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
                       <span className="text-slate-700">{step.step}</span>
                     </div>
                   ))}
@@ -1189,8 +1189,8 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Wifi className="w-8 h-8 text-blue-600" />
+          <div className="w-16 h-16 bg-primary/15 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Wifi className="w-8 h-8 text-primary" />
           </div>
           <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Hotspot Configured</h3>
           <p className="text-slate-600 mb-6 max-w-md mx-auto">
@@ -1218,17 +1218,17 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-600">Status</p>
-                <p className={`text-xl font-bold ${hotspotConfig?.server?.disabled ? "text-slate-500" : "text-green-600"}`}>
+                <p className={`text-xl font-bold ${hotspotConfig?.server?.disabled ? "text-slate-500" : "text-success"}`}>
                   {hotspotConfig?.server?.disabled ? "Disabled" : "Active"}
                 </p>
               </div>
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                hotspotConfig?.server?.disabled ? "bg-slate-100" : "bg-green-100"
+                hotspotConfig?.server?.disabled ? "bg-slate-100" : "bg-success/15"
               }`}>
                 {hotspotConfig?.server?.disabled ? (
                   <WifiOff className="w-5 h-5 text-slate-500" />
                 ) : (
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <CheckCircle2 className="w-5 h-5 text-success" />
                 )}
               </div>
             </div>
@@ -1242,8 +1242,8 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
                 <p className="text-sm text-slate-600">Active Sessions</p>
                 <p className="text-xl font-bold">{hotspotConfig.active_sessions}</p>
               </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-primary/15 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -1270,8 +1270,8 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
                 <p className="text-sm text-slate-600">Plans</p>
                 <p className="text-xl font-bold">{hotspotConfig.plans.length}</p>
               </div>
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-orange-600" />
+              <div className="w-10 h-10 bg-warning/15 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-warning" />
               </div>
             </div>
           </CardContent>
@@ -1291,7 +1291,7 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
               Refresh
             </Button>
             {hotspotConfig?.server?.disabled ? (
-              <Button onClick={handleEnableHotspot} disabled={isConfiguring} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={handleEnableHotspot} disabled={isConfiguring} className="bg-success hover:bg-green-700">
                 {isConfiguring ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Enabling...</>
                 ) : (
@@ -1419,30 +1419,30 @@ function ScanResultCard({
   onToggleDetails: () => void
 }) {
   const statusBadge = (status: string) => {
-    if (status === "open") return <Badge className="bg-green-500 hover:bg-green-600 text-xs">Open</Badge>
+    if (status === "open") return <Badge className="bg-success hover:bg-success text-xs">Open</Badge>
     if (status === "closed") return <Badge variant="secondary" className="text-xs">Closed</Badge>
-    return <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">Filtered</Badge>
+    return <Badge variant="outline" className="text-xs text-warning border-amber-300">Filtered</Badge>
   }
 
   return (
     <div className="space-y-4">
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3">
-        <div className={`p-4 rounded-lg text-center ${result.api_reachable ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+        <div className={`p-4 rounded-lg text-center ${result.api_reachable ? "bg-success/10 border border-success/20" : "bg-destructive/10 border border-destructive/20"}`}>
           <p className="text-xs font-medium text-slate-600 mb-1">API (8728)</p>
-          <p className={`font-bold ${result.api_reachable ? "text-green-700" : "text-red-700"}`}>
+          <p className={`font-bold ${result.api_reachable ? "text-success" : "text-destructive"}`}>
             {result.api_reachable ? "Reachable" : "Closed"}
           </p>
         </div>
-        <div className={`p-4 rounded-lg text-center ${result.winbox_reachable ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+        <div className={`p-4 rounded-lg text-center ${result.winbox_reachable ? "bg-success/10 border border-success/20" : "bg-destructive/10 border border-destructive/20"}`}>
           <p className="text-xs font-medium text-slate-600 mb-1">Winbox (8291)</p>
-          <p className={`font-bold ${result.winbox_reachable ? "text-green-700" : "text-red-700"}`}>
+          <p className={`font-bold ${result.winbox_reachable ? "text-success" : "text-destructive"}`}>
             {result.winbox_reachable ? "Reachable" : "Closed"}
           </p>
         </div>
-        <div className={`p-4 rounded-lg text-center ${result.web_reachable ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+        <div className={`p-4 rounded-lg text-center ${result.web_reachable ? "bg-success/10 border border-success/20" : "bg-destructive/10 border border-destructive/20"}`}>
           <p className="text-xs font-medium text-slate-600 mb-1">Web (80/443)</p>
-          <p className={`font-bold ${result.web_reachable ? "text-green-700" : "text-red-700"}`}>
+          <p className={`font-bold ${result.web_reachable ? "text-success" : "text-destructive"}`}>
             {result.web_reachable ? "Reachable" : "Closed"}
           </p>
         </div>

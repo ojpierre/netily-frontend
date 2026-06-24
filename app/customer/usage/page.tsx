@@ -98,8 +98,8 @@ export default function CustomerUsagePage() {
       <div className="grid md:grid-cols-3 gap-4">
         <Card className="p-5">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center">
-              <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="w-10 h-10 bg-primary/15 dark:bg-blue-950 rounded-lg flex items-center justify-center">
+              <Activity className="w-5 h-5 text-primary dark:text-primary/80" />
             </div>
             <p className="text-sm text-muted-foreground">Data Used</p>
           </div>
@@ -108,8 +108,8 @@ export default function CustomerUsagePage() {
 
         <Card className="p-5">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-950 rounded-lg flex items-center justify-center">
-              <Download className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className="w-10 h-10 bg-success/15 dark:bg-green-950 rounded-lg flex items-center justify-center">
+              <Download className="w-5 h-5 text-success dark:text-success" />
             </div>
             <p className="text-sm text-muted-foreground">Downloaded</p>
           </div>
@@ -142,8 +142,8 @@ export default function CustomerUsagePage() {
             <span>{(100 - usage.percentage).toFixed(1)}% remaining</span>
           </div>
           {usage.percentage >= 80 && (
-            <div className="mt-3 p-3 bg-orange-50 dark:bg-orange-950 rounded-lg">
-              <p className="text-sm text-orange-700 dark:text-orange-400">
+            <div className="mt-3 p-3 bg-warning/10 dark:bg-orange-950 rounded-lg">
+              <p className="text-sm text-warning dark:text-warning">
                 {usage.percentage >= 100
                   ? "You have exceeded your data cap. Your speed may be throttled."
                   : "You are approaching your data limit. Consider upgrading your plan."}
@@ -164,8 +164,8 @@ export default function CustomerUsagePage() {
                 className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-100 dark:bg-blue-950 rounded-full flex items-center justify-center">
-                    <Wifi className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <div className="w-8 h-8 bg-primary/15 dark:bg-blue-950 rounded-full flex items-center justify-center">
+                    <Wifi className="w-4 h-4 text-primary dark:text-primary/80" />
                   </div>
                   <div>
                     <p className="text-sm font-medium">
@@ -184,7 +184,7 @@ export default function CustomerUsagePage() {
                   </div>
                 </div>
                 <div className="text-right text-xs">
-                  <p className="text-green-600 dark:text-green-400">↓ {session.download}</p>
+                  <p className="text-success dark:text-success">↓ {session.download}</p>
                   <p className="text-purple-600 dark:text-purple-400">↑ {session.upload}</p>
                 </div>
               </div>

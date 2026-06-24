@@ -96,11 +96,11 @@ export default function ProfilePage() {
       </div>
 
       {!user && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-            <span className="text-blue-600 text-sm">ℹ️</span>
+        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-center gap-2">
+          <div className="w-8 h-8 bg-primary/15 rounded-full flex items-center justify-center">
+            <span className="text-primary text-sm">ℹ️</span>
           </div>
-          <p className="text-sm text-blue-800">
+          <p className="text-sm text-primary">
             <strong>Demo Mode:</strong> Using mock data. Login to see your actual profile.
           </p>
         </div>
@@ -111,7 +111,7 @@ export default function ProfilePage() {
         <Card className="p-8 md:col-span-1">
           <div className="flex flex-col items-center text-center">
             <Avatar className="w-24 h-24 mb-4">
-              <AvatarFallback className="bg-blue-600 text-white text-2xl">
+              <AvatarFallback className="bg-primary text-white text-2xl">
                 {getInitials()}
               </AvatarFallback>
             </Avatar>
@@ -124,7 +124,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex items-center justify-between py-2">
                 <span className="text-sm text-slate-600">Status</span>
-                <span className={`text-sm font-semibold ${currentUser.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                <span className={`text-sm font-semibold ${currentUser.is_active ? 'text-success' : 'text-destructive'}`}>
                   {currentUser.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
@@ -222,8 +222,8 @@ export default function ProfilePage() {
         <h3 className="text-xl font-semibold mb-6">Current Package</h3>
         <div className="grid md:grid-cols-4 gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Wifi className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 bg-primary/15 rounded-lg flex items-center justify-center">
+              <Wifi className="w-6 h-6 text-primary" />
             </div>
             <div>
               <p className="text-sm text-slate-600">Package</p>
@@ -232,8 +232,8 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <span className="text-lg font-bold text-green-600">↓</span>
+            <div className="w-12 h-12 bg-success/15 rounded-lg flex items-center justify-center">
+              <span className="text-lg font-bold text-success">↓</span>
             </div>
             <div>
               <p className="text-sm text-slate-600">Download Speed</p>
@@ -252,8 +252,8 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-orange-600" />
+            <div className="w-12 h-12 bg-warning/15 rounded-lg flex items-center justify-center">
+              <Calendar className="w-6 h-6 text-warning" />
             </div>
             <div>
               <p className="text-sm text-slate-600">Expiry Date</p>

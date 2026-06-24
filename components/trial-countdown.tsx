@@ -59,8 +59,8 @@ function getStatusDisplay(timeRemaining: TimeRemaining, isTrial: boolean): Statu
   if (timeRemaining.expired) {
     return {
       status: "expired",
-      color: "text-red-600",
-      bgColor: "bg-red-100 border-red-200",
+      color: "text-destructive",
+      bgColor: "bg-destructive/15 border-destructive/20",
       message: isTrial ? "Trial expired" : "Subscription Overdue",
       icon: Lock
     }
@@ -80,8 +80,8 @@ function getStatusDisplay(timeRemaining: TimeRemaining, isTrial: boolean): Statu
   if (timeRemaining.days <= 1) {
     return {
       status: "critical",
-      color: "text-red-600",
-      bgColor: "bg-red-50 border-red-200",
+      color: "text-destructive",
+      bgColor: "bg-destructive/10 border-destructive/20",
       message: "Expires today!",
       icon: AlertTriangle
     }
@@ -90,8 +90,8 @@ function getStatusDisplay(timeRemaining: TimeRemaining, isTrial: boolean): Statu
   if (timeRemaining.days <= 3) {
     return {
       status: "warning",
-      color: "text-amber-600",
-      bgColor: "bg-amber-50 border-amber-200",
+      color: "text-warning",
+      bgColor: "bg-warning/10 border-warning/20",
       message: `${timeRemaining.days}d left`,
       icon: Clock
     }
@@ -99,8 +99,8 @@ function getStatusDisplay(timeRemaining: TimeRemaining, isTrial: boolean): Statu
   
   return {
     status: "healthy",
-    color: "text-blue-600",
-    bgColor: "bg-blue-50 border-blue-200",
+    color: "text-primary",
+    bgColor: "bg-primary/10 border-primary/20",
     message: `${timeRemaining.days}d left`,
     icon: Clock
   }

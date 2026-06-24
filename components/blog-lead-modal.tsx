@@ -14,7 +14,7 @@ interface BlogLeadModalProps {
 
 export default function BlogLeadModal({
   triggerLabel = "Get in Touch",
-  triggerClassName = "inline-flex items-center gap-2 bg-white text-blue-700 font-semibold text-sm px-7 py-3 rounded-xl hover:bg-blue-50 transition-colors shadow-lg",
+  triggerClassName = "inline-flex items-center gap-2 bg-white text-primary font-semibold text-sm px-7 py-3 rounded-xl hover:bg-primary/10 transition-colors shadow-lg",
   showArrow = true,
 }: BlogLeadModalProps) {
   const [open, setOpen] = useState(false)
@@ -123,7 +123,7 @@ export default function BlogLeadModal({
                   </p>
                   <button
                     onClick={() => setOpen(false)}
-                    className="mt-6 text-blue-600 dark:text-blue-400 text-sm font-semibold hover:underline"
+                    className="mt-6 text-primary dark:text-primary/80 text-sm font-semibold hover:underline"
                   >
                     Close
                   </button>
@@ -145,7 +145,7 @@ export default function BlogLeadModal({
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                          Full Name <span className="text-red-500">*</span>
+                          Full Name <span className="text-destructive">*</span>
                         </label>
                         <input
                           ref={nameRef}
@@ -153,20 +153,20 @@ export default function BlogLeadModal({
                           value={form.name}
                           onChange={(e) => update("name", e.target.value)}
                           placeholder="Jane Mwangi"
-                          className="w-full text-sm px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                          className="w-full text-sm px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition"
                           required
                         />
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                          Phone / WhatsApp <span className="text-red-500">*</span>
+                          Phone / WhatsApp <span className="text-destructive">*</span>
                         </label>
                         <input
                           type="tel"
                           value={form.phone}
                           onChange={(e) => update("phone", e.target.value)}
                           placeholder="0712 345 678"
-                          className="w-full text-sm px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                          className="w-full text-sm px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition"
                           required
                         />
                       </div>
@@ -174,28 +174,28 @@ export default function BlogLeadModal({
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Email <span className="text-red-500">*</span>
+                        Email <span className="text-destructive">*</span>
                       </label>
                       <input
                         type="email"
                         value={form.email}
                         onChange={(e) => update("email", e.target.value)}
                         placeholder="jane@yourISP.co.ke"
-                        className="w-full text-sm px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        className="w-full text-sm px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition"
                         required
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        ISP / Company Name <span className="text-red-500">*</span>
+                        ISP / Company Name <span className="text-destructive">*</span>
                       </label>
                       <input
                         type="text"
                         value={form.company}
                         onChange={(e) => update("company", e.target.value)}
                         placeholder="Mwangi Networks Ltd"
-                        className="w-full text-sm px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        className="w-full text-sm px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition"
                         required
                       />
                     </div>
@@ -209,12 +209,12 @@ export default function BlogLeadModal({
                         value={form.message}
                         onChange={(e) => update("message", e.target.value)}
                         placeholder="How many subscribers, what location, what billing system you use now…"
-                        className="w-full text-sm px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
+                        className="w-full text-sm px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition resize-none"
                       />
                     </div>
 
                     {error && (
-                      <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-lg">
+                      <p className="text-xs text-destructive dark:text-destructive bg-destructive/10 dark:bg-red-950/30 px-3 py-2 rounded-lg">
                         {error}
                       </p>
                     )}
@@ -222,7 +222,7 @@ export default function BlogLeadModal({
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm py-3 rounded-xl transition-colors shadow-sm"
+                      className="w-full bg-primary hover:bg-primary disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm py-3 rounded-xl transition-colors shadow-sm"
                     >
                       {submitting ? "Sending…" : "Request Access — We'll Set You Up"}
                     </button>

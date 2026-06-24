@@ -85,30 +85,30 @@ export function RouterLogsTab({ routerId, isDemo = false }: RouterLogsTabProps) 
 
   const getLogIcon = (topics: string) => {
     if (topics.includes("error")) {
-      return <AlertCircle className="w-4 h-4 text-red-500" />
+      return <AlertCircle className="w-4 h-4 text-destructive" />
     }
     if (topics.includes("warning")) {
-      return <AlertTriangle className="w-4 h-4 text-amber-500" />
+      return <AlertTriangle className="w-4 h-4 text-warning" />
     }
     if (topics.includes("info")) {
-      return <Info className="w-4 h-4 text-blue-500" />
+      return <Info className="w-4 h-4 text-primary" />
     }
-    return <CheckCircle className="w-4 h-4 text-green-500" />
+    return <CheckCircle className="w-4 h-4 text-success" />
   }
 
   const getTopicBadges = (topics: string) => {
     return topics.split(",").map((topic, idx) => {
       const colors: Record<string, string> = {
         system: "bg-purple-100 text-purple-700",
-        firewall: "bg-red-100 text-red-700",
-        dhcp: "bg-blue-100 text-blue-700",
-        script: "bg-green-100 text-green-700",
+        firewall: "bg-destructive/15 text-destructive",
+        dhcp: "bg-primary/15 text-primary",
+        script: "bg-success/15 text-success",
         wireless: "bg-cyan-100 text-cyan-700",
-        pppoe: "bg-orange-100 text-orange-700",
+        pppoe: "bg-warning/15 text-warning",
         hotspot: "bg-pink-100 text-pink-700",
         info: "bg-slate-100 text-slate-700",
-        warning: "bg-amber-100 text-amber-700",
-        error: "bg-red-100 text-red-700",
+        warning: "bg-warning/15 text-warning",
+        error: "bg-destructive/15 text-destructive",
       }
       return (
         <Badge key={idx} className={`text-xs ${colors[topic.trim()] || "bg-slate-100 text-slate-700"}`}>
@@ -127,7 +127,7 @@ export function RouterLogsTab({ routerId, isDemo = false }: RouterLogsTabProps) 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -137,7 +137,7 @@ export function RouterLogsTab({ routerId, isDemo = false }: RouterLogsTabProps) 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-blue-600" />
+          <FileText className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold">System Logs</h2>
           <Badge variant="outline">{filteredLogs.length} entries</Badge>
         </div>

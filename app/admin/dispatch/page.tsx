@@ -109,7 +109,7 @@ const getStatusBadge = (status: JobStatus) => {
   }
   const c = config[status]
   return (
-    <Badge variant={c.variant} className={`capitalize gap-1 ${status === 'completed' ? 'bg-green-500' : status === 'in_progress' ? 'bg-blue-500' : ''}`}>
+    <Badge variant={c.variant} className={`capitalize gap-1 ${status === 'completed' ? 'bg-success' : status === 'in_progress' ? 'bg-primary' : ''}`}>
       {c.icon}
       {status.replace('_', ' ')}
     </Badge>
@@ -120,7 +120,7 @@ const getPriorityBadge = (priority: JobPriority) => {
   const config: Record<JobPriority, { variant: "default" | "secondary" | "destructive" | "outline"; color: string }> = {
     low: { variant: "outline", color: "" },
     medium: { variant: "secondary", color: "" },
-    high: { variant: "default", color: "bg-orange-500" },
+    high: { variant: "default", color: "bg-warning" },
     urgent: { variant: "destructive", color: "" },
   }
   const c = config[priority]
@@ -133,12 +133,12 @@ const getPriorityBadge = (priority: JobPriority) => {
 
 const getTypeBadge = (type: JobType) => {
   const config: Record<JobType, { icon: React.ReactNode; color: string }> = {
-    installation: { icon: <Plus className="h-3 w-3" />, color: "bg-green-100 text-green-700" },
-    repair: { icon: <Wrench className="h-3 w-3" />, color: "bg-red-100 text-red-700" },
-    maintenance: { icon: <ClipboardList className="h-3 w-3" />, color: "bg-blue-100 text-blue-700" },
+    installation: { icon: <Plus className="h-3 w-3" />, color: "bg-success/15 text-success" },
+    repair: { icon: <Wrench className="h-3 w-3" />, color: "bg-destructive/15 text-destructive" },
+    maintenance: { icon: <ClipboardList className="h-3 w-3" />, color: "bg-primary/15 text-primary" },
     relocation: { icon: <Navigation className="h-3 w-3" />, color: "bg-purple-100 text-purple-700" },
     disconnection: { icon: <Pause className="h-3 w-3" />, color: "bg-slate-100 text-slate-700" },
-    survey: { icon: <MapPin className="h-3 w-3" />, color: "bg-yellow-100 text-yellow-700" },
+    survey: { icon: <MapPin className="h-3 w-3" />, color: "bg-warning/15 text-warning" },
   }
   const c = config[type]
   return (
@@ -566,7 +566,7 @@ export default function DispatchPage() {
                 <span className="text-sm">{job.technician_name}</span>
               </div>
             ) : (
-              <Badge variant="outline" className="text-yellow-600">Unassigned</Badge>
+              <Badge variant="outline" className="text-warning">Unassigned</Badge>
             )}
             <div>{getStatusBadge(job.status)}</div>
             <div className="flex justify-end gap-2">
@@ -623,10 +623,10 @@ export default function DispatchPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Jobs</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
+            <Clock className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+            <div className="text-2xl font-bold text-warning">{stats.pending}</div>
             <p className="text-xs text-muted-foreground">Awaiting assignment</p>
           </CardContent>
         </Card>
@@ -634,10 +634,10 @@ export default function DispatchPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <Play className="h-4 w-4 text-blue-500" />
+            <Play className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.inProgress}</div>
+            <div className="text-2xl font-bold text-primary">{stats.inProgress}</div>
             <p className="text-xs text-muted-foreground">Currently being worked</p>
           </CardContent>
         </Card>
@@ -645,10 +645,10 @@ export default function DispatchPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed Today</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.completedToday}</div>
+            <div className="text-2xl font-bold text-success">{stats.completedToday}</div>
             <p className="text-xs text-muted-foreground">Jobs finished today</p>
           </CardContent>
         </Card>
@@ -844,7 +844,7 @@ export default function DispatchPage() {
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600" onClick={() => handleCancelJob(job)}>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleCancelJob(job)}>
                               <XCircle className="mr-2 h-4 w-4" />
                               Cancel Job
                             </DropdownMenuItem>
@@ -896,7 +896,7 @@ export default function DispatchPage() {
                               <h3 className="truncate font-semibold">{tech.name}</h3>
                               <Badge
                                 variant={tech.status === 'available' ? 'default' : tech.status === 'busy' ? 'secondary' : 'outline'}
-                                className={`mt-1 ${tech.status === 'available' ? 'bg-green-500' : ''}`}
+                                className={`mt-1 ${tech.status === 'available' ? 'bg-success' : ''}`}
                               >
                                 {tech.status === "offline" ? "unavailable" : tech.status.replace('_', ' ')}
                               </Badge>
@@ -917,7 +917,7 @@ export default function DispatchPage() {
                                   Mark Unavailable
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteTechnician(tech)}>
+                                <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteTechnician(tech)}>
                                   <Trash2 className="mr-2 h-4 w-4" />
                                   Delete Technician
                                 </DropdownMenuItem>
@@ -942,11 +942,11 @@ export default function DispatchPage() {
                           </div>
                           <div className="flex items-center gap-4 mt-3 text-sm">
                             <span className="flex items-center gap-1">
-                              <Target className="h-4 w-4 text-blue-500" />
+                              <Target className="h-4 w-4 text-primary" />
                               {tech.active_jobs} active
                             </span>
                             <span className="flex items-center gap-1">
-                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              <CheckCircle className="h-4 w-4 text-success" />
                               {tech.completed_today} today
                             </span>
                           </div>

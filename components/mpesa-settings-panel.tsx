@@ -306,14 +306,14 @@ export function MpesaSettingsPanel() {
       <div className={`flex items-center gap-3 rounded-lg border p-4 ${
         activeDarajaId
           ? "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30"
-          : "border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30"
+          : "border-warning/20 bg-warning/10 dark:border-amber-800 dark:bg-amber-950/30"
       }`}>
         <div className={`p-2 rounded-full ${
-          activeDarajaId ? "bg-emerald-100 dark:bg-emerald-900" : "bg-amber-100 dark:bg-amber-900"
+          activeDarajaId ? "bg-emerald-100 dark:bg-emerald-900" : "bg-warning/15 dark:bg-amber-900"
         }`}>
           {activeDarajaId
             ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-            : <AlertCircle className="h-4 w-4 text-amber-600" />
+            : <AlertCircle className="h-4 w-4 text-warning" />
           }
         </div>
         <div className="flex-1">
@@ -335,7 +335,7 @@ export function MpesaSettingsPanel() {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Settings2 className="h-5 w-5 text-green-600" />
+                <Settings2 className="h-5 w-5 text-success" />
                 M-Pesa Daraja Settings
               </CardTitle>
               <CardDescription>
@@ -405,13 +405,13 @@ export function MpesaSettingsPanel() {
                         <Badge variant="secondary">{config.business_shortcode}</Badge>
                         <Badge className={
                           config.is_sandbox
-                            ? "bg-amber-100 text-amber-700"
+                            ? "bg-warning/15 text-warning"
                             : "bg-emerald-100 text-emerald-700"
                         }>
                           {config.is_sandbox ? "Sandbox" : "Production"}
                         </Badge>
                         {config.is_default && (
-                          <Badge className="bg-blue-100 text-blue-700">
+                          <Badge className="bg-primary/15 text-primary">
                             <ShieldCheck className="mr-1 h-3 w-3" />
                             Default
                           </Badge>
@@ -529,7 +529,7 @@ export function MpesaSettingsPanel() {
           )}
 
           {!hasDefault && configs.length > 0 && (
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-warning">
               No default config set. Test your credentials first, then click "Use as Gateway" to activate.
             </p>
           )}
@@ -583,7 +583,7 @@ export function MpesaSettingsPanel() {
                       variant={String(tx.status).toUpperCase() === "COMPLETED" ? "default" : "secondary"}
                       className={
                         String(tx.status).toUpperCase() === "FAILED"
-                          ? "bg-red-100 text-red-700"
+                          ? "bg-destructive/15 text-destructive"
                           : undefined
                       }
                     >

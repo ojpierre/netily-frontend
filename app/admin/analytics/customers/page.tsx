@@ -113,12 +113,12 @@ export default function CustomerAnalyticsPage() {
                 <p className="text-sm text-slate-500">Total Customers</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{customerStats.total.toLocaleString()}</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <ArrowUpRight className="w-4 h-4 text-green-600" />
-                  <span className="text-sm text-green-600">+{customerStats.growthRate}%</span>
+                  <ArrowUpRight className="w-4 h-4 text-success" />
+                  <span className="text-sm text-success">+{customerStats.growthRate}%</span>
                 </div>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-primary/15 rounded-full flex items-center justify-center">
+                <Users className="w-6 h-6 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -129,11 +129,11 @@ export default function CustomerAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">New This Month</p>
-                <p className="text-2xl font-bold text-green-600">+{customerStats.new}</p>
+                <p className="text-2xl font-bold text-success">+{customerStats.new}</p>
                 <p className="text-xs text-slate-500 mt-1">acquisitions</p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <UserPlus className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-success/15 rounded-full flex items-center justify-center">
+                <UserPlus className="w-6 h-6 text-success" />
               </div>
             </div>
           </CardContent>
@@ -144,11 +144,11 @@ export default function CustomerAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Churned</p>
-                <p className="text-2xl font-bold text-red-600">-{customerStats.churned}</p>
+                <p className="text-2xl font-bold text-destructive">-{customerStats.churned}</p>
                 <p className="text-xs text-slate-500 mt-1">this month</p>
               </div>
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <UserMinus className="w-6 h-6 text-red-600" />
+              <div className="w-12 h-12 bg-destructive/15 rounded-full flex items-center justify-center">
+                <UserMinus className="w-6 h-6 text-destructive" />
               </div>
             </div>
           </CardContent>
@@ -160,7 +160,7 @@ export default function CustomerAnalyticsPage() {
               <div>
                 <p className="text-sm text-slate-500">Retention Rate</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{customerStats.retentionRate}%</p>
-                <p className="text-xs text-green-600 mt-1">Above target</p>
+                <p className="text-xs text-success mt-1">Above target</p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-purple-600" />
@@ -189,7 +189,7 @@ export default function CustomerAnalyticsPage() {
                 <p className="text-sm text-slate-500">Customer LTV</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {customerStats.ltv.toLocaleString()}</p>
               </div>
-              <TrendingUp className="w-8 h-8 text-green-600" />
+              <TrendingUp className="w-8 h-8 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -238,11 +238,11 @@ export default function CustomerAnalyticsPage() {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           {item.growth >= 0 ? (
-                            <ArrowUpRight className="w-4 h-4 text-green-600" />
+                            <ArrowUpRight className="w-4 h-4 text-success" />
                           ) : (
-                            <ArrowDownRight className="w-4 h-4 text-red-600" />
+                            <ArrowDownRight className="w-4 h-4 text-destructive" />
                           )}
-                          <span className={item.growth >= 0 ? "text-green-600" : "text-red-600"}>
+                          <span className={item.growth >= 0 ? "text-success" : "text-destructive"}>
                             {item.growth >= 0 ? "+" : ""}{item.growth}%
                           </span>
                         </div>
@@ -319,10 +319,10 @@ export default function CustomerAnalyticsPage() {
                       <TableCell className="font-medium">{item.cohort}</TableCell>
                       <TableCell>{item.acquired}</TableCell>
                       <TableCell>
-                        <Badge className="bg-green-100 text-green-700">{item.month1}%</Badge>
+                        <Badge className="bg-success/15 text-success">{item.month1}%</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className="bg-blue-100 text-blue-700">{item.month2}%</Badge>
+                        <Badge className="bg-primary/15 text-primary">{item.month2}%</Badge>
                       </TableCell>
                       <TableCell>
                         {item.month3 > 0 ? (

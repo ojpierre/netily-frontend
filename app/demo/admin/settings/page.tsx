@@ -28,7 +28,7 @@ export default function DemoAdminSettingsPage() {
         <TabsContent value="profile">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Settings className="h-4 w-4 text-blue-600" />Company profile</CardTitle>
+              <CardTitle className="flex items-center gap-2"><Settings className="h-4 w-4 text-primary" />Company profile</CardTitle>
               <CardDescription>Sample branding and operator details.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
@@ -70,7 +70,7 @@ export default function DemoAdminSettingsPage() {
         <TabsContent value="notifications">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Bell className="h-4 w-4 text-amber-600" />Operator alerts</CardTitle>
+              <CardTitle className="flex items-center gap-2"><Bell className="h-4 w-4 text-warning" />Operator alerts</CardTitle>
               <CardDescription>Notification switches presented in the live style.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

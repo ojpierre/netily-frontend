@@ -99,13 +99,13 @@ type OLTStatus = 'online' | 'offline' | 'warning' | 'maintenance'
 const getStatusIcon = (status: OLTStatus) => {
   switch (status) {
     case "online":
-      return <CheckCircle className="h-4 w-4 text-green-500" />
+      return <CheckCircle className="h-4 w-4 text-success" />
     case "offline":
-      return <XCircle className="h-4 w-4 text-red-500" />
+      return <XCircle className="h-4 w-4 text-destructive" />
     case "warning":
-      return <AlertTriangle className="h-4 w-4 text-yellow-500" />
+      return <AlertTriangle className="h-4 w-4 text-warning" />
     case "maintenance":
-      return <Settings className="h-4 w-4 text-blue-500 animate-spin" />
+      return <Settings className="h-4 w-4 text-primary animate-spin" />
   }
 }
 
@@ -126,9 +126,9 @@ const getStatusBadge = (status: OLTStatus) => {
 
 const getManufacturerBadge = (manufacturer: string) => {
   const colors: Record<string, string> = {
-    huawei: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-    zte: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-    fiberhome: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+    huawei: "bg-destructive/15 text-red-800 dark:bg-destructive/15 dark:text-red-200",
+    zte: "bg-primary/15 text-primary dark:bg-primary dark:text-primary/40",
+    fiberhome: "bg-success/15 text-green-800 dark:bg-success/15 dark:text-green-200",
     nokia: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
     other: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
   }
@@ -299,10 +299,10 @@ export default function OLTManagementPage() {
           <CardContent>
             <div className="text-2xl font-bold">{olts.length}</div>
             <div className="flex gap-2 mt-1">
-              <span className="text-xs text-green-600">{stats.online} online</span>
-              <span className="text-xs text-red-600">{stats.offline} offline</span>
+              <span className="text-xs text-success">{stats.online} online</span>
+              <span className="text-xs text-destructive">{stats.offline} offline</span>
               {stats.warning > 0 && (
-                <span className="text-xs text-yellow-600">{stats.warning} warning</span>
+                <span className="text-xs text-warning">{stats.warning} warning</span>
               )}
             </div>
           </CardContent>
@@ -316,7 +316,7 @@ export default function OLTManagementPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalONUs.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">{stats.onlineONUs.toLocaleString()}</span> online ({Math.round((stats.onlineONUs / stats.totalONUs) * 100)}%)
+              <span className="text-success">{stats.onlineONUs.toLocaleString()}</span> online ({Math.round((stats.onlineONUs / stats.totalONUs) * 100)}%)
             </p>
           </CardContent>
         </Card>
@@ -329,7 +329,7 @@ export default function OLTManagementPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalPorts}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">{stats.activePorts}</span> active ({Math.round((stats.activePorts / stats.totalPorts) * 100)}%)
+              <span className="text-success">{stats.activePorts}</span> active ({Math.round((stats.activePorts / stats.totalPorts) * 100)}%)
             </p>
           </CardContent>
         </Card>
@@ -439,11 +439,11 @@ export default function OLTManagementPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="text-green-600">{olt.active_pon_ports}</span>
+                    <span className="text-success">{olt.active_pon_ports}</span>
                     <span className="text-muted-foreground">/{olt.total_pon_ports}</span>
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="text-green-600">{olt.online_onus}</span>
+                    <span className="text-success">{olt.online_onus}</span>
                     <span className="text-muted-foreground">/{olt.total_onus}</span>
                   </TableCell>
                   <TableCell>
@@ -507,7 +507,7 @@ export default function OLTManagementPage() {
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          className="text-red-600"
+                          className="text-destructive"
                           onClick={() => {
                             setOltToDelete(olt)
                             setIsDeleteDialogOpen(true)
@@ -644,7 +644,7 @@ export default function OLTManagementPage() {
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                                <span className="text-green-600">{port.online_onus}</span>
+                                <span className="text-success">{port.online_onus}</span>
                                 <span className="text-muted-foreground">/{port.total_onus}</span>
                               </TableCell>
                               <TableCell>
@@ -689,7 +689,7 @@ export default function OLTManagementPage() {
                         </div>
                         <Progress 
                           value={(selectedOLT.temperature || 0) / 80 * 100} 
-                          className={selectedOLT.temperature && selectedOLT.temperature > 60 ? "bg-red-100" : ""}
+                          className={selectedOLT.temperature && selectedOLT.temperature > 60 ? "bg-destructive/15" : ""}
                         />
                       </div>
                     </div>

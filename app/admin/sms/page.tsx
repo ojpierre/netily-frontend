@@ -102,13 +102,13 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     delivered: 'bg-emerald-100 text-emerald-700',
     completed: 'bg-emerald-100 text-emerald-700',
-    pending: 'bg-amber-100 text-amber-700',
-    failed: 'bg-red-100 text-red-700',
-    sent: 'bg-blue-100 text-blue-700',
-    running: 'bg-blue-100 text-blue-700',
+    pending: 'bg-warning/15 text-warning',
+    failed: 'bg-destructive/15 text-destructive',
+    sent: 'bg-primary/15 text-primary',
+    running: 'bg-primary/15 text-primary',
     scheduled: 'bg-purple-100 text-purple-700',
     draft: 'bg-slate-100 text-slate-600',
-    cancelled: 'bg-red-100 text-red-700',
+    cancelled: 'bg-destructive/15 text-destructive',
   }
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${map[status] ?? 'bg-slate-100 text-slate-600'}`}>
@@ -227,7 +227,7 @@ function TemplateEditor({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Message</Label>
-                <span className={`text-xs ${content.length > 160 ? 'text-amber-600 font-medium' : 'text-slate-400'}`}>
+                <span className={`text-xs ${content.length > 160 ? 'text-warning font-medium' : 'text-slate-400'}`}>
                   {content.length} chars · {Math.ceil(content.length / 160)} SMS
                 </span>
               </div>
@@ -247,7 +247,7 @@ function TemplateEditor({
                     <button
                       key={v.key}
                       onClick={() => insertVar(v.key)}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-xs text-slate-600 hover:text-blue-700 transition-colors"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-slate-200 bg-slate-50 hover:bg-primary/10 hover:border-primary/20 text-xs text-slate-600 hover:text-primary transition-colors"
                     >
                       <Plus className="w-2.5 h-2.5" />
                       {v.label}
@@ -274,7 +274,7 @@ function TemplateEditor({
               <div className="rounded-lg border divide-y text-xs">
                 {vars.map(v => (
                   <div key={v.key} className="flex items-center justify-between px-3 py-1.5">
-                    <code className="text-blue-600">{v.key}</code>
+                    <code className="text-primary">{v.key}</code>
                     <span className="text-slate-400">{v.label}</span>
                   </div>
                 ))}
@@ -341,7 +341,7 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
       <SheetContent className="w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-blue-500" />
+            <Wallet className="w-5 h-5 text-primary" />
             Buy SMS Units
           </SheetTitle>
           <SheetDescription>Units are debited when you send SMS messages.</SheetDescription>
@@ -356,12 +356,12 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
                 onClick={() => { setSelected(pkg); setCustomAmount('') }}
                 className={`relative rounded-xl border-2 p-4 text-left transition-all ${
                   selected?.units === pkg.units && !customAmount
-                    ? 'border-blue-500 bg-blue-50'
+                    ? 'border-primary bg-primary/10'
                     : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
                 {pkg.badge && (
-                  <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                     {pkg.badge}
                   </span>
                 )}
@@ -937,7 +937,7 @@ export default function SMSPage() {
                           {t.variables?.length > 0 && (
                             <div className="flex gap-1 mt-2 flex-wrap">
                               {t.variables.map(v => (
-                                <code key={v} className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{'{' + v + '}'}</code>
+                                <code key={v} className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">{'{' + v + '}'}</code>
                               ))}
                             </div>
                           )}
@@ -951,7 +951,7 @@ export default function SMSPage() {
                             onClick={() => { setEditingTemplate(t); setIsTemplateOpen(true) }}>
                             <Eye className="w-3.5 h-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600"
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
                             onClick={() => handleDeleteTemplate(t.id)}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
@@ -994,7 +994,7 @@ export default function SMSPage() {
                   <div className="space-y-1.5">
                     <div className="flex justify-between">
                       <Label>Message</Label>
-                      <span className={`text-xs ${bulkMessage.length > 160 ? 'text-amber-600' : 'text-slate-400'}`}>
+                      <span className={`text-xs ${bulkMessage.length > 160 ? 'text-warning' : 'text-slate-400'}`}>
                         {bulkMessage.length}/160 · {Math.ceil(Math.max(bulkMessage.length,1)/160)} unit(s)/recipient
                       </span>
                     </div>
@@ -1037,7 +1037,7 @@ export default function SMSPage() {
                             <TableCell className="text-sm font-medium">{c.name}</TableCell>
                             <TableCell className="text-sm text-right">{(c.recipient_count ?? 0).toLocaleString()}</TableCell>
                             <TableCell className="text-sm text-right text-emerald-600">{c.delivered_count ?? 0}</TableCell>
-                            <TableCell className="text-sm text-right text-red-500">{c.failed_count ?? 0}</TableCell>
+                            <TableCell className="text-sm text-right text-destructive">{c.failed_count ?? 0}</TableCell>
                             <TableCell><StatusBadge status={c.status} /></TableCell>
                           </TableRow>
                         ))}
@@ -1062,7 +1062,7 @@ export default function SMSPage() {
               <Card className="lg:col-span-2">
                 <CardContent className="p-5">
                   <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${notifSettings.use_inbuilt_system ? 'bg-blue-500' : 'bg-slate-100'}`}>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${notifSettings.use_inbuilt_system ? 'bg-primary' : 'bg-slate-100'}`}>
                       <Zap className={`w-6 h-6 ${notifSettings.use_inbuilt_system ? 'text-white' : 'text-slate-400'}`} />
                     </div>
                     <div className="flex-1">
@@ -1081,7 +1081,7 @@ export default function SMSPage() {
                       </div>
                       {notifSettings.use_inbuilt_system && (
                         <div className="mt-3 flex items-center gap-3">
-                          <div className="text-sm bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-blue-700">
+                          <div className="text-sm bg-primary/10 border border-primary/15 rounded-lg px-3 py-2 text-primary">
                             <span className="font-semibold">{Number(walletUnits).toLocaleString()}</span> units available
                           </div>
                           <Button size="sm" variant="outline" onClick={() => setIsTopupOpen(true)}>
@@ -1184,7 +1184,7 @@ export default function SMSPage() {
                             </Select>
                             <span className="text-xs text-slate-400">before expiry</span>
                             <Button
-                              variant="ghost" size="icon" className="h-6 w-6 text-red-400"
+                              variant="ghost" size="icon" className="h-6 w-6 text-destructive"
                               onClick={() => {
                                 const intervals = ((notifSettings as any).pppoe_expiry_intervals ?? []).filter((_: any, i: number) => i !== idx)
                                 handleToggleNotif('pppoe_expiry_intervals' as any, intervals as any)
@@ -1236,36 +1236,36 @@ export default function SMSPage() {
 
                   {/* -- INBUILT MODE BANNER ------------------------------- */}
                   {notifSettings.use_inbuilt_system ? (
-                    <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-5 space-y-3">
+                    <div className="rounded-xl border-2 border-primary/20 bg-primary/10 p-5 space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
+                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
                           <Zap className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <p className="font-semibold text-blue-900">Netily Inbuilt SMS Active</p>
-                          <p className="text-xs text-blue-600">
+                          <p className="font-semibold text-primary">Netily Inbuilt SMS Active</p>
+                          <p className="text-xs text-primary">
                             Messages route through Netily's Bytewave master account. Units deducted from your wallet.
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-blue-100">
+                      <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-primary/15">
                         <span className="text-slate-500">Provider</span>
                         <span className="font-semibold text-slate-800">Bytewave (Netily Default)</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-blue-100">
+                      <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-primary/15">
                         <span className="text-slate-500">API Keys</span>
                         <span className="text-slate-400 italic text-xs">Managed by Netily — not required</span>
                       </div>
-                      <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-blue-100">
+                      <div className="flex items-center justify-between text-sm bg-white rounded-lg px-4 py-2 border border-primary/15">
                         <span className="text-slate-500">SMS Units</span>
-                        <span className="font-bold text-blue-700">
+                        <span className="font-bold text-primary">
                           {Number(walletUnits).toLocaleString()} units available
                         </span>
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full text-blue-700 border-blue-300 hover:bg-blue-100"
+                        className="w-full text-primary border-primary/30 hover:bg-primary/15"
                         onClick={() => setIsTopupOpen(true)}
                       >
                         <Plus className="w-4 h-4 mr-2" />Buy More Units
@@ -1385,7 +1385,7 @@ export default function SMSPage() {
                                   }}>
                                   Edit
                                 </Button>
-                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-400"
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive"
                                   onClick={() => adminApi.deleteSMSGatewayConfig(gw.id).then(fetchAll)}>
                                   <Trash2 className="w-3 h-3" />
                                 </Button>
@@ -1458,8 +1458,8 @@ export default function SMSPage() {
                 {/* Balance card */}
                 <Card className="lg:col-span-1">
                   <CardContent className="p-6 text-center space-y-4">
-                    <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto">
-                      <Wallet className="w-8 h-8 text-blue-500" />
+                    <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
+                      <Wallet className="w-8 h-8 text-primary" />
                     </div>
                     <div>
                       <p className="text-sm text-slate-500">Available SMS Units</p>
@@ -1583,7 +1583,7 @@ export default function SMSPage() {
                 {selectedRecipients.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-1">
                     {selectedRecipients.map(r => (
-                      <span key={r.phone} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                      <span key={r.phone} className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
                         {r.name || r.phone}
                         <button onClick={() => setSelectedRecipients(p => p.filter(x => x.phone !== r.phone))}>
                           <XCircle className="w-3 h-3" />
@@ -1610,7 +1610,7 @@ export default function SMSPage() {
               <div className="space-y-1.5">
                 <div className="flex justify-between">
                   <Label>Message</Label>
-                  <span className={`text-xs ${composeForm.message.length > 160 ? 'text-amber-600' : 'text-slate-400'}`}>
+                  <span className={`text-xs ${composeForm.message.length > 160 ? 'text-warning' : 'text-slate-400'}`}>
                     {composeForm.message.length}/160
                   </span>
                 </div>

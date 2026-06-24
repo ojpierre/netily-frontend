@@ -87,13 +87,13 @@ function formatDateRange(start: string, end: string): string {
 function getStatusIcon(status: SettlementStatus) {
   switch (status) {
     case "completed":
-      return <CheckCircle2 className="w-4 h-4 text-green-600" />
+      return <CheckCircle2 className="w-4 h-4 text-success" />
     case "processing":
-      return <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+      return <Loader2 className="w-4 h-4 text-primary animate-spin" />
     case "pending":
-      return <Clock className="w-4 h-4 text-amber-600" />
+      return <Clock className="w-4 h-4 text-warning" />
     case "failed":
-      return <XCircle className="w-4 h-4 text-red-600" />
+      return <XCircle className="w-4 h-4 text-destructive" />
     default:
       return <Clock className="w-4 h-4 text-gray-600" />
   }
@@ -243,18 +243,18 @@ export default function SettlementsPage() {
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200 dark:border-green-800">
+          <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-success/20 dark:border-success/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-green-800 dark:text-green-200">
                 Available for Payout
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-green-700 dark:text-green-400">
+              <p className="text-2xl font-bold text-success dark:text-success">
                 {formatCurrency(summary.pending_balance)}
               </p>
               {summary.next_payout_date && (
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                <p className="text-xs text-success dark:text-success mt-1">
                   Next payout: {formatDate(summary.next_payout_date)}
                 </p>
               )}
@@ -277,17 +277,17 @@ export default function SettlementsPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-orange-200 dark:border-orange-800">
+          <Card className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-warning/20 dark:border-orange-800">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-orange-800 dark:text-orange-200">
                 Platform Commission (5%)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-orange-700 dark:text-orange-400">
+              <p className="text-2xl font-bold text-warning dark:text-warning">
                 {formatCurrency(summary.total_commission)}
               </p>
-              <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+              <p className="text-xs text-warning dark:text-warning mt-1">
                 Netily platform fee
               </p>
             </CardContent>
@@ -367,10 +367,10 @@ export default function SettlementsPage() {
                       <TableCell className="text-right font-medium">
                         {formatCurrency(settlement.gross_amount)}
                       </TableCell>
-                      <TableCell className="text-right text-orange-600">
+                      <TableCell className="text-right text-warning">
                         -{formatCurrency(settlement.commission_amount)}
                       </TableCell>
-                      <TableCell className="text-right font-bold text-green-600">
+                      <TableCell className="text-right font-bold text-success">
                         {formatCurrency(settlement.net_amount)}
                       </TableCell>
                       <TableCell>
@@ -410,14 +410,14 @@ export default function SettlementsPage() {
 
       {/* Failed Settlement Alert */}
       {settlements.some((s) => s.status === "failed") && (
-        <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/20">
+        <Card className="border-destructive/20 bg-destructive/10 dark:border-destructive/20 dark:bg-red-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2 text-red-800 dark:text-red-200">
               <AlertTriangle className="w-4 h-4" />
               Failed Settlements
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-red-700 dark:text-red-300">
+          <CardContent className="text-sm text-destructive dark:text-destructive/80">
             <p>
               Some settlements have failed. This may be due to incorrect payout details.
               Please verify your payout settings and contact support if the issue persists.

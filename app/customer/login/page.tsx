@@ -68,7 +68,7 @@ export default function CustomerLoginPage() {
 
       <div className="w-full max-w-[400px]">
         <div className="flex flex-col items-center mb-6">
-          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-4 shadow-sm">
+          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mb-4 shadow-sm">
             <Wifi className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -82,8 +82,8 @@ export default function CustomerLoginPage() {
         <Card className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="px-3.5 py-2.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+              <div className="px-3.5 py-2.5 bg-destructive/10 dark:bg-red-950/30 border border-destructive/20 dark:border-destructive/20 rounded-lg">
+                <p className="text-sm text-destructive dark:text-destructive">{error}</p>
               </div>
             )}
 

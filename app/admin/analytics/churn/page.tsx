@@ -93,20 +93,20 @@ export default function ChurnAnalyticsPage() {
   ]
 
   const getRiskColor = (score: number) => {
-    if (score >= 80) return "text-red-600 dark:text-red-400"
-    if (score >= 60) return "text-amber-600 dark:text-amber-400"
-    return "text-green-600 dark:text-green-400"
+    if (score >= 80) return "text-destructive dark:text-destructive"
+    if (score >= 60) return "text-warning dark:text-warning"
+    return "text-success dark:text-success"
   }
 
   const getRiskBadge = (score: number) => {
     if (score >= 80) return <Badge variant="destructive">High Risk</Badge>
-    if (score >= 60) return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Medium</Badge>
-    return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">Low</Badge>
+    if (score >= 60) return <Badge className="bg-warning/15 text-warning dark:bg-amber-900/30 dark:text-amber-300">Medium</Badge>
+    return <Badge className="bg-success/15 text-success dark:bg-success/15/30 dark:text-success/80">Low</Badge>
   }
 
   const getTrendIcon = (trend: string) => {
-    if (trend === "up") return <ArrowUpRight className="w-3 h-3 text-red-500" />
-    if (trend === "down") return <ArrowDownRight className="w-3 h-3 text-green-500" />
+    if (trend === "up") return <ArrowUpRight className="w-3 h-3 text-destructive" />
+    if (trend === "down") return <ArrowDownRight className="w-3 h-3 text-success" />
     return <Activity className="w-3 h-3 text-slate-400" />
   }
 
@@ -144,13 +144,13 @@ export default function ChurnAnalyticsPage() {
               <div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">Churn Rate</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{churnStats.churnRate}%</p>
-                <p className={`text-xs flex items-center gap-1 ${churnStats.churnRateDelta < 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                <p className={`text-xs flex items-center gap-1 ${churnStats.churnRateDelta < 0 ? "text-success dark:text-success" : "text-destructive dark:text-destructive"}`}>
                   {churnStats.churnRateDelta < 0 ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
                   {Math.abs(churnStats.churnRateDelta)}% vs last period
                 </p>
               </div>
-              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <div className="w-12 h-12 bg-destructive/15 dark:bg-destructive/15/30 rounded-full flex items-center justify-center">
+                <TrendingDown className="w-6 h-6 text-destructive dark:text-destructive" />
               </div>
             </div>
           </CardContent>
@@ -162,13 +162,13 @@ export default function ChurnAnalyticsPage() {
               <div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">Churned</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{churnStats.churned}</p>
-                <p className={`text-xs flex items-center gap-1 ${churnStats.churnedDelta < 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                <p className={`text-xs flex items-center gap-1 ${churnStats.churnedDelta < 0 ? "text-success dark:text-success" : "text-destructive dark:text-destructive"}`}>
                   {churnStats.churnedDelta < 0 ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
                   {Math.abs(churnStats.churnedDelta)} vs last period
                 </p>
               </div>
-              <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
-                <UserMinus className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              <div className="w-12 h-12 bg-warning/15 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                <UserMinus className="w-6 h-6 text-warning dark:text-warning" />
               </div>
             </div>
           </CardContent>
@@ -180,13 +180,13 @@ export default function ChurnAnalyticsPage() {
               <div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">At Risk</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{churnStats.atRisk}</p>
-                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <p className="text-xs text-warning dark:text-warning flex items-center gap-1">
                   <ArrowUpRight className="w-3 h-3" />
                   {churnStats.atRiskDelta} new this week
                 </p>
               </div>
-              <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+              <div className="w-12 h-12 bg-warning/15 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-warning dark:text-warning" />
               </div>
             </div>
           </CardContent>
@@ -198,7 +198,7 @@ export default function ChurnAnalyticsPage() {
               <div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">Revenue Impact</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {churnStats.revenueImpact.toLocaleString()}</p>
-                <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                <p className="text-xs text-success dark:text-success flex items-center gap-1">
                   <ArrowDownRight className="w-3 h-3" />
                   {Math.abs(churnStats.revenueImpactDelta)}% less than last period
                 </p>
@@ -277,8 +277,8 @@ export default function ChurnAnalyticsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card>
               <CardContent className="pt-6 flex items-center gap-4">
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <div className="w-10 h-10 bg-primary/15 dark:bg-primary/30 rounded-lg flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-primary dark:text-primary/80" />
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Avg Tenure at Churn</p>
@@ -288,8 +288,8 @@ export default function ChurnAnalyticsPage() {
             </Card>
             <Card>
               <CardContent className="pt-6 flex items-center gap-4">
-                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <div className="w-10 h-10 bg-success/15 dark:bg-success/15/30 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-success dark:text-success" />
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Recovery Rate</p>

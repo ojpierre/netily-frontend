@@ -33,12 +33,12 @@ interface InvoiceRecord {
 }
 
 const statusConfig: Record<string, { color: string; bg: string }> = {
-  paid: { color: "text-green-700 dark:text-green-400", bg: "bg-green-100 dark:bg-green-950" },
-  pending: { color: "text-yellow-700 dark:text-yellow-400", bg: "bg-yellow-100 dark:bg-yellow-950" },
-  issued: { color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-950" },
-  sent: { color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-950" },
-  overdue: { color: "text-red-700 dark:text-red-400", bg: "bg-red-100 dark:bg-red-950" },
-  partial: { color: "text-orange-700 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-950" },
+  paid: { color: "text-success dark:text-success", bg: "bg-success/15 dark:bg-green-950" },
+  pending: { color: "text-warning dark:text-warning", bg: "bg-warning/15 dark:bg-yellow-950" },
+  issued: { color: "text-primary dark:text-primary/80", bg: "bg-primary/15 dark:bg-blue-950" },
+  sent: { color: "text-primary dark:text-primary/80", bg: "bg-primary/15 dark:bg-blue-950" },
+  overdue: { color: "text-destructive dark:text-destructive", bg: "bg-destructive/15 dark:bg-red-950" },
+  partial: { color: "text-warning dark:text-warning", bg: "bg-warning/15 dark:bg-orange-950" },
   draft: { color: "text-slate-700 dark:text-slate-400", bg: "bg-slate-100 dark:bg-slate-800" },
   cancelled: { color: "text-slate-700 dark:text-slate-400", bg: "bg-slate-100 dark:bg-slate-800" },
 }
@@ -131,8 +131,8 @@ export default function CustomerInvoicesPage() {
             return (
               <Card key={invoice.id} className="p-4">
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <div className="w-10 h-10 bg-primary/15 dark:bg-blue-950 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5 text-primary dark:text-primary/80" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -158,7 +158,7 @@ export default function CustomerInvoicesPage() {
                         Total: <strong>KSh {parseFloat(invoice.total_amount).toLocaleString()}</strong>
                       </span>
                       {invoice.balance_due && parseFloat(invoice.balance_due) > 0 && (
-                        <span className="text-red-600 dark:text-red-400">
+                        <span className="text-destructive dark:text-destructive">
                           Balance: KSh {parseFloat(invoice.balance_due).toLocaleString()}
                         </span>
                       )}

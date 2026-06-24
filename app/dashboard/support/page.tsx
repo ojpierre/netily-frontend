@@ -180,9 +180,9 @@ export default function SupportPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "open": return "bg-blue-100 text-blue-700"
-      case "in_progress": return "bg-yellow-100 text-yellow-700"
-      case "resolved": return "bg-green-100 text-green-700"
+      case "open": return "bg-primary/15 text-primary"
+      case "in_progress": return "bg-warning/15 text-warning"
+      case "resolved": return "bg-success/15 text-success"
       case "closed": return "bg-slate-100 text-slate-700"
       default: return "bg-slate-100 text-slate-700"
     }
@@ -190,9 +190,9 @@ export default function SupportPage() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "high": return "bg-red-100 text-red-700"
-      case "medium": return "bg-orange-100 text-orange-700"
-      case "low": return "bg-blue-100 text-blue-700"
+      case "high": return "bg-destructive/15 text-destructive"
+      case "medium": return "bg-warning/15 text-warning"
+      case "low": return "bg-primary/15 text-primary"
       default: return "bg-slate-100 text-slate-700"
     }
   }
@@ -307,8 +307,8 @@ export default function SupportPage() {
       <div className="grid md:grid-cols-3 gap-4">
         <Card className="p-6">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Phone className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 bg-primary/15 rounded-lg flex items-center justify-center">
+              <Phone className="w-6 h-6 text-primary" />
             </div>
             <div>
               <p className="font-semibold text-slate-900">Call Us</p>
@@ -319,8 +319,8 @@ export default function SupportPage() {
 
         <Card className="p-6">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <Mail className="w-6 h-6 text-green-600" />
+            <div className="w-12 h-12 bg-success/15 rounded-lg flex items-center justify-center">
+              <Mail className="w-6 h-6 text-success" />
             </div>
             <div>
               <p className="font-semibold text-slate-900">Email Us</p>
@@ -459,7 +459,7 @@ export default function SupportPage() {
 
               <div className="bg-slate-50 rounded-lg p-4 space-y-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                  <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-semibold">
                     {user.full_name.charAt(0)}
                   </div>
                   <div className="flex-1">
@@ -476,7 +476,7 @@ export default function SupportPage() {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-semibold">
+                  <div className="w-10 h-10 bg-success rounded-full flex items-center justify-center text-white font-semibold">
                     S
                   </div>
                   <div className="flex-1">

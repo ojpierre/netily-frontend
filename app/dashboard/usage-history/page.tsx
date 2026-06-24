@@ -152,7 +152,7 @@ export default function UsageHistoryPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -184,8 +184,8 @@ export default function UsageHistoryPage() {
               <p className="text-sm text-slate-600 mb-1">Total Sessions</p>
               <p className="text-2xl font-bold text-slate-900">{usageData.length}</p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Activity className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 bg-primary/15 rounded-lg flex items-center justify-center">
+              <Activity className="w-6 h-6 text-primary" />
             </div>
           </div>
         </Card>
@@ -196,8 +196,8 @@ export default function UsageHistoryPage() {
               <p className="text-sm text-slate-600 mb-1">Total Duration</p>
               <p className="text-2xl font-bold text-slate-900">{formatDuration(totalDuration)}</p>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-6 h-6 text-green-600" />
+            <div className="w-12 h-12 bg-success/15 rounded-lg flex items-center justify-center">
+              <Clock className="w-6 h-6 text-success" />
             </div>
           </div>
         </Card>
@@ -220,8 +220,8 @@ export default function UsageHistoryPage() {
               <p className="text-sm text-slate-600 mb-1">Avg. Daily</p>
               <p className="text-2xl font-bold text-slate-900">{formatData(averageDaily)}</p>
             </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <BarChart3 className="w-6 h-6 text-orange-600" />
+            <div className="w-12 h-12 bg-warning/15 rounded-lg flex items-center justify-center">
+              <BarChart3 className="w-6 h-6 text-warning" />
             </div>
           </div>
         </Card>
@@ -311,7 +311,7 @@ export default function UsageHistoryPage() {
                   <TableCell>
                     <Badge 
                       variant={record.status === "completed" ? "default" : "secondary"}
-                      className={record.status === "completed" ? "bg-green-100 text-green-700" : ""}
+                      className={record.status === "completed" ? "bg-success/15 text-success" : ""}
                     >
                       {record.status}
                     </Badge>
@@ -372,14 +372,14 @@ export default function UsageHistoryPage() {
 
               <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                 <span className="text-sm text-slate-600">Total Duration</span>
-                <span className="font-semibold text-blue-600">
+                <span className="font-semibold text-primary">
                   {formatDuration(selectedSession.duration)}
                 </span>
               </div>
 
               <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                 <span className="text-sm text-slate-600">Data Used</span>
-                <span className="font-semibold text-green-600">
+                <span className="font-semibold text-success">
                   {formatData(selectedSession.data_used)}
                 </span>
               </div>
@@ -388,7 +388,7 @@ export default function UsageHistoryPage() {
                 <span className="text-sm text-slate-600">Status</span>
                 <Badge 
                   variant={selectedSession.status === "completed" ? "default" : "secondary"}
-                  className={selectedSession.status === "completed" ? "bg-green-100 text-green-700" : ""}
+                  className={selectedSession.status === "completed" ? "bg-success/15 text-success" : ""}
                 >
                   {selectedSession.status}
                 </Badge>

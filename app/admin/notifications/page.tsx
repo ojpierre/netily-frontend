@@ -64,7 +64,7 @@ function notifIcon(type: string) {
   switch (type) {
     case "invoice":
     case "invoice_generated":
-      return <FileText className="w-4 h-4 text-blue-500" />
+      return <FileText className="w-4 h-4 text-primary" />
     case "payment":
     case "payment_received":
       return <CreditCard className="w-4 h-4 text-emerald-500" />
@@ -72,7 +72,7 @@ function notifIcon(type: string) {
       return <Receipt className="w-4 h-4 text-violet-500" />
     case "alert":
     case "warning":
-      return <AlertCircle className="w-4 h-4 text-amber-500" />
+      return <AlertCircle className="w-4 h-4 text-warning" />
     default:
       return <Info className="w-4 h-4 text-slate-400" />
   }
@@ -192,7 +192,7 @@ export default function AdminNotificationsPage() {
     })),
     ...invoiceNotifs.slice(0, 10).map((inv) => ({
       id: `inv-${inv.id}`,
-      icon: <FileText className="w-4 h-4 text-blue-500" />,
+      icon: <FileText className="w-4 h-4 text-primary" />,
       title: `Invoice ${inv.invoice_number} — ${inv.customer_name}`,
       description: `KES ${inv.amount.toLocaleString()} · Due ${inv.due_date} · ${inv.status}`,
       time: timeAgo(inv.created_at),
@@ -217,7 +217,7 @@ export default function AdminNotificationsPage() {
             <Bell className="w-6 h-6" />
             Notifications
             {unreadCount > 0 && (
-              <Badge className="bg-red-600 text-white text-xs">{unreadCount} unread</Badge>
+              <Badge className="bg-destructive text-white text-xs">{unreadCount} unread</Badge>
             )}
           </h1>
           <p className="text-slate-500 text-sm mt-1">
@@ -244,7 +244,7 @@ export default function AdminNotificationsPage() {
           <TabsTrigger value="all">
             All
             {allItems.filter((i) => !i.read).length > 0 && (
-              <Badge className="ml-1 bg-red-500 text-white text-xs h-4 w-4 p-0 flex items-center justify-center rounded-full">
+              <Badge className="ml-1 bg-destructive text-white text-xs h-4 w-4 p-0 flex items-center justify-center rounded-full">
                 {allItems.filter((i) => !i.read).length}
               </Badge>
             )}
@@ -272,12 +272,12 @@ export default function AdminNotificationsPage() {
                   className={`flex items-start gap-3 p-4 rounded-xl border transition-colors ${
                     item.read
                       ? "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900"
-                      : "border-blue-100 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/30"
+                      : "border-primary/15 dark:border-blue-900 bg-primary/10 dark:bg-blue-950/30"
                   }`}
                 >
                   <div className="mt-0.5 shrink-0">{item.icon}</div>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium truncate ${item.read ? "" : "text-blue-800 dark:text-blue-200"}`}>
+                    <p className={`text-sm font-medium truncate ${item.read ? "" : "text-primary dark:text-primary/40"}`}>
                       {item.title}
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{item.description}</p>
@@ -313,7 +313,7 @@ export default function AdminNotificationsPage() {
                   key={inv.id}
                   className="flex items-center gap-3 p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900"
                 >
-                  <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+                  <FileText className="w-4 h-4 text-primary shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{inv.invoice_number} — {inv.customer_name}</p>
                     <p className="text-xs text-slate-500 mt-0.5">Due {inv.due_date}</p>
@@ -326,8 +326,8 @@ export default function AdminNotificationsPage() {
                         inv.status === "paid"
                           ? "border-emerald-500 text-emerald-600"
                           : inv.status === "overdue"
-                          ? "border-red-500 text-red-600"
-                          : "border-amber-500 text-amber-600"
+                          ? "border-destructive text-destructive"
+                          : "border-warning text-warning"
                       }`}
                     >
                       {inv.status}
@@ -389,7 +389,7 @@ export default function AdminNotificationsPage() {
                   className={`flex items-start gap-3 p-4 rounded-xl border transition-colors ${
                     n.read
                       ? "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900"
-                      : "border-blue-100 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/30"
+                      : "border-primary/15 dark:border-blue-900 bg-primary/10 dark:bg-blue-950/30"
                   }`}
                 >
                   <div className="mt-0.5 shrink-0">{notifIcon(n.notification_type)}</div>

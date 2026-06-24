@@ -97,7 +97,7 @@ export default function PlanDetailPage() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{plan.name}</h1>
-            <Badge className={plan.status === "active" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-700"}>
+            <Badge className={plan.status === "active" ? "bg-success/15 text-success" : "bg-slate-100 text-slate-700"}>
               {plan.status}
             </Badge>
             <Badge variant="outline" className="uppercase">{plan.type}</Badge>
@@ -122,8 +122,8 @@ export default function PlanDetailPage() {
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {plan.price.toLocaleString()}</p>
                 <p className="text-xs text-slate-500">per {plan.validity} days</p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-success/15 rounded-full flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-success" />
               </div>
             </div>
           </CardContent>
@@ -135,10 +135,10 @@ export default function PlanDetailPage() {
               <div>
                 <p className="text-sm text-slate-500">Active Subscribers</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{plan.activeSubscribers}</p>
-                <p className="text-xs text-green-600">+12 this month</p>
+                <p className="text-xs text-success">+12 this month</p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-primary/15 rounded-full flex items-center justify-center">
+                <Users className="w-6 h-6 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -150,7 +150,7 @@ export default function PlanDetailPage() {
               <div>
                 <p className="text-sm text-slate-500">Monthly Revenue</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">KSh {plan.totalRevenue.toLocaleString()}</p>
-                <p className="text-xs text-green-600">+5.4% from last month</p>
+                <p className="text-xs text-success">+5.4% from last month</p>
               </div>
               <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-emerald-600" />
@@ -165,10 +165,10 @@ export default function PlanDetailPage() {
               <div>
                 <p className="text-sm text-slate-500">Churn Rate</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">{plan.churnRate}%</p>
-                <p className="text-xs text-green-600">Below average</p>
+                <p className="text-xs text-success">Below average</p>
               </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <ArrowUpDown className="w-6 h-6 text-orange-600" />
+              <div className="w-12 h-12 bg-warning/15 rounded-full flex items-center justify-center">
+                <ArrowUpDown className="w-6 h-6 text-warning" />
               </div>
             </div>
           </CardContent>
@@ -229,7 +229,7 @@ export default function PlanDetailPage() {
                 <ul className="space-y-2">
                   {plan.features.map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm text-slate-600">
-                      <Zap className="w-4 h-4 text-blue-600" />
+                      <Zap className="w-4 h-4 text-primary" />
                       {feature}
                     </li>
                   ))}
@@ -260,7 +260,7 @@ export default function PlanDetailPage() {
                   </div>
                   <div>
                     <p className="text-sm text-slate-500">Status</p>
-                    <Badge className={plan.status === "active" ? "bg-green-100 text-green-700" : "bg-slate-100"}>
+                    <Badge className={plan.status === "active" ? "bg-success/15 text-success" : "bg-slate-100"}>
                       {plan.status}
                     </Badge>
                   </div>
@@ -297,7 +297,7 @@ export default function PlanDetailPage() {
                       <TableCell>{new Date(sub.joinedAt).toLocaleDateString()}</TableCell>
                       <TableCell>{sub.usageGB} GB</TableCell>
                       <TableCell>
-                        <Badge className={sub.status === "active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
+                        <Badge className={sub.status === "active" ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}>
                           {sub.status}
                         </Badge>
                       </TableCell>
@@ -341,7 +341,7 @@ export default function PlanDetailPage() {
                         <TableCell>{item.subscribers}</TableCell>
                         <TableCell>KSh {item.revenue.toLocaleString()}</TableCell>
                         <TableCell>
-                          <span className={parseFloat(growth) >= 0 ? "text-green-600" : "text-red-600"}>
+                          <span className={parseFloat(growth) >= 0 ? "text-success" : "text-destructive"}>
                             {parseFloat(growth) >= 0 ? "+" : ""}{growth}%
                           </span>
                         </TableCell>

@@ -354,11 +354,11 @@ export default function UserDetailPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-green-100 text-green-700">Active</Badge>
+        return <Badge className="bg-success/15 text-success">Active</Badge>
       case "expired":
-        return <Badge className="bg-red-100 text-red-700">Expired</Badge>
+        return <Badge className="bg-destructive/15 text-destructive">Expired</Badge>
       case "suspended":
-        return <Badge className="bg-yellow-100 text-yellow-700">Suspended</Badge>
+        return <Badge className="bg-warning/15 text-warning">Suspended</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -367,11 +367,11 @@ export default function UserDetailPage() {
   const getTypeBadge = (type: string) => {
     switch (type) {
       case "hotspot":
-        return <Badge variant="outline" className="border-blue-200 text-blue-700">Hotspot</Badge>
+        return <Badge variant="outline" className="border-primary/20 text-primary">Hotspot</Badge>
       case "pppoe":
         return <Badge variant="outline" className="border-purple-200 text-purple-700">PPPoE</Badge>
       case "static":
-        return <Badge variant="outline" className="border-orange-200 text-orange-700">Static IP</Badge>
+        return <Badge variant="outline" className="border-warning/20 text-warning">Static IP</Badge>
       default:
         return <Badge variant="outline">{type}</Badge>
     }
@@ -444,7 +444,7 @@ export default function UserDetailPage() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                className="text-red-600"
+                className="text-destructive"
                 onClick={() => setIsDeleteDialogOpen(true)}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -460,8 +460,8 @@ export default function UserDetailPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-green-600" />
+              <div className="w-10 h-10 bg-success/15 rounded-lg flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-success" />
               </div>
               <div>
                 <p className="text-sm text-slate-600">Balance</p>
@@ -488,8 +488,8 @@ export default function UserDetailPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <HardDrive className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-primary/15 rounded-lg flex items-center justify-center">
+                <HardDrive className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-slate-600">Data Used</p>
@@ -502,8 +502,8 @@ export default function UserDetailPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-orange-600" />
+              <div className="w-10 h-10 bg-warning/15 rounded-lg flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-warning" />
               </div>
               <div>
                 <p className="text-sm text-slate-600">Expires</p>
@@ -533,7 +533,7 @@ export default function UserDetailPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
                   <Avatar className="w-16 h-16">
-                    <AvatarFallback className="text-xl bg-blue-100 text-blue-700">
+                    <AvatarFallback className="text-xl bg-primary/15 text-primary">
                       {user.fullName.split(" ").map(n => n[0]).join("")}
                     </AvatarFallback>
                   </Avatar>
@@ -590,8 +590,8 @@ export default function UserDetailPage() {
                 <div>
                   <p className="text-sm text-slate-500 mb-2">Last Seen</p>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-green-600 font-medium">Online Now</span>
+                    <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                    <span className="text-success font-medium">Online Now</span>
                   </div>
                 </div>
               </CardContent>
@@ -609,20 +609,20 @@ export default function UserDetailPage() {
                 <div className="flex items-start gap-4">
                   {/* Status Indicator */}
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    internetCheck.status === 'green' ? 'bg-green-100' :
-                    internetCheck.status === 'yellow' ? 'bg-yellow-100' :
-                    internetCheck.status === 'red' ? 'bg-red-100' :
+                    internetCheck.status === 'green' ? 'bg-success/15' :
+                    internetCheck.status === 'yellow' ? 'bg-warning/15' :
+                    internetCheck.status === 'red' ? 'bg-destructive/15' :
                     internetCheck.status === 'loading' ? 'bg-slate-100' :
                     'bg-slate-100'
                   }`}>
                     {internetCheck.status === 'green' && (
-                      <CheckCircle className="w-6 h-6 text-green-600" />
+                      <CheckCircle className="w-6 h-6 text-success" />
                     )}
                     {internetCheck.status === 'yellow' && (
-                      <Activity className="w-6 h-6 text-yellow-600" />
+                      <Activity className="w-6 h-6 text-warning" />
                     )}
                     {internetCheck.status === 'red' && (
-                      <XCircle className="w-6 h-6 text-red-600" />
+                      <XCircle className="w-6 h-6 text-destructive" />
                     )}
                     {internetCheck.status === 'loading' && (
                       <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
@@ -634,16 +634,16 @@ export default function UserDetailPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`text-sm font-semibold ${
-                        internetCheck.status === 'green' ? 'text-green-700' :
-                        internetCheck.status === 'yellow' ? 'text-yellow-700' :
-                        internetCheck.status === 'red' ? 'text-red-700' :
+                        internetCheck.status === 'green' ? 'text-success' :
+                        internetCheck.status === 'yellow' ? 'text-warning' :
+                        internetCheck.status === 'red' ? 'text-destructive' :
                         'text-slate-600'
                       }`}>
                         {internetCheck.label}
                       </span>
-                      {internetCheck.status === 'green' && <Badge className="bg-green-100 text-green-700 text-xs">OK</Badge>}
-                      {internetCheck.status === 'yellow' && <Badge className="bg-yellow-100 text-yellow-700 text-xs">Warning</Badge>}
-                      {internetCheck.status === 'red' && <Badge className="bg-red-100 text-red-700 text-xs">Error</Badge>}
+                      {internetCheck.status === 'green' && <Badge className="bg-success/15 text-success text-xs">OK</Badge>}
+                      {internetCheck.status === 'yellow' && <Badge className="bg-warning/15 text-warning text-xs">Warning</Badge>}
+                      {internetCheck.status === 'red' && <Badge className="bg-destructive/15 text-destructive text-xs">Error</Badge>}
                     </div>
                     <p className="text-sm text-slate-600">{internetCheck.detail}</p>
                     {internetCheck.pool && (
@@ -673,7 +673,7 @@ export default function UserDetailPage() {
                       <h3 className="font-bold text-lg">{user.package.name}</h3>
                       <p className="text-slate-500">KSh {user.package.price}/month</p>
                     </div>
-                    <Package className="w-8 h-8 text-blue-600" />
+                    <Package className="w-8 h-8 text-primary" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -783,7 +783,7 @@ export default function UserDetailPage() {
                       <TableCell>{payment.method}</TableCell>
                       <TableCell className="font-mono">{payment.reference}</TableCell>
                       <TableCell>
-                        <Badge className="bg-green-100 text-green-700">Completed</Badge>
+                        <Badge className="bg-success/15 text-success">Completed</Badge>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -815,7 +815,7 @@ export default function UserDetailPage() {
                       <TableCell className="font-mono">{ticket.id}</TableCell>
                       <TableCell>{ticket.subject}</TableCell>
                       <TableCell>
-                        <Badge className={ticket.status === "open" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}>
+                        <Badge className={ticket.status === "open" ? "bg-primary/15 text-primary" : "bg-success/15 text-success"}>
                           {ticket.status}
                         </Badge>
                       </TableCell>
