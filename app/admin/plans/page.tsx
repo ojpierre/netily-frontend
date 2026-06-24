@@ -318,13 +318,13 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
           {plan.download_speed && (
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-green-500" />
-              <span>{plan.download_speed} Mbps ↓</span>
+              <span>{plan.download_speed} {plan.speed_unit || 'Mbps'} ↓</span>
             </div>
           )}
           {plan.upload_speed && (
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-blue-500 rotate-180" />
-              <span>{plan.upload_speed} Mbps ↑</span>
+              <span>{plan.upload_speed} {plan.speed_unit || 'Mbps'} ↑</span>
             </div>
           )}
         </div>
@@ -432,6 +432,7 @@ export default function PlansPage() {
   const [isPlanTypePickerOpen, setIsPlanTypePickerOpen] = useState(false)
 
   // Form state - Enhanced with all fields
+  // 🟢 FIXED: Updated speed_unit type to include GBPS
   const [planForm, setPlanForm] = useState({
     name: '',
     plan_type: 'PPPOE' as PlanType,
@@ -439,7 +440,7 @@ export default function PlansPage() {
     // Speed settings
     download_speed: '',
     upload_speed: '',
-    speed_unit: 'MBPS' as 'MBPS' | 'KBPS',
+    speed_unit: 'MBPS' as 'MBPS' | 'KBPS' | 'GBPS',
     // Data limit
     data_limit: '',
     unlimited_data: true,
@@ -580,7 +581,7 @@ export default function PlansPage() {
           is_public: true,
           is_popular: hp.is_popular,
           features: [],
-          subscriber_count: hp.subscriber_count || 0,  // ← CHANGED: Now uses backend value
+          subscriber_count: hp.subscriber_count || 0,
           created_at: hp.created_at,
           updated_at: hp.updated_at,
           _isHotspotPlan: true,
@@ -626,7 +627,7 @@ export default function PlansPage() {
         is_public: true,
         is_popular: hp.is_popular,
         features: [],
-        subscriber_count: hp.subscriber_count || 0,  // ← CHANGED: Now uses backend value
+        subscriber_count: hp.subscriber_count || 0,
         created_at: hp.created_at,
         updated_at: hp.updated_at,
         _isHotspotPlan: true,
@@ -1705,6 +1706,29 @@ export default function PlansPage() {
               </div>
             </div>
 
+            {/* 🟢 NEW: Speed Unit Selector with GBPS */}
+            <div className="space-y-2">
+              <Label>Speed Unit</Label>
+              <Select 
+                value={planForm.speed_unit}
+                onValueChange={(v) => setPlanForm({ ...planForm, speed_unit: v as 'MBPS' | 'KBPS' | 'GBPS' })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MBPS">Mbps (Megabits)</SelectItem>
+                  <SelectItem value="KBPS">Kbps (Kilobits)</SelectItem>
+                  <SelectItem value="GBPS">Gbps (Gigabits)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {planForm.speed_unit === 'KBPS' && 'e.g., 512 Kbps, 1024 Kbps (= 1 Mbps)'}
+                {planForm.speed_unit === 'MBPS' && 'e.g., 10 Mbps, 50 Mbps, 100 Mbps'}
+                {planForm.speed_unit === 'GBPS' && 'e.g., 1 Gbps, 10 Gbps'}
+              </p>
+            </div>
+
             {/* Priority */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Priority (1-8)</Label>
@@ -1963,12 +1987,17 @@ export default function PlansPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Speed Unit</Label>
-                  <Select value={planForm.speed_unit}
-                    onValueChange={(v) => setPlanForm({ ...planForm, speed_unit: v as 'MBPS' | 'KBPS' })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select 
+                    value={planForm.speed_unit}
+                    onValueChange={(v) => setPlanForm({ ...planForm, speed_unit: v as 'MBPS' | 'KBPS' | 'GBPS' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="MBPS">Mbps</SelectItem>
-                      <SelectItem value="KBPS">Kbps</SelectItem>
+                      <SelectItem value="MBPS">Mbps (Megabits)</SelectItem>
+                      <SelectItem value="KBPS">Kbps (Kilobits)</SelectItem>
+                      <SelectItem value="GBPS">Gbps (Gigabits)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -2419,13 +2448,13 @@ export default function PlansPage() {
                 {selectedPlan.download_speed && (
                   <div>
                     <p className="text-muted-foreground">Download Speed</p>
-                    <p className="font-medium">{selectedPlan.download_speed} Mbps</p>
+                    <p className="font-medium">{selectedPlan.download_speed} {selectedPlan.speed_unit || 'Mbps'}</p>
                   </div>
                 )}
                 {selectedPlan.upload_speed && (
                   <div>
                     <p className="text-muted-foreground">Upload Speed</p>
-                    <p className="font-medium">{selectedPlan.upload_speed} Mbps</p>
+                    <p className="font-medium">{selectedPlan.upload_speed} {selectedPlan.speed_unit || 'Mbps'}</p>
                   </div>
                 )}
                 <div>

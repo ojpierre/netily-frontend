@@ -1709,7 +1709,7 @@ export interface Plan {
   setup_fee?: string
   download_speed?: number  // Speed value
   upload_speed?: number    // Speed value
-  speed_unit?: 'MBPS' | 'KBPS'  // Speed unit
+  speed_unit?: 'MBPS' | 'KBPS' | 'GBPS'
   data_limit?: number | null      // GB, null = unlimited
   // Validity - flexible time-based options
   validity_type?: 'DAYS' | 'HOURS' | 'MINUTES' | 'MONTHS' | 'UNLIMITED'
