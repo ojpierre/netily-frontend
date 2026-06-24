@@ -689,7 +689,6 @@ export default function UsersPage() {
       setOnlineSessionsLoading(true)
       
       const response = await adminApi.getOnlineSessions()
-      // Fixed: response.sessions is the array, no 'total' property
       let allSessions = response.sessions || []
       const total = allSessions.length
 
@@ -1041,11 +1040,12 @@ export default function UsersPage() {
     }
   }
 
+  // FIX 1: Open hotspot detail only ONCE - no useEffect duplication
   const handleOpenHotspotDetail = (item: ActiveSubscription) => {
     setHotspotDetailClient(item)
     setHotspotDetailTab('overview')
     setHotspotClientSessions([])
-    setHotspotDetailOpen(true)
+    setHotspotDetailOpen(true) // Only set open here
     if ((item as any).client_id) {
       loadHotspotClientSessions((item as any).client_id)
     }
@@ -1911,11 +1911,12 @@ export default function UsersPage() {
                 Add User
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 border-0">
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
+                className="p-6"
               >
                 <DialogHeader>
                   <DialogTitle>Add New Customer</DialogTitle>
@@ -3421,11 +3422,12 @@ export default function UsersPage() {
       {/* All dialogs continue here... */}
       {/* User Detail Dialog */}
       <Dialog open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.25 }}
+            className="p-6"
           >
             <DialogHeader>
               <DialogTitle>User Details</DialogTitle>
@@ -3976,11 +3978,12 @@ export default function UsersPage() {
 
       {/* Edit User Dialog */}
       <Dialog open={showEditUserDialog} onOpenChange={setShowEditUserDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.25 }}
+            className="p-6"
           >
             <DialogHeader>
               <DialogTitle>Edit User</DialogTitle>
@@ -4099,11 +4102,12 @@ export default function UsersPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.25 }}
+            className="p-6"
           >
             <DialogHeader>
               <DialogTitle className="text-red-600">Delete User</DialogTitle>
@@ -4143,11 +4147,12 @@ export default function UsersPage() {
 
       {/* Extend Subscription Dialog */}
       <Dialog open={showExtendDialog} onOpenChange={setShowExtendDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.25 }}
+            className="p-6"
           >
             <DialogHeader>
               <DialogTitle>Extend Subscription</DialogTitle>
@@ -4409,11 +4414,12 @@ export default function UsersPage() {
 
       {/* Extend Hotspot Session Dialog */}
       <Dialog open={showExtendHotspotDialog} onOpenChange={setShowExtendHotspotDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.25 }}
+            className="p-6"
           >
             <DialogHeader>
               <DialogTitle>Extend Hotspot Session</DialogTitle>
@@ -4539,7 +4545,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* REDESIGNED: Hotspot Client Detail Dialog - Premium SaaS Style */}
+      {/* FIX 2 & 3: Hotspot Client Detail Dialog - Removed key, added initial={false} on AnimatePresence wrapper, fixed animation */}
       <Dialog open={hotspotDetailOpen} onOpenChange={setHotspotDetailOpen}>
         <DialogContent className="max-w-xl w-[95vw] h-[92vh] overflow-hidden p-0 gap-0 rounded-2xl border-0 shadow-2xl bg-white" showCloseButton={false}>
           {hotspotDetailClient && (() => {
@@ -4557,7 +4563,6 @@ export default function UsersPage() {
             const hoursLeft = hotspotDetailClient.expiry_date
               ? Math.ceil((new Date(hotspotDetailClient.expiry_date).getTime() - Date.now()) / 3600000)
               : null
-            // Use client_total_sessions or total_sessions from the item
             const totalSessions = (hotspotDetailClient as any).client_total_sessions ?? 0
             const totalSpend = (hotspotDetailClient as any).client_total_spend ?? 0
 
@@ -4565,7 +4570,7 @@ export default function UsersPage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
                 className="flex flex-col h-full"
               >
                 {/* Hero Header - Premium gradient with decorative orbs */}
@@ -5003,11 +5008,12 @@ export default function UsersPage() {
           }
         }}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.25 }}
+            className="p-6"
           >
             <DialogHeader>
               <DialogTitle>Change Plan</DialogTitle>
@@ -5110,11 +5116,12 @@ export default function UsersPage() {
           if (editIPSearchDebounceRef.current) clearTimeout(editIPSearchDebounceRef.current)
         }
       }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.25 }}
+            className="p-6"
           >
             <DialogHeader>
               <DialogTitle>Change IP Address</DialogTitle>
@@ -5225,11 +5232,12 @@ export default function UsersPage() {
           setSmsMessage("")
         }
       }}>
-        <DialogContent>
+        <DialogContent className="p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.25 }}
+            className="p-6"
           >
             <DialogHeader>
               <DialogTitle>Send SMS</DialogTitle>
@@ -5318,11 +5326,12 @@ export default function UsersPage() {
 
       {/* Per-user SMS Dialog */}
       <Dialog open={showUserSmsDialog} onOpenChange={setShowUserSmsDialog}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.25 }}
+            className="p-6"
           >
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
