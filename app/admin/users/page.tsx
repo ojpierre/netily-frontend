@@ -453,6 +453,12 @@ export default function UsersPage() {
   const [expiredUsers, setExpiredUsers] = useState<User[]>([])
   const [expiredUsersLoading, setExpiredUsersLoading] = useState(false)
 
+  // 🟢 NEW: Stats filter state
+  const [activeStatFilter, setActiveStatFilter] = useState<string>("all")
+
+  // 🟢 NEW: Hotspot sub-filter
+  const [hotspotSubFilter, setHotspotSubFilter] = useState<"active" | "expired">("active")
+
   const loadServerStats = async () => {
     try {
       const expiredCount = await adminApi.getExpiredRADIUSCount()
@@ -612,6 +618,11 @@ export default function UsersPage() {
       loadExpiredUsersFromRADIUS()
     }
   }, [statusFilter])
+
+  // 🟢 NEW: Reset hotspot page when filter changes
+  useEffect(() => {
+    setHotspotPage(1)
+  }, [hotspotSubFilter])
 
   const loadPlans = async () => {
     try {
@@ -2173,26 +2184,29 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Stats Bar - Compact with sliding pill */}
-      <div className="relative flex items-center gap-0 p-1.5 bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+      {/* Stats Bar - With animated indicator and Hotspot filter tabs */}
+      <div className="flex items-center gap-2 p-3 bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto relative">
         {[
-          { label: "Total", value: stats.total, filterFn: () => { setActiveTab("all"); setStatusFilter("all") }, active: statusFilter === "all" && activeTab === "all", color: "text-slate-800" },
-          { label: "Online", value: stats.online, filterFn: () => { setActiveTab("online-sessions"); setStatusFilter("all") }, active: activeTab === "online-sessions", color: "text-emerald-600", pulse: true },
-          { label: "Active", value: stats.active, filterFn: () => { setActiveTab("all"); setStatusFilter("active") }, active: statusFilter === "active" && activeTab !== "online-sessions", color: "text-green-600" },
-          { label: "Pending", value: stats.pending, filterFn: () => { setActiveTab("all"); setStatusFilter("pending") }, active: statusFilter === "pending", color: "text-orange-500" },
-          { label: "Suspended", value: stats.suspended, filterFn: () => { setActiveTab("all"); setStatusFilter("suspended") }, active: statusFilter === "suspended", color: "text-yellow-600" },
-          { label: "Expired", value: serverStats.expired, filterFn: () => { setActiveTab("all"); setStatusFilter("expired") }, active: statusFilter === "expired", color: "text-red-500" },
-          null, // divider
-          { label: "Hotspot", value: stats.hotspot, filterFn: () => { setActiveTab("hotspot"); setStatusFilter("all") }, active: activeTab === "hotspot", color: "text-pink-600" },
-        ].map((item, i) => {
-          if (item === null) return <div key="divider" className="w-px h-8 bg-slate-200 mx-1 shrink-0" />
-          const { label, value, filterFn, active, color, pulse } = item
+          { label: "Total", value: stats.total, key: "all", tab: "all", status: "all", color: "text-slate-800" },
+          { label: "Online", value: stats.online, key: "online", tab: "online-sessions", status: "all", color: "text-emerald-600", pulse: true },
+          { label: "Active", value: stats.active, key: "active", tab: "all", status: "active", color: "text-green-600" },
+          { label: "Pending", value: stats.pending, key: "pending", tab: "all", status: "pending", color: "text-orange-500" },
+          { label: "Suspended", value: stats.suspended, key: "suspended", tab: "all", status: "suspended", color: "text-yellow-600" },
+          { label: "Expired", value: serverStats.expired, key: "expired", tab: "all", status: "expired", color: "text-red-500" },
+        ].map(({ label, value, key, tab, status, color, pulse }) => {
+          const isActive = activeStatFilter === key
           return (
             <button
-              key={label}
-              onClick={filterFn}
-              className={`relative flex flex-col items-center px-4 py-2 rounded-lg transition-colors duration-200 shrink-0 ${active ? "bg-slate-100" : "hover:bg-slate-50"}`}
-              style={{ transition: "background-color 0.2s ease" }}
+              key={key}
+              onClick={() => {
+                setActiveStatFilter(key)
+                setActiveTab(tab)
+                setStatusFilter(status)
+                if (tab === "online-sessions") loadOnlineSessions()
+              }}
+              className={`relative flex flex-col items-center px-4 py-2 rounded-lg transition-all duration-200 shrink-0 ${
+                isActive ? "bg-slate-100 ring-1 ring-slate-300" : "hover:bg-slate-50"
+              }`}
             >
               <div className="flex items-center gap-1.5">
                 {pulse && (
@@ -2201,17 +2215,47 @@ export default function UsersPage() {
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                   </span>
                 )}
-                <span className={`text-2xl font-black tabular-nums transition-colors duration-200 ${color}`}>{value}</span>
+                <span className={`text-2xl font-black tabular-nums transition-all duration-200 ${color}`}>{value}</span>
               </div>
               <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">{label}</span>
+              {isActive && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-slate-800 rounded-full" />
+              )}
+            </button>
+          )
+        })}
+        <div className="w-px h-10 bg-slate-200 mx-1 shrink-0" />
+        {[
+          { label: "Hotspot Subs", value: stats.hotspot, key: "hotspot", tab: "hotspot", color: "text-pink-600" },
+        ].map(({ label, value, key, tab, color }) => {
+          const isActive = activeStatFilter === key
+          return (
+            <button
+              key={key}
+              onClick={() => {
+                setActiveStatFilter(key)
+                setActiveTab(tab)
+                setStatusFilter("all")
+                setHotspotSubFilter("active")
+              }}
+              className={`relative flex flex-col items-center px-4 py-2 rounded-lg transition-all duration-200 shrink-0 ${
+                isActive ? "bg-slate-100 ring-1 ring-slate-300" : "hover:bg-slate-50"
+              }`}
+            >
+              <span className={`text-2xl font-black tabular-nums ${color}`}>{value}</span>
+              <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">{label}</span>
+              {isActive && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-pink-500 rounded-full" />
+              )}
             </button>
           )
         })}
       </div>
 
-      {/* Unified Filter Bar */}
+      {/* Unified Filter Bar - With animated pill tabs */}
       <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex items-center bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto">
+        {/* Main tabs with sliding pill */}
+        <div className="relative flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto">
           {[
             { value: "all", label: "All PPPoE/Static", icon: Users },
             { value: "online-sessions", label: "Online Now", icon: Wifi },
@@ -2226,15 +2270,14 @@ export default function UsersPage() {
                 if (value === "online-sessions") loadOnlineSessions()
                 if (value === "active-subs") loadAllActiveUsers()
                 if (value === "hotspot" && activeSubscriptions.hotspot?.length === 0) loadActiveSubscriptions()
+                if (value === "hotspot") setHotspotSubFilter("active")
               }}
-              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 z-10 transition-all duration-200 ease-out whitespace-nowrap ${
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap z-10 ${
                 activeTab === value
                   ? "bg-slate-900 text-white shadow-sm"
                   : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
               }`}
-              style={{
-                transition: "background-color 0.18s cubic-bezier(0.4,0,0.2,1), color 0.18s cubic-bezier(0.4,0,0.2,1), box-shadow 0.18s cubic-bezier(0.4,0,0.2,1)"
-              }}
+              style={{ transition: "background-color 0.2s ease, color 0.2s ease" }}
             >
               <Icon className="w-3.5 h-3.5" />
               {label}
@@ -2242,6 +2285,7 @@ export default function UsersPage() {
           ))}
         </div>
 
+        {/* Status filter for PPPoE/Static */}
         {!["online-sessions", "active-subs", "hotspot"].includes(activeTab) && (
           <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto">
             {[
@@ -2254,14 +2298,33 @@ export default function UsersPage() {
               <button
                 key={value}
                 onClick={() => setStatusFilter(value)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 ease-out ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   statusFilter === value
                     ? "bg-slate-900 text-white shadow-sm"
                     : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                 }`}
-                style={{
-                  transition: "background-color 0.18s cubic-bezier(0.4,0,0.2,1), color 0.18s cubic-bezier(0.4,0,0.2,1)"
-                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Hotspot sub-filter: Active / Expired */}
+        {activeTab === "hotspot" && (
+          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto">
+            {[
+              { value: "active" as const, label: "Active", color: "bg-green-600" },
+              { value: "expired" as const, label: "Expired", color: "bg-red-600" },
+            ].map(({ value, label, color }) => (
+              <button
+                key={value}
+                onClick={() => setHotspotSubFilter(value)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                  hotspotSubFilter === value
+                    ? `${value === "active" ? "bg-green-600" : "bg-red-600"} text-white shadow-sm`
+                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                }`}
               >
                 {label}
               </button>
@@ -2778,9 +2841,20 @@ export default function UsersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {activeSubscriptions.hotspot
-                        .slice((hotspotPage - 1) * hotspotPageSize, hotspotPage * hotspotPageSize)
-                        .map((item) => {
+                      {(() => {
+                        const filtered = activeSubscriptions.hotspot.filter(item => {
+                          const isActive = item.is_active_sub ?? (
+                            item.subscription_status === 'active' &&
+                            item.expiry_date &&
+                            new Date(item.expiry_date) > new Date()
+                          )
+                          return hotspotSubFilter === "active" ? isActive : !isActive
+                        })
+                        const paginated = filtered.slice(
+                          (hotspotPage - 1) * hotspotPageSize,
+                          hotspotPage * hotspotPageSize
+                        )
+                        return paginated.map((item) => {
                           const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
                           const liveUsage = item.canonical_username ? hotspotLiveUsageMap.get(item.canonical_username) : undefined
                           const hotspotIdentifier = item.canonical_username || item.username || item.display_name || "Hotspot"
@@ -2865,7 +2939,8 @@ export default function UsersPage() {
                               </TableCell>
                             </TableRow>
                           )
-                        })}
+                        })
+                      })()}
                     </TableBody>
                   </Table>
                 </div>
@@ -2873,11 +2948,23 @@ export default function UsersPage() {
                 {activeSubscriptions.hotspot.length > hotspotPageSize && (
                   <div className="flex items-center justify-between mt-4">
                     <p className="text-sm text-slate-500">
-                      Showing {((hotspotPage - 1) * hotspotPageSize) + 1}–{Math.min(hotspotPage * hotspotPageSize, activeSubscriptions.hotspot.length)} of {activeSubscriptions.hotspot.length}
+                      {(() => {
+                        const filtered = activeSubscriptions.hotspot.filter(item => {
+                          const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
+                          return hotspotSubFilter === "active" ? isActive : !isActive
+                        })
+                        const count = filtered.length
+                        const start = ((hotspotPage - 1) * hotspotPageSize) + 1
+                        const end = Math.min(hotspotPage * hotspotPageSize, count)
+                        return `Showing ${start}–${end} of ${count}`
+                      })()}
                     </p>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" disabled={hotspotPage === 1} onClick={() => setHotspotPage(p => p - 1)}>Previous</Button>
-                      <Button variant="outline" size="sm" disabled={hotspotPage * hotspotPageSize >= activeSubscriptions.hotspot.length} onClick={() => setHotspotPage(p => p + 1)}>Next</Button>
+                      <Button variant="outline" size="sm" disabled={hotspotPage * hotspotPageSize >= activeSubscriptions.hotspot.filter(item => {
+                        const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
+                        return hotspotSubFilter === "active" ? isActive : !isActive
+                      }).length} onClick={() => setHotspotPage(p => p + 1)}>Next</Button>
                     </div>
                   </div>
                 )}
