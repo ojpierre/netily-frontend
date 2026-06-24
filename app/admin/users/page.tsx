@@ -1125,6 +1125,7 @@ export default function UsersPage() {
     return map
   }, [onlineSessions])
 
+  // FIX: Stabilize enrichedUsers - only re-run when users array changes or online session count changes
   const enrichedUsers = useMemo(() => {
     return users.map((user) => {
       const session = user.radiusCredentials?.username
@@ -1160,7 +1161,9 @@ export default function UsersPage() {
         router: session?.router || user.router,
       }
     })
-  }, [users, onlineSessionsByUsername])
+    // Key fix: only re-run when users array identity changes or online sessions count changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [users, onlineSessions.length]) // Use onlineSessions.length instead of full array
 
   const activeHotspotClients = useMemo(() => {
     return hotspotClients.filter(client => {
@@ -1170,6 +1173,7 @@ export default function UsersPage() {
     });
   }, [hotspotClients]);
 
+  // FIX: Stabilize stats - remove onlineSessions dependency, use onlineTotal
   const stats: UserStats = useMemo(() => {
     const onlineCount = onlineTotal || onlineSessions.length;
     
@@ -1192,7 +1196,7 @@ export default function UsersPage() {
       hotspot: activeHotspotCount,
       totalActiveSubs,
     }
-  }, [totalCount, serverStatusCounts, serverStats.expired, onlineTotal, onlineSessions, activeSubscriptions])
+  }, [totalCount, serverStatusCounts, serverStats.expired, onlineTotal, activeSubscriptions])
 
   const filteredUsers = useMemo(() => {
     if (statusFilter === "expired") {
@@ -1290,13 +1294,13 @@ export default function UsersPage() {
 
   const getStatusBadge = (status: UserStatus) => {
     const variants: Record<UserStatus, string> = {
-      active: "bg-green-100 text-green-700 border-green-200",
-      inactive: "bg-gray-100 text-gray-700 border-gray-200",
-      expired: "bg-red-100 text-red-700 border-red-200",
-      suspended: "bg-yellow-100 text-yellow-700 border-yellow-200",
-      pending: "bg-orange-100 text-orange-700 border-orange-200",
-      online: "bg-blue-100 text-blue-700 border-blue-200",
-      offline: "bg-slate-100 text-slate-700 border-slate-200",
+      active: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800",
+      inactive: "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-700",
+      expired: "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800",
+      suspended: "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800",
+      pending: "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800",
+      online: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+      offline: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 border-slate-200 dark:border-slate-700",
     }
     return (
       <Badge variant="outline" className={variants[status] || variants.active}>
@@ -1313,21 +1317,21 @@ export default function UsersPage() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
           </span>
-          <span className="text-sm font-medium text-emerald-600">Online</span>
+          <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Online</span>
         </div>
       )
     }
     return (
-      <span className="text-sm text-slate-400">Offline</span>
+      <span className="text-sm text-slate-400 dark:text-slate-500">Offline</span>
     )
   }
 
   const getTypeBadge = (type: UserType) => {
     const config: Record<UserType, { icon: typeof Wifi; class: string; label: string }> = {
-      pppoe: { icon: Globe, class: "bg-purple-100 text-purple-700 border-purple-200", label: "PPPoE" },
-      static: { icon: Server, class: "bg-orange-100 text-orange-700 border-orange-200", label: "Static IP" },
-      fiber: { icon: Signal, class: "bg-teal-100 text-teal-700 border-teal-200", label: "Fiber" },
-      wireless: { icon: Wifi, class: "bg-cyan-100 text-cyan-700 border-cyan-200", label: "Wireless" },
+      pppoe: { icon: Globe, class: "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800", label: "PPPoE" },
+      static: { icon: Server, class: "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800", label: "Static IP" },
+      fiber: { icon: Signal, class: "bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800", label: "Fiber" },
+      wireless: { icon: Wifi, class: "bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800", label: "Wireless" },
     }
     const typeConfig = config[type] || config.pppoe
     const Icon = typeConfig.icon
@@ -1863,7 +1867,7 @@ export default function UsersPage() {
   if (error) {
     return (
       <PageWrapper>
-        <h1 className="text-3xl font-bold">Users Management</h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Users Management</h1>
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
@@ -1878,7 +1882,7 @@ export default function UsersPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Users Management</h1>
-          <p className="text-slate-500 mt-1">Manage Hotspot, PPPoE, and Static IP users</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Manage Hotspot, PPPoE, and Static IP users</p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
           <Button 
@@ -1927,10 +1931,10 @@ export default function UsersPage() {
 
                 {/* Personal Info */}
                 <div className="space-y-4 mt-2">
-                  <h4 className="text-sm font-semibold text-slate-700 border-b pb-1">Personal Information</h4>
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Personal Information</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label>First Name <span className="text-red-500">*</span></Label>
+                      <Label className="dark:text-slate-200">First Name <span className="text-red-500">*</span></Label>
                       <Input
                         placeholder="John"
                         value={newCustomerForm.first_name}
@@ -1938,7 +1942,7 @@ export default function UsersPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label>Last Name <span className="text-red-500">*</span></Label>
+                      <Label className="dark:text-slate-200">Last Name <span className="text-red-500">*</span></Label>
                       <Input
                         placeholder="Doe"
                         value={newCustomerForm.last_name}
@@ -1948,7 +1952,7 @@ export default function UsersPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label>Phone <span className="text-red-500">*</span></Label>
+                      <Label className="dark:text-slate-200">Phone <span className="text-red-500">*</span></Label>
                       <Input
                         placeholder="07XXXXXXXX"
                         value={newCustomerForm.phone}
@@ -1956,7 +1960,7 @@ export default function UsersPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label>Email <span className="text-xs text-slate-400">(optional)</span></Label>
+                      <Label className="dark:text-slate-200">Email <span className="text-xs text-slate-400">(optional)</span></Label>
                       <Input
                         placeholder="john@example.com"
                         value={newCustomerForm.email}
@@ -1965,7 +1969,7 @@ export default function UsersPage() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label>Location <span className="text-xs text-slate-400">(optional)</span></Label>
+                    <Label className="dark:text-slate-200">Location <span className="text-xs text-slate-400">(optional)</span></Label>
                     <Input
                       placeholder="e.g. Westlands, Nairobi"
                       value={newCustomerForm.location}
@@ -1973,23 +1977,23 @@ export default function UsersPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label>Portal Password <span className="text-red-500">*</span></Label>
+                    <Label className="dark:text-slate-200">Portal Password <span className="text-red-500">*</span></Label>
                     <Input
                       type="password"
                       placeholder="Enter password for customer portal"
                       value={newCustomerForm.password}
                       onChange={(e) => setNewCustomerForm({...newCustomerForm, password: e.target.value})}
                     />
-                    <p className="text-xs text-slate-500">Used for customer portal login. Also used as RADIUS password if not specified below.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Used for customer portal login. Also used as RADIUS password if not specified below.</p>
                   </div>
                 </div>
 
                 {/* Connection Details */}
                 <div className="space-y-4 mt-4">
-                  <h4 className="text-sm font-semibold text-slate-700 border-b pb-1">Connection Details</h4>
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Connection Details</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label>Connection Type</Label>
+                      <Label className="dark:text-slate-200">Connection Type</Label>
                       <Select
                         value={newCustomerForm.connection_type}
                         onValueChange={(value: "pppoe" | "static") => setNewCustomerForm({...newCustomerForm, connection_type: value})}
@@ -2004,7 +2008,7 @@ export default function UsersPage() {
                       </Select>
                     </div>
                     <div className="space-y-1">
-                      <Label>Plan <span className="text-red-500 text-xs">*</span></Label>
+                      <Label className="dark:text-slate-200">Plan <span className="text-red-500 text-xs">*</span></Label>
                       <Select
                         value={newCustomerForm.plan_id || "none"}
                         onValueChange={(value) => setNewCustomerForm({...newCustomerForm, plan_id: value === "none" ? "" : value})}
@@ -2027,7 +2031,7 @@ export default function UsersPage() {
 
                   {selectedPlanPool && (
                     <div className="space-y-1">
-                      <Label>Assign Static IP <span className="text-xs text-slate-400">(optional)</span></Label>
+                      <Label className="dark:text-slate-200">Assign Static IP <span className="text-xs text-slate-400">(optional)</span></Label>
                       <div className="flex gap-2">
                         <Input
                           placeholder="Search IP (e.g. 10.50.3)"
@@ -2045,7 +2049,7 @@ export default function UsersPage() {
                         />
                       </div>
                       {availableIPsLoading ? (
-                        <p className="text-xs text-slate-500 flex items-center gap-1">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                           <Loader2 className="w-3 h-3 animate-spin" />
                           Loading IPs...
                         </p>
@@ -2076,7 +2080,7 @@ export default function UsersPage() {
                             </SelectContent>
                           </Select>
                           {availableIPs.length > 0 && (
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
                               Showing {availableIPs.length} of{" "}
                               {(availableIPs as any).total_available ?? "many"} available —
                               type above to search
@@ -2090,17 +2094,17 @@ export default function UsersPage() {
 
                 {/* PPPoE / RADIUS Credentials Section */}
                 <div className="space-y-4 mt-4">
-                  <h4 className="text-sm font-semibold text-slate-700 border-b pb-1 flex items-center gap-2">
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1 flex items-center gap-2">
                     <Wifi className="w-4 h-4" />
                     PPPoE / RADIUS Credentials
                   </h4>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Leave blank to auto-generate from phone number. 
                     Username defaults to last 9 digits of phone, password defaults to portal password.
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label>PPPoE Username <span className="text-xs text-slate-400">(optional)</span></Label>
+                      <Label className="dark:text-slate-200">PPPoE Username <span className="text-xs text-slate-400">(optional)</span></Label>
                       <div className="flex gap-1">
                         <Input
                           placeholder="Auto from phone"
@@ -2125,7 +2129,7 @@ export default function UsersPage() {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label>PPPoE Password <span className="text-xs text-slate-400">(optional)</span></Label>
+                      <Label className="dark:text-slate-200">PPPoE Password <span className="text-xs text-slate-400">(optional)</span></Label>
                       <div className="flex gap-1">
                         <Input
                           placeholder="Auto from portal password"
@@ -2149,17 +2153,17 @@ export default function UsersPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="p-2 bg-purple-50 border border-purple-200 rounded text-xs font-mono space-y-1">
+                  <div className="p-2 bg-purple-50 dark:bg-purple-900/20 border dark:border-purple-800 rounded text-xs font-mono space-y-1">
                     <div className="flex gap-2">
-                      <span className="text-purple-500 w-20">Username:</span>
-                      <span className="text-purple-900 font-semibold">
+                      <span className="text-purple-500 dark:text-purple-400 w-20">Username:</span>
+                      <span className="text-purple-900 dark:text-purple-300 font-semibold">
                         {newCustomerForm.radius_username || 
                           (newCustomerForm.phone ? `(auto: ${generateUsernameFromPhone(newCustomerForm.phone)})` : '(waiting for phone)')}
                       </span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="text-purple-500 w-20">Password:</span>
-                      <span className="text-purple-900 font-semibold">
+                      <span className="text-purple-500 dark:text-purple-400 w-20">Password:</span>
+                      <span className="text-purple-900 dark:text-purple-300 font-semibold">
                         {newCustomerForm.radius_password ? '(custom)' : '(auto: same as portal password)'}
                       </span>
                     </div>
@@ -2167,11 +2171,11 @@ export default function UsersPage() {
                 </div>
 
                 {/* Billing Account Notice */}
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200 flex items-start gap-2">
-                  <CreditCard className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start gap-2">
+                  <CreditCard className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs font-medium text-blue-900">M-Pesa Paybill Account</p>
-                    <p className="text-xs text-blue-700 mt-0.5">
+                    <p className="text-xs font-medium text-blue-900 dark:text-blue-200">M-Pesa Paybill Account</p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
                       The account number is generated from the customer's phone number. 
                       You can edit it after creation.
                     </p>
@@ -2180,7 +2184,7 @@ export default function UsersPage() {
 
                 {/* Activation Options */}
                 <div className="space-y-2 mt-4">
-                  <h4 className="text-sm font-semibold text-slate-700 border-b pb-1">Activation</h4>
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Activation</h4>
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { label: "Activate Now", activate: true, delay: 0, desc: "Starts timer immediately" },
@@ -2193,12 +2197,12 @@ export default function UsersPage() {
                         onClick={() => setNewCustomerForm({ ...newCustomerForm, activate_now: opt.activate, activation_delay_minutes: opt.delay })}
                         className={`p-2.5 rounded-lg border text-left transition-all ${
                           newCustomerForm.activate_now === opt.activate && newCustomerForm.activation_delay_minutes === opt.delay
-                            ? "bg-blue-50 border-blue-400 ring-1 ring-blue-400"
-                            : "bg-white border-slate-200 hover:border-slate-300"
+                            ? "bg-blue-50 dark:bg-blue-900/30 border-blue-400 dark:border-blue-600 ring-1 ring-blue-400"
+                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
                         }`}
                       >
                         <p className="text-xs font-medium text-slate-900 dark:text-white">{opt.label}</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">{opt.desc}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{opt.desc}</p>
                       </button>
                     ))}
                   </div>
@@ -2219,12 +2223,12 @@ export default function UsersPage() {
                             : ''
                         })}
                       />
-                      <Label htmlFor="record_payment" className="cursor-pointer text-sm">Record initial payment</Label>
+                      <Label htmlFor="record_payment" className="cursor-pointer text-sm dark:text-slate-200">Record initial payment</Label>
                     </div>
                     {newCustomerForm.record_initial_payment && (
                       <div className="grid grid-cols-2 gap-3 pl-6">
                         <div className="space-y-1">
-                          <Label className="text-xs">Amount (KES) <span className="text-red-500">*</span></Label>
+                          <Label className="text-xs dark:text-slate-300">Amount (KES) <span className="text-red-500">*</span></Label>
                           <Input
                             type="number"
                             placeholder="0.00"
@@ -2233,7 +2237,7 @@ export default function UsersPage() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Reference <span className="text-xs text-slate-400">(optional)</span></Label>
+                          <Label className="text-xs dark:text-slate-300">Reference <span className="text-xs text-slate-400">(optional)</span></Label>
                           <Input
                             placeholder="MPESA receipt / auto"
                             value={newCustomerForm.initial_payment_reference || ''}
@@ -2264,15 +2268,15 @@ export default function UsersPage() {
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="flex items-center gap-2 p-3 bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto relative"
+        className="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-x-auto relative"
       >
         {[
-          { label: "Total", value: stats.total, key: "all", tab: "all", status: "all", color: "text-slate-800" },
-          { label: "Online", value: stats.online, key: "online", tab: "online-sessions", status: "all", color: "text-emerald-600", pulse: true },
-          { label: "Active", value: stats.active, key: "active", tab: "all", status: "active", color: "text-green-600" },
-          { label: "Pending", value: stats.pending, key: "pending", tab: "all", status: "pending", color: "text-orange-500" },
-          { label: "Suspended", value: stats.suspended, key: "suspended", tab: "all", status: "suspended", color: "text-yellow-600" },
-          { label: "Expired", value: serverStats.expired, key: "expired", tab: "all", status: "expired", color: "text-red-500" },
+          { label: "Total", value: stats.total, key: "all", tab: "all", status: "all", color: "text-slate-800 dark:text-slate-200" },
+          { label: "Online", value: stats.online, key: "online", tab: "online-sessions", status: "all", color: "text-emerald-600 dark:text-emerald-400", pulse: true },
+          { label: "Active", value: stats.active, key: "active", tab: "all", status: "active", color: "text-green-600 dark:text-green-400" },
+          { label: "Pending", value: stats.pending, key: "pending", tab: "all", status: "pending", color: "text-orange-500 dark:text-orange-400" },
+          { label: "Suspended", value: stats.suspended, key: "suspended", tab: "all", status: "suspended", color: "text-yellow-600 dark:text-yellow-400" },
+          { label: "Expired", value: serverStats.expired, key: "expired", tab: "all", status: "expired", color: "text-red-500 dark:text-red-400" },
         ].map(({ label, value, key, tab, status, color, pulse }) => {
           const isActive = activeStatFilter === key
           return (
@@ -2288,7 +2292,7 @@ export default function UsersPage() {
                 if (tab === "online-sessions") loadOnlineSessions()
               }}
               className={`relative flex flex-col items-center px-4 py-2 rounded-lg transition-all duration-200 shrink-0 ${
-                isActive ? "bg-slate-100 ring-1 ring-slate-300" : "hover:bg-slate-50"
+                isActive ? "bg-slate-100 dark:bg-slate-800 ring-1 ring-slate-300 dark:ring-slate-600" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
               }`}
             >
               <div className="flex items-center gap-1.5">
@@ -2302,19 +2306,19 @@ export default function UsersPage() {
                   <CountUp end={value} duration={1.2} separator="," />
                 </span>
               </div>
-              <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">{label}</span>
+              <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">{label}</span>
               {isActive && (
                 <motion.span 
                   layoutId="active-stat-indicator"
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-slate-800 rounded-full"
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-slate-800 dark:bg-slate-200 rounded-full"
                 />
               )}
             </motion.button>
           )
         })}
-        <div className="w-px h-10 bg-slate-200 mx-1 shrink-0" />
+        <div className="w-px h-10 bg-slate-200 dark:bg-slate-700 mx-1 shrink-0" />
         {[
-          { label: "Hotspot Subs", value: stats.hotspot, key: "hotspot", tab: "hotspot", color: "text-pink-600" },
+          { label: "Hotspot Subs", value: stats.hotspot, key: "hotspot", tab: "hotspot", color: "text-pink-600 dark:text-pink-400" },
         ].map(({ label, value, key, tab, color }) => {
           const isActive = activeStatFilter === key
           return (
@@ -2330,13 +2334,13 @@ export default function UsersPage() {
                 setHotspotSubFilter("active")
               }}
               className={`relative flex flex-col items-center px-4 py-2 rounded-lg transition-all duration-200 shrink-0 ${
-                isActive ? "bg-slate-100 ring-1 ring-slate-300" : "hover:bg-slate-50"
+                isActive ? "bg-slate-100 dark:bg-slate-800 ring-1 ring-slate-300 dark:ring-slate-600" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
               }`}
             >
               <span className={`text-2xl font-black tabular-nums ${color}`}>
                 <CountUp end={value} duration={1.2} separator="," />
               </span>
-              <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mt-0.5">{label}</span>
+              <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">{label}</span>
               {isActive && (
                 <motion.span 
                   layoutId="active-stat-indicator"
@@ -2355,7 +2359,7 @@ export default function UsersPage() {
         animate="show"
         className="flex flex-col sm:flex-row gap-2"
       >
-        <div className="relative flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto">
+        <div className="relative flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-1 overflow-x-auto">
           {[
             { value: "all", label: "All PPPoE/Static", icon: Users },
             { value: "online-sessions", label: "Online Now", icon: Wifi },
@@ -2378,14 +2382,14 @@ export default function UsersPage() {
               className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap z-10 ${
                 activeTab === value
                   ? "text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
               }`}
               style={{ transition: "color 0.2s ease" }}
             >
               {activeTab === value && (
                 <motion.span
                   layoutId="active-tab-pill"
-                  className="absolute inset-0 bg-slate-900 rounded-lg"
+                  className="absolute inset-0 bg-slate-900 dark:bg-slate-700 rounded-lg"
                   transition={{ type: "spring", duration: 0.4 }}
                 />
               )}
@@ -2399,7 +2403,7 @@ export default function UsersPage() {
 
         {/* Status filter for PPPoE/Static */}
         {!["online-sessions", "active-subs", "hotspot"].includes(activeTab) && (
-          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto">
+          <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-1 overflow-x-auto">
             {[
               { value: "all", label: "All" },
               { value: "active", label: "Active" },
@@ -2415,13 +2419,13 @@ export default function UsersPage() {
                 className={`relative px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   statusFilter === value
                     ? "text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                 }`}
               >
                 {statusFilter === value && (
                   <motion.span
                     layoutId="active-status-pill"
-                    className="absolute inset-0 bg-slate-900 rounded-lg"
+                    className="absolute inset-0 bg-slate-900 dark:bg-slate-700 rounded-lg"
                     transition={{ type: "spring", duration: 0.3 }}
                   />
                 )}
@@ -2433,7 +2437,7 @@ export default function UsersPage() {
 
         {/* Hotspot sub-filter */}
         {activeTab === "hotspot" && (
-          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 overflow-x-auto">
+          <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-1 overflow-x-auto">
             {[
               { value: "active" as const, label: "Active", color: "bg-green-600" },
               { value: "expired" as const, label: "Expired", color: "bg-red-600" },
@@ -2446,7 +2450,7 @@ export default function UsersPage() {
                 className={`relative px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   hotspotSubFilter === value
                     ? "text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                 }`}
               >
                 {hotspotSubFilter === value && (
@@ -2472,7 +2476,7 @@ export default function UsersPage() {
           className="flex flex-col md:flex-row gap-2"
         >
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
             <Input
               placeholder="Search name, phone, username, IP, billing account..."
               value={searchQuery}
@@ -2485,7 +2489,7 @@ export default function UsersPage() {
                   loadUsers(1, val, statusFilter)
                 }, 400)
               }}
-              className="pl-9 bg-white transition-all duration-300 focus:ring-4 focus:ring-violet-100 focus:border-violet-500"
+              className="pl-9 bg-white dark:bg-slate-900 transition-all duration-300 focus:ring-4 focus:ring-violet-100 dark:focus:ring-violet-900/30 focus:border-violet-500"
               autoComplete="off"
             />
           </div>
@@ -2500,14 +2504,14 @@ export default function UsersPage() {
         <motion.div 
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-200"
+          className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl border border-blue-200 dark:border-blue-800"
         >
-          <span className="text-sm font-medium text-blue-900">{selectedUsers.length} selected</span>
+          <span className="text-sm font-medium text-blue-900 dark:text-blue-200">{selectedUsers.length} selected</span>
           <div className="flex-1" />
           <Button size="sm" variant="outline" onClick={() => { setSmsTarget(null); setSmsMessage(""); setShowSmsDialog(true) }} className="transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
             <Send className="w-4 h-4 mr-2" />Send SMS
           </Button>
-          <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onClick={handleBulkDelete} disabled={deleting}>
+          <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onClick={handleBulkDelete} disabled={deleting}>
             {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
             Delete
           </Button>
@@ -2524,28 +2528,28 @@ export default function UsersPage() {
           exit={{ opacity: 0, x: -15 }}
           transition={{ duration: 0.2 }}
         >
-          <Card className="border-0 bg-white shadow-sm hover:shadow-xl transition-all duration-300">
+          <Card className="border-0 bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Wifi className="w-5 h-5 text-emerald-600" />
+                  <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                    <Wifi className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     Online Users ({filteredOnlineSessions.length})
                   </CardTitle>
-                  <CardDescription>Users currently connected via RADIUS - real-time session data</CardDescription>
+                  <CardDescription className="dark:text-slate-400">Users currently connected via RADIUS - real-time session data</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                     <Input
                       placeholder="Search name, IP, MAC..."
                       value={onlineSearchQuery}
                       onChange={(e) => { setOnlineSearchQuery(e.target.value); setOnlinePage(1) }}
-                      className="pl-9 transition-all duration-300 focus:ring-4 focus:ring-violet-100 focus:border-violet-500"
+                      className="pl-9 bg-white dark:bg-slate-900 transition-all duration-300 focus:ring-4 focus:ring-violet-100 dark:focus:ring-violet-900/30 focus:border-violet-500"
                     />
                   </div>
                   <Select value={onlineServiceFilter} onValueChange={(val) => { setOnlineServiceFilter(val); setOnlinePage(1) }}>
-                    <SelectTrigger className="w-36">
+                    <SelectTrigger className="w-36 dark:bg-slate-900 dark:border-slate-700">
                       <SelectValue placeholder="Service" />
                     </SelectTrigger>
                     <SelectContent>
@@ -2565,7 +2569,7 @@ export default function UsersPage() {
               {onlineSessionsLoading && onlineSessions.length === 0 ? (
                 <div className="space-y-px">
                   {[...Array(6)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-4 px-1 py-3 border-b border-slate-100 last:border-0" style={{ opacity: 1 - i * 0.12 }}>
+                    <div key={i} className="flex items-center gap-4 px-1 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0" style={{ opacity: 1 - i * 0.12 }}>
                       <Skeleton className="w-10 h-10 rounded-full shrink-0" />
                       <div className="flex-1 space-y-1.5">
                         <Skeleton className="h-3.5 w-28" />
@@ -2581,9 +2585,9 @@ export default function UsersPage() {
                 </div>
               ) : filteredOnlineSessions.length === 0 ? (
                 <div className="text-center py-12">
-                  <WifiOff className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                  <h3 className="font-semibold text-slate-700">No online users</h3>
-                  <p className="text-slate-500 text-sm mt-1">
+                  <WifiOff className="w-12 h-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
+                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">No online users</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                     {onlineSearchQuery || onlineServiceFilter !== "all"
                       ? "Try adjusting your search or filter"
                       : "No users are currently connected via RADIUS"}
@@ -2591,17 +2595,17 @@ export default function UsersPage() {
                 </div>
               ) : (
                 <>
-                  <div className="rounded-lg border overflow-x-auto">
+                  <div className="rounded-lg border dark:border-slate-700 overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>User</TableHead>
-                          <TableHead>Service</TableHead>
-                          <TableHead>IP Address</TableHead>
-                          <TableHead>MAC Address</TableHead>
-                          <TableHead>Router</TableHead>
-                          <TableHead>Uptime</TableHead>
-                          <TableHead>Usage</TableHead>
+                        <TableRow className="dark:border-slate-700">
+                          <TableHead className="dark:text-slate-300">User</TableHead>
+                          <TableHead className="dark:text-slate-300">Service</TableHead>
+                          <TableHead className="dark:text-slate-300">IP Address</TableHead>
+                          <TableHead className="dark:text-slate-300">MAC Address</TableHead>
+                          <TableHead className="dark:text-slate-300">Router</TableHead>
+                          <TableHead className="dark:text-slate-300">Uptime</TableHead>
+                          <TableHead className="dark:text-slate-300">Usage</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2612,7 +2616,7 @@ export default function UsersPage() {
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.15 }}
                             whileHover={{ backgroundColor: "#faf5ff" }}
-                            className="transition-colors duration-200 hover:bg-violet-50"
+                            className="transition-colors duration-200 hover:bg-violet-50 dark:hover:bg-violet-950/30 dark:border-slate-700"
                           >
                             <TableCell>
                               <div className="flex items-center gap-3">
@@ -2630,9 +2634,9 @@ export default function UsersPage() {
                                       ? (session as any).canonical_username
                                       : (session.full_name || session.username)}
                                   </p>
-                                  <p className="text-xs text-slate-500">
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">
                                     {(session as any).canonical_username
-                                      ? <span className="text-pink-600 font-medium">Hotspot</span>
+                                      ? <span className="text-pink-600 dark:text-pink-400 font-medium">Hotspot</span>
                                       : (session.phone_number || '')}
                                   </p>
                                 </div>
@@ -2640,45 +2644,45 @@ export default function UsersPage() {
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline" className={
-                                session.service_type === 'PPPOE' ? 'border-purple-300 text-purple-700 bg-purple-50' :
-                                session.service_type === 'HOTSPOT' ? 'border-orange-300 text-orange-700 bg-orange-50' :
-                                'border-blue-300 text-blue-700 bg-blue-50'
+                                session.service_type === 'PPPOE' ? 'border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20' :
+                                session.service_type === 'HOTSPOT' ? 'border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20' :
+                                'border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
                               }>
                                 {session.service_type === 'PPPOE' ? 'PPPoE' : session.service_type === 'HOTSPOT' ? 'Hotspot' : session.service_type}
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <span className="font-mono text-sm">
+                              <span className="font-mono text-sm dark:text-slate-300">
                                 {session.ip_address
                                   ? session.ip_address
                                   : (session as any).accounting_pending && !session.ip_address
-                                    ? <span className="text-amber-500 text-xs italic">router connecting...</span>
+                                    ? <span className="text-amber-500 dark:text-amber-400 text-xs italic">router connecting...</span>
                                     : "..."}
                               </span>
                             </TableCell>
                             <TableCell>
-                              <span className="font-mono text-xs text-slate-600">{session.mac_address || '...'}</span>
+                              <span className="font-mono text-xs text-slate-600 dark:text-slate-400">{session.mac_address || '...'}</span>
                             </TableCell>
                             <TableCell>
-                              <span className="text-sm">{session.router || '...'}</span>
+                              <span className="text-sm dark:text-slate-300">{session.router || '...'}</span>
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1.5">
                                 {(session as any).accounting_pending && !session.ip_address ? (
-                                  <span className="flex items-center gap-1 text-amber-600 text-xs">
+                                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 text-xs">
                                     <RefreshCw className="w-3 h-3 animate-spin" />
                                     {session.uptime}
                                   </span>
                                 ) : (
                                   <>
-                                    <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                    <span className="text-sm">{session.uptime}</span>
+                                    <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                                    <span className="text-sm dark:text-slate-300">{session.uptime}</span>
                                   </>
                                 )}
                               </div>
                             </TableCell>
                             <TableCell>
-                              <span className="text-sm font-medium">{session.usage}</span>
+                              <span className="text-sm font-medium dark:text-slate-300">{session.usage}</span>
                             </TableCell>
                           </motion.tr>
                         ))}
@@ -2687,7 +2691,7 @@ export default function UsersPage() {
                   </div>
                   {onlineTotalPages > 1 && (
                     <div className="flex items-center justify-between mt-4">
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         Showing {((onlinePage - 1) * onlinePageSize) + 1}–{Math.min(onlinePage * onlinePageSize, filteredOnlineSessions.length)} of {filteredOnlineSessions.length} sessions
                       </p>
                       <div className="flex gap-2">
@@ -2728,24 +2732,24 @@ export default function UsersPage() {
           exit={{ opacity: 0, x: -15 }}
           transition={{ duration: 0.2 }}
         >
-          <Card className="border-0 bg-white shadow-sm hover:shadow-xl transition-all duration-300">
+          <Card className="border-0 bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
                     Active Subscriptions ({allActiveSubUsers.length})
                   </CardTitle>
-                  <CardDescription>Users with active or pending subscriptions - manage extensions and removals</CardDescription>
+                  <CardDescription className="dark:text-slate-400">Users with active or pending subscriptions - manage extensions and removals</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                     <Input
                       placeholder="Search name, plan, phone, username..."
                       value={activeSearchQuery}
                       onChange={(e) => setActiveSearchQuery(e.target.value)}
-                      className="pl-9 transition-all duration-300 focus:ring-4 focus:ring-violet-100 focus:border-violet-500"
+                      className="pl-9 bg-white dark:bg-slate-900 transition-all duration-300 focus:ring-4 focus:ring-violet-100 dark:focus:ring-violet-900/30 focus:border-violet-500"
                     />
                   </div>
                   <Button variant="outline" size="icon" onClick={loadAllActiveUsers} disabled={activeSubsPageLoading}>
@@ -2763,24 +2767,24 @@ export default function UsersPage() {
                 </div>
               ) : allActiveSubUsers.length === 0 ? (
                 <div className="text-center py-12">
-                  <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                  <h3 className="font-semibold text-slate-700">No active subscriptions</h3>
-                  <p className="text-slate-500 text-sm mt-1">
+                  <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
+                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">No active subscriptions</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                     {activeSearchQuery ? "Try adjusting your search" : "No users with active subscriptions found"}
                   </p>
                 </div>
               ) : (
-                <div className="rounded-lg border overflow-x-auto">
+                <div className="rounded-lg border dark:border-slate-700 overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Plan</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Connection</TableHead>
-                        <TableHead>Expiry</TableHead>
-                        <TableHead>Time Remaining</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                      <TableRow className="dark:border-slate-700">
+                        <TableHead className="dark:text-slate-300">User</TableHead>
+                        <TableHead className="dark:text-slate-300">Plan</TableHead>
+                        <TableHead className="dark:text-slate-300">Status</TableHead>
+                        <TableHead className="dark:text-slate-300">Connection</TableHead>
+                        <TableHead className="dark:text-slate-300">Expiry</TableHead>
+                        <TableHead className="dark:text-slate-300">Time Remaining</TableHead>
+                        <TableHead className="text-right dark:text-slate-300">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -2807,7 +2811,7 @@ export default function UsersPage() {
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.15 }}
                             whileHover={{ backgroundColor: "#faf5ff" }}
-                            className="transition-colors duration-200 hover:bg-violet-50"
+                            className="transition-colors duration-200 hover:bg-violet-50 dark:hover:bg-violet-950/30 dark:border-slate-700"
                           >
                             <TableCell>
                               <div className="flex items-center gap-3">
@@ -2816,30 +2820,30 @@ export default function UsersPage() {
                                 </div>
                                 <div>
                                   <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
-                                  <p className="text-xs text-slate-500">{user.phone}</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">{user.phone}</p>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>
                               <div>
-                                <p className="text-sm font-medium">{user.plan}</p>
-                                <p className="text-xs text-slate-500">KES {user.planPrice.toLocaleString()}</p>
+                                <p className="text-sm font-medium dark:text-slate-300">{user.plan}</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">KES {user.planPrice.toLocaleString()}</p>
                               </div>
                             </TableCell>
                             <TableCell>
                               {user.status === "active" ? (
-                                <Badge className="bg-green-100 text-green-700">Active</Badge>
+                                <Badge className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400">Active</Badge>
                               ) : (
-                                <Badge className="bg-orange-100 text-orange-700">Pending</Badge>
+                                <Badge className="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400">Pending</Badge>
                               )}
                             </TableCell>
                             <TableCell>
                               {user.connectionStatus === "online" ? (
-                                <Badge className="bg-emerald-100 text-emerald-700 flex items-center gap-1 w-fit">
+                                <Badge className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 flex items-center gap-1 w-fit">
                                   <Wifi className="w-3 h-3" /> Online
                                 </Badge>
                               ) : (
-                                <Badge variant="secondary" className="flex items-center gap-1 w-fit">
+                                <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 flex items-center gap-1 w-fit">
                                   <XCircle className="w-3 h-3" /> Offline
                                 </Badge>
                               )}
@@ -2847,13 +2851,13 @@ export default function UsersPage() {
                             <TableCell>
                               {user.plan === "No Plan" ? (
                                 <div>
-                                  <p className="text-sm">-</p>
-                                  <p className="text-xs text-slate-500">Voucher</p>
+                                  <p className="text-sm dark:text-slate-300">-</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">Voucher</p>
                                 </div>
                               ) : (
                                 <div>
-                                  <p className="text-sm">{new Date(user.expiryDate).toLocaleDateString()}</p>
-                                  <p className="text-xs text-slate-500">
+                                  <p className="text-sm dark:text-slate-300">{new Date(user.expiryDate).toLocaleDateString()}</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">
                                     {new Date(user.expiryDate) > new Date() 
                                       ? `${Math.ceil((new Date(user.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left`
                                       : "Expired"
@@ -2866,11 +2870,11 @@ export default function UsersPage() {
                               {isExpired ? (
                                 <Badge variant="destructive" className="text-xs">Expired</Badge>
                               ) : daysLeft <= 1 ? (
-                                <Badge className="bg-red-100 text-red-700 text-xs">{hoursLeft}h left</Badge>
+                                <Badge className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs">{hoursLeft}h left</Badge>
                               ) : daysLeft <= 3 ? (
-                                <Badge className="bg-yellow-100 text-yellow-700 text-xs">{daysLeft}d left</Badge>
+                                <Badge className="bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 text-xs">{daysLeft}d left</Badge>
                               ) : (
-                                <Badge className="bg-green-100 text-green-700 text-xs">{daysLeft}d left</Badge>
+                                <Badge className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs">{daysLeft}d left</Badge>
                               )}
                             </TableCell>
                             <TableCell className="text-right">
@@ -2880,47 +2884,47 @@ export default function UsersPage() {
                                     <MoreVertical className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleViewUser(user)}>
+                                <DropdownMenuContent align="end" className="dark:bg-slate-900 dark:border-slate-700">
+                                  <DropdownMenuItem onClick={() => handleViewUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                     <Eye className="w-4 h-4 mr-2" />
                                     View Details
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleExtendSubscription(user)}>
+                                  <DropdownMenuItem onClick={() => handleExtendSubscription(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                     <Calendar className="w-4 h-4 mr-2" />
                                     Extend Subscription
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleOpenChangePlan(user)}>
+                                  <DropdownMenuItem onClick={() => handleOpenChangePlan(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                     <ArrowRightLeft className="w-4 h-4 mr-2" />
                                     Change Plan
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                                  <DropdownMenuItem onClick={() => handleEditUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                     <Edit className="w-4 h-4 mr-2" />
                                     Edit User
                                   </DropdownMenuItem>
                                   {(user.type === "pppoe" || user.type === "static") && (
-                                    <DropdownMenuItem onClick={() => handleEditIP(user)}>
+                                    <DropdownMenuItem onClick={() => handleEditIP(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                       <Server className="w-4 h-4 mr-2" />
                                       Edit IP Address
                                     </DropdownMenuItem>
                                   )}
-                                  <DropdownMenuItem onClick={() => handleOpenUserSms(user)}>
+                                  <DropdownMenuItem onClick={() => handleOpenUserSms(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                     <Send className="w-4 h-4 mr-2" />
                                     Send SMS
                                   </DropdownMenuItem>
                                   {user.status === "pending" && (
                                     <DropdownMenuItem 
                                       onClick={() => handleActivateUser(user)}
-                                      className="text-green-600"
+                                      className="text-green-600 dark:text-green-400 dark:hover:bg-slate-800"
                                     >
                                       <UserCheck className="w-4 h-4 mr-2" />
                                       Activate Now
                                     </DropdownMenuItem>
                                   )}
-                                  <DropdownMenuSeparator />
+                                  <DropdownMenuSeparator className="dark:bg-slate-700" />
                                   {user.radiusCredentials && (
                                     <DropdownMenuItem 
                                       onClick={() => handleToggleRadius(user, !user.radiusCredentials!.is_enabled)}
-                                      className={user.radiusCredentials.is_enabled ? "text-yellow-600" : "text-green-600"}
+                                      className={user.radiusCredentials.is_enabled ? "text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800" : "text-green-600 dark:text-green-400 dark:hover:bg-slate-800"}
                                     >
                                       <Power className="w-4 h-4 mr-2" />
                                       {user.radiusCredentials.is_enabled ? 'Disable RADIUS' : 'Enable RADIUS'}
@@ -2929,16 +2933,16 @@ export default function UsersPage() {
                                   {user.connectionStatus === "online" && (
                                     <DropdownMenuItem 
                                       onClick={() => handleDisconnectUser(user)}
-                                      className="text-yellow-600"
+                                      className="text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800"
                                     >
                                       <Power className="w-4 h-4 mr-2" />
                                       Disconnect
                                     </DropdownMenuItem>
                                   )}
-                                  <DropdownMenuSeparator />
+                                  <DropdownMenuSeparator className="dark:bg-slate-700" />
                                   <DropdownMenuItem 
                                     onClick={() => handleDeleteUser(user)}
-                                    className="text-red-600"
+                                    className="text-red-600 dark:text-red-400 dark:hover:bg-slate-800"
                                   >
                                     <Trash2 className="w-4 h-4 mr-2" />
                                     Remove User
@@ -2967,15 +2971,15 @@ export default function UsersPage() {
           exit={{ opacity: 0, x: -15 }}
           transition={{ duration: 0.2 }}
         >
-          <Card className="border-0 bg-white shadow-sm hover:shadow-xl transition-all duration-300">
+          <Card className="border-0 bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Smartphone className="w-5 h-5 text-pink-600" />
+                  <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                    <Smartphone className="w-5 h-5 text-pink-600 dark:text-pink-400" />
                     Hotspot Clients ({activeSubscriptions.hotspot?.length || 0})
                   </CardTitle>
-                  <CardDescription>All hotspot clients — active and expired subscriptions</CardDescription>
+                  <CardDescription className="dark:text-slate-400">All hotspot clients — active and expired subscriptions</CardDescription>
                 </div>
                 <Button variant="outline" size="icon" onClick={loadActiveSubscriptions} disabled={hotspotLoading}>
                   <RefreshCw className={`w-4 h-4 ${hotspotLoading ? 'animate-spin' : ''}`} />
@@ -2986,7 +2990,7 @@ export default function UsersPage() {
               {hotspotLoading ? (
                 <div className="space-y-px">
                   {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-4 px-1 py-3 border-b border-slate-100 last:border-0" style={{ opacity: 1 - i * 0.12 }}>
+                    <div key={i} className="flex items-center gap-4 px-1 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0" style={{ opacity: 1 - i * 0.12 }}>
                       <Skeleton className="w-10 h-10 rounded-full shrink-0" />
                       <div className="flex-1 space-y-1.5">
                         <Skeleton className="h-3.5 w-28" />
@@ -3001,21 +3005,21 @@ export default function UsersPage() {
                 </div>
               ) : !activeSubscriptions.hotspot?.length ? (
                 <div className="text-center py-12">
-                  <Smartphone className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                  <h3 className="font-semibold text-slate-700">No hotspot clients yet</h3>
+                  <Smartphone className="w-12 h-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
+                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">No hotspot clients yet</h3>
                 </div>
               ) : (
                 <>
-                  <div className="rounded-xl border overflow-x-auto">
+                  <div className="rounded-xl border dark:border-slate-700 overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow className="bg-slate-50">
-                          <TableHead>Client</TableHead>
-                          <TableHead>Plan</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Expiry</TableHead>
-                          <TableHead>Router</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
+                        <TableRow className="bg-slate-50 dark:bg-slate-800 dark:border-slate-700">
+                          <TableHead className="dark:text-slate-300">Client</TableHead>
+                          <TableHead className="dark:text-slate-300">Plan</TableHead>
+                          <TableHead className="dark:text-slate-300">Status</TableHead>
+                          <TableHead className="dark:text-slate-300">Expiry</TableHead>
+                          <TableHead className="dark:text-slate-300">Router</TableHead>
+                          <TableHead className="text-right dark:text-slate-300">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -3050,51 +3054,51 @@ export default function UsersPage() {
                                 animate={{ opacity: 1 }}
                                 transition={{ duration: 0.15 }}
                                 whileHover={{ backgroundColor: "#faf5ff", cursor: "pointer" }}
-                                className="transition-colors duration-200 hover:bg-violet-50"
+                                className="transition-colors duration-200 hover:bg-violet-50 dark:hover:bg-violet-950/30 dark:border-slate-700"
                                 onClick={() => handleOpenHotspotDetail(item)}
                               >
                                 <TableCell>
                                   <div className="flex items-center gap-3">
-                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-medium text-xs ${isActive ? 'bg-gradient-to-br from-pink-500 to-orange-400' : 'bg-slate-300'}`}>
+                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-medium text-xs ${isActive ? 'bg-gradient-to-br from-pink-500 to-orange-400' : 'bg-slate-300 dark:bg-slate-600'}`}>
                                       HS
                                     </div>
                                     <div>
-                                      <p className="font-medium text-slate-900 font-mono text-sm">{hotspotIdentifier}</p>
-                                      <p className="text-xs text-slate-500">{item.phone || '—'}</p>
+                                      <p className="font-medium text-slate-900 dark:text-white font-mono text-sm">{hotspotIdentifier}</p>
+                                      <p className="text-xs text-slate-500 dark:text-slate-400">{item.phone || '—'}</p>
                                     </div>
                                   </div>
                                 </TableCell>
                                 <TableCell>
                                   {isActive ? (
-                                    <Badge variant="outline" className="bg-pink-50 text-pink-700 border-pink-200 text-xs">
+                                    <Badge variant="outline" className="bg-pink-50 dark:bg-pink-900/20 text-pink-700 dark:text-pink-400 border-pink-200 dark:border-pink-800 text-xs">
                                       {item.plan_name}
                                     </Badge>
                                   ) : (
-                                    <span className="text-xs text-slate-300">—</span>
+                                    <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
                                   )}
                                 </TableCell>
                                 <TableCell>
                                   {isActive ? (
-                                    <Badge className="bg-green-100 text-green-700 gap-1 text-xs">
+                                    <Badge className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 gap-1 text-xs">
                                       <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                                       Active
                                     </Badge>
                                   ) : (
-                                    <Badge className="bg-red-100 text-red-700 text-xs">Expired</Badge>
+                                    <Badge className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs">Expired</Badge>
                                   )}
                                 </TableCell>
                                 <TableCell>
                                   <div>
-                                    <p className="text-sm">{expiryLabel}</p>
+                                    <p className="text-sm dark:text-slate-300">{expiryLabel}</p>
                                     {daysLeft !== null && (
-                                      <p className={`text-xs ${daysLeft > 0 ? 'text-slate-400' : 'text-red-500'}`}>
+                                      <p className={`text-xs ${daysLeft > 0 ? 'text-slate-400 dark:text-slate-500' : 'text-red-500 dark:text-red-400'}`}>
                                         {daysLeft > 0 ? `${daysLeft}d left` : `${Math.abs(daysLeft)}d ago`}
                                       </p>
                                     )}
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <span className="text-sm text-slate-600">{item.router || '—'}</span>
+                                  <span className="text-sm text-slate-600 dark:text-slate-400">{item.router || '—'}</span>
                                 </TableCell>
                                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                   <div className="flex items-center justify-end gap-1">
@@ -3112,7 +3116,7 @@ export default function UsersPage() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-7 text-xs text-slate-500"
+                                      className="h-7 text-xs text-slate-500 dark:text-slate-400"
                                       onClick={(e) => { e.stopPropagation(); handleOpenHotspotDetail(item) }}
                                     >
                                       <Eye className="w-3 h-3" />
@@ -3129,7 +3133,7 @@ export default function UsersPage() {
 
                   {activeSubscriptions.hotspot.length > hotspotPageSize && (
                     <div className="flex items-center justify-between mt-4">
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         {(() => {
                           const filtered = activeSubscriptions.hotspot.filter(item => {
                             const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
@@ -3165,19 +3169,19 @@ export default function UsersPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
         >
-          <Card className="border-0 bg-white shadow-sm hover:shadow-xl transition-all duration-300">
+          <Card className="border-0 bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl transition-all duration-300">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base">
+                  <CardTitle className="text-base text-slate-900 dark:text-white">
                     {activeTab === "all" && "Users"}
                     {activeTab === "pppoe" && "PPPoE Users"}
                     {activeTab === "static" && "Static IP Users"}
-                    {statusFilter !== "all" && <span className="text-slate-400 font-normal ml-1">· {statusFilter}</span>}
-                    <span className="text-slate-400 font-normal ml-1">({filteredUsers.length})</span>
+                    {statusFilter !== "all" && <span className="text-slate-400 dark:text-slate-500 font-normal ml-1">· {statusFilter}</span>}
+                    <span className="text-slate-400 dark:text-slate-500 font-normal ml-1">({filteredUsers.length})</span>
                   </CardTitle>
                 </div>
-                <p className="text-xs text-slate-400">{totalCount} total</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">{totalCount} total</p>
               </div>
             </CardHeader>
             <CardContent>
@@ -3186,7 +3190,7 @@ export default function UsersPage() {
                   {[...Array(8)].map((_, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-4 px-4 py-3 border-b border-slate-100 last:border-0"
+                      className="flex items-center gap-4 px-4 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0"
                       style={{ opacity: 1 - i * 0.1 }}
                     >
                       <Skeleton className="w-4 h-4 shrink-0" />
@@ -3208,19 +3212,19 @@ export default function UsersPage() {
                 </div>
               ) : filteredUsers.length === 0 ? (
                 <div className="text-center py-12">
-                  <Users className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-                  <h3 className="font-semibold text-slate-700">No users found</h3>
-                  <p className="text-slate-500 text-sm mt-1">
+                  <Users className="w-12 h-12 mx-auto mb-4 text-slate-400 dark:text-slate-600" />
+                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">No users found</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                     Try adjusting your search or filters
                   </p>
                 </div>
               ) : (
                 <>
-                  <div className="rounded-lg border overflow-x-auto">
+                  <div className="rounded-lg border dark:border-slate-700 overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12">
+                        <TableRow className="dark:border-slate-700">
+                          <TableHead className="w-12 dark:text-slate-300">
                             <Checkbox
                               checked={
                                 filteredUsers.length > 0 &&
@@ -3229,14 +3233,14 @@ export default function UsersPage() {
                               onCheckedChange={handleSelectAll}
                             />
                           </TableHead>
-                          <TableHead>User</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Connection</TableHead>
-                          <TableHead>Plan</TableHead>
-                          <TableHead>Data Usage</TableHead>
-                          <TableHead>Expiry</TableHead>
-                          <TableHead className="w-12"></TableHead>
+                          <TableHead className="dark:text-slate-300">User</TableHead>
+                          <TableHead className="dark:text-slate-300">Type</TableHead>
+                          <TableHead className="dark:text-slate-300">Status</TableHead>
+                          <TableHead className="dark:text-slate-300">Connection</TableHead>
+                          <TableHead className="dark:text-slate-300">Plan</TableHead>
+                          <TableHead className="dark:text-slate-300">Data Usage</TableHead>
+                          <TableHead className="dark:text-slate-300">Expiry</TableHead>
+                          <TableHead className="w-12 dark:text-slate-300"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -3247,7 +3251,7 @@ export default function UsersPage() {
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.15 }}
                             whileHover={{ backgroundColor: "#faf5ff" }}
-                            className="transition-all duration-200 hover:bg-violet-50 hover:shadow-sm group"
+                            className="transition-all duration-200 hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:shadow-sm group dark:border-slate-700"
                           >
                             <TableCell>
                               <Checkbox
@@ -3264,7 +3268,7 @@ export default function UsersPage() {
                                 </div>
                                 <div>
                                   <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
-                                  <p className="text-xs text-slate-500">{user.phone}</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">{user.phone}</p>
                                 </div>
                               </div>
                             </TableCell>
@@ -3273,13 +3277,13 @@ export default function UsersPage() {
                             <TableCell>{getConnectionBadge(user.connectionStatus)}</TableCell>
                             <TableCell>
                               <div>
-                                <p className="text-sm font-medium">{user.plan}</p>
-                                <p className="text-xs text-slate-500">KES {user.planPrice.toLocaleString()}</p>
+                                <p className="text-sm font-medium dark:text-slate-300">{user.plan}</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">KES {user.planPrice.toLocaleString()}</p>
                               </div>
                             </TableCell>
                             <TableCell>
                               <div className="space-y-1">
-                                <p className="text-sm font-medium">
+                                <p className="text-sm font-medium dark:text-slate-300">
                                   {user.liveUsageString || `${Number(user.dataUsed || 0).toFixed(1)} GB`}
                                 </p>
                                 {user.dataLimit && (
@@ -3290,13 +3294,13 @@ export default function UsersPage() {
                             <TableCell>
                               {user.plan === "No Plan" ? (
                                 <div>
-                                  <p className="text-sm">-</p>
-                                  <p className="text-xs text-slate-500">Voucher</p>
+                                  <p className="text-sm dark:text-slate-300">-</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">Voucher</p>
                                 </div>
                               ) : (
                                 <div>
-                                  <p className="text-sm">{new Date(user.expiryDate).toLocaleDateString()}</p>
-                                  <p className="text-xs text-slate-500">
+                                  <p className="text-sm dark:text-slate-300">{new Date(user.expiryDate).toLocaleDateString()}</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">
                                     {new Date(user.expiryDate) > new Date() 
                                       ? `${Math.ceil((new Date(user.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left`
                                       : "Expired"
@@ -3312,47 +3316,47 @@ export default function UsersPage() {
                                     <MoreVertical className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleViewUser(user)}>
+                                <DropdownMenuContent align="end" className="dark:bg-slate-900 dark:border-slate-700">
+                                  <DropdownMenuItem onClick={() => handleViewUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                     <Eye className="w-4 h-4 mr-2" />
                                     View Details
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                                  <DropdownMenuItem onClick={() => handleEditUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                     <Edit className="w-4 h-4 mr-2" />
                                     Edit User
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleExtendSubscription(user)}>
+                                  <DropdownMenuItem onClick={() => handleExtendSubscription(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                     <Calendar className="w-4 h-4 mr-2" />
                                     Extend Subscription
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleOpenChangePlan(user)}>
+                                  <DropdownMenuItem onClick={() => handleOpenChangePlan(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                     <ArrowRightLeft className="w-4 h-4 mr-2" />
                                     Change Plan
                                   </DropdownMenuItem>
                                   {(user.type === "pppoe" || user.type === "static") && (
-                                    <DropdownMenuItem onClick={() => handleEditIP(user)}>
+                                    <DropdownMenuItem onClick={() => handleEditIP(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                       <Server className="w-4 h-4 mr-2" />
                                       Edit IP Address
                                     </DropdownMenuItem>
                                   )}
-                                  <DropdownMenuItem onClick={() => handleOpenUserSms(user)}>
+                                  <DropdownMenuItem onClick={() => handleOpenUserSms(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                     <Send className="w-4 h-4 mr-2" />
                                     Send SMS
                                   </DropdownMenuItem>
                                   {user.status === "pending" && (
                                     <DropdownMenuItem 
                                       onClick={() => handleActivateUser(user)}
-                                      className="text-green-600"
+                                      className="text-green-600 dark:text-green-400 dark:hover:bg-slate-800"
                                     >
                                       <UserCheck className="w-4 h-4 mr-2" />
                                       Activate Now
                                     </DropdownMenuItem>
                                   )}
-                                  <DropdownMenuSeparator />
+                                  <DropdownMenuSeparator className="dark:bg-slate-700" />
                                   {user.radiusCredentials && (
                                     <DropdownMenuItem 
                                       onClick={() => handleToggleRadius(user, !user.radiusCredentials!.is_enabled)}
-                                      className={user.radiusCredentials.is_enabled ? "text-yellow-600" : "text-green-600"}
+                                      className={user.radiusCredentials.is_enabled ? "text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800" : "text-green-600 dark:text-green-400 dark:hover:bg-slate-800"}
                                     >
                                       <Power className="w-4 h-4 mr-2" />
                                       {user.radiusCredentials.is_enabled ? 'Disable RADIUS' : 'Enable RADIUS'}
@@ -3361,16 +3365,16 @@ export default function UsersPage() {
                                   {user.connectionStatus === "online" && (
                                     <DropdownMenuItem 
                                       onClick={() => handleDisconnectUser(user)}
-                                      className="text-yellow-600"
+                                      className="text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800"
                                     >
                                       <Power className="w-4 h-4 mr-2" />
                                       Disconnect
                                     </DropdownMenuItem>
                                   )}
-                                  <DropdownMenuSeparator />
+                                  <DropdownMenuSeparator className="dark:bg-slate-700" />
                                   <DropdownMenuItem 
                                     onClick={() => handleDeleteUser(user)}
-                                    className="text-red-600"
+                                    className="text-red-600 dark:text-red-400 dark:hover:bg-slate-800"
                                   >
                                     <Trash2 className="w-4 h-4 mr-2" />
                                     Delete User
@@ -3387,7 +3391,7 @@ export default function UsersPage() {
                   {/* Pagination */}
                   {totalPages > 1 && statusFilter !== "expired" && (
                     <div className="flex items-center justify-between mt-4">
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
                         Page {serverPage} of {totalPages}
                       </p>
                       <div className="flex gap-2">
@@ -3430,19 +3434,19 @@ export default function UsersPage() {
             className="p-6"
           >
             <DialogHeader>
-              <DialogTitle>User Details</DialogTitle>
-              <DialogDescription>Complete information about this user</DialogDescription>
+              <DialogTitle className="dark:text-white">User Details</DialogTitle>
+              <DialogDescription className="dark:text-slate-400">Complete information about this user</DialogDescription>
             </DialogHeader>
 
             {selectedUser && (
               <div className="mt-2">
-                <div className="flex border-b mb-4">
+                <div className="flex border-b dark:border-slate-700 mb-4">
                   <button
                     onClick={() => setDrawerTab("general")}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                       drawerTab === "general"
-                        ? "border-blue-600 text-blue-600"
-                        : "border-transparent text-slate-500 hover:text-slate-700"
+                        ? "border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400"
+                        : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                     }`}
                   >
                     General Information
@@ -3451,13 +3455,13 @@ export default function UsersPage() {
                     onClick={() => setDrawerTab("payments")}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                       drawerTab === "payments"
-                        ? "border-blue-600 text-blue-600"
-                        : "border-transparent text-slate-500 hover:text-slate-700"
+                        ? "border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400"
+                        : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                     }`}
                   >
                     Payments
                     {payments.length > 0 && (
-                      <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                      <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 rounded-full">
                         {payments.length}
                       </span>
                     )}
@@ -3479,26 +3483,26 @@ export default function UsersPage() {
                         </div>
                         <div>
                           <p className="text-xl font-semibold text-slate-900 dark:text-white">{selectedUser.name}</p>
-                          <p className="text-sm text-slate-500">{selectedUser.id}</p>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">{selectedUser.id}</p>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-xs font-medium text-slate-500">Email</label>
+                          <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Email</label>
                           <p className="text-sm text-slate-900 dark:text-white">
-                            {selectedUser.email || <span className="text-slate-400 italic">No email</span>}
+                            {selectedUser.email || <span className="text-slate-400 italic dark:text-slate-500">No email</span>}
                           </p>
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-slate-500">Phone</label>
+                          <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Phone</label>
                           <p className="text-sm text-slate-900 dark:text-white">{selectedUser.phone}</p>
                         </div>
                         {selectedUser.location && (
                           <div className="col-span-2">
-                            <label className="text-xs font-medium text-slate-500">Location</label>
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Location</label>
                             <p className="text-sm text-slate-900 dark:text-white flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-slate-400" />
+                              <MapPin className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                               {selectedUser.location}
                             </p>
                           </div>
@@ -3506,73 +3510,73 @@ export default function UsersPage() {
                       </div>
                     </div>
 
-                    <div className="p-4 bg-slate-50 rounded-lg border">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700">
                       <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                         <Signal className="w-4 h-4" />
                         Connection Details
                       </h3>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <span className="text-slate-500">Router:</span>
-                          <p className="font-medium">{selectedUser.router}</p>
+                          <span className="text-slate-500 dark:text-slate-400">Router:</span>
+                          <p className="font-medium dark:text-white">{selectedUser.router}</p>
                         </div>
                         {selectedUser.ipAddress && (
                           <div>
-                            <span className="text-slate-500">IP Address:</span>
-                            <p className="font-medium">{selectedUser.ipAddress}</p>
+                            <span className="text-slate-500 dark:text-slate-400">IP Address:</span>
+                            <p className="font-medium dark:text-white">{selectedUser.ipAddress}</p>
                           </div>
                         )}
                         {selectedUser.macAddress && (
                           <div>
-                            <span className="text-slate-500">MAC Address:</span>
-                            <p className="font-medium font-mono text-xs">{selectedUser.macAddress}</p>
+                            <span className="text-slate-500 dark:text-slate-400">MAC Address:</span>
+                            <p className="font-medium font-mono text-xs dark:text-white">{selectedUser.macAddress}</p>
                           </div>
                         )}
                         <div>
-                          <span className="text-slate-500">Last Online:</span>
-                          <p className="font-medium">{selectedUser.lastOnline}</p>
+                          <span className="text-slate-500 dark:text-slate-400">Last Online:</span>
+                          <p className="font-medium dark:text-white">{selectedUser.lastOnline}</p>
                         </div>
                         <div>
-                          <span className="text-slate-500">Download:</span>
-                          <p className="font-medium">{selectedUser.downloadSpeed} Mbps</p>
+                          <span className="text-slate-500 dark:text-slate-400">Download:</span>
+                          <p className="font-medium dark:text-white">{selectedUser.downloadSpeed} Mbps</p>
                         </div>
                         <div>
-                          <span className="text-slate-500">Upload:</span>
-                          <p className="font-medium">{selectedUser.uploadSpeed} Mbps</p>
+                          <span className="text-slate-500 dark:text-slate-400">Upload:</span>
+                          <p className="font-medium dark:text-white">{selectedUser.uploadSpeed} Mbps</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                       <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Subscription</h3>
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-slate-600">Current Plan</span>
-                          <span className="font-medium">{selectedUser.plan}</span>
+                          <span className="text-slate-600 dark:text-slate-400">Current Plan</span>
+                          <span className="font-medium dark:text-white">{selectedUser.plan}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-600">Price</span>
-                          <span className="font-medium">KES {selectedUser.planPrice.toLocaleString()}</span>
+                          <span className="text-slate-600 dark:text-slate-400">Price</span>
+                          <span className="font-medium dark:text-white">KES {selectedUser.planPrice.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-600">Joined Date</span>
-                          <span className="font-medium">
+                          <span className="text-slate-600 dark:text-slate-400">Joined Date</span>
+                          <span className="font-medium dark:text-white">
                             {new Date(selectedUser.joinedDate).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-600">Expiry Date</span>
-                          <span className="font-medium">
+                          <span className="text-slate-600 dark:text-slate-400">Expiry Date</span>
+                          <span className="font-medium dark:text-white">
                             {selectedUser.plan === "No Plan" ? "Managed by Voucher" : new Date(selectedUser.expiryDate).toLocaleDateString()}
                           </span>
                         </div>
-                        <div className="flex items-start justify-between gap-2 pt-1 border-t border-blue-200">
-                          <span className="text-slate-600 text-sm shrink-0">Billing Account No.</span>
+                        <div className="flex items-start justify-between gap-2 pt-1 border-t border-blue-200 dark:border-blue-700">
+                          <span className="text-slate-600 dark:text-slate-400 text-sm shrink-0">Billing Account No.</span>
                           <div className="flex items-center gap-1.5 flex-1 justify-end">
                             {editingBilling ? (
                               <>
                                 <Input
-                                  className="h-7 w-28 text-sm font-mono font-bold"
+                                  className="h-7 w-28 text-sm font-mono font-bold dark:bg-slate-800 dark:border-slate-700"
                                   value={billingNumberEdit}
                                   onChange={(e) => setBillingNumberEdit(e.target.value.toUpperCase())}
                                   maxLength={20}
@@ -3581,7 +3585,7 @@ export default function UsersPage() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-7 px-2 text-green-600"
+                                  className="h-7 px-2 text-green-600 dark:text-green-400"
                                   onClick={handleSaveBillingNumber}
                                   disabled={savingBilling}
                                 >
@@ -3600,7 +3604,7 @@ export default function UsersPage() {
                               <>
                                 {selectedUser.billingAccountNumber ? (
                                   <>
-                                    <code className="text-sm font-mono font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
+                                    <code className="text-sm font-mono font-bold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 rounded">
                                       {selectedUser.billingAccountNumber}
                                     </code>
                                     <Button
@@ -3614,7 +3618,7 @@ export default function UsersPage() {
                                     </Button>
                                   </>
                                 ) : (
-                                  <span className="text-xs text-slate-400 italic">Not assigned</span>
+                                  <span className="text-xs text-slate-400 dark:text-slate-500 italic">Not assigned</span>
                                 )}
                                 <Button
                                   variant="ghost"
@@ -3633,7 +3637,7 @@ export default function UsersPage() {
                           </div>
                         </div>
                         {selectedUser.billingAccountNumber && !editingBilling && (
-                          <div className="mt-1 p-2 bg-blue-100 rounded text-xs text-blue-800">
+                          <div className="mt-1 p-2 bg-blue-100 dark:bg-blue-900/40 rounded text-xs text-blue-800 dark:text-blue-200">
                             💡 Pay via Paybill ➜ Account Ref: <strong>{selectedUser.billingAccountNumber}</strong>
                           </div>
                         )}
@@ -3642,28 +3646,28 @@ export default function UsersPage() {
 
                     {/* RADIUS Network Credentials */}
                     {selectedUser.serviceStatus === 'PENDING' && !selectedUser.radiusCredentials && (
-                      <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                      <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
                         <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                          <Wifi className="w-4 h-4 text-orange-600" />
+                          <Wifi className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                           Network Login (PPPoE/Hotspot)
                         </h3>
-                        <p className="text-sm text-orange-700">
+                        <p className="text-sm text-orange-700 dark:text-orange-300">
                           RADIUS credentials will be created when the service is activated.
                           Click <strong>"Activate Now"</strong> below to start the connection.
                         </p>
                       </div>
                     )}
                     {selectedUser.radiusCredentials && (
-                      <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                      <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                         <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                          <Wifi className="w-4 h-4 text-purple-600" />
+                          <Wifi className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                           Network Login (PPPoE/Hotspot)
                         </h3>
                         <div className="space-y-3">
                           <div>
-                            <label className="text-xs font-medium text-slate-500">Username</label>
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Username</label>
                             <div className="flex items-center gap-2">
-                              <code className="flex-1 text-sm font-mono bg-white px-2 py-1 rounded border">
+                              <code className="flex-1 text-sm font-mono bg-white dark:bg-slate-800 dark:text-white px-2 py-1 rounded border dark:border-slate-600">
                                 {selectedUser.radiusCredentials.username}
                               </code>
                               <Button 
@@ -3676,9 +3680,9 @@ export default function UsersPage() {
                             </div>
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-slate-500">Password</label>
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Password</label>
                             <div className="flex items-center gap-2">
-                              <code className="flex-1 text-sm font-mono bg-white px-2 py-1 rounded border">
+                              <code className="flex-1 text-sm font-mono bg-white dark:bg-slate-800 dark:text-white px-2 py-1 rounded border dark:border-slate-600">
                                 {showPassword ? selectedUser.radiusCredentials.password : '••••••••'}
                               </code>
                               <Button 
@@ -3698,7 +3702,7 @@ export default function UsersPage() {
                             </div>
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-slate-500">Subscription Status</label>
+                            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Subscription Status</label>
                             <div className="flex items-center gap-2 mt-1">
                               {selectedUser.radiusCredentials.expiration_date ? (
                                 (() => {
@@ -3718,14 +3722,14 @@ export default function UsersPage() {
                                     )
                                   } else if (diffHours < 24) {
                                     return (
-                                      <Badge className="bg-yellow-100 text-yellow-700 flex items-center gap-1">
+                                      <Badge className="bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 flex items-center gap-1">
                                         <Clock className="w-3 h-3" />
                                         {diffHours}h remaining
                                       </Badge>
                                     )
                                   } else {
                                     return (
-                                      <Badge className="bg-green-100 text-green-700 flex items-center gap-1">
+                                      <Badge className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 flex items-center gap-1">
                                         <Clock className="w-3 h-3" />
                                         {diffDays}d remaining
                                       </Badge>
@@ -3733,13 +3737,13 @@ export default function UsersPage() {
                                   }
                                 })()
                               ) : (
-                                <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
+                                <Badge className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
                                   Unlimited
                                 </Badge>
                               )}
                               {selectedUser.radiusCredentials.expiration_date && (
-                                <span className="text-xs text-slate-500">
+                                <span className="text-xs text-slate-500 dark:text-slate-400">
                                   Expires: {new Date(selectedUser.radiusCredentials.expiration_date).toLocaleString()}
                                 </span>
                               )}
@@ -3749,11 +3753,11 @@ export default function UsersPage() {
                             <Badge variant={selectedUser.radiusCredentials.is_enabled ? "default" : "secondary"}>
                               {selectedUser.radiusCredentials.is_enabled ? 'Enabled' : 'Disabled'}
                             </Badge>
-                            <span className="text-slate-500">
+                            <span className="text-slate-500 dark:text-slate-400">
                               {selectedUser.radiusCredentials.connection_type}
                             </span>
                             {selectedUser.radiusCredentials.synced_to_radius && (
-                              <Badge variant="outline" className="text-green-600 border-green-300">
+                              <Badge variant="outline" className="text-green-600 dark:text-green-400 border-green-300 dark:border-green-700">
                                 ✅ Synced
                               </Badge>
                             )}
@@ -3762,13 +3766,13 @@ export default function UsersPage() {
                       </div>
                     )}
 
-                    <div className="p-4 bg-slate-50 rounded-lg border">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700">
                       <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Usage & Balance</h3>
                       <div className="space-y-3">
                         <div>
                           <div className="flex justify-between text-sm mb-1">
-                            <span className="text-slate-600">Data Used</span>
-                            <span className="font-medium">
+                            <span className="text-slate-600 dark:text-slate-400">Data Used</span>
+                            <span className="font-medium dark:text-white">
                               {selectedUser.liveUsageString || `${Number(selectedUser.dataUsed || 0).toFixed(1)} GB`} 
                               {selectedUser.dataLimit && ` / ${selectedUser.dataLimit} GB`}
                             </span>
@@ -3778,8 +3782,8 @@ export default function UsersPage() {
                           )}
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-slate-600">Account Balance</span>
-                          <span className={`font-medium ${selectedUser.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <span className="text-slate-600 dark:text-slate-400">Account Balance</span>
+                          <span className={`font-medium ${selectedUser.balance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                             {selectedUser.balance >= 0 
                               ? `+KES ${selectedUser.balance.toLocaleString()} credit`
                               : `-KES ${Math.abs(selectedUser.balance).toLocaleString()} owed`
@@ -3787,8 +3791,8 @@ export default function UsersPage() {
                           </span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-slate-600">Loyalty Points</span>
-                          <span className="font-medium text-amber-600">{selectedUser.loyaltyPoints.toLocaleString()} pts</span>
+                          <span className="text-slate-600 dark:text-slate-400">Loyalty Points</span>
+                          <span className="font-medium text-amber-600 dark:text-amber-400">{selectedUser.loyaltyPoints.toLocaleString()} pts</span>
                         </div>
                       </div>
                     </div>
@@ -3833,7 +3837,7 @@ export default function UsersPage() {
                       ) : null}
                       {selectedUser.status === "pending" && (
                         <Button 
-                          className="w-full bg-green-600 hover:bg-green-700 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" 
+                          className="w-full bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" 
                           onClick={() => handleActivateUser(selectedUser)}
                           disabled={activating}
                         >
@@ -3844,7 +3848,7 @@ export default function UsersPage() {
                       {selectedUser.radiusCredentials && (
                         <Button 
                           variant="outline" 
-                          className={`w-full ${selectedUser.radiusCredentials.is_enabled ? 'text-yellow-600 hover:text-yellow-700' : 'text-green-600 hover:text-green-700'} transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]`}
+                          className={`w-full ${selectedUser.radiusCredentials.is_enabled ? 'text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300' : 'text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300'} transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]`}
                           onClick={() => handleToggleRadius(selectedUser, !selectedUser.radiusCredentials!.is_enabled)}
                           disabled={togglingRadius}
                         >
@@ -3868,7 +3872,7 @@ export default function UsersPage() {
                       {selectedUser.connectionStatus === "online" && (
                         <Button 
                           variant="outline" 
-                          className="w-full text-yellow-600 hover:text-yellow-700 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                          className="w-full text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                           onClick={() => handleDisconnectUser(selectedUser)}
                         >
                           <Power className="w-4 h-4 mr-2" />
@@ -3877,7 +3881,7 @@ export default function UsersPage() {
                       )}
                       <Button 
                         variant="outline" 
-                        className="w-full text-red-600 hover:text-red-700 border-red-200 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                        className="w-full text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 border-red-200 dark:border-red-800 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                         onClick={() => handleDeleteUser(selectedUser)}
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
@@ -3891,22 +3895,22 @@ export default function UsersPage() {
                   <div className="space-y-4">
                     {payments.length === 0 ? (
                       <div className="text-center py-10">
-                        <CreditCard className="w-10 h-10 mx-auto mb-3 text-slate-300" />
-                        <p className="text-slate-500 font-medium">No payments found</p>
-                        <p className="text-slate-400 text-sm mt-1">This customer has no payment history yet.</p>
+                        <CreditCard className="w-10 h-10 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">No payments found</p>
+                        <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">This customer has no payment history yet.</p>
                       </div>
                     ) : (
                       <>
                         <div className="grid grid-cols-2 gap-3">
-                          <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                            <p className="text-xs text-slate-500">Total Paid</p>
-                            <p className="text-lg font-bold text-green-700">
+                          <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Total Paid</p>
+                            <p className="text-lg font-bold text-green-700 dark:text-green-400">
                               KES {payments.filter(p => p.status === 'COMPLETED' || p.status === 'completed').reduce((sum, p) => sum + (Number(p.amount) || 0), 0).toLocaleString()}
                             </p>
                           </div>
-                          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <p className="text-xs text-slate-500">Transactions</p>
-                            <p className="text-lg font-bold text-blue-700">{payments.length}</p>
+                          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Transactions</p>
+                            <p className="text-lg font-bold text-blue-700 dark:text-blue-400">{payments.length}</p>
                           </div>
                         </div>
 
@@ -3918,25 +3922,25 @@ export default function UsersPage() {
                             return (
                               <div
                                 key={payment.id}
-                                className="flex items-center justify-between p-3 rounded-lg border bg-white hover:bg-slate-50 transition-colors"
+                                className="flex items-center justify-between p-3 rounded-lg border dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                               >
                                 <div className="flex items-center gap-3">
                                   <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                    isCompleted ? 'bg-green-100' : isFailed ? 'bg-red-100' : 'bg-yellow-100'
+                                    isCompleted ? 'bg-green-100 dark:bg-green-900/40' : isFailed ? 'bg-red-100 dark:bg-red-900/40' : 'bg-yellow-100 dark:bg-yellow-900/40'
                                   }`}>
                                     {isCompleted ? (
-                                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                      <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
                                     ) : isFailed ? (
-                                      <XCircle className="w-4 h-4 text-red-600" />
+                                      <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
                                     ) : (
-                                      <Clock className="w-4 h-4 text-yellow-600" />
+                                      <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
                                     )}
                                   </div>
                                   <div>
-                                    <p className="text-sm font-medium text-slate-900">
+                                    <p className="text-sm font-medium text-slate-900 dark:text-white">
                                       KES {Number(payment.amount).toLocaleString()}
                                     </p>
-                                    <p className="text-xs text-slate-500">
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
                                       {payment.method || payment.payment_method || 'M-Pesa'}
                                       {(payment.reference || payment.mpesa_receipt) && (
                                         <span className="ml-1 font-mono">
@@ -3944,7 +3948,7 @@ export default function UsersPage() {
                                         </span>
                                       )}
                                     </p>
-                                    <p className="text-xs text-slate-400">
+                                    <p className="text-xs text-slate-400 dark:text-slate-500">
                                       {payment.date
                                         ? new Date(payment.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
                                         : payment.created_at
@@ -3955,9 +3959,9 @@ export default function UsersPage() {
                                 </div>
                                 <Badge
                                   className={
-                                    isCompleted ? 'bg-green-100 text-green-700' :
-                                    isFailed ? 'bg-red-100 text-red-700' :
-                                    'bg-yellow-100 text-yellow-700'
+                                    isCompleted ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' :
+                                    isFailed ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' :
+                                    'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400'
                                   }
                                 >
                                   {isCompleted ? 'Paid' : isFailed ? 'Failed' : 'Pending'}
@@ -3986,15 +3990,15 @@ export default function UsersPage() {
             className="p-6"
           >
             <DialogHeader>
-              <DialogTitle>Edit User</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="dark:text-white">Edit User</DialogTitle>
+              <DialogDescription className="dark:text-slate-400">
                 Update user details and network credentials
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="edit_first_name">First Name</Label>
+                  <Label htmlFor="edit_first_name" className="dark:text-slate-200">First Name</Label>
                   <Input
                     id="edit_first_name"
                     value={editForm.first_name}
@@ -4002,7 +4006,7 @@ export default function UsersPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit_last_name">Last Name</Label>
+                  <Label htmlFor="edit_last_name" className="dark:text-slate-200">Last Name</Label>
                   <Input
                     id="edit_last_name"
                     value={editForm.last_name}
@@ -4011,7 +4015,7 @@ export default function UsersPage() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="edit_email">Email</Label>
+                <Label htmlFor="edit_email" className="dark:text-slate-200">Email</Label>
                 <Input
                   id="edit_email"
                   type="email"
@@ -4020,7 +4024,7 @@ export default function UsersPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="edit_phone">Phone</Label>
+                <Label htmlFor="edit_phone" className="dark:text-slate-200">Phone</Label>
                 <Input
                   id="edit_phone"
                   value={editForm.phone}
@@ -4028,7 +4032,7 @@ export default function UsersPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="edit_location">Location / Area</Label>
+                <Label htmlFor="edit_location" className="dark:text-slate-200">Location / Area</Label>
                 <Input
                   id="edit_location"
                   placeholder="e.g. Westlands, Nairobi"
@@ -4037,14 +4041,14 @@ export default function UsersPage() {
                 />
               </div>
               
-              <div className="border-t pt-4">
-                <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+              <div className="border-t dark:border-slate-700 pt-4">
+                <h4 className="font-medium text-sm mb-3 dark:text-slate-200 flex items-center gap-2">
                   <Wifi className="w-4 h-4" />
                   Network Login Credentials
                 </h4>
                 <div className="space-y-3">
                   <div>
-                    <Label htmlFor="edit_radius_username">RADIUS Username</Label>
+                    <Label htmlFor="edit_radius_username" className="dark:text-slate-200">RADIUS Username</Label>
                     <div className="flex gap-2">
                       <Input
                         id="edit_radius_username"
@@ -4062,10 +4066,10 @@ export default function UsersPage() {
                         {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                       </Button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Click refresh to use phone number (last 9 digits)</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Click refresh to use phone number (last 9 digits)</p>
                   </div>
                   <div>
-                    <Label htmlFor="edit_radius_password">RADIUS Password</Label>
+                    <Label htmlFor="edit_radius_password" className="dark:text-slate-200">RADIUS Password</Label>
                     <div className="flex gap-2">
                       <Input
                         id="edit_radius_password"
@@ -4082,7 +4086,7 @@ export default function UsersPage() {
                         <RefreshCw className="w-4 h-4" />
                       </Button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Leave empty to keep current password</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Leave empty to keep current password</p>
                   </div>
                 </div>
               </div>
@@ -4110,17 +4114,17 @@ export default function UsersPage() {
             className="p-6"
           >
             <DialogHeader>
-              <DialogTitle className="text-red-600">Delete User</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-red-600 dark:text-red-400">Delete User</DialogTitle>
+              <DialogDescription className="dark:text-slate-400">
                 This action cannot be undone. This will permanently delete the customer account,
                 all service connections, RADIUS credentials, and the associated login user.
               </DialogDescription>
             </DialogHeader>
             {userToDelete && (
-              <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
                 <p className="font-medium text-slate-900 dark:text-white">{userToDelete.name}</p>
-                <p className="text-sm text-slate-600">{userToDelete.email} • {userToDelete.phone}</p>
-                <p className="text-sm text-slate-600">Plan: {userToDelete.plan}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300">{userToDelete.email} • {userToDelete.phone}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300">Plan: {userToDelete.plan}</p>
               </div>
             )}
             <DialogFooter>
@@ -4155,22 +4159,22 @@ export default function UsersPage() {
             className="p-6"
           >
             <DialogHeader>
-              <DialogTitle>Extend Subscription</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="dark:text-white">Extend Subscription</DialogTitle>
+              <DialogDescription className="dark:text-slate-400">
                 {userToExtend?.expiryDate && new Date(userToExtend.expiryDate) < new Date()
                   ? "The subscription has expired - new time will start from now."
                   : "Choose duration or set a specific expiry date."}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="flex rounded-lg border overflow-hidden">
+              <div className="flex rounded-lg border dark:border-slate-700 overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setExtendMode("duration")}
                   className={`flex-1 py-2 text-sm font-medium transition-colors ${
                     extendMode === "duration"
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-slate-600 hover:bg-slate-50"
+                      ? "bg-blue-600 dark:bg-blue-700 text-white"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
                   Add Duration
@@ -4180,8 +4184,8 @@ export default function UsersPage() {
                   onClick={() => setExtendMode("date")}
                   className={`flex-1 py-2 text-sm font-medium transition-colors ${
                     extendMode === "date"
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-slate-600 hover:bg-slate-50"
+                      ? "bg-blue-600 dark:bg-blue-700 text-white"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
                   Set Expiry Date & Time
@@ -4191,7 +4195,7 @@ export default function UsersPage() {
               {extendMode === "duration" ? (
                 <>
                   <div className="space-y-2">
-                    <Label>Duration Amount</Label>
+                    <Label className="dark:text-slate-200">Duration Amount</Label>
                     <Input
                       type="number"
                       min={1}
@@ -4200,12 +4204,14 @@ export default function UsersPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Duration Unit</Label>
+                    <Label className="dark:text-slate-200">Duration Unit</Label>
                     <Select
                       value={extendForm.duration_unit}
                       onValueChange={(value: 'MINUTES' | 'HOURS' | 'DAYS') => setExtendForm({ ...extendForm, duration_unit: value })}
                     >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="dark:bg-slate-900 dark:border-slate-700">
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="MINUTES">Minutes</SelectItem>
                         <SelectItem value="HOURS">Hours</SelectItem>
@@ -4219,12 +4225,12 @@ export default function UsersPage() {
                     <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 7, duration_unit: 'DAYS' })}>+7 Days</Button>
                     <Button size="sm" variant="outline" onClick={() => setExtendForm({ ...extendForm, duration_amount: 30, duration_unit: 'DAYS' })}>+30 Days</Button>
                   </div>
-                  <div className="pt-4 border-t">
+                  <div className="pt-4 border-t dark:border-slate-700">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      className="w-full border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300"
                       onClick={async () => {
                         if (!userToExtend?.serviceId) {
                           toast.error("No active service to expire")
@@ -4263,18 +4269,18 @@ export default function UsersPage() {
                 </>
               ) : (
                 <div className="space-y-3">
-                  <Label>New Expiry Date & Time</Label>
+                  <Label className="dark:text-slate-200">New Expiry Date & Time</Label>
                   {userToExtend?.expiryDate && userToExtend.plan !== "No Plan" && (
-                    <div className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm">
-                      <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span className="text-amber-800">
+                    <div className="flex items-center gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-sm">
+                      <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span className="text-amber-800 dark:text-amber-200">
                         Current expiry: <strong>{new Date(userToExtend.expiryDate).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
                       </span>
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label className="text-xs text-slate-500">Date</Label>
+                      <Label className="text-xs text-slate-500 dark:text-slate-400">Date</Label>
                       <input
                         type="date"
                         value={extendManualDate.split('T')[0] || extendManualDate}
@@ -4282,24 +4288,24 @@ export default function UsersPage() {
                         onChange={(e) => {
                           setExtendManualDate(e.target.value)
                         }}
-                        className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
                         style={{ colorScheme: 'light' }}
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-slate-500">Time (HH:MM)</Label>
+                      <Label className="text-xs text-slate-500 dark:text-slate-400">Time (HH:MM)</Label>
                       <input
                         type="time"
                         value={extendManualTime}
                         onChange={(e) => setExtendManualTime(e.target.value)}
-                        className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
                         style={{ colorScheme: 'light' }}
                       />
                     </div>
                   </div>
                   {extendManualDate && (
-                    <div className="p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
-                      <CheckCircle2 className="w-4 h-4 inline mr-1 text-green-600" />
+                    <div className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-sm text-green-800 dark:text-green-200">
+                      <CheckCircle2 className="w-4 h-4 inline mr-1 text-green-600 dark:text-green-400" />
                       Will expire on:{" "}
                       <strong>
                         {new Date(`${extendManualDate}T${extendManualTime || "23:59"}:00`).toLocaleString('en-GB', {
@@ -4315,26 +4321,26 @@ export default function UsersPage() {
                         const now = new Date()
                         const target = new Date(`${extendManualDate}T${extendManualTime || "23:59"}:00`)
                         const diffMs = target.getTime() - now.getTime()
-                        if (diffMs <= 0) return <span className="text-red-600 ml-1"> (in the past — please select future date/time)</span>
+                        if (diffMs <= 0) return <span className="text-red-600 dark:text-red-400 ml-1"> (in the past — please select future date/time)</span>
                         const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
                         const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
                         const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-                        if (days > 0) return <span className="text-green-700 ml-1"> ({days}d {hours}h from now)</span>
-                        if (hours > 0) return <span className="text-green-700 ml-1"> ({hours}h {minutes}m from now)</span>
-                        if (minutes > 0) return <span className="text-green-700 ml-1"> ({minutes}m from now)</span>
+                        if (days > 0) return <span className="text-green-700 dark:text-green-300 ml-1"> ({days}d {hours}h from now)</span>
+                        if (hours > 0) return <span className="text-green-700 dark:text-green-300 ml-1"> ({hours}h {minutes}m from now)</span>
+                        if (minutes > 0) return <span className="text-green-700 dark:text-green-300 ml-1"> ({minutes}m from now)</span>
                         return null
                       })()}
                     </div>
                   )}
                   <div className="flex items-center gap-2 mt-2">
-                    <div className="flex-1 border-t border-slate-200" />
-                    <span className="text-xs text-slate-400">or</span>
-                    <div className="flex-1 border-t border-slate-200" />
+                    <div className="flex-1 border-t border-slate-200 dark:border-slate-700" />
+                    <span className="text-xs text-slate-400 dark:text-slate-500">or</span>
+                    <div className="flex-1 border-t border-slate-200 dark:border-slate-700" />
                   </div>
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    className="w-full border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300"
                     onClick={async () => {
                       if (!userToExtend?.serviceId) {
                         toast.error("No active service to expire")
@@ -4372,13 +4378,15 @@ export default function UsersPage() {
                 </div>
               )}
 
-              <div className="space-y-2 pt-2 border-t">
-                <Label>Change Plan <span className="text-xs text-slate-400 font-normal">(Optional)</span></Label>
+              <div className="space-y-2 pt-2 border-t dark:border-slate-700">
+                <Label className="dark:text-slate-200">Change Plan <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">(Optional)</span></Label>
                 <Select
                   value={extendForm.plan_id || "keep"}
                   onValueChange={(value) => setExtendForm({ ...extendForm, plan_id: value === "keep" ? "" : value })}
                 >
-                  <SelectTrigger><SelectValue placeholder="Keep current plan" /></SelectTrigger>
+                  <SelectTrigger className="dark:bg-slate-900 dark:border-slate-700">
+                    <SelectValue placeholder="Keep current plan" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="keep">Keep current plan</SelectItem>
                     {plans.map((plan) => (
@@ -4422,23 +4430,23 @@ export default function UsersPage() {
             className="p-6"
           >
             <DialogHeader>
-              <DialogTitle>Extend Hotspot Session</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="dark:text-white">Extend Hotspot Session</DialogTitle>
+              <DialogDescription className="dark:text-slate-400">
                 {hotspotSessionToExtend?.canonical_username || hotspotSessionToExtend?.username} — {hotspotSessionToExtend?.plan_name}
                 {hotspotSessionToExtend?.expiry_date && (
-                  <span className="block text-amber-600 mt-1">
+                  <span className="block text-amber-600 dark:text-amber-400 mt-1">
                     Current expiry: {new Date(hotspotSessionToExtend.expiry_date).toLocaleString()}
                   </span>
                 )}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="flex rounded-lg border overflow-hidden">
+              <div className="flex rounded-lg border dark:border-slate-700 overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setHotspotExtendMode("duration")}
                   className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                    hotspotExtendMode === "duration" ? "bg-blue-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50"
+                    hotspotExtendMode === "duration" ? "bg-blue-600 dark:bg-blue-700 text-white" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
                   Add Duration
@@ -4447,7 +4455,7 @@ export default function UsersPage() {
                   type="button"
                   onClick={() => setHotspotExtendMode("date")}
                   className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                    hotspotExtendMode === "date" ? "bg-blue-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50"
+                    hotspotExtendMode === "date" ? "bg-blue-600 dark:bg-blue-700 text-white" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
                   Set Expiry
@@ -4458,7 +4466,7 @@ export default function UsersPage() {
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label>Amount</Label>
+                      <Label className="dark:text-slate-200">Amount</Label>
                       <Input
                         type="number"
                         min={1}
@@ -4467,12 +4475,12 @@ export default function UsersPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label>Unit</Label>
+                      <Label className="dark:text-slate-200">Unit</Label>
                       <Select
                         value={hotspotExtendForm.duration_unit}
                         onValueChange={(v: 'MINUTES' | 'HOURS' | 'DAYS') => setHotspotExtendForm(f => ({ ...f, duration_unit: v }))}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="dark:bg-slate-900 dark:border-slate-700">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -4500,29 +4508,29 @@ export default function UsersPage() {
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label className="text-xs text-slate-500">Date</Label>
+                      <Label className="text-xs text-slate-500 dark:text-slate-400">Date</Label>
                       <input
                         type="date"
                         value={hotspotExtendManualDate}
                         min={new Date().toISOString().split('T')[0]}
                         onChange={e => setHotspotExtendManualDate(e.target.value)}
-                        className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm"
+                        className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm dark:text-white"
                         style={{ colorScheme: 'light' }}
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-slate-500">Time</Label>
+                      <Label className="text-xs text-slate-500 dark:text-slate-400">Time</Label>
                       <input
                         type="time"
                         value={hotspotExtendManualTime}
                         onChange={e => setHotspotExtendManualTime(e.target.value)}
-                        className="w-full px-3 py-2 rounded-md border border-slate-300 text-sm"
+                        className="w-full px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm dark:text-white"
                         style={{ colorScheme: 'light' }}
                       />
                     </div>
                   </div>
                   {hotspotExtendManualDate && (
-                    <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded p-2">
+                    <p className="text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded p-2">
                       New expiry: <strong>{new Date(`${hotspotExtendManualDate}T${hotspotExtendManualTime}:00`).toLocaleString()}</strong>
                     </p>
                   )}
@@ -4545,9 +4553,9 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* FIX 2 & 3: Hotspot Client Detail Dialog - Removed key, added initial={false} on AnimatePresence wrapper, fixed animation */}
+      {/* Hotspot Client Detail Dialog */}
       <Dialog open={hotspotDetailOpen} onOpenChange={setHotspotDetailOpen}>
-        <DialogContent className="max-w-xl w-[95vw] h-[92vh] overflow-hidden p-0 gap-0 rounded-2xl border-0 shadow-2xl bg-white" showCloseButton={false}>
+        <DialogContent className="max-w-xl w-[95vw] h-[92vh] overflow-hidden p-0 gap-0 rounded-2xl border-0 shadow-2xl bg-white dark:bg-slate-900" showCloseButton={false}>
           {hotspotDetailClient && (() => {
             const isActive = hotspotDetailClient.is_active_sub ??
               (hotspotDetailClient.subscription_status === 'active' &&
@@ -4676,7 +4684,7 @@ export default function UsersPage() {
                   </div>
                 </div>
 
-                <div className="flex border-b border-slate-100 bg-white/90 backdrop-blur-xl sticky top-0 z-10">
+                <div className="flex border-b border-slate-100 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl sticky top-0 z-10">
                   {[
                     { id: 'overview', label: 'Overview' },
                     { id: 'sessions', label: `Sessions${totalSessions > 0 ? ` ${totalSessions}` : ''}` },
@@ -4692,14 +4700,14 @@ export default function UsersPage() {
                       }}
                       className={`flex-1 py-3 text-xs font-semibold transition-all duration-200 relative ${
                         hotspotDetailTab === tab.id
-                          ? 'text-slate-900'
-                          : 'text-slate-400 hover:text-slate-600'
+                          ? 'text-slate-900 dark:text-white'
+                          : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
                       }`}
                     >
                       {tab.label}
                       <motion.span
                         layoutId="hotspot-detail-tab"
-                        className={`absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 rounded-full ${
+                        className={`absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900 dark:bg-white rounded-full ${
                           hotspotDetailTab === tab.id ? 'opacity-100' : 'opacity-0'
                         }`}
                         transition={{ duration: 0.2 }}
@@ -4708,13 +4716,13 @@ export default function UsersPage() {
                   ))}
                 </div>
 
-                <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
+                <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 scrollbar-track-transparent">
                   {hotspotDetailTab === 'overview' && (
                     <div className="p-5 space-y-4">
                       <div>
-                        <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Subscription lifecycle</h3>
+                        <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Subscription lifecycle</h3>
                         <div className="relative">
-                          <div className="absolute left-[15px] top-3 bottom-3 w-px bg-slate-100" />
+                          <div className="absolute left-[15px] top-3 bottom-3 w-px bg-slate-100 dark:bg-slate-800" />
                           <div className="space-y-0">
                             {[
                               hotspotDetailClient.subscribed_at && {
@@ -4744,19 +4752,19 @@ export default function UsersPage() {
                               },
                             ].filter(Boolean).map((event: any, idx) => (
                               <div key={idx} className="relative flex items-start gap-3 pb-4 last:pb-0">
-                                <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 border-2 border-white shadow-sm ${
-                                  event.isNow ? 'bg-slate-900' : 'bg-white border-slate-200'
+                                <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 border-2 border-white dark:border-slate-800 shadow-sm ${
+                                  event.isNow ? 'bg-slate-900' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
                                 }`}>
                                   <span className={event.isNow ? 'text-white text-xs' : ''}>{event.icon}</span>
                                 </div>
                                 <div className="flex-1 min-w-0 pt-1">
                                   <div className="flex items-start justify-between gap-2">
                                     <div>
-                                      <p className={`text-sm font-semibold ${event.isNow ? 'text-slate-900' : 'text-slate-700'}`}>{event.label}</p>
-                                      <p className="text-xs text-slate-400 mt-0.5">{event.sub}</p>
+                                      <p className={`text-sm font-semibold ${event.isNow ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>{event.label}</p>
+                                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{event.sub}</p>
                                     </div>
                                     {event.date && (
-                                      <span className="text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0 mt-0.5">
+                                      <span className="text-[10px] text-slate-400 dark:text-slate-500 whitespace-nowrap flex-shrink-0 mt-0.5">
                                         {new Date(event.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })}
                                         {' '}
                                         {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -4770,11 +4778,11 @@ export default function UsersPage() {
                         </div>
                       </div>
 
-                      <div className="border-t border-slate-100" />
+                      <div className="border-t border-slate-100 dark:border-slate-800" />
 
                       <div>
-                        <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Device & network</h3>
-                        <div className="bg-slate-50 rounded-xl border border-slate-100 divide-y divide-slate-100">
+                        <h3 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Device & network</h3>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
                           {[
                             { label: 'Username', value: username, mono: true, copy: true },
                             { label: 'Router', value: hotspotDetailClient.router || '—' },
@@ -4784,17 +4792,17 @@ export default function UsersPage() {
                             ...(hotspotDetailClient.session_id ? [{ label: 'Session ID', value: `…${hotspotDetailClient.session_id.slice(-12)}`, mono: true }] : []),
                           ].map(({ label, value, mono, copy, highlight }: any) => (
                             <div key={label} className="flex items-center justify-between px-4 py-3">
-                              <span className="text-xs text-slate-500 font-medium w-28 shrink-0">{label}</span>
+                              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium w-28 shrink-0">{label}</span>
                               <div className="flex items-center gap-2 min-w-0">
                                 <span className={`text-xs font-semibold truncate ${
-                                  mono ? 'font-mono text-slate-800' :
-                                  highlight ? 'text-emerald-600 font-bold' :
-                                  'text-slate-800'
+                                  mono ? 'font-mono text-slate-800 dark:text-slate-200' :
+                                  highlight ? 'text-emerald-600 dark:text-emerald-400 font-bold' :
+                                  'text-slate-800 dark:text-slate-200'
                                 }`}>{value}</span>
                                 {copy && value !== '—' && (
                                   <button
                                     onClick={() => copyToClipboard(String(value), label)}
-                                    className="text-slate-300 hover:text-slate-600 transition-colors flex-shrink-0"
+                                    className="text-slate-300 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-300 transition-colors flex-shrink-0"
                                   >
                                     <Copy className="w-3 h-3" />
                                   </button>
@@ -4810,13 +4818,13 @@ export default function UsersPage() {
                   {hotspotDetailTab === 'sessions' && (
                     <div className="p-5 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-500">{hotspotClientSessionsTotal} RADIUS sessions total</span>
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{hotspotClientSessionsTotal} RADIUS sessions total</span>
                         <button
                           onClick={() => clientId && loadHotspotClientSessions(clientId, hotspotClientSessionsPage)}
                           disabled={hotspotClientSessionsLoading}
-                          className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
+                          className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                         >
-                          <RefreshCw className={`w-3 h-3 text-slate-400 ${hotspotClientSessionsLoading ? 'animate-spin' : ''}`} />
+                          <RefreshCw className={`w-3 h-3 text-slate-400 dark:text-slate-500 ${hotspotClientSessionsLoading ? 'animate-spin' : ''}`} />
                         </button>
                       </div>
 
@@ -4828,8 +4836,8 @@ export default function UsersPage() {
                         </div>
                       ) : hotspotClientSessions.length === 0 ? (
                         <div className="py-12 text-center">
-                          <Signal className="w-10 h-10 mx-auto mb-3 text-slate-200" />
-                          <p className="text-sm text-slate-400 font-medium">No sessions recorded yet</p>
+                          <Signal className="w-10 h-10 mx-auto mb-3 text-slate-200 dark:text-slate-600" />
+                          <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">No sessions recorded yet</p>
                         </div>
                       ) : (
                         <>
@@ -4842,18 +4850,18 @@ export default function UsersPage() {
                                 transition={{ duration: 0.2 }}
                                 className={`rounded-xl border px-4 py-3 transition-colors ${
                                   s.is_active
-                                    ? 'bg-emerald-50/50 border-emerald-200'
-                                    : 'bg-white border-slate-100'
+                                    ? 'bg-emerald-50/50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
+                                    : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'
                                 }`}
                               >
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-mono text-xs font-bold text-slate-700">{s.mac_address || s.ip_address || '—'}</span>
+                                    <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">{s.mac_address || s.ip_address || '—'}</span>
                                     {s.is_active && (
-                                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">LIVE</span>
+                                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 rounded-full">LIVE</span>
                                     )}
                                   </div>
-                                  <span className="text-sm font-black text-slate-800">{s.data_total}</span>
+                                  <span className="text-sm font-black text-slate-800 dark:text-slate-200">{s.data_total}</span>
                                 </div>
                                 <div className="grid grid-cols-3 gap-x-4 gap-y-1">
                                   {[
@@ -4862,8 +4870,8 @@ export default function UsersPage() {
                                     { label: 'Router', value: s.router || '—' },
                                   ].map(({ label, value, mono }: any) => (
                                     <div key={label}>
-                                      <p className="text-[9px] text-slate-400 uppercase tracking-wide font-semibold">{label}</p>
-                                      <p className={`text-xs text-slate-700 font-semibold mt-0.5 ${mono ? 'font-mono' : ''}`}>{value}</p>
+                                      <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wide font-semibold">{label}</p>
+                                      <p className={`text-xs text-slate-700 dark:text-slate-300 font-semibold mt-0.5 ${mono ? 'font-mono' : ''}`}>{value}</p>
                                     </div>
                                   ))}
                                 </div>
@@ -4872,17 +4880,17 @@ export default function UsersPage() {
                           </div>
                           {hotspotClientSessionsTotalPages > 1 && (
                             <div className="flex items-center justify-between pt-1">
-                              <span className="text-xs text-slate-400">{hotspotClientSessionsPage} / {hotspotClientSessionsTotalPages}</span>
+                              <span className="text-xs text-slate-400 dark:text-slate-500">{hotspotClientSessionsPage} / {hotspotClientSessionsTotalPages}</span>
                               <div className="flex gap-1.5">
                                 <button
                                   disabled={hotspotClientSessionsPage === 1}
                                   onClick={() => clientId && loadHotspotClientSessions(clientId, hotspotClientSessionsPage - 1)}
-                                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-30 transition-all"
+                                  className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-30 transition-all"
                                 >← Prev</button>
                                 <button
                                   disabled={hotspotClientSessionsPage >= hotspotClientSessionsTotalPages}
                                   onClick={() => clientId && loadHotspotClientSessions(clientId, hotspotClientSessionsPage + 1)}
-                                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-30 transition-all"
+                                  className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-30 transition-all"
                                 >Next →</button>
                               </div>
                             </div>
@@ -4899,16 +4907,16 @@ export default function UsersPage() {
                           whileHover={{ y: -2, scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           onClick={() => { setHotspotDetailOpen(false); handleExtendHotspot(hotspotDetailClient) }}
-                          className="w-full flex items-center gap-4 px-4 py-4 bg-white rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-lg transition-all duration-300 group"
+                          className="w-full flex items-center gap-4 px-4 py-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-lg transition-all duration-300 group"
                         >
-                          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors flex-shrink-0">
-                            <Calendar className="w-5 h-5 text-blue-600" />
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-colors flex-shrink-0">
+                            <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                           </div>
                           <div className="flex-1 text-left">
-                            <p className="text-sm font-semibold text-slate-800">Extend session</p>
-                            <p className="text-xs text-slate-400 mt-0.5">Add time to current subscription</p>
+                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Extend session</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Add time to current subscription</p>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all" />
+                          <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" />
                         </motion.button>
                       )}
 
@@ -4922,16 +4930,16 @@ export default function UsersPage() {
                               toast.success('SMS sent')
                             } catch (err: any) { toast.error(err.message || 'Failed') }
                           }}
-                          className="w-full flex items-center gap-4 px-4 py-4 bg-white rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-lg transition-all duration-300 group"
+                          className="w-full flex items-center gap-4 px-4 py-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-lg transition-all duration-300 group"
                         >
-                          <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors flex-shrink-0">
-                            <Send className="w-5 h-5 text-green-600" />
+                          <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center group-hover:bg-green-100 dark:group-hover:bg-green-900/40 transition-colors flex-shrink-0">
+                            <Send className="w-5 h-5 text-green-600 dark:text-green-400" />
                           </div>
                           <div className="flex-1 text-left">
-                            <p className="text-sm font-semibold text-slate-800">Send access code via SMS</p>
-                            <p className="text-xs text-slate-400 mt-0.5">{hotspotDetailClient.phone}</p>
+                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Send access code via SMS</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{hotspotDetailClient.phone}</p>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all" />
+                          <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" />
                         </motion.button>
                       )}
 
@@ -4939,32 +4947,32 @@ export default function UsersPage() {
                         whileHover={{ y: -2, scale: 1.01 }}
                         whileTap={{ scale: 0.99 }}
                         onClick={() => { copyToClipboard(username, 'Access code'); }}
-                        className="w-full flex items-center gap-4 px-4 py-4 bg-white rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-lg transition-all duration-300 group"
+                        className="w-full flex items-center gap-4 px-4 py-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-lg transition-all duration-300 group"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center group-hover:bg-purple-100 transition-colors flex-shrink-0">
-                          <Copy className="w-5 h-5 text-purple-600" />
+                        <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center group-hover:bg-purple-100 dark:group-hover:bg-purple-900/40 transition-colors flex-shrink-0">
+                          <Copy className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                         </div>
                         <div className="flex-1 text-left">
-                          <p className="text-sm font-semibold text-slate-800">Copy credentials</p>
-                          <p className="text-xs text-slate-400 font-mono mt-0.5">{username}</p>
+                          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Copy credentials</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 font-mono mt-0.5">{username}</p>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all" />
+                        <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" />
                       </motion.button>
 
                       <motion.button
                         whileHover={{ y: -2, scale: 1.01 }}
                         whileTap={{ scale: 0.99 }}
                         onClick={() => setHotspotDetailTab('sessions')}
-                        className="w-full flex items-center gap-4 px-4 py-4 bg-white rounded-xl border border-slate-100 hover:border-slate-300 hover:shadow-lg transition-all duration-300 group"
+                        className="w-full flex items-center gap-4 px-4 py-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-lg transition-all duration-300 group"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center group-hover:bg-orange-100 transition-colors flex-shrink-0">
-                          <History className="w-5 h-5 text-orange-600" />
+                        <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center group-hover:bg-orange-100 dark:group-hover:bg-orange-900/40 transition-colors flex-shrink-0">
+                          <History className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                         </div>
                         <div className="flex-1 text-left">
-                          <p className="text-sm font-semibold text-slate-800">View session history</p>
-                          <p className="text-xs text-slate-400 mt-0.5">{totalSessions} recorded session{totalSessions !== 1 ? 's' : ''}</p>
+                          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">View session history</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{totalSessions} recorded session{totalSessions !== 1 ? 's' : ''}</p>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all" />
+                        <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" />
                       </motion.button>
 
                       {clientId && (
@@ -4972,16 +4980,16 @@ export default function UsersPage() {
                           whileHover={{ y: -2, scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           onClick={() => handleDeleteHotspotClient(clientId, username)}
-                          className="w-full flex items-center gap-4 px-4 py-4 bg-white rounded-xl border border-red-100 hover:border-red-200 hover:shadow-lg hover:bg-red-50/30 transition-all duration-300 group mt-3"
+                          className="w-full flex items-center gap-4 px-4 py-4 bg-white dark:bg-slate-800 rounded-xl border border-red-100 dark:border-red-900/30 hover:border-red-200 dark:hover:border-red-800 hover:shadow-lg hover:bg-red-50/30 dark:hover:bg-red-900/10 transition-all duration-300 group mt-3"
                         >
-                          <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center group-hover:bg-red-100 transition-colors flex-shrink-0">
-                            <Trash2 className="w-5 h-5 text-red-500" />
+                          <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center group-hover:bg-red-100 dark:group-hover:bg-red-900/40 transition-colors flex-shrink-0">
+                            <Trash2 className="w-5 h-5 text-red-500 dark:text-red-400" />
                           </div>
                           <div className="flex-1 text-left">
-                            <p className="text-sm font-semibold text-red-600">Delete client</p>
-                            <p className="text-xs text-slate-400 mt-0.5">Permanently removes RADIUS credentials</p>
+                            <p className="text-sm font-semibold text-red-600 dark:text-red-400">Delete client</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Permanently removes RADIUS credentials</p>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-red-200 group-hover:text-red-400 group-hover:translate-x-0.5 transition-all" />
+                          <ChevronRight className="w-4 h-4 text-red-200 dark:text-red-900/50 group-hover:text-red-400 dark:group-hover:text-red-500 group-hover:translate-x-0.5 transition-all" />
                         </motion.button>
                       )}
                     </div>
@@ -5016,8 +5024,8 @@ export default function UsersPage() {
             className="p-6"
           >
             <DialogHeader>
-              <DialogTitle>Change Plan</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="dark:text-white">Change Plan</DialogTitle>
+              <DialogDescription className="dark:text-slate-400">
                 {userToChangePlan
                   ? `Choose a new plan for ${userToChangePlan.name}.`
                   : "Choose a new plan for this user."}
@@ -5025,9 +5033,9 @@ export default function UsersPage() {
             </DialogHeader>
 
             <div className="space-y-4">
-              <div className="rounded-lg border bg-slate-50 p-3 text-sm">
-                <p className="font-medium text-slate-900">Current plan</p>
-                <p className="mt-1 text-slate-600">{currentPlanName || "No active plan"}</p>
+              <div className="rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-sm">
+                <p className="font-medium text-slate-900 dark:text-white">Current plan</p>
+                <p className="mt-1 text-slate-600 dark:text-slate-400">{currentPlanName || "No active plan"}</p>
               </div>
 
               {changePlanLoading ? (
@@ -5038,13 +5046,13 @@ export default function UsersPage() {
                 </div>
               ) : changePlanOptions.length === 0 ? (
                 <Alert>
-                  <AlertDescription>No compatible plans are available for this user.</AlertDescription>
+                  <AlertDescription className="dark:text-slate-300">No compatible plans are available for this user.</AlertDescription>
                 </Alert>
               ) : (
                 <div className="space-y-2">
-                  <Label htmlFor="change-plan-select">Available plans</Label>
+                  <Label htmlFor="change-plan-select" className="dark:text-slate-200">Available plans</Label>
                   <Select value={selectedChangePlanId || "none"} onValueChange={(value) => setSelectedChangePlanId(value === "none" ? "" : value)}>
-                    <SelectTrigger id="change-plan-select">
+                    <SelectTrigger id="change-plan-select" className="dark:bg-slate-900 dark:border-slate-700">
                       <SelectValue placeholder="Select a plan" />
                     </SelectTrigger>
                     <SelectContent>
@@ -5058,15 +5066,15 @@ export default function UsersPage() {
                   </Select>
 
                   {selectedChangePlanId && (
-                    <div className="rounded-lg border p-3 text-sm">
+                    <div className="rounded-lg border dark:border-slate-700 p-3 text-sm">
                       {(() => {
                         const selectedPlan = changePlanOptions.find((plan) => plan.id === parseInt(selectedChangePlanId, 10))
                         if (!selectedPlan) return null
                         return (
-                          <div className="space-y-1 text-slate-600">
-                            <p><span className="font-medium text-slate-900">Type:</span> {selectedPlan.plan_type}</p>
-                            <p><span className="font-medium text-slate-900">Speed:</span> {selectedPlan.download_speed || 0} / {selectedPlan.upload_speed || 0} Mbps</p>
-                            <p><span className="font-medium text-slate-900">Data limit:</span> {selectedPlan.data_limit ? `${selectedPlan.data_limit} GB` : "Unlimited"}</p>
+                          <div className="space-y-1 text-slate-600 dark:text-slate-400">
+                            <p><span className="font-medium text-slate-900 dark:text-white">Type:</span> {selectedPlan.plan_type}</p>
+                            <p><span className="font-medium text-slate-900 dark:text-white">Speed:</span> {selectedPlan.download_speed || 0} / {selectedPlan.upload_speed || 0} Mbps</p>
+                            <p><span className="font-medium text-slate-900 dark:text-white">Data limit:</span> {selectedPlan.data_limit ? `${selectedPlan.data_limit} GB` : "Unlimited"}</p>
                           </div>
                         )
                       })()}
@@ -5124,8 +5132,8 @@ export default function UsersPage() {
             className="p-6"
           >
             <DialogHeader>
-              <DialogTitle>Change IP Address</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="dark:text-white">Change IP Address</DialogTitle>
+              <DialogDescription className="dark:text-slate-400">
                 Select a new IP from the pool attached to this user's plan.
                 The current IP will be released back to the pool.
               </DialogDescription>
@@ -5133,27 +5141,27 @@ export default function UsersPage() {
 
             <div className="space-y-4">
               {userToEditIP?.ipAddress && (
-                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
-                  <Server className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span className="text-amber-800">
+                <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-sm">
+                  <Server className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span className="text-amber-800 dark:text-amber-200">
                     Current IP: <code className="font-mono font-bold">{userToEditIP.ipAddress}</code>
                   </span>
                 </div>
               )}
 
               {editIPLoading ? (
-                <div className="flex items-center justify-center py-6 gap-2 text-slate-500">
+                <div className="flex items-center justify-center py-6 gap-2 text-slate-500 dark:text-slate-400">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Loading available IPs...
                 </div>
               ) : editIPAvailableIPs.length === 0 && !editIPLoading ? (
-                <div className="text-center py-6 text-slate-500 text-sm">
+                <div className="text-center py-6 text-slate-500 dark:text-slate-400 text-sm">
                   No available IPs in this plan's pool.<br />
                   <span className="text-xs">Ensure the plan has an IP pool assigned.</span>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Label>Available IPs ({editIPAvailableIPs.length})</Label>
+                  <Label className="dark:text-slate-200">Available IPs ({editIPAvailableIPs.length})</Label>
                   <Input
                     placeholder="Search IP (e.g. 10.50.3)"
                     value={editIPSearchQuery}
@@ -5183,7 +5191,7 @@ export default function UsersPage() {
                     value={selectedNewIPId || "none"}
                     onValueChange={(val) => setSelectedNewIPId(val === "none" ? "" : val)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="dark:bg-slate-900 dark:border-slate-700">
                       <SelectValue placeholder={editIPLoading ? "Loading..." : "Select an IP address"} />
                     </SelectTrigger>
                     <SelectContent>
@@ -5196,7 +5204,7 @@ export default function UsersPage() {
                     </SelectContent>
                   </Select>
                   {editIPAvailableIPs.length > 0 && !editIPLoading && (
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       Showing {editIPAvailableIPs.length} available — type above to search
                     </p>
                   )}
@@ -5240,8 +5248,8 @@ export default function UsersPage() {
             className="p-6"
           >
             <DialogHeader>
-              <DialogTitle>Send SMS</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="dark:text-white">Send SMS</DialogTitle>
+              <DialogDescription className="dark:text-slate-400">
                 {smsTarget
                   ? `Send a message to ${smsTarget.name} (${smsTarget.phone})`
                   : selectedUsers.length > 0
@@ -5252,7 +5260,7 @@ export default function UsersPage() {
             <div className="space-y-4">
               {smsTarget && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-slate-500">Quick Templates</Label>
+                  <Label className="text-xs font-medium text-slate-500 dark:text-slate-400">Quick Templates</Label>
                   <div className="grid grid-cols-1 gap-2">
                     <button
                       type="button"
@@ -5263,10 +5271,10 @@ export default function UsersPage() {
                           `Hello ${smsTarget.name}, make payments via M-Pesa Paybill: ${paybill}, Account No: ${billingAcc}. Thank you!`
                         )
                       }}
-                      className="text-left px-3 py-2 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors text-xs"
+                      className="text-left px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors text-xs"
                     >
-                      <p className="font-medium text-blue-800">💳 Payment Details</p>
-                      <p className="text-blue-600 mt-0.5 line-clamp-2">
+                      <p className="font-medium text-blue-800 dark:text-blue-300">💳 Payment Details</p>
+                      <p className="text-blue-600 dark:text-blue-400 mt-0.5 line-clamp-2">
                         Paybill + billing account number template
                       </p>
                     </button>
@@ -5282,10 +5290,10 @@ export default function UsersPage() {
                           `Hello ${smsTarget?.name}, login to your customer portal at ${portalUrl} using: Username: ${normalizedPhone} | Password: ${normalizedPhone}`
                         )
                       }}
-                      className="text-left px-3 py-2 rounded-lg border border-purple-200 bg-purple-50 hover:bg-purple-100 transition-colors text-xs"
+                      className="text-left px-3 py-2 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors text-xs"
                     >
-                      <p className="font-medium text-purple-800">🔑 Portal Credentials</p>
-                      <p className="text-purple-600 mt-0.5 line-clamp-2">
+                      <p className="font-medium text-purple-800 dark:text-purple-300">🔑 Portal Credentials</p>
+                      <p className="text-purple-600 dark:text-purple-400 mt-0.5 line-clamp-2">
                         Customer portal login URL + credentials
                       </p>
                     </button>
@@ -5294,14 +5302,15 @@ export default function UsersPage() {
               )}
 
               <div className="space-y-2">
-                <Label>Message</Label>
+                <Label className="dark:text-slate-200">Message</Label>
                 <Textarea
                   placeholder="Enter your message or pick a template above..."
                   value={smsMessage}
                   onChange={(e) => setSmsMessage(e.target.value)}
                   rows={4}
+                  className="dark:bg-slate-900 dark:border-slate-700"
                 />
-                <p className="text-xs text-slate-500">{smsMessage.length}/160 characters</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{smsMessage.length}/160 characters</p>
               </div>
             </div>
             <DialogFooter>
@@ -5334,11 +5343,11 @@ export default function UsersPage() {
             className="p-6"
           >
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+              <DialogTitle className="flex items-center gap-2 dark:text-white">
                 <Send className="w-4 h-4" />
                 Send SMS to {userSmsTarget?.name}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="dark:text-slate-400">
                 Use the quick templates below or click a variable to insert it.
               </DialogDescription>
             </DialogHeader>
@@ -5346,7 +5355,7 @@ export default function UsersPage() {
             <div className="space-y-4">
               {userSmsTarget && (
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-slate-500">Quick Templates</p>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Quick Templates</p>
                   <div className="grid grid-cols-1 gap-2">
                     <button
                       type="button"
@@ -5357,10 +5366,10 @@ export default function UsersPage() {
                           `Hello ${userSmsTarget.name}, make payments via M-Pesa Paybill: ${paybill}, Account No: ${billingAcc}. Thank you!`
                         )
                       }}
-                      className="text-left px-3 py-2 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors text-xs"
+                      className="text-left px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors text-xs"
                     >
-                      <p className="font-medium text-blue-800">💳 Payment Details</p>
-                      <p className="text-blue-600 mt-0.5 line-clamp-2">
+                      <p className="font-medium text-blue-800 dark:text-blue-300">💳 Payment Details</p>
+                      <p className="text-blue-600 dark:text-blue-400 mt-0.5 line-clamp-2">
                         Paybill + billing account number template
                       </p>
                     </button>
@@ -5376,10 +5385,10 @@ export default function UsersPage() {
                           `Hello ${userSmsTarget?.name}, login to your customer portal at ${portalUrl} using: Username: ${normalizedPhone} | Password: ${normalizedPhone}`
                         )
                       }}
-                      className="text-left px-3 py-2 rounded-lg border border-purple-200 bg-purple-50 hover:bg-purple-100 transition-colors text-xs"
+                      className="text-left px-3 py-2 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors text-xs"
                     >
-                      <p className="font-medium text-purple-800">🔑 Portal Credentials</p>
-                      <p className="text-purple-600 mt-0.5 line-clamp-2">
+                      <p className="font-medium text-purple-800 dark:text-purple-300">🔑 Portal Credentials</p>
+                      <p className="text-purple-600 dark:text-purple-400 mt-0.5 line-clamp-2">
                         Customer portal login URL + credentials
                       </p>
                     </button>
@@ -5388,14 +5397,14 @@ export default function UsersPage() {
               )}
 
               <div>
-                <p className="text-xs font-medium text-slate-500 mb-2">Insert variable</p>
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Insert variable</p>
                 <div className="flex flex-wrap gap-1.5">
                   {SMS_VARIABLES.map(({ key, label }) => (
                     <button
                       key={key}
                       type="button"
                       onClick={() => setUserSmsMessage(prev => prev + key)}
-                      className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+                      className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
                     >
                       {label}
                     </button>
@@ -5404,21 +5413,21 @@ export default function UsersPage() {
               </div>
 
               <div className="space-y-1">
-                <Label>Message</Label>
+                <Label className="dark:text-slate-200">Message</Label>
                 <Textarea
                   placeholder="Type your message, use templates above, or click variables to insert them…"
                   value={userSmsMessage}
                   onChange={e => setUserSmsMessage(e.target.value)}
                   rows={4}
-                  className="font-mono text-sm"
+                  className="font-mono text-sm dark:bg-slate-900 dark:border-slate-700"
                 />
-                <p className="text-xs text-slate-400">{userSmsMessage.length} / 160 characters</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">{userSmsMessage.length} / 160 characters</p>
               </div>
 
               {userSmsTarget && userSmsMessage && (
-                <div className="p-3 bg-slate-50 rounded-lg border text-sm space-y-1">
-                  <p className="text-xs font-medium text-slate-500">Preview (resolved)</p>
-                  <p className="text-slate-800 whitespace-pre-wrap break-words">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 text-sm space-y-1">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Preview (resolved)</p>
+                  <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words">
                     {resolveMessageVariables(userSmsMessage, userSmsTarget)}
                   </p>
                 </div>
@@ -5450,28 +5459,28 @@ export default function UsersPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="flex flex-col items-center pt-8 pb-2 px-6 bg-white">
-              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
-                <Trash2 className="w-8 h-8 text-red-500" />
+            <div className="flex flex-col items-center pt-8 pb-2 px-6 bg-white dark:bg-slate-900">
+              <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
+                <Trash2 className="w-8 h-8 text-red-500 dark:text-red-400" />
               </div>
-              <h2 className="text-lg font-bold text-slate-900 text-center">Delete Client?</h2>
-              <p className="text-sm text-slate-500 text-center mt-2 mb-6">
-                <span className="font-mono font-bold text-slate-700">{hotspotDeleteTarget?.username}</span> will be permanently removed along with their RADIUS credentials. This cannot be undone.
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center">Delete Client?</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 text-center mt-2 mb-6">
+                <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{hotspotDeleteTarget?.username}</span> will be permanently removed along with their RADIUS credentials. This cannot be undone.
               </p>
             </div>
-            <div className="border-t border-slate-100">
+            <div className="border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={confirmDeleteHotspotClient}
                 disabled={deletingHotspot}
-                className="w-full py-4 text-sm font-semibold text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-4 text-sm font-semibold text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 active:bg-red-100 dark:active:bg-red-900/30 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {deletingHotspot ? <><Loader2 className="w-4 h-4 animate-spin" />Deleting...</> : 'Delete'}
               </button>
-              <div className="border-t border-slate-100" />
+              <div className="border-t border-slate-100 dark:border-slate-800" />
               <button
                 onClick={() => { setShowHotspotDeleteDialog(false); setHotspotDeleteTarget(null) }}
                 disabled={deletingHotspot}
-                className="w-full py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors"
+                className="w-full py-4 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700 transition-colors"
               >
                 Cancel
               </button>
