@@ -71,7 +71,7 @@ export default function DashboardPage() {
     customer: {
       id: 1,
       customer_code: "CUST-0001",
-      full_name: user?.first_name ? `${user.first_name} ${user.last_name}` : "Demo User",
+      full_name: user?.full_name || "Demo User",
       email: user?.email || "demo@example.com",
       phone_number: "254712345678",
       status: "ACTIVE",
@@ -109,7 +109,7 @@ export default function DashboardPage() {
           <Skeleton className="h-9 w-64 mb-2" />
           <Skeleton className="h-5 w-48" />
         </div>
-        <FadeIn delay={0.1}><div className="grid md:grid-cols-4 gap-4">
+        <div className="grid md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="p-6">
               <Skeleton className="h-4 w-24 mb-2" />
@@ -151,7 +151,7 @@ export default function DashboardPage() {
       )}
 
       {/* Quick Stats */}
-      <FadeIn delay={0.1}><div className="grid md:grid-cols-4 gap-4">
+      <div className="grid md:grid-cols-4 gap-4">
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>

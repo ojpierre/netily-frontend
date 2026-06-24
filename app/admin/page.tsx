@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
@@ -268,7 +268,7 @@ export default function AdminDashboard() {
       // Update live data separately
       if (sessionsRes.status === "fulfilled") {
         setOnlineSessions(sessionsRes.value?.sessions || [])
-        setOnlineTotal(sessionsRes.value?.total || sessionsRes.value?.sessions?.length || 0)
+        setOnlineTotal(sessionsRes.value?.count || sessionsRes.value?.sessions?.length || 0)
       }
       if (activeSubsRes.status === "fulfilled") {
         const subs = activeSubsRes.value || { pppoe: [], hotspot: [], total: 0 }
@@ -444,7 +444,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Row 1: Key Metrics ─── */}
-      <FadeIn delay={0.1}><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 relative">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 relative">
         {/* Total Customers */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -815,7 +815,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Row 2.5: Weekly Income & Monthly Earnings ─── */}
-      <FadeIn delay={0.3}><div className="grid gap-4 md:grid-cols-2 relative">
+      <div className="grid gap-4 md:grid-cols-2 relative">
 
         {/* Weekly Income Chart */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
@@ -876,7 +876,7 @@ export default function AdminDashboard() {
                   }
                   barSize={28}
                   margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-                  cursor="default"
+
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -978,7 +978,7 @@ export default function AdminDashboard() {
                   }
                   barSize={18}
                   margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-                  cursor="default"
+
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -1024,7 +1024,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Row 3: Quick Actions & Recent Activity ─── */}
-      <FadeIn delay={0.3}><div className="grid gap-4 md:grid-cols-2 relative">
+      <div className="grid gap-4 md:grid-cols-2 relative">
         {/* Quick Actions */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader>
