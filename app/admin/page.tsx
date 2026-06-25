@@ -163,16 +163,19 @@ function getRevenueCommentary(
   return { message: `Revenue is steady. Nothing alarming, nothing to celebrate yet.`, tone: "neutral" }
 }
 
-// Get attention items for the greeting card
+// Get attention items for the greeting card – UPDATED with SMS parameters
 function getAttentionItems(
   offlineRouters: number,
   smsBalance: number | null,
+  smsConfigure: boolean,
+  smsLow: boolean,
   openTickets: number,
   expiredCount: number
 ): string[] {
   const items: string[] = []
   if (offlineRouters > 0) items.push(`${offlineRouters} router${offlineRouters > 1 ? "s" : ""} offline`)
-  if (smsBalance !== null && smsBalance < 50) items.push("SMS credit low")
+  if (!smsConfigure) items.push("SMS not configured")
+  else if (smsLow) items.push(`SMS balance low${smsBalance !== null ? ` (${smsBalance})` : ""}`)
   if (openTickets > 3) items.push(`${openTickets} open tickets`)
   if (expiredCount > 20) items.push(`${expiredCount} expired subscriptions`)
   return items
@@ -210,6 +213,13 @@ export default function AdminDashboard() {
 
   // State for expired customers count (derived from RADIUS credentials)
   const [expiredCount, setExpiredCount] = useState<number>(0)
+
+  // ─── NEW: SMS attention state ───
+  const [smsAttention, setSmsAttention] = useState<{ configured: boolean; lowBalance: boolean; balance: number | null }>({
+    configured: false,
+    lowBalance: false,
+    balance: null,
+  })
   
   // Derived: active subscriptions count (only active/non-expired)
   const activeSubscriptionsCount = React.useMemo(() => {
@@ -292,6 +302,41 @@ export default function AdminDashboard() {
       }
       
       setExpiredCount(expiredViaRadius)
+
+      // ─── NEW: Fetch SMS data ──────────────────────────────
+      try {
+        const [notifSettings, gatewayConfigs, smsWallet, smsBalance] = await Promise.all([
+          adminApi.getSMSNotificationSettings().catch(() => null),
+          adminApi.getSMSGatewayConfigs().catch(() => []),
+          adminApi.getSMSWallet().catch(() => null),
+          adminApi.getSMSBalance().catch(() => null),
+        ])
+
+        const gws = Array.isArray(gatewayConfigs) ? gatewayConfigs : []
+        const useInbuilt = notifSettings?.use_inbuilt_system ?? false
+        const hasCustomGateway = gws.some(g => g.is_active && !g.use_inbuilt_system && g.api_key)
+        const configured = useInbuilt || hasCustomGateway
+
+        let balance: number | null = null
+        let lowBalance = false
+
+        if (useInbuilt) {
+          const units = Number(smsWallet?.sms_units ?? 0)
+          balance = units
+          lowBalance = units < 10
+        } else if (hasCustomGateway) {
+          const raw = Number(smsBalance?.balance ?? 0)
+          balance = raw
+          lowBalance = raw < 10
+        }
+
+        setSmsAttention({ configured, lowBalance, balance })
+      } catch (smsErr) {
+        // non-critical — don't block dashboard
+        console.warn('SMS attention data fetch failed:', smsErr)
+      }
+      // ─── End SMS fetch ────────────────────────────────────
+
     } catch (err: any) {
       console.error("Dashboard fetch error:", err)
       setError("Failed to load dashboard data. Please try again.")
@@ -375,11 +420,13 @@ export default function AdminDashboard() {
               </span>
             </h1>
 
-            {/* Attention items + contextual subtext */}
+            {/* Attention items + contextual subtext – UPDATED call */}
             {(() => {
               const items = getAttentionItems(
                 routers?.offline_routers ?? 0,
-                null, // wire up SMS balance later if needed
+                smsAttention.balance,
+                smsAttention.configured,
+                smsAttention.lowBalance,
                 tickets?.open ?? 0,
                 expiredCount
               )
@@ -410,11 +457,12 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* ── Needs Attention Banner (only if issues exist) ── */}
-        {!loading && (routers?.offline_routers ?? 0) > 0 && (
+        {/* ── Needs Attention Banner (updated condition and pills) ── */}
+        {!loading && ((routers?.offline_routers ?? 0) > 0 || !smsAttention.configured || smsAttention.lowBalance || (tickets?.open ?? 0) > 3 || expiredCount > 20) && (
           <div className="relative mt-4 pt-4 border-t border-orange-100 dark:border-slate-700">
             <p className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase mb-2">NEEDS YOUR ATTENTION</p>
             <div className="flex flex-wrap gap-2">
+              {/* Offline routers pills (max 3) */}
               {Array.from({ length: Math.min(routers?.offline_routers ?? 0, 3) }).map((_, i) => (
                 <Link key={i} href="/admin/routers?status=offline">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-100 transition-colors cursor-pointer">
@@ -423,6 +471,28 @@ export default function AdminDashboard() {
                   </div>
                 </Link>
               ))}
+
+              {/* SMS not configured */}
+              {!smsAttention.configured && (
+                <Link href="/admin/sms?tab=gateway">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                    SMS not configured
+                  </div>
+                </Link>
+              )}
+
+              {/* SMS balance low */}
+              {smsAttention.configured && smsAttention.lowBalance && (
+                <Link href="/admin/sms?tab=wallet">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 text-xs font-medium text-orange-700 dark:text-orange-400 hover:bg-orange-100 transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block" />
+                    SMS balance low{smsAttention.balance !== null ? ` (${smsAttention.balance})` : ""}
+                  </div>
+                </Link>
+              )}
+
+              {/* Open tickets */}
               {(tickets?.open ?? 0) > 3 && (
                 <Link href="/admin/tickets?status=open">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition-colors cursor-pointer">
@@ -431,6 +501,8 @@ export default function AdminDashboard() {
                   </div>
                 </Link>
               )}
+
+              {/* Expired subscriptions */}
               {expiredCount > 20 && (
                 <Link href="/admin/users?status=expired">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 transition-colors cursor-pointer">
