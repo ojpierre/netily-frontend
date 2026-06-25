@@ -21,7 +21,7 @@ import {
   ChevronDown,
   UserCog,
   RefreshCw,
-  Trash2,   // ← ADDED
+  Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -689,6 +689,249 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
 }
 
 // ==========================================
+// EDIT STAFF DIALOG COMPONENT
+// ==========================================
+
+interface EditStaffDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSuccess: () => void
+  user: User | null
+}
+
+function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialogProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const [formData, setFormData] = useState({
+    email: "",
+    role: "" as StaffRole | "",
+    new_password: "",
+    confirmPassword: "",
+  })
+
+  useEffect(() => {
+    if (user && open) {
+      setFormData({
+        email: user.email || "",
+        role: (user.role as StaffRole) || "",
+        new_password: "",
+        confirmPassword: "",
+      })
+      setErrors({})
+    }
+  }, [user, open])
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }))
+  }
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required"
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = "Invalid email format"
+    }
+    if (!formData.role) {
+      newErrors.role = "Role is required"
+    }
+    if (formData.new_password) {
+      const pwCheck = validatePassword(formData.new_password)
+      if (!pwCheck.valid) newErrors.new_password = "Password does not meet requirements"
+      if (formData.new_password !== formData.confirmPassword)
+        newErrors.confirmPassword = "Passwords do not match"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user || !validateForm()) {
+      toast.error("Please fix the form errors")
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const payload: Record<string, any> = {
+        email: formData.email.trim(),
+        role: formData.role,
+      }
+      if (formData.new_password) {
+        payload.password = formData.new_password
+      }
+
+      await adminApi.updateStaffUser(user.id, payload)
+      toast.success(`Staff account for ${user.first_name} ${user.last_name} updated`)
+      onOpenChange(false)
+      onSuccess()
+    } catch (error: any) {
+      toast.error("Failed to update staff account", {
+        description: error?.message || "Please check the form for errors",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Pencil className="w-5 h-5 text-primary" />
+            Edit Staff Account
+          </DialogTitle>
+          <DialogDescription>
+            Update details for {user?.first_name} {user?.last_name}.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Role */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">
+              Role <span className="text-destructive">*</span>
+            </Label>
+            <div className="grid grid-cols-2 gap-3">
+              {STAFF_ROLES.map((role) => {
+                const Icon = role.icon
+                const isSelected = formData.role === role.value
+                return (
+                  <button
+                    key={role.value}
+                    type="button"
+                    onClick={() => handleInputChange("role", role.value)}
+                    className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all ${
+                      isSelected
+                        ? "border-primary bg-primary/10"
+                        : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <div
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                        isSelected ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-medium text-sm ${isSelected ? "text-primary" : "text-slate-900 dark:text-white"}`}>
+                        {role.label}
+                      </p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            {errors.role && <p className="text-sm text-destructive">{errors.role}</p>}
+          </div>
+
+          <Separator />
+
+          {/* Email */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-email">
+              Email Address <span className="text-destructive">*</span>
+            </Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                id="edit-email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
+              />
+            </div>
+            {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+          </div>
+
+          {/* New Password (optional) */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-password">
+              New Password{" "}
+              <span className="text-slate-400 text-xs font-normal">(leave blank to keep current)</span>
+            </Label>
+            <Input
+              id="edit-password"
+              type="password"
+              placeholder="••••••••"
+              value={formData.new_password}
+              onChange={(e) => handleInputChange("new_password", e.target.value)}
+              className={errors.new_password ? "border-destructive" : ""}
+            />
+            {errors.new_password && <p className="text-sm text-destructive">{errors.new_password}</p>}
+          </div>
+
+          {formData.new_password && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="edit-confirm-password">Confirm New Password</Label>
+                <Input
+                  id="edit-confirm-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={formData.confirmPassword}
+                  onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                  className={errors.confirmPassword ? "border-destructive" : ""}
+                />
+                {errors.confirmPassword && (
+                  <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+                )}
+              </div>
+
+              {/* Password strength badges */}
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { label: "8+ chars", met: formData.new_password.length >= 8 },
+                  { label: "Uppercase", met: /[A-Z]/.test(formData.new_password) },
+                  { label: "Lowercase", met: /[a-z]/.test(formData.new_password) },
+                  { label: "Number", met: /[0-9]/.test(formData.new_password) },
+                ].map((req) => (
+                  <Badge
+                    key={req.label}
+                    variant={req.met ? "default" : "secondary"}
+                    className={req.met ? "bg-success/15 text-success" : ""}
+                  >
+                    {req.met && <CheckCircle className="w-3 h-3 mr-1" />}
+                    {req.label}
+                  </Badge>
+                ))}
+              </div>
+            </>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ==========================================
 // MAIN STAFF PAGE COMPONENT
 // ==========================================
 
@@ -702,9 +945,11 @@ export default function StaffManagementPage() {
   const [deleteUser, setDeleteUser] = useState<User | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   
-  // ============================================================
-  // ADDED: Hard delete state
-  // ============================================================
+  // Edit state
+  const [editUser, setEditUser] = useState<User | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  
+  // Hard delete state
   const [hardDeleteUser, setHardDeleteUser] = useState<User | null>(null)
   const [isHardDeleting, setIsHardDeleting] = useState(false)
 
@@ -781,9 +1026,7 @@ export default function StaffManagementPage() {
     }
   }
 
-  // ============================================================
-  // ADDED: Handle hard delete
-  // ============================================================
+  // Handle hard delete
   const handleDelete = async () => {
     if (!hardDeleteUser) return
     setIsHardDeleting(true)
@@ -1020,7 +1263,6 @@ export default function StaffManagementPage() {
                           </Badge>
                         )}
                       </TableCell>
-                      {/* 🟢 FIX 2: Use created_at if available, otherwise fallback to date_joined */}
                       <TableCell className="text-slate-500">
                         {formatDate(user.created_at || user.date_joined)}
                       </TableCell>
@@ -1033,6 +1275,16 @@ export default function StaffManagementPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditUser(user)
+                                setIsEditDialogOpen(true)
+                              }}
+                            >
+                              <Pencil className="w-4 h-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {user.is_active ? (
                               <DropdownMenuItem
@@ -1051,9 +1303,6 @@ export default function StaffManagementPage() {
                                 Reactivate
                               </DropdownMenuItem>
                             )}
-                            {/* ============================================================
-                                ADDED: Delete Permanently menu item
-                                ============================================================ */}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
@@ -1079,6 +1328,17 @@ export default function StaffManagementPage() {
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         onSuccess={fetchStaffUsers}
+      />
+
+      {/* Edit Staff Dialog */}
+      <EditStaffDialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open)
+          if (!open) setEditUser(null)
+        }}
+        onSuccess={fetchStaffUsers}
+        user={editUser}
       />
 
       {/* Deactivate Confirmation Dialog */}
@@ -1114,9 +1374,7 @@ export default function StaffManagementPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ============================================================
-          ADDED: Delete Confirmation Dialog
-          ============================================================ */}
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!hardDeleteUser} onOpenChange={() => setHardDeleteUser(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
