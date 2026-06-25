@@ -763,7 +763,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
         role: formData.role,
       }
       if (formData.new_password) {
-        payload.password = formData.new_password
+        payload.new_password = formData.new_password  // FIX: Use new_password instead of password
       }
 
       await adminApi.updateStaffUser(user.id, payload)
