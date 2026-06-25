@@ -3945,8 +3945,10 @@ async activateService(
   }
 
   // Online user sessions — pre-formatted for display tables
-  async getOnlineSessions(): Promise<{ count: number; sessions: OnlineSession[] }> {
-    return this.request<{ count: number; sessions: OnlineSession[] }>('/radius/sessions/active/')
+  async getOnlineSessions(page = 1, pageSize = 50): Promise<{ count: number; sessions: OnlineSession[]; total: number }> {
+    return this.request<{ count: number; sessions: OnlineSession[]; total: number }>(
+      `/radius/sessions/active/?page=${page}&page_size=${pageSize}`
+    )
   }
 
   // ------------------------------------------
