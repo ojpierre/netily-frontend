@@ -711,6 +711,43 @@ export interface LedgerResponse extends PaginatedResponse<LedgerEntry> {
   summary?: LedgerSummary;
 }
 
+// ── SMS Types ──────────────────────────────────────
+
+export interface SMSTenantRow {
+  tenant_id: string
+  tenant_name: string
+  tenant_subdomain: string
+  sms_units: string
+  sell_price_per_unit: string
+  recent_topups: SMSTopupRecord[]
+}
+
+export interface SMSTopupRecord {
+  id: number
+  units_purchased: number
+  amount_paid: string
+  status: "pending" | "completed" | "failed"
+  payment_method: string
+  payment_reference?: string
+  checkout_request_id?: string
+  created_at: string
+  tenant_name?: string
+  tenant_subdomain?: string
+}
+
+export interface SMSOverview {
+  total_inbuilt_units: string
+  inbuilt_tenant_count: number
+  provider_balance: {
+    success: boolean
+    balance: number
+    currency?: string
+    error?: string
+  }
+  tenants: SMSTenantRow[]
+  all_topups: SMSTopupRecord[]
+}
+
 // ── API class ──────────────────────────────────────
 
 const TOKEN_KEY = "superadminToken"
@@ -1065,6 +1102,12 @@ class SuperadminApiService {
       method: "POST",
       body: JSON.stringify({ channel }),
     })
+  }
+
+  // ── SMS Overview ──
+
+  async getSMSOverview(): Promise<SMSOverview> {
+    return this.request("/superadmin/sms/overview/")
   }
 
   // ── Analytics ──
