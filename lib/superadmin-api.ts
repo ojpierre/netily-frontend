@@ -743,6 +743,10 @@ export interface SMSOverview {
     balance: number
     currency?: string
     error?: string
+    raw?: {
+      remaining_balance?: string
+      expired_on?: string
+    }
   }
   tenants: SMSTenantRow[]
   all_topups: SMSTopupRecord[]
