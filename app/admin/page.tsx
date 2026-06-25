@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import React, { useState, useEffect, useCallback, useMemo } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -25,7 +25,6 @@ import {
   Shield,
   CreditCard,
   BarChart3,
-  Sparkles,
 } from "lucide-react"
 import { NetilyLoader } from "@/components/ui/netily-loader"
 import { FadeIn } from "@/components/page-transition"
@@ -53,9 +52,6 @@ import type {
   PaymentDashboardStats,
   SupportTicketStats,
 } from "@/lib/types"
-
-// ── NEW: Framer Motion imports ──
-import { motion, AnimatePresence } from "framer-motion"
 
 // ──────────────────────────────────────
 // TYPES
@@ -185,72 +181,6 @@ function getAttentionItems(
   return items
 }
 
-// ─── NEW: AI Assistant Insight Generator ──────────────────────────────
-
-function generateAssistantInsight({
-  offlineRouters,
-  onlineRouters,
-  activeSubs,
-  onlineUsers,
-  revenueToday,
-  revenueChange,
-  openTickets,
-  expiredCount,
-}: {
-  offlineRouters: number
-  onlineRouters: number
-  activeSubs: number
-  onlineUsers: number
-  revenueToday: number
-  revenueChange: number
-  openTickets: number
-  expiredCount: number
-}) {
-  const messages: string[] = []
-
-  if (offlineRouters > 0) {
-    messages.push(
-      `${offlineRouters} router${offlineRouters > 1 ? "s are" : " is"} offline. I'd prioritize that before customers start feeling it.`
-    )
-  }
-
-  if (openTickets > 5) {
-    messages.push(
-      `Support is getting busy with ${openTickets} open tickets waiting for attention.`
-    )
-  }
-
-  if (expiredCount > 20) {
-    messages.push(
-      `${expiredCount} subscriptions have expired. A renewal campaign could recover revenue quickly.`
-    )
-  }
-
-  if (revenueChange > 15) {
-    messages.push(
-      `Revenue is up ${revenueChange}% today. Strong momentum so far.`
-    )
-  }
-
-  if (revenueChange < -15) {
-    messages.push(
-      `Revenue is trending below normal today. Worth keeping an eye on payment activity.`
-    )
-  }
-
-  if (
-    offlineRouters === 0 &&
-    openTickets < 3 &&
-    expiredCount < 10
-  ) {
-    messages.push(
-      `Everything is running smoothly. ${onlineUsers} subscribers are online and the network looks healthy.`
-    )
-  }
-
-  return messages[0] || "Everything looks stable right now."
-}
-
 // ──────────────────────────────────────
 // COMPONENT
 // ──────────────────────────────────────
@@ -291,9 +221,6 @@ export default function AdminDashboard() {
     balance: null,
   })
   
-  // ─── NEW: AI Assistant rotation state ───
-  const [assistantIndex, setAssistantIndex] = useState(0)
-  
   // Derived: active subscriptions count (only active/non-expired)
   const activeSubscriptionsCount = React.useMemo(() => {
     const pppoeCount = activeSubscriptions.pppoe?.length || 0
@@ -311,39 +238,6 @@ export default function AdminDashboard() {
     return onlineTotal || onlineSessions.length
   }, [onlineTotal, onlineSessions])
   
-  // ─── Build assistant messages array ──────────────────────────────────
-  const assistantMessages = useMemo(() => {
-    const baseInsight = generateAssistantInsight({
-      offlineRouters: data.routers?.offline_routers ?? 0,
-      onlineRouters: data.routers?.online_routers ?? 0,
-      activeSubs: activeSubscriptionsCount,
-      onlineUsers: effectiveOnlineCount,
-      revenueToday: parseFloat(String(data.reports?.overview?.today_revenue ?? 0)),
-      revenueChange: data.reports?.overview?.today_change ?? 0,
-      openTickets: data.tickets?.open ?? 0,
-      expiredCount,
-    })
-
-    // Additional rotating thoughts
-    const additional = [
-      `${effectiveOnlineCount} customers are online right now out of ${activeSubscriptionsCount} active subscriptions.`,
-      `${formatKSh(data.reports?.overview?.today_revenue ?? 0)} collected today.`,
-      `${data.tickets?.open ?? 0} support tickets currently need attention.`,
-    ]
-
-    // Combine, ensuring first is the insight, then the rest
-    return [baseInsight, ...additional]
-  }, [data.routers, data.tickets, data.reports, activeSubscriptionsCount, effectiveOnlineCount, expiredCount])
-
-  // ─── Auto-rotate assistant messages ──────────────────────────────────
-  useEffect(() => {
-    if (assistantMessages.length === 0) return
-    const timer = setInterval(() => {
-      setAssistantIndex((prev) => (prev + 1) % assistantMessages.length)
-    }, 7000)
-    return () => clearInterval(timer)
-  }, [assistantMessages.length])
-
   const canOpenRoute = (href: string) => canAccess(user, getAccessRuleForPath(href))
   const quickActions = [
     { href: "/admin/users", label: "Manage Users", icon: Users, className: "text-blue-600" },
@@ -498,148 +392,129 @@ export default function AdminDashboard() {
         }}
       />
 
-      {/* ─── AI ASSISTANT HERO CARD ─── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-50 via-orange-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border border-orange-100 dark:border-slate-800 p-6 shadow-sm"
-      >
-        {/* Animated Aurora Background */}
-        <motion.div
-          animate={{
-            x: [0, 40, 0],
-            y: [0, -20, 0],
-          }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-          className="absolute inset-0 opacity-30 pointer-events-none"
-        >
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-orange-300/20 blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-amber-300/10 blur-3xl" />
-        </motion.div>
+      {/* ─── Greeting Hero Card ─── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 via-orange-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border border-orange-100 dark:border-slate-800 p-6 shadow-sm">
+        {/* Subtle decorative blob */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-orange-200/30 to-transparent rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-amber-100/20 to-transparent rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" />
 
-        <div className="relative z-10">
-          {/* Assistant Identity + Shift/Online */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900 dark:text-white">
-                  Netily Assistant
-                </p>
-                <p className="text-xs text-emerald-500 flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Monitoring your network
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
+        <div className="relative flex items-start justify-between gap-4 flex-wrap">
+          <div className="space-y-1">
+            {/* Shift label + online status */}
+            <div className="flex items-center gap-3 mb-2">
               <span className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase">{getShiftLabel()}</span>
               <span className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                 </span>
-                {(routers?.online_routers ?? 0)} ONLINE
+                {(routers?.online_routers ?? 0)} ONLINE RIGHT NOW
               </span>
-              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="rounded-xl bg-white/70 dark:bg-slate-800 border-orange-200 dark:border-slate-700">
-                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-                Refresh
-              </Button>
             </div>
+
+            {/* Greeting */}
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              {getGreeting()},{" "}
+              <span className="text-orange-500 italic font-extrabold">
+                {user?.first_name || user?.username || "there"}.
+              </span>
+            </h1>
+
+            {/* Attention items + contextual subtext – UPDATED call */}
+            {(() => {
+              const items = getAttentionItems(
+                routers?.offline_routers ?? 0,
+                smsAttention.balance,
+                smsAttention.configured,
+                smsAttention.lowBalance,
+                tickets?.open ?? 0,
+                expiredCount
+              )
+              return items.length > 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-lg mt-1">
+                  {items.join(" · ")} — a few things need a minute.
+                </p>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Everything looks clean. Have a good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}.
+                </p>
+              )
+            })()}
+
+            {/* Day context */}
+            <p className="text-xs text-slate-400 italic mt-2 flex items-center gap-1.5">
+              {new Date().getHours() >= 6 && new Date().getHours() < 20 ? "☀️" : "🌙"}
+              {new Date().toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long" })}
+            </p>
           </div>
 
-          {/* Animated Assistant Message */}
-          <div className="min-h-[4.5rem] flex items-start">
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={assistantIndex}
-                initial={{ opacity: 0, y: 10, filter: "blur(6px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, y: -10, filter: "blur(6px)" }}
-                transition={{ duration: 0.45, ease: "easeOut" }}
-                className="text-sm text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed"
-              >
-                <span className="inline-flex items-center">
-                  {assistantMessages[assistantIndex] || "Loading insights..."}
-                  <motion.span
-                    animate={{ opacity: [0, 1, 0] }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                    className="ml-1"
-                  >
-                    |
-                  </motion.span>
-                </span>
-              </motion.p>
-            </AnimatePresence>
+          {/* Right side: quick refresh */}
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="rounded-xl bg-white/70 dark:bg-slate-800 border-orange-200 dark:border-slate-700">
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
           </div>
-
-          {/* ── Needs Attention Banner (conditionally shown) ── */}
-          {!loading && ((routers?.offline_routers ?? 0) > 0 || !smsAttention.configured || smsAttention.lowBalance || (tickets?.open ?? 0) > 3 || expiredCount > 20) && (
-            <div className="relative mt-4 pt-4 border-t border-orange-100 dark:border-slate-700">
-              <p className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase mb-2">NEEDS YOUR ATTENTION</p>
-              <div className="flex flex-wrap gap-2">
-                {/* Offline routers pills (max 3) */}
-                {Array.from({ length: Math.min(routers?.offline_routers ?? 0, 3) }).map((_, i) => (
-                  <Link key={i} href="/admin/routers?status=offline">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-100 transition-colors cursor-pointer">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
-                      Router offline
-                    </div>
-                  </Link>
-                ))}
-
-                {/* SMS not configured */}
-                {!smsAttention.configured && (
-                  <Link href="/admin/sms?tab=gateway">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition-colors cursor-pointer">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
-                      SMS not configured
-                    </div>
-                  </Link>
-                )}
-
-                {/* SMS balance low */}
-                {smsAttention.configured && smsAttention.lowBalance && (
-                  <Link href="/admin/sms?tab=wallet">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 text-xs font-medium text-orange-700 dark:text-orange-400 hover:bg-orange-100 transition-colors cursor-pointer">
-                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block" />
-                      SMS balance low{smsAttention.balance !== null ? ` (${smsAttention.balance})` : ""}
-                    </div>
-                  </Link>
-                )}
-
-                {/* Open tickets */}
-                {(tickets?.open ?? 0) > 3 && (
-                  <Link href="/admin/tickets?status=open">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition-colors cursor-pointer">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
-                      {tickets?.open} open tickets
-                    </div>
-                  </Link>
-                )}
-
-                {/* Expired subscriptions */}
-                {expiredCount > 20 && (
-                  <Link href="/admin/users?status=expired">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 transition-colors cursor-pointer">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
-                      {expiredCount} expired subs
-                    </div>
-                  </Link>
-                )}
-              </div>
-            </div>
-          )}
         </div>
-      </motion.div>
+
+        {/* ── Needs Attention Banner (updated condition and pills) ── */}
+        {!loading && ((routers?.offline_routers ?? 0) > 0 || !smsAttention.configured || smsAttention.lowBalance || (tickets?.open ?? 0) > 3 || expiredCount > 20) && (
+          <div className="relative mt-4 pt-4 border-t border-orange-100 dark:border-slate-700">
+            <p className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase mb-2">NEEDS YOUR ATTENTION</p>
+            <div className="flex flex-wrap gap-2">
+              {/* Offline routers pills (max 3) */}
+              {Array.from({ length: Math.min(routers?.offline_routers ?? 0, 3) }).map((_, i) => (
+                <Link key={i} href="/admin/routers?status=offline">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-100 transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
+                    Router offline
+                  </div>
+                </Link>
+              ))}
+
+              {/* SMS not configured */}
+              {!smsAttention.configured && (
+                <Link href="/admin/sms?tab=gateway">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                    SMS not configured
+                  </div>
+                </Link>
+              )}
+
+              {/* SMS balance low */}
+              {smsAttention.configured && smsAttention.lowBalance && (
+                <Link href="/admin/sms?tab=wallet">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 text-xs font-medium text-orange-700 dark:text-orange-400 hover:bg-orange-100 transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block" />
+                    SMS balance low{smsAttention.balance !== null ? ` (${smsAttention.balance})` : ""}
+                  </div>
+                </Link>
+              )}
+
+              {/* Open tickets */}
+              {(tickets?.open ?? 0) > 3 && (
+                <Link href="/admin/tickets?status=open">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                    {tickets?.open} open tickets
+                  </div>
+                </Link>
+              )}
+
+              {/* Expired subscriptions */}
+              {expiredCount > 20 && (
+                <Link href="/admin/users?status=expired">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
+                    {expiredCount} expired subs
+                  </div>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ─── Row 1: Key Metrics ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 relative">
