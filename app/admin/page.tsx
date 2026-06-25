@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
@@ -249,7 +249,7 @@ export default function AdminDashboard() {
         adminApi.getPaymentDashboardStats(),
         adminApi.getTicketStats(),
         adminApi.getReportsData("30d"),
-        adminApi.getOnlineSessions(),
+        adminApi.getOnlineSessions(1, 1),  // ← page=1, pageSize=1 — just need the total count
         adminApi.getActiveSubscriptions?.(),
       ])
 
@@ -267,8 +267,9 @@ export default function AdminDashboard() {
 
       // Update live data separately
       if (sessionsRes.status === "fulfilled") {
+        // Use response.total (all active sessions), not sessions.length (just page 1)
         setOnlineSessions(sessionsRes.value?.sessions || [])
-        setOnlineTotal(sessionsRes.value?.count || sessionsRes.value?.sessions?.length || 0)
+        setOnlineTotal(sessionsRes.value?.total || sessionsRes.value?.sessions?.length || 0)
       }
       if (activeSubsRes.status === "fulfilled") {
         const subs = activeSubsRes.value || { pppoe: [], hotspot: [], total: 0 }
