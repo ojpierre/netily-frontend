@@ -682,20 +682,15 @@ export default function UsersPage() {
     }
   }
 
-  const loadOnlineSessions = async () => {
+  // FIX 1 & 2: loadOnlineSessions - use response.total and fetch paginated
+  const loadOnlineSessions = async (page = 1) => {
     try {
       setOnlineSessionsLoading(true)
-      
-      const response = await adminApi.getOnlineSessions()
-      let allSessions = response.sessions || []
-      const total = allSessions.length
-
-      if (total > 0 && allSessions.length > 0) {
-        // Use existing sessions
-      }
-
+      const response = await adminApi.getOnlineSessions(page, onlinePageSize)
+      const allSessions = response.sessions || []
       setOnlineSessions(allSessions)
-      setOnlineTotal(total)
+      setOnlineTotal(response.total || allSessions.length)
+      setOnlinePage(page)
     } catch (err) {
       console.error('Failed to load online sessions:', err)
       setOnlineSessions([])
@@ -1240,11 +1235,7 @@ export default function UsersPage() {
     })
   }, [onlineSessions, onlineSearchQuery, onlineServiceFilter])
 
-  // FIX: Proper pagination for online sessions
-  const paginatedOnlineSessions = useMemo(() => {
-    const start = (onlinePage - 1) * onlinePageSize
-    return filteredOnlineSessions.slice(start, start + onlinePageSize)
-  }, [filteredOnlineSessions, onlinePage, onlinePageSize])
+  // FIX 3: REMOVED paginatedOnlineSessions memo - now using onlineSessions directly in table
 
   const onlineTotalPages = Math.ceil(filteredOnlineSessions.length / onlinePageSize)
 
@@ -2530,7 +2521,7 @@ export default function UsersPage() {
                       <SelectItem value="STATIC">Static</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="icon" onClick={loadOnlineSessions} disabled={onlineSessionsLoading}>
+                  <Button variant="outline" size="icon" onClick={() => loadOnlineSessions(onlinePage)} disabled={onlineSessionsLoading}>
                     <RefreshCw className={`w-4 h-4 ${onlineSessionsLoading ? 'animate-spin' : ''}`} />
                   </Button>
                 </div>
@@ -2580,7 +2571,8 @@ export default function UsersPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {paginatedOnlineSessions.map((session) => (
+                        {/* FIX 3: Use onlineSessions directly (API handles pagination server-side) */}
+                        {onlineSessions.map((session) => (
                           <motion.tr
                             key={session.radacctid}
                             initial={{ opacity: 0 }}
@@ -2660,26 +2652,30 @@ export default function UsersPage() {
                       </TableBody>
                     </Table>
                   </div>
-                  {onlineTotalPages > 1 && (
+                  {/* FIX 3: Pagination controls for online sessions - uses loadOnlineSessions(page) */}
+                  {Math.ceil(onlineTotal / onlinePageSize) > 1 && (
                     <div className="flex items-center justify-between mt-4">
                       <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Showing {((onlinePage - 1) * onlinePageSize) + 1}–{Math.min(onlinePage * onlinePageSize, filteredOnlineSessions.length)} of {filteredOnlineSessions.length} sessions
+                        Showing {((onlinePage - 1) * onlinePageSize) + 1}–{Math.min(onlinePage * onlinePageSize, onlineTotal)} of {onlineTotal} sessions
                       </p>
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={onlinePage === 1}
-                          onClick={() => setOnlinePage(p => p - 1)}
+                          disabled={onlinePage === 1 || onlineSessionsLoading}
+                          onClick={() => loadOnlineSessions(onlinePage - 1)}
                           className="transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                         >
                           Previous
                         </Button>
+                        <span className="flex items-center px-3 text-sm text-slate-600 dark:text-slate-400">
+                          Page {onlinePage} of {Math.ceil(onlineTotal / onlinePageSize)}
+                        </span>
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={onlinePage === onlineTotalPages}
-                          onClick={() => setOnlinePage(p => p + 1)}
+                          disabled={onlinePage >= Math.ceil(onlineTotal / onlinePageSize) || onlineSessionsLoading}
+                          onClick={() => loadOnlineSessions(onlinePage + 1)}
                           className="transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                         >
                           Next
