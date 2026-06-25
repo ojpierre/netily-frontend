@@ -26,6 +26,7 @@ import {
   UserPlus, // Leads
   BookOpen, // User Ledger
   Headphones,
+  MessageSquareText, // <-- Added for SMS page
 } from "lucide-react"
 import { SuperAdminAuthProvider, useSuperAdminAuth } from "./superadmin-auth-context"
 import { Button } from "@/components/ui/button"
@@ -50,6 +51,7 @@ const navItems = [
   { name: "Payments", href: "/superadmin/payments", icon: CreditCard },
   { name: "Sub. Payments", href: "/superadmin/subscription-payments", icon: CreditCard },
   { name: "Invoices", href: "/superadmin/subscription-invoices", icon: ScrollText },
+  { name: "SMS", href: "/superadmin/sms", icon: MessageSquareText }, // <-- NEW SMS ROUTE
   { name: "Leads", href: "/superadmin/leads", icon: UserPlus },
   { name: "Analytics", href: "/superadmin/analytics", icon: BarChart3 },
   { name: "Activity", href: "/superadmin/activity", icon: Activity },
