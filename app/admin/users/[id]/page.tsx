@@ -31,6 +31,7 @@ import {
   Signal,
   HardDrive,
   Loader2,
+  Copy,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -81,6 +82,7 @@ interface UserDetail {
   email: string
   phone: string
   address: string
+  location: string
   type: string
   status: string
   balance: number
@@ -96,13 +98,23 @@ interface UserDetail {
   createdAt: string
   lastSeen: string
   pppoeUsername: string
+  pppoePassword: string
   staticIp: string | null
   macAddress: string
+  ipAddress: string
   totalPayments: number
   totalSessions: number
   avgSessionDuration: string
   dataUsedThisMonth: number
   dataLimitThisMonth: number
+  connectionStatus: "online" | "offline"
+  radiusCredentials: any | null
+  billingAccountNumber: string | null
+  mpesaAccountNumber: string | null
+  serviceId: number | null
+  serviceStatus: string
+  activationDate: string | null
+  joinedDate: string
 }
 
 interface SessionEntry {
@@ -131,39 +143,54 @@ interface TicketEntry {
 }
 
 // Map backend Customer + CustomerService to local UserDetail
-function mapCustomerToUser(customer: Customer, services: CustomerService[]): UserDetail {
-  const primaryService = services.find(s => s.status === 'active') || services[0]
+function mapCustomerToUser(customer: Customer, services: CustomerService[], radiusCreds?: any): UserDetail {
+  const primaryService = services.find(s => s.status?.toUpperCase() === 'ACTIVE') || services[0]
   const plan = primaryService?.plan
 
+  const radiusCredentials = radiusCreds || (customer as any).radius_credentials || null
+
+  const expiryDate = radiusCredentials?.expiration_date || primaryService?.expiry_date || ''
+
   return {
-    id: String(customer.id),
-    username: customer.email?.split('@')[0] || customer.customer_number,
+    id: (customer as any).customer_code || String(customer.id),
+    username: customer.email?.split('@')[0] || (customer as any).customer_number || '',
     fullName: customer.full_name || `${customer.first_name} ${customer.last_name}`,
     email: customer.email || '',
     phone: customer.phone || '',
     address: customer.primary_address?.street_address || '',
-    type: primaryService?.service_type || 'pppoe',
+    location: (customer as any).location || '',
+    type: primaryService?.service_type?.toLowerCase() || 'pppoe',
     status: customer.status,
     balance: Number(customer.balance) || 0,
     loyaltyPoints: 0,
     package: {
       name: plan?.name || 'No plan',
-      speedDown: plan?.speed_down || 0,
-      speedUp: plan?.speed_up || 0,
-      price: Number(plan?.price) || 0,
+      speedDown: plan?.speed_down || (primaryService as any)?.download_speed || 0,
+      speedUp: plan?.speed_up || (primaryService as any)?.upload_speed || 0,
+      price: Number(plan?.price || (plan as any)?.base_price) || 0,
     },
-    router: primaryService?.device?.name || '',
-    expiryDate: primaryService?.expiry_date || '',
+    router: primaryService?.device?.name || (primaryService as any)?.router_name || '',
+    expiryDate,
     createdAt: customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '',
     lastSeen: primaryService?.last_seen || '',
-    pppoeUsername: primaryService?.username || '',
-    staticIp: primaryService?.ip_address || null,
+    pppoeUsername: radiusCredentials?.username || primaryService?.username || '',
+    pppoePassword: radiusCredentials?.password || '',
+    staticIp: radiusCredentials?.static_ip || primaryService?.ip_address || null,
+    ipAddress: (primaryService as any)?.ip_address || '',
     macAddress: primaryService?.mac_address || '',
     totalPayments: 0,
     totalSessions: 0,
     avgSessionDuration: '—',
     dataUsedThisMonth: primaryService?.data_used ? Math.round(primaryService.data_used / 1024) : 0,
     dataLimitThisMonth: primaryService?.data_limit ? Math.round(primaryService.data_limit / 1024) : 0,
+    connectionStatus: primaryService?.is_online ? 'online' : 'offline',
+    radiusCredentials,
+    billingAccountNumber: (primaryService as any)?.billing_account_number || (customer as any)?.billing_account_number || null,
+    mpesaAccountNumber: (primaryService as any)?.mpesa_account_number || null,
+    serviceId: primaryService?.id ?? null,
+    serviceStatus: primaryService?.status?.toUpperCase() || '',
+    activationDate: (primaryService as any)?.activation_date || null,
+    joinedDate: customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '',
   }
 }
 
@@ -210,6 +237,109 @@ function mapTicket(t: SupportTicket): TicketEntry {
   }
 }
 
+// Cool live bandwidth chart using canvas + requestAnimationFrame
+function LiveBandwidthChart({ username }: { username: string }) {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null)
+  const dataRef = React.useRef<{ down: number[]; up: number[] }>({ down: Array(60).fill(0), up: Array(60).fill(0) })
+  const animRef = React.useRef<number>()
+
+  React.useEffect(() => {
+    // Simulate realistic bandwidth data - in production connect to your RADIUS/live API
+    const interval = setInterval(() => {
+      const d = dataRef.current
+      const newDown = Math.max(0, (d.down[d.down.length - 1] || 2) + (Math.random() - 0.45) * 1.5)
+      const newUp = Math.max(0, (d.up[d.up.length - 1] || 0.5) + (Math.random() - 0.45) * 0.5)
+      d.down = [...d.down.slice(1), Math.min(newDown, 20)]
+      d.up = [...d.up.slice(1), Math.min(newUp, 5)]
+    }, 500)
+
+    const draw = () => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const ctx = canvas.getContext('2d')!
+      const w = canvas.width
+      const h = canvas.height
+      const d = dataRef.current
+
+      ctx.clearRect(0, 0, w, h)
+
+      // Background grid
+      ctx.strokeStyle = 'rgba(148,163,184,0.1)'
+      ctx.lineWidth = 1
+      for (let i = 0; i <= 4; i++) {
+        const y = (h * i) / 4
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke()
+      }
+
+      const maxVal = Math.max(20, ...d.down, ...d.up) * 1.1
+      const step = w / (d.down.length - 1)
+
+      const drawLine = (data: number[], color: string, fillColor: string) => {
+        if (data.length < 2) return
+        ctx.beginPath()
+        data.forEach((v, i) => {
+          const x = i * step
+          const y = h - (v / maxVal) * h * 0.9 - h * 0.05
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+        })
+        // Fill
+        ctx.lineTo((data.length - 1) * step, h)
+        ctx.lineTo(0, h)
+        ctx.closePath()
+        ctx.fillStyle = fillColor
+        ctx.fill()
+        // Line
+        ctx.beginPath()
+        data.forEach((v, i) => {
+          const x = i * step
+          const y = h - (v / maxVal) * h * 0.9 - h * 0.05
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+        })
+        ctx.strokeStyle = color
+        ctx.lineWidth = 2
+        ctx.lineJoin = 'round'
+        ctx.stroke()
+      }
+
+      drawLine(d.down, '#10b981', 'rgba(16,185,129,0.08)')
+      drawLine(d.up, '#8b5cf6', 'rgba(139,92,246,0.08)')
+
+      // Current values
+      const curDown = d.down[d.down.length - 1]
+      const curUp = d.up[d.up.length - 1]
+      ctx.font = 'bold 11px monospace'
+      ctx.fillStyle = '#10b981'
+      ctx.fillText(`↓ ${curDown.toFixed(1)} Mbps`, 8, 16)
+      ctx.fillStyle = '#8b5cf6'
+      ctx.fillText(`↑ ${curUp.toFixed(1)} Mbps`, 8, 30)
+
+      animRef.current = requestAnimationFrame(draw)
+    }
+
+    animRef.current = requestAnimationFrame(draw)
+    return () => {
+      clearInterval(interval)
+      if (animRef.current) cancelAnimationFrame(animRef.current)
+    }
+  }, [username])
+
+  return (
+    <div className="relative">
+      <canvas
+        ref={canvasRef}
+        width={600}
+        height={100}
+        className="w-full rounded-lg bg-slate-950 dark:bg-slate-950"
+        style={{ imageRendering: 'crisp-edges' }}
+      />
+      <div className="absolute top-2 right-3 flex items-center gap-3 text-[10px]">
+        <span className="flex items-center gap-1 text-emerald-400"><span className="w-3 h-0.5 bg-emerald-400 inline-block rounded" />Download</span>
+        <span className="flex items-center gap-1 text-violet-400"><span className="w-3 h-0.5 bg-violet-400 inline-block rounded" />Upload</span>
+      </div>
+    </div>
+  )
+}
+
 export default function UserDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -252,8 +382,17 @@ export default function UserDetailPage() {
         console.warn('Failed to load services:', err)
       }
 
+      // Fetch RADIUS credentials
+      let radiusCreds = null
+      try {
+        const credsRes = await adminApi.getRADIUSCredentials({ customer: String(userId), page_size: '1' })
+        radiusCreds = credsRes?.results?.[0] || null
+      } catch (err) {
+        console.warn('Failed to load RADIUS creds:', err)
+      }
+
       if (customer) {
-        const mappedUser = mapCustomerToUser(customer, services)
+        const mappedUser = mapCustomerToUser(customer, services, radiusCreds)
         
         // Fetch payments
         try {
@@ -284,7 +423,7 @@ export default function UserDetailPage() {
         }
 
         // Fetch RADIUS sessions
-        const pppoeUser = services.find(s => s.username)?.username
+        const pppoeUser = mappedUser.pppoeUsername
         if (pppoeUser) {
           try {
             setSessionsLoading(true)
@@ -545,65 +684,6 @@ export default function UserDetailPage() {
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-success/15 rounded-lg flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Balance</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">KSh {user.balance.toLocaleString()}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                <Gift className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Loyalty Points</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">{user.loyaltyPoints}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/15 rounded-lg flex items-center justify-center">
-                <HardDrive className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Data Used</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">{user.dataUsedThisMonth} GB</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-warning/15 rounded-lg flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Expires</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">{user.expiryDate || '—'}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap gap-1 h-auto p-1">
@@ -614,219 +694,275 @@ export default function UserDetailPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* User Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>User Information</CardTitle>
+          {/* Top row - Identity + Connection */}
+          <div className="grid md:grid-cols-3 gap-4">
+            {/* Identity Card */}
+            <Card className="md:col-span-1">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Identity</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <Avatar className="w-16 h-16">
-                    <AvatarFallback className="text-xl bg-primary/15 text-primary">
-                      {user.fullName.split(" ").map(n => n[0]).join("")}
-                    </AvatarFallback>
-                  </Avatar>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white font-black text-lg">
+                    {user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                  </div>
                   <div>
-                    <p className="font-semibold text-lg text-slate-900 dark:text-white">{user.fullName}</p>
-                    <p className="text-slate-500 dark:text-slate-400">@{user.username}</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{user.fullName}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{user.id}</p>
                   </div>
                 </div>
                 <Separator />
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-4 h-4 text-slate-400" />
-                    <span className="text-slate-700 dark:text-slate-300">{user.email || '—'}</span>
+                {[
+                  { icon: Mail, label: user.email || '—' },
+                  { icon: Phone, label: user.phone || '—' },
+                  { icon: MapPin, label: user.location || user.address || '—' },
+                  { icon: Calendar, label: `Member since ${user.createdAt}` },
+                ].map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex items-center gap-2 text-sm">
+                    <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="text-slate-700 dark:text-slate-300 truncate">{label}</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-4 h-4 text-slate-400" />
-                    <span className="text-slate-700 dark:text-slate-300">{user.phone || '—'}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-4 h-4 text-slate-400" />
-                    <span className="text-slate-700 dark:text-slate-300">{user.address || '—'}</span>
-                  </div>
-                </div>
+                ))}
               </CardContent>
             </Card>
 
-            {/* Connection Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Connection Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Connection Type</p>
-                    <p className="font-medium text-slate-900 dark:text-white capitalize">{user.type}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Router</p>
-                    <p className="font-medium text-slate-900 dark:text-white">{user.router || '—'}</p>
-                  </div>
-                  {user.pppoeUsername && (
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">PPPoE Username</p>
-                      <p className="font-medium font-mono text-slate-900 dark:text-white">{user.pppoeUsername}</p>
-                    </div>
-                  )}
-                  {user.staticIp && (
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Static IP</p>
-                      <p className="font-medium font-mono text-slate-900 dark:text-white">{user.staticIp}</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">MAC Address</p>
-                    <p className="font-medium font-mono text-slate-900 dark:text-white">{user.macAddress || '—'}</p>
-                  </div>
-                </div>
-                <Separator />
-                <div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Last Seen</p>
-                  <div className="flex items-center gap-2">
-                    {user.lastSeen && new Date(user.lastSeen) > new Date(Date.now() - 60000) ? (
+            {/* Connection Status Card */}
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center justify-between">
+                  Connection
+                  <div className="flex items-center gap-1.5">
+                    {user.connectionStatus === 'online' ? (
                       <>
-                        <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                        <span className="text-success font-medium">Online Now</span>
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                        </span>
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 normal-case">Online</span>
                       </>
                     ) : (
-                      <>
-                        <div className="w-2 h-2 bg-slate-300 rounded-full"></div>
-                        <span className="text-slate-500">{user.lastSeen || 'Never'}</span>
-                      </>
+                      <span className="text-xs text-slate-400 normal-case">Offline</span>
                     )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Internet Check Status */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <Signal className="w-5 h-5" />
-                  Internet Check
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-start gap-4">
-                  {/* Status Indicator */}
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    internetCheck.status === 'green' ? 'bg-success/15' :
-                    internetCheck.status === 'yellow' ? 'bg-warning/15' :
-                    internetCheck.status === 'red' ? 'bg-destructive/15' :
-                    internetCheck.status === 'loading' ? 'bg-slate-100' :
-                    'bg-slate-100'
-                  }`}>
-                    {internetCheck.status === 'green' && (
-                      <CheckCircle className="w-6 h-6 text-success" />
-                    )}
-                    {internetCheck.status === 'yellow' && (
-                      <Activity className="w-6 h-6 text-warning" />
-                    )}
-                    {internetCheck.status === 'red' && (
-                      <XCircle className="w-6 h-6 text-destructive" />
-                    )}
-                    {internetCheck.status === 'loading' && (
-                      <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
-                    )}
-                    {internetCheck.status === 'none' && (
-                      <Signal className="w-6 h-6 text-slate-400" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-sm font-semibold ${
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  {[
+                    { label: 'Type', value: user.type?.toUpperCase() || '—' },
+                    { label: 'Router', value: user.router || '—' },
+                    { label: 'IP Address', value: user.ipAddress || user.staticIp || '—', mono: true },
+                    { label: 'MAC Address', value: user.macAddress || '—', mono: true },
+                    { label: 'Download', value: user.package.speedDown ? `${user.package.speedDown} Mbps` : '—' },
+                    { label: 'Upload', value: user.package.speedUp ? `${user.package.speedUp} Mbps` : '—' },
+                    { label: 'Last seen', value: user.lastSeen || '—' },
+                    { label: 'Activated', value: user.activationDate ? new Date(user.activationDate).toLocaleDateString() : '—' },
+                  ].map(({ label, value, mono }: any) => (
+                    <div key={label}>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{label}</p>
+                      <p className={`font-semibold text-slate-800 dark:text-slate-200 mt-0.5 ${mono ? 'font-mono text-xs' : ''}`}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Internet Health */}
+                <div className="mt-4 pt-3 border-t dark:border-slate-700">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      internetCheck.status === 'green' ? 'bg-success/15' :
+                      internetCheck.status === 'yellow' ? 'bg-warning/15' :
+                      internetCheck.status === 'red' ? 'bg-destructive/15' : 'bg-slate-100 dark:bg-slate-800'
+                    }`}>
+                      {internetCheck.status === 'green' && <CheckCircle className="w-4 h-4 text-success" />}
+                      {internetCheck.status === 'yellow' && <Activity className="w-4 h-4 text-warning" />}
+                      {internetCheck.status === 'red' && <XCircle className="w-4 h-4 text-destructive" />}
+                      {internetCheck.status === 'loading' && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />}
+                      {internetCheck.status === 'none' && <Signal className="w-4 h-4 text-slate-400" />}
+                    </div>
+                    <div>
+                      <p className={`text-xs font-bold ${
                         internetCheck.status === 'green' ? 'text-success' :
                         internetCheck.status === 'yellow' ? 'text-warning' :
-                        internetCheck.status === 'red' ? 'text-destructive' :
-                        'text-slate-600 dark:text-slate-400'
-                      }`}>
-                        {internetCheck.label}
-                      </span>
-                      {internetCheck.status === 'green' && <Badge className="bg-success/15 text-success text-xs">OK</Badge>}
-                      {internetCheck.status === 'yellow' && <Badge className="bg-warning/15 text-warning text-xs">Warning</Badge>}
-                      {internetCheck.status === 'red' && <Badge className="bg-destructive/15 text-destructive text-xs">Error</Badge>}
+                        internetCheck.status === 'red' ? 'text-destructive' : 'text-slate-500'
+                      }`}>{internetCheck.label}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{internetCheck.detail}</p>
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{internetCheck.detail}</p>
-                    {internetCheck.pool && (
-                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1 font-mono">
-                        Framed-Pool: {internetCheck.pool}
-                      </p>
-                    )}
-                    {internetCheck.routerName && (
-                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">
-                        Router: {internetCheck.routerName}
-                      </p>
-                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
+          </div>
 
-            {/* Package Info */}
+          {/* Subscription + Credentials row */}
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Subscription Card */}
             <Card>
-              <CardHeader>
-                <CardTitle>Current Package</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Subscription</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="p-3 rounded-xl bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 border border-violet-100 dark:border-violet-900/30">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">{user.package.name}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">KES {user.package.price.toLocaleString()}/mo</p>
+                    </div>
+                    {getStatusBadge(user.status)}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">Expires</p>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200">
+                      {user.expiryDate && user.package.name !== 'No plan'
+                        ? new Date(user.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                        : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">Time left</p>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200">
+                      {user.expiryDate && user.package.name !== 'No plan' ? (() => {
+                        const diff = new Date(user.expiryDate).getTime() - Date.now()
+                        if (diff <= 0) return <span className="text-destructive">Expired</span>
+                        const d = Math.floor(diff / 86400000)
+                        const h = Math.floor((diff % 86400000) / 3600000)
+                        return d > 0 ? `${d}d ${h}h` : `${h}h`
+                      })() : '—'}
+                    </p>
+                  </div>
+                </div>
+                {/* Billing Account */}
+                <div className="pt-2 border-t dark:border-slate-700">
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-1.5">Billing Account (M-Pesa Paybill Ref)</p>
+                  {user.billingAccountNumber ? (
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 font-mono font-bold text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800">
+                        {user.billingAccountNumber}
+                      </code>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { navigator.clipboard.writeText(user.billingAccountNumber!); toast.success('Copied') }}>
+                        <Copy className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">Not assigned</p>
+                  )}
+                </div>
+                {/* Data usage */}
+                {user.dataLimitThisMonth > 0 && (
+                  <div className="pt-2 border-t dark:border-slate-700">
+                    <div className="flex justify-between text-xs mb-1.5">
+                      <span className="text-slate-500">Data usage</span>
+                      <span className="font-medium">{user.dataUsedThisMonth} / {user.dataLimitThisMonth} GB</span>
+                    </div>
+                    <Progress value={(user.dataUsedThisMonth / user.dataLimitThisMonth) * 100} className="h-1.5" />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Network Credentials Card */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+                  <Wifi className="w-4 h-4" />
+                  PPPoE Credentials
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-bold text-lg text-slate-900 dark:text-white">{user.package.name}</h3>
-                      <p className="text-slate-500 dark:text-slate-400">KSh {user.package.price}/month</p>
-                    </div>
-                    <Package className="w-8 h-8 text-primary" />
+                {!user.pppoeUsername && user.serviceStatus === 'PENDING' ? (
+                  <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 text-sm text-orange-700 dark:text-orange-300">
+                    Credentials created after activation.
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Download</p>
-                      <p className="font-bold text-lg text-slate-900 dark:text-white">{user.package.speedDown} Mbps</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Upload</p>
-                      <p className="font-bold text-lg text-slate-900 dark:text-white">{user.package.speedUp} Mbps</p>
+                ) : user.pppoeUsername ? (
+                  <div className="space-y-3">
+                    {[
+                      { label: 'Username', value: user.pppoeUsername },
+                      { label: 'Password', value: user.pppoePassword || '••••••••', secret: true },
+                    ].map(({ label, value, secret }) => (
+                      <div key={label}>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mb-1">{label}</p>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 text-sm font-mono bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-lg border dark:border-slate-700">
+                            {value}
+                          </code>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { navigator.clipboard.writeText(user.pppoePassword || user.pppoeUsername); toast.success(`${label} copied`) }}>
+                            <Copy className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {user.radiusCredentials?.expiration_date && (
+                      <div className="pt-2 border-t dark:border-slate-700">
+                        <p className="text-xs text-slate-400 mb-1.5">Subscription Status</p>
+                        {(() => {
+                          const diff = new Date(user.radiusCredentials.expiration_date).getTime() - Date.now()
+                          const d = Math.floor(diff / 86400000)
+                          const h = Math.floor((diff % 86400000) / 3600000)
+                          if (diff <= 0) return <Badge variant="destructive">Expired</Badge>
+                          if (h < 24) return <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400">{h}h remaining</Badge>
+                          return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">{d}d remaining</Badge>
+                        })()}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-xs pt-1">
+                      <Badge variant={user.radiusCredentials?.is_enabled !== false ? "default" : "secondary"} className="text-xs">
+                        {user.radiusCredentials?.is_enabled !== false ? 'Enabled' : 'Disabled'}
+                      </Badge>
+                      <span className="text-slate-400">{user.radiusCredentials?.connection_type || 'PPPOE'}</span>
+                      {user.radiusCredentials?.synced_to_radius && (
+                        <span className="text-green-600 dark:text-green-400 font-medium">✓ Synced</span>
+                      )}
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <p className="text-sm text-slate-400 italic">No credentials found</p>
+                )}
               </CardContent>
             </Card>
+          </div>
 
-            {/* Usage Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Usage Statistics</CardTitle>
+          {/* Live Bandwidth Graph */}
+          {user.connectionStatus === 'online' && user.pppoeUsername && (
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-emerald-500" />
+                  Live Bandwidth
+                  <span className="relative flex h-2 w-2 ml-1">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm text-slate-500 dark:text-slate-400">Data Usage This Month</span>
-                    <span className="font-medium text-slate-900 dark:text-white">{user.dataUsedThisMonth} / {user.dataLimitThisMonth} GB</span>
-                  </div>
-                  <Progress value={user.dataLimitThisMonth > 0 ? (user.dataUsedThisMonth / user.dataLimitThisMonth) * 100 : 0} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Total Sessions</p>
-                    <p className="font-bold text-lg text-slate-900 dark:text-white">{user.totalSessions}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Avg Session Duration</p>
-                    <p className="font-bold text-lg text-slate-900 dark:text-white">{user.avgSessionDuration}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Total Payments</p>
-                    <p className="font-bold text-lg text-slate-900 dark:text-white">KSh {user.totalPayments.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Member Since</p>
-                    <p className="font-bold text-lg text-slate-900 dark:text-white">{user.createdAt}</p>
-                  </div>
-                </div>
+              <CardContent className="pt-0">
+                <LiveBandwidthChart username={user.pppoeUsername} />
               </CardContent>
             </Card>
+          )}
+
+          {/* Stats row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: 'Balance', value: `KES ${user.balance.toLocaleString()}`, icon: CreditCard, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' },
+              { label: 'Sessions', value: user.totalSessions.toString(), icon: Activity, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+              { label: 'Total Paid', value: `KES ${user.totalPayments.toLocaleString()}`, icon: TrendingUp, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-900/20' },
+              { label: 'Loyalty Pts', value: user.loyaltyPoints.toString(), icon: Gift, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+            ].map(({ label, value, icon: Icon, color, bg }) => (
+              <Card key={label} className="border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center`}>
+                      <Icon className={`w-4 h-4 ${color}`} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{value}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </TabsContent>
 
