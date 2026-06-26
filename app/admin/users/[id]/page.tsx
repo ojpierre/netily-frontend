@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import { motion } from "framer-motion"
 import {
   ArrowLeft,
   Edit,
@@ -156,7 +157,7 @@ function mapCustomerToUser(customer: Customer, services: CustomerService[], radi
     username: customer.email?.split('@')[0] || (customer as any).customer_number || '',
     fullName: customer.full_name || `${customer.first_name} ${customer.last_name}`,
     email: customer.email || '',
-    phone: customer.phone || '',
+    phone: customer.phone || customer.user?.phone_number || (customer as any).phone_number || '',
     address: customer.primary_address?.street_address || '',
     location: (customer as any).location || '',
     type: primaryService?.service_type?.toLowerCase() || 'pppoe',
@@ -169,27 +170,27 @@ function mapCustomerToUser(customer: Customer, services: CustomerService[], radi
       speedUp: plan?.speed_up || (primaryService as any)?.upload_speed || 0,
       price: Number(plan?.price || (plan as any)?.base_price) || 0,
     },
-    router: primaryService?.device?.name || (primaryService as any)?.router_name || '',
+    router: (primaryService as any)?.router_name || primaryService?.device?.name || radiusCreds?.router_name || '',
     expiryDate,
     createdAt: customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '',
-    lastSeen: primaryService?.last_seen || '',
+    lastSeen: primaryService?.last_seen || (primaryService as any)?.last_activity || '',
     pppoeUsername: radiusCredentials?.username || primaryService?.username || '',
     pppoePassword: radiusCredentials?.password || '',
     staticIp: radiusCredentials?.static_ip || primaryService?.ip_address || null,
     ipAddress: (primaryService as any)?.ip_address || '',
-    macAddress: primaryService?.mac_address || '',
+    macAddress: primaryService?.mac_address || (primaryService as any)?.mac || '',
     totalPayments: 0,
     totalSessions: 0,
     avgSessionDuration: '—',
     dataUsedThisMonth: primaryService?.data_used ? Math.round(primaryService.data_used / 1024) : 0,
     dataLimitThisMonth: primaryService?.data_limit ? Math.round(primaryService.data_limit / 1024) : 0,
-    connectionStatus: primaryService?.is_online ? 'online' : 'offline',
+    connectionStatus: 'offline' as 'online' | 'offline', // will be updated from RADIUS sessions
     radiusCredentials,
     billingAccountNumber: (primaryService as any)?.billing_account_number || (customer as any)?.billing_account_number || null,
     mpesaAccountNumber: (primaryService as any)?.mpesa_account_number || null,
     serviceId: primaryService?.id ?? null,
     serviceStatus: primaryService?.status?.toUpperCase() || '',
-    activationDate: (primaryService as any)?.activation_date || null,
+    activationDate: (primaryService as any)?.activation_date || (primaryService as any)?.activated_at || null,
     joinedDate: customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '',
   }
 }
@@ -431,6 +432,26 @@ export default function UserDetailPage() {
             if (sessionsRes?.results) {
               setSessions(sessionsRes.results.map(mapSession))
               mappedUser.totalSessions = sessionsRes.results.length
+
+              // Enrich from latest RADIUS session
+              const latestSession = sessionsRes.results[0]
+              if (latestSession) {
+                // Check if currently online (no stop time)
+                if (!latestSession.acctstoptime) {
+                  mappedUser.connectionStatus = 'online'
+                  mappedUser.ipAddress = latestSession.framedipaddress || mappedUser.ipAddress
+                  mappedUser.macAddress = latestSession.callingstationid || mappedUser.macAddress
+                  mappedUser.router = latestSession.router_name || latestSession.nasipaddress || mappedUser.router
+                  mappedUser.lastSeen = 'Now'
+                } else {
+                  mappedUser.connectionStatus = 'offline'
+                  mappedUser.lastSeen = latestSession.acctstoptime
+                    ? new Date(latestSession.acctstoptime).toLocaleString()
+                    : mappedUser.lastSeen
+                  mappedUser.macAddress = latestSession.callingstationid || mappedUser.macAddress
+                  mappedUser.router = latestSession.router_name || latestSession.nasipaddress || mappedUser.router
+                }
+              }
             }
           } catch (err) {
             console.warn('Failed to load RADIUS sessions:', err)
@@ -623,7 +644,12 @@ export default function UserDetailPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <motion.div
+      className="p-6 space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+    >
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
@@ -634,6 +660,17 @@ export default function UserDetailPage() {
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{user.fullName}</h1>
             {getTypeBadge(user.type)}
             {getStatusBadge(user.status)}
+            {user.connectionStatus === 'online' ? (
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Online</span>
+              </div>
+            ) : (
+              <span className="text-sm text-slate-400">Offline</span>
+            )}
           </div>
           <p className="text-slate-600 dark:text-slate-400 mt-1">User ID: {params.id} • Joined {user.createdAt}</p>
         </div>
@@ -750,13 +787,13 @@ export default function UserDetailPage() {
                 <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   {[
                     { label: 'Type', value: user.type?.toUpperCase() || '—' },
-                    { label: 'Router', value: user.router || '—' },
-                    { label: 'IP Address', value: user.ipAddress || user.staticIp || '—', mono: true },
+                    { label: 'Router', value: user.router || radiusCreds?.router_name || '—' },
+                    { label: 'IP Address', value: user.ipAddress || user.staticIp || radiusCreds?.static_ip || '—', mono: true },
                     { label: 'MAC Address', value: user.macAddress || '—', mono: true },
                     { label: 'Download', value: user.package.speedDown ? `${user.package.speedDown} Mbps` : '—' },
                     { label: 'Upload', value: user.package.speedUp ? `${user.package.speedUp} Mbps` : '—' },
-                    { label: 'Last seen', value: user.lastSeen || '—' },
-                    { label: 'Activated', value: user.activationDate ? new Date(user.activationDate).toLocaleDateString() : '—' },
+                    { label: 'Last seen', value: user.connectionStatus === 'online' ? 'Now (Online)' : (user.lastSeen || '—') },
+                    { label: 'Activated', value: user.activationDate ? new Date(user.activationDate).toLocaleString() : '—' },
                   ].map(({ label, value, mono }: any) => (
                     <div key={label}>
                       <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{label}</p>
@@ -1163,6 +1200,6 @@ export default function UserDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   )
 }
