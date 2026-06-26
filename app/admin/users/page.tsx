@@ -3138,147 +3138,150 @@ export default function UsersPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredUsers.map((user) => (
-                          <motion.tr
-                            key={user.id}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.15 }}
-                            // FIX 1: Fixed dark mode hover row
-                            whileHover={{ backgroundColor: "#faf5ff" }}
-                            className="transition-all duration-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:shadow-sm group dark:border-slate-700"
-                          >
-                            <TableCell>
-                              <Checkbox
-                                checked={selectedUsers.includes(user.id)}
-                                onCheckedChange={(checked) =>
-                                  handleSelectUser(user.id, checked as boolean)
-                                }
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium text-sm">
-                                  {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        {filteredUsers.map((user) => {
+                          // FIX: Make entire row clickable, but prevent checkbox and dropdown from triggering navigation
+                          return (
+                            <motion.tr
+                              key={user.id}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0.15 }}
+                              whileHover={{ backgroundColor: "#faf5ff" }}
+                              className="transition-all duration-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:shadow-sm group dark:border-slate-700 cursor-pointer"
+                              onClick={() => router.push(`/admin/users/${user.customerId}`)}
+                            >
+                              <TableCell onClick={(e) => e.stopPropagation()}>
+                                <Checkbox
+                                  checked={selectedUsers.includes(user.id)}
+                                  onCheckedChange={(checked) =>
+                                    handleSelectUser(user.id, checked as boolean)
+                                  }
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium text-sm">
+                                    {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">{user.phone}</p>
+                                  </div>
                                 </div>
+                              </TableCell>
+                              <TableCell>{getTypeBadge(user.type)}</TableCell>
+                              <TableCell>{getStatusBadge(user.status)}</TableCell>
+                              <TableCell>{getConnectionBadge(user.connectionStatus)}</TableCell>
+                              <TableCell>
                                 <div>
-                                  <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">{user.phone}</p>
+                                  <p className="text-sm font-medium dark:text-slate-300">{user.plan}</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">KES {user.planPrice.toLocaleString()}</p>
                                 </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>{getTypeBadge(user.type)}</TableCell>
-                            <TableCell>{getStatusBadge(user.status)}</TableCell>
-                            <TableCell>{getConnectionBadge(user.connectionStatus)}</TableCell>
-                            <TableCell>
-                              <div>
-                                <p className="text-sm font-medium dark:text-slate-300">{user.plan}</p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">KES {user.planPrice.toLocaleString()}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <p className="text-sm font-medium dark:text-slate-300">
-                                  {user.liveUsageString || `${Number(user.dataUsed || 0).toFixed(1)} GB`}
-                                </p>
-                                {user.dataLimit && (
-                                  <Progress value={(Number(user.dataUsed || 0) / user.dataLimit) * 100} className="h-1.5 w-16" />
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {user.plan === "No Plan" ? (
-                                <div>
-                                  <p className="text-sm dark:text-slate-300">-</p>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">Voucher</p>
-                                </div>
-                              ) : (
-                                <div>
-                                  <p className="text-sm dark:text-slate-300">{new Date(user.expiryDate).toLocaleDateString()}</p>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    {new Date(user.expiryDate) > new Date() 
-                                      ? `${Math.ceil((new Date(user.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left`
-                                      : "Expired"
-                                    }
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <p className="text-sm font-medium dark:text-slate-300">
+                                    {user.liveUsageString || `${Number(user.dataUsed || 0).toFixed(1)} GB`}
                                   </p>
+                                  {user.dataLimit && (
+                                    <Progress value={(Number(user.dataUsed || 0) / user.dataLimit) * 100} className="h-1.5 w-16" />
+                                  )}
                                 </div>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreVertical className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="dark:bg-slate-900 dark:border-slate-700">
-                                  <DropdownMenuItem onClick={() => handleViewUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleEditUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                    <Edit className="w-4 h-4 mr-2" />
-                                    Edit User
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleExtendSubscription(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                    <Calendar className="w-4 h-4 mr-2" />
-                                    Extend Subscription
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleOpenChangePlan(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                    <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                    Change Plan
-                                  </DropdownMenuItem>
-                                  {(user.type === "pppoe" || user.type === "static") && (
-                                    <DropdownMenuItem onClick={() => handleEditIP(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                      <Server className="w-4 h-4 mr-2" />
-                                      Edit IP Address
+                              </TableCell>
+                              <TableCell>
+                                {user.plan === "No Plan" ? (
+                                  <div>
+                                    <p className="text-sm dark:text-slate-300">-</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">Voucher</p>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <p className="text-sm dark:text-slate-300">{new Date(user.expiryDate).toLocaleDateString()}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                      {new Date(user.expiryDate) > new Date() 
+                                        ? `${Math.ceil((new Date(user.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left`
+                                        : "Expired"
+                                      }
+                                    </p>
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="dark:bg-slate-900 dark:border-slate-700">
+                                    <DropdownMenuItem onClick={() => handleViewUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      View Details
                                     </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuItem onClick={() => handleOpenUserSms(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                    <Send className="w-4 h-4 mr-2" />
-                                    Send SMS
-                                  </DropdownMenuItem>
-                                  {user.status === "pending" && (
+                                    <DropdownMenuItem onClick={() => handleEditUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                      <Edit className="w-4 h-4 mr-2" />
+                                      Edit User
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleExtendSubscription(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                      <Calendar className="w-4 h-4 mr-2" />
+                                      Extend Subscription
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleOpenChangePlan(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                      <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                      Change Plan
+                                    </DropdownMenuItem>
+                                    {(user.type === "pppoe" || user.type === "static") && (
+                                      <DropdownMenuItem onClick={() => handleEditIP(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                        <Server className="w-4 h-4 mr-2" />
+                                        Edit IP Address
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem onClick={() => handleOpenUserSms(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                      <Send className="w-4 h-4 mr-2" />
+                                      Send SMS
+                                    </DropdownMenuItem>
+                                    {user.status === "pending" && (
+                                      <DropdownMenuItem 
+                                        onClick={() => handleActivateUser(user)}
+                                        className="text-green-600 dark:text-green-400 dark:hover:bg-slate-800"
+                                      >
+                                        <UserCheck className="w-4 h-4 mr-2" />
+                                        Activate Now
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator className="dark:bg-slate-700" />
+                                    {user.radiusCredentials && (
+                                      <DropdownMenuItem 
+                                        onClick={() => handleToggleRadius(user, !user.radiusCredentials!.is_enabled)}
+                                        className={user.radiusCredentials.is_enabled ? "text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800" : "text-green-600 dark:text-green-400 dark:hover:bg-slate-800"}
+                                      >
+                                        <Power className="w-4 h-4 mr-2" />
+                                        {user.radiusCredentials.is_enabled ? 'Disable RADIUS' : 'Enable RADIUS'}
+                                      </DropdownMenuItem>
+                                    )}
+                                    {user.connectionStatus === "online" && (
+                                      <DropdownMenuItem 
+                                        onClick={() => handleDisconnectUser(user)}
+                                        className="text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800"
+                                      >
+                                        <Power className="w-4 h-4 mr-2" />
+                                        Disconnect
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator className="dark:bg-slate-700" />
                                     <DropdownMenuItem 
-                                      onClick={() => handleActivateUser(user)}
-                                      className="text-green-600 dark:text-green-400 dark:hover:bg-slate-800"
+                                      onClick={() => handleDeleteUser(user)}
+                                      className="text-red-600 dark:text-red-400 dark:hover:bg-slate-800"
                                     >
-                                      <UserCheck className="w-4 h-4 mr-2" />
-                                      Activate Now
+                                      <Trash2 className="w-4 h-4 mr-2" />
+                                      Delete User
                                     </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuSeparator className="dark:bg-slate-700" />
-                                  {user.radiusCredentials && (
-                                    <DropdownMenuItem 
-                                      onClick={() => handleToggleRadius(user, !user.radiusCredentials!.is_enabled)}
-                                      className={user.radiusCredentials.is_enabled ? "text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800" : "text-green-600 dark:text-green-400 dark:hover:bg-slate-800"}
-                                    >
-                                      <Power className="w-4 h-4 mr-2" />
-                                      {user.radiusCredentials.is_enabled ? 'Disable RADIUS' : 'Enable RADIUS'}
-                                    </DropdownMenuItem>
-                                  )}
-                                  {user.connectionStatus === "online" && (
-                                    <DropdownMenuItem 
-                                      onClick={() => handleDisconnectUser(user)}
-                                      className="text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800"
-                                    >
-                                      <Power className="w-4 h-4 mr-2" />
-                                      Disconnect
-                                    </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuSeparator className="dark:bg-slate-700" />
-                                  <DropdownMenuItem 
-                                    onClick={() => handleDeleteUser(user)}
-                                    className="text-red-600 dark:text-red-400 dark:hover:bg-slate-800"
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete User
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </motion.tr>
-                        ))}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </motion.tr>
+                          )
+                        })}
                       </TableBody>
                     </Table>
                   </div>
