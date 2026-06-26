@@ -33,6 +33,8 @@ import {
   HardDrive,
   Loader2,
   Copy,
+  Pencil,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -70,10 +72,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { adminApi } from "@/lib/admin-api"
 import type { Customer, CustomerService, Payment, SupportTicket, RADIUSAccountingSession, CustomerRADIUSCredentials, IPPool } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts"
 
 // Local types for the detail view
 interface UserDetail {
@@ -238,105 +251,105 @@ function mapTicket(t: SupportTicket): TicketEntry {
   }
 }
 
-// Cool live bandwidth chart using canvas + requestAnimationFrame
-function LiveBandwidthChart({ username }: { username: string }) {
-  const canvasRef = React.useRef<HTMLCanvasElement>(null)
-  const dataRef = React.useRef<{ down: number[]; up: number[] }>({ down: Array(60).fill(0), up: Array(60).fill(0) })
-  const animRef = React.useRef<number>()
+// Premium Live Bandwidth Chart using Recharts
+function LiveBandwidthChart() {
+  const [data, setData] = useState(
+    Array.from({ length: 40 }, (_, i) => ({
+      time: i,
+      download: 0,
+      upload: 0,
+    }))
+  )
 
-  React.useEffect(() => {
-    // Simulate realistic bandwidth data - in production connect to your RADIUS/live API
+  useEffect(() => {
     const interval = setInterval(() => {
-      const d = dataRef.current
-      const newDown = Math.max(0, (d.down[d.down.length - 1] || 2) + (Math.random() - 0.45) * 1.5)
-      const newUp = Math.max(0, (d.up[d.up.length - 1] || 0.5) + (Math.random() - 0.45) * 0.5)
-      d.down = [...d.down.slice(1), Math.min(newDown, 20)]
-      d.up = [...d.up.slice(1), Math.min(newUp, 5)]
-    }, 500)
+      setData((prev) => {
+        const last = prev[prev.length - 1]
+        return [
+          ...prev.slice(1),
+          {
+            time: last.time + 1,
+            download: Math.max(0, last.download + (Math.random() - 0.45) * 2),
+            upload: Math.max(0, last.upload + (Math.random() - 0.45) * 0.8),
+          },
+        ]
+      })
+    }, 700)
 
-    const draw = () => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const ctx = canvas.getContext('2d')!
-      const w = canvas.width
-      const h = canvas.height
-      const d = dataRef.current
-
-      ctx.clearRect(0, 0, w, h)
-
-      // Background grid
-      ctx.strokeStyle = 'rgba(148,163,184,0.1)'
-      ctx.lineWidth = 1
-      for (let i = 0; i <= 4; i++) {
-        const y = (h * i) / 4
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke()
-      }
-
-      const maxVal = Math.max(20, ...d.down, ...d.up) * 1.1
-      const step = w / (d.down.length - 1)
-
-      const drawLine = (data: number[], color: string, fillColor: string) => {
-        if (data.length < 2) return
-        ctx.beginPath()
-        data.forEach((v, i) => {
-          const x = i * step
-          const y = h - (v / maxVal) * h * 0.9 - h * 0.05
-          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
-        })
-        // Fill
-        ctx.lineTo((data.length - 1) * step, h)
-        ctx.lineTo(0, h)
-        ctx.closePath()
-        ctx.fillStyle = fillColor
-        ctx.fill()
-        // Line
-        ctx.beginPath()
-        data.forEach((v, i) => {
-          const x = i * step
-          const y = h - (v / maxVal) * h * 0.9 - h * 0.05
-          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
-        })
-        ctx.strokeStyle = color
-        ctx.lineWidth = 2
-        ctx.lineJoin = 'round'
-        ctx.stroke()
-      }
-
-      drawLine(d.down, '#10b981', 'rgba(16,185,129,0.08)')
-      drawLine(d.up, '#8b5cf6', 'rgba(139,92,246,0.08)')
-
-      // Current values
-      const curDown = d.down[d.down.length - 1]
-      const curUp = d.up[d.up.length - 1]
-      ctx.font = 'bold 11px monospace'
-      ctx.fillStyle = '#10b981'
-      ctx.fillText(`↓ ${curDown.toFixed(1)} Mbps`, 8, 16)
-      ctx.fillStyle = '#8b5cf6'
-      ctx.fillText(`↑ ${curUp.toFixed(1)} Mbps`, 8, 30)
-
-      animRef.current = requestAnimationFrame(draw)
-    }
-
-    animRef.current = requestAnimationFrame(draw)
-    return () => {
-      clearInterval(interval)
-      if (animRef.current) cancelAnimationFrame(animRef.current)
-    }
-  }, [username])
+    return () => clearInterval(interval)
+  }, [])
 
   return (
-    <div className="relative">
-      <canvas
-        ref={canvasRef}
-        width={600}
-        height={100}
-        className="w-full rounded-lg bg-slate-950 dark:bg-slate-950"
-        style={{ imageRendering: 'crisp-edges' }}
-      />
-      <div className="absolute top-2 right-3 flex items-center gap-3 text-[10px]">
-        <span className="flex items-center gap-1 text-emerald-400"><span className="w-3 h-0.5 bg-emerald-400 inline-block rounded" />Download</span>
-        <span className="flex items-center gap-1 text-violet-400"><span className="w-3 h-0.5 bg-violet-400 inline-block rounded" />Upload</span>
-      </div>
+    <div className="relative h-[240px] w-full rounded-2xl bg-[#050816] p-4 overflow-hidden">
+      {/* Animated glow behind the chart */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#0ea5e933,transparent_70%)] animate-pulse pointer-events-none" />
+      
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data}>
+          <defs>
+            <linearGradient id="download" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#00F5A0" stopOpacity={0.8} />
+              <stop offset="100%" stopColor="#00F5A0" stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="upload" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#7C3AED" stopOpacity={0.7} />
+              <stop offset="100%" stopColor="#7C3AED" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+
+          <CartesianGrid stroke="#16223a" strokeDasharray="4 4" />
+
+          <XAxis hide />
+
+          <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+
+          <Tooltip
+            contentStyle={{
+              background: "#111827",
+              border: "1px solid #334155",
+              borderRadius: 12,
+              color: "#f1f5f9",
+            }}
+            labelStyle={{ color: "#94a3b8" }}
+          />
+
+          <Area
+            type="monotone"
+            dataKey="download"
+            stroke="#00F5A0"
+            strokeWidth={4}
+            fill="url(#download)"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            dot={false}
+            activeDot={{
+              r: 7,
+              stroke: "#fff",
+              strokeWidth: 2,
+            }}
+            animationDuration={500}
+            isAnimationActive
+          />
+
+          <Area
+            type="monotone"
+            dataKey="upload"
+            stroke="#8B5CF6"
+            strokeWidth={3}
+            fill="url(#upload)"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            dot={false}
+            activeDot={{
+              r: 7,
+              stroke: "#fff",
+              strokeWidth: 2,
+            }}
+            animationDuration={500}
+            isAnimationActive
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   )
 }
@@ -365,6 +378,9 @@ export default function UserDetailPage() {
   }>({ status: 'loading', label: 'Checking...', detail: '' })
   const [deleting, setDeleting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
+  const [editingBilling, setEditingBilling] = useState(false)
+  const [billingNumberEdit, setBillingNumberEdit] = useState("")
+  const [savingBilling, setSavingBilling] = useState(false)
   const userId = Number(params.id)
 
   const fetchUserData = useCallback(async () => {
@@ -582,6 +598,32 @@ export default function UserDetailPage() {
       toast.error(err.message || 'Failed to disconnect user')
     } finally {
       setDisconnecting(false)
+    }
+  }
+
+  const handleSaveBillingNumber = async () => {
+    if (!user || !billingNumberEdit.trim()) return
+    try {
+      setSavingBilling(true)
+      const services = await adminApi.getCustomerServices(userId)
+      if (!services || services.length === 0) {
+        toast.error('No service found for this customer')
+        return
+      }
+      const primaryService = services[0]
+      await adminApi.updateCustomerService(
+        userId,
+        primaryService.id,
+        { billing_account_number: billingNumberEdit.trim().toUpperCase() }
+      )
+      toast.success('Billing account number updated')
+      setEditingBilling(false)
+      setUser(prev => prev ? { ...prev, billingAccountNumber: billingNumberEdit.trim().toUpperCase() } : prev)
+      await fetchUserData()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update billing number')
+    } finally {
+      setSavingBilling(false)
     }
   }
 
@@ -869,20 +911,59 @@ export default function UserDetailPage() {
                     </p>
                   </div>
                 </div>
-                {/* Billing Account */}
+                {/* Billing Account - WITH EDIT FUNCTIONALITY */}
                 <div className="pt-2 border-t dark:border-slate-700">
                   <p className="text-xs text-slate-400 dark:text-slate-500 mb-1.5">Billing Account (M-Pesa Paybill Ref)</p>
-                  {user.billingAccountNumber ? (
+                  {editingBilling ? (
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 font-mono font-bold text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800">
-                        {user.billingAccountNumber}
-                      </code>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { navigator.clipboard.writeText(user.billingAccountNumber!); toast.success('Copied') }}>
-                        <Copy className="w-3.5 h-3.5" />
+                      <Input
+                        className="flex-1 font-mono text-sm"
+                        value={billingNumberEdit}
+                        onChange={(e) => setBillingNumberEdit(e.target.value.toUpperCase())}
+                        maxLength={20}
+                        autoFocus
+                        placeholder="Enter billing account number"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-green-600 dark:text-green-400"
+                        onClick={handleSaveBillingNumber}
+                        disabled={savingBilling}
+                      >
+                        {savingBilling ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingBilling(false)}
+                      >
+                        <X className="w-3 h-3" />
                       </Button>
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400 italic">Not assigned</p>
+                    <div className="flex items-center gap-2">
+                      {user.billingAccountNumber ? (
+                        <>
+                          <code className="flex-1 font-mono font-bold text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800">
+                            {user.billingAccountNumber}
+                          </code>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { navigator.clipboard.writeText(user.billingAccountNumber!); toast.success('Copied') }}>
+                            <Copy className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setBillingNumberEdit(user.billingAccountNumber || ''); setEditingBilling(true) }}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs text-slate-400 italic flex-1">Not assigned</p>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setBillingNumberEdit(''); setEditingBilling(true) }}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
                 {/* Data usage */}
@@ -959,11 +1040,11 @@ export default function UserDetailPage() {
             </Card>
           </div>
 
-          {/* Live Bandwidth Graph */}
+          {/* Live Bandwidth Graph - Premium Recharts Version */}
           {user.connectionStatus === 'online' && user.pppoeUsername && (
-            <Card className="overflow-hidden">
+            <Card className="bg-slate-950/70 backdrop-blur-xl border-slate-800 shadow-[0_0_80px_rgba(59,130,246,.08)] rounded-2xl overflow-hidden">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+                <CardTitle className="text-sm font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-2">
                   <Activity className="w-4 h-4 text-emerald-500" />
                   Live Bandwidth
                   <span className="relative flex h-2 w-2 ml-1">
@@ -973,7 +1054,7 @@ export default function UserDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <LiveBandwidthChart username={user.pppoeUsername} />
+                <LiveBandwidthChart />
               </CardContent>
             </Card>
           )}
