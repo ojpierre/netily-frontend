@@ -71,6 +71,7 @@ import {
 import { adminApi } from "@/lib/admin-api"
 import type { Customer, CustomerService, Payment, SupportTicket, RADIUSAccountingSession, CustomerRADIUSCredentials, IPPool } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
 
 // Local types for the detail view
 interface UserDetail {
@@ -218,8 +219,11 @@ export default function UserDetailPage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserDetail | null>(null)
   const [sessions, setSessions] = useState<SessionEntry[]>([])
+  const [sessionsLoading, setSessionsLoading] = useState(true)
   const [payments, setPayments] = useState<PaymentEntry[]>([])
+  const [paymentsLoading, setPaymentsLoading] = useState(true)
   const [tickets, setTickets] = useState<TicketEntry[]>([])
+  const [ticketsLoading, setTicketsLoading] = useState(true)
   const [radiusCreds, setRadiusCreds] = useState<CustomerRADIUSCredentials | null>(null)
   const [internetCheck, setInternetCheck] = useState<{
     status: 'green' | 'yellow' | 'red' | 'loading' | 'none'
@@ -228,52 +232,81 @@ export default function UserDetailPage() {
     pool?: string
     routerName?: string
   }>({ status: 'loading', label: 'Checking...', detail: '' })
+  const [deleting, setDeleting] = useState(false)
+  const [disconnecting, setDisconnecting] = useState(false)
   const userId = Number(params.id)
 
   const fetchUserData = useCallback(async () => {
     try {
       setLoading(true)
-      const [customerRes, servicesRes, paymentsRes, ticketsRes] = await Promise.allSettled([
-        adminApi.getCustomer(userId),
-        adminApi.getCustomerServices(userId),
-        adminApi.getPayments({ customer: String(userId), page_size: '20' }),
-        adminApi.getTickets({ customer_id: String(userId), page_size: '20' }),
-      ])
-
-      const customer = customerRes.status === 'fulfilled' ? customerRes.value : null
-      const services = servicesRes.status === 'fulfilled' ? servicesRes.value : []
+      
+      // Fetch customer
+      const customer = await adminApi.getCustomer(userId)
+      
+      // Fetch services
+      let services: CustomerService[] = []
+      try {
+        const servicesRes = await adminApi.getCustomerServices(userId)
+        services = servicesRes || []
+      } catch (err) {
+        console.warn('Failed to load services:', err)
+      }
 
       if (customer) {
         const mappedUser = mapCustomerToUser(customer, services)
+        
+        // Fetch payments
+        try {
+          setPaymentsLoading(true)
+          const paymentsRes = await adminApi.getPayments({ customer: String(userId), page_size: '20' })
+          const paymentsList = paymentsRes.results || []
+          const totalPayments = paymentsList.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+          mappedUser.totalPayments = totalPayments
+          setPayments(paymentsList.map(mapPayment))
+        } catch (err) {
+          console.warn('Failed to load payments:', err)
+          setPayments([])
+        } finally {
+          setPaymentsLoading(false)
+        }
 
-        // Get payment total
-        const paymentsList = paymentsRes.status === 'fulfilled' ? paymentsRes.value.results || [] : []
-        const totalPayments = paymentsList.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
-        mappedUser.totalPayments = totalPayments
+        // Fetch tickets
+        try {
+          setTicketsLoading(true)
+          const ticketsRes = await adminApi.getTickets({ customer_id: String(userId), page_size: '20' })
+          const ticketsList = ticketsRes.results || []
+          setTickets(ticketsList.map(mapTicket))
+        } catch (err) {
+          console.warn('Failed to load tickets:', err)
+          setTickets([])
+        } finally {
+          setTicketsLoading(false)
+        }
 
-        setUser(mappedUser)
-        setPayments(paymentsList.map(mapPayment))
-
-        // Map tickets
-        const ticketsList = ticketsRes.status === 'fulfilled' ? ticketsRes.value.results || [] : []
-        setTickets(ticketsList.map(mapTicket))
-
-        // Fetch RADIUS sessions if we have a username
+        // Fetch RADIUS sessions
         const pppoeUser = services.find(s => s.username)?.username
         if (pppoeUser) {
           try {
+            setSessionsLoading(true)
             const sessionsRes = await adminApi.getRADIUSSessions({ username: pppoeUser, page_size: '20' })
             if (sessionsRes?.results) {
               setSessions(sessionsRes.results.map(mapSession))
               mappedUser.totalSessions = sessionsRes.results.length
-              setUser({ ...mappedUser })
             }
-          } catch {
-            // RADIUS sessions optional
+          } catch (err) {
+            console.warn('Failed to load RADIUS sessions:', err)
+            setSessions([])
+          } finally {
+            setSessionsLoading(false)
           }
+        } else {
+          setSessions([])
+          setSessionsLoading(false)
         }
 
-        // Internet Check: Fetch RADIUS credentials and validate pool linkage
+        setUser(mappedUser)
+
+        // Internet Check: Fetch RADIUS credentials
         try {
           const credsRes = await adminApi.getRADIUSCredentials({ customer: String(userId), page_size: '1' })
           const cred = credsRes?.results?.[0] || null
@@ -332,7 +365,8 @@ export default function UserDetailPage() {
               })
             }
           }
-        } catch {
+        } catch (err) {
+          console.warn('Failed to check RADIUS status:', err)
           setInternetCheck({
             status: 'none',
             label: 'Unknown',
@@ -342,6 +376,7 @@ export default function UserDetailPage() {
       }
     } catch (err) {
       console.error('Failed to load user data:', err)
+      toast.error('Failed to load user data')
     } finally {
       setLoading(false)
     }
@@ -350,6 +385,45 @@ export default function UserDetailPage() {
   useEffect(() => {
     if (userId) fetchUserData()
   }, [userId, fetchUserData])
+
+  const handleRefresh = async () => {
+    await fetchUserData()
+    toast.success('Data refreshed')
+  }
+
+  const handleDelete = async () => {
+    try {
+      setDeleting(true)
+      await adminApi.deleteCustomer(userId)
+      toast.success('User deleted successfully')
+      router.push('/admin/users')
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete user')
+    } finally {
+      setDeleting(false)
+      setIsDeleteDialogOpen(false)
+    }
+  }
+
+  const handleDisconnect = async () => {
+    try {
+      setDisconnecting(true)
+      const services = await adminApi.getCustomerServices(userId)
+      const primaryService = services.find(s => s.status === 'active') || services[0]
+      if (primaryService) {
+        await adminApi.suspendService(userId, primaryService.id, 'Manual disconnect from admin')
+        toast.success('User disconnected successfully')
+      } else {
+        toast.error('No active service found to disconnect')
+      }
+      setIsDisconnectDialogOpen(false)
+      await fetchUserData()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to disconnect user')
+    } finally {
+      setDisconnecting(false)
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -375,6 +449,18 @@ export default function UserDetailPage() {
       default:
         return <Badge variant="outline">{type}</Badge>
     }
+  }
+
+  const getPaymentStatusBadge = (status: string) => {
+    const s = status?.toLowerCase() || ''
+    if (s === 'completed' || s === 'paid' || s === 'confirmed') {
+      return <Badge className="bg-success/15 text-success">Completed</Badge>
+    } else if (s === 'pending' || s === 'processing') {
+      return <Badge className="bg-warning/15 text-warning">Pending</Badge>
+    } else if (s === 'failed') {
+      return <Badge variant="destructive">Failed</Badge>
+    }
+    return <Badge variant="outline">{status}</Badge>
   }
 
   if (loading || !user) {
@@ -410,8 +496,12 @@ export default function UserDetailPage() {
             {getTypeBadge(user.type)}
             {getStatusBadge(user.status)}
           </div>
-          <p className="text-slate-600 mt-1">User ID: {params.id} • Joined {user.createdAt}</p>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">User ID: {params.id} • Joined {user.createdAt}</p>
         </div>
+        <Button variant="outline" size="sm" onClick={handleRefresh}>
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Refresh
+        </Button>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setIsDisconnectDialogOpen(true)}>
             <Ban className="w-4 h-4 mr-2" />
@@ -464,8 +554,8 @@ export default function UserDetailPage() {
                 <CreditCard className="w-5 h-5 text-success" />
               </div>
               <div>
-                <p className="text-sm text-slate-600">Balance</p>
-                <p className="text-xl font-bold">KSh {user.balance.toLocaleString()}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Balance</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">KSh {user.balance.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -474,12 +564,12 @@ export default function UserDetailPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Gift className="w-5 h-5 text-purple-600" />
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                <Gift className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-slate-600">Loyalty Points</p>
-                <p className="text-xl font-bold">{user.loyaltyPoints}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Loyalty Points</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">{user.loyaltyPoints}</p>
               </div>
             </div>
           </CardContent>
@@ -492,8 +582,8 @@ export default function UserDetailPage() {
                 <HardDrive className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-slate-600">Data Used</p>
-                <p className="text-xl font-bold">{user.dataUsedThisMonth} GB</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Data Used</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">{user.dataUsedThisMonth} GB</p>
               </div>
             </div>
           </CardContent>
@@ -506,8 +596,8 @@ export default function UserDetailPage() {
                 <Calendar className="w-5 h-5 text-warning" />
               </div>
               <div>
-                <p className="text-sm text-slate-600">Expires</p>
-                <p className="text-xl font-bold">{user.expiryDate}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Expires</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">{user.expiryDate || '—'}</p>
               </div>
             </div>
           </CardContent>
@@ -516,7 +606,7 @@ export default function UserDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="flex flex-wrap gap-1 h-auto p-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="sessions">Sessions</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
@@ -538,23 +628,23 @@ export default function UserDetailPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold text-lg">{user.fullName}</p>
-                    <p className="text-slate-500">@{user.username}</p>
+                    <p className="font-semibold text-lg text-slate-900 dark:text-white">{user.fullName}</p>
+                    <p className="text-slate-500 dark:text-slate-400">@{user.username}</p>
                   </div>
                 </div>
                 <Separator />
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <Mail className="w-4 h-4 text-slate-400" />
-                    <span>{user.email}</span>
+                    <span className="text-slate-700 dark:text-slate-300">{user.email || '—'}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Phone className="w-4 h-4 text-slate-400" />
-                    <span>{user.phone}</span>
+                    <span className="text-slate-700 dark:text-slate-300">{user.phone || '—'}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <MapPin className="w-4 h-4 text-slate-400" />
-                    <span>{user.address}</span>
+                    <span className="text-slate-700 dark:text-slate-300">{user.address || '—'}</span>
                   </div>
                 </div>
               </CardContent>
@@ -568,30 +658,45 @@ export default function UserDetailPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-slate-500">Connection Type</p>
-                    <p className="font-medium capitalize">{user.type}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Connection Type</p>
+                    <p className="font-medium text-slate-900 dark:text-white capitalize">{user.type}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-slate-500">Router</p>
-                    <p className="font-medium">{user.router}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Router</p>
+                    <p className="font-medium text-slate-900 dark:text-white">{user.router || '—'}</p>
                   </div>
                   {user.pppoeUsername && (
                     <div>
-                      <p className="text-sm text-slate-500">PPPoE Username</p>
-                      <p className="font-medium font-mono">{user.pppoeUsername}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">PPPoE Username</p>
+                      <p className="font-medium font-mono text-slate-900 dark:text-white">{user.pppoeUsername}</p>
+                    </div>
+                  )}
+                  {user.staticIp && (
+                    <div>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Static IP</p>
+                      <p className="font-medium font-mono text-slate-900 dark:text-white">{user.staticIp}</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-sm text-slate-500">MAC Address</p>
-                    <p className="font-medium font-mono">{user.macAddress}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">MAC Address</p>
+                    <p className="font-medium font-mono text-slate-900 dark:text-white">{user.macAddress || '—'}</p>
                   </div>
                 </div>
                 <Separator />
                 <div>
-                  <p className="text-sm text-slate-500 mb-2">Last Seen</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Last Seen</p>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                    <span className="text-success font-medium">Online Now</span>
+                    {user.lastSeen && new Date(user.lastSeen) > new Date(Date.now() - 60000) ? (
+                      <>
+                        <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                        <span className="text-success font-medium">Online Now</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-2 h-2 bg-slate-300 rounded-full"></div>
+                        <span className="text-slate-500">{user.lastSeen || 'Never'}</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -637,7 +742,7 @@ export default function UserDetailPage() {
                         internetCheck.status === 'green' ? 'text-success' :
                         internetCheck.status === 'yellow' ? 'text-warning' :
                         internetCheck.status === 'red' ? 'text-destructive' :
-                        'text-slate-600'
+                        'text-slate-600 dark:text-slate-400'
                       }`}>
                         {internetCheck.label}
                       </span>
@@ -645,14 +750,14 @@ export default function UserDetailPage() {
                       {internetCheck.status === 'yellow' && <Badge className="bg-warning/15 text-warning text-xs">Warning</Badge>}
                       {internetCheck.status === 'red' && <Badge className="bg-destructive/15 text-destructive text-xs">Error</Badge>}
                     </div>
-                    <p className="text-sm text-slate-600">{internetCheck.detail}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{internetCheck.detail}</p>
                     {internetCheck.pool && (
-                      <p className="text-xs text-slate-500 mt-1 font-mono">
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1 font-mono">
                         Framed-Pool: {internetCheck.pool}
                       </p>
                     )}
                     {internetCheck.routerName && (
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">
                         Router: {internetCheck.routerName}
                       </p>
                     )}
@@ -667,22 +772,22 @@ export default function UserDetailPage() {
                 <CardTitle>Current Package</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="font-bold text-lg">{user.package.name}</h3>
-                      <p className="text-slate-500">KSh {user.package.price}/month</p>
+                      <h3 className="font-bold text-lg text-slate-900 dark:text-white">{user.package.name}</h3>
+                      <p className="text-slate-500 dark:text-slate-400">KSh {user.package.price}/month</p>
                     </div>
                     <Package className="w-8 h-8 text-primary" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-slate-500">Download</p>
-                      <p className="font-bold text-lg">{user.package.speedDown} Mbps</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Download</p>
+                      <p className="font-bold text-lg text-slate-900 dark:text-white">{user.package.speedDown} Mbps</p>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-500">Upload</p>
-                      <p className="font-bold text-lg">{user.package.speedUp} Mbps</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Upload</p>
+                      <p className="font-bold text-lg text-slate-900 dark:text-white">{user.package.speedUp} Mbps</p>
                     </div>
                   </div>
                 </div>
@@ -697,27 +802,27 @@ export default function UserDetailPage() {
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex justify-between mb-2">
-                    <span className="text-sm text-slate-500">Data Usage This Month</span>
-                    <span className="font-medium">{user.dataUsedThisMonth} / {user.dataLimitThisMonth} GB</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">Data Usage This Month</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{user.dataUsedThisMonth} / {user.dataLimitThisMonth} GB</span>
                   </div>
-                  <Progress value={(user.dataUsedThisMonth / user.dataLimitThisMonth) * 100} />
+                  <Progress value={user.dataLimitThisMonth > 0 ? (user.dataUsedThisMonth / user.dataLimitThisMonth) * 100 : 0} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-slate-500">Total Sessions</p>
-                    <p className="font-bold text-lg">{user.totalSessions}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Total Sessions</p>
+                    <p className="font-bold text-lg text-slate-900 dark:text-white">{user.totalSessions}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-slate-500">Avg Session Duration</p>
-                    <p className="font-bold text-lg">{user.avgSessionDuration}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Avg Session Duration</p>
+                    <p className="font-bold text-lg text-slate-900 dark:text-white">{user.avgSessionDuration}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-slate-500">Total Payments</p>
-                    <p className="font-bold text-lg">KSh {user.totalPayments.toLocaleString()}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Total Payments</p>
+                    <p className="font-bold text-lg text-slate-900 dark:text-white">KSh {user.totalPayments.toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-slate-500">Member Since</p>
-                    <p className="font-bold text-lg">{user.createdAt}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Member Since</p>
+                    <p className="font-bold text-lg text-slate-900 dark:text-white">{user.createdAt}</p>
                   </div>
                 </div>
               </CardContent>
@@ -732,28 +837,39 @@ export default function UserDetailPage() {
               <CardDescription>Recent connection sessions</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Start Time</TableHead>
-                    <TableHead>End Time</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead>Data Used</TableHead>
-                    <TableHead>IP Address</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sessions.map((session) => (
-                    <TableRow key={session.id}>
-                      <TableCell>{session.startTime}</TableCell>
-                      <TableCell>{session.endTime}</TableCell>
-                      <TableCell>{session.duration}</TableCell>
-                      <TableCell>{session.dataUsed}</TableCell>
-                      <TableCell className="font-mono">{session.ipAddress}</TableCell>
+              {sessionsLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                </div>
+              ) : sessions.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                  <History className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                  <p>No sessions recorded</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Start Time</TableHead>
+                      <TableHead>End Time</TableHead>
+                      <TableHead>Duration</TableHead>
+                      <TableHead>Data Used</TableHead>
+                      <TableHead>IP Address</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {sessions.map((session) => (
+                      <TableRow key={session.id}>
+                        <TableCell>{session.startTime}</TableCell>
+                        <TableCell>{session.endTime}</TableCell>
+                        <TableCell>{session.duration}</TableCell>
+                        <TableCell>{session.dataUsed}</TableCell>
+                        <TableCell className="font-mono">{session.ipAddress}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -765,30 +881,39 @@ export default function UserDetailPage() {
               <CardDescription>All transactions for this user</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell>{payment.date}</TableCell>
-                      <TableCell className="font-medium">KSh {payment.amount.toLocaleString()}</TableCell>
-                      <TableCell>{payment.method}</TableCell>
-                      <TableCell className="font-mono">{payment.reference}</TableCell>
-                      <TableCell>
-                        <Badge className="bg-success/15 text-success">Completed</Badge>
-                      </TableCell>
+              {paymentsLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                </div>
+              ) : payments.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                  <CreditCard className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                  <p>No payments recorded</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Reference</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {payments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>{payment.date}</TableCell>
+                        <TableCell className="font-medium text-slate-900 dark:text-white">KSh {payment.amount.toLocaleString()}</TableCell>
+                        <TableCell>{payment.method}</TableCell>
+                        <TableCell className="font-mono text-xs">{payment.reference || '—'}</TableCell>
+                        <TableCell>{getPaymentStatusBadge(payment.status)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -800,30 +925,41 @@ export default function UserDetailPage() {
               <CardDescription>Tickets raised by this user</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Ticket ID</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tickets.map((ticket) => (
-                    <TableRow key={ticket.id}>
-                      <TableCell className="font-mono">{ticket.id}</TableCell>
-                      <TableCell>{ticket.subject}</TableCell>
-                      <TableCell>
-                        <Badge className={ticket.status === "open" ? "bg-primary/15 text-primary" : "bg-success/15 text-success"}>
-                          {ticket.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{ticket.createdAt}</TableCell>
+              {ticketsLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                </div>
+              ) : tickets.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                  <Activity className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                  <p>No tickets found</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ticket ID</TableHead>
+                      <TableHead>Subject</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {tickets.map((ticket) => (
+                      <TableRow key={ticket.id}>
+                        <TableCell className="font-mono">{ticket.id}</TableCell>
+                        <TableCell>{ticket.subject}</TableCell>
+                        <TableCell>
+                          <Badge className={ticket.status === "open" ? "bg-primary/15 text-primary" : "bg-success/15 text-success"}>
+                            {ticket.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{ticket.createdAt}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -833,16 +969,30 @@ export default function UserDetailPage() {
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete User</DialogTitle>
+            <DialogTitle className="text-red-600">Delete User</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete {user.fullName}? This action cannot be undone.
+              Are you sure you want to delete <strong>{user.fullName}</strong>? 
+              This will permanently remove the customer account, all service connections, 
+              RADIUS credentials, and the associated login user. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={deleting}>
               Cancel
             </Button>
-            <Button variant="destructive">Delete User</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Permanently
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -853,16 +1003,26 @@ export default function UserDetailPage() {
           <DialogHeader>
             <DialogTitle>Disconnect User</DialogTitle>
             <DialogDescription>
-              Are you sure you want to disconnect {user.fullName} from the network?
+              Are you sure you want to disconnect <strong>{user.fullName}</strong> from the network?
+              This will immediately terminate their active session.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDisconnectDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDisconnectDialogOpen(false)} disabled={disconnecting}>
               Cancel
             </Button>
-            <Button variant="destructive">
-              <Ban className="w-4 h-4 mr-2" />
-              Disconnect
+            <Button variant="destructive" onClick={handleDisconnect} disabled={disconnecting}>
+              {disconnecting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Disconnecting...
+                </>
+              ) : (
+                <>
+                  <Ban className="w-4 h-4 mr-2" />
+                  Disconnect
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
