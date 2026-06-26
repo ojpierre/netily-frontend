@@ -1365,27 +1365,7 @@ export default function RouterDetailPage() {
                 </div>
 
                 <div className="flex items-center gap-2 mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={isVpnLoading}
-                    onClick={async () => {
-                      setIsVpnLoading(true)
-                      try {
-                        const status = await adminApi.getRouterVPNStatus(routerData.id)
-                        setVpnStatus(status)
-                        toast.success('VPN status refreshed')
-                      } catch {
-                        toast.error('Failed to fetch VPN status')
-                      } finally {
-                        setIsVpnLoading(false)
-                      }
-                    }}
-                    className="gap-2"
-                  >
-                    {isVpnLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                    Refresh Status
-                  </Button>
+                  {/* REMOVED: Refresh Status button */}
                   <Button
                     variant={routerData.vpn_provisioned ? 'secondary' : 'default'}
                     size="sm"
@@ -1441,7 +1421,7 @@ export default function RouterDetailPage() {
                       Winbox Address
                     </p>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-900 text-success font-mono text-sm px-4 py-2.5 rounded-lg">
+                      <div className="flex-1 bg-slate-900 text-emerald-400 font-mono text-sm px-4 py-2.5 rounded-lg">
                         {(routerData.remote_access_url as any).winbox}
                       </div>
                       <Button
@@ -1470,7 +1450,7 @@ export default function RouterDetailPage() {
                       API Address
                     </p>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-900 text-primary/80 font-mono text-sm px-4 py-2.5 rounded-lg">
+                      <div className="flex-1 bg-slate-900 text-blue-400 font-mono text-sm px-4 py-2.5 rounded-lg">
                         {(routerData.remote_access_url as any).api}
                       </div>
                       <Button
