@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner"
 
 import { adminApi } from "@/lib/admin-api"
+import { adminRouteAccessRules } from "@/lib/rbac"
 import type { User, StaffRole, Gender, CreateStaffUserRequest } from "@/lib/types"
 
 import { Button } from "@/components/ui/button"
@@ -939,144 +940,70 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
 
 import { UserPlus } from "lucide-react"
 
-const MOCK_ROLES = [
+const NETILY_ROLE_DEFINITIONS: Array<{
+  id: StaffRole
+  name: string
+  description: string
+  accent: string
+}> = [
   {
-    id: "finance",
-    name: "Finance / Accounts",
-    description: "Billing, Payments, Invoices, Expenses, Vouchers and Analytics with revenue.",
-    memberCount: 0,
-    permissions: [
-      "users.view", "invoices.view", "payments.view", "users.viewAny", "expenses.create",
-      "expenses.delete", "expenses.update", "financials.view", "invoices.create",
-      "invoices.update", "payments.create", "vouchers.create", "vouchers.delete",
-      "expenses.viewAny", "invoices.viewAny", "payments.viewAny", "vouchers.viewAny",
-      "analytics.viewAny"
-    ]
+    id: "staff",
+    name: "General Staff",
+    description: "Day-to-day office operations, customers, dispatch, inventory, leads, and support follow-up.",
+    accent: "bg-blue-600",
   },
   {
-    id: "marketing",
-    name: "Marketing",
-    description: "Leads, Communications, Campaigns and Analytics without revenue. No money.",
-    memberCount: 0,
-    permissions: [
-      "leads.view", "sms.create", "users.view", "emails.view", "sms.viewAny",
-      "leads.create", "leads.update", "emails.create", "emails.delete", "emails.update",
-      "leads.viewAny", "users.viewAny", "emails.viewAny", "tickets.create",
-      "tickets.delete", "tickets.update", "tickets.viewAny", "campaigns.create",
-      "campaigns.delete", "campaigns.update", "analytics.viewAny", "campaigns.viewAny"
-    ]
+    id: "technician",
+    name: "Field Technician",
+    description: "Network and field work: routers, RADIUS, FUP, dispatch jobs, inventory, and customer tickets.",
+    accent: "bg-sky-600",
+  },
+  {
+    id: "accountant",
+    name: "Accountant",
+    description: "Finance operations: invoices, payments, receipts, vouchers, billing reports, and subscription usage.",
+    accent: "bg-emerald-600",
   },
   {
     id: "support",
     name: "Support",
-    description: "Subscribers, Tickets, Leads, Live sessions and Devices. No money.",
-    memberCount: 0,
-    permissions: [
-      "nas.view", "leads.view", "users.view", "nas.viewAny", "leads.create", "leads.update",
-      "users.create", "users.update", "leads.viewAny", "users.viewAny", "tickets.create",
-      "tickets.update", "tickets.viewAny", "equipment.viewAny", "active_users.viewAny"
-    ]
+    description: "Customer support and helpdesk: users, tickets, leads, SMS, loyalty, ads, and dispatch follow-up.",
+    accent: "bg-indigo-600",
   },
-  {
-    id: "technician",
-    name: "Technician / Network",
-    description: "Live sessions, Plans, Devices, TR-069 and NAS. No money.",
-    memberCount: 0,
-    permissions: [
-      "nas.view", "nas.create", "nas.delete", "nas.update", "users.view", "nas.viewAny",
-      "packages.view", "users.viewAny", "tickets.create", "tickets.delete",
-      "tickets.update", "packages.create", "packages.update", "tickets.viewAny",
-      "packages.viewAny", "equipment.viewAny", "active_users.viewAny"
-    ]
-  }
 ]
+
+const routeLabelsForRole = (role: StaffRole) =>
+  adminRouteAccessRules
+    .filter((rule) => rule.allowedRoles?.includes(role))
+    .map((rule) => rule.label)
 
 function EditPermissionsModal({ open, onOpenChange, role }: { open: boolean, onOpenChange: (v: boolean) => void, role: any }) {
   if (!role) return null;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden bg-white">
-        <div className="p-6 border-b border-slate-100">
+      <DialogContent className="sm:max-w-[620px] p-0 overflow-hidden bg-white dark:bg-slate-950">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800">
            <DialogHeader>
-             <DialogTitle className="text-xl font-bold text-slate-900">Edit {role.name} permissions</DialogTitle>
-             <DialogDescription className="pt-2 text-sm text-slate-500">
+             <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white">{role.name} access map</DialogTitle>
+             <DialogDescription className="pt-2 text-sm text-slate-500 dark:text-slate-400">
                {role.description}<br/><br/>
-               Changes apply to all staff members in this role; individual permission grants on users are not affected.
+               These permissions come from Netily's active route guard map. Assigning this role to a staff member immediately updates what they can access after their next auth refresh.
              </DialogDescription>
            </DialogHeader>
         </div>
-        <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4 bg-slate-50/50">
-           {/* Checkbox Groups - Subscribers */}
-           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-             <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
-               <div className="w-5 h-5 rounded flex items-center justify-center bg-orange-500 text-white font-bold cursor-pointer">-</div>
-               <span className="font-bold text-sm text-slate-900">Subscribers</span>
-             </div>
-             <div className="p-4 grid grid-cols-2 gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" defaultChecked />
-                  <span className="text-sm text-slate-600">View Main Page</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" defaultChecked />
-                  <span className="text-sm text-slate-600">View Details</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
-                  <span className="text-sm text-slate-600">Add New</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
-                  <span className="text-sm text-slate-600">Edit / Modify</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
-                  <span className="text-sm text-slate-600">Remove / Delete</span>
-                </label>
-             </div>
-           </div>
-
-           {/* Checkbox Groups - Leads */}
-           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-             <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-200">
-               <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
-               <span className="font-bold text-sm text-slate-900">Leads</span>
-             </div>
-             <div className="p-4 grid grid-cols-2 gap-4 opacity-50 pointer-events-none">
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
-                  <span className="text-sm text-slate-600">View Main Page</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
-                  <span className="text-sm text-slate-600">View Details</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
-                  <span className="text-sm text-slate-600">Add New</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
-                  <span className="text-sm text-slate-600">Edit / Modify</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
-                  <span className="text-sm text-slate-600">Remove / Delete</span>
-                </label>
-             </div>
-           </div>
-
-           {/* Checkbox Groups - Tickets */}
-           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-             <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-200">
-               <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
-               <span className="font-bold text-sm text-slate-900">Tickets</span>
-             </div>
-           </div>
+        <div className="p-6 max-h-[60vh] overflow-y-auto bg-slate-50/70 dark:bg-slate-900/60">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {role.permissions.map((permission: string) => (
+              <div key={permission} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
+                <CheckCircle className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{permission}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="p-4 border-t border-slate-100 bg-white flex justify-between items-center">
+        <div className="p-4 border-t border-slate-100 bg-white flex justify-between items-center dark:border-slate-800 dark:bg-slate-950">
+           <p className="text-xs text-slate-500">To change access, update the role assigned to the staff member.</p>
            <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-slate-600 font-semibold hover:bg-slate-100">Cancel</Button>
-           <Button className="bg-[#f59e0b] hover:bg-[#d97706] text-white font-bold rounded-full px-6 shadow-sm">Save permissions</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -1137,39 +1064,38 @@ export default function StaffManagementPage() {
     (u.first_name + " " + u.last_name + " " + (u.email || "")).toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const roleCards = MOCK_ROLES.map((role) => ({
+  const roleCards = NETILY_ROLE_DEFINITIONS.map((role) => ({
     ...role,
+    permissions: routeLabelsForRole(role.id),
     memberCount: staffUsers.filter((user) => {
-      if (role.id === "finance") return user.role === "accountant"
-      if (role.id === "marketing") return user.role === "staff"
       return user.role === role.id
     }).length,
   }))
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-[#f8fafc]">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-950">
       <div className="px-8 py-8 max-w-[1400px] mx-auto w-full">
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-3">
-              Staff & <span className="text-[#f59e0b]">access</span>
+            <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+              Staff & <span className="text-blue-600">access</span>
             </h1>
-            <p className="text-sm text-slate-500 mt-2 font-medium">Manage your team members and the roles that decide what each person can see.</p>
+            <p className="text-sm text-slate-500 mt-2 font-medium dark:text-slate-400">Manage tenant staff accounts and the Netily dashboard areas each role can access.</p>
           </div>
           {activeTab === "members" && (
-            <Button onClick={() => setCreateDialogOpen(true)} className="bg-[#f59e0b] hover:bg-[#d97706] text-white font-bold rounded-full px-6 shadow-sm shadow-orange-500/20">
+            <Button onClick={() => setCreateDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full px-6 shadow-sm shadow-blue-500/20">
               <Plus className="w-4 h-4 mr-2" /> Add staff
             </Button>
           )}
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-2 mb-8 bg-white p-1 rounded-full border border-slate-200 shadow-sm w-fit">
+        <div className="flex items-center gap-2 mb-8 bg-white p-1 rounded-full border border-slate-200 shadow-sm w-fit dark:bg-slate-900 dark:border-slate-800">
           <button 
             onClick={() => setActiveTab("members")}
             className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all ${
-              activeTab === "members" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              activeTab === "members" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
             }`}
           >
             Members <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === "members" ? "bg-slate-700 text-white" : "bg-slate-200"}`}>{staffUsers.length}</span>
@@ -1177,7 +1103,7 @@ export default function StaffManagementPage() {
           <button 
             onClick={() => setActiveTab("roles")}
             className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all ${
-              activeTab === "roles" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              activeTab === "roles" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
             }`}
           >
             Roles <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === "roles" ? "bg-slate-700 text-white" : "bg-slate-200"}`}>{roleCards.length}</span>
@@ -1216,7 +1142,7 @@ export default function StaffManagementPage() {
                             </div>
                           </TableCell>
                           <TableCell className="py-4">
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-100 text-orange-700 border border-orange-200 capitalize">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 capitalize dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-900">
                               {staff.role}
                             </span>
                           </TableCell>
@@ -1259,35 +1185,38 @@ export default function StaffManagementPage() {
                 </Table>
              </div>
              <div className="p-4 bg-slate-50 border-t border-slate-200 text-center text-xs font-semibold text-slate-400 tracking-wider uppercase">
-               © 2023-2026 Centipid Technologies
+               © 2023-2026 Netily
              </div>
           </div>
         ) : (
           <div className="space-y-6">
-            <p className="text-sm text-slate-500 font-medium max-w-4xl">Roles define what each staff member can access. Editing a role updates all members assigned to it without changing their individual permission grants.</p>
+            <p className="text-sm text-slate-500 font-medium max-w-4xl dark:text-slate-400">Roles are connected to Netily's active route guards. When you edit a staff member's role, their dashboard navigation and protected pages update to match.</p>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               {roleCards.map((role) => (
-                <div key={role.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col">
+                <div key={role.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
                   <div className="p-6 flex-1">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-lg font-bold text-slate-900">{role.name}</h3>
-                      <div className="flex items-center gap-1.5 bg-slate-100 text-slate-500 px-2 py-1 rounded-md text-xs font-bold">
+                      <div className="flex items-center gap-3">
+                        <span className={`h-3 w-3 rounded-full ${role.accent}`} />
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{role.name}</h3>
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-slate-100 text-slate-500 px-2 py-1 rounded-md text-xs font-bold dark:bg-slate-800 dark:text-slate-300">
                         <UserCog className="w-3.5 h-3.5" /> {role.memberCount}
                       </div>
                     </div>
-                    <p className="text-sm text-slate-500 mb-6 min-h-[40px]">{role.description}</p>
+                    <p className="text-sm text-slate-500 mb-6 min-h-[40px] dark:text-slate-400">{role.description}</p>
                     <div className="flex flex-wrap gap-2">
                       {role.permissions.map(perm => (
-                        <span key={perm} className="px-2 py-1 bg-white border border-slate-200 text-slate-500 text-[10px] font-bold tracking-wider rounded-md">
+                        <span key={perm} className="px-2 py-1 bg-blue-50 border border-blue-100 text-blue-700 text-[10px] font-bold tracking-wider rounded-md dark:bg-blue-950/30 dark:border-blue-900 dark:text-blue-300">
                           {perm}
                         </span>
                       ))}
                     </div>
                   </div>
-                  <div className="p-4 border-t border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-b-2xl">
-                    <span className="text-xs font-semibold text-slate-500">{role.permissions.length} permissions granted</span>
-                    <button onClick={() => setEditingRole(role)} className="flex items-center gap-1.5 text-sm font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm hover:bg-slate-50 transition-colors">
-                      <Pencil className="w-3.5 h-3.5" /> Edit permissions
+                  <div className="p-4 border-t border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-b-2xl dark:border-slate-800 dark:bg-slate-950/60">
+                    <span className="text-xs font-semibold text-slate-500">{role.permissions.length} dashboard areas</span>
+                    <button onClick={() => setEditingRole(role)} className="flex items-center gap-1.5 text-sm font-bold text-slate-700 hover:text-blue-700 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm hover:bg-blue-50 transition-colors dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800">
+                      <Eye className="w-3.5 h-3.5" /> View access
                     </button>
                   </div>
                 </div>

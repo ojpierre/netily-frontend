@@ -8,8 +8,12 @@ type DocsSection = {
   score: number
 }
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash"
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
+const GEMINI_MODELS = process.env.GEMINI_MODEL
+  ? [process.env.GEMINI_MODEL]
+  : ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-latest"]
+
+const geminiEndpoint = (model: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
 
 const STOP_WORDS = new Set([
   "about",
@@ -134,22 +138,37 @@ export async function POST(request: NextRequest) {
       `User question: ${question}`,
     ].join("\n")
 
-    const geminiResponse = await fetch(`${GEMINI_ENDPOINT}?key=${process.env.GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.2,
-          topP: 0.8,
-          maxOutputTokens: 700,
-        },
-      }),
-    })
+    let answer = ""
+    let modelUsed = ""
+    let lastGeminiError = ""
 
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text().catch(() => "unknown error")
-      console.error("Gemini API Error:", geminiResponse.status, errorText)
+    for (const model of GEMINI_MODELS) {
+      const geminiResponse = await fetch(`${geminiEndpoint(model)}?key=${process.env.GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.2,
+            topP: 0.8,
+            maxOutputTokens: 700,
+          },
+        }),
+      })
+
+      if (!geminiResponse.ok) {
+        lastGeminiError = `${model}: ${geminiResponse.status} ${await geminiResponse.text().catch(() => "unknown error")}`
+        continue
+      }
+
+      const payload = await geminiResponse.json()
+      answer = extractGeminiText(payload) || ""
+      modelUsed = model
+      if (answer) break
+    }
+
+    if (!answer) {
+      console.error("Gemini API Error:", lastGeminiError || "No model returned an answer")
       return NextResponse.json({
         answer: localFallback(contextSections),
         sources,
@@ -158,14 +177,12 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const payload = await geminiResponse.json()
-    const answer = extractGeminiText(payload) || localFallback(contextSections)
-
     return NextResponse.json({
       answer,
       sources,
       blocked: answer.toLowerCase().includes("i do not have that in the netily docs yet"),
       provider: "gemini",
+      model: modelUsed,
     })
   } catch (error) {
     console.error("Docs Chat API Error:", error)
