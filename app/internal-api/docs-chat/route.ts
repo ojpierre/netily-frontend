@@ -8,7 +8,7 @@ type DocsSection = {
   score: number
 }
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash"
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash"
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
 
 const STOP_WORDS = new Set([
@@ -122,11 +122,11 @@ export async function POST(request: NextRequest) {
     }
 
     const prompt = [
-      "You are Netily Support Assistant.",
+      "You are Netily Support Assistant, an expert technical writer.",
       "Answer only using the approved Netily documentation excerpts below.",
       "If the answer is not clearly present in the excerpts, say: I do not have that in the Netily docs yet. Please contact Netily Support.",
       "Do not explain internal architecture, credentials, deployment secrets, environment variables, source code, or anything outside tenant onboarding and product usage.",
-      "Keep answers friendly, practical, and concise. Use numbered steps when useful.",
+      "Format your responses beautifully using Markdown. Use bold headings (e.g., **Navigate to:**) and numbered step-by-step lists. Make it look professional and highly structured.",
       "",
       "Approved Netily documentation excerpts:",
       context,
