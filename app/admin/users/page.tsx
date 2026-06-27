@@ -488,7 +488,7 @@ export default function UsersPage() {
   const [expiredUsers, setExpiredUsers] = useState<User[]>([])
   const [expiredUsersLoading, setExpiredUsersLoading] = useState(false)
 
-  // FIX 2: Add online username set for accurate status mapping
+  // FIX: Online username set for accurate status mapping
   const [onlineUsernameSet, setOnlineUsernameSet] = useState<Set<string>>(new Set())
 
   const [activeStatFilter, setActiveStatFilter] = useState<string>("all")
@@ -544,7 +544,7 @@ export default function UsersPage() {
     }
   }
 
-  // FIX 1: loadExpiredUsersFromRADIUS - fetch ALL pages
+  // FIX: loadExpiredUsersFromRADIUS - fetch ALL pages using page_size=100
   const loadExpiredUsersFromRADIUS = async () => {
     if (expiredUsersLoading) return
     try {
@@ -690,7 +690,7 @@ export default function UsersPage() {
     }
   }
 
-  // FIX 2: loadOnlineSessions - fetch ALL online usernames for status mapping
+  // FIX: loadOnlineSessions - fetch ALL online usernames for status mapping
   const loadOnlineSessions = async (page = 1) => {
     try {
       setOnlineSessionsLoading(true)
@@ -713,7 +713,8 @@ export default function UsersPage() {
           }
           setOnlineUsernameSet(usernameSet)
           console.log(`✅ Loaded ${usernameSet.size} online usernames for status mapping`)
-        } catch {
+        } catch (err) {
+          console.warn('⚠️ Failed to load full online sessions for mapping, falling back to current page')
           // Non-fatal: fall back to current page sessions
           const usernameSet = new Set<string>()
           for (const s of allSessions) {
@@ -1013,7 +1014,6 @@ export default function UsersPage() {
     }
   }
 
-  // FIX 1: Open hotspot detail by navigating to dedicated page
   const handleOpenHotspotDetail = (item: ActiveSubscription) => {
     const clientId = (item as any).client_id
     if (clientId) {
@@ -1086,6 +1086,7 @@ export default function UsersPage() {
     return username.slice(-9)
   }
 
+  // FIX: Build map from onlineSessions for detailed session info
   const onlineSessionsByUsername = useMemo(() => {
     const map = new Map<string, OnlineSession>()
     for (const s of onlineSessions) {
@@ -1094,7 +1095,7 @@ export default function UsersPage() {
     return map
   }, [onlineSessions])
 
-  // FIX 2: Update enrichedUsers to use onlineUsernameSet for online/offline check
+  // FIX: enrichedUsers - uses onlineUsernameSet for online/offline status
   const enrichedUsers = useMemo(() => {
     return users.map((user) => {
       // Use the full username set for online/offline — more accurate for large tenants
@@ -1121,7 +1122,7 @@ export default function UsersPage() {
         ...user,
         connectionStatus: (isOnline ? "online" : "offline") as "online" | "offline",
         dataUsed: isOnline ? currentUsage : (user.dataUsed || 0),
-        liveUsageString: session?.usage,
+        liveUsageString: isOnline && session?.usage ? session.usage : undefined,
         lastOnline: isOnline ? "Now" : user.lastOnline,
         ipAddress: session?.ip_address || user.ipAddress,
         macAddress: session?.mac_address || user.macAddress,
@@ -1162,7 +1163,7 @@ export default function UsersPage() {
       hotspot: activeHotspotCount,
       totalActiveSubs,
     }
-  }, [totalCount, serverStatusCounts, serverStats.expired, onlineTotal, activeSubscriptions])
+  }, [totalCount, serverStatusCounts, serverStats.expired, onlineTotal, activeSubscriptions, onlineSessions.length])
 
   const filteredUsers = useMemo(() => {
     if (statusFilter === "expired") {
@@ -1228,7 +1229,7 @@ export default function UsersPage() {
     return set
   }, [onlineSessions])
 
-  // FIX 2: Debounced search via useEffect - prevents input losing focus
+  // FIX: Debounced search via useEffect - prevents input losing focus
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
     searchDebounceRef.current = setTimeout(() => {
@@ -1312,7 +1313,6 @@ export default function UsersPage() {
     )
   }
 
-  // FIX: Navigate to user detail page instead of opening drawer
   const handleViewUser = (user: User) => {
     router.push(`/admin/users/${user.customerId}`)
   }
@@ -1637,12 +1637,11 @@ export default function UsersPage() {
     try {
       setUpdating(true)
       
-      // Fixed: use 'phone' instead of 'phone_number'
       await adminApi.updateCustomer(selectedUser.customerId, {
         first_name: editForm.first_name,
         last_name: editForm.last_name,
         ...(editForm.email.trim() ? { email: editForm.email.trim() } : {}),
-        phone: editForm.phone, // Changed from phone_number to phone
+        phone: editForm.phone,
         location: editForm.location,
       })
       
@@ -2417,7 +2416,6 @@ export default function UsersPage() {
             <Input
               placeholder="Search name, phone, username, IP, billing account..."
               value={searchQuery}
-              // FIX 2: Only update state, debounce is handled in useEffect
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 bg-white dark:bg-slate-900 transition-all duration-300 focus:ring-4 focus:ring-violet-100 dark:focus:ring-violet-900/30 focus:border-violet-500"
               autoComplete="off"
@@ -2539,7 +2537,6 @@ export default function UsersPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {/* FIX 3: Use onlineSessions directly (API handles pagination server-side) */}
                         {onlineSessions.map((session) => (
                           <motion.tr
                             key={session.radacctid}
@@ -2621,7 +2618,6 @@ export default function UsersPage() {
                       </TableBody>
                     </Table>
                   </div>
-                  {/* FIX 3: Pagination controls for online sessions - uses loadOnlineSessions(page) */}
                   {Math.ceil(onlineTotal / onlinePageSize) > 1 && (
                     <div className="flex items-center justify-between mt-4">
                       <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -3181,7 +3177,6 @@ export default function UsersPage() {
                       </TableHeader>
                       <TableBody>
                         {filteredUsers.map((user) => {
-                          // FIX: Make entire row clickable, but prevent checkbox and dropdown from triggering navigation
                           return (
                             <motion.tr
                               key={user.id}
@@ -3328,7 +3323,6 @@ export default function UsersPage() {
                     </Table>
                   </div>
 
-                  {/* Pagination */}
                   {totalPages > 1 && statusFilter !== "expired" && (
                     <div className="flex items-center justify-between mt-4">
                       <p className="text-sm text-slate-600 dark:text-slate-400">
