@@ -35,6 +35,8 @@ import {
   Copy,
   Pencil,
   X,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -381,6 +383,10 @@ export default function UserDetailPage() {
   const [editingBilling, setEditingBilling] = useState(false)
   const [billingNumberEdit, setBillingNumberEdit] = useState("")
   const [savingBilling, setSavingBilling] = useState(false)
+  
+  // FIX 3: Add showPassword state
+  const [showPassword, setShowPassword] = useState(false)
+  
   const userId = Number(params.id)
 
   const fetchUserData = useCallback(async () => {
@@ -399,11 +405,23 @@ export default function UserDetailPage() {
         console.warn('Failed to load services:', err)
       }
 
-      // Fetch RADIUS credentials
+      // FIX 3: Fetch RADIUS credentials - use detail endpoint to get password
       let radiusCreds = null
       try {
         const credsRes = await adminApi.getRADIUSCredentials({ customer: String(userId), page_size: '1' })
-        radiusCreds = credsRes?.results?.[0] || null
+        const credSummary = credsRes?.results?.[0] || null
+        if (credSummary?.id) {
+          try {
+            // Detail endpoint uses CustomerRadiusCredentialsDetailSerializer which exposes password
+            const credDetail = await adminApi.getRADIUSCredential(String(credSummary.id))
+            radiusCreds = credDetail
+          } catch {
+            // fall back to summary
+            radiusCreds = credSummary
+          }
+        } else {
+          radiusCreds = credSummary
+        }
       } catch (err) {
         console.warn('Failed to load RADIUS creds:', err)
       }
@@ -457,7 +475,7 @@ export default function UserDetailPage() {
                   mappedUser.connectionStatus = 'online'
                   mappedUser.ipAddress = latestSession.framedipaddress || mappedUser.ipAddress
                   mappedUser.macAddress = latestSession.callingstationid || mappedUser.macAddress
-                  mappedUser.router = latestSession.router_name || latestSession.nasipaddress || mappedUser.router
+                  mappedUser.router = (latestSession as any).router_name || latestSession.nasipaddress || mappedUser.router
                   mappedUser.lastSeen = 'Now'
                 } else {
                   mappedUser.connectionStatus = 'offline'
@@ -465,7 +483,7 @@ export default function UserDetailPage() {
                     ? new Date(latestSession.acctstoptime).toLocaleString()
                     : mappedUser.lastSeen
                   mappedUser.macAddress = latestSession.callingstationid || mappedUser.macAddress
-                  mappedUser.router = latestSession.router_name || latestSession.nasipaddress || mappedUser.router
+                  mappedUser.router = (latestSession as any).router_name || latestSession.nasipaddress || mappedUser.router
                 }
               }
             }
@@ -979,7 +997,7 @@ export default function UserDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Network Credentials Card */}
+            {/* FIX 3: Network Credentials Card with show/hide password */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
@@ -994,22 +1012,66 @@ export default function UserDetailPage() {
                   </div>
                 ) : user.pppoeUsername ? (
                   <div className="space-y-3">
-                    {[
-                      { label: 'Username', value: user.pppoeUsername },
-                      { label: 'Password', value: user.pppoePassword || '••••••••', secret: true },
-                    ].map(({ label, value, secret }) => (
-                      <div key={label}>
-                        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mb-1">{label}</p>
-                        <div className="flex items-center gap-2">
-                          <code className="flex-1 text-sm font-mono bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-lg border dark:border-slate-700">
-                            {value}
-                          </code>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { navigator.clipboard.writeText(user.pppoePassword || user.pppoeUsername); toast.success(`${label} copied`) }}>
+                    {/* Username row */}
+                    <div>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mb-1">Username</p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-sm font-mono bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-lg border dark:border-slate-700">
+                          {user.pppoeUsername}
+                        </code>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8" 
+                          onClick={() => { 
+                            navigator.clipboard.writeText(user.pppoeUsername)
+                            toast.success('Username copied') 
+                          }}
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Password row with show/hide */}
+                    <div>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mb-1">Password</p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-sm font-mono bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-lg border dark:border-slate-700">
+                          {showPassword 
+                            ? (user.pppoePassword || <span className="italic text-slate-400">not loaded</span>)
+                            : '••••••••'
+                          }
+                        </code>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => setShowPassword(v => !v)}
+                          title={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword 
+                            ? <EyeOff className="w-3.5 h-3.5" /> 
+                            : <Eye className="w-3.5 h-3.5" />
+                          }
+                        </Button>
+                        {user.pppoePassword && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8" 
+                            onClick={() => { 
+                              navigator.clipboard.writeText(user.pppoePassword)
+                              toast.success('Password copied') 
+                            }}
+                          >
                             <Copy className="w-3.5 h-3.5" />
                           </Button>
-                        </div>
+                        )}
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Expiry badge */}
                     {user.radiusCredentials?.expiration_date && (
                       <div className="pt-2 border-t dark:border-slate-700">
                         <p className="text-xs text-slate-400 mb-1.5">Subscription Status</p>

@@ -488,6 +488,9 @@ export default function UsersPage() {
   const [expiredUsers, setExpiredUsers] = useState<User[]>([])
   const [expiredUsersLoading, setExpiredUsersLoading] = useState(false)
 
+  // FIX 2: Add online username set for accurate status mapping
+  const [onlineUsernameSet, setOnlineUsernameSet] = useState<Set<string>>(new Set())
+
   const [activeStatFilter, setActiveStatFilter] = useState<string>("all")
   const [hotspotSubFilter, setHotspotSubFilter] = useState<"active" | "expired">("active")
 
@@ -541,71 +544,91 @@ export default function UsersPage() {
     }
   }
 
+  // FIX 1: loadExpiredUsersFromRADIUS - fetch ALL pages
   const loadExpiredUsersFromRADIUS = async () => {
     if (expiredUsersLoading) return
     try {
       setExpiredUsersLoading(true)
       console.log('🔄 Loading expired users...')
       
-      const res = await adminApi.getRADIUSCredentials({
-        page_size: "200",
+      // Fetch first page to get total count
+      const firstPage = await adminApi.getRADIUSCredentials({
+        page_size: "100",
         page: "1",
         expired_only: "true",
       })
       
-      console.log('📊 Expired API response:', res)
-      console.log('📊 Count:', res.count)
-      console.log('📊 Results length:', res.results?.length)
+      let allResults = [...(firstPage.results || [])]
+      const totalCount = firstPage.count || 0
+      const totalPages = Math.ceil(totalCount / 100)
       
-      if (!res.results || res.results.length === 0) {
-        console.warn('⚠️ No expired credentials found in API response')
+      console.log(`📊 Total expired: ${totalCount}, pages: ${totalPages}`)
+      
+      // Fetch remaining pages if any
+      if (totalPages > 1) {
+        const pagePromises = []
+        for (let page = 2; page <= totalPages; page++) {
+          pagePromises.push(
+            adminApi.getRADIUSCredentials({
+              page_size: "100",
+              page: String(page),
+              expired_only: "true",
+            })
+          )
+        }
+        const remainingPages = await Promise.all(pagePromises)
+        for (const pageData of remainingPages) {
+          allResults = [...allResults, ...(pageData.results || [])]
+        }
+      }
+      
+      console.log(`📊 Total results fetched: ${allResults.length}`)
+      
+      if (allResults.length === 0) {
+        console.warn('⚠️ No expired credentials found')
         setExpiredUsers([])
         return
       }
       
-      const mapped = res.results.map((cred: any) => {
-        console.log('📝 Mapping credential:', cred.id, cred.username, cred.expiration_date)
-        
-        return {
-          id: cred.customer_code || `CRED-${cred.id}`,
-          customerId: parseInt(String(cred.customer)),
-          serviceId: null,
-          billingAccountNumber: undefined,
-          name: cred.customer_name || "Unknown",
-          email: "",
-          phone: "",
-          location: "",
-          status: "expired" as UserStatus,
-          serviceStatus: "ACTIVE",
-          connectionStatus: "offline" as const,
-          type: "pppoe" as UserType,
-          plan: cred.profile_name || "No Plan",
-          planPrice: 0,
-          joinedDate: cred.created_at || new Date().toISOString(),
-          expiryDate: cred.expiration_date || "",
-          lastOnline: "N/A",
-          dataUsed: 0,
-          dataLimit: null,
-          macAddress: undefined,
-          ipAddress: undefined,
-          router: cred.router_name || "",
-          downloadSpeed: 0,
-          uploadSpeed: 0,
-          loyaltyPoints: 0,
-          balance: 0,
-          radiusCredentials: {
-            id: String(cred.id),
-            username: cred.username,
-            password: "",
-            is_enabled: cred.is_enabled,
-            connection_type: cred.connection_type,
-            expiration_date: cred.expiration_date,
-            synced_to_radius: cred.synced_to_radius,
-          },
-        }
-      })
+      const mapped = allResults.map((cred: any) => ({
+        id: cred.customer_code || `CRED-${cred.id}`,
+        customerId: parseInt(String(cred.customer)),
+        serviceId: null,
+        billingAccountNumber: undefined,
+        name: cred.customer_name || "Unknown",
+        email: "",
+        phone: "",
+        location: "",
+        status: "expired" as UserStatus,
+        serviceStatus: "ACTIVE",
+        connectionStatus: "offline" as const,
+        type: "pppoe" as UserType,
+        plan: cred.profile_name || "No Plan",
+        planPrice: 0,
+        joinedDate: cred.created_at || new Date().toISOString(),
+        expiryDate: cred.expiration_date || "",
+        lastOnline: "N/A",
+        dataUsed: 0,
+        dataLimit: null,
+        macAddress: undefined,
+        ipAddress: undefined,
+        router: cred.router_name || "",
+        downloadSpeed: 0,
+        uploadSpeed: 0,
+        loyaltyPoints: 0,
+        balance: 0,
+        radiusCredentials: {
+          id: String(cred.id),
+          username: cred.username,
+          password: "",
+          is_enabled: cred.is_enabled,
+          connection_type: cred.connection_type,
+          expiration_date: cred.expiration_date,
+          synced_to_radius: cred.synced_to_radius,
+        },
+      }))
       
-      console.log('✅ Mapped expired users:', mapped.length)
+      console.log(`✅ Mapped ${mapped.length} expired users`)
       setExpiredUsers(mapped)
       
     } catch (err) {
@@ -667,7 +690,7 @@ export default function UsersPage() {
     }
   }
 
-  // FIX 1 & 2: loadOnlineSessions - use response.total and fetch paginated
+  // FIX 2: loadOnlineSessions - fetch ALL online usernames for status mapping
   const loadOnlineSessions = async (page = 1) => {
     try {
       setOnlineSessionsLoading(true)
@@ -676,6 +699,29 @@ export default function UsersPage() {
       setOnlineSessions(allSessions)
       setOnlineTotal(response.total || allSessions.length)
       setOnlinePage(page)
+      
+      // If this is the first page load, also fetch ALL usernames for status mapping
+      // Use a lightweight approach: just get a large page of sessions for the username set
+      if (page === 1) {
+        try {
+          // Fetch up to 500 sessions just for username mapping (no UI display)
+          const fullRes = await adminApi.getOnlineSessions(1, 500)
+          const allOnline = fullRes.sessions || []
+          const usernameSet = new Set<string>()
+          for (const s of allOnline) {
+            if (s.username) usernameSet.add(s.username)
+          }
+          setOnlineUsernameSet(usernameSet)
+          console.log(`✅ Loaded ${usernameSet.size} online usernames for status mapping`)
+        } catch {
+          // Non-fatal: fall back to current page sessions
+          const usernameSet = new Set<string>()
+          for (const s of allSessions) {
+            if (s.username) usernameSet.add(s.username)
+          }
+          setOnlineUsernameSet(usernameSet)
+        }
+      }
     } catch (err) {
       console.error('Failed to load online sessions:', err)
       setOnlineSessions([])
@@ -1048,27 +1094,25 @@ export default function UsersPage() {
     return map
   }, [onlineSessions])
 
-  // FIX: Stabilize enrichedUsers - only re-run when users array changes or online session count changes
+  // FIX 2: Update enrichedUsers to use onlineUsernameSet for online/offline check
   const enrichedUsers = useMemo(() => {
     return users.map((user) => {
-      const session = user.radiusCredentials?.username
-        ? onlineSessionsByUsername.get(user.radiusCredentials.username)
-        : undefined
-
-      const isOnline = !!session
+      // Use the full username set for online/offline — more accurate for large tenants
+      const username = user.radiusCredentials?.username
+      const isOnline = username ? onlineUsernameSet.has(username) : false
+      
+      // For live session details (IP, usage, router), still use the detailed map
+      const session = username ? onlineSessionsByUsername.get(username) : undefined
 
       let currentUsage = user.dataUsed
       if (session?.usage) {
         const valMatch = session.usage.match(/([\d.]+)/)
         const unitMatch = session.usage.match(/(GB|MB|KB|B)/i)
-        
         if (valMatch) {
           let val = parseFloat(valMatch[1])
           const unit = unitMatch ? unitMatch[1].toUpperCase() : 'GB'
-          
           if (unit === 'MB') val = val / 1024
           else if (unit === 'KB') val = val / (1024 * 1024)
-          
           currentUsage = val
         }
       }
@@ -1084,9 +1128,8 @@ export default function UsersPage() {
         router: session?.router || user.router,
       }
     })
-    // Key fix: only re-run when users array identity changes or online sessions count changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [users, onlineSessions.length]) // Use onlineSessions.length instead of full array
+  }, [users, onlineUsernameSet, onlineSessions.length])
 
   const activeHotspotClients = useMemo(() => {
     return hotspotClients.filter(client => {
@@ -1164,8 +1207,6 @@ export default function UsersPage() {
       return matchesSearch && matchesService
     })
   }, [onlineSessions, onlineSearchQuery, onlineServiceFilter])
-
-  // FIX 3: REMOVED paginatedOnlineSessions memo - now using onlineSessions directly in table
 
   const onlineTotalPages = Math.ceil(filteredOnlineSessions.length / onlinePageSize)
 
@@ -2512,6 +2553,7 @@ export default function UsersPage() {
                               <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-medium text-xs">
                                   {((session.full_name || session.username) ?? 'HS')
+                                    .toString()
                                     .split(' ')
                                     .map((n: string) => n?.[0] ?? '')
                                     .join('')
