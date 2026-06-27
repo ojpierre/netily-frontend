@@ -3951,6 +3951,26 @@ async activateService(
     )
   }
 
+  // ============================================================
+  // NEW: Fast online username map endpoint (no serializer overhead)
+  // ============================================================
+  
+  /**
+   * Get a fast map of online usernames → session details (usage, IP, MAC, router IP)
+   * This uses a raw values() query on the backend with no serializer overhead.
+   * Returns a map where keys are usernames and values contain usage, ip, mac, router_ip.
+   */
+  async getOnlineUsernameMap(): Promise<Record<string, { usage: string; ip: string; mac: string; router_ip: string }>> {
+    try {
+      const data = await this.request<{ online: Record<string, { usage: string; ip: string; mac: string; router_ip: string }>; count: number }>(
+        '/radius/sessions/online-usernames/'
+      )
+      return data.online || {}
+    } catch {
+      return {}
+    }
+  }
+
   // ------------------------------------------
   // RADIUS CUSTOMER CREDENTIALS - /radius/credentials/
   // NEW: Auto-sync customer RADIUS credentials

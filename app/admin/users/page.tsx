@@ -403,6 +403,7 @@ export default function UsersPage() {
   const [availableIPs, setAvailableIPs] = useState<AvailableIP[] & { total_available?: number }>([])
   const [availableIPsLoading, setAvailableIPsLoading] = useState(false)
   const [ipSearchQuery, setIpSearchQuery] = useState("")
+  // FIX: Replace onlineSessions and onlineUsernameSet with onlineMap
   const [onlineSessions, setOnlineSessions] = useState<OnlineSession[]>([])
   const [onlineSessionsLoading, setOnlineSessionsLoading] = useState(false)
   const [onlineTotal, setOnlineTotal] = useState(0)
@@ -488,8 +489,9 @@ export default function UsersPage() {
   const [expiredUsers, setExpiredUsers] = useState<User[]>([])
   const [expiredUsersLoading, setExpiredUsersLoading] = useState(false)
 
-  // FIX: Online username set for accurate status mapping
-  const [onlineUsernameSet, setOnlineUsernameSet] = useState<Set<string>>(new Set())
+  // FIX: Replace onlineUsernameSet with onlineMap
+  const [onlineMap, setOnlineMap] = useState<Record<string, { usage: string; ip: string; mac: string; router_ip: string }>>({})
+  const [onlineMapLoading, setOnlineMapLoading] = useState(false)
 
   const [activeStatFilter, setActiveStatFilter] = useState<string>("all")
   const [hotspotSubFilter, setHotspotSubFilter] = useState<"active" | "expired">("active")
@@ -544,14 +546,13 @@ export default function UsersPage() {
     }
   }
 
-  // FIX: loadExpiredUsersFromRADIUS - fetch ALL pages using page_size=100
+  // loadExpiredUsersFromRADIUS - fetch ALL pages using page_size=100
   const loadExpiredUsersFromRADIUS = async () => {
     if (expiredUsersLoading) return
     try {
       setExpiredUsersLoading(true)
       console.log('🔄 Loading expired users...')
       
-      // Fetch first page to get total count
       const firstPage = await adminApi.getRADIUSCredentials({
         page_size: "100",
         page: "1",
@@ -564,7 +565,6 @@ export default function UsersPage() {
       
       console.log(`📊 Total expired: ${totalCount}, pages: ${totalPages}`)
       
-      // Fetch remaining pages if any
       if (totalPages > 1) {
         const pagePromises = []
         for (let page = 2; page <= totalPages; page++) {
@@ -650,19 +650,21 @@ export default function UsersPage() {
     }).catch(() => {})
   }, [])
 
+  // FIX: Initial load - load users and online map in parallel
   useEffect(() => {
     if (hasFetched.current) return
     hasFetched.current = true
     
-    loadUsers(1).then(() => {
-      loadServerStats()
-      loadStatusCounts()
-    })
+    Promise.all([
+      loadUsers(1),
+      loadOnlineMap(),
+      loadServerStats(),
+      loadStatusCounts(),
+    ])
     
     const timer = setTimeout(() => {
-      loadOnlineSessions()
       loadActiveSubscriptions()
-    }, 200)
+    }, 300)
     
     return () => clearTimeout(timer)
   }, [])
@@ -690,7 +692,21 @@ export default function UsersPage() {
     }
   }
 
-  // FIX: loadOnlineSessions - fetch ALL online usernames for status mapping
+  // FIX: NEW - Fast load just for status/usage mapping (called on page load)
+  const loadOnlineMap = async () => {
+    try {
+      setOnlineMapLoading(true)
+      const map = await adminApi.getOnlineUsernameMap()
+      setOnlineMap(map)
+      setOnlineTotal(Object.keys(map).length)
+    } catch (err) {
+      console.error('Failed to load online map:', err)
+    } finally {
+      setOnlineMapLoading(false)
+    }
+  }
+
+  // FIX: Keep this for the Online Sessions tab display (called only when tab is opened)
   const loadOnlineSessions = async (page = 1) => {
     try {
       setOnlineSessionsLoading(true)
@@ -699,30 +715,6 @@ export default function UsersPage() {
       setOnlineSessions(allSessions)
       setOnlineTotal(response.total || allSessions.length)
       setOnlinePage(page)
-      
-      // If this is the first page load, also fetch ALL usernames for status mapping
-      // Use a lightweight approach: just get a large page of sessions for the username set
-      if (page === 1) {
-        try {
-          // Fetch up to 500 sessions just for username mapping (no UI display)
-          const fullRes = await adminApi.getOnlineSessions(1, 500)
-          const allOnline = fullRes.sessions || []
-          const usernameSet = new Set<string>()
-          for (const s of allOnline) {
-            if (s.username) usernameSet.add(s.username)
-          }
-          setOnlineUsernameSet(usernameSet)
-          console.log(`✅ Loaded ${usernameSet.size} online usernames for status mapping`)
-        } catch (err) {
-          console.warn('⚠️ Failed to load full online sessions for mapping, falling back to current page')
-          // Non-fatal: fall back to current page sessions
-          const usernameSet = new Set<string>()
-          for (const s of allSessions) {
-            if (s.username) usernameSet.add(s.username)
-          }
-          setOnlineUsernameSet(usernameSet)
-        }
-      }
     } catch (err) {
       console.error('Failed to load online sessions:', err)
       setOnlineSessions([])
@@ -865,12 +857,15 @@ export default function UsersPage() {
     }
   }
 
+  // FIX: handleRefresh - load online map instead of online sessions
   const handleRefresh = async () => {
     setRefreshing(true)
-    await loadUsers(serverPage, searchQuery, statusFilter)
-    await loadOnlineSessions()
-    await loadServerStats()
-    await loadStatusCounts()
+    await Promise.all([
+      loadUsers(serverPage, searchQuery, statusFilter),
+      loadOnlineMap(),
+      loadServerStats(),
+      loadStatusCounts(),
+    ])
     setRefreshing(false)
   }
 
@@ -1086,7 +1081,7 @@ export default function UsersPage() {
     return username.slice(-9)
   }
 
-  // FIX: Build map from onlineSessions for detailed session info
+  // FIX: Build map from onlineSessions for detailed session info (kept for tab display)
   const onlineSessionsByUsername = useMemo(() => {
     const map = new Map<string, OnlineSession>()
     for (const s of onlineSessions) {
@@ -1095,42 +1090,25 @@ export default function UsersPage() {
     return map
   }, [onlineSessions])
 
-  // FIX: enrichedUsers - uses onlineUsernameSet for online/offline status
+  // FIX: enrichedUsers - uses onlineMap for online/offline status
   const enrichedUsers = useMemo(() => {
     return users.map((user) => {
-      // Use the full username set for online/offline — more accurate for large tenants
       const username = user.radiusCredentials?.username
-      const isOnline = username ? onlineUsernameSet.has(username) : false
-      
-      // For live session details (IP, usage, router), still use the detailed map
-      const session = username ? onlineSessionsByUsername.get(username) : undefined
-
-      let currentUsage = user.dataUsed
-      if (session?.usage) {
-        const valMatch = session.usage.match(/([\d.]+)/)
-        const unitMatch = session.usage.match(/(GB|MB|KB|B)/i)
-        if (valMatch) {
-          let val = parseFloat(valMatch[1])
-          const unit = unitMatch ? unitMatch[1].toUpperCase() : 'GB'
-          if (unit === 'MB') val = val / 1024
-          else if (unit === 'KB') val = val / (1024 * 1024)
-          currentUsage = val
-        }
+      if (!username || !onlineMap[username]) {
+        return { ...user, connectionStatus: 'offline' as const }
       }
 
+      const sessionInfo = onlineMap[username]
       return {
         ...user,
-        connectionStatus: (isOnline ? "online" : "offline") as "online" | "offline",
-        dataUsed: isOnline ? currentUsage : (user.dataUsed || 0),
-        liveUsageString: isOnline && session?.usage ? session.usage : undefined,
-        lastOnline: isOnline ? "Now" : user.lastOnline,
-        ipAddress: session?.ip_address || user.ipAddress,
-        macAddress: session?.mac_address || user.macAddress,
-        router: session?.router || user.router,
+        connectionStatus: 'online' as const,
+        liveUsageString: sessionInfo.usage,
+        ipAddress: sessionInfo.ip || user.ipAddress,
+        macAddress: sessionInfo.mac || user.macAddress,
+        lastOnline: 'Now',
       }
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [users, onlineUsernameSet, onlineSessions.length])
+  }, [users, onlineMap])
 
   const activeHotspotClients = useMemo(() => {
     return hotspotClients.filter(client => {
@@ -1140,16 +1118,16 @@ export default function UsersPage() {
     });
   }, [hotspotClients]);
 
-  // FIX: Stabilize stats - remove onlineSessions dependency, use onlineTotal
+  // FIX: stats - uses Object.keys(onlineMap).length for online count
   const stats: UserStats = useMemo(() => {
-    const onlineCount = onlineTotal || onlineSessions.length;
+    const onlineCount = Object.keys(onlineMap).length
     
     const activeHotspotCount = (activeSubscriptions.hotspot?.filter(h => 
       h.is_active_sub ?? (h.subscription_status === 'active' && h.expiry_date && new Date(h.expiry_date) > new Date())
-    ).length || 0);
+    ).length || 0)
     
-    const activePPPoECount = activeSubscriptions.pppoe?.length || 0;
-    const totalActiveSubs = activeHotspotCount + activePPPoECount;
+    const activePPPoECount = activeSubscriptions.pppoe?.length || 0
+    const totalActiveSubs = activeHotspotCount + activePPPoECount
 
     return {
       total: totalCount,
@@ -1163,7 +1141,7 @@ export default function UsersPage() {
       hotspot: activeHotspotCount,
       totalActiveSubs,
     }
-  }, [totalCount, serverStatusCounts, serverStats.expired, onlineTotal, activeSubscriptions, onlineSessions.length])
+  }, [totalCount, serverStatusCounts, serverStats.expired, onlineMap, activeSubscriptions])
 
   const filteredUsers = useMemo(() => {
     if (statusFilter === "expired") {
@@ -1325,7 +1303,7 @@ export default function UsersPage() {
     try {
       await adminApi.suspendService(user.customerId, user.serviceId, 'Manual disconnect')
       toast.success(`${user.name} disconnected`)
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineMap()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to disconnect user')
     }
@@ -1464,7 +1442,7 @@ export default function UsersPage() {
       setUserToEditIP(null)
       setEditIPPoolId(null)
       await loadUsers(serverPage, searchQuery, statusFilter)
-      await loadOnlineSessions()
+      await loadOnlineMap()
     } catch (err: any) {
       toast.error(err.message || 'Failed to change IP address')
     } finally {
@@ -1555,7 +1533,7 @@ export default function UsersPage() {
       toast.success(`${userToDelete.name} deleted successfully. RADIUS credentials cleaned up.`)
       setShowDeleteConfirmDialog(false)
       setUserToDelete(null)
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions(), loadServerStats(), loadStatusCounts()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete user')
     } finally {
@@ -1573,10 +1551,10 @@ export default function UsersPage() {
       }
       toast.success(`${usersToDelete.length} user(s) deleted successfully`)
       setSelectedUsers([])
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions(), loadServerStats(), loadStatusCounts()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete some users')
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineSessions(), loadServerStats(), loadStatusCounts()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
     } finally {
       setDeleting(false)
     }
@@ -1831,7 +1809,7 @@ export default function UsersPage() {
 
   return (
     <PageWrapper>
-      {/* Header */}
+      {/* Header - same as before */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Users Management</h1>
@@ -2216,7 +2194,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* FIX: Stats Bar - No motion, no CountUp, just plain values */}
+      {/* Stats Bar - Same as before */}
       <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-x-auto relative">
         {[
           { label: "Total", value: stats.total, key: "all", tab: "all", status: "all", color: "text-slate-800 dark:text-slate-200" },
@@ -2288,7 +2266,7 @@ export default function UsersPage() {
         })}
       </div>
 
-      {/* Unified Filter Bar - With sliding pill */}
+      {/* Unified Filter Bar */}
       <motion.div 
         variants={containerVariants}
         initial="hidden"
@@ -2447,7 +2425,7 @@ export default function UsersPage() {
         </motion.div>
       )}
 
-      {/* -- Online Sessions Tab -- */}
+      {/* -- Online Sessions Tab (kept the same) -- */}
       {activeTab === "online-sessions" && (
         <motion.div
           key="online-sessions"
@@ -2537,7 +2515,7 @@ export default function UsersPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {onlineSessions.map((session) => (
+                        {filteredOnlineSessions.map((session) => (
                           <motion.tr
                             key={session.radacctid}
                             initial={{ opacity: 0 }}
@@ -2655,7 +2633,7 @@ export default function UsersPage() {
         </motion.div>
       )}
 
-      {/* -- Active Subscriptions Tab -- */}
+      {/* -- Active Subscriptions Tab (kept the same) -- */}
       {activeTab === "active-subs" && (
         <motion.div
           key="active-subs"
@@ -2894,7 +2872,7 @@ export default function UsersPage() {
         </motion.div>
       )}
 
-      {/* -- Hotspot Clients Tab -- */}
+      {/* -- Hotspot Clients Tab (kept the same) -- */}
       {activeTab === "hotspot" && (
         <motion.div
           key="hotspot"
@@ -3357,7 +3335,8 @@ export default function UsersPage() {
         </motion.div>
       )}
 
-      {/* All dialogs continue here... */}
+      {/* All dialogs - kept the same as before, too long to repeat here */}
+      {/* ... (all the dialogs from the original file go here) ... */}
 
       {/* Edit User Dialog */}
       <Dialog open={showEditUserDialog} onOpenChange={setShowEditUserDialog}>
