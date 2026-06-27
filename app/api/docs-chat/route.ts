@@ -8,7 +8,7 @@ type DocsSection = {
   score: number
 }
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3-flash-preview"
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash"
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
 
 const STOP_WORDS = new Set([
@@ -148,6 +148,8 @@ export async function POST(request: NextRequest) {
     })
 
     if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text().catch(() => "unknown error")
+      console.error("Gemini API Error:", geminiResponse.status, errorText)
       return NextResponse.json({
         answer: localFallback(contextSections),
         sources,
@@ -165,10 +167,11 @@ export async function POST(request: NextRequest) {
       blocked: answer.toLowerCase().includes("i do not have that in the netily docs yet"),
       provider: "gemini",
     })
-  } catch {
+  } catch (error) {
+    console.error("Docs Chat API Error:", error)
     return NextResponse.json(
       {
-        answer: "I could not reach Netily Support Chat right now. Please try again in a moment.",
+        answer: "I'm having trouble connecting right now. Please try again in a moment, or reach out to us at netily.co.ke.",
         blocked: true,
       },
       { status: 500 },
