@@ -8,7 +8,7 @@ type DocsSection = {
   score: number
 }
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash"
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash"
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
 
 const STOP_WORDS = new Set([

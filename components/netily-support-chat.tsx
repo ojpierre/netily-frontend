@@ -48,6 +48,9 @@ export function NetilySupportChat() {
         body: JSON.stringify({ message: trimmed }),
       })
       const data: SupportChatResponse = await res.json()
+      if (!res.ok) {
+        throw new Error(data.answer || "Support chat failed")
+      }
       setMessages((current) => [
         ...current,
         {

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
@@ -935,473 +935,400 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
 // MAIN STAFF PAGE COMPONENT
 // ==========================================
 
+
+
+import { UserPlus } from "lucide-react"
+
+const MOCK_ROLES = [
+  {
+    id: "finance",
+    name: "Finance / Accounts",
+    description: "Billing, Payments, Invoices, Expenses, Vouchers and Analytics with revenue.",
+    memberCount: 0,
+    permissions: [
+      "users.view", "invoices.view", "payments.view", "users.viewAny", "expenses.create",
+      "expenses.delete", "expenses.update", "financials.view", "invoices.create",
+      "invoices.update", "payments.create", "vouchers.create", "vouchers.delete",
+      "expenses.viewAny", "invoices.viewAny", "payments.viewAny", "vouchers.viewAny",
+      "analytics.viewAny"
+    ]
+  },
+  {
+    id: "marketing",
+    name: "Marketing",
+    description: "Leads, Communications, Campaigns and Analytics without revenue. No money.",
+    memberCount: 0,
+    permissions: [
+      "leads.view", "sms.create", "users.view", "emails.view", "sms.viewAny",
+      "leads.create", "leads.update", "emails.create", "emails.delete", "emails.update",
+      "leads.viewAny", "users.viewAny", "emails.viewAny", "tickets.create",
+      "tickets.delete", "tickets.update", "tickets.viewAny", "campaigns.create",
+      "campaigns.delete", "campaigns.update", "analytics.viewAny", "campaigns.viewAny"
+    ]
+  },
+  {
+    id: "support",
+    name: "Support",
+    description: "Subscribers, Tickets, Leads, Live sessions and Devices. No money.",
+    memberCount: 0,
+    permissions: [
+      "nas.view", "leads.view", "users.view", "nas.viewAny", "leads.create", "leads.update",
+      "users.create", "users.update", "leads.viewAny", "users.viewAny", "tickets.create",
+      "tickets.update", "tickets.viewAny", "equipment.viewAny", "active_users.viewAny"
+    ]
+  },
+  {
+    id: "technician",
+    name: "Technician / Network",
+    description: "Live sessions, Plans, Devices, TR-069 and NAS. No money.",
+    memberCount: 0,
+    permissions: [
+      "nas.view", "nas.create", "nas.delete", "nas.update", "users.view", "nas.viewAny",
+      "packages.view", "users.viewAny", "tickets.create", "tickets.delete",
+      "tickets.update", "packages.create", "packages.update", "tickets.viewAny",
+      "packages.viewAny", "equipment.viewAny", "active_users.viewAny"
+    ]
+  }
+]
+
+function EditPermissionsModal({ open, onOpenChange, role }: { open: boolean, onOpenChange: (v: boolean) => void, role: any }) {
+  if (!role) return null;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden bg-white">
+        <div className="p-6 border-b border-slate-100">
+           <DialogHeader>
+             <DialogTitle className="text-xl font-bold text-slate-900">Edit {role.name} permissions</DialogTitle>
+             <DialogDescription className="pt-2 text-sm text-slate-500">
+               {role.description}<br/><br/>
+               Changes apply to all staff members in this role; individual permission grants on users are not affected.
+             </DialogDescription>
+           </DialogHeader>
+        </div>
+        <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4 bg-slate-50/50">
+           {/* Checkbox Groups - Subscribers */}
+           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+             <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
+               <div className="w-5 h-5 rounded flex items-center justify-center bg-orange-500 text-white font-bold cursor-pointer">-</div>
+               <span className="font-bold text-sm text-slate-900">Subscribers</span>
+             </div>
+             <div className="p-4 grid grid-cols-2 gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" defaultChecked />
+                  <span className="text-sm text-slate-600">View Main Page</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" defaultChecked />
+                  <span className="text-sm text-slate-600">View Details</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+                  <span className="text-sm text-slate-600">Add New</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+                  <span className="text-sm text-slate-600">Edit / Modify</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+                  <span className="text-sm text-slate-600">Remove / Delete</span>
+                </label>
+             </div>
+           </div>
+
+           {/* Checkbox Groups - Leads */}
+           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+             <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-200">
+               <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+               <span className="font-bold text-sm text-slate-900">Leads</span>
+             </div>
+             <div className="p-4 grid grid-cols-2 gap-4 opacity-50 pointer-events-none">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+                  <span className="text-sm text-slate-600">View Main Page</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+                  <span className="text-sm text-slate-600">View Details</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+                  <span className="text-sm text-slate-600">Add New</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+                  <span className="text-sm text-slate-600">Edit / Modify</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+                  <span className="text-sm text-slate-600">Remove / Delete</span>
+                </label>
+             </div>
+           </div>
+
+           {/* Checkbox Groups - Tickets */}
+           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+             <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-200">
+               <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+               <span className="font-bold text-sm text-slate-900">Tickets</span>
+             </div>
+           </div>
+        </div>
+        <div className="p-4 border-t border-slate-100 bg-white flex justify-between items-center">
+           <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-slate-600 font-semibold hover:bg-slate-100">Cancel</Button>
+           <Button className="bg-[#f59e0b] hover:bg-[#d97706] text-white font-bold rounded-full px-6 shadow-sm">Save permissions</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function StaffManagementPage() {
   const router = useRouter()
   const [staffUsers, setStaffUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<"members" | "roles">("members")
   const [searchQuery, setSearchQuery] = useState("")
-  const [roleFilter, setRoleFilter] = useState<string>("all")
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [deleteUser, setDeleteUser] = useState<User | null>(null)
+
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   
-  // Edit state
-  const [editUser, setEditUser] = useState<User | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  
-  // Hard delete state
-  const [hardDeleteUser, setHardDeleteUser] = useState<User | null>(null)
-  const [isHardDeleting, setIsHardDeleting] = useState(false)
+  const [editingRole, setEditingRole] = useState<any | null>(null)
 
-  // Fetch staff users
-  const fetchStaffUsers = async () => {
-    setIsLoading(true)
+  useEffect(() => {
+    fetchStaff()
+  }, [])
+
+  const fetchStaff = async () => {
     try {
-      const params: Record<string, string> = {}
-      if (roleFilter !== "all") {
-        params.role = roleFilter
-      }
-      const response = await adminApi.getStaffUsers(params)
-      // Filter to only show staff roles (not customers/admin)
-      const staffOnly = response.results.filter((user) =>
-        ["staff", "technician", "accountant", "support"].includes(user.role || "")
-      )
-      setStaffUsers(staffOnly)
+      setIsLoading(true)
+      const data = await adminApi.getStaffUsers()
+      setStaffUsers((data as any).results || data)
     } catch (error) {
-      console.error("Failed to fetch staff users:", error)
-      toast.error("Failed to load staff members")
+      toast.error("Failed to fetch staff")
     } finally {
       setIsLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchStaffUsers()
-  }, [roleFilter])
-
-  // Filter users by search query
-  const filteredUsers = useMemo(() => {
-    if (!searchQuery.trim()) return staffUsers
-
-    const query = searchQuery.toLowerCase()
-    return staffUsers.filter(
-      (user) =>
-        user.email.toLowerCase().includes(query) ||
-        user.first_name?.toLowerCase().includes(query) ||
-        user.last_name?.toLowerCase().includes(query) ||
-        user.phone_number?.includes(query)
-    )
-  }, [staffUsers, searchQuery])
-
-  // Handle deactivate (preferred over delete per backend recommendation)
-  const handleDeactivate = async () => {
-    if (!deleteUser) return
-
+  const handleDelete = async () => {
+    if (!userToDelete) return
     setIsDeleting(true)
     try {
-      // Use PATCH to deactivate instead of DELETE (safer, reversible)
-      await adminApi.updateStaffUser(deleteUser.id, { is_active: false })
-      toast.success(`Staff member ${deleteUser.first_name} ${deleteUser.last_name} deactivated`, {
-        description: "They can no longer log in. You can reactivate them later.",
+      await adminApi.deleteStaffUser(userToDelete.id)
+      toast.success("Staff account removed", {
+        description: `${userToDelete.first_name || userToDelete.email} can no longer access this tenant dashboard.`,
       })
-      setDeleteUser(null)
-      fetchStaffUsers()
-    } catch (error) {
-      console.error("Failed to deactivate staff user:", error)
-      toast.error("Failed to deactivate staff member")
+      setUserToDelete(null)
+      fetchStaff()
+    } catch (error: any) {
+      toast.error("Failed to remove staff account", {
+        description: error?.message || "Please try again.",
+      })
     } finally {
       setIsDeleting(false)
     }
   }
 
-  // Handle reactivate
-  const handleReactivate = async (user: User) => {
-    try {
-      await adminApi.updateStaffUser(user.id, { is_active: true })
-      toast.success(`Staff member ${user.first_name} ${user.last_name} reactivated`)
-      fetchStaffUsers()
-    } catch (error) {
-      console.error("Failed to reactivate staff user:", error)
-      toast.error("Failed to reactivate staff member")
-    }
-  }
+  const filteredStaff = staffUsers.filter(u => 
+    (u.first_name + " " + u.last_name + " " + (u.email || "")).toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
-  // Handle hard delete
-  const handleDelete = async () => {
-    if (!hardDeleteUser) return
-    setIsHardDeleting(true)
-    try {
-      await adminApi.deleteStaffUser(hardDeleteUser.id)
-      toast.success(`Staff account for ${hardDeleteUser.first_name} ${hardDeleteUser.last_name} permanently deleted`)
-      setHardDeleteUser(null)
-      fetchStaffUsers()
-    } catch (error: any) {
-      console.error("Failed to delete staff user:", error)
-      toast.error(error?.message || "Failed to delete staff account")
-    } finally {
-      setIsHardDeleting(false)
-    }
-  }
-
-  // Stats
-  const stats = useMemo(() => {
-    const total = staffUsers.length
-    const byRole = {
-      staff: staffUsers.filter((u) => u.role === "staff").length,
-      technician: staffUsers.filter((u) => u.role === "technician").length,
-      accountant: staffUsers.filter((u) => u.role === "accountant").length,
-      support: staffUsers.filter((u) => u.role === "support").length,
-    }
-    const active = staffUsers.filter((u) => u.is_active).length
-
-    return { total, byRole, active }
-  }, [staffUsers])
+  const roleCards = MOCK_ROLES.map((role) => ({
+    ...role,
+    memberCount: staffUsers.filter((user) => {
+      if (role.id === "finance") return user.role === "accountant"
+      if (role.id === "marketing") return user.role === "staff"
+      return user.role === role.id
+    }).length,
+  }))
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Staff Management</h1>
-          <p className="text-slate-600">
-            Manage your ISP team members and their access roles
-          </p>
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-[#f8fafc]">
+      <div className="px-8 py-8 max-w-[1400px] mx-auto w-full">
+        {/* Header */}
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h1 className="text-4xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+              Staff & <span className="text-[#f59e0b]">access</span>
+            </h1>
+            <p className="text-sm text-slate-500 mt-2 font-medium">Manage your team members and the roles that decide what each person can see.</p>
+          </div>
+          {activeTab === "members" && (
+            <Button onClick={() => setCreateDialogOpen(true)} className="bg-[#f59e0b] hover:bg-[#d97706] text-white font-bold rounded-full px-6 shadow-sm shadow-orange-500/20">
+              <Plus className="w-4 h-4 mr-2" /> Add staff
+            </Button>
+          )}
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Staff Member
-        </Button>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Total Staff</CardDescription>
-            <CardTitle className="text-3xl">{stats.total}</CardTitle>
-          </CardHeader>
-        </Card>
-        {STAFF_ROLES.map((role) => {
-          const Icon = role.icon
-          return (
-            <Card key={role.value}>
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-2">
-                  <Icon className="w-4 h-4" />
-                  {role.label}s
-                </CardDescription>
-                <CardTitle className="text-2xl">
-                  {stats.byRole[role.value as keyof typeof stats.byRole]}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-          )
-        })}
-      </div>
+        {/* Tabs */}
+        <div className="flex items-center gap-2 mb-8 bg-white p-1 rounded-full border border-slate-200 shadow-sm w-fit">
+          <button 
+            onClick={() => setActiveTab("members")}
+            className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all ${
+              activeTab === "members" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+            }`}
+          >
+            Members <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === "members" ? "bg-slate-700 text-white" : "bg-slate-200"}`}>{staffUsers.length}</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab("roles")}
+            className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all ${
+              activeTab === "roles" ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+            }`}
+          >
+            Roles <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === "roles" ? "bg-slate-700 text-white" : "bg-slate-200"}`}>{roleCards.length}</span>
+          </button>
+        </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="Search by name, email, or phone..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filter by role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  {STAFF_ROLES.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      {role.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="icon" onClick={fetchStaffUsers}>
-                <RefreshCw className="w-4 h-4" />
-              </Button>
+        {/* Content */}
+        {activeTab === "members" ? (
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+             <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-slate-50 border-b border-slate-100">
+                    <TableRow>
+                      <TableHead className="text-xs font-bold text-slate-500 uppercase tracking-wider h-12">Name</TableHead>
+                      <TableHead className="text-xs font-bold text-slate-500 uppercase tracking-wider h-12">Contact</TableHead>
+                      <TableHead className="text-xs font-bold text-slate-500 uppercase tracking-wider h-12">Role</TableHead>
+                      <TableHead className="text-xs font-bold text-slate-500 uppercase tracking-wider h-12">Status</TableHead>
+                      <TableHead className="text-xs font-bold text-slate-500 uppercase tracking-wider h-12 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableRow><TableCell colSpan={5} className="text-center py-10 text-slate-500"><Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" /> Loading staff...</TableCell></TableRow>
+                    ) : filteredStaff.length === 0 ? (
+                      <TableRow><TableCell colSpan={5} className="text-center py-10 text-slate-500">No staff members found.</TableCell></TableRow>
+                    ) : (
+                      filteredStaff.map((staff) => (
+                        <TableRow key={staff.id} className="hover:bg-slate-50/50 transition-colors">
+                          <TableCell className="font-semibold text-slate-900 py-4">
+                            {staff.first_name} {staff.last_name}
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-sm text-slate-600">{staff.email || "No email"}</span>
+                              <span className="text-xs text-slate-500">{staff.phone_number || "No phone"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-orange-100 text-orange-700 border border-orange-200 capitalize">
+                              {staff.role}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            {staff.is_active !== false ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                Active
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                Inactive
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right py-4">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-slate-200 shadow-sm hover:bg-slate-100 bg-white">
+                                  <MoreHorizontal className="h-4 w-4 text-slate-500" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-40 rounded-xl shadow-lg border-slate-200">
+                                <DropdownMenuItem onClick={() => { setSelectedUser(staff); setEditDialogOpen(true); }} className="gap-2 text-sm font-medium cursor-pointer">
+                                  <Pencil className="h-4 w-4" /> Edit User
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => setUserToDelete(staff)}
+                                  className="gap-2 text-sm font-medium text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                                >
+                                  <Trash2 className="h-4 w-4" /> Remove User
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+             </div>
+             <div className="p-4 bg-slate-50 border-t border-slate-200 text-center text-xs font-semibold text-slate-400 tracking-wider uppercase">
+               © 2023-2026 Centipid Technologies
+             </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <p className="text-sm text-slate-500 font-medium max-w-4xl">Roles define what each staff member can access. Editing a role updates all members assigned to it without changing their individual permission grants.</p>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {roleCards.map((role) => (
+                <div key={role.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col">
+                  <div className="p-6 flex-1">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-lg font-bold text-slate-900">{role.name}</h3>
+                      <div className="flex items-center gap-1.5 bg-slate-100 text-slate-500 px-2 py-1 rounded-md text-xs font-bold">
+                        <UserCog className="w-3.5 h-3.5" /> {role.memberCount}
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-500 mb-6 min-h-[40px]">{role.description}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {role.permissions.map(perm => (
+                        <span key={perm} className="px-2 py-1 bg-white border border-slate-200 text-slate-500 text-[10px] font-bold tracking-wider rounded-md">
+                          {perm}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="p-4 border-t border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-b-2xl">
+                    <span className="text-xs font-semibold text-slate-500">{role.permissions.length} permissions granted</span>
+                    <button onClick={() => setEditingRole(role)} className="flex items-center gap-1.5 text-sm font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm hover:bg-slate-50 transition-colors">
+                      <Pencil className="w-3.5 h-3.5" /> Edit permissions
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
 
-      {/* Staff Table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                // Loading skeleton
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="w-10 h-10 rounded-full" />
-                        <Skeleton className="h-4 w-32" />
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-40" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-6 w-24" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-28" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-6 w-16" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-24" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-8 w-8 ml-auto" />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : filteredUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12">
-                    <Users className="w-12 h-12 mx-auto text-slate-300 mb-4" />
-                    <p className="text-slate-500">
-                      {searchQuery
-                        ? "No staff members match your search"
-                        : "No staff members yet"}
-                    </p>
-                    {!searchQuery && (
-                      <Button
-                        variant="link"
-                        className="mt-2"
-                        onClick={() => setIsCreateDialogOpen(true)}
-                      >
-                        Add your first staff member
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredUsers.map((user) => {
-                  const RoleIcon = getRoleIcon(user.role)
-                  return (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
-                            <span className="text-primary font-medium">
-                              {user.first_name?.charAt(0) || ""}
-                              {user.last_name?.charAt(0) || ""}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {user.first_name} {user.last_name}
-                            </p>
-                            {user.id_number && (
-                              <p className="text-xs text-slate-500">ID: {user.id_number}</p>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <a
-                          href={`mailto:${user.email}`}
-                          className="text-primary hover:underline"
-                        >
-                          {user.email}
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getRoleBadgeVariant(user.role)} className="gap-1">
-                          <RoleIcon className="w-3 h-3" />
-                          {user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "Staff"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {user.phone_number ? (
-                          <a
-                            href={`tel:${user.phone_number}`}
-                            className="text-slate-600 hover:text-slate-900"
-                          >
-                            {user.phone_number}
-                          </a>
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {user.is_active ? (
-                          <Badge variant="outline" className="text-success border-success/20">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-destructive border-destructive/20">
-                            <XCircle className="w-3 h-3 mr-1" />
-                            Inactive
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-slate-500">
-                        {formatDate(user.created_at || user.date_joined)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setEditUser(user)
-                                setIsEditDialogOpen(true)
-                              }}
-                            >
-                              <Pencil className="w-4 h-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {user.is_active ? (
-                              <DropdownMenuItem
-                                className="text-warning"
-                                onClick={() => setDeleteUser(user)}
-                              >
-                                <XCircle className="w-4 h-4 mr-2" />
-                                Deactivate
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem
-                                className="text-success"
-                                onClick={() => handleReactivate(user)}
-                              >
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                Reactivate
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => setHardDeleteUser(user)}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete Permanently
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Create Staff Dialog */}
-      <CreateStaffDialog
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        onSuccess={fetchStaffUsers}
-      />
-
-      {/* Edit Staff Dialog */}
-      <EditStaffDialog
-        open={isEditDialogOpen}
-        onOpenChange={(open) => {
-          setIsEditDialogOpen(open)
-          if (!open) setEditUser(null)
-        }}
-        onSuccess={fetchStaffUsers}
-        user={editUser}
-      />
-
-      {/* Deactivate Confirmation Dialog */}
-      <AlertDialog open={!!deleteUser} onOpenChange={() => setDeleteUser(null)}>
+      <CreateStaffDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} onSuccess={fetchStaff} />
+      <EditStaffDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} onSuccess={fetchStaff} user={selectedUser} />
+      <EditPermissionsModal open={!!editingRole} onOpenChange={(v) => !v && setEditingRole(null)} role={editingRole} />
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate Staff Member?</AlertDialogTitle>
+            <AlertDialogTitle>Remove staff account?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to deactivate{" "}
-              <strong>
-                {deleteUser?.first_name} {deleteUser?.last_name}
-              </strong>
-              ? They will no longer be able to log in. You can reactivate them later.
+              This will revoke admin dashboard access for{" "}
+              <span className="font-semibold text-slate-900">
+                {userToDelete?.first_name} {userToDelete?.last_name}
+              </span>
+              . This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeactivate}
+              onClick={(event) => {
+                event.preventDefault()
+                handleDelete()
+              }}
               disabled={isDeleting}
-              className="bg-amber-600 hover:bg-amber-700"
+              className="bg-red-600 text-white hover:bg-red-700"
             >
               {isDeleting ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Deactivating...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Removing...
                 </>
               ) : (
-                "Deactivate"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!hardDeleteUser} onOpenChange={() => setHardDeleteUser(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Permanently Delete Staff Account?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will <strong>permanently delete</strong>{" "}
-              <strong>
-                {hardDeleteUser?.first_name} {hardDeleteUser?.last_name}
-              </strong>
-              's account. This action cannot be undone. If you just want to block
-              their access temporarily, use Deactivate instead.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isHardDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isHardDeleting}
-              className="bg-destructive hover:bg-destructive/90 focus:ring-red-600"
-            >
-              {isHardDeleting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete Permanently"
+                "Remove staff"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
