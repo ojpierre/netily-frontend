@@ -42,7 +42,7 @@ export function NetilySupportChat() {
     setLoading(true)
 
     try {
-      const res = await fetch("/api/docs-chat", {
+      const res = await fetch("/internal-api/docs-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: trimmed }),
