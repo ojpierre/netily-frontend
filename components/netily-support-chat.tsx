@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { Bot, Send, Sparkles, X } from "lucide-react"
-import { adminApi } from "@/lib/admin-api"
 import { Button } from "@/components/ui/button"
 
 type ChatMessage = {
@@ -43,16 +42,18 @@ export function NetilySupportChat() {
     setLoading(true)
 
     try {
-      const response = await adminApi.rawRequest<SupportChatResponse>("/core/support-chat/", {
+      const res = await fetch("/api/docs-chat", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: trimmed }),
       })
+      const data: SupportChatResponse = await res.json()
       setMessages((current) => [
         ...current,
         {
           role: "assistant",
-          text: response.answer || "I could not find an approved support answer for that yet.",
-          sources: response.sources || [],
+          text: data.answer || "I could not find an approved support answer for that yet.",
+          sources: data.sources || [],
         },
       ])
     } catch {
@@ -72,7 +73,7 @@ export function NetilySupportChat() {
     <div className="fixed bottom-5 right-5 z-50">
       {open && (
         <div className="mb-3 flex h-[520px] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 dark:border-slate-800 dark:bg-slate-950">
-          <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-slate-950 to-blue-950 px-4 py-3 text-white dark:border-slate-800">
+          <div className="flex items-center justify-between border-b border-slate-100 bg-linear-to-r from-slate-950 to-blue-950 px-4 py-3 text-white dark:border-slate-800">
             <div className="flex items-center gap-2">
               <div className="rounded-xl bg-white/10 p-2">
                 <Sparkles className="h-4 w-4" />

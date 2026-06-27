@@ -1020,6 +1020,12 @@ export function LandingPage() {
               >
                 Blog
               </Link>
+              <Link
+                href="/docs"
+                className="text-sm font-medium text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-200 transition-colors"
+              >
+                Docs
+              </Link>
             </nav>
 
             {/* Right side */}
@@ -1173,6 +1179,12 @@ export function LandingPage() {
               >
                 Get in Touch
               </a>
+              <Link
+                href="/docs"
+                className="w-full border border-blue-200 bg-blue-50 text-blue-700 text-sm font-semibold py-3 rounded-lg text-center dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300"
+              >
+                Read Quickstart Docs
+              </Link>
             </div>
           </motion.div>
         )}
@@ -1996,6 +2008,68 @@ export function LandingPage() {
       </section>
 
       {/* ━━━ CONTACT / INQUIRY FORM ━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <section className="relative overflow-hidden py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-white dark:bg-slate-950">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(37,99,235,0.16),transparent_32%),radial-gradient(circle_at_80%_20%,rgba(14,165,233,0.12),transparent_28%)]" />
+        <div className="relative max-w-6xl mx-auto">
+          <Reveal>
+            <div className="grid gap-8 lg:grid-cols-[1fr_420px] lg:items-center">
+              <div>
+                <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-3">
+                  Quickstart and support docs
+                </p>
+                <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                  Know exactly what happens after you request Netily.
+                </h2>
+                <p className="mt-5 text-lg leading-8 text-slate-600 dark:text-slate-400">
+                  Read the Netily docs before or after onboarding. The guide covers dashboard navigation, users, routers, billing, leads, SMS, inventory, and the first steps your team should take.
+                </p>
+                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                  <Link
+                    href="/docs"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-xl shadow-blue-600/20 hover:bg-blue-700"
+                  >
+                    Open Quickstart Docs
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                  <a
+                    href="#contact"
+                    onClick={(e) => { e.preventDefault(); scrollTo("contact") }}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                  >
+                    Submit registration form
+                  </a>
+                </div>
+              </div>
+
+              <div className="rounded-[2rem] border border-blue-100 bg-white/80 p-6 shadow-2xl shadow-blue-950/10 backdrop-blur-xl dark:border-blue-900/40 dark:bg-slate-900/80">
+                <div className="mb-5 flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-white">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-black text-slate-900 dark:text-white">How onboarding works</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Simple, guided, and support-led</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {[
+                    "Fill the form at netily.co.ke/#contact with your ISP details.",
+                    "Netily reviews the request and registers your tenant account.",
+                    "Your login details and setup instructions are sent to your email.",
+                    "Use the Quickstart docs and assistant to connect routers, users, billing, and support flows.",
+                  ].map((step, index) => (
+                    <div key={step} className="flex gap-3 rounded-2xl bg-blue-50/80 p-4 text-sm text-slate-700 dark:bg-blue-950/30 dark:text-slate-200">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-black text-white">{index + 1}</span>
+                      <span>{step}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       <section id="contact" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
         <div className="max-w-3xl mx-auto">
           <Reveal>
