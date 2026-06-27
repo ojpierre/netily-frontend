@@ -83,9 +83,52 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 
-const API_BASE = typeof window !== 'undefined'
-  ? `${window.location.protocol}//${window.location.hostname}${window.location.hostname.includes('localhost') ? ':8000' : ''}/api/v1`
-  : '/api/v1'
+// ============================================================
+// FIX 1: Dynamic API_BASE derived from adminApi's baseUrl logic
+// ============================================================
+const getApiBase = (): string => {
+  if (typeof window === 'undefined') return '/api/v1'
+  
+  const hostname = window.location.hostname
+  const protocol = window.location.protocol
+  const ENV_API_PORT = process.env.NEXT_PUBLIC_API_PORT || '8000'
+  const ENV_API_URL = process.env.NEXT_PUBLIC_API_URL
+  
+  // Local development with subdomains
+  if (hostname.endsWith('.localhost') || hostname === 'localhost') {
+    return `${protocol}//${hostname}:${ENV_API_PORT}/api/v1`
+  }
+  
+  // IP-based local development
+  if (hostname.startsWith('127.') || hostname.startsWith('192.168.')) {
+    return `${protocol}//${hostname}:${ENV_API_PORT}/api/v1`
+  }
+  
+  // Tunnel/ngrok/pinggy
+  if (hostname.includes('ngrok') || hostname.includes('pinggy') || 
+      hostname.includes('loca.lt') || hostname.includes('localhost.run')) {
+    if (ENV_API_URL && ENV_API_URL.trim() !== '') {
+      return ENV_API_URL
+    }
+  }
+  
+  // Production/tenant domains - same-origin
+  const KNOWN_DOMAINS = ['netily.co.ke', 'bentrextechnologies.com']
+  const isTenantSubdomain = KNOWN_DOMAINS.some(d => hostname.endsWith(`.${d}`))
+  const isCustomDomain = KNOWN_DOMAINS.some(d => hostname === d || hostname === `www.${d}`)
+  
+  if (isTenantSubdomain || isCustomDomain) {
+    return `${protocol}//${hostname}/api/v1`
+  }
+  
+  if (ENV_API_URL && ENV_API_URL.trim() !== '') {
+    return ENV_API_URL
+  }
+  
+  return `${protocol}//${hostname}/api/v1`
+}
+
+const API_BASE = getApiBase()
 
 const formatCurrency = (amount: string | number) => {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount
@@ -116,7 +159,9 @@ const getStatusBadge = (status: string) => {
   )
 }
 
-// ── Customer Search Combobox ──────────────────────────────────────────
+// ============================================================
+// FIX 2: CustomerSearchCombobox - Using adminApi's base URL
+// ============================================================
 function CustomerSearchCombobox({ value, onChange }: {
   value: { id: number; full_name: string; customer_code: string } | null
   onChange: (v: { id: number; full_name: string; customer_code: string } | null) => void
@@ -127,47 +172,67 @@ function CustomerSearchCombobox({ value, onChange }: {
   const [loading, setLoading] = useState(false)
   const timer = useRef<any>(null)
 
+  // ============================================================
+  // FIX: Use dynamic API_BASE and proper token retrieval
+  // ============================================================
   const search = useCallback(async (q: string) => {
     setLoading(true)
     try {
       const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken') || ''
+      // Use the dynamic API_BASE
       const res = await fetch(`${API_BASE}/billing/customers/search/?q=${encodeURIComponent(q)}&limit=8`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
       })
       if (res.ok) {
         const data = await res.json()
         setResults(data.results || [])
+      } else {
+        console.error('Search failed:', res.status, await res.text().catch(() => ''))
+        setResults([])
       }
-    } catch { } finally { setLoading(false) }
+    } catch (e) {
+      console.error('Customer search error:', e)
+      setResults([])
+    } finally { 
+      setLoading(false) 
+    }
   }, [])
 
   useEffect(() => {
     clearTimeout(timer.current)
-    timer.current = setTimeout(() => search(query), 250)
+    if (query.length >= 2 || query.length === 0) {
+      timer.current = setTimeout(() => search(query), 250)
+    }
   }, [query, search])
 
-  useEffect(() => { search('') }, [search])
+  // Initial load - show recent customers
+  useEffect(() => { 
+    search('') 
+  }, [search])
 
   return (
     <div className="relative">
       <div
-        className="flex items-center border rounded-md px-3 py-2 gap-2 cursor-pointer bg-background"
+        className="flex items-center border rounded-md px-3 py-2 gap-2 cursor-pointer bg-background hover:border-primary/50 transition-colors"
         onClick={() => setOpen(o => !o)}
       >
         <Search className="h-4 w-4 text-muted-foreground" />
-        <span className="flex-1 text-sm">
+        <span className="flex-1 text-sm truncate">
           {value ? `${value.full_name} (${value.customer_code})` : 'Search customer...'}
         </span>
         {value && (
-          <X className="h-4 w-4 text-muted-foreground cursor-pointer" onClick={e => { e.stopPropagation(); onChange(null) }} />
+          <X className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-destructive transition-colors" onClick={e => { e.stopPropagation(); onChange(null) }} />
         )}
         <ChevronDown className="h-4 w-4 text-muted-foreground" />
       </div>
       {open && (
-        <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg">
+        <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
           <div className="p-2">
             <Input
-              placeholder="Name or phone..."
+              placeholder="Name, phone, or code..."
               value={query}
               onChange={e => setQuery(e.target.value)}
               autoFocus
@@ -175,18 +240,25 @@ function CustomerSearchCombobox({ value, onChange }: {
             />
           </div>
           <div className="max-h-48 overflow-y-auto">
-            {loading && <div className="px-3 py-2 text-sm text-muted-foreground">Searching...</div>}
+            {loading && (
+              <div className="px-3 py-2 text-sm text-muted-foreground flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Searching...
+              </div>
+            )}
             {!loading && results.length === 0 && (
-              <div className="px-3 py-2 text-sm text-muted-foreground">No customers found</div>
+              <div className="px-3 py-2 text-sm text-muted-foreground">
+                {query.length >= 2 ? 'No customers found' : 'Type at least 2 characters to search'}
+              </div>
             )}
             {results.map(c => (
               <div
                 key={c.id}
-                className="px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                className="px-3 py-2 text-sm hover:bg-muted cursor-pointer transition-colors"
                 onClick={() => { onChange(c); setOpen(false); setQuery('') }}
               >
                 <div className="font-medium">{c.full_name}</div>
-                <div className="text-xs text-muted-foreground">{c.phone_number} · {c.customer_code}</div>
+                <div className="text-xs text-muted-foreground">{c.phone_number || c.phone || '—'} · {c.customer_code}</div>
               </div>
             ))}
           </div>
@@ -245,7 +317,7 @@ function LineItemsEditor({ items, onChange }: {
             />
           </div>
           <div className="col-span-1 flex justify-center">
-            <button onClick={() => remove(i)} className="text-destructive hover:text-destructive">
+            <button onClick={() => remove(i)} className="text-destructive hover:text-destructive/80 transition-colors">
               <X className="h-4 w-4" />
             </button>
           </div>
