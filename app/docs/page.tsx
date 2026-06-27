@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { ArrowRight, BookOpen, CheckCircle2, Copy, FileText, Menu, Moon, Search, Sparkles, Sun, X } from "lucide-react"
