@@ -68,7 +68,7 @@ function selectContext(markdown: string, question: string) {
 function localFallback(sections: DocsSection[]) {
   const best = sections[0]
   if (!best) {
-    return "I could not find that in the approved Netily docs yet. Please contact Netily Support."
+    return "I don't have a specific answer for that yet. Please reach out to our support team at netily.co.ke for help."
   }
 
   const excerpt = best.text

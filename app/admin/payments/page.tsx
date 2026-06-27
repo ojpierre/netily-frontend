@@ -1097,7 +1097,7 @@ export default function PaymentsPage() {
           <DialogHeader>
             <DialogTitle>Initiate Payment</DialogTitle>
             <DialogDescription>
-              {paymentStep === 'form' && 'Start a new payment using PayHero'}
+              {paymentStep === 'form' && 'Start a new payment'}
               {paymentStep === 'processing' && 'Processing your payment...'}
               {paymentStep === 'instructions' && 'Complete your payment'}
             </DialogDescription>

@@ -27,16 +27,53 @@ function parseHeadings(markdown: string): Heading[] {
 function renderInline(text: string) {
   return text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g).map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) return <strong key={index}>{part.slice(2, -2)}</strong>
-    if (part.startsWith("`") && part.endsWith("`")) return <code key={index}>{part.slice(1, -1)}</code>
+    if (part.startsWith("`") && part.endsWith("`")) return <code key={index} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-mono text-blue-700 dark:bg-slate-800 dark:text-blue-300">{part.slice(1, -1)}</code>
     const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
     if (link) return <a key={index} href={link[2]} className="font-semibold text-blue-600 hover:underline dark:text-blue-300">{link[1]}</a>
     return part
   })
 }
 
+function parseTable(lines: string[]): React.ReactNode | null {
+  if (lines.length < 2) return null
+  const parseRow = (row: string) =>
+    row.split("|").map(c => c.trim()).filter(c => c !== "")
+
+  const headers = parseRow(lines[0])
+  const body = lines.slice(2) // skip separator row
+
+  return (
+    <div className="my-6 overflow-x-auto rounded-2xl border border-slate-200 shadow-sm dark:border-slate-700">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60">
+            {headers.map((header, i) => (
+              <th key={i} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100 bg-white dark:divide-slate-800 dark:bg-slate-900/50">
+          {body.map((row, ri) => (
+            <tr key={ri} className="transition-colors hover:bg-blue-50/40 dark:hover:bg-blue-950/20">
+              {parseRow(row).map((cell, ci) => (
+                <td key={ci} className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                  {renderInline(cell)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function MarkdownBody({ markdown }: { markdown: string }) {
   const nodes: React.ReactNode[] = []
   let list: string[] = []
+  let tableLines: string[] = []
 
   const flushList = () => {
     if (!list.length) return
@@ -53,8 +90,26 @@ function MarkdownBody({ markdown }: { markdown: string }) {
     list = []
   }
 
-  markdown.split("\n").forEach((line, index) => {
+  const flushTable = () => {
+    if (!tableLines.length) return
+    const table = parseTable(tableLines)
+    if (table) nodes.push(<React.Fragment key={`table-${nodes.length}`}>{table}</React.Fragment>)
+    tableLines = []
+  }
+
+  const lines = markdown.split("\n")
+  lines.forEach((line, index) => {
     const trimmed = line.trim()
+
+    // Detect table rows
+    if (trimmed.startsWith("|")) {
+      flushList()
+      tableLines.push(trimmed)
+      return
+    } else {
+      flushTable()
+    }
+
     if (!trimmed || trimmed === "---") {
       flushList()
       return
@@ -71,11 +126,17 @@ function MarkdownBody({ markdown }: { markdown: string }) {
     } else if (trimmed.startsWith("### ")) {
       const title = trimmed.slice(4)
       nodes.push(<h3 id={slugify(title)} key={index} className="scroll-mt-28 pt-8 text-xl font-bold text-slate-900 dark:text-slate-100">{renderInline(title)}</h3>)
-    } else if (trimmed.startsWith("> ")) nodes.push(<blockquote key={index} className="my-5 rounded-2xl border-l-4 border-blue-500 bg-blue-50/80 p-4 text-sm text-blue-950 dark:bg-blue-950/40 dark:text-blue-100">{renderInline(trimmed.slice(2))}</blockquote>)
-    else if (trimmed.startsWith("|")) nodes.push(<p key={index} className="font-mono text-xs text-slate-500">{trimmed}</p>)
-    else nodes.push(<p key={index} className="my-4 leading-8 text-slate-600 dark:text-slate-300">{renderInline(trimmed)}</p>)
+    } else if (trimmed.startsWith("#### ")) {
+      const title = trimmed.slice(5)
+      nodes.push(<h4 key={index} className="pt-5 text-base font-bold text-slate-800 dark:text-slate-200">{renderInline(title)}</h4>)
+    } else if (trimmed.startsWith("> ")) {
+      nodes.push(<blockquote key={index} className="my-5 rounded-2xl border-l-4 border-blue-500 bg-blue-50/80 p-4 text-sm text-blue-950 dark:bg-blue-950/40 dark:text-blue-100">{renderInline(trimmed.slice(2))}</blockquote>)
+    } else {
+      nodes.push(<p key={index} className="my-4 leading-8 text-slate-600 dark:text-slate-300">{renderInline(trimmed)}</p>)
+    }
   })
   flushList()
+  flushTable()
   return <>{nodes}</>
 }
 
@@ -129,12 +190,12 @@ export default function DocsPage() {
             </div>
             <div>
               <p className="text-sm font-black uppercase tracking-[0.22em] text-blue-600 dark:text-blue-300">Netily</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Support Docs</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Documentation</p>
             </div>
           </Link>
           <div className="hidden items-center gap-3 md:flex">
             <a href="#quickstart" className="rounded-full px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/10">Quickstart</a>
-            <Link href="/#contact" className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700">Get Registered</Link>
+            <Link href="/#contact" className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700">Get Started</Link>
             <button onClick={() => setDark((value) => !value)} className="rounded-full border border-slate-200 bg-white/70 p-2 dark:border-white/10 dark:bg-white/10">
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
@@ -167,19 +228,19 @@ export default function DocsPage() {
             <div className="grid gap-8 lg:grid-cols-[1fr_280px] lg:items-center">
               <div>
                 <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-blue-700 dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-200">
-                  <Sparkles className="h-3.5 w-3.5" /> Tenant onboarding guide
+                  <Sparkles className="h-3.5 w-3.5" /> Platform Documentation
                 </div>
-                <h1 className="text-4xl font-black tracking-tight text-slate-950 dark:text-white sm:text-5xl">Netily Docs, built for fast setup and everyday support.</h1>
-                <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600 dark:text-slate-300">Use this guide to onboard, manage users, connect routers, configure billing, track leads, and understand each dashboard route.</p>
+                <h1 className="text-4xl font-black tracking-tight text-slate-950 dark:text-white sm:text-5xl">Everything you need to get the most from Netily.</h1>
+                <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600 dark:text-slate-300">Step-by-step guides covering setup, routers, billing, hotspot, SMS, and every feature in your dashboard — written for ISP operators at every level.</p>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                   <a href="#quickstart" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-xl shadow-blue-600/20 hover:bg-blue-700">Start with Quickstart <ArrowRight className="h-4 w-4" /></a>
-                  <Link href="/#contact" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:text-white">Fill contact form for registration</Link>
+                  <Link href="/#contact" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:text-white">Register your ISP</Link>
                 </div>
               </div>
               <div className="rounded-[2rem] border border-blue-100 bg-blue-600 p-5 text-white shadow-2xl shadow-blue-600/20 dark:border-blue-400/20">
                 <FileText className="mb-4 h-8 w-8" />
-                <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-100">Registration pattern</p>
-                <p className="mt-3 text-sm leading-7 text-blue-50">Prospects fill the form at <strong>netily.co.ke/#contact</strong>. Netily reviews the details, registers the tenant, then sends login details by email.</p>
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-100">How registration works</p>
+                <p className="mt-3 text-sm leading-7 text-blue-50">Fill the contact form at <strong>netily.co.ke/#contact</strong>. Our team reviews your details, sets up your account, and sends your login credentials by email — usually within one business day.</p>
               </div>
             </div>
           </motion.div>
@@ -187,7 +248,7 @@ export default function DocsPage() {
           <article className="rounded-[2.5rem] border border-white/70 bg-white/80 p-6 shadow-2xl shadow-blue-950/5 backdrop-blur-2xl dark:border-white/10 dark:bg-white/5 sm:p-10">
             <div className="mb-4 flex justify-end">
               <button onClick={() => navigator.clipboard?.writeText(window.location.href)} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
-                <Copy className="h-3.5 w-3.5" /> Copy page
+                <Copy className="h-3.5 w-3.5" /> Copy link
               </button>
             </div>
             <MarkdownBody markdown={markdown} />

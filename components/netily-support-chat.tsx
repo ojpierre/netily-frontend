@@ -18,13 +18,13 @@ type SupportChatResponse = {
 
 const STARTER: ChatMessage = {
   role: "assistant",
-  text: "Ask me about Netily onboarding, billing, routers, hotspot, leads, dispatch, or inventory. I only answer from approved support docs.",
+  text: "Hi! 👋 I'm the Netily assistant. Ask me anything about getting started, managing your ISP, routers, billing, hotspot, SMS, or any feature in the platform.",
 }
 
 const SUGGESTED_PROMPTS = [
   "How do I connect my first router?",
-  "How is my monthly invoice calculated?",
-  "Where do I manage leads?",
+  "How does billing work for my customers?",
+  "How do I set up hotspot vouchers?",
 ]
 
 export function NetilySupportChat() {
@@ -52,7 +52,7 @@ export function NetilySupportChat() {
         ...current,
         {
           role: "assistant",
-          text: data.answer || "I could not find an approved support answer for that yet.",
+          text: data.answer || "I don't have a specific answer for that yet. Please contact our support team at netily.co.ke for help.",
           sources: data.sources || [],
         },
       ])
@@ -61,7 +61,7 @@ export function NetilySupportChat() {
         ...current,
         {
           role: "assistant",
-          text: "I could not reach Netily Support Chat right now. Please try again in a moment.",
+          text: "I'm having trouble connecting right now. Please try again in a moment, or reach out to us at netily.co.ke.",
         },
       ])
     } finally {
@@ -79,8 +79,8 @@ export function NetilySupportChat() {
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-sm font-bold">Netily Support</p>
-                <p className="text-xs text-blue-100">Approved onboarding help</p>
+                <p className="text-sm font-bold">Netily Assistant</p>
+                <p className="text-xs text-blue-100">Ask me anything about the platform</p>
               </div>
             </div>
             <button onClick={() => setOpen(false)} className="rounded-lg p-1 text-blue-100 hover:bg-white/10 hover:text-white">
@@ -110,7 +110,7 @@ export function NetilySupportChat() {
             {loading && (
               <div className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-sm text-slate-500 dark:bg-slate-900">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-                Searching approved docs...
+                Thinking...
               </div>
             )}
             {messages.length === 1 && !loading ? (
@@ -144,7 +144,7 @@ export function NetilySupportChat() {
               </Button>
             </div>
             <p className="mt-2 text-[10px] text-slate-400">
-              Safe mode: no architecture, credentials, or deployment answers.
+              Powered by Netily Docs · Answers are based on our help content.
             </p>
           </div>
         </div>

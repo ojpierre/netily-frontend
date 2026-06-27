@@ -1598,7 +1598,7 @@ export default function RouterDetailPage() {
                     <ul className="space-y-1 text-slate-600">
                       <li>• Customer connects to MikroTik hotspot</li>
                       <li>• Captive portal redirects to Netily cloud</li>
-                      <li>• Payment processed via M-Pesa / PayHero</li>
+                      <li>• Payment processed via M-Pesa / payment gateway</li>
                       <li>• RADIUS credentials sent over VPN tunnel</li>
                       <li>• MikroTik authenticates user via FreeRADIUS</li>
                     </ul>
