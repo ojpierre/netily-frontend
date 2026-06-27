@@ -369,6 +369,33 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                         </button>
                       )
                     })}
+                    <div className="w-full rounded-lg border border-dashed border-slate-300 p-4 text-left dark:border-slate-700">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="font-semibold">Need a different arrangement?</p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            For custom billing, referral credits, enterprise terms, or payment help, contact Netily Support.
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="shrink-0 text-[10px]">Support only</Badge>
+                      </div>
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                        <a
+                          href="https://wa.me/254741670603?text=Hello%20Netily%20Support%2C%20I%20need%20help%20with%20my%20subscription."
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-500"
+                        >
+                          WhatsApp Support
+                        </a>
+                        <a
+                          href="mailto:support@netily.co.ke?subject=Subscription%20Support"
+                          className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 px-3 text-xs font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
+                        >
+                          Email Support
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -649,7 +676,6 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
         if (!active) return
 
         const plansArray = Array.isArray(plansData) ? plansData : ((plansData as any)?.results || [])
-        setRealPlans(plansArray)
         setPlansLoading(false)
 
         if (!subscription || !subscription.status) {
@@ -676,6 +702,13 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
           (subscription.plan as any)?.name ||
           "Netily Plan"
         )
+        const currentPlanCode = (subscription.plan as any)?.code
+        const currentPlanId = (subscription.plan as any)?.id
+        const currentPlanOnly = plansArray.filter((plan: NetilyPlan) =>
+          (currentPlanCode && plan.code === currentPlanCode) ||
+          (currentPlanId && String(plan.id) === String(currentPlanId))
+        )
+        setRealPlans(currentPlanOnly.length ? currentPlanOnly : plansArray.slice(0, 1))
 
         const s = subscription.status
         const paidPeriodActive = Boolean(

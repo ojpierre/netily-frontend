@@ -554,7 +554,12 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
             const dueDate = new Date(subscription.current_period_end).toLocaleDateString(undefined, {
               day: "numeric", month: "long", year: "numeric",
             })
-            const planAmount = subscription.plan?.base_license_fee ?? subscription.plan?.price_monthly ?? null
+            const upcomingEstimateAmount =
+              usage?.invoice_total_estimate ??
+              usage?.total_estimate ??
+              subscription.plan?.base_license_fee ??
+              subscription.plan?.price_monthly ??
+              null
             return (
               <div className="mb-4 flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/10 dark:bg-amber-950/30 dark:border-amber-800 p-4">
                 <span className="text-warning mt-0.5">⏰</span>
@@ -564,7 +569,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   </p>
                   <p className="text-xs text-warning dark:text-amber-300 mt-0.5">
                     Your next subscription invoice is due on <strong>{dueDate}</strong>
-                    {planAmount ? ` · Estimated KES ${Number(planAmount).toLocaleString()}` : ""}.
+                    {upcomingEstimateAmount ? ` · Estimated KES ${Number(upcomingEstimateAmount).toLocaleString()}` : ""}.
                     Ensure your M-Pesa wallet is funded to avoid service interruption.
                   </p>
                 </div>
