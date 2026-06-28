@@ -291,10 +291,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   // Show loading state while checking auth
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-          <p className="text-slate-500">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     )
@@ -304,10 +304,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   // The useEffect above will handle the actual redirect
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-          <p className="text-slate-500 font-medium animate-pulse">Redirecting to login...</p>
+          <p className="animate-pulse font-medium text-muted-foreground">Redirecting to login...</p>
         </div>
       </div>
     )
@@ -329,7 +329,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const routeAccessRule = getAccessRuleForPath(pathname)
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950" suppressHydrationWarning>
+    <div className="min-h-screen bg-background" suppressHydrationWarning>
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -340,7 +340,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none transition-all duration-300 ${
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card shadow-sm transition-all duration-300 ${
           sidebarCollapsed ? "w-16" : "w-64"
         } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
@@ -375,12 +375,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           {filteredSections.map((section, sectionIndex) => (
             <div key={section.title} className={sectionIndex > 0 ? "mt-5" : ""}>
               {!sidebarCollapsed && (
-                <p className="px-3 mb-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   {section.title}
                 </p>
               )}
               {sidebarCollapsed && sectionIndex > 0 && (
-                <Separator className="my-2 bg-slate-100 dark:bg-slate-800" />
+                <Separator className="my-2 bg-border" />
               )}
                 <ul className="space-y-0.5">
                   {section.items.map((item) => {
@@ -416,10 +416,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           ))}
 
           {/* Bottom navigation items (Community features) - always at the bottom */}
-          <Separator className="my-4 bg-slate-100 dark:bg-slate-800" />
+          <Separator className="my-4 bg-border" />
           <div>
             {!sidebarCollapsed && (
-              <p className="px-3 mb-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+              <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Netily Community
               </p>
             )}
@@ -483,7 +483,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         }`}
       >
         {/* Top navigation bar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-white dark:bg-slate-900 dark:border-slate-800 px-4 lg:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-card/95 px-4 backdrop-blur lg:px-6">
           {/* Mobile menu button */}
           <Button
             variant="ghost"
@@ -497,7 +497,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           {/* Search */}
           <div className="flex-1 max-w-md">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search users, routers, logs..."
@@ -540,9 +540,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   </Avatar>
                   <div className="hidden md:flex flex-col items-start">
                     <span className="text-sm font-medium">{user?.username || "Admin"}</span>
-                    <span className="text-xs text-slate-500">{user?.email || "admin@netily.com"}</span>
+                    <span className="text-xs text-muted-foreground">{user?.email || "admin@netily.com"}</span>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">

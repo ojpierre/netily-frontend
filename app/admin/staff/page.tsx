@@ -13,7 +13,6 @@ import {
   Wrench,
   Calculator,
   HeadphonesIcon,
-  Eye,
   Pencil,
   CheckCircle,
   XCircle,
@@ -1030,8 +1029,8 @@ function EditPermissionsModal({
             ))}
           </div>
         </div>
-        <div className="p-4 border-t border-border bg-background flex justify-between items-center">
-           <p className="text-xs text-slate-500">{selectedPaths.length} dashboard area(s) selected</p>
+        <div className="flex items-center justify-between border-t border-border bg-background p-4">
+           <p className="text-xs text-muted-foreground">{selectedPaths.length} dashboard area(s) selected</p>
            <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-semibold">Cancel</Button>
            <Button
              disabled={isSaving}
@@ -1078,7 +1077,7 @@ export default function StaffManagementPage() {
   const fetchStaff = async () => {
     try {
       setIsLoading(true)
-      const data = await adminApi.getStaffUsers()
+      const data = await adminApi.getStaffUsers({ staff_only: "true" })
       const rawUsers = (data as any).results || data
       const hiddenEmails = ['peter@netily.co.ke', 'mark@netily.co.ke', 'admin@netily.co.ke']
       setStaffUsers(rawUsers.filter((u: any) => !hiddenEmails.includes(u.email?.toLowerCase())))
@@ -1160,7 +1159,7 @@ export default function StaffManagementPage() {
             <h1 className="text-4xl font-black tracking-tight text-foreground flex items-center gap-3">
               Staff & <span className="text-primary">access</span>
             </h1>
-            <p className="text-sm text-slate-500 mt-2 font-medium dark:text-slate-400">Manage tenant staff accounts and the Netily dashboard areas each role can access.</p>
+            <p className="mt-2 text-sm font-medium text-muted-foreground">Manage tenant staff accounts and the Netily dashboard areas each role can access.</p>
           </div>
           {activeTab === "members" && (
             <Button onClick={() => setCreateDialogOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-full px-6 shadow-sm">
@@ -1196,28 +1195,28 @@ export default function StaffManagementPage() {
                 <Table>
                   <TableHeader className="bg-muted/50 border-b border-border">
                     <TableRow>
-                      <TableHead className="text-xs font-bold text-slate-500 uppercase tracking-wider h-12">Name</TableHead>
-                      <TableHead className="text-xs font-bold text-slate-500 uppercase tracking-wider h-12">Contact</TableHead>
-                      <TableHead className="text-xs font-bold text-slate-500 uppercase tracking-wider h-12">Role</TableHead>
-                      <TableHead className="text-xs font-bold text-slate-500 uppercase tracking-wider h-12">Status</TableHead>
-                      <TableHead className="text-xs font-bold text-slate-500 uppercase tracking-wider h-12 text-right">Actions</TableHead>
+                      <TableHead className="h-12 text-xs font-bold uppercase tracking-wider text-muted-foreground">Name</TableHead>
+                      <TableHead className="h-12 text-xs font-bold uppercase tracking-wider text-muted-foreground">Contact</TableHead>
+                      <TableHead className="h-12 text-xs font-bold uppercase tracking-wider text-muted-foreground">Role</TableHead>
+                      <TableHead className="h-12 text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</TableHead>
+                      <TableHead className="h-12 text-right text-xs font-bold uppercase tracking-wider text-muted-foreground">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
-                      <TableRow><TableCell colSpan={5} className="text-center py-10 text-slate-500"><Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" /> Loading staff...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={5} className="py-10 text-center text-muted-foreground"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" /> Loading staff...</TableCell></TableRow>
                     ) : filteredStaff.length === 0 ? (
-                      <TableRow><TableCell colSpan={5} className="text-center py-10 text-slate-500">No staff members found.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={5} className="py-10 text-center text-muted-foreground">No staff members found.</TableCell></TableRow>
                     ) : (
                       filteredStaff.map((staff) => (
-                        <TableRow key={staff.id} className="hover:bg-slate-50/50 transition-colors">
-                          <TableCell className="font-semibold text-slate-900 py-4">
+                        <TableRow key={staff.id} className="transition-colors hover:bg-muted/30">
+                          <TableCell className="py-4 font-semibold text-foreground">
                             {staff.first_name} {staff.last_name}
                           </TableCell>
                           <TableCell className="py-4">
                             <div className="flex flex-col gap-0.5">
-                              <span className="text-sm text-slate-600">{staff.email || "No email"}</span>
-                              <span className="text-xs text-slate-500">{staff.phone_number || "No phone"}</span>
+                              <span className="text-sm text-foreground/85">{staff.email || "No email"}</span>
+                              <span className="text-xs text-muted-foreground">{staff.phone_number || "No phone"}</span>
                             </div>
                           </TableCell>
                           <TableCell className="py-4">
@@ -1231,7 +1230,7 @@ export default function StaffManagementPage() {
                                 Active
                               </span>
                             ) : (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                              <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
                                 Inactive
                               </span>
                             )}
@@ -1239,11 +1238,11 @@ export default function StaffManagementPage() {
                           <TableCell className="text-right py-4">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-slate-200 shadow-sm hover:bg-slate-100 bg-white">
-                                  <MoreHorizontal className="h-4 w-4 text-slate-500" />
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-border bg-background shadow-sm hover:bg-muted">
+                                  <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-40 rounded-xl shadow-lg border-slate-200">
+                              <DropdownMenuContent align="end" className="w-40 rounded-xl border-border shadow-lg">
                                 <DropdownMenuItem onClick={() => { setSelectedUser(staff); setEditDialogOpen(true); }} className="gap-2 text-sm font-medium cursor-pointer">
                                   <Pencil className="h-4 w-4" /> Edit User
                                 </DropdownMenuItem>
@@ -1263,13 +1262,13 @@ export default function StaffManagementPage() {
                   </TableBody>
                 </Table>
              </div>
-             <div className="p-4 bg-slate-50 border-t border-slate-200 text-center text-xs font-semibold text-slate-400 tracking-wider uppercase">
+             <div className="border-t border-border bg-muted/30 p-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                © 2023-2026 Netily
              </div>
           </div>
         ) : (
           <div className="space-y-6">
-            <p className="text-sm text-slate-500 font-medium max-w-4xl dark:text-slate-400">Roles are connected to Netily's active route guards. When you edit a staff member's role, their dashboard navigation and protected pages update to match.</p>
+            <p className="max-w-4xl text-sm font-medium text-muted-foreground">Roles are connected to Netily's active route guards. When you edit a staff member's role, their dashboard navigation and protected pages update to match.</p>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               {roleCards.map((role) => (
                 <div key={role.id} className="bg-card border border-border rounded-2xl shadow-sm flex flex-col">
@@ -1283,7 +1282,7 @@ export default function StaffManagementPage() {
                         <UserCog className="w-3.5 h-3.5" /> {role.memberCount}
                       </div>
                     </div>
-                    <p className="text-sm text-slate-500 mb-6 min-h-[40px] dark:text-slate-400">{role.description}</p>
+                    <p className="mb-6 min-h-[40px] text-sm text-muted-foreground">{role.description}</p>
                     <div className="flex flex-wrap gap-2">
                       {role.permissions.map(perm => (
                         <span key={perm} className="px-2 py-1 bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold tracking-wider rounded-md">
@@ -1293,9 +1292,9 @@ export default function StaffManagementPage() {
                     </div>
                   </div>
                   <div className="p-4 border-t border-border flex justify-between items-center bg-muted/20 rounded-b-2xl">
-                    <span className="text-xs font-semibold text-slate-500">{role.permissions.length} dashboard areas</span>
-                    <button onClick={() => setEditingRole(role)} className="flex items-center gap-1.5 text-sm font-bold text-foreground hover:text-primary bg-background border border-border px-4 py-2 rounded-xl shadow-sm transition-colors hover:bg-muted">
-                      <Eye className="w-3.5 h-3.5" /> View access
+                    <span className="text-xs font-semibold text-muted-foreground">{role.permissions.length} dashboard areas</span>
+                    <button onClick={() => setEditingRole(role)} className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-4 py-2 text-sm font-bold text-foreground shadow-sm transition-colors hover:bg-muted hover:text-primary">
+                      <Pencil className="h-3.5 w-3.5" /> Edit access
                     </button>
                   </div>
                 </div>
@@ -1314,7 +1313,7 @@ export default function StaffManagementPage() {
             <AlertDialogTitle>Remove staff account?</AlertDialogTitle>
             <AlertDialogDescription>
               This will revoke admin dashboard access for{" "}
-              <span className="font-semibold text-slate-900">
+              <span className="font-semibold text-foreground">
                 {userToDelete?.first_name} {userToDelete?.last_name}
               </span>
               . This action cannot be undone.

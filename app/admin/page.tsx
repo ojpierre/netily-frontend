@@ -113,6 +113,9 @@ function ChangeBadge({ value }: { value: number }) {
   )
 }
 
+const dashboardCardClass =
+  "border border-border/70 bg-card/95 shadow-sm transition-all duration-200 hover:shadow-md backdrop-blur supports-[backdrop-filter]:bg-card/90"
+
 // ─── Conversational Helpers ───
 
 // Dynamic greeting based on time of day
@@ -369,7 +372,7 @@ export default function AdminDashboard() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-[-0.03em] text-foreground">Dashboard</h1>
-          <p className="text-slate-500 mt-1">Overview of your ISP operations</p>
+          <p className="mt-1 text-muted-foreground">Overview of your ISP operations</p>
         </div>
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -402,7 +405,7 @@ export default function AdminDashboard() {
           <div className="space-y-1">
             {/* Shift label + online status */}
             <div className="flex items-center gap-3 mb-2">
-              <span className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase">{getShiftLabel()}</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">{getShiftLabel()}</span>
               <span className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -442,7 +445,7 @@ export default function AdminDashboard() {
             })()}
 
             {/* Day context */}
-            <p className="text-xs text-slate-400 italic mt-2 flex items-center gap-1.5">
+            <p className="mt-2 flex items-center gap-1.5 text-xs italic text-muted-foreground">
               {new Date().getHours() >= 6 && new Date().getHours() < 20 ? "☀️" : "🌙"}
               {new Date().toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long" })}
             </p>
@@ -460,7 +463,7 @@ export default function AdminDashboard() {
         {/* ── Needs Attention Banner (updated condition and pills) ── */}
         {!loading && ((routers?.offline_routers ?? 0) > 0 || !smsAttention.configured || smsAttention.lowBalance || (tickets?.open ?? 0) > 3 || expiredCount > 20) && (
           <div className="relative mt-4 pt-4 border-t border-border/50">
-            <p className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase mb-2">NEEDS YOUR ATTENTION</p>
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">NEEDS YOUR ATTENTION</p>
             <div className="flex flex-wrap gap-2">
               {/* Offline routers pills (max 3) */}
               {Array.from({ length: Math.min(routers?.offline_routers ?? 0, 3) }).map((_, i) => (
@@ -519,27 +522,27 @@ export default function AdminDashboard() {
       {/* ─── Row 1: Key Metrics ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 relative">
         {/* Total Customers */}
-        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
+        <Card className={dashboardCardClass}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
-            <Users className="h-4 w-4 text-slate-500" />
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {loading ? (
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-slate-900 dark:text-slate-50 leading-none">
+                <div className="text-[28px] font-bold leading-none tracking-[-0.04em] text-foreground tabular-nums">
                   {(core?.total_customers ?? 0).toLocaleString()}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-2 font-medium tracking-[0.02em]">All PPPoE/Static users</p>
+                <p className="mt-2 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">All PPPoE/Static users</p>
               </>
             )}
           </CardContent>
         </Card>
 
         {/* Active Subscriptions - FIXED: only count active (non-expired) hotspot subscribers */}
-        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
+        <Card className={dashboardCardClass}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
             <UserCheck className="h-4 w-4 text-green-500" />
@@ -552,7 +555,7 @@ export default function AdminDashboard() {
                 <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-green-600 dark:text-green-400 leading-none">
                   {activeSubscriptionsCount.toLocaleString()}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-2 font-medium tracking-[0.02em] flex items-center gap-1">
+                <p className="mt-2 flex items-center gap-1 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
                   <TrendingUp className="w-3 h-3 text-emerald-500" />
                   <span>Active PPPoE + Hotspot</span>
                 </p>
@@ -563,7 +566,7 @@ export default function AdminDashboard() {
 
         {/* Expired Customers - Clickable */}
         <Card
-          className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900 cursor-pointer hover:-translate-y-0.5"
+          className={`${dashboardCardClass} cursor-pointer hover:-translate-y-0.5`}
           onClick={() => router.push('/admin/users?status=expired')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -578,7 +581,7 @@ export default function AdminDashboard() {
                 <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-red-600 dark:text-red-400 leading-none">
                   {expiredCount.toLocaleString()}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-2 font-medium tracking-[0.02em] flex items-center gap-1">
+                <p className="mt-2 flex items-center gap-1 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
                   <TrendingDown className="w-3 h-3 text-red-500" />
                   <span>Requires renewal</span>
                 </p>
@@ -589,7 +592,7 @@ export default function AdminDashboard() {
 
         {/* Online / Active - FIXED: uses activeSubscriptionsCount for denominator */}
         <Card
-          className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900 cursor-pointer hover:-translate-y-0.5"
+          className={`${dashboardCardClass} cursor-pointer hover:-translate-y-0.5`}
           onClick={() => router.push('/admin/users?tab=online-sessions')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -619,21 +622,21 @@ export default function AdminDashboard() {
                     <span className="text-4xl font-semibold text-foreground leading-none">
                       {onlineCount}
                     </span>
-                    <span className="text-xl text-slate-300">/</span>
-                    <span className="text-xl font-medium text-slate-500 leading-none">
+                    <span className="text-xl text-muted-foreground/40">/</span>
+                    <span className="text-xl font-medium leading-none text-muted-foreground">
                       {activeCount}
                     </span>
                   </div>
 
                   {/* Progress bar */}
                   <div className="space-y-1.5">
-                    <div className="flex justify-between text-[11px] text-slate-400 font-medium tracking-[0.02em]">
+                    <div className="flex justify-between text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
                       <span>Online now</span>
                       <span>{pct}% connected</span>
                     </div>
-                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                       <div
-                        className="h-full rounded-full bg-blue-500 transition-all duration-700"
+                        className="h-full rounded-full bg-primary transition-all duration-700"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -641,11 +644,11 @@ export default function AdminDashboard() {
 
                   {/* Legend */}
                   <div className="flex gap-3 pt-0.5">
-                    <span className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium tracking-[0.02em]">
-                      <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
+                      <span className="inline-block h-2 w-2 rounded-full bg-primary" />
                       PPPoE: {activeSubscriptions.pppoe?.length || 0}
                     </span>
-                    <span className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium tracking-[0.02em]">
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
                       <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />
                       Hotspot: {(activeSubscriptions.hotspot || []).filter(h => 
                         h.is_active_sub ?? (h.subscription_status === 'active' && h.expiry_date && new Date(h.expiry_date) > new Date())
@@ -662,11 +665,11 @@ export default function AdminDashboard() {
       {/* ─── Row 2: Network & Revenue ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 relative">
         {/* Router Status - Human language */}
-        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
+        <Card className={dashboardCardClass}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
-                <Server className="w-4 h-4 text-slate-600" />
+                <Server className="h-4 w-4 text-muted-foreground" />
                 Router Fleet
               </CardTitle>
               {canOpenRoute("/admin/routers") && (
@@ -713,24 +716,24 @@ export default function AdminDashboard() {
 
                   {/* Status pills */}
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="flex flex-col items-center p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex flex-col items-center rounded-xl border border-border/60 bg-muted/30 p-2.5">
                       <span className="text-xl font-bold text-emerald-600">{routers?.online_routers ?? 0}</span>
-                      <span className="text-[10px] text-slate-400 font-medium mt-0.5">Online</span>
+                      <span className="mt-0.5 text-[10px] font-medium text-muted-foreground">Online</span>
                     </div>
-                    <div className="flex flex-col items-center p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex flex-col items-center rounded-xl border border-border/60 bg-muted/30 p-2.5">
                       <span className="text-xl font-bold text-red-600">{routers?.offline_routers ?? 0}</span>
-                      <span className="text-[10px] text-slate-400 font-medium mt-0.5">Offline</span>
+                      <span className="mt-0.5 text-[10px] font-medium text-muted-foreground">Offline</span>
                     </div>
-                    <div className="flex flex-col items-center p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex flex-col items-center rounded-xl border border-border/60 bg-muted/30 p-2.5">
                       <span className="text-xl font-bold text-amber-600">{(routers?.warning_routers ?? 0) + (routers?.maintenance_routers ?? 0)}</span>
-                      <span className="text-[10px] text-slate-400 font-medium mt-0.5">Flagged</span>
+                      <span className="mt-0.5 text-[10px] font-medium text-muted-foreground">Flagged</span>
                     </div>
                   </div>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between text-sm border-t border-slate-100 dark:border-slate-800 pt-3">
-                    <span className="text-slate-500">{routers?.total_routers ?? 0} total routers</span>
-                    <span className="text-xs text-slate-400">{routers?.total_connected_users ?? 0} users connected</span>
+                  <div className="flex items-center justify-between border-t border-border/60 pt-3 text-sm">
+                    <span className="text-muted-foreground">{routers?.total_routers ?? 0} total routers</span>
+                    <span className="text-xs text-muted-foreground">{routers?.total_connected_users ?? 0} users connected</span>
                   </div>
                 </div>
               )
@@ -739,7 +742,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Revenue Card - Human language */}
-        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
+        <Card className={dashboardCardClass}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
@@ -748,7 +751,7 @@ export default function AdminDashboard() {
               </CardTitle>
               {canOpenRoute("/admin/payments") && (
                 <Link href="/admin/payments">
-                  <Button variant="ghost" size="sm" className="text-xs text-slate-400 hover:text-slate-600 px-2">
+                  <Button variant="ghost" size="sm" className="px-2 text-xs text-muted-foreground hover:text-foreground">
                     View all →
                   </Button>
                 </Link>
@@ -817,9 +820,9 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium tracking-[0.02em] pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between border-t border-border/60 pt-2 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
                     <span>Transactions today</span>
-                    <span className="font-medium text-slate-600 dark:text-slate-300">
+                    <span className="font-medium text-foreground">
                       {data.reports?.overview?.total_transactions_today ?? payments?.payments_today ?? 0}
                     </span>
                   </div>
@@ -830,7 +833,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Support Tickets */}
-        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
+        <Card className={dashboardCardClass}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
@@ -855,27 +858,27 @@ export default function AdminDashboard() {
             ) : (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg text-center">
+                  <div className="rounded-lg border border-red-200/60 bg-red-50 p-3 text-center dark:border-red-900 dark:bg-red-950/30">
                     <p className="text-2xl font-bold text-red-600">{tickets?.open ?? 0}</p>
-                    <p className="text-xs text-slate-500">Open</p>
+                    <p className="text-xs text-muted-foreground">Open</p>
                   </div>
-                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-center">
+                  <div className="rounded-lg border border-amber-200/60 bg-amber-50 p-3 text-center dark:border-amber-900 dark:bg-amber-950/30">
                     <p className="text-2xl font-bold text-amber-600">{tickets?.in_progress ?? 0}</p>
-                    <p className="text-xs text-slate-500">In Progress</p>
+                    <p className="text-xs text-muted-foreground">In Progress</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-center">
+                  <div className="rounded-lg border border-green-200/60 bg-green-50 p-3 text-center dark:border-green-900 dark:bg-green-950/30">
                     <p className="text-2xl font-bold text-green-600">{tickets?.resolved ?? 0}</p>
-                    <p className="text-xs text-slate-500">Resolved</p>
+                    <p className="text-xs text-muted-foreground">Resolved</p>
                   </div>
-                  <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-blue-600">{tickets?.total ?? 0}</p>
-                    <p className="text-xs text-slate-500">Total</p>
+                  <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-center">
+                    <p className="text-2xl font-bold text-primary">{tickets?.total ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">Total</p>
                   </div>
                 </div>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-1 text-slate-500">
+                <div className="flex items-center justify-between border-t border-border/60 pt-2 text-sm">
+                  <div className="flex items-center gap-1 text-muted-foreground">
                     <Clock className="w-3 h-3" />
                     Avg Response
                   </div>
@@ -891,24 +894,24 @@ export default function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2 relative">
 
         {/* Weekly Income Chart */}
-        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
+        <Card className={dashboardCardClass}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
                   Weekly Income
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-400">
+                <CardDescription className="text-xs text-muted-foreground">
                   {weekView === "this" ? "This week · daily breakdown" : "Last week · daily breakdown"}
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+              <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
                 <button
                   onClick={() => setWeekView("this")}
                   className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     weekView === "this"
-                      ? "bg-white dark:bg-slate-700 text-foreground shadow-sm"
-                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   This week
@@ -917,8 +920,8 @@ export default function AdminDashboard() {
                   onClick={() => setWeekView("last")}
                   className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     weekView === "last"
-                      ? "bg-white dark:bg-slate-700 text-foreground shadow-sm"
-                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   Last week
@@ -935,7 +938,7 @@ export default function AdminDashboard() {
                 ? data.reports?.overview?.weekly_income
                 : data.reports?.overview?.last_week_income
               )?.length ? (
-              <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-slate-400">
+              <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-muted-foreground">
                 <BarChart3 className="w-10 h-10 opacity-30" />
                 <p className="text-sm">No data for this period</p>
               </div>
@@ -993,24 +996,24 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Monthly Earnings Chart */}
-        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
+        <Card className={dashboardCardClass}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
                   Monthly Earnings
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-400">
+                <CardDescription className="text-xs text-muted-foreground">
                   {yearView === "this" ? `${new Date().getFullYear()} · month by month` : `${new Date().getFullYear() - 1} · month by month`}
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+              <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
                 <button
                   onClick={() => setYearView("this")}
                   className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     yearView === "this"
-                      ? "bg-white dark:bg-slate-700 text-foreground shadow-sm"
-                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {new Date().getFullYear()}
@@ -1019,8 +1022,8 @@ export default function AdminDashboard() {
                   onClick={() => setYearView("last")}
                   className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     yearView === "last"
-                      ? "bg-white dark:bg-slate-700 text-foreground shadow-sm"
-                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {new Date().getFullYear() - 1}
@@ -1037,7 +1040,7 @@ export default function AdminDashboard() {
                 ? data.reports?.overview?.monthly_earnings
                 : data.reports?.overview?.last_year_earnings
               )?.length ? (
-              <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-slate-400">
+              <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-muted-foreground">
                 <BarChart3 className="w-10 h-10 opacity-30" />
                 <p className="text-sm">No data for this period</p>
               </div>
@@ -1099,7 +1102,7 @@ export default function AdminDashboard() {
       {/* ─── Row 3: Quick Actions & Recent Activity ─── */}
       <div className="grid gap-4 md:grid-cols-2 relative">
         {/* Quick Actions */}
-        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
+        <Card className={dashboardCardClass}>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Zap className="w-4 h-4 text-amber-500" />
@@ -1120,7 +1123,7 @@ export default function AdminDashboard() {
                   </Link>
                 )
               }) : (
-                <div className="col-span-2 rounded-xl border border-dashed p-4 text-center text-sm text-slate-500">
+                <div className="col-span-2 rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
                   Your staff role has no quick actions assigned yet.
                 </div>
               )}
@@ -1129,7 +1132,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Recent Activity */}
-        <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
+        <Card className={dashboardCardClass}>
           <CardHeader>
             <CardTitle className="text-base">Recent Activity</CardTitle>
             <CardDescription>Latest system events from audit log</CardDescription>
@@ -1148,7 +1151,7 @@ export default function AdminDashboard() {
                 ))}
               </div>
             ) : data.recentActivity.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">
+              <div className="py-8 text-center text-muted-foreground">
                 <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>No recent activity</p>
               </div>
@@ -1157,10 +1160,10 @@ export default function AdminDashboard() {
                 {data.recentActivity.map((activity) => (
                   <div
                     key={activity.id}
-                    className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    className="flex items-start gap-3 rounded-lg p-2.5 transition-colors hover:bg-muted/30"
                   >
-                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
+                      <span className="text-xs font-bold text-primary">
                         {(activity.user__email || "?").charAt(0).toUpperCase()}
                       </span>
                     </div>
@@ -1168,10 +1171,10 @@ export default function AdminDashboard() {
                       <p className="text-sm font-medium text-foreground truncate">
                         {activity.user__email || "System"}
                       </p>
-                      <p className="text-xs text-slate-600">
+                      <p className="text-xs text-muted-foreground">
                         {activity.action} — {activity.object_repr || activity.model_name}
                       </p>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="mt-0.5 text-xs text-muted-foreground">
                         {timeAgo(activity.timestamp)}
                       </p>
                     </div>
@@ -1183,7 +1186,7 @@ export default function AdminDashboard() {
           <CardFooter className="pt-0">
             {canOpenRoute("/admin/logs") && (
               <Link href="/admin/logs" className="w-full">
-                <Button variant="ghost" size="sm" className="w-full text-slate-500">
+                <Button variant="ghost" size="sm" className="w-full text-muted-foreground">
                   View all activity
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
