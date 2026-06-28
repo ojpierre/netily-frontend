@@ -1328,7 +1328,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   // Phone validation
   const handlePhoneChange = (value: string) => {
     setPhoneNumber(value)
-    setPhoneError(value && !isValidKenyanPhone(value) ? "Enter a valid Safaricom or Airtel number" : null)
+    setPhoneError(value && !isValidKenyanPhone(value) ? "Enter a valid Safaricom number" : null)
   }
 
   // ── TV MAC verification handlers ──
