@@ -1078,18 +1078,23 @@ export default function StaffManagementPage() {
   const fetchStaff = async () => {
     try {
       setIsLoading(true)
-      const [data, policies] = await Promise.all([
-        adminApi.getStaffUsers(),
-        adminApi.getRoleAccessPolicies(),
-      ])
+      const data = await adminApi.getStaffUsers()
       setStaffUsers((data as any).results || data)
-      setRolePolicies(
-        policies.reduce<Record<string, string[]>>((acc, policy) => {
-          acc[policy.role] = policy.allowed_paths || []
-          return acc
-        }, {})
-      )
+      
+      try {
+        const policies = await adminApi.getRoleAccessPolicies()
+        setRolePolicies(
+          (policies || []).reduce<Record<string, string[]>>((acc, policy) => {
+            acc[policy.role] = policy.allowed_paths || []
+            return acc
+          }, {})
+        )
+      } catch (policyError) {
+        console.warn("Role access policies endpoint not available yet:", policyError)
+      }
+      
     } catch (error) {
+      console.error("fetchStaff Error:", error)
       toast.error("Failed to fetch staff")
     } finally {
       setIsLoading(false)

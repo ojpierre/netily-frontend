@@ -128,12 +128,12 @@ const getTypeBadge = (type: PlanType) => {
     INTERNET: { icon: Globe, class: "bg-success/15 text-success border-success/20", label: "Internet" },
     ADDON: { icon: Package, class: "bg-warning/15 text-warning border-warning/20", label: "Add-on" },
     BUNDLE: { icon: Package, class: "bg-primary/15 text-primary border-primary/20", label: "Bundle" },
-    TOPUP: { icon: CreditCard, class: "bg-pink-100 text-pink-700 border-pink-200", label: "Top-up" },
+    TOPUP: { icon: CreditCard, class: "bg-primary/10 text-primary border-primary/20", label: "Top-up" },
     HOTSPOT: { icon: Wifi, class: "bg-primary/15 text-primary border-primary/20", label: "Hotspot" },
-    PPPOE: { icon: Globe, class: "bg-purple-100 text-purple-700 border-purple-200", label: "PPPoE" },
+    PPPOE: { icon: Globe, class: "bg-secondary text-secondary-foreground border-border", label: "PPPoE" },
     STATIC: { icon: Server, class: "bg-warning/15 text-warning border-warning/20", label: "Static IP" },
   }
-  const c = config[type] || { icon: Globe, class: "bg-gray-100 text-gray-700 border-gray-200", label: type }
+  const c = config[type] || { icon: Globe, class: "bg-accent text-accent-foreground border-border", label: type }
   const Icon = c.icon
   return (
     <Badge variant="outline" className={c.class}>
@@ -217,7 +217,7 @@ const HOTSPOT_PRESETS: HotspotPreset[] = [
     config: { name: '3 Hour Access', base_price: 70, validity_type: 'HOURS', validity_hours: 3, download_speed: 15, upload_speed: 10, max_sessions: 2, features: ['15 Mbps Speed', '3 Hours', '2 Devices'] }
   },
   {
-    id: 'hotspot-daily', name: '24 Hours', icon: Clock, color: 'bg-purple-500',
+    id: 'hotspot-daily', name: '24 Hours', icon: Clock, color: 'bg-primary',
     description: 'Full day access',
     config: { name: 'Daily Pass', base_price: 150, validity_type: 'HOURS', validity_hours: 24, download_speed: 20, upload_speed: 10, max_sessions: 3, features: ['20 Mbps Speed', '24 Hours', '3 Devices'] }
   },
@@ -227,7 +227,7 @@ const HOTSPOT_PRESETS: HotspotPreset[] = [
     config: { name: 'Weekly Pass', base_price: 500, validity_type: 'DAYS', duration_days: 7, download_speed: 25, upload_speed: 15, max_sessions: 3, features: ['25 Mbps Speed', '7 Days', '3 Devices', 'Unlimited Data'] }
   },
   {
-    id: 'hotspot-monthly', name: '30 Days', icon: Sparkles, color: 'bg-pink-500',
+    id: 'hotspot-monthly', name: '30 Days', icon: Sparkles, color: 'bg-primary/80',
     description: 'Monthly unlimited',
     config: { name: 'Monthly Hotspot', base_price: 1500, validity_type: 'DAYS', duration_days: 30, download_speed: 30, upload_speed: 20, max_sessions: 5, features: ['30 Mbps Speed', '30 Days', '5 Devices', 'Unlimited Data'] }
   },
@@ -366,7 +366,7 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
         )}
 
         {plan.ip_pool_name && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-slate-50 p-2 rounded">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded">
             <Network className="w-3.5 h-3.5" />
             Pool: {plan.ip_pool_name} {plan.ip_pool_range && `· ${plan.ip_pool_range}`}
           </div>
@@ -1278,9 +1278,9 @@ export default function PlansPage() {
       <div className="w-full">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {([
-            { value: "all", label: "All Plans", icon: Package, count: stats.total, activeBorder: "border-border", activeBg: "bg-muted", activeIconBg: "bg-muted", activeIconColor: "text-slate-600", activeCountColor: "text-slate-600", inactiveIconBg: "bg-muted", bottomBar: "bg-slate-500" },
+            { value: "all", label: "All Plans", icon: Package, count: stats.total, activeBorder: "border-border", activeBg: "bg-muted", activeIconBg: "bg-muted", activeIconColor: "text-foreground", activeCountColor: "text-foreground", inactiveIconBg: "bg-muted", bottomBar: "bg-muted0" },
             { value: "hotspot", label: "Hotspot", icon: Wifi, count: stats.hotspot, activeBorder: "border-primary", activeBg: "bg-primary/10", activeIconBg: "bg-primary/15", activeIconColor: "text-primary", activeCountColor: "text-primary", inactiveIconBg: "bg-muted", bottomBar: "bg-primary" },
-            { value: "pppoe", label: "PPPoE", icon: Globe, count: stats.pppoe, activeBorder: "border-purple-500", activeBg: "bg-purple-50", activeIconBg: "bg-purple-100", activeIconColor: "text-purple-600", activeCountColor: "text-purple-600", inactiveIconBg: "bg-muted", bottomBar: "bg-purple-500" },
+            { value: "pppoe", label: "PPPoE", icon: Globe, count: stats.pppoe, activeBorder: "border-primary", activeBg: "bg-primary/10", activeIconBg: "bg-primary/20", activeIconColor: "text-primary", activeCountColor: "text-primary", inactiveIconBg: "bg-muted", bottomBar: "bg-primary" },
           ] as const).map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.value
@@ -1442,7 +1442,7 @@ export default function PlansPage() {
                     }
                   }}
                 >
-                  <SelectTrigger className="max-w-sm bg-white">
+                  <SelectTrigger className="max-w-sm bg-card">
                     <SelectValue placeholder="Choose a router..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -1455,7 +1455,7 @@ export default function PlansPage() {
                     {routers.map((r) => (
                       <SelectItem key={r.id} value={r.id.toString()}>
                         <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${r.is_active ? 'bg-success' : 'bg-gray-400'}`} />
+                          <div className={`w-2 h-2 rounded-full ${r.is_active ? 'bg-success' : 'bg-muted-foreground'}`} />
                           {r.name} <span className="text-muted-foreground ml-1">({r.ip_address})</span>
                         </div>
                       </SelectItem>
@@ -1870,16 +1870,16 @@ export default function PlansPage() {
           <div className="space-y-6 py-4">
             {/* IP Pool Info (read-only, for context) */}
             {selectedPlan?.ip_pool && (
-              <div className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                <Network className="w-5 h-5 text-purple-600" />
+              <div className="flex items-center gap-3 p-3 bg-purple-50 border border-primary/20 rounded-lg">
+                <Network className="w-5 h-5 text-primary" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-purple-900">Linked IP Pool</p>
-                  <p className="text-xs text-purple-700">
+                  <p className="text-sm font-medium text-foreground">Linked IP Pool</p>
+                  <p className="text-xs text-primary/80">
                     {selectedPlan.ip_pool_name || `Pool #${selectedPlan.ip_pool}`}
                     {selectedPlan.ip_pool_range && ` — ${selectedPlan.ip_pool_range}`}
                   </p>
                 </div>
-                <Badge variant="outline" className="text-purple-600 border-purple-300 text-xs">
+                <Badge variant="outline" className="text-primary border-primary/30 text-xs">
                   Pool #{selectedPlan.ip_pool}
                 </Badge>
               </div>
@@ -2336,7 +2336,7 @@ export default function PlansPage() {
                     className={`px-3 py-1.5 transition-colors ${
                       hotspotForm.limitation_type === 'UNLIMITED'
                         ? 'bg-primary text-white font-semibold'
-                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                        : 'bg-card text-muted-foreground hover:bg-muted'
                     }`}
                   >
                     Unlimited
@@ -2347,7 +2347,7 @@ export default function PlansPage() {
                     className={`px-3 py-1.5 transition-colors ${
                       hotspotForm.limitation_type === 'DATA'
                         ? 'bg-primary text-white font-semibold'
-                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                        : 'bg-card text-muted-foreground hover:bg-muted'
                     }`}
                   >
                     Limited
