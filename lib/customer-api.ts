@@ -247,6 +247,13 @@ class CustomerApiService {
     })
   }
 
+  /**
+   * Get user online status (is_online and IP address)
+   */
+  async getOnlineStatus(): Promise<{ is_online: boolean; ip_address?: string }> {
+    return this.request('/self-service/online-status/')
+  }
+
   // ------------------------------------------
   // PLANS - PUBLIC (with optional auth)
   // ------------------------------------------

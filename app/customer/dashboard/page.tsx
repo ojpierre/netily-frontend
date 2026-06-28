@@ -29,6 +29,7 @@ export default function CustomerDashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [isOnline, setIsOnline] = useState<boolean | null>(null)
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -36,6 +37,14 @@ export default function CustomerDashboardPage() {
         setIsLoading(true)
         const data = await customerApi.getDashboard()
         setDashboardData(data)
+        
+        // Fetch online status after getting dashboard data
+        try {
+          const onlineStatus = await customerApi.getOnlineStatus()
+          setIsOnline(onlineStatus.is_online)
+        } catch {
+          setIsOnline(false)
+        }
       } catch (err: any) {
         console.error("Failed to fetch dashboard:", err)
         if (err.message?.includes("unauthorized") || err.message?.includes("401")) {
@@ -97,15 +106,25 @@ export default function CustomerDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
+      {/* Welcome Banner with Online Status */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 bg-primary/15 dark:bg-blue-950 rounded-lg flex items-center justify-center">
           <Wifi className="w-5 h-5 text-primary dark:text-primary/80" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="font-bold text-lg">Welcome, {data.customer.full_name}</h1>
           <p className="text-xs text-muted-foreground">{data.customer.customer_code}</p>
         </div>
+        {isOnline !== null && (
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+            isOnline
+              ? 'bg-success/15 text-success dark:bg-green-950 dark:text-green-400'
+              : 'bg-muted text-muted-foreground'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-success animate-pulse' : 'bg-muted-foreground'}`} />
+            {isOnline ? 'Online' : 'Offline'}
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
