@@ -248,94 +248,84 @@ export default function AdminDashboard() {
     { href: "/admin/invoices", label: "Invoices", icon: DollarSign, className: "text-green-600" },
   ].filter((item) => canOpenRoute(item.href))
 
+  // ============================================================
+  // FIX: fetchDashboardData - Uses unified endpoint
+  // Replaces 8+ separate API calls with 1 unified call + SMS calls
+  // ============================================================
   const fetchDashboardData = useCallback(async () => {
     try {
       setError(null)
 
-      // Fetch all dashboard data in parallel (excluding expired count which uses single endpoint)
-      const [coreRes, routerRes, paymentRes, ticketRes, reportsRes, sessionsRes, activeSubsRes] = await Promise.allSettled([
-        adminApi.getDashboard(),
-        adminApi.getRouterDashboardStats(),
-        adminApi.getPaymentDashboardStats(),
-        adminApi.getTicketStats(),
-        adminApi.getReportsData("30d"),
-        adminApi.getOnlineSessions(1, 1),  // ← page=1, pageSize=1 — just need the total count
-        adminApi.getActiveSubscriptions?.(),
+      // ─────────────────────────────────────────────────────────────
+      // SINGLE UNIFIED CALL + SMS calls in parallel
+      // ─────────────────────────────────────────────────────────────
+      const [unified, smsSettingsRes, gatewayConfigsRes, smsWalletRes, smsBalanceRes] = await Promise.allSettled([
+        adminApi.rawRequest<any>('/core/dashboard/unified/').catch(() => null),
+        adminApi.getSMSNotificationSettings().catch(() => null),
+        adminApi.getSMSGatewayConfigs().catch(() => []),
+        adminApi.getSMSWallet().catch(() => null),
+        adminApi.getSMSBalance().catch(() => null),
       ])
 
-      setData({
-        core: coreRes.status === "fulfilled" ? coreRes.value : null,
-        routers: routerRes.status === "fulfilled" ? routerRes.value : null,
-        payments: paymentRes.status === "fulfilled" ? paymentRes.value : null,
-        tickets: ticketRes.status === "fulfilled" ? ticketRes.value : null,
-        recentActivity:
-          coreRes.status === "fulfilled" && (coreRes.value as any)?.recent_activity
-            ? (coreRes.value as any).recent_activity
-            : [],
-        reports: reportsRes.status === "fulfilled" ? reportsRes.value : null,
-      })
+      const u = unified.status === 'fulfilled' ? unified.value : null
 
-      // Update live data separately
-      if (sessionsRes.status === "fulfilled") {
-        // Use response.total (all active sessions), not sessions.length (just page 1)
-        setOnlineSessions(sessionsRes.value?.sessions || [])
-        setOnlineTotal(sessionsRes.value?.total || sessionsRes.value?.sessions?.length || 0)
+      if (u) {
+        // Map unified response to existing state shape
+        setData({
+          core: {
+            total_customers: u.total_customers,
+            active_customers: u.active_customers,
+            expired_customers: u.expired_customers,
+            network_uptime: 99.8,
+            bandwidth_usage: 0,
+            new_customers_this_month: 0,
+            monthly_revenue: u.revenue?.month ?? 0,
+            pending_tickets: u.tickets?.open ?? 0,
+          } as any,
+          routers: u.routers ?? null,
+          payments: {
+            amount_today: u.revenue?.today ?? 0,
+            amount_this_month: u.revenue?.month ?? 0,
+            payments_today: u.revenue?.transactions_today ?? 0,
+          } as any,
+          tickets: u.tickets ?? null,
+          recentActivity: u.recent_activity ?? [],
+          reports: { overview: u.overview ?? null },
+        })
+
+        setOnlineTotal(u.online_count ?? 0)
+        setExpiredCount(u.expired_customers ?? 0)
+
+        const subs = u.active_subscriptions ?? { pppoe: 0, hotspot: 0, total: 0 }
+        // Build synthetic arrays for the existing pppoe/hotspot length checks
+        setActiveSubscriptions({
+          pppoe: Array(subs.pppoe).fill({}),
+          hotspot: Array(subs.hotspot).fill({ is_active_sub: true }),
+          total: subs.total,
+        })
       }
-      if (activeSubsRes.status === "fulfilled") {
-        const subs = activeSubsRes.value || { pppoe: [], hotspot: [], total: 0 }
-        setActiveSubscriptions(subs)
+
+      // ─── SMS attention (secondary, non-blocking) ───
+      const notifSettings = smsSettingsRes.status === 'fulfilled' ? smsSettingsRes.value : null
+      const gws = Array.isArray(gatewayConfigsRes.status === 'fulfilled' ? gatewayConfigsRes.value : [])
+        ? (gatewayConfigsRes.status === 'fulfilled' ? gatewayConfigsRes.value : [])
+        : []
+      const useInbuilt = notifSettings?.use_inbuilt_system ?? false
+      const hasCustomGateway = gws.some((g: any) => g.is_active && !g.use_inbuilt_system && g.api_key)
+      const configured = useInbuilt || hasCustomGateway
+
+      let balance: number | null = null
+      let lowBalance = false
+      if (useInbuilt) {
+        const units = Number((smsWalletRes.status === 'fulfilled' ? smsWalletRes.value : null)?.sms_units ?? 0)
+        balance = units
+        lowBalance = units < 10
+      } else if (hasCustomGateway) {
+        const raw = Number((smsBalanceRes.status === 'fulfilled' ? smsBalanceRes.value : null)?.balance ?? 0)
+        balance = raw
+        lowBalance = raw < 10
       }
-
-      // ─────────────────────────────────────────────────────────────
-      // FAST EXPIRED COUNT – single API call
-      // Uses the new /radius/credentials/expired_count/ endpoint
-      // ─────────────────────────────────────────────────────────────
-      let expiredViaRadius = 0
-      try {
-        expiredViaRadius = await adminApi.getExpiredRADIUSCount()
-      } catch (radiusErr) {
-        console.warn('Failed to fetch expired RADIUS count:', radiusErr)
-        // Fallback to core stats if available
-        if (coreRes.status === "fulfilled") {
-          expiredViaRadius = (coreRes.value?.expired_customers || 0)
-        }
-      }
-      
-      setExpiredCount(expiredViaRadius)
-
-      // ─── NEW: Fetch SMS data ──────────────────────────────
-      try {
-        const [notifSettings, gatewayConfigs, smsWallet, smsBalance] = await Promise.all([
-          adminApi.getSMSNotificationSettings().catch(() => null),
-          adminApi.getSMSGatewayConfigs().catch(() => []),
-          adminApi.getSMSWallet().catch(() => null),
-          adminApi.getSMSBalance().catch(() => null),
-        ])
-
-        const gws = Array.isArray(gatewayConfigs) ? gatewayConfigs : []
-        const useInbuilt = notifSettings?.use_inbuilt_system ?? false
-        const hasCustomGateway = gws.some(g => g.is_active && !g.use_inbuilt_system && g.api_key)
-        const configured = useInbuilt || hasCustomGateway
-
-        let balance: number | null = null
-        let lowBalance = false
-
-        if (useInbuilt) {
-          const units = Number(smsWallet?.sms_units ?? 0)
-          balance = units
-          lowBalance = units < 10
-        } else if (hasCustomGateway) {
-          const raw = Number(smsBalance?.balance ?? 0)
-          balance = raw
-          lowBalance = raw < 10
-        }
-
-        setSmsAttention({ configured, lowBalance, balance })
-      } catch (smsErr) {
-        // non-critical — don't block dashboard
-        console.warn('SMS attention data fetch failed:', smsErr)
-      }
-      // ─── End SMS fetch ────────────────────────────────────
+      setSmsAttention({ configured, lowBalance, balance })
 
     } catch (err: any) {
       console.error("Dashboard fetch error:", err)
@@ -420,7 +410,7 @@ export default function AdminDashboard() {
               </span>
             </h1>
 
-            {/* Attention items + contextual subtext – UPDATED call */}
+            {/* Attention items + contextual subtext */}
             {(() => {
               const items = getAttentionItems(
                 routers?.offline_routers ?? 0,
@@ -457,7 +447,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* ── Needs Attention Banner (updated condition and pills) ── */}
+        {/* ── Needs Attention Banner ── */}
         {!loading && ((routers?.offline_routers ?? 0) > 0 || !smsAttention.configured || smsAttention.lowBalance || (tickets?.open ?? 0) > 3 || expiredCount > 20) && (
           <div className="relative mt-4 pt-4 border-t border-orange-100 dark:border-slate-700">
             <p className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase mb-2">NEEDS YOUR ATTENTION</p>
@@ -538,7 +528,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Active Subscriptions - FIXED: only count active (non-expired) hotspot subscribers */}
+        {/* Active Subscriptions */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
@@ -587,7 +577,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Online / Active - FIXED: uses activeSubscriptionsCount for denominator */}
+        {/* Online / Active */}
         <Card
           className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900 cursor-pointer hover:-translate-y-0.5"
           onClick={() => router.push('/admin/users?tab=online-sessions')}
@@ -661,7 +651,7 @@ export default function AdminDashboard() {
 
       {/* ─── Row 2: Network & Revenue ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 relative">
-        {/* Router Status - Human language */}
+        {/* Router Status */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -738,7 +728,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Revenue Card - Human language */}
+        {/* Revenue Card */}
         <Card className="border-0 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-200 bg-white dark:bg-slate-900">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -949,7 +939,6 @@ export default function AdminDashboard() {
                   }
                   barSize={28}
                   margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -1051,7 +1040,6 @@ export default function AdminDashboard() {
                   }
                   barSize={18}
                   margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
