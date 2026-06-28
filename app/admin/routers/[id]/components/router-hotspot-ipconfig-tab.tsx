@@ -558,7 +558,7 @@ export function RouterHotspotIPConfigTab({ routerId, isDemo = false }: RouterHot
                   <Separator />
                   <div className="grid grid-cols-2 gap-4 pt-1">
                     <div className="text-center p-3 bg-slate-50 rounded-lg">
-                      <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                      <p className="text-2xl font-bold text-foreground">
                         {preview.total_hosts?.toLocaleString()}
                       </p>
                       <p className="text-xs text-slate-500">Total Hosts</p>

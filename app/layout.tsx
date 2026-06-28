@@ -298,6 +298,23 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Netily" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+                const colorTheme = localStorage.getItem('netily-color-theme');
+                if (colorTheme) {
+                  document.documentElement.setAttribute('data-theme', colorTheme);
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
       </head>
       <body className={outfit.className} suppressHydrationWarning>
         {/* ── Google Analytics ── */}

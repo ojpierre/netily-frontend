@@ -298,7 +298,7 @@ export default function ReportsPage() {
               {positive ? "+" : ""}{change}%
             </span>
           </div>
-          <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{fmtKshFull(amount)}</p>
+          <p className="text-2xl font-bold tracking-tight text-foreground">{fmtKshFull(amount)}</p>
           {extra && <p className="text-[11px] text-muted-foreground mt-1">{extra}</p>}
         </CardContent>
       </Card>
@@ -310,7 +310,7 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Reports &amp; Analytics</h1>
+          <h1 className="text-2xl font-bold text-foreground">Reports &amp; Analytics</h1>
           <p className="text-slate-500 text-sm mt-0.5">Comprehensive insights into your ISP operations and performance</p>
         </div>
         <div className="flex gap-2">
@@ -363,7 +363,7 @@ export default function ReportsPage() {
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Transactions Today</p>
                   <Activity className="w-4 h-4 text-warning" />
                 </div>
-                <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{(o?.total_transactions_today ?? 0).toLocaleString()}</p>
+                <p className="text-2xl font-bold tracking-tight text-foreground">{(o?.total_transactions_today ?? 0).toLocaleString()}</p>
                 <p className="text-[11px] text-muted-foreground mt-1">Completed payments</p>
               </CardContent>
             </Card>
@@ -659,7 +659,7 @@ export default function ReportsPage() {
                 <div className="flex items-center justify-between py-4 border-b bg-primary/10/50 -mx-6 px-6 rounded-t-lg">
                   <span className="text-sm font-medium text-slate-700">This Month</span>
                   <div className="text-right">
-                    <span className="text-lg font-bold text-slate-900 dark:text-white">{fmtKshFull(f?.monthly_performance?.this_month?.amount ?? 0)}</span>
+                    <span className="text-lg font-bold text-foreground">{fmtKshFull(f?.monthly_performance?.this_month?.amount ?? 0)}</span>
                     <p className="text-xs text-muted-foreground">{f?.monthly_performance?.this_month?.transactions ?? 0} transactions</p>
                   </div>
                 </div>
@@ -1038,7 +1038,7 @@ export default function ReportsPage() {
 
                         {/* Name + badge */}
                         <div className="flex-1 min-w-0">
-                          <p className={`font-semibold truncate ${isTop3 ? "text-slate-900 dark:text-white text-base" : "text-slate-700 dark:text-slate-300 text-sm"}`}>
+                          <p className={`font-semibold truncate ${isTop3 ? "text-foreground text-base" : "text-slate-700 dark:text-slate-300 text-sm"}`}>
                             {c.display_name}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">

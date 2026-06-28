@@ -991,7 +991,7 @@ export default function RouterDetailPage() {
           <div className="relative flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Uptime</p>
-              <p className="text-2xl font-extrabold text-slate-900 dark:text-white leading-none">
+              <p className="text-2xl font-extrabold text-foreground leading-none">
                 {liveStatusData?.uptime || routerData.uptime || 'N/A'}
               </p>
               <p className="text-xs text-slate-400 mt-1.5">Since last reboot</p>
@@ -1033,7 +1033,7 @@ export default function RouterDetailPage() {
           <div className="relative flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Connections</p>
-              <p className="text-2xl font-extrabold text-slate-900 dark:text-white leading-none">
+              <p className="text-2xl font-extrabold text-foreground leading-none">
                 {routerData.metrics?.active_connections || 0}
               </p>
               <p className="text-xs text-slate-400 mt-1.5">Active right now</p>

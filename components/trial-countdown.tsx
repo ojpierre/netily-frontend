@@ -69,8 +69,8 @@ function getStatusDisplay(timeRemaining: TimeRemaining, isTrial: boolean): Statu
   if (!isTrial) {
     return {
       status: "active",
-      color: "text-emerald-700",
-      bgColor: "bg-emerald-50 border-emerald-100",
+      color: "text-primary",
+      bgColor: "bg-primary/10 border-primary/20",
       message: `Ends in ${timeRemaining.days}d`,
       icon: CheckCircle2
     }

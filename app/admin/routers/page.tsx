@@ -433,7 +433,7 @@ export default function RoutersPage() {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
             Router Management
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-muted-foreground mt-1">
             Monitor and manage network access servers
           </p>
         </div>
@@ -459,7 +459,7 @@ export default function RoutersPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">{localStats.total_routers}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Routers</p>
+                <p className="text-xs text-muted-foreground font-medium">Total Routers</p>
               </div>
             </div>
           </CardContent>
@@ -473,7 +473,7 @@ export default function RoutersPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{localStats.online_routers}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Online</p>
+                <p className="text-xs text-muted-foreground font-medium">Online</p>
               </div>
             </div>
           </CardContent>
@@ -487,7 +487,7 @@ export default function RoutersPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-destructive dark:text-destructive">{localStats.offline_routers}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Offline</p>
+                <p className="text-xs text-muted-foreground font-medium">Offline</p>
               </div>
             </div>
           </CardContent>
@@ -501,7 +501,7 @@ export default function RoutersPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{Number(localStats.average_uptime || 0).toFixed(1)}%</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Avg Uptime</p>
+                <p className="text-xs text-muted-foreground font-medium">Avg Uptime</p>
               </div>
             </div>
           </CardContent>
@@ -515,7 +515,7 @@ export default function RoutersPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{localStats.below_sla_count}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Below SLA</p>
+                <p className="text-xs text-muted-foreground font-medium">Below SLA</p>
               </div>
             </div>
           </CardContent>
@@ -663,7 +663,7 @@ export default function RoutersPage() {
                           <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${statusConfig.dot} ring-[3px] ring-white dark:ring-slate-900 ${statusConfig.dotRing} ${r.status === 'online' ? 'animate-pulse' : ''}`} />
                         </div>
                         <div className="min-w-0 pt-0.5">
-                          <CardTitle className="text-[15px] font-bold tracking-tight truncate text-slate-900 dark:text-white">
+                          <CardTitle className="text-[15px] font-bold tracking-tight truncate text-foreground">
                             {r.name}
                           </CardTitle>
                           <CardDescription className="text-xs font-mono truncate text-slate-400 mt-0.5">
@@ -723,7 +723,7 @@ export default function RoutersPage() {
 
                     {/* Location */}
                     {r.location && (
-                      <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                         <span className="truncate">{r.location}</span>
                       </div>
@@ -736,7 +736,7 @@ export default function RoutersPage() {
                           <Users className="w-4 h-4 text-primary dark:text-primary/80" />
                         </div>
                         <div>
-                          <p className="text-2xl font-extrabold text-slate-900 dark:text-white leading-none tracking-tight">
+                          <p className="text-2xl font-extrabold text-foreground leading-none tracking-tight">
                             {r.active_users}
                           </p>
                           <p className="text-[11px] text-slate-400 font-medium mt-0.5">connected users</p>
@@ -790,7 +790,7 @@ export default function RoutersPage() {
                               </svg>
                               <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-baseline">
-                                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{label}</span>
+                                  <span className="text-[11px] font-semibold text-muted-foreground">{label}</span>
                                   <span className={`text-xs font-bold ${textClass}`}>{value}%</span>
                                 </div>
                                 <div className="mt-1 h-1 bg-white dark:bg-slate-700 rounded-full overflow-hidden">

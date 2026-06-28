@@ -78,6 +78,7 @@ import {
   USER_MANAGEMENT_ROLES,
   canAccess,
   getAccessRuleForPath,
+  setRoleAccessPolicies,
   type AccessRule,
 } from "@/lib/rbac"
 
@@ -180,6 +181,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [unreadNotifCount, setUnreadNotifCount] = useState(0)
   const [companyLogo, setCompanyLogo] = useState<string>("")
   const [companyName, setCompanyName] = useState<string>("Netily Admin")
+  const [, setAccessPolicyVersion] = useState(0)
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
@@ -243,6 +245,23 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval)
   }, [mounted, user])
 
+  useEffect(() => {
+    if (!mounted || !user || isPublicPage) return
+    const loadRoleAccess = async () => {
+      try {
+        const { adminApi } = await import("@/lib/admin-api")
+        const policies = await adminApi.getRoleAccessPolicies()
+        setRoleAccessPolicies(policies)
+        setAccessPolicyVersion((value) => value + 1)
+      } catch {
+        // Fall back to built-in RBAC map if the policy endpoint is unavailable.
+      }
+    }
+    loadRoleAccess()
+    window.addEventListener("netily-role-access-updated", loadRoleAccess)
+    return () => window.removeEventListener("netily-role-access-updated", loadRoleAccess)
+  }, [mounted, user, isPublicPage])
+
   // Debug logging
   useEffect(() => {
     console.log('AdminLayout state:', { loading, user: user?.email || user?.username, isPublicPage, mounted, pathname })
@@ -296,8 +315,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   const filteredSections = navigationSections
     .map((section) => {
-      if (!canAccess(user, section)) return { ...section, items: [] }
-      const items = section.items.filter((item) => canAccess(user, item))
+      const items = section.items.filter((item) => {
+        const inheritedRule = {
+          ...item,
+          allowedRoles: item.allowedRoles || section.allowedRoles,
+          allowedDepartments: item.allowedDepartments || section.allowedDepartments,
+        }
+        return canAccess(user, inheritedRule)
+      })
       return { ...section, items }
     })
     .filter((section) => section.items.length > 0)
@@ -330,7 +355,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   N
                 </div>
               )}
-              <span className="block w-40 whitespace-normal wrap-break-word text-sm font-bold leading-tight text-slate-900 dark:text-white tracking-tight">
+              <span className="block w-40 whitespace-normal wrap-break-word text-sm font-bold leading-tight text-foreground tracking-tight">
                 {companyName}
               </span>
             </Link>
@@ -338,7 +363,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="lg:hidden text-muted-foreground hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
             onClick={() => setSidebarOpen(false)}
           >
             <X className="w-5 h-5" />
@@ -367,7 +392,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                           className={`relative flex items-center gap-3 overflow-hidden px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
                             isActive
                               ? "text-white shadow-sm"
-                              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              : "text-muted-foreground hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
                           }`}
                           title={sidebarCollapsed ? item.name : undefined}
                         >
@@ -408,7 +433,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                       className={`relative flex items-center gap-3 overflow-hidden px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
                         isActive
                           ? "text-white shadow-sm"
-                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          : "text-muted-foreground hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
                       }`}
                       title={sidebarCollapsed ? item.name : undefined}
                     >
@@ -442,7 +467,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           <Button
             variant="ghost"
             size={sidebarCollapsed ? "icon" : "default"}
-            className="w-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="w-full text-muted-foreground hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           >
             <Menu className="w-5 h-5" />

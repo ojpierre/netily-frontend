@@ -75,7 +75,7 @@ function ArcGauge({ value, color, size = 120 }: { value: number; color: string; 
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`font-extrabold leading-none ${size >= 120 ? 'text-2xl' : 'text-xl'} text-slate-900 dark:text-white`}>
+        <span className={`font-extrabold leading-none ${size >= 120 ? 'text-2xl' : 'text-xl'} text-foreground`}>
           {Math.round(clamped)}
         </span>
         <span className="text-xs text-slate-400 font-medium">%</span>
@@ -147,7 +147,7 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
         <div className="w-16 h-16 rounded-2xl bg-destructive/10 dark:bg-destructive/10 flex items-center justify-center">
           <XCircle className="w-8 h-8 text-destructive" />
         </div>
-        <p className="text-lg font-semibold text-slate-900 dark:text-white">Unable to connect</p>
+        <p className="text-lg font-semibold text-foreground">Unable to connect</p>
         <p className="text-sm text-slate-400">Router may be offline or credentials invalid</p>
         <Button onClick={() => { setIsRefreshing(true); fetchLiveStatus() }} variant="outline" className="rounded-xl">
           <RefreshCw className="w-4 h-4 mr-2" /> Retry
@@ -201,7 +201,7 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
               </div>
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{label}</p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate mt-0.5">{value}</p>
+                <p className="text-sm font-semibold text-foreground truncate mt-0.5">{value}</p>
               </div>
             </div>
           </div>
@@ -222,7 +222,7 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
                   <div className={`p-1.5 rounded-lg bg-gradient-to-br ${cpuLoad >= 85 ? 'from-red-400 to-rose-500' : cpuLoad >= 65 ? 'from-amber-400 to-orange-500' : 'from-blue-400 to-indigo-500'}`}>
                     <Cpu className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">CPU Usage</p>
+                  <p className="text-sm font-semibold text-foreground">CPU Usage</p>
                 </div>
                 <p className="text-xs text-slate-400">{cpuLoad}% utilization</p>
               </div>
@@ -261,7 +261,7 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
                   <div className={`p-1.5 rounded-lg bg-gradient-to-br ${memory.usedPercent >= 85 ? 'from-red-400 to-rose-500' : memory.usedPercent >= 65 ? 'from-amber-400 to-orange-500' : 'from-purple-400 to-violet-500'}`}>
                     <HardDrive className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Memory Usage</p>
+                  <p className="text-sm font-semibold text-foreground">Memory Usage</p>
                 </div>
                 <p className="text-xs text-slate-400">{memory.freeMB} MB free of {memory.totalMB} MB</p>
               </div>
@@ -292,7 +292,7 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
       {/* System Details */}
       <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-slate-300 via-slate-400 to-slate-300 dark:from-slate-700 dark:via-slate-600 dark:to-slate-700" />
-        <p className="text-sm font-semibold text-slate-900 dark:text-white mb-5">System Details</p>
+        <p className="text-sm font-semibold text-foreground mb-5">System Details</p>
         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Serial Number', value: liveStatus.serial, mono: true },
@@ -310,7 +310,7 @@ export function RouterOverviewTab({ routerId, isDemo = false }: RouterOverviewTa
                   <span className={`text-sm font-semibold ${online ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive dark:text-destructive'}`}>{value}</span>
                 </div>
               ) : (
-                <p className={`text-sm font-semibold text-slate-900 dark:text-white capitalize ${mono ? 'font-mono' : ''}`}>{value}</p>
+                <p className={`text-sm font-semibold text-foreground capitalize ${mono ? 'font-mono' : ''}`}>{value}</p>
               )}
             </div>
           ))}

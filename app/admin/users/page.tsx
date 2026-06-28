@@ -1798,7 +1798,7 @@ export default function UsersPage() {
   if (error) {
     return (
       <PageWrapper>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Users Management</h1>
+        <h1 className="text-3xl font-bold text-foreground">Users Management</h1>
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
@@ -1812,8 +1812,8 @@ export default function UsersPage() {
       {/* Header - same as before */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Users Management</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Manage Hotspot, PPPoE, and Static IP users</p>
+          <h1 className="text-3xl font-bold text-foreground">Users Management</h1>
+          <p className="text-muted-foreground mt-1">Manage Hotspot, PPPoE, and Static IP users</p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
           <Button 
@@ -1915,7 +1915,7 @@ export default function UsersPage() {
                       value={newCustomerForm.password}
                       onChange={(e) => setNewCustomerForm({...newCustomerForm, password: e.target.value})}
                     />
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Used for customer portal login. Also used as RADIUS password if not specified below.</p>
+                    <p className="text-xs text-muted-foreground">Used for customer portal login. Also used as RADIUS password if not specified below.</p>
                   </div>
                 </div>
 
@@ -1980,7 +1980,7 @@ export default function UsersPage() {
                         />
                       </div>
                       {availableIPsLoading ? (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <Loader2 className="w-3 h-3 animate-spin" />
                           Loading IPs...
                         </p>
@@ -2011,7 +2011,7 @@ export default function UsersPage() {
                             </SelectContent>
                           </Select>
                           {availableIPs.length > 0 && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <p className="text-xs text-muted-foreground">
                               Showing {availableIPs.length} of{" "}
                               {(availableIPs as any).total_available ?? "many"} available —
                               type above to search
@@ -2029,7 +2029,7 @@ export default function UsersPage() {
                     <Wifi className="w-4 h-4" />
                     PPPoE / RADIUS Credentials
                   </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     Leave blank to auto-generate from phone number. 
                     Username defaults to last 9 digits of phone, password defaults to portal password.
                   </p>
@@ -2132,8 +2132,8 @@ export default function UsersPage() {
                             : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
                         }`}
                       >
-                        <p className="text-xs font-medium text-slate-900 dark:text-white">{opt.label}</p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{opt.desc}</p>
+                        <p className="text-xs font-medium text-foreground">{opt.label}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{opt.desc}</p>
                       </button>
                     ))}
                   </div>
@@ -2296,7 +2296,7 @@ export default function UsersPage() {
               className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap z-10 ${
                 activeTab === value
                   ? "text-white shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  : "text-muted-foreground hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
               }`}
               style={{ transition: "color 0.2s ease" }}
             >
@@ -2333,7 +2333,7 @@ export default function UsersPage() {
                 className={`relative px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   statusFilter === value
                     ? "text-white shadow-sm"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    : "text-muted-foreground hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                 }`}
               >
                 {statusFilter === value && (
@@ -2364,7 +2364,7 @@ export default function UsersPage() {
                 className={`relative px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   hotspotSubFilter === value
                     ? "text-white shadow-sm"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    : "text-muted-foreground hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                 }`}
               >
                 {hotspotSubFilter === value && (
@@ -2438,7 +2438,7 @@ export default function UsersPage() {
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                  <CardTitle className="flex items-center gap-2 text-foreground">
                     <Wifi className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     Online Users ({filteredOnlineSessions.length})
                   </CardTitle>
@@ -2493,7 +2493,7 @@ export default function UsersPage() {
                 <div className="text-center py-12">
                   <WifiOff className="w-12 h-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
                   <h3 className="font-semibold text-slate-700 dark:text-slate-300">No online users</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                  <p className="text-muted-foreground text-sm mt-1">
                     {onlineSearchQuery || onlineServiceFilter !== "all"
                       ? "Try adjusting your search or filter"
                       : "No users are currently connected via RADIUS"}
@@ -2536,12 +2536,12 @@ export default function UsersPage() {
                                     .slice(0, 2) || 'HS'}
                                 </div>
                                 <div>
-                                  <p className="font-medium text-slate-900 dark:text-white">
+                                  <p className="font-medium text-foreground">
                                     {(session as any).canonical_username
                                       ? (session as any).canonical_username
                                       : (session.full_name || session.username)}
                                   </p>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  <p className="text-xs text-muted-foreground">
                                     {(session as any).canonical_username
                                       ? <span className="text-pink-600 dark:text-pink-400 font-medium">Hotspot</span>
                                       : (session.phone_number || '')}
@@ -2568,7 +2568,7 @@ export default function UsersPage() {
                               </span>
                             </TableCell>
                             <TableCell>
-                              <span className="font-mono text-xs text-slate-600 dark:text-slate-400">{session.mac_address || '...'}</span>
+                              <span className="font-mono text-xs text-muted-foreground">{session.mac_address || '...'}</span>
                             </TableCell>
                             <TableCell>
                               <span className="text-sm dark:text-slate-300">{session.router || '...'}</span>
@@ -2598,7 +2598,7 @@ export default function UsersPage() {
                   </div>
                   {Math.ceil(onlineTotal / onlinePageSize) > 1 && (
                     <div className="flex items-center justify-between mt-4">
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                      <p className="text-sm text-muted-foreground">
                         Showing {((onlinePage - 1) * onlinePageSize) + 1}–{Math.min(onlinePage * onlinePageSize, onlineTotal)} of {onlineTotal} sessions
                       </p>
                       <div className="flex gap-2">
@@ -2611,7 +2611,7 @@ export default function UsersPage() {
                         >
                           Previous
                         </Button>
-                        <span className="flex items-center px-3 text-sm text-slate-600 dark:text-slate-400">
+                        <span className="flex items-center px-3 text-sm text-muted-foreground">
                           Page {onlinePage} of {Math.ceil(onlineTotal / onlinePageSize)}
                         </span>
                         <Button
@@ -2646,7 +2646,7 @@ export default function UsersPage() {
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                  <CardTitle className="flex items-center gap-2 text-foreground">
                     <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
                     Active Subscriptions ({allActiveSubUsers.length})
                   </CardTitle>
@@ -2679,7 +2679,7 @@ export default function UsersPage() {
                 <div className="text-center py-12">
                   <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
                   <h3 className="font-semibold text-slate-700 dark:text-slate-300">No active subscriptions</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                  <p className="text-muted-foreground text-sm mt-1">
                     {activeSearchQuery ? "Try adjusting your search" : "No users with active subscriptions found"}
                   </p>
                 </div>
@@ -2729,15 +2729,15 @@ export default function UsersPage() {
                                   {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                                 </div>
                                 <div>
-                                  <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">{user.phone}</p>
+                                  <p className="font-medium text-foreground">{user.name}</p>
+                                  <p className="text-xs text-muted-foreground">{user.phone}</p>
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>
                               <div>
                                 <p className="text-sm font-medium dark:text-slate-300">{user.plan}</p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">KES {user.planPrice.toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground">KES {user.planPrice.toLocaleString()}</p>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -2762,12 +2762,12 @@ export default function UsersPage() {
                               {user.plan === "No Plan" ? (
                                 <div>
                                   <p className="text-sm dark:text-slate-300">-</p>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">Voucher</p>
+                                  <p className="text-xs text-muted-foreground">Voucher</p>
                                 </div>
                               ) : (
                                 <div>
                                   <p className="text-sm dark:text-slate-300">{new Date(user.expiryDate).toLocaleDateString()}</p>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  <p className="text-xs text-muted-foreground">
                                     {new Date(user.expiryDate) > new Date() 
                                       ? `${Math.ceil((new Date(user.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left`
                                       : "Expired"
@@ -2885,7 +2885,7 @@ export default function UsersPage() {
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                  <CardTitle className="flex items-center gap-2 text-foreground">
                     <Smartphone className="w-5 h-5 text-pink-600 dark:text-pink-400" />
                     Hotspot Clients ({activeSubscriptions.hotspot?.length || 0})
                   </CardTitle>
@@ -2973,8 +2973,8 @@ export default function UsersPage() {
                                       HS
                                     </div>
                                     <div>
-                                      <p className="font-medium text-slate-900 dark:text-white font-mono text-sm">{hotspotIdentifier}</p>
-                                      <p className="text-xs text-slate-500 dark:text-slate-400">{item.phone || '—'}</p>
+                                      <p className="font-medium text-foreground font-mono text-sm">{hotspotIdentifier}</p>
+                                      <p className="text-xs text-muted-foreground">{item.phone || '—'}</p>
                                     </div>
                                   </div>
                                 </TableCell>
@@ -3008,7 +3008,7 @@ export default function UsersPage() {
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <span className="text-sm text-slate-600 dark:text-slate-400">{item.router || '—'}</span>
+                                  <span className="text-sm text-muted-foreground">{item.router || '—'}</span>
                                 </TableCell>
                                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                   <div className="flex items-center justify-end gap-1">
@@ -3026,7 +3026,7 @@ export default function UsersPage() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-7 text-xs text-slate-500 dark:text-slate-400"
+                                      className="h-7 text-xs text-muted-foreground"
                                       onClick={(e) => { e.stopPropagation(); handleOpenHotspotDetail(item) }}
                                     >
                                       <Eye className="w-3 h-3" />
@@ -3043,7 +3043,7 @@ export default function UsersPage() {
 
                   {activeSubscriptions.hotspot.length > hotspotPageSize && (
                     <div className="flex items-center justify-between mt-4">
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                      <p className="text-sm text-muted-foreground">
                         {(() => {
                           const filtered = activeSubscriptions.hotspot.filter(item => {
                             const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
@@ -3083,7 +3083,7 @@ export default function UsersPage() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base text-slate-900 dark:text-white">
+                  <CardTitle className="text-base text-foreground">
                     {activeTab === "all" && "Users"}
                     {activeTab === "pppoe" && "PPPoE Users"}
                     {activeTab === "static" && "Static IP Users"}
@@ -3124,7 +3124,7 @@ export default function UsersPage() {
                 <div className="text-center py-12">
                   <Users className="w-12 h-12 mx-auto mb-4 text-slate-400 dark:text-slate-600" />
                   <h3 className="font-semibold text-slate-700 dark:text-slate-300">No users found</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                  <p className="text-muted-foreground text-sm mt-1">
                     Try adjusting your search or filters
                   </p>
                 </div>
@@ -3179,8 +3179,8 @@ export default function UsersPage() {
                                     {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                                   </div>
                                   <div>
-                                    <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">{user.phone}</p>
+                                    <p className="font-medium text-foreground">{user.name}</p>
+                                    <p className="text-xs text-muted-foreground">{user.phone}</p>
                                   </div>
                                 </div>
                               </TableCell>
@@ -3190,7 +3190,7 @@ export default function UsersPage() {
                               <TableCell>
                                 <div>
                                   <p className="text-sm font-medium dark:text-slate-300">{user.plan}</p>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">KES {user.planPrice.toLocaleString()}</p>
+                                  <p className="text-xs text-muted-foreground">KES {user.planPrice.toLocaleString()}</p>
                                 </div>
                               </TableCell>
                               <TableCell>
@@ -3207,12 +3207,12 @@ export default function UsersPage() {
                                 {user.plan === "No Plan" ? (
                                   <div>
                                     <p className="text-sm dark:text-slate-300">-</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">Voucher</p>
+                                    <p className="text-xs text-muted-foreground">Voucher</p>
                                   </div>
                                 ) : (
                                   <div>
                                     <p className="text-sm dark:text-slate-300">{new Date(user.expiryDate).toLocaleDateString()}</p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    <p className="text-xs text-muted-foreground">
                                       {new Date(user.expiryDate) > new Date() 
                                         ? `${Math.ceil((new Date(user.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days left`
                                         : "Expired"
@@ -3303,7 +3303,7 @@ export default function UsersPage() {
 
                   {totalPages > 1 && statusFilter !== "expired" && (
                     <div className="flex items-center justify-between mt-4">
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                      <p className="text-sm text-muted-foreground">
                         Page {serverPage} of {totalPages}
                       </p>
                       <div className="flex gap-2">
@@ -3424,7 +3424,7 @@ export default function UsersPage() {
                         {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                       </Button>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Click refresh to use phone number (last 9 digits)</p>
+                    <p className="text-xs text-muted-foreground mt-1">Click refresh to use phone number (last 9 digits)</p>
                   </div>
                   <div>
                     <Label htmlFor="edit_radius_password" className="dark:text-slate-200">RADIUS Password</Label>
@@ -3444,7 +3444,7 @@ export default function UsersPage() {
                         <RefreshCw className="w-4 h-4" />
                       </Button>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Leave empty to keep current password</p>
+                    <p className="text-xs text-muted-foreground mt-1">Leave empty to keep current password</p>
                   </div>
                 </div>
               </div>
@@ -3480,7 +3480,7 @@ export default function UsersPage() {
             </DialogHeader>
             {userToDelete && (
               <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                <p className="font-medium text-slate-900 dark:text-white">{userToDelete.name}</p>
+                <p className="font-medium text-foreground">{userToDelete.name}</p>
                 <p className="text-sm text-slate-600 dark:text-slate-300">{userToDelete.email} • {userToDelete.phone}</p>
                 <p className="text-sm text-slate-600 dark:text-slate-300">Plan: {userToDelete.plan}</p>
               </div>
@@ -3532,7 +3532,7 @@ export default function UsersPage() {
                   className={`flex-1 py-2 text-sm font-medium transition-colors ${
                     extendMode === "duration"
                       ? "bg-blue-600 dark:bg-blue-700 text-white"
-                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      : "bg-white dark:bg-slate-900 text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
                   Add Duration
@@ -3543,7 +3543,7 @@ export default function UsersPage() {
                   className={`flex-1 py-2 text-sm font-medium transition-colors ${
                     extendMode === "date"
                       ? "bg-blue-600 dark:bg-blue-700 text-white"
-                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      : "bg-white dark:bg-slate-900 text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
                   Set Expiry Date & Time
@@ -3638,7 +3638,7 @@ export default function UsersPage() {
                   )}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label className="text-xs text-slate-500 dark:text-slate-400">Date</Label>
+                      <Label className="text-xs text-muted-foreground">Date</Label>
                       <input
                         type="date"
                         value={extendManualDate.split('T')[0] || extendManualDate}
@@ -3651,7 +3651,7 @@ export default function UsersPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-slate-500 dark:text-slate-400">Time (HH:MM)</Label>
+                      <Label className="text-xs text-muted-foreground">Time (HH:MM)</Label>
                       <input
                         type="time"
                         value={extendManualTime}
@@ -3804,7 +3804,7 @@ export default function UsersPage() {
                   type="button"
                   onClick={() => setHotspotExtendMode("duration")}
                   className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                    hotspotExtendMode === "duration" ? "bg-blue-600 dark:bg-blue-700 text-white" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    hotspotExtendMode === "duration" ? "bg-blue-600 dark:bg-blue-700 text-white" : "bg-white dark:bg-slate-900 text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
                   Add Duration
@@ -3813,7 +3813,7 @@ export default function UsersPage() {
                   type="button"
                   onClick={() => setHotspotExtendMode("date")}
                   className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                    hotspotExtendMode === "date" ? "bg-blue-600 dark:bg-blue-700 text-white" : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    hotspotExtendMode === "date" ? "bg-blue-600 dark:bg-blue-700 text-white" : "bg-white dark:bg-slate-900 text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
                   Set Expiry
@@ -3866,7 +3866,7 @@ export default function UsersPage() {
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <Label className="text-xs text-slate-500 dark:text-slate-400">Date</Label>
+                      <Label className="text-xs text-muted-foreground">Date</Label>
                       <input
                         type="date"
                         value={hotspotExtendManualDate}
@@ -3877,7 +3877,7 @@ export default function UsersPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-slate-500 dark:text-slate-400">Time</Label>
+                      <Label className="text-xs text-muted-foreground">Time</Label>
                       <input
                         type="time"
                         value={hotspotExtendManualTime}
@@ -3944,8 +3944,8 @@ export default function UsersPage() {
 
             <div className="space-y-4">
               <div className="rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-sm">
-                <p className="font-medium text-slate-900 dark:text-white">Current plan</p>
-                <p className="mt-1 text-slate-600 dark:text-slate-400">{currentPlanName || "No active plan"}</p>
+                <p className="font-medium text-foreground">Current plan</p>
+                <p className="mt-1 text-muted-foreground">{currentPlanName || "No active plan"}</p>
               </div>
 
               {changePlanLoading ? (
@@ -3981,10 +3981,10 @@ export default function UsersPage() {
                         const selectedPlan = changePlanOptions.find((plan) => plan.id === parseInt(selectedChangePlanId, 10))
                         if (!selectedPlan) return null
                         return (
-                          <div className="space-y-1 text-slate-600 dark:text-slate-400">
-                            <p><span className="font-medium text-slate-900 dark:text-white">Type:</span> {selectedPlan.plan_type}</p>
-                            <p><span className="font-medium text-slate-900 dark:text-white">Speed:</span> {selectedPlan.download_speed || 0} / {selectedPlan.upload_speed || 0} Mbps</p>
-                            <p><span className="font-medium text-slate-900 dark:text-white">Data limit:</span> {selectedPlan.data_limit ? `${selectedPlan.data_limit} GB` : "Unlimited"}</p>
+                          <div className="space-y-1 text-muted-foreground">
+                            <p><span className="font-medium text-foreground">Type:</span> {selectedPlan.plan_type}</p>
+                            <p><span className="font-medium text-foreground">Speed:</span> {selectedPlan.download_speed || 0} / {selectedPlan.upload_speed || 0} Mbps</p>
+                            <p><span className="font-medium text-foreground">Data limit:</span> {selectedPlan.data_limit ? `${selectedPlan.data_limit} GB` : "Unlimited"}</p>
                           </div>
                         )
                       })()}
@@ -4060,12 +4060,12 @@ export default function UsersPage() {
               )}
 
               {editIPLoading ? (
-                <div className="flex items-center justify-center py-6 gap-2 text-slate-500 dark:text-slate-400">
+                <div className="flex items-center justify-center py-6 gap-2 text-muted-foreground">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Loading available IPs...
                 </div>
               ) : editIPAvailableIPs.length === 0 && !editIPLoading ? (
-                <div className="text-center py-6 text-slate-500 dark:text-slate-400 text-sm">
+                <div className="text-center py-6 text-muted-foreground text-sm">
                   No available IPs in this plan's pool.<br />
                   <span className="text-xs">Ensure the plan has an IP pool assigned.</span>
                 </div>
@@ -4114,7 +4114,7 @@ export default function UsersPage() {
                     </SelectContent>
                   </Select>
                   {editIPAvailableIPs.length > 0 && !editIPLoading && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-muted-foreground">
                       Showing {editIPAvailableIPs.length} available — type above to search
                     </p>
                   )}
@@ -4170,7 +4170,7 @@ export default function UsersPage() {
             <div className="space-y-4">
               {smsTarget && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-slate-500 dark:text-slate-400">Quick Templates</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">Quick Templates</Label>
                   <div className="grid grid-cols-1 gap-2">
                     <button
                       type="button"
@@ -4220,7 +4220,7 @@ export default function UsersPage() {
                   rows={4}
                   className="dark:bg-slate-900 dark:border-slate-700"
                 />
-                <p className="text-xs text-slate-500 dark:text-slate-400">{smsMessage.length}/160 characters</p>
+                <p className="text-xs text-muted-foreground">{smsMessage.length}/160 characters</p>
               </div>
             </div>
             <DialogFooter>
@@ -4265,7 +4265,7 @@ export default function UsersPage() {
             <div className="space-y-4">
               {userSmsTarget && (
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Quick Templates</p>
+                  <p className="text-xs font-medium text-muted-foreground">Quick Templates</p>
                   <div className="grid grid-cols-1 gap-2">
                     <button
                       type="button"
@@ -4307,7 +4307,7 @@ export default function UsersPage() {
               )}
 
               <div>
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Insert variable</p>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Insert variable</p>
                 <div className="flex flex-wrap gap-1.5">
                   {SMS_VARIABLES.map(({ key, label }) => (
                     <button
@@ -4336,7 +4336,7 @@ export default function UsersPage() {
 
               {userSmsTarget && userSmsMessage && (
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700 text-sm space-y-1">
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Preview (resolved)</p>
+                  <p className="text-xs font-medium text-muted-foreground">Preview (resolved)</p>
                   <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words">
                     {resolveMessageVariables(userSmsMessage, userSmsTarget)}
                   </p>
@@ -4373,8 +4373,8 @@ export default function UsersPage() {
               <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
                 <Trash2 className="w-8 h-8 text-red-500 dark:text-red-400" />
               </div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white text-center">Delete Client?</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 text-center mt-2 mb-6">
+              <h2 className="text-lg font-bold text-foreground text-center">Delete Client?</h2>
+              <p className="text-sm text-muted-foreground text-center mt-2 mb-6">
                 <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{hotspotDeleteTarget?.username}</span> will be permanently removed along with their RADIUS credentials. This cannot be undone.
               </p>
             </div>

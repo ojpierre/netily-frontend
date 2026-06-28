@@ -717,7 +717,7 @@ export default function UserDetailPage() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{user.fullName}</h1>
+            <h1 className="text-3xl font-bold text-foreground">{user.fullName}</h1>
             {getTypeBadge(user.type)}
             {getStatusBadge(user.status)}
             {user.connectionStatus === 'online' ? (
@@ -732,7 +732,7 @@ export default function UserDetailPage() {
               <span className="text-sm text-slate-400">Offline</span>
             )}
           </div>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">User ID: {params.id} • Joined {user.createdAt}</p>
+          <p className="text-muted-foreground mt-1">User ID: {params.id} • Joined {user.createdAt}</p>
         </div>
         <Button variant="outline" size="sm" onClick={handleRefresh}>
           <RefreshCw className="w-4 h-4 mr-2" />
@@ -804,8 +804,8 @@ export default function UserDetailPage() {
                     {user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2)}
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 dark:text-white">{user.fullName}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{user.id}</p>
+                    <p className="font-bold text-foreground">{user.fullName}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{user.id}</p>
                   </div>
                 </div>
                 <Separator />
@@ -882,7 +882,7 @@ export default function UserDetailPage() {
                         internetCheck.status === 'yellow' ? 'text-warning' :
                         internetCheck.status === 'red' ? 'text-destructive' : 'text-slate-500'
                       }`}>{internetCheck.label}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{internetCheck.detail}</p>
+                      <p className="text-xs text-muted-foreground">{internetCheck.detail}</p>
                     </div>
                   </div>
                 </div>
@@ -901,8 +901,8 @@ export default function UserDetailPage() {
                 <div className="p-3 rounded-xl bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 border border-violet-100 dark:border-violet-900/30">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-bold text-slate-900 dark:text-white">{user.package.name}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">KES {user.package.price.toLocaleString()}/mo</p>
+                      <p className="font-bold text-foreground">{user.package.name}</p>
+                      <p className="text-sm text-muted-foreground">KES {user.package.price.toLocaleString()}/mo</p>
                     </div>
                     {getStatusBadge(user.status)}
                   </div>
@@ -1136,8 +1136,8 @@ export default function UserDetailPage() {
                       <Icon className={`w-4 h-4 ${color}`} />
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
-                      <p className="font-bold text-slate-900 dark:text-white">{value}</p>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                      <p className="font-bold text-foreground">{value}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -1158,7 +1158,7 @@ export default function UserDetailPage() {
                   {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
                 </div>
               ) : sessions.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                <div className="text-center py-8 text-muted-foreground">
                   <History className="w-10 h-10 mx-auto mb-3 opacity-50" />
                   <p>No sessions recorded</p>
                 </div>
@@ -1202,7 +1202,7 @@ export default function UserDetailPage() {
                   {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
                 </div>
               ) : payments.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                <div className="text-center py-8 text-muted-foreground">
                   <CreditCard className="w-10 h-10 mx-auto mb-3 opacity-50" />
                   <p>No payments recorded</p>
                 </div>
@@ -1221,7 +1221,7 @@ export default function UserDetailPage() {
                     {payments.map((payment) => (
                       <TableRow key={payment.id}>
                         <TableCell>{payment.date}</TableCell>
-                        <TableCell className="font-medium text-slate-900 dark:text-white">KSh {payment.amount.toLocaleString()}</TableCell>
+                        <TableCell className="font-medium text-foreground">KSh {payment.amount.toLocaleString()}</TableCell>
                         <TableCell>{payment.method}</TableCell>
                         <TableCell className="font-mono text-xs">{payment.reference || '—'}</TableCell>
                         <TableCell>{getPaymentStatusBadge(payment.status)}</TableCell>
@@ -1246,7 +1246,7 @@ export default function UserDetailPage() {
                   {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
                 </div>
               ) : tickets.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                <div className="text-center py-8 text-muted-foreground">
                   <Activity className="w-10 h-10 mx-auto mb-3 opacity-50" />
                   <p>No tickets found</p>
                 </div>

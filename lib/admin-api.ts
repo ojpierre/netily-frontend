@@ -749,6 +749,17 @@ class AdminApiService {
     })
   }
 
+  async getRoleAccessPolicies(): Promise<Array<{ id: number; role: string; allowed_paths: string[] }>> {
+    return this.request<Array<{ id: number; role: string; allowed_paths: string[] }>>('/core/role-access/')
+  }
+
+  async updateRoleAccessPolicy(role: string, allowedPaths: string[]): Promise<{ id: number; role: string; allowed_paths: string[] }> {
+    return this.request<{ id: number; role: string; allowed_paths: string[] }>(`/core/role-access/${role}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role, allowed_paths: allowedPaths }),
+    })
+  }
+
   // ------------------------------------------
   // CUSTOMERS - /customers/
   // ------------------------------------------

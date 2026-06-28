@@ -452,7 +452,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                     <div className="flex-1 min-w-0">
                       <p
                         className={`font-medium ${
-                          isSelected ? "text-primary" : "text-slate-900 dark:text-white"
+                          isSelected ? "text-primary" : "text-foreground"
                         }`}
                       >
                         {role.label}
@@ -470,7 +470,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
 
           {/* Personal Information */}
           <div className="space-y-4">
-            <h4 className="font-medium text-slate-900 dark:text-white">Personal Information</h4>
+            <h4 className="font-medium text-foreground">Personal Information</h4>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -545,7 +545,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
 
           {/* Password Section */}
           <div className="space-y-4">
-            <h4 className="font-medium text-slate-900 dark:text-white">Login Credentials</h4>
+            <h4 className="font-medium text-foreground">Login Credentials</h4>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -822,7 +822,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`font-medium text-sm ${isSelected ? "text-primary" : "text-slate-900 dark:text-white"}`}>
+                      <p className={`font-medium text-sm ${isSelected ? "text-primary" : "text-foreground"}`}>
                         {role.label}
                       </p>
                     </div>
@@ -936,10 +936,6 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
 // MAIN STAFF PAGE COMPONENT
 // ==========================================
 
-
-
-import { UserPlus } from "lucide-react"
-
 const NETILY_ROLE_DEFINITIONS: Array<{
   id: StaffRole
   name: string
@@ -950,60 +946,109 @@ const NETILY_ROLE_DEFINITIONS: Array<{
     id: "staff",
     name: "General Staff",
     description: "Day-to-day office operations, customers, dispatch, inventory, leads, and support follow-up.",
-    accent: "bg-blue-600",
+    accent: "bg-chart-1",
   },
   {
     id: "technician",
     name: "Field Technician",
     description: "Network and field work: routers, RADIUS, FUP, dispatch jobs, inventory, and customer tickets.",
-    accent: "bg-sky-600",
+    accent: "bg-chart-2",
   },
   {
     id: "accountant",
     name: "Accountant",
     description: "Finance operations: invoices, payments, receipts, vouchers, billing reports, and subscription usage.",
-    accent: "bg-emerald-600",
+    accent: "bg-chart-3",
   },
   {
     id: "support",
     name: "Support",
     description: "Customer support and helpdesk: users, tickets, leads, SMS, loyalty, ads, and dispatch follow-up.",
-    accent: "bg-indigo-600",
+    accent: "bg-chart-4",
   },
 ]
 
-const routeLabelsForRole = (role: StaffRole) =>
+const defaultPathsForRole = (role: StaffRole) =>
   adminRouteAccessRules
     .filter((rule) => rule.allowedRoles?.includes(role))
-    .map((rule) => rule.label)
+    .map((rule) => rule.pathPrefix)
 
-function EditPermissionsModal({ open, onOpenChange, role }: { open: boolean, onOpenChange: (v: boolean) => void, role: any }) {
+const labelForPath = (path: string) => adminRouteAccessRules.find((rule) => rule.pathPrefix === path)?.label || path
+
+function EditPermissionsModal({
+  open,
+  onOpenChange,
+  role,
+  onSave,
+}: {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  role: any
+  onSave: (role: StaffRole, allowedPaths: string[]) => Promise<void>
+}) {
+  const [selectedPaths, setSelectedPaths] = useState<string[]>([])
+  const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (role) setSelectedPaths(role.allowedPaths || [])
+  }, [role])
+
   if (!role) return null;
+  const togglePath = (path: string) => {
+    setSelectedPaths((current) => current.includes(path) ? current.filter((item) => item !== path) : [...current, path])
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[620px] p-0 overflow-hidden bg-white dark:bg-slate-950">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+      <DialogContent className="sm:max-w-[620px] p-0 overflow-hidden bg-background">
+        <div className="p-6 border-b border-border">
            <DialogHeader>
-             <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white">{role.name} access map</DialogTitle>
-             <DialogDescription className="pt-2 text-sm text-slate-500 dark:text-slate-400">
+             <DialogTitle className="text-xl font-bold text-foreground">Edit {role.name} access</DialogTitle>
+             <DialogDescription className="pt-2 text-sm text-muted-foreground">
                {role.description}<br/><br/>
-               These permissions come from Netily's active route guard map. Assigning this role to a staff member immediately updates what they can access after their next auth refresh.
+               Choose the dashboard pages this role can access. Changes apply to all staff members assigned to this role.
              </DialogDescription>
            </DialogHeader>
         </div>
-        <div className="p-6 max-h-[60vh] overflow-y-auto bg-slate-50/70 dark:bg-slate-900/60">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {role.permissions.map((permission: string) => (
-              <div key={permission} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
-                <CheckCircle className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{permission}</span>
-              </div>
+        <div className="p-6 max-h-[60vh] overflow-y-auto bg-card">
+          <div className="space-y-3">
+            {adminRouteAccessRules
+              .filter((rule) => !rule.allowedRoles?.every((item) => item === "admin" || item === "super_admin"))
+              .map((rule) => (
+              <label key={rule.pathPrefix} className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
+                <input
+                  type="checkbox"
+                  checked={selectedPaths.includes(rule.pathPrefix)}
+                  onChange={() => togglePath(rule.pathPrefix)}
+                  className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-foreground">{rule.label}</span>
+                  <span className="block text-xs text-muted-foreground">{rule.pathPrefix}</span>
+                </span>
+              </label>
             ))}
           </div>
         </div>
-        <div className="p-4 border-t border-slate-100 bg-white flex justify-between items-center dark:border-slate-800 dark:bg-slate-950">
-           <p className="text-xs text-slate-500">To change access, update the role assigned to the staff member.</p>
-           <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-slate-600 font-semibold hover:bg-slate-100">Cancel</Button>
+        <div className="p-4 border-t border-border bg-background flex justify-between items-center">
+           <p className="text-xs text-slate-500">{selectedPaths.length} dashboard area(s) selected</p>
+           <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-semibold">Cancel</Button>
+           <Button
+             disabled={isSaving}
+             onClick={async () => {
+               setIsSaving(true)
+               try {
+                 await onSave(role.id, selectedPaths)
+                 onOpenChange(false)
+               } finally {
+                 setIsSaving(false)
+               }
+             }}
+             className="bg-primary text-primary-foreground hover:bg-primary/90"
+           >
+             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+             Save access
+           </Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -1022,6 +1067,7 @@ export default function StaffManagementPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [rolePolicies, setRolePolicies] = useState<Record<string, string[]>>({})
   
   const [editingRole, setEditingRole] = useState<any | null>(null)
 
@@ -1032,8 +1078,17 @@ export default function StaffManagementPage() {
   const fetchStaff = async () => {
     try {
       setIsLoading(true)
-      const data = await adminApi.getStaffUsers()
+      const [data, policies] = await Promise.all([
+        adminApi.getStaffUsers(),
+        adminApi.getRoleAccessPolicies(),
+      ])
       setStaffUsers((data as any).results || data)
+      setRolePolicies(
+        policies.reduce<Record<string, string[]>>((acc, policy) => {
+          acc[policy.role] = policy.allowed_paths || []
+          return acc
+        }, {})
+      )
     } catch (error) {
       toast.error("Failed to fetch staff")
     } finally {
@@ -1066,56 +1121,73 @@ export default function StaffManagementPage() {
 
   const roleCards = NETILY_ROLE_DEFINITIONS.map((role) => ({
     ...role,
-    permissions: routeLabelsForRole(role.id),
+    allowedPaths: rolePolicies[role.id] || defaultPathsForRole(role.id),
+    permissions: (rolePolicies[role.id] || defaultPathsForRole(role.id)).map(labelForPath),
     memberCount: staffUsers.filter((user) => {
       return user.role === role.id
     }).length,
   }))
 
+  const saveRoleAccess = async (role: StaffRole, allowedPaths: string[]) => {
+    try {
+      const updated = await adminApi.updateRoleAccessPolicy(role, allowedPaths)
+      setRolePolicies((current) => ({ ...current, [role]: updated.allowed_paths || [] }))
+      window.dispatchEvent(new CustomEvent("netily-role-access-updated"))
+      toast.success("Role access updated", {
+        description: "Staff navigation and protected pages will now use the new access map.",
+      })
+    } catch (error: any) {
+      toast.error("Failed to update role access", {
+        description: error?.message || "Please try again.",
+      })
+      throw error
+    }
+  }
+
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-slate-50 dark:bg-slate-950">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] bg-background">
       <div className="px-8 py-8 max-w-[1400px] mx-auto w-full">
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-              Staff & <span className="text-blue-600">access</span>
+            <h1 className="text-4xl font-black tracking-tight text-foreground flex items-center gap-3">
+              Staff & <span className="text-primary">access</span>
             </h1>
             <p className="text-sm text-slate-500 mt-2 font-medium dark:text-slate-400">Manage tenant staff accounts and the Netily dashboard areas each role can access.</p>
           </div>
           {activeTab === "members" && (
-            <Button onClick={() => setCreateDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full px-6 shadow-sm shadow-blue-500/20">
+            <Button onClick={() => setCreateDialogOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-full px-6 shadow-sm">
               <Plus className="w-4 h-4 mr-2" /> Add staff
             </Button>
           )}
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-2 mb-8 bg-white p-1 rounded-full border border-slate-200 shadow-sm w-fit dark:bg-slate-900 dark:border-slate-800">
+        <div className="flex items-center gap-2 mb-8 bg-card p-1 rounded-full border border-border shadow-sm w-fit">
           <button 
             onClick={() => setActiveTab("members")}
             className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all ${
-              activeTab === "members" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              activeTab === "members" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            Members <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === "members" ? "bg-slate-700 text-white" : "bg-slate-200"}`}>{staffUsers.length}</span>
+            Members <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === "members" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted"}`}>{staffUsers.length}</span>
           </button>
           <button 
             onClick={() => setActiveTab("roles")}
             className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all ${
-              activeTab === "roles" ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              activeTab === "roles" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            Roles <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === "roles" ? "bg-slate-700 text-white" : "bg-slate-200"}`}>{roleCards.length}</span>
+            Roles <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === "roles" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted"}`}>{roleCards.length}</span>
           </button>
         </div>
 
         {/* Content */}
         {activeTab === "members" ? (
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
              <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader className="bg-slate-50 border-b border-slate-100">
+                  <TableHeader className="bg-muted/50 border-b border-border">
                     <TableRow>
                       <TableHead className="text-xs font-bold text-slate-500 uppercase tracking-wider h-12">Name</TableHead>
                       <TableHead className="text-xs font-bold text-slate-500 uppercase tracking-wider h-12">Contact</TableHead>
@@ -1142,7 +1214,7 @@ export default function StaffManagementPage() {
                             </div>
                           </TableCell>
                           <TableCell className="py-4">
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 capitalize dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-900">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 capitalize">
                               {staff.role}
                             </span>
                           </TableCell>
@@ -1193,29 +1265,29 @@ export default function StaffManagementPage() {
             <p className="text-sm text-slate-500 font-medium max-w-4xl dark:text-slate-400">Roles are connected to Netily's active route guards. When you edit a staff member's role, their dashboard navigation and protected pages update to match.</p>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               {roleCards.map((role) => (
-                <div key={role.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col dark:bg-slate-900 dark:border-slate-800">
+                <div key={role.id} className="bg-card border border-border rounded-2xl shadow-sm flex flex-col">
                   <div className="p-6 flex-1">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-3">
                         <span className={`h-3 w-3 rounded-full ${role.accent}`} />
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{role.name}</h3>
+                        <h3 className="text-lg font-bold text-foreground">{role.name}</h3>
                       </div>
-                      <div className="flex items-center gap-1.5 bg-slate-100 text-slate-500 px-2 py-1 rounded-md text-xs font-bold dark:bg-slate-800 dark:text-slate-300">
+                      <div className="flex items-center gap-1.5 bg-muted text-muted-foreground px-2 py-1 rounded-md text-xs font-bold">
                         <UserCog className="w-3.5 h-3.5" /> {role.memberCount}
                       </div>
                     </div>
                     <p className="text-sm text-slate-500 mb-6 min-h-[40px] dark:text-slate-400">{role.description}</p>
                     <div className="flex flex-wrap gap-2">
                       {role.permissions.map(perm => (
-                        <span key={perm} className="px-2 py-1 bg-blue-50 border border-blue-100 text-blue-700 text-[10px] font-bold tracking-wider rounded-md dark:bg-blue-950/30 dark:border-blue-900 dark:text-blue-300">
+                        <span key={perm} className="px-2 py-1 bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold tracking-wider rounded-md">
                           {perm}
                         </span>
                       ))}
                     </div>
                   </div>
-                  <div className="p-4 border-t border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-b-2xl dark:border-slate-800 dark:bg-slate-950/60">
+                  <div className="p-4 border-t border-border flex justify-between items-center bg-muted/20 rounded-b-2xl">
                     <span className="text-xs font-semibold text-slate-500">{role.permissions.length} dashboard areas</span>
-                    <button onClick={() => setEditingRole(role)} className="flex items-center gap-1.5 text-sm font-bold text-slate-700 hover:text-blue-700 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm hover:bg-blue-50 transition-colors dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800">
+                    <button onClick={() => setEditingRole(role)} className="flex items-center gap-1.5 text-sm font-bold text-foreground hover:text-primary bg-background border border-border px-4 py-2 rounded-xl shadow-sm transition-colors hover:bg-muted">
                       <Eye className="w-3.5 h-3.5" /> View access
                     </button>
                   </div>
@@ -1228,7 +1300,7 @@ export default function StaffManagementPage() {
 
       <CreateStaffDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} onSuccess={fetchStaff} />
       <EditStaffDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} onSuccess={fetchStaff} user={selectedUser} />
-      <EditPermissionsModal open={!!editingRole} onOpenChange={(v) => !v && setEditingRole(null)} role={editingRole} />
+      <EditPermissionsModal open={!!editingRole} onOpenChange={(v) => !v && setEditingRole(null)} role={editingRole} onSave={saveRoleAccess} />
       <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

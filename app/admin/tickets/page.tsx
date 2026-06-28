@@ -477,7 +477,7 @@ export default function TicketsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Support Tickets</h1>
+          <h1 className="text-3xl font-bold text-foreground">Support Tickets</h1>
           <p className="text-slate-500 mt-1">Manage customer support requests</p>
         </div>
         <div className="flex gap-2">
@@ -1050,7 +1050,7 @@ export default function TicketsPage() {
                           className={`max-w-[80%] rounded-lg p-3 ${
                             message.sender_type === "agent"
                               ? "bg-primary text-white"
-                              : "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white"
+                              : "bg-slate-100 dark:bg-slate-700 text-foreground"
                           }`}
                         >
                           <div className="flex items-center gap-2 mb-1">

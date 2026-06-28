@@ -346,7 +346,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Billing & Subscription</h1>
+        <h1 className="text-2xl font-bold text-foreground">Billing & Subscription</h1>
         <p className="text-slate-600">Review your subscription status and official monthly invoices</p>
       </div>
 
@@ -402,13 +402,13 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Next Invoice Date</p>
-                      <p className="font-bold text-slate-900 dark:text-white">{subscription.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString('en-KE', { dateStyle: 'long' }) : '---'}</p>
+                      <p className="font-bold text-foreground">{subscription.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString('en-KE', { dateStyle: 'long' }) : '---'}</p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">
                         {subscription.plan?.is_metered ? "Activation Fee" : "Monthly Fee"}
                       </p>
-                      <p className="font-bold text-slate-900 dark:text-white">{kes(subscription.plan?.price_monthly || subscription.plan?.base_license_fee || subscription.plan?.price || 0)}</p>
+                      <p className="font-bold text-foreground">{kes(subscription.plan?.price_monthly || subscription.plan?.base_license_fee || subscription.plan?.price || 0)}</p>
                     </div>
                   </div>
                   <Separator />
@@ -587,7 +587,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                   <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Receipt className="w-8 h-8 text-slate-300" />
                   </div>
-                  <p className="text-slate-900 dark:text-white font-medium">No invoices yet</p>
+                  <p className="text-foreground font-medium">No invoices yet</p>
                   <p className="text-sm text-slate-400 mt-1 max-w-xs mx-auto">
                     Finalized bills will appear here once your current 30-day billing cycle completes.
                   </p>
@@ -597,12 +597,12 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                 <Table>
                   <TableHeader className="bg-slate-50/50">
                     <TableRow>
-                      <TableHead className="font-bold text-slate-900 dark:text-white whitespace-nowrap">Invoice Number</TableHead>
-                      <TableHead className="font-bold text-slate-900 dark:text-white whitespace-nowrap">Billing Date</TableHead>
-                      <TableHead className="font-bold text-slate-900 dark:text-white whitespace-nowrap hidden sm:table-cell">Period</TableHead>
-                      <TableHead className="font-bold text-slate-900 dark:text-white whitespace-nowrap">Total Amount</TableHead>
-                      <TableHead className="font-bold text-slate-900 dark:text-white whitespace-nowrap">Status</TableHead>
-                      <TableHead className="text-right font-bold text-slate-900 dark:text-white whitespace-nowrap">Action</TableHead>
+                      <TableHead className="font-bold text-foreground whitespace-nowrap">Invoice Number</TableHead>
+                      <TableHead className="font-bold text-foreground whitespace-nowrap">Billing Date</TableHead>
+                      <TableHead className="font-bold text-foreground whitespace-nowrap hidden sm:table-cell">Period</TableHead>
+                      <TableHead className="font-bold text-foreground whitespace-nowrap">Total Amount</TableHead>
+                      <TableHead className="font-bold text-foreground whitespace-nowrap">Status</TableHead>
+                      <TableHead className="text-right font-bold text-foreground whitespace-nowrap">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -625,7 +625,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                               'Monthly Service'
                             )}
                           </TableCell>
-                          <TableCell className="font-bold text-slate-900 dark:text-white">{kes(inv?.total_amount || 0)}</TableCell>
+                          <TableCell className="font-bold text-foreground">{kes(inv?.total_amount || 0)}</TableCell>
                           <TableCell>
                             <Badge 
                               variant={inv?.status === 'paid' ? 'default' : 'destructive'} 
@@ -847,7 +847,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                 </DialogHeader>
                 <div className="mt-4 space-y-3">
                   <a
-                    href="https://wa.me/254741670603?text=Hello%20Netily%20Support%2C%20I%20need%20help%20with%20Enterprise%20plan%20billing."
+                    href="https://wa.me/254799538923?text=Hello%20Netily%20Support%2C%20I%20need%20help%20with%20Enterprise%20plan%20billing."
                     target="_blank"
                     rel="noreferrer"
                     className="w-full inline-flex items-center justify-center gap-2 h-10 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-bold text-white text-sm transition-colors"
@@ -939,7 +939,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                           <CardTitle className="text-xs font-black uppercase text-primary tracking-widest">Monthly Minimum</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{kes(minimumCharge)}</p>
+                          <p className="text-2xl font-extrabold text-foreground">{kes(minimumCharge)}</p>
                           <p className="text-xs text-slate-500 mt-1">Applies only when usage is lower</p>
                         </CardContent>
                       </Card>
@@ -950,7 +950,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                           <CardTitle className="text-xs font-black uppercase text-primary tracking-widest">PPPoE Clients</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{kes(pppoeCharge)}</p>
+                          <p className="text-2xl font-extrabold text-foreground">{kes(pppoeCharge)}</p>
                           <div className="text-xs text-slate-500 mt-1 space-y-0.5">
                             <p>Actual: <span className="font-semibold text-slate-700">{pppoeCount}</span> clients</p>
                             <p>Footprint billed: <span className="font-semibold text-slate-700">{billablePppoe}</span> x {kes(pppoeUnitPrice)}</p>
@@ -964,7 +964,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                           <CardTitle className="text-xs font-black uppercase text-emerald-500 tracking-widest">Hotspot Revenue</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{kes(hotspotRevenueAccrued)}</p>
+                          <p className="text-2xl font-extrabold text-foreground">{kes(hotspotRevenueAccrued)}</p>
                           <p className="text-xs text-slate-500 mt-1">Collected this billing cycle</p>
                           <p className="text-xs text-emerald-600 mt-0.5">Reconciled every 8 hrs</p>
                         </CardContent>
@@ -976,7 +976,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                           <CardTitle className="text-xs font-black uppercase text-warning tracking-widest">Hotspot Share</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{kes(hotspotShareAmount)}</p>
+                          <p className="text-2xl font-extrabold text-foreground">{kes(hotspotShareAmount)}</p>
                           <p className="text-xs text-slate-500 mt-1">{hotspotSharePct}% of hotspot revenue</p>
                           <p className="text-xs text-slate-400 mt-0.5">Added to next invoice</p>
                         </CardContent>
@@ -1086,7 +1086,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                       <Clock className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-slate-900 dark:text-white">Usage resets every billing cycle</p>
+                      <p className="font-medium text-foreground">Usage resets every billing cycle</p>
                       <p className="text-sm text-slate-500 mt-1">
                         Your resource usage counts reset at the start of each new 30-day billing period.
                         {subscription?.plan?.is_metered && (

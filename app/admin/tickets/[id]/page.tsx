@@ -139,7 +139,7 @@ export default function TicketDetailPage() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">#{ticket.id}</h1>
+            <h1 className="text-2xl font-bold text-foreground">#{ticket.id}</h1>
             <Badge className={getStatusColor(ticket.status)}>{ticket.status}</Badge>
             <Badge className={getPriorityColor(ticket.priority)}>{ticket.priority}</Badge>
           </div>

@@ -6,7 +6,7 @@ import {
   type ThemeProviderProps,
 } from 'next-themes'
 
-type ColorTheme = 'blue' | 'green' | 'pink' | 'purple'
+type ColorTheme = 'blue' | 'green' | 'pink' | 'purple' | 'black-white' | 'pink-purple'
 
 interface NetilyThemeContextValue {
   colorTheme: ColorTheme
@@ -27,6 +27,8 @@ export const COLOR_THEMES: { value: ColorTheme; label: string; preview: string }
   { value: 'green', label: 'Green', preview: 'oklch(0.45 0.18 155)' },
   { value: 'pink', label: 'Pink', preview: 'oklch(0.5 0.2 350)' },
   { value: 'purple', label: 'Purple', preview: 'oklch(0.48 0.2 300)' },
+  { value: 'black-white', label: 'Black & White', preview: 'oklch(0.15 0 0)' },
+  { value: 'pink-purple', label: 'Pink Purple', preview: 'linear-gradient(135deg,#ec4899,#8b5cf6)' },
 ]
 
 function ColorThemeProvider({ children }: { children: React.ReactNode }) {
@@ -37,7 +39,7 @@ function ColorThemeProvider({ children }: { children: React.ReactNode }) {
     setMounted(true)
     // Read from localStorage on mount
     const saved = localStorage.getItem('netily-color-theme') as ColorTheme | null
-    if (saved && ['blue', 'green', 'pink', 'purple'].includes(saved)) {
+    if (saved && ['blue', 'green', 'pink', 'purple', 'black-white', 'pink-purple'].includes(saved)) {
       setColorThemeState(saved)
       document.documentElement.setAttribute('data-theme', saved)
     } else {

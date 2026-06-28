@@ -280,7 +280,7 @@ export default function AdsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Captive Portal Ads</h1>
+          <h1 className="text-3xl font-bold text-foreground">Captive Portal Ads</h1>
           <p className="text-slate-500 mt-1">Run ads on your hotspot login page — reward viewers with free internet</p>
         </div>
         <div className="flex gap-2">

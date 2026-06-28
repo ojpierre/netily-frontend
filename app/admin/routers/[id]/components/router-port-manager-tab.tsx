@@ -189,7 +189,7 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
           </div>
         </div>
 
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 text-center">
+        <h2 className="text-2xl font-bold text-foreground mb-2 text-center">
           Port Manager
         </h2>
         <p className="text-slate-500 text-center max-w-sm mb-8 text-sm leading-relaxed">
@@ -273,7 +273,7 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
             <Globe className="w-6 h-6 text-warning" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+            <h2 className="text-lg font-semibold text-foreground">
               Which port is your WAN (Internet) connection?
             </h2>
             <p className="text-sm text-slate-500 mt-0.5">
@@ -324,7 +324,7 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
                     {/* Labels */}
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono font-semibold text-slate-900 dark:text-white">
+                        <span className="font-mono font-semibold text-foreground">
                           {port.name}
                         </span>
                         <PortTypePill type={port.type} />
@@ -493,7 +493,7 @@ export function RouterPortManagerTab({ routerId }: RouterPortManagerTabProps) {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono font-semibold text-slate-900 dark:text-white text-sm">
+                      <span className="font-mono font-semibold text-foreground text-sm">
                         {port.name}
                       </span>
                       <PortTypePill type={port.type} />

@@ -77,7 +77,7 @@ function ComingSoonTab({ label }: { label: string }) {
         <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" /></svg>
       </div>
       <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{label} — Coming Soon</h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">This section is still being built. Check back soon.</p>
+      <p className="text-sm text-muted-foreground max-w-xs">This section is still being built. Check back soon.</p>
     </div>
   )
 }
@@ -148,7 +148,7 @@ function AppearanceTab() {
     },
   ]
 
-  const colorOptions: { value: "blue" | "green" | "pink" | "purple"; label: string; accent: string; ring: string; bg: string; dark: string; swatch: string }[] = [
+  const colorOptions: { value: "blue" | "green" | "pink" | "purple" | "black-white" | "pink-purple"; label: string; accent: string; ring: string; bg: string; dark: string; swatch: string }[] = [
     {
       value: "blue",
       label: "Ocean Blue",
@@ -185,6 +185,24 @@ function AppearanceTab() {
       dark: "dark:bg-purple-950/30",
       swatch: "bg-purple-500",
     },
+    {
+      value: "black-white",
+      label: "Black & White",
+      accent: "text-slate-950 dark:text-white",
+      ring: "ring-slate-950",
+      bg: "bg-slate-50",
+      dark: "dark:bg-slate-900",
+      swatch: "bg-slate-950",
+    },
+    {
+      value: "pink-purple",
+      label: "Pink Purple",
+      accent: "text-fuchsia-600",
+      ring: "ring-fuchsia-500",
+      bg: "bg-fuchsia-50",
+      dark: "dark:bg-fuchsia-950/30",
+      swatch: "bg-linear-to-br from-pink-500 to-purple-600",
+    },
   ]
 
   return (
@@ -194,7 +212,7 @@ function AppearanceTab() {
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-              <Monitor className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+              <Monitor className="w-5 h-5 text-muted-foreground" />
             </div>
             <div>
               <CardTitle className="text-base">Interface Mode</CardTitle>
@@ -273,7 +291,7 @@ function AppearanceTab() {
                   <div className={`w-12 h-12 rounded-full ${swatch} shadow-md flex items-center justify-center`}>
                     {isActive && <CheckCircle className="w-5 h-5 text-white drop-shadow" />}
                   </div>
-                  <span className={`text-xs font-semibold ${isActive ? swatch.replace("bg-", "text-") : "text-slate-600 dark:text-slate-400"}`}>
+                  <span className={`text-xs font-semibold ${isActive ? swatch.replace("bg-", "text-") : "text-muted-foreground"}`}>
                     {label}
                   </span>
                 </button>
@@ -283,7 +301,7 @@ function AppearanceTab() {
 
           <div className="mt-5 flex items-center gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
             <div className={`w-6 h-6 rounded-full ${colorOptions.find(c => c.value === colorTheme)?.swatch} shadow flex-shrink-0`} />
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-muted-foreground">
               Active accent: <span className={`font-semibold capitalize ${colorOptions.find(c => c.value === colorTheme)?.accent}`}>
                 {colorOptions.find(c => c.value === colorTheme)?.label}
               </span>
@@ -1249,7 +1267,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Settings</h1>
+          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
           <p className="text-slate-500 mt-1">Configure system preferences and integrations</p>
         </div>
         <div className="flex gap-2">
@@ -1449,7 +1467,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-5">
               <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
                 <div>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">Email OTP for Admin Login</p>
+                  <p className="font-medium text-foreground">Email OTP for Admin Login</p>
                   <p className="text-sm text-slate-500 mt-1">
                     When enabled, admins must enter a one-time code after password login.
                   </p>
@@ -1518,7 +1536,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-5">
               <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
                 <div>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
+                  <p className="font-medium text-foreground">
                     Hide lower-priced plans
                   </p>
                   <p className="text-sm text-slate-500 mt-1">

@@ -85,7 +85,7 @@ export default function UsageAnalyticsPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Usage Analytics</h1>
+          <h1 className="text-3xl font-bold text-foreground">Usage Analytics</h1>
           <p className="text-slate-600 mt-1">Network usage patterns and bandwidth consumption</p>
         </div>
         <Select defaultValue="30d">
@@ -107,7 +107,7 @@ export default function UsageAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Total Download</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{usageStats.totalDownload} TB</p>
+                <p className="text-2xl font-bold text-foreground">{usageStats.totalDownload} TB</p>
                 <div className="flex items-center gap-1 mt-1">
                   <ArrowUpRight className="w-4 h-4 text-success" />
                   <span className="text-sm text-success">+8.5%</span>
@@ -125,7 +125,7 @@ export default function UsageAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Total Upload</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{usageStats.totalUpload} TB</p>
+                <p className="text-2xl font-bold text-foreground">{usageStats.totalUpload} TB</p>
                 <div className="flex items-center gap-1 mt-1">
                   <ArrowUpRight className="w-4 h-4 text-success" />
                   <span className="text-sm text-success">+5.2%</span>
@@ -143,7 +143,7 @@ export default function UsageAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Peak Hour</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{usageStats.peakHour}</p>
+                <p className="text-2xl font-bold text-foreground">{usageStats.peakHour}</p>
                 <p className="text-xs text-slate-500 mt-1">Highest traffic</p>
               </div>
               <div className="w-12 h-12 bg-warning/15 rounded-full flex items-center justify-center">
@@ -158,7 +158,7 @@ export default function UsageAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Heavy Users</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{usageStats.heavyUsers}</p>
+                <p className="text-2xl font-bold text-foreground">{usageStats.heavyUsers}</p>
                 <p className="text-xs text-slate-500 mt-1">&gt;100GB/month</p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">

@@ -8,6 +8,8 @@ export interface RbacUser {
 export interface AccessRule {
   allowedRoles?: string[]
   allowedDepartments?: string[]
+  href?: string
+  pathPrefix?: string
 }
 
 export interface RouteAccessRule extends AccessRule {
@@ -16,6 +18,7 @@ export interface RouteAccessRule extends AccessRule {
 }
 
 const normalize = (value?: string | null) => String(value || "").trim().toLowerCase()
+let roleAccessPolicies: Record<string, string[]> = {}
 
 export const ADMIN_ROLES = ["admin", "super_admin"]
 export const USER_MANAGEMENT_ROLES = [...ADMIN_ROLES, "staff", "support", "accountant"]
@@ -25,6 +28,21 @@ export const OPERATIONS_ROLES = [...ADMIN_ROLES, "staff", "technician", "support
 export const SUPPORT_ROLES = [...ADMIN_ROLES, "staff", "support"]
 export const ENGAGEMENT_ROLES = [...ADMIN_ROLES, "staff", "support"]
 
+export const setRoleAccessPolicies = (policies: Array<{ role: string; allowed_paths: string[] }>) => {
+  roleAccessPolicies = policies.reduce<Record<string, string[]>>((acc, policy) => {
+    acc[normalize(policy.role)] = Array.isArray(policy.allowed_paths) ? policy.allowed_paths : []
+    return acc
+  }, {})
+}
+
+export const getEffectiveRoutePathsForRole = (role: string) => {
+  const normalizedRole = normalize(role)
+  if (roleAccessPolicies[normalizedRole]) return roleAccessPolicies[normalizedRole]
+  return adminRouteAccessRules
+    .filter((rule) => rule.allowedRoles?.map(normalize).includes(normalizedRole))
+    .map((rule) => rule.pathPrefix)
+}
+
 export const canAccess = (user: RbacUser | null | undefined, rule?: AccessRule): boolean => {
   if (!rule || (!rule.allowedRoles?.length && !rule.allowedDepartments?.length)) return true
   if (!user) return false
@@ -33,6 +51,13 @@ export const canAccess = (user: RbacUser | null | undefined, rule?: AccessRule):
   const role = normalize(user.role)
   const accessLevel = normalize(user.access_level)
   const department = normalize(user.department)
+  if (ADMIN_ROLES.includes(role) || ADMIN_ROLES.includes(accessLevel)) return true
+
+  const targetPath = rule.pathPrefix || rule.href
+  if (targetPath && roleAccessPolicies[role]) {
+    return roleAccessPolicies[role].some((path) => targetPath === path || targetPath.startsWith(`${path}/`))
+  }
+
   const allowedRoles = rule.allowedRoles?.map(normalize) || []
   const roleAllowed = allowedRoles.includes(role) || allowedRoles.includes(accessLevel)
   const departmentAllowed = !!rule.allowedDepartments?.map(normalize).includes(department)

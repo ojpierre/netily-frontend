@@ -453,7 +453,7 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
           <div className="w-16 h-16 bg-destructive/15 rounded-full flex items-center justify-center mx-auto mb-4">
             <WifiOff className="w-8 h-8 text-destructive" />
           </div>
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Router Offline</h3>
+          <h3 className="text-xl font-bold text-foreground mb-2">Router Offline</h3>
           <p className="text-slate-600 mb-2 max-w-md mx-auto">
             {loadError || "Cannot reach the router. Hotspot configuration requires an active connection."}
           </p>
@@ -1152,7 +1152,7 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
               <div className="w-16 h-16 bg-success/15 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle2 className="w-8 h-8 text-success" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Hotspot Configured Successfully!</h3>
+              <h3 className="text-xl font-bold text-foreground mb-2">Hotspot Configured Successfully!</h3>
               <p className="text-slate-600 mb-4">
                 All provisioning steps completed. Your hotspot is now active on <span className="font-mono font-semibold">{selectedPort}</span>.
               </p>
@@ -1192,7 +1192,7 @@ export function RouterHotspotTab({ routerId, isDemo = false }: RouterHotspotTabP
           <div className="w-16 h-16 bg-primary/15 rounded-full flex items-center justify-center mx-auto mb-4">
             <Wifi className="w-8 h-8 text-primary" />
           </div>
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Hotspot Configured</h3>
+          <h3 className="text-xl font-bold text-foreground mb-2">No Hotspot Configured</h3>
           <p className="text-slate-600 mb-6 max-w-md mx-auto">
             This router has no hotspot server running. Launch the setup wizard to configure a captive portal with IP pools, authentication, and branding.
           </p>

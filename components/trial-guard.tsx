@@ -381,7 +381,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                       </div>
                       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                         <a
-                          href="https://wa.me/254741670603?text=Hello%20Netily%20Support%2C%20I%20need%20help%20with%20my%20subscription."
+                          href="https://wa.me/254799538923?text=Hello%20Netily%20Support%2C%20I%20need%20help%20with%20my%20subscription."
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-500"

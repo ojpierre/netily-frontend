@@ -82,7 +82,7 @@ export default function RouterSLAPage() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">SLA Monitoring</h1>
+          <h1 className="text-3xl font-bold text-foreground">SLA Monitoring</h1>
           <p className="text-slate-600 mt-1">Service Level Agreement performance across all routers</p>
         </div>
       </div>
@@ -108,7 +108,7 @@ export default function RouterSLAPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Avg Response</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{slaOverview.avgResponseTime}ms</p>
+                <p className="text-2xl font-bold text-foreground">{slaOverview.avgResponseTime}ms</p>
               </div>
               <Clock className="w-8 h-8 text-primary" />
             </div>
@@ -120,7 +120,7 @@ export default function RouterSLAPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Total Incidents</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{slaOverview.totalIncidents}</p>
+                <p className="text-2xl font-bold text-foreground">{slaOverview.totalIncidents}</p>
               </div>
               <AlertTriangle className="w-8 h-8 text-warning" />
             </div>
@@ -144,7 +144,7 @@ export default function RouterSLAPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">MTTR</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{slaOverview.mttr}m</p>
+                <p className="text-2xl font-bold text-foreground">{slaOverview.mttr}m</p>
               </div>
               <TrendingUp className="w-8 h-8 text-purple-600" />
             </div>

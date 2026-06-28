@@ -542,7 +542,7 @@ export default function FUPPage() {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4 text-slate-600" />
-        <h4 className="text-lg font-semibold text-slate-900 dark:text-white">{title} ({plans.length})</h4>
+        <h4 className="text-lg font-semibold text-foreground">{title} ({plans.length})</h4>
       </div>
 
       {plans.length === 0 ? (
@@ -563,7 +563,7 @@ export default function FUPPage() {
     <div className="p-4 sm:p-6 space-y-6">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div><h1 className="text-3xl font-bold text-slate-900 dark:text-white">Fair Usage Policy</h1><p className="text-slate-600 dark:text-slate-400 mt-1">Monitor, enforce, and manage bandwidth rules</p></div>
+        <div><h1 className="text-3xl font-bold text-foreground">Fair Usage Policy</h1><p className="text-muted-foreground mt-1">Monitor, enforce, and manage bandwidth rules</p></div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <Button variant="outline" onClick={fetchAllData} disabled={isLoading} className="w-full sm:w-auto"><RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} /> Refresh</Button>
           <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-2" /> Create Policy</Button>
@@ -684,10 +684,10 @@ export default function FUPPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm bg-slate-50 dark:bg-slate-900 p-4 rounded-lg">
-                    <div><span className="text-slate-500 dark:text-slate-400 block">Data Limit</span><span className="font-semibold">{policy.data_limit_gb} GB / {policy.reset_period}</span></div>
-                    <div><span className="text-slate-500 dark:text-slate-400 block">Throttle Speed</span><span className="font-semibold">{policy.throttle_download_mbps}↓ / {policy.throttle_upload_mbps}↑ Mbps</span></div>
-                    <div><span className="text-slate-500 dark:text-slate-400 block">Linked Plans</span><span className="font-semibold">{policy.linked_plans_count || 0}</span></div>
-                    <div><span className="text-slate-500 dark:text-slate-400 block">Status Overview</span><span className="font-semibold">{policy.users_count || 0} Users • {policy.currently_throttled_count || 0} Throttled</span></div>
+                    <div><span className="text-muted-foreground block">Data Limit</span><span className="font-semibold">{policy.data_limit_gb} GB / {policy.reset_period}</span></div>
+                    <div><span className="text-muted-foreground block">Throttle Speed</span><span className="font-semibold">{policy.throttle_download_mbps}↓ / {policy.throttle_upload_mbps}↑ Mbps</span></div>
+                    <div><span className="text-muted-foreground block">Linked Plans</span><span className="font-semibold">{policy.linked_plans_count || 0}</span></div>
+                    <div><span className="text-muted-foreground block">Status Overview</span><span className="font-semibold">{policy.users_count || 0} Users • {policy.currently_throttled_count || 0} Throttled</span></div>
                   </div>
                 </CardContent>
               </Card>

@@ -42,7 +42,7 @@ export default function WhatsNewPage() {
         <div className="bg-primary/15 dark:bg-primary/30 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <Megaphone className="w-8 h-8 text-primary dark:text-primary/80" />
         </div>
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">What's New in Netily</h1>
+        <h1 className="text-3xl font-black text-foreground tracking-tight">What's New in Netily</h1>
         <p className="text-slate-500 mt-2">The latest features, improvements, and bug fixes to your platform.</p>
       </div>
 
@@ -59,7 +59,7 @@ export default function WhatsNewPage() {
               <div className="md:flex gap-8 relative">
                 {/* Date / Version */}
                 <div className="md:w-[100px] flex-shrink-0 pt-1 text-left md:text-right mb-2 md:mb-0">
-                  <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{new Date(log.release_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                  <p className="text-sm font-bold text-foreground">{new Date(log.release_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                   {log.version && <p className="text-xs font-mono text-slate-400 mt-1">{log.version}</p>}
                 </div>
 
@@ -72,10 +72,10 @@ export default function WhatsNewPage() {
                 <div className="flex-grow bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-2 mb-4">
                     <span className="md:hidden">{getIcon(log.update_type)}</span>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">{log.title}</h2>
+                    <h2 className="text-xl font-bold text-foreground">{log.title}</h2>
                   </div>
                   {/* Assuming content is plain text. If you want rich text, use a safe HTML renderer here */}
-                  <div className="prose prose-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap max-w-none">
+                  <div className="prose prose-sm text-muted-foreground whitespace-pre-wrap max-w-none">
                     {log.content}
                   </div>
                 </div>

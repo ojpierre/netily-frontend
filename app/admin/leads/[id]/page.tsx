@@ -125,7 +125,7 @@ export default function LeadDetailPage() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{lead.fullName}</h1>
+            <h1 className="text-3xl font-bold text-foreground">{lead.fullName}</h1>
             <Badge className={getStatusColor(lead.status)}>{lead.status}</Badge>
           </div>
           <p className="text-slate-600 mt-1">{lead.company}</p>
@@ -229,7 +229,7 @@ export default function LeadDetailPage() {
                           )}
                         </div>
                         <div className="flex-1 pb-6">
-                          <p className="font-medium text-slate-900 dark:text-white">{activity.description}</p>
+                          <p className="font-medium text-foreground">{activity.description}</p>
                           <div className="flex items-center gap-2 mt-1 text-sm text-slate-500">
                             <span>{activity.date}</span>
                             <span>•</span>

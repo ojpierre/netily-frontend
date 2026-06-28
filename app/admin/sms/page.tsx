@@ -366,7 +366,7 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
                   </span>
                 )}
                 <div className="text-lg font-bold text-slate-800">{pkg.label}</div>
-                <div className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">KES {pkg.price}</div>
+                <div className="text-2xl font-extrabold text-foreground mt-1">KES {pkg.price}</div>
                 <div className="text-xs text-slate-500 mt-0.5">{pkg.pricePerUnit.toFixed(2)}/unit</div>
               </button>
             ))}
@@ -410,7 +410,7 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
           {(activeUnits || activePrice) && (
             <div className="rounded-lg bg-slate-50 border p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-slate-500">Units</span><span className="font-medium">{(activeUnits ?? 0).toLocaleString()}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Total</span><span className="font-bold text-slate-900 dark:text-white">KES {activePrice}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Total</span><span className="font-bold text-foreground">KES {activePrice}</span></div>
             </div>
           )}
 
@@ -747,7 +747,7 @@ export default function SMSPage() {
         {/* -- Header ----------------------------------------------------------- */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">SMS Management</h1>
+            <h1 className="text-3xl font-bold text-foreground">SMS Management</h1>
             <p className="text-slate-500 text-sm mt-1">Send messages, manage templates, and configure notifications</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
@@ -785,7 +785,7 @@ export default function SMSPage() {
                   </div>
                   <div>
                     <p className="text-xs text-slate-500">{s.label}</p>
-                    <p className="text-xl font-bold text-slate-900 dark:text-white">{s.value}</p>
+                    <p className="text-xl font-bold text-foreground">{s.value}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1068,7 +1068,7 @@ export default function SMSPage() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-semibold text-slate-900 dark:text-white">Use Netily Inbuilt SMS System</h3>
+                          <h3 className="font-semibold text-foreground">Use Netily Inbuilt SMS System</h3>
                           <p className="text-sm text-slate-500 mt-0.5">
                             Route all automated SMS through Netily's Bytewave gateway. No need to configure your own provider.
                             Units are deducted from your wallet balance.
@@ -1463,7 +1463,7 @@ export default function SMSPage() {
                     </div>
                     <div>
                       <p className="text-sm text-slate-500">Available SMS Units</p>
-                      <p className="text-4xl font-extrabold text-slate-900 dark:text-white mt-1">{Number(walletUnits).toLocaleString()}</p>
+                      <p className="text-4xl font-extrabold text-foreground mt-1">{Number(walletUnits).toLocaleString()}</p>
                       <p className="text-xs text-slate-400 mt-1">
                         ~ KES {(walletUnits * (wallet?.sell_price_per_unit ?? 0.6)).toFixed(0)} value
                       </p>

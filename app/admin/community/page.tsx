@@ -106,7 +106,7 @@ export default function CommunityBoardPage() {
     <div className="max-w-5xl mx-auto p-6 space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Community Roadmap</h1>
+          <h1 className="text-3xl font-black text-foreground tracking-tight">Community Roadmap</h1>
           <p className="text-slate-500">Suggest new features and upvote ideas from other ISPs.</p>
         </div>
         
@@ -185,7 +185,7 @@ export default function CommunityBoardPage() {
                     {getStatusBadge(req.status)}
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-primary/80 transition-colors">{req.title}</h3>
+                    <h3 className="text-lg font-bold text-foreground group-hover:text-primary dark:group-hover:text-primary/80 transition-colors">{req.title}</h3>
                     <p className="text-slate-600 text-sm mt-1 line-clamp-2">{req.description}</p>
                   </div>
                   {req.admin_comment && (
@@ -204,7 +204,7 @@ export default function CommunityBoardPage() {
                 </div>
                 
                 <div className="md:w-32 bg-slate-50/50 md:border-l flex flex-col items-center justify-center p-6 gap-2">
-                  <span className="text-2xl font-black text-slate-900 dark:text-white">{req.upvotes_count}</span>
+                  <span className="text-2xl font-black text-foreground">{req.upvotes_count}</span>
                   <Button 
                     variant={req.has_upvoted ? "default" : "outline"} 
                     size="sm" 

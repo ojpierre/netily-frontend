@@ -195,7 +195,7 @@ export default function LogsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">System Logs</h1>
+          <h1 className="text-3xl font-bold text-foreground">System Logs</h1>
           <p className="text-slate-500 mt-1">Real-time system events and activity logs</p>
         </div>
         <div className="flex items-center gap-2">
@@ -385,7 +385,7 @@ export default function LogsPage() {
                           </Badge>
                           <span className="text-xs text-slate-500">{log.source}</span>
                         </div>
-                        <p className="text-sm text-slate-900 dark:text-white font-medium mb-1">{log.message}</p>
+                        <p className="text-sm text-foreground font-medium mb-1">{log.message}</p>
                         <div className="flex items-center gap-4 text-xs text-slate-500">
                           <span>{new Date(log.timestamp).toLocaleString()}</span>
                           <span className="font-mono">{log.id}</span>

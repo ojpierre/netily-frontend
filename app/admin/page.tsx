@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
@@ -368,7 +368,7 @@ export default function AdminDashboard() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-[-0.03em] text-slate-900 dark:text-white">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-[-0.03em] text-foreground">Dashboard</h1>
           <p className="text-slate-500 mt-1">Overview of your ISP operations</p>
         </div>
         <Alert variant="destructive">
@@ -393,10 +393,10 @@ export default function AdminDashboard() {
       />
 
       {/* ─── Greeting Hero Card ─── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 via-orange-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border border-orange-100 dark:border-slate-800 p-6 shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-border p-6 shadow-sm">
         {/* Subtle decorative blob */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-orange-200/30 to-transparent rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-amber-100/20 to-transparent rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-primary/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-primary/10 to-transparent rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" />
 
         <div className="relative flex items-start justify-between gap-4 flex-wrap">
           <div className="space-y-1">
@@ -413,9 +413,9 @@ export default function AdminDashboard() {
             </div>
 
             {/* Greeting */}
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
               {getGreeting()},{" "}
-              <span className="text-orange-500 italic font-extrabold">
+              <span className="text-primary italic font-extrabold">
                 {user?.first_name || user?.username || "there"}.
               </span>
             </h1>
@@ -431,11 +431,11 @@ export default function AdminDashboard() {
                 expiredCount
               )
               return items.length > 0 ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-lg mt-1">
+                <p className="text-sm text-muted-foreground max-w-lg mt-1">
                   {items.join(" · ")} — a few things need a minute.
                 </p>
               ) : (
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Everything looks clean. Have a good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}.
                 </p>
               )
@@ -450,7 +450,7 @@ export default function AdminDashboard() {
 
           {/* Right side: quick refresh */}
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="rounded-xl bg-white/70 dark:bg-slate-800 border-orange-200 dark:border-slate-700">
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="rounded-xl bg-background/50 border-border">
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
               Refresh
             </Button>
@@ -459,7 +459,7 @@ export default function AdminDashboard() {
 
         {/* ── Needs Attention Banner (updated condition and pills) ── */}
         {!loading && ((routers?.offline_routers ?? 0) > 0 || !smsAttention.configured || smsAttention.lowBalance || (tickets?.open ?? 0) > 3 || expiredCount > 20) && (
-          <div className="relative mt-4 pt-4 border-t border-orange-100 dark:border-slate-700">
+          <div className="relative mt-4 pt-4 border-t border-border/50">
             <p className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase mb-2">NEEDS YOUR ATTENTION</p>
             <div className="flex flex-wrap gap-2">
               {/* Offline routers pills (max 3) */}
@@ -505,7 +505,7 @@ export default function AdminDashboard() {
               {/* Expired subscriptions */}
               {expiredCount > 20 && (
                 <Link href="/admin/users?status=expired">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 transition-colors cursor-pointer">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-muted-foreground hover:bg-slate-100 transition-colors cursor-pointer">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
                     {expiredCount} expired subs
                   </div>
@@ -616,7 +616,7 @@ export default function AdminDashboard() {
                 <div className="space-y-3 pt-1">
                   {/* Big ratio number */}
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-4xl font-semibold text-slate-900 dark:text-slate-100 leading-none">
+                    <span className="text-4xl font-semibold text-foreground leading-none">
                       {onlineCount}
                     </span>
                     <span className="text-xl text-slate-300">/</span>
@@ -774,7 +774,7 @@ export default function AdminDashboard() {
                   <p className={`text-xs px-1 pb-1 ${
                     commentary.tone === "positive" ? "text-emerald-600 dark:text-emerald-400" :
                     commentary.tone === "low" ? "text-amber-600 dark:text-amber-400" :
-                    "text-slate-500 dark:text-slate-400"
+                    "text-muted-foreground"
                   }`}>
                     {commentary.message}
                   </p>
@@ -783,7 +783,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/30">
                     <div>
                       <p className="text-[10px] font-semibold tracking-[0.08em] text-blue-400 uppercase">Today</p>
-                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                      <p className="text-base font-semibold text-foreground mt-0.5">
                         {formatKSh(todayRev)}
                       </p>
                     </div>
@@ -794,7 +794,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
                     <div>
                       <p className="text-[10px] font-semibold tracking-[0.08em] text-green-500 uppercase">This week</p>
-                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                      <p className="text-base font-semibold text-foreground mt-0.5">
                         {formatKSh(weekRev)}
                       </p>
                     </div>
@@ -807,7 +807,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
                     <div>
                       <p className="text-[10px] font-semibold tracking-[0.08em] text-amber-500 uppercase">This month</p>
-                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-0.5">
+                      <p className="text-base font-semibold text-foreground mt-0.5">
                         {formatKSh(monthRev)}
                       </p>
                     </div>
@@ -895,7 +895,7 @@ export default function AdminDashboard() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <CardTitle className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100">
+                <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
                   Weekly Income
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-400">
@@ -907,7 +907,7 @@ export default function AdminDashboard() {
                   onClick={() => setWeekView("this")}
                   className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     weekView === "this"
-                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      ? "bg-white dark:bg-slate-700 text-foreground shadow-sm"
                       : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   }`}
                 >
@@ -917,7 +917,7 @@ export default function AdminDashboard() {
                   onClick={() => setWeekView("last")}
                   className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     weekView === "last"
-                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      ? "bg-white dark:bg-slate-700 text-foreground shadow-sm"
                       : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   }`}
                 >
@@ -997,7 +997,7 @@ export default function AdminDashboard() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <CardTitle className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100">
+                <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
                   Monthly Earnings
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-400">
@@ -1009,7 +1009,7 @@ export default function AdminDashboard() {
                   onClick={() => setYearView("this")}
                   className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     yearView === "this"
-                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      ? "bg-white dark:bg-slate-700 text-foreground shadow-sm"
                       : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   }`}
                 >
@@ -1019,7 +1019,7 @@ export default function AdminDashboard() {
                   onClick={() => setYearView("last")}
                   className={`px-3 py-1 text-xs rounded-md font-medium transition-all duration-150 ${
                     yearView === "last"
-                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      ? "bg-white dark:bg-slate-700 text-foreground shadow-sm"
                       : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   }`}
                 >
@@ -1165,7 +1165,7 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {activity.user__email || "System"}
                       </p>
                       <p className="text-xs text-slate-600">
