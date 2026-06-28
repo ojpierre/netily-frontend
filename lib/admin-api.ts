@@ -750,7 +750,8 @@ class AdminApiService {
   }
 
   async getRoleAccessPolicies(): Promise<Array<{ id: number; role: string; allowed_paths: string[] }>> {
-    return this.request<Array<{ id: number; role: string; allowed_paths: string[] }>>('/core/role-access/')
+    const response = await this.request<any>('/core/role-access/')
+    return response.results || response
   }
 
   async updateRoleAccessPolicy(role: string, allowedPaths: string[]): Promise<{ id: number; role: string; allowed_paths: string[] }> {

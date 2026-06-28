@@ -13,6 +13,8 @@ import {
   Server,
   Search,
   MoreVertical,
+  LayoutGrid,
+  List,
   RefreshCw,
   Users,
   TrendingUp,
@@ -38,6 +40,14 @@ import {
   Info,
   Database,
 } from "lucide-react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -424,6 +434,7 @@ export default function PlansPage() {
   // Filter states
   const [activeTab, setActiveTab] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
 
   // UI states
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -1239,6 +1250,23 @@ export default function PlansPage() {
           </p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          
+          <div className="flex items-center gap-1 bg-card p-1 rounded-full border border-border mr-2 shadow-sm">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`p-1.5 rounded-full transition-all ${viewMode === "grid" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+              title="Grid View"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={`p-1.5 rounded-full transition-all ${viewMode === "table" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+              title="Table View"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
           <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing} className="w-full sm:w-auto">
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
@@ -1250,7 +1278,7 @@ export default function PlansPage() {
       <div className="w-full">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {([
-            { value: "all", label: "All Plans", icon: Package, count: stats.total, activeBorder: "border-slate-500", activeBg: "bg-slate-50", activeIconBg: "bg-slate-100", activeIconColor: "text-slate-600", activeCountColor: "text-slate-600", inactiveIconBg: "bg-muted", bottomBar: "bg-slate-500" },
+            { value: "all", label: "All Plans", icon: Package, count: stats.total, activeBorder: "border-border", activeBg: "bg-muted", activeIconBg: "bg-muted", activeIconColor: "text-slate-600", activeCountColor: "text-slate-600", inactiveIconBg: "bg-muted", bottomBar: "bg-slate-500" },
             { value: "hotspot", label: "Hotspot", icon: Wifi, count: stats.hotspot, activeBorder: "border-primary", activeBg: "bg-primary/10", activeIconBg: "bg-primary/15", activeIconColor: "text-primary", activeCountColor: "text-primary", inactiveIconBg: "bg-muted", bottomBar: "bg-primary" },
             { value: "pppoe", label: "PPPoE", icon: Globe, count: stats.pppoe, activeBorder: "border-purple-500", activeBg: "bg-purple-50", activeIconBg: "bg-purple-100", activeIconColor: "text-purple-600", activeCountColor: "text-purple-600", inactiveIconBg: "bg-muted", bottomBar: "bg-purple-500" },
           ] as const).map((tab) => {
