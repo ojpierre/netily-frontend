@@ -12,6 +12,8 @@ const GEMINI_MODELS = process.env.GEMINI_MODEL
   ? [process.env.GEMINI_MODEL]
   : ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-latest"]
 
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || ""
+
 const geminiEndpoint = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
 
@@ -94,6 +96,16 @@ function extractGeminiText(payload: any) {
     .trim()
 }
 
+async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs = 20_000) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(input, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { message } = await request.json()
@@ -116,7 +128,7 @@ export async function POST(request: NextRequest) {
       score: section.score,
     }))
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!GEMINI_API_KEY) {
       return NextResponse.json({
         answer: localFallback(contextSections),
         sources,
@@ -143,7 +155,7 @@ export async function POST(request: NextRequest) {
     let lastGeminiError = ""
 
     for (const model of GEMINI_MODELS) {
-      const geminiResponse = await fetch(`${geminiEndpoint(model)}?key=${process.env.GEMINI_API_KEY}`, {
+      const geminiResponse = await fetchWithTimeout(`${geminiEndpoint(model)}?key=${GEMINI_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
