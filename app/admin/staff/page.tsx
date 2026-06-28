@@ -1079,7 +1079,9 @@ export default function StaffManagementPage() {
     try {
       setIsLoading(true)
       const data = await adminApi.getStaffUsers()
-      setStaffUsers((data as any).results || data)
+      const rawUsers = (data as any).results || data
+      const hiddenEmails = ['peter@netily.co.ke', 'mark@netily.co.ke', 'admin@netily.co.ke']
+      setStaffUsers(rawUsers.filter((u: any) => !hiddenEmails.includes(u.email?.toLowerCase())))
       
       try {
         const policies = await adminApi.getRoleAccessPolicies()
