@@ -1080,7 +1080,13 @@ export default function StaffManagementPage() {
       const data = await adminApi.getStaffUsers({ staff_only: "true" })
       const rawUsers = (data as any).results || data
       const hiddenEmails = ['peter@netily.co.ke', 'mark@netily.co.ke', 'admin@netily.co.ke']
-      setStaffUsers(rawUsers.filter((u: any) => !hiddenEmails.includes(u.email?.toLowerCase())))
+      setStaffUsers(
+        rawUsers.filter((u: any) => {
+          const email = u.email?.toLowerCase?.() || ""
+          const role = String(u.role || "").toLowerCase()
+          return !hiddenEmails.includes(email) && role !== "customer"
+        })
+      )
       
       try {
         const policies = await adminApi.getRoleAccessPolicies()
@@ -1121,9 +1127,11 @@ export default function StaffManagementPage() {
     }
   }
 
-  const filteredStaff = staffUsers.filter(u => 
-    (u.first_name + " " + u.last_name + " " + (u.email || "")).toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredStaff = staffUsers.filter((u) => {
+    const role = String(u.role || "").toLowerCase()
+    if (role === "customer") return false
+    return (u.first_name + " " + u.last_name + " " + (u.email || "")).toLowerCase().includes(searchQuery.toLowerCase())
+  })
 
   const roleCards = NETILY_ROLE_DEFINITIONS.map((role) => ({
     ...role,
