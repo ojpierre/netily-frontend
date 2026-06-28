@@ -14,6 +14,9 @@ import {
   RefreshCw,
   BarChart3,
   Calendar,
+  Server,
+  AlertTriangle,
+  Clock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -39,6 +42,10 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
+  ComposedChart,
+  Scatter,
+  RadialBarChart,
+  RadialBar,
 } from "recharts"
 
 // ─── Chart constants ──────────────────────────────────────────────────────────
@@ -51,6 +58,9 @@ const C = {
   red: "#ef4444",
   emerald: "#10b981",
   slate: "#94a3b8",
+  pink: "#ec4899",
+  teal: "#14b8a6",
+  indigo: "#6366f1",
 }
 
 // ─── Custom tooltip ───────────────────────────────────────────────────────────
@@ -164,6 +174,11 @@ export default function ReportsPage() {
   const [routerDropdownOpen, setRouterDropdownOpen] = useState(false)
   const routerFetchedRef = useRef(false)
   
+  // ── Network Deep Analytics State ──
+  const [networkDeep, setNetworkDeep] = useState<any>(null)
+  const [networkLoading, setNetworkLoading] = useState(false)
+  const networkFetchedRef = useRef(false)
+  
   const fetchedRef = useRef(false)
 
   const fetchData = useCallback(async () => {
@@ -191,6 +206,19 @@ export default function ReportsPage() {
     }
   }, [])
 
+  // ── Fetch Network Deep Analytics ──
+  const fetchNetworkDeep = useCallback(async (tr: string) => {
+    setNetworkLoading(true)
+    try {
+      const res = await adminApi.getNetworkDeepAnalytics(tr)
+      setNetworkDeep(res)
+    } catch (err) {
+      console.error("Failed to fetch network deep analytics:", err)
+    } finally {
+      setNetworkLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (!fetchedRef.current) { fetchedRef.current = true; fetchData() }
   }, [fetchData])
@@ -205,17 +233,23 @@ export default function ReportsPage() {
     }
   }, []) // eslint-disable-line
 
+  // Fetch network deep analytics on mount and timeRange change
+  useEffect(() => {
+    if (!networkFetchedRef.current) {
+      networkFetchedRef.current = true
+      fetchNetworkDeep(timeRange === "7d" ? "7d" : timeRange === "30d" ? "30d" : "90d")
+    }
+  }, [timeRange, fetchNetworkDeep])
+
   // Click outside handler for router dropdown - FIXED
   useEffect(() => {
     if (!routerDropdownOpen) return
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement
-      // Check if click is outside the dropdown container
       if (!target.closest('.router-dropdown-container')) {
         setRouterDropdownOpen(false)
       }
     }
-    // Use mousedown to catch the event before click
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [routerDropdownOpen])
@@ -313,7 +347,7 @@ export default function ReportsPage() {
         </TabsList>
 
         {/* ════════════════════════════════════════════════
-            OVERVIEW TAB
+            OVERVIEW TAB (unchanged)
            ════════════════════════════════════════════════ */}
         <TabsContent value="overview" className="mt-6 space-y-6">
           {/* Premium Revenue cards row */}
@@ -576,7 +610,7 @@ export default function ReportsPage() {
         </TabsContent>
 
         {/* ════════════════════════════════════════════════
-            FINANCIAL TAB
+            FINANCIAL TAB (unchanged)
            ════════════════════════════════════════════════ */}
         <TabsContent value="financial" className="mt-6 space-y-6">
           <div className="grid lg:grid-cols-2 gap-6">
@@ -767,7 +801,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* Premium Router Selector - with container class for click-outside detection */}
+                  {/* Premium Router Selector */}
                   <div className="relative router-dropdown-container">
                     <button
                       onClick={() => setRouterDropdownOpen(!routerDropdownOpen)}
@@ -888,7 +922,7 @@ export default function ReportsPage() {
         </TabsContent>
 
         {/* ════════════════════════════════════════════════
-            USERS TAB
+            USERS TAB (unchanged)
            ════════════════════════════════════════════════ */}
         <TabsContent value="users" className="mt-6 space-y-6">
           <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
@@ -1039,94 +1073,368 @@ export default function ReportsPage() {
         </TabsContent>
 
         {/* ════════════════════════════════════════════════
-            NETWORK TAB
+            NETWORK TAB - UPDATED WITH NEW CHARTS
            ════════════════════════════════════════════════ */}
         <TabsContent value="network" className="mt-6 space-y-6">
+          
+          {/* ── Row 1: Protocol Split + Router Health ── */}
+          <div className="grid lg:grid-cols-3 gap-6">
+            
+            {/* Protocol Distribution — Radial Donut */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 rounded-full bg-violet-500" />
+                  <div>
+                    <CardTitle className="text-sm font-bold">Protocol Split</CardTitle>
+                    <CardDescription className="text-[11px]">PPPoE vs Hotspot sessions & data</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!networkDeep?.protocol_distribution ? <div className="h-[200px] flex items-center justify-center"><EmptyChart /></div> : (() => {
+                  const pd = networkDeep.protocol_distribution
+                  const total = pd.pppoe.sessions + pd.hotspot.sessions || 1
+                  const donutData = [
+                    { name: "PPPoE", value: pd.pppoe.sessions, fill: C.blue },
+                    { name: "Hotspot", value: pd.hotspot.sessions, fill: C.emerald },
+                  ]
+                  return (
+                    <div className="space-y-3">
+                      <ResponsiveContainer width="100%" height={160}>
+                        <RadialBarChart cx="50%" cy="50%" innerRadius="40%" outerRadius="80%" data={donutData} startAngle={90} endAngle={-270}>
+                          <RadialBar dataKey="value" cornerRadius={4} />
+                          <Tooltip content={(p) => <ChartTooltip {...p} />} />
+                        </RadialBarChart>
+                      </ResponsiveContainer>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        {[
+                          { label: "PPPoE", sessions: pd.pppoe.sessions, gb: pd.pppoe.total_gb, color: "bg-primary" },
+                          { label: "Hotspot", sessions: pd.hotspot.sessions, gb: pd.hotspot.total_gb, color: "bg-emerald-500" },
+                        ].map(p => (
+                          <div key={p.label} className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-900">
+                            <div className={`w-2 h-2 rounded-full ${p.color}`} />
+                            <div>
+                              <p className="font-semibold text-slate-800 dark:text-slate-200">{p.label}</p>
+                              <p className="text-slate-500">{p.sessions.toLocaleString()} sessions</p>
+                              <p className="text-slate-500">{p.gb} GB</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* Router Health Scorecards */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow lg:col-span-2">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 rounded-full bg-primary" />
+                  <div>
+                    <CardTitle className="text-sm font-bold">Router Health Scoreboard</CardTitle>
+                    <CardDescription className="text-[11px]">Sessions, data volume & auth failure score</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!networkDeep?.router_health?.length ? <div className="h-[200px] flex items-center justify-center"><EmptyChart /></div> : (
+                  <div className="space-y-2 max-h-[230px] overflow-y-auto pr-1">
+                    {networkDeep.router_health.map((r: any, i: number) => (
+                      <div key={r.id} className="flex items-center gap-3 p-2.5 rounded-xl border hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white ${r.health_score >= 80 ? "bg-emerald-500" : r.health_score >= 50 ? "bg-warning" : "bg-destructive"}`}>
+                          {r.health_score}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate">{r.name}</p>
+                          <div className="flex gap-3 text-[10px] text-muted-foreground">
+                            <span>{r.sessions} sessions</span>
+                            <span>{r.total_gb} GB</span>
+                            <span>{r.avg_session_minutes}m avg</span>
+                            {r.auth_failures > 0 && <span className="text-destructive">{r.auth_failures} fails</span>}
+                          </div>
+                        </div>
+                        <div className={`w-2 h-2 rounded-full ${r.status === "online" ? "bg-emerald-500" : "bg-slate-300"}`} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ── Row 2: Session Heatmap (GitHub-style) ── */}
           <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-5 rounded-full bg-primary" />
+                <div className="w-1.5 h-5 rounded-full bg-orange-500" />
                 <div>
-                  <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Network Data Usage</CardTitle>
-                  <CardDescription className="text-[11px]">Daily Download &amp; Upload Traffic</CardDescription>
+                  <CardTitle className="text-sm font-bold">Session Activity Heatmap</CardTitle>
+                  <CardDescription className="text-[11px]">Connection density by day of week & hour — darker = more sessions</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              {!n?.daily_usage?.length ? <div className="h-[340px] flex items-center justify-center"><EmptyChart /></div> : (
-                <ResponsiveContainer width="100%" height={340}>
-                  <AreaChart data={n.daily_usage} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+              {!networkDeep?.session_heatmap?.length ? <div className="h-[140px] flex items-center justify-center"><EmptyChart /></div> : (() => {
+                const heatmap = networkDeep.session_heatmap
+                const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+                const grid: Record<string, number> = {}
+                let maxVal = 1
+                for (const cell of heatmap) {
+                  const key = `${cell.day}-${cell.hour}`
+                  grid[key] = cell.value
+                  if (cell.value > maxVal) maxVal = cell.value
+                }
+                const getColor = (val: number) => {
+                  if (!val) return "bg-slate-100 dark:bg-slate-800"
+                  const intensity = val / maxVal
+                  if (intensity < 0.2) return "bg-orange-100 dark:bg-orange-950"
+                  if (intensity < 0.4) return "bg-orange-200 dark:bg-orange-900"
+                  if (intensity < 0.6) return "bg-orange-400 dark:bg-orange-700"
+                  if (intensity < 0.8) return "bg-orange-600 dark:bg-orange-500"
+                  return "bg-orange-800 dark:bg-orange-400"
+                }
+                return (
+                  <div className="overflow-x-auto">
+                    <div className="inline-block min-w-full">
+                      {/* Hour labels */}
+                      <div className="flex ml-10 mb-1">
+                        {Array.from({length: 24}, (_, h) => (
+                          <div key={h} className="text-[8px] text-slate-400 text-center flex-1 min-w-[20px]">
+                            {h % 3 === 0 ? `${h}h` : ""}
+                          </div>
+                        ))}
+                      </div>
+                      {dayLabels.map((day, dayIdx) => (
+                        <div key={day} className="flex items-center gap-0.5 mb-0.5">
+                          <span className="text-[10px] text-slate-500 w-9 text-right pr-1 shrink-0">{day}</span>
+                          {Array.from({length: 24}, (_, h) => {
+                            const val = grid[`${dayIdx}-${h}`] || 0
+                            return (
+                              <div
+                                key={h}
+                                title={`${day} ${h}:00 — ${val} sessions`}
+                                className={`flex-1 min-w-[20px] h-4 rounded-[2px] cursor-pointer transition-all hover:scale-110 hover:ring-1 hover:ring-orange-400 ${getColor(val)}`}
+                              />
+                            )
+                          })}
+                        </div>
+                      ))}
+                      <div className="flex items-center gap-2 mt-2 justify-end">
+                        <span className="text-[10px] text-slate-400">Less</span>
+                        {["bg-slate-100 dark:bg-slate-800", "bg-orange-100", "bg-orange-300", "bg-orange-500", "bg-orange-700"].map((c, i) => (
+                          <div key={i} className={`w-3 h-3 rounded-[2px] ${c}`} />
+                        ))}
+                        <span className="text-[10px] text-slate-400">More</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+            </CardContent>
+          </Card>
+
+          {/* ── Row 3: Auth Trend + Hourly Session Curve ── */}
+          <div className="grid lg:grid-cols-2 gap-6">
+            
+            {/* Auth Success vs Failure Trend */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 rounded-full bg-emerald-500" />
+                  <div>
+                    <CardTitle className="text-sm font-bold">Auth Success vs Failure</CardTitle>
+                    <CardDescription className="text-[11px]">Daily login attempts — green = accepted, red = rejected</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!networkDeep?.auth_trend?.length ? <div className="h-[220px] flex items-center justify-center"><EmptyChart /></div> : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <ComposedChart data={networkDeep.auth_trend} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                      <defs>
+                        <linearGradient id="successGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={C.green} stopOpacity={0.2} />
+                          <stop offset="95%" stopColor={C.green} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis dataKey="date" tick={{ fontSize: 9 }} axisLine={false} tickLine={false}
+                        interval={Math.max(1, Math.floor((networkDeep.auth_trend.length) / 7))}
+                        tickFormatter={(v) => v.slice(5)}
+                      />
+                      <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={35} />
+                      <Tooltip content={(p) => <ChartTooltip {...p} />} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                      <Area type="monotone" dataKey="success" name="Accepted" stroke={C.green} strokeWidth={2} fill="url(#successGrad)" dot={false} />
+                      <Bar dataKey="failure" name="Rejected" fill={C.red} radius={[2, 2, 0, 0]} barSize={6} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Hourly Session Curve */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 rounded-full bg-blue-500" />
+                  <div>
+                    <CardTitle className="text-sm font-bold">Sessions by Hour of Day</CardTitle>
+                    <CardDescription className="text-[11px]">When users are most active (aggregated)</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!networkDeep?.hourly_sessions?.length ? <div className="h-[220px] flex items-center justify-center"><EmptyChart /></div> : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <AreaChart data={networkDeep.hourly_sessions} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                      <defs>
+                        <linearGradient id="sessionGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={C.blue} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={C.blue} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis dataKey="hour" tick={{ fontSize: 9 }} axisLine={false} tickLine={false}
+                        interval={3} />
+                      <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={35} />
+                      <Tooltip content={(p) => <ChartTooltip {...p} />} />
+                      <Area type="monotone" dataKey="sessions" name="Sessions" stroke={C.blue} strokeWidth={2.5}
+                        fill="url(#sessionGrad)" dot={{ r: 3, fill: C.blue, strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ── Row 4: Top Bandwidth Users + Disconnect Causes ── */}
+          <div className="grid lg:grid-cols-2 gap-6">
+
+            {/* Top Bandwidth Users — Horizontal Bar */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 rounded-full bg-purple-500" />
+                  <div>
+                    <CardTitle className="text-sm font-bold">Top Bandwidth Consumers</CardTitle>
+                    <CardDescription className="text-[11px]">Heaviest data users in this period</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!networkDeep?.top_bandwidth_users?.length ? <div className="h-[260px] flex items-center justify-center"><EmptyChart /></div> : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart
+                      layout="vertical"
+                      data={networkDeep.top_bandwidth_users.slice(0, 10)}
+                      margin={{ top: 4, right: 40, bottom: 0, left: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 9 }} axisLine={false} tickLine={false}
+                        tickFormatter={(v) => `${v}GB`} />
+                      <YAxis type="category" dataKey="username" tick={{ fontSize: 9 }} axisLine={false}
+                        tickLine={false} width={80} />
+                      <Tooltip content={(p) => <ChartTooltip {...p} fmt={(v) => `${v.toFixed(2)} GB`} />} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="download_gb" name="Download" stackId="a" fill={C.emerald} radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="upload_gb" name="Upload" stackId="a" fill={C.blue} radius={[0, 2, 2, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Disconnect Causes + New vs Returning stacked */}
+            <div className="space-y-4">
+              {/* Termination Causes */}
+              <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-5 rounded-full bg-red-500" />
+                    <CardTitle className="text-sm font-bold">Disconnect Reasons</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {!networkDeep?.termination_causes?.length ? <EmptyChart label="No disconnect data" /> :
+                    networkDeep.termination_causes.slice(0, 5).map((t: any) => (
+                      <div key={t.cause} className="space-y-0.5">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-700 dark:text-slate-300 font-medium truncate max-w-[160px]">{t.cause}</span>
+                          <span className="text-slate-500 shrink-0 ml-2">{t.count} ({t.percentage}%)</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-destructive rounded-full transition-all" style={{ width: `${t.percentage}%` }} />
+                        </div>
+                      </div>
+                    ))
+                  }
+                </CardContent>
+              </Card>
+
+              {/* New vs Returning Users */}
+              <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-5 rounded-full bg-amber-500" />
+                    <CardTitle className="text-sm font-bold">New vs Returning Users</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {!networkDeep?.new_vs_returning?.length ? <div className="h-[110px] flex items-center justify-center"><EmptyChart /></div> : (
+                    <ResponsiveContainer width="100%" height={110}>
+                      <BarChart data={networkDeep.new_vs_returning.slice(-14)} barSize={8} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                        <XAxis dataKey="date" tick={{ fontSize: 8 }} axisLine={false} tickLine={false}
+                          tickFormatter={(v) => v.slice(5)} interval={2} />
+                        <YAxis hide />
+                        <Tooltip content={(p) => <ChartTooltip {...p} />} />
+                        <Bar dataKey="returning" name="Returning" stackId="a" fill={C.blue} />
+                        <Bar dataKey="new" name="New" stackId="a" fill={C.amber} radius={[2, 2, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* ── Row 5: Legacy Data Flow (kept from original) ── */}
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-5 rounded-full bg-violet-500" />
+                <div>
+                  <CardTitle className="text-sm font-bold">Network Data Flow</CardTitle>
+                  <CardDescription className="text-[11px]">Daily download and upload from DataUsage records</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!n?.daily_usage?.length ? <div className="h-[200px] flex items-center justify-center"><EmptyChart /></div> : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={n.daily_usage} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
                     <defs>
-                      <linearGradient id="netDl" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={C.green} stopOpacity={0.25} />
+                      <linearGradient id="dlGrad2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={C.green} stopOpacity={0.2} />
                         <stop offset="95%" stopColor={C.green} stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="netUl" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={C.blue} stopOpacity={0.15} />
-                        <stop offset="95%" stopColor={C.blue} stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor((n.daily_usage.length) / 10))} />
-                    <YAxis tickFormatter={(v) => `${v} GB`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={60} />
+                    <XAxis dataKey="date" tick={{ fontSize: 9 }} axisLine={false} tickLine={false}
+                      interval={Math.max(1, Math.floor(n.daily_usage.length / 8))} />
+                    <YAxis tickFormatter={(v) => `${v} GB`} tick={{ fontSize: 9 }} axisLine={false} tickLine={false} width={55} />
                     <Tooltip content={(p) => <ChartTooltip {...p} fmt={(v) => `${v.toFixed(1)} GB`} />} />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} formatter={(v) => <span className="text-xs">{v} <span className="text-muted-foreground">✧ Hover for details</span></span>} />
-                    <Area type="monotone" dataKey="upload" name="Upload" stroke={C.blue} strokeWidth={2} fill="url(#netUl)" dot={false} />
-                    <Area type="monotone" dataKey="download" name="Download" stroke={C.green} strokeWidth={2} fill="url(#netDl)" dot={false} />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                    <Area type="monotone" dataKey="download" name="Download" stroke={C.green} strokeWidth={2} fill="url(#dlGrad2)" dot={false} />
+                    <Area type="monotone" dataKey="upload" name="Upload" stroke={C.blue} strokeWidth={1.5} fill="none" dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
             </CardContent>
           </Card>
-
-          {/* Usage Summary + Network Performance - Premium */}
-          <div className="grid lg:grid-cols-2 gap-6">
-            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-5 rounded-full bg-emerald-500" />
-                  <div>
-                    <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Usage Summary</CardTitle>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-0">
-                {[
-                  { label: "Total Upload", value: `${(n?.usage_summary?.total_upload ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} GB`, color: "text-emerald-600" },
-                  { label: "Total Download", value: `${(n?.usage_summary?.total_download ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} GB`, color: "text-emerald-600" },
-                  { label: "Total Usage", value: `${(n?.usage_summary?.total_usage ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} GB`, color: "text-emerald-600" },
-                ].map(({ label, value, color }, i) => (
-                  <div key={label} className={`flex items-center justify-between py-3.5 ${i < 2 ? "border-b" : ""}`}>
-                    <span className="text-sm text-slate-600">{label}</span>
-                    <span className={`text-sm font-bold ${color}`}>{value}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-5 rounded-full bg-violet-500" />
-                  <div>
-                    <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">Network Performance</CardTitle>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-0">
-                {[
-                  { label: "Peak Usage Day", value: n?.performance?.peak_usage_day ?? "-", color: "text-emerald-600" },
-                  { label: "Average Daily Usage", value: n?.performance?.avg_daily_usage ?? "-", color: "text-emerald-600" },
-                  { label: "Download/Upload Ratio", value: n?.performance?.download_upload_ratio ?? "-", color: "text-emerald-600" },
-                ].map(({ label, value, color }, i) => (
-                  <div key={label} className={`flex items-center justify-between py-3.5 ${i < 2 ? "border-b" : ""}`}>
-                    <span className="text-sm text-slate-600">{label}</span>
-                    <span className={`text-sm font-bold ${color}`}>{value}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
       </Tabs>
     </div>

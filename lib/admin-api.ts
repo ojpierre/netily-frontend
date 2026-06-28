@@ -3107,6 +3107,19 @@ async activateService(
     return this.request<any>(`/analytics/usage/?time_range=${timeRange}`)
   }
 
+    // ============================================================
+  // NEW: Enhanced Network Analytics
+  // ============================================================
+
+  /**
+   * Get enhanced network analytics for the Network tab
+   * @param timeRange - Time range filter: 7d, 30d, 90d
+   * @returns Session heatmap, router health, auth trend, top bandwidth users, protocol distribution, hourly sessions, termination causes, new vs returning
+   */
+  async getNetworkDeepAnalytics(timeRange: string = '7d'): Promise<any> {
+    return this.request<any>(`/analytics/network-deep/?time_range=${timeRange}`)
+  }
+
   // ------------------------------------------
   // SUPPORT TICKETS - /support/tickets/
   // ------------------------------------------
