@@ -111,6 +111,8 @@ interface BillingBreakdown {
   billingCycleEnd?: string | null
 }
 
+type SubscriptionPaymentStatusResponse = Awaited<ReturnType<typeof adminApi.checkSubscriptionPaymentStatus>>
+
 function PaymentDialog({
   open,
   isPaidSubscription,
@@ -141,6 +143,15 @@ function PaymentDialog({
   // Countdown (for the waiting state)
   const [countdown, setCountdown] = useState(TIMEOUT_SECONDS)
 
+  const refreshBillingCycleAfterPayment = async (res?: SubscriptionPaymentStatusResponse) => {
+    adminApi.invalidateSubscriptionCache()
+    await Promise.allSettled([
+      adminApi.getCurrentSubscription(),
+      adminApi.getUsageStats(),
+      res?.billing_cycle_id ? adminApi.getInvoices({ search: String(res.billing_cycle_id) }) : Promise.resolve(null),
+    ])
+  }
+
   // ─── setInterval-based polling (same pattern as hotspot captive portal) ───
   useEffect(() => {
     if (paymentStatus !== "waiting" || !pendingPaymentId) return
@@ -151,11 +162,11 @@ function PaymentDialog({
 
         if (res.status === "completed") {
           clearInterval(pollInterval)
-          adminApi.invalidateSubscriptionCache()
+          await refreshBillingCycleAfterPayment(res)
           localStorage.setItem("mpesaPayPhone", phoneNumber)
           setPaymentStatus("success")
           setStep("success")
-          // Auto-reload after 2.5 s so TrialGuard re-checks subscription
+          // Auto-reload after a fresh subscription + billing-cycle read.
           setTimeout(() => window.location.reload(), 2500)
           return
         }
@@ -377,7 +388,7 @@ function PaymentDialog({
   const handleCheckAndRefresh = async () => {
     setPaymentStatus("sending")
     try {
-      await adminApi.invalidateSubscriptionCache()
+      await refreshBillingCycleAfterPayment()
       const subscription = await adminApi.getCurrentSubscription()
 
       const isNowActive =
@@ -903,13 +914,61 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
             hotspotShareAmount: toMoneyNumber(usageData.hotspot_revenue_share_amount ?? usageData.hotspot_share_amount),
             usageSubtotal,
             minimumCharge: toMoneyNumber(usageData.minimum_charge ?? (subscription.plan as any)?.base_license_fee ?? 500),
-            minimumAdjustment: toMoneyNumber(usageData.minimum_adjustment),
+            minimumAdjustment: toMoneyNumber(
+              usageData.minimum_adjustment ??
+              Math.max(
+                toMoneyNumber(usageData.minimum_charge ?? (subscription.plan as any)?.base_license_fee ?? 500) - usageSubtotal,
+                0
+              )
+            ),
             invoiceAdjustmentAmount: toMoneyNumber(usageData.invoice_adjustment_amount),
             invoiceDiscountAmount: toMoneyNumber(usageData.invoice_discount_amount),
-            totalEstimate,
+            totalEstimate: totalEstimate > 0
+              ? totalEstimate
+              : Math.max(
+                usageSubtotal,
+                toMoneyNumber(usageData.minimum_charge ?? (subscription.plan as any)?.base_license_fee ?? 500)
+              ),
             invoiceNumber: usageData.invoice_number || null,
             billingCycleStart: usageData.billing_cycle_start || null,
             billingCycleEnd: usageData.billing_cycle_end || null,
+          }
+        }
+
+        const buildBreakdownFromInvoice = (invoice: any, fallback: BillingBreakdown | null): BillingBreakdown | null => {
+          if (!invoice) return fallback
+          const items = Array.isArray(invoice.items) ? invoice.items : []
+          const findItem = (matcher: RegExp) =>
+            items.find((item: any) => matcher.test(String(item?.description || item?.service_type || "")))
+
+          const pppoeItem = findItem(/pppoe/i)
+          const hotspotItem = findItem(/hotspot/i)
+          const minimumItem = findItem(/minimum/i)
+          const adjustmentItem = findItem(/custom|manual|support|adjustment/i)
+
+          const totalEstimate = toMoneyNumber(invoice.total_amount ?? invoice.amount ?? fallback?.totalEstimate)
+          const pppoeCharge = toMoneyNumber(pppoeItem?.total ?? fallback?.pppoeCharge)
+          const hotspotShareAmount = toMoneyNumber(hotspotItem?.total ?? fallback?.hotspotShareAmount)
+          const minimumAdjustment = toMoneyNumber(minimumItem?.total ?? fallback?.minimumAdjustment)
+          const usageSubtotal = pppoeCharge + hotspotShareAmount
+
+          return {
+            pppoeCount: toMoneyNumber(pppoeItem?.quantity ?? fallback?.pppoeCount),
+            billablePppoe: toMoneyNumber(pppoeItem?.quantity ?? fallback?.billablePppoe),
+            pppoeUnitPrice: toMoneyNumber(pppoeItem?.unit_price ?? fallback?.pppoeUnitPrice),
+            pppoeCharge,
+            hotspotRevenue: fallback?.hotspotRevenue ?? 0,
+            hotspotSharePct: fallback?.hotspotSharePct ?? toMoneyNumber((subscription.plan as any)?.hotspot_revenue_share_pct ?? 3),
+            hotspotShareAmount,
+            usageSubtotal: usageSubtotal > 0 ? usageSubtotal : fallback?.usageSubtotal ?? 0,
+            minimumCharge: fallback?.minimumCharge ?? toMoneyNumber((subscription.plan as any)?.base_license_fee ?? 500),
+            minimumAdjustment,
+            invoiceAdjustmentAmount: toMoneyNumber(adjustmentItem?.total ?? fallback?.invoiceAdjustmentAmount),
+            invoiceDiscountAmount: toMoneyNumber(invoice.discount_amount ?? fallback?.invoiceDiscountAmount),
+            totalEstimate,
+            invoiceNumber: invoice.invoice_number || fallback?.invoiceNumber || null,
+            billingCycleStart: invoice.service_period_start || invoice.period_start || fallback?.billingCycleStart || null,
+            billingCycleEnd: invoice.service_period_end || invoice.period_end || fallback?.billingCycleEnd || null,
           }
         }
 
@@ -926,22 +985,27 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
               ? (invoicesData as any).results
               : []
             const payableInvoice = invoices.find((invoice: any) =>
-              ["pending", "overdue", "partial", "draft"].includes(String(invoice?.status || "").toLowerCase())
+              ["pending", "issued", "sent", "overdue", "partial", "draft"].includes(String(invoice?.status || "").toLowerCase())
             )
 
             if (payableInvoice) {
+              const detailedInvoice = payableInvoice.id
+                ? await adminApi.getInvoice(Number(payableInvoice.id)).catch(() => payableInvoice)
+                : payableInvoice
+              const invoiceBreakdown = buildBreakdownFromInvoice(detailedInvoice, breakdown)
+              setBillingBreakdown(invoiceBreakdown)
               const balance = toMoneyNumber(
-                payableInvoice.balance_due ??
-                payableInvoice.balance ??
-                payableInvoice.total_amount ??
-                payableInvoice.amount
+                detailedInvoice.balance_due ??
+                detailedInvoice.balance ??
+                detailedInvoice.total_amount ??
+                detailedInvoice.amount
               )
-              const paid = toMoneyNumber(payableInvoice.amount_paid)
-              const total = toMoneyNumber(payableInvoice.total_amount ?? payableInvoice.amount)
+              const paid = toMoneyNumber(detailedInvoice.amount_paid)
+              const total = toMoneyNumber(detailedInvoice.total_amount ?? detailedInvoice.amount)
               const due = balance > 0 ? balance : Math.max(total - paid, 0)
               if (due > 0) {
                 setCycleAmountDue(due)
-                setCycleInvoiceNumber(payableInvoice.invoice_number || null)
+                setCycleInvoiceNumber(detailedInvoice.invoice_number || null)
                 return
               }
             }

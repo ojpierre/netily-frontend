@@ -3695,6 +3695,12 @@ async activateService(
     message: string
     mpesa_receipt: string | null
     completed_at: string | null
+    billing_cycle_id?: string | null
+    billing_cycle_start?: string | null
+    billing_cycle_end?: string | null
+    billing_cycle_status?: string | null
+    invoice_reference?: string | null
+    invoice_number?: string | null
   }> {
     return this.request(`/subscriptions/payments/${paymentId}/status/`)
   }
