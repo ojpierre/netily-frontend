@@ -30,11 +30,9 @@ interface ProfileData {
 export default function CustomerProfilePage() {
   const router = useRouter()
   const [profile, setProfile] = useState<ProfileData | null>(null)
+  // UPDATED: Only email is editable
   const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
     email: "",
-    address: "",
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -51,11 +49,9 @@ export default function CustomerProfilePage() {
         setIsLoading(true)
         const data = await customerApi.getProfile()
         setProfile(data)
+        // UPDATED: Only set email in formData
         setFormData({
-          first_name: data.first_name || "",
-          last_name: data.last_name || "",
           email: data.email || "",
-          address: data.address || "",
         })
       } catch (err: any) {
         if (err.message?.includes("401")) {
@@ -80,18 +76,14 @@ export default function CustomerProfilePage() {
 
     try {
       setIsSaving(true)
+      // UPDATED: Only send email in payload
       const updated = await customerApi.updateProfile({
-        first_name: formData.first_name.trim(),
-        last_name: formData.last_name.trim(),
         email,
-        address: formData.address.trim(),
       })
       setProfile(updated)
+      // UPDATED: Only update email in formData
       setFormData({
-        first_name: updated.first_name || "",
-        last_name: updated.last_name || "",
         email: updated.email || "",
-        address: updated.address || "",
       })
       toast.success("Profile updated successfully")
     } catch (err: any) {
@@ -185,27 +177,22 @@ export default function CustomerProfilePage() {
         </div>
         <form onSubmit={handleSaveProfile} className="space-y-5">
           <div className="grid md:grid-cols-2 gap-4">
+            {/* UPDATED: First Name - read-only */}
             <div className="space-y-2">
               <Label htmlFor="first_name" className="flex items-center gap-2">
                 <User className="w-4 h-4 text-muted-foreground" />
                 First Name
               </Label>
-              <Input
-                id="first_name"
-                value={formData.first_name}
-                onChange={(event) => setFormData({ ...formData, first_name: event.target.value })}
-                disabled={isSaving}
-              />
+              <Input id="first_name" value={profile.first_name || ""} disabled />
             </div>
+
+            {/* UPDATED: Last Name - read-only */}
             <div className="space-y-2">
               <Label htmlFor="last_name">Last Name</Label>
-              <Input
-                id="last_name"
-                value={formData.last_name}
-                onChange={(event) => setFormData({ ...formData, last_name: event.target.value })}
-                disabled={isSaving}
-              />
+              <Input id="last_name" value={profile.last_name || ""} disabled />
             </div>
+
+            {/* UPDATED: Phone - read-only */}
             <div className="space-y-2">
               <Label htmlFor="phone_number" className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-muted-foreground" />
@@ -214,6 +201,8 @@ export default function CustomerProfilePage() {
               <Input id="phone_number" value={profile.phone_number} disabled />
               <p className="text-xs text-muted-foreground">Phone number is your portal login and is managed by your ISP.</p>
             </div>
+
+            {/* UPDATED: Email - editable */}
             <div className="space-y-2">
               <Label htmlFor="email" className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-muted-foreground" />
@@ -223,23 +212,19 @@ export default function CustomerProfilePage() {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(event) => setFormData({ ...formData, email: event.target.value })}
+                onChange={(event) => setFormData({ email: event.target.value })}
                 placeholder="name@example.com"
                 disabled={isSaving}
               />
             </div>
+
+            {/* UPDATED: Address - read-only */}
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="address" className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-muted-foreground" />
                 Address
               </Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(event) => setFormData({ ...formData, address: event.target.value })}
-                placeholder="Estate, building, or installation location"
-                disabled={isSaving}
-              />
+              <Input id="address" value={profile.address || ""} disabled />
             </div>
           </div>
           <div className="flex justify-end">
