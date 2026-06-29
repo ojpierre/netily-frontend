@@ -89,6 +89,26 @@ interface PaymentDialogProps {
   plansLoading: boolean
   amountDue?: number | null
   invoiceNumber?: string | null
+  billingBreakdown?: BillingBreakdown | null
+}
+
+interface BillingBreakdown {
+  pppoeCount: number
+  billablePppoe: number
+  pppoeUnitPrice: number
+  pppoeCharge: number
+  hotspotRevenue: number
+  hotspotSharePct: number
+  hotspotShareAmount: number
+  usageSubtotal: number
+  minimumCharge: number
+  minimumAdjustment: number
+  invoiceAdjustmentAmount: number
+  invoiceDiscountAmount: number
+  totalEstimate: number
+  invoiceNumber?: string | null
+  billingCycleStart?: string | null
+  billingCycleEnd?: string | null
 }
 
 function PaymentDialog({
@@ -99,6 +119,7 @@ function PaymentDialog({
   plansLoading,
   amountDue,
   invoiceNumber,
+  billingBreakdown,
 }: PaymentDialogProps) {
   const { logout } = useAdminAuth()
 
@@ -180,7 +201,103 @@ function PaymentDialog({
 
   const getPaymentAmount = (plan: NetilyPlan | null): number => {
     if (isPaidSubscription && amountDue && amountDue > 0) return amountDue
+    if (isPaidSubscription) return 0
     return getPlanAmount(plan)
+  }
+
+  const canPay = !isPaidSubscription || getPaymentAmount(selectedPlan) > 0
+
+  const BillingBreakdownPanel = ({ compact = false }: { compact?: boolean }) => {
+    if (!isPaidSubscription) return null
+
+    if (!billingBreakdown) {
+      return (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-semibold">We could not load the cycle breakdown yet.</p>
+              <p className="mt-1 text-xs opacity-80">
+                Please refresh once. If this remains, contact Netily Support so we can verify the invoice before payment.
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    const cycleLabel = billingBreakdown.billingCycleStart && billingBreakdown.billingCycleEnd
+      ? `${new Date(billingBreakdown.billingCycleStart).toLocaleDateString("en-KE", { day: "2-digit", month: "short" })} - ${new Date(billingBreakdown.billingCycleEnd).toLocaleDateString("en-KE", { day: "2-digit", month: "short", year: "numeric" })}`
+      : "Current billing cycle"
+
+    const rows = [
+      {
+        label: "PPPoE footprint",
+        value: kes(billingBreakdown.pppoeCharge),
+        detail: `${billingBreakdown.billablePppoe || billingBreakdown.pppoeCount} users x ${kes(billingBreakdown.pppoeUnitPrice)}`,
+      },
+      {
+        label: "Hotspot revenue share",
+        value: kes(billingBreakdown.hotspotShareAmount),
+        detail: `${billingBreakdown.hotspotSharePct}% of ${kes(billingBreakdown.hotspotRevenue)} collected`,
+      },
+      {
+        label: "Usage subtotal",
+        value: kes(billingBreakdown.usageSubtotal),
+        detail: "PPPoE + hotspot share before minimum rule",
+      },
+      {
+        label: "Monthly minimum adjustment",
+        value: kes(billingBreakdown.minimumAdjustment),
+        detail: billingBreakdown.minimumAdjustment > 0
+          ? `Tops up to the ${kes(billingBreakdown.minimumCharge)} minimum`
+          : `Usage surpassed the ${kes(billingBreakdown.minimumCharge)} minimum`,
+      },
+    ]
+
+    return (
+      <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">How this bill was calculated</p>
+            <p className="text-xs text-slate-500">{cycleLabel}</p>
+          </div>
+          <Badge variant="outline" className="shrink-0 text-[10px]">
+            {invoiceNumber || billingBreakdown.invoiceNumber || "Estimate"}
+          </Badge>
+        </div>
+
+        <div className={`grid gap-2 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
+          {rows.map((row) => (
+            <div key={row.label} className="rounded-lg border border-white bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{row.label}</p>
+                  <p className="mt-1 text-xs text-slate-500">{row.detail}</p>
+                </div>
+                <p className="text-sm font-black text-slate-900 dark:text-white">{row.value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {(billingBreakdown.invoiceAdjustmentAmount > 0 || billingBreakdown.invoiceDiscountAmount > 0) && (
+          <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-100">
+            {billingBreakdown.invoiceAdjustmentAmount > 0 && (
+              <p>Custom support charge: <strong>{kes(billingBreakdown.invoiceAdjustmentAmount)}</strong></p>
+            )}
+            {billingBreakdown.invoiceDiscountAmount > 0 && (
+              <p>Support-approved discount: <strong>-{kes(billingBreakdown.invoiceDiscountAmount)}</strong></p>
+            )}
+          </div>
+        )}
+
+        <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-900 px-3 py-2 text-white dark:bg-white dark:text-slate-950">
+          <span className="text-xs font-semibold uppercase tracking-wide">Total due</span>
+          <span className="text-base font-black">{kes(amountDue || billingBreakdown.totalEstimate)}</span>
+        </div>
+      </div>
+    )
   }
 
   const getFeatures = (plan: NetilyPlan): string[] => {
@@ -342,6 +459,8 @@ function PaymentDialog({
                     : "Select a plan below to continue managing your ISP. Your data is safe and fully restored once payment is confirmed."}
                 </p>
 
+                <BillingBreakdownPanel />
+
                 {plansLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -376,7 +495,9 @@ function PaymentDialog({
                               )}
                             </div>
                             <div className="text-right">
-                              <span className="text-lg font-bold">{kes(amount)}</span>
+                              <span className="text-lg font-bold">
+                                {amount > 0 ? kes(amount) : "Verify bill"}
+                              </span>
                               <span className="text-slate-500 text-xs">
                                 {isPaidSubscription ? " due" : "/mo"}
                               </span>
@@ -463,7 +584,9 @@ function PaymentDialog({
                     </div>
                     <div className="text-right">
                       <p className="text-slate-400 text-xs">Amount</p>
-                      <p className="font-bold text-base">{kes(getPaymentAmount(selectedPlan))}</p>
+                      <p className="font-bold text-base">
+                        {getPaymentAmount(selectedPlan) > 0 ? kes(getPaymentAmount(selectedPlan)) : "Needs review"}
+                      </p>
                     </div>
                     <div>
                       <p className="text-slate-400 text-xs">Billing</p>
@@ -488,6 +611,8 @@ function PaymentDialog({
                     </span>
                   </div>
                 </div>
+
+                <BillingBreakdownPanel compact />
 
                 {/* ── Waiting / Countdown overlay ── */}
                 {paymentStatus === "waiting" && (
@@ -570,10 +695,10 @@ function PaymentDialog({
                     <Button
                       className="w-full bg-success hover:bg-green-700 text-white"
                       onClick={handlePay}
-                      disabled={!phoneNumber.trim()}
+                      disabled={!phoneNumber.trim() || !canPay}
                     >
                       <Phone className="w-4 h-4 mr-2" />
-                      Pay Now — {kes(getPaymentAmount(selectedPlan))}
+                      {canPay ? `Pay Now — ${kes(getPaymentAmount(selectedPlan))}` : "Contact support to verify bill"}
                     </Button>
                   </div>
                 )}
@@ -689,6 +814,7 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
   const [plansLoading, setPlansLoading] = useState(true)
   const [cycleAmountDue, setCycleAmountDue] = useState<number | null>(null)
   const [cycleInvoiceNumber, setCycleInvoiceNumber] = useState<string | null>(null)
+  const [billingBreakdown, setBillingBreakdown] = useState<BillingBreakdown | null>(null)
   const pathname = usePathname()
 
   const allowedPaths = [
@@ -722,6 +848,7 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
           setSubscriptionType(null)
           setCycleAmountDue(null)
           setCycleInvoiceNumber(null)
+          setBillingBreakdown(null)
           setIsChecking(false)
           return
         }
@@ -748,12 +875,52 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
         )
         setRealPlans(currentPlanOnly.length ? currentPlanOnly : plansArray.slice(0, 1))
 
+        const buildBillingBreakdown = (usageData: any): BillingBreakdown | null => {
+          if (!usageData) return null
+
+          const usageSubtotal = toMoneyNumber(usageData.usage_subtotal)
+          const totalEstimate = toMoneyNumber(usageData.invoice_total_estimate ?? usageData.total_estimate)
+          const pppoeCount = toMoneyNumber(usageData.pppoe_count ?? usageData.current_subscribers)
+          const billablePppoe = toMoneyNumber(usageData.billable_pppoe ?? usageData.pppoe_count ?? usageData.current_subscribers)
+          const hotspotRevenue = toMoneyNumber(usageData.hotspot_revenue_accrued)
+          const hasBillingSignal = Boolean(
+            usageData.billing_cycle_id ||
+            usageSubtotal > 0 ||
+            pppoeCount > 0 ||
+            hotspotRevenue > 0 ||
+            usageData.invoice_number
+          )
+
+          if (!hasBillingSignal) return null
+
+          return {
+            pppoeCount,
+            billablePppoe,
+            pppoeUnitPrice: toMoneyNumber(usageData.pppoe_unit_price ?? (subscription.plan as any)?.pppoe_unit_price ?? 25),
+            pppoeCharge: toMoneyNumber(usageData.pppoe_charge),
+            hotspotRevenue,
+            hotspotSharePct: toMoneyNumber(usageData.hotspot_revenue_share_pct ?? usageData.hotspot_share_pct ?? (subscription.plan as any)?.hotspot_revenue_share_pct ?? 3),
+            hotspotShareAmount: toMoneyNumber(usageData.hotspot_revenue_share_amount ?? usageData.hotspot_share_amount),
+            usageSubtotal,
+            minimumCharge: toMoneyNumber(usageData.minimum_charge ?? (subscription.plan as any)?.base_license_fee ?? 500),
+            minimumAdjustment: toMoneyNumber(usageData.minimum_adjustment),
+            invoiceAdjustmentAmount: toMoneyNumber(usageData.invoice_adjustment_amount),
+            invoiceDiscountAmount: toMoneyNumber(usageData.invoice_discount_amount),
+            totalEstimate,
+            invoiceNumber: usageData.invoice_number || null,
+            billingCycleStart: usageData.billing_cycle_start || null,
+            billingCycleEnd: usageData.billing_cycle_end || null,
+          }
+        }
+
         const resolveCycleAmountDue = async () => {
           try {
             const [usageData, invoicesData] = await Promise.all([
               adminApi.getUsageStats().catch(() => null),
               adminApi.getInvoices({ search: "NET-BILL" }).catch(() => null),
             ])
+            const breakdown = buildBillingBreakdown(usageData as any)
+            setBillingBreakdown(breakdown)
 
             const invoices = Array.isArray((invoicesData as any)?.results)
               ? (invoicesData as any).results
@@ -783,22 +950,18 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
               (usageData as any)?.invoice_total_estimate ??
               (usageData as any)?.total_estimate
             )
-            if (usageEstimate > 0) {
+            if (usageEstimate > 0 && breakdown) {
               setCycleAmountDue(usageEstimate)
               setCycleInvoiceNumber((usageData as any)?.invoice_number || null)
               return
             }
 
-            const fallbackMinimum = toMoneyNumber(
-              (usageData as any)?.minimum_charge ??
-              (subscription.plan as any)?.base_license_fee ??
-              500
-            )
-            setCycleAmountDue(fallbackMinimum > 0 ? fallbackMinimum : 500)
+            setCycleAmountDue(null)
             setCycleInvoiceNumber(null)
           } catch {
-            setCycleAmountDue(toMoneyNumber((subscription.plan as any)?.base_license_fee) || 500)
+            setCycleAmountDue(null)
             setCycleInvoiceNumber(null)
+            setBillingBreakdown(null)
           }
         }
 
@@ -826,6 +989,7 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
               } else {
                 setCycleAmountDue(null)
                 setCycleInvoiceNumber(null)
+                setBillingBreakdown(null)
               }
               if (!expired) {
                 localStorage.setItem("subscriptionExpiry", subscription.current_period_end)
@@ -842,6 +1006,7 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
             setIsExpired(true)
             setCycleAmountDue(null)
             setCycleInvoiceNumber(null)
+            setBillingBreakdown(null)
             setIsChecking(false)
             return
           }
@@ -850,6 +1015,7 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
             setIsExpired(true)
             setCycleAmountDue(null)
             setCycleInvoiceNumber(null)
+            setBillingBreakdown(null)
             setIsChecking(false)
             return
           }
@@ -859,9 +1025,15 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
             setIsExpired(expired)
             if (!expired) {
               localStorage.setItem("subscriptionExpiry", subscription.current_period_end)
+              setCycleAmountDue(null)
+              setCycleInvoiceNumber(null)
+              setBillingBreakdown(null)
             }
           } else {
             setIsExpired(false)
+            setCycleAmountDue(null)
+            setCycleInvoiceNumber(null)
+            setBillingBreakdown(null)
           }
 
           setIsChecking(false)
@@ -877,14 +1049,17 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
             setIsExpired(true)
             setCycleAmountDue(null)
             setCycleInvoiceNumber(null)
+            setBillingBreakdown(null)
           } else if (subscription.trial_ends_at) {
             setIsExpired(checkDateExpired(new Date(subscription.trial_ends_at)))
             setCycleAmountDue(null)
             setCycleInvoiceNumber(null)
+            setBillingBreakdown(null)
           } else {
             setIsExpired(false)
             setCycleAmountDue(null)
             setCycleInvoiceNumber(null)
+            setBillingBreakdown(null)
           }
 
           setIsChecking(false)
@@ -900,6 +1075,7 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
           } else {
             setCycleAmountDue(null)
             setCycleInvoiceNumber(null)
+            setBillingBreakdown(null)
           }
           setIsChecking(false)
           return
@@ -909,6 +1085,7 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
         setIsExpired(false)
         setCycleAmountDue(null)
         setCycleInvoiceNumber(null)
+        setBillingBreakdown(null)
         setIsChecking(false)
       } catch (error) {
         console.error("TrialGuard error:", error)
@@ -918,6 +1095,7 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
         setSubscriptionType(null)
         setCycleAmountDue(null)
         setCycleInvoiceNumber(null)
+        setBillingBreakdown(null)
         setIsChecking(false)
       }
     }
@@ -954,6 +1132,7 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
           plansLoading={plansLoading}
           amountDue={cycleAmountDue}
           invoiceNumber={cycleInvoiceNumber}
+          billingBreakdown={billingBreakdown}
         />
       </>
     )
