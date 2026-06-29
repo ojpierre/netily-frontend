@@ -2344,12 +2344,24 @@ export default function PlansPage() {
               </div>
             </div>
 
-            {/* Price */}
+            {/* ─── PRICE FIELD WITH FREE TRIAL VISUAL HINT ─── */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Price (KES) *</Label>
-              <Input type="number" value={hotspotForm.price}
-                onChange={(e) => setHotspotForm({ ...hotspotForm, price: e.target.value })}
-                placeholder="e.g., 100" />
+              <Label className="text-sm font-medium">Price (KES)</Label>
+              <div className="relative">
+                <Input 
+                  type="number" 
+                  value={hotspotForm.is_free_trial ? '0' : hotspotForm.price}
+                  onChange={(e) => setHotspotForm({ ...hotspotForm, price: e.target.value })}
+                  disabled={hotspotForm.is_free_trial}
+                  className={hotspotForm.is_free_trial ? 'bg-green-50 border-green-200 text-green-700 font-bold' : ''}
+                  placeholder="e.g., 100"
+                />
+                {hotspotForm.is_free_trial && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 font-semibold">
+                    FREE
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Speed */}
@@ -2448,7 +2460,12 @@ export default function PlansPage() {
             <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
               <Switch
                 checked={hotspotForm.is_free_trial || false}
-                onCheckedChange={(c) => setHotspotForm({ ...hotspotForm, is_free_trial: c })}
+                onCheckedChange={(c) => setHotspotForm({ 
+                  ...hotspotForm, 
+                  is_free_trial: c,
+                  // Auto-zero the price when free trial is enabled
+                  price: c ? '0' : hotspotForm.price,
+                })}
               />
               <Label className="text-sm">
                 <Zap className="w-3 h-3 inline mr-1 text-green-500" />
