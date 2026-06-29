@@ -1577,7 +1577,7 @@ export default function PlansPage() {
             </Card>
           )}
 
-          {/* Existing Hotspot Plans Listing */}
+          {/* Existing Hotspot Plans Listing with Table View */}
           {selectedRouterId && filteredPlans.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
@@ -1586,17 +1586,95 @@ export default function PlansPage() {
                 <p className="text-muted-foreground text-sm mt-1">Click a quick-create card above or use &ldquo;Custom Hotspot&rdquo; to create one</p>
               </CardContent>
             </Card>
-          ) : (
+          ) : viewMode === "grid" ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPlans.map(plan => (
                 <PlanCard key={plan.id} plan={plan} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} />
               ))}
             </div>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Validity</TableHead>
+                      <TableHead>Speed</TableHead>
+                      <TableHead>Devices</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-12" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPlans.map(plan => {
+                      const hp = plan as any
+                      const isFreeTrial = hp.is_free_trial === true
+                      return (
+                        <TableRow key={plan.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {plan.name}
+                              {isFreeTrial && <Badge className="bg-green-500 text-white text-xs">Free</Badge>}
+                              {plan.is_popular && <Zap className="w-3 h-3 text-warning" />}
+                            </div>
+                          </TableCell>
+                          <TableCell>{isFreeTrial ? <Badge className="bg-green-500 text-white">FREE</Badge> : formatCurrency(plan.price ?? plan.base_price)}</TableCell>
+                          <TableCell>
+                            <span className="flex items-center gap-1 text-sm">
+                              {(() => { const Icon = getValidityIcon(plan); return <Icon className="w-3.5 h-3.5 text-muted-foreground" /> })()}
+                              {formatDuration(plan)}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {plan.download_speed ? `${plan.download_speed}↓ / ${plan.upload_speed ?? '?'}↑ ${plan.speed_unit || 'Mbps'}` : '—'}
+                          </TableCell>
+                          <TableCell className="text-sm">{plan.max_sessions ?? 1}</TableCell>
+                          <TableCell>
+                            <Badge variant={plan.is_active ? "default" : "secondary"}>
+                              {plan.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewDetails(plan)}>
+                                  <Eye className="w-4 h-4 mr-2" />View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openEditDialog(plan)}>
+                                  <Edit className="w-4 h-4 mr-2" />Edit Plan
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleToggleActive(plan)} disabled={togglingId === plan.id}>
+                                  {togglingId === plan.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : plan.is_active ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                                  {plan.is_active ? "Deactivate" : "Activate"}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleDeleteRequest(plan)} disabled={deletingId === plan.id} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                  {deletingId === plan.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                                  Delete Plan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
         </>
       )}
 
-      {/* ====== ALL / PPPoE TABS — Standard Plan Card Grid ====== */}
+      {/* ====== ALL / PPPoE TABS — Standard Plan Card Grid / Table ====== */}
       {(activeTab === 'all' || activeTab === 'pppoe') && (
         <>
           {filteredPlans.length === 0 ? (
@@ -1607,12 +1685,97 @@ export default function PlansPage() {
                 <p className="text-muted-foreground text-sm mt-1">Try adjusting your search or create a new plan</p>
               </CardContent>
             </Card>
-          ) : (
+          ) : viewMode === "grid" ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPlans.map(plan => (
                 <PlanCard key={plan.id} plan={plan} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} />
               ))}
             </div>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Validity</TableHead>
+                      <TableHead>Speed</TableHead>
+                      <TableHead>Subscribers</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-12" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPlans.map(plan => {
+                      const hp = plan as any
+                      const isFreeTrial = hp.is_free_trial === true
+                      return (
+                        <TableRow key={plan.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {plan.name}
+                              {plan.is_popular && <Zap className="w-3 h-3 text-warning" />}
+                              {isFreeTrial && <Badge className="bg-green-500 text-white text-xs">Free</Badge>}
+                            </div>
+                          </TableCell>
+                          <TableCell>{getTypeBadge(plan.plan_type)}</TableCell>
+                          <TableCell>{isFreeTrial ? <Badge className="bg-green-500 text-white">FREE</Badge> : formatCurrency(plan.price ?? plan.base_price)}</TableCell>
+                          <TableCell>
+                            <span className="flex items-center gap-1 text-sm">
+                              {(() => { const Icon = getValidityIcon(plan); return <Icon className="w-3.5 h-3.5 text-muted-foreground" /> })()}
+                              {formatDuration(plan)}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {plan.download_speed ? `${plan.download_speed}↓ / ${plan.upload_speed ?? '?'}↑ ${plan.speed_unit || 'Mbps'}` : '—'}
+                          </TableCell>
+                          <TableCell>
+                            <span className="flex items-center gap-1 text-sm">
+                              <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                              {getPlanSubscriberCount(plan)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={plan.is_active ? "default" : "secondary"}>
+                              {plan.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewDetails(plan)}>
+                                  <Eye className="w-4 h-4 mr-2" />View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openEditDialog(plan)}>
+                                  <Edit className="w-4 h-4 mr-2" />Edit Plan
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleToggleActive(plan)} disabled={togglingId === plan.id}>
+                                  {togglingId === plan.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : plan.is_active ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                                  {plan.is_active ? "Deactivate" : "Activate"}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleDeleteRequest(plan)} disabled={deletingId === plan.id} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                  {deletingId === plan.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                                  Delete Plan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
         </>
       )}
