@@ -60,6 +60,11 @@ function kes(amount: number | string): string {
   return `KES ${(n || 0).toLocaleString()}`
 }
 
+function toMoneyNumber(value: unknown): number {
+  const parsed = typeof value === "string" ? Number(value) : typeof value === "number" ? value : 0
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
 function formatCountdown(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
@@ -82,9 +87,19 @@ interface PaymentDialogProps {
   planName?: string
   plans: NetilyPlan[]
   plansLoading: boolean
+  amountDue?: number | null
+  invoiceNumber?: string | null
 }
 
-function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading }: PaymentDialogProps) {
+function PaymentDialog({
+  open,
+  isPaidSubscription,
+  planName,
+  plans,
+  plansLoading,
+  amountDue,
+  invoiceNumber,
+}: PaymentDialogProps) {
   const { logout } = useAdminAuth()
 
   // Step / flow state
@@ -163,6 +178,11 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
     return Number(plan.price_monthly) || 0
   }
 
+  const getPaymentAmount = (plan: NetilyPlan | null): number => {
+    if (isPaidSubscription && amountDue && amountDue > 0) return amountDue
+    return getPlanAmount(plan)
+  }
+
   const getFeatures = (plan: NetilyPlan): string[] => {
     if (Array.isArray(plan.features)) return plan.features as string[]
     if (typeof plan.features === "object" && plan.features !== null) {
@@ -214,6 +234,9 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
         payment_method: "mpesa_stk",
         phone_number: formatPhoneNumber(phoneNumber),
         billing_period: "monthly",
+        ...(isPaidSubscription && getPaymentAmount(selectedPlan) > 0
+          ? { amount: getPaymentAmount(selectedPlan) }
+          : {}),
       })
       toast.success("STK Push sent! Check your phone and enter your M-Pesa PIN.")
       setPendingPaymentId(res.payment_id)
@@ -313,8 +336,10 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
             {/* ── STEP: PLANS ── */}
             {step === "plans" && (
               <div className="space-y-4">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Select a plan below to continue managing your ISP. Your data is safe and fully restored once payment is confirmed.
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {isPaidSubscription
+                    ? "Settle the accumulated bill for this billing cycle to restore access. Your usage data is safe and fully restored once payment is confirmed."
+                    : "Select a plan below to continue managing your ISP. Your data is safe and fully restored once payment is confirmed."}
                 </p>
 
                 {plansLoading ? (
@@ -329,7 +354,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                   <div className="grid gap-3">
                     {plans.map((plan) => {
                       const isPopular = plan.is_popular || plan.name === "Professional"
-                      const amount = getPlanAmount(plan)
+                      const amount = getPaymentAmount(plan)
                       const features = getFeatures(plan)
                       return (
                         <button
@@ -352,7 +377,9 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                             </div>
                             <div className="text-right">
                               <span className="text-lg font-bold">{kes(amount)}</span>
-                              <span className="text-slate-500 text-xs">/mo</span>
+                              <span className="text-slate-500 text-xs">
+                                {isPaidSubscription ? " due" : "/mo"}
+                              </span>
                             </div>
                           </div>
                           <div className="flex flex-wrap gap-x-4 gap-y-1">
@@ -364,7 +391,14 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                             ))}
                           </div>
                           {plan.is_metered && (
-                            <p className="text-[10px] text-primary font-medium mt-1">+ Usage-based fees</p>
+                            <p className="text-[10px] text-primary font-medium mt-1">
+                              {isPaidSubscription
+                                ? "Includes PPPoE footprint, hotspot revenue share, and monthly minimum rules"
+                                : "+ Usage-based fees"}
+                            </p>
+                          )}
+                          {isPaidSubscription && invoiceNumber && (
+                            <p className="text-[10px] text-slate-500 mt-1">Invoice: {invoiceNumber}</p>
                           )}
                         </button>
                       )
@@ -429,7 +463,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                     </div>
                     <div className="text-right">
                       <p className="text-slate-400 text-xs">Amount</p>
-                      <p className="font-bold text-base">{kes(getPlanAmount(selectedPlan))}</p>
+                      <p className="font-bold text-base">{kes(getPaymentAmount(selectedPlan))}</p>
                     </div>
                     <div>
                       <p className="text-slate-400 text-xs">Billing</p>
@@ -449,7 +483,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                     <span className="text-slate-400">Description: </span>
                     <span className="font-medium">
                       {isPaidSubscription
-                        ? `Renewal — ${selectedPlan.name} Plan`
+                        ? `Billing cycle settlement — ${selectedPlan.name} Plan${invoiceNumber ? ` (${invoiceNumber})` : ""}`
                         : `Activation — ${selectedPlan.name} Plan`}
                     </span>
                   </div>
@@ -539,7 +573,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                       disabled={!phoneNumber.trim()}
                     >
                       <Phone className="w-4 h-4 mr-2" />
-                      Pay Now — {kes(getPlanAmount(selectedPlan))}
+                      Pay Now — {kes(getPaymentAmount(selectedPlan))}
                     </Button>
                   </div>
                 )}
@@ -568,7 +602,7 @@ function PaymentDialog({ open, isPaidSubscription, planName, plans, plansLoading
                   {selectedPlan && (
                     <p className="text-xs text-slate-400 mt-1">
                       Plan: <span className="font-semibold">{selectedPlan.name}</span> —{" "}
-                      {kes(getPlanAmount(selectedPlan))}/mo
+                      {kes(getPaymentAmount(selectedPlan))}
                     </p>
                   )}
                 </div>
@@ -653,6 +687,8 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
   const [planName, setPlanName] = useState<string | null>(null)
   const [realPlans, setRealPlans] = useState<NetilyPlan[]>([])
   const [plansLoading, setPlansLoading] = useState(true)
+  const [cycleAmountDue, setCycleAmountDue] = useState<number | null>(null)
+  const [cycleInvoiceNumber, setCycleInvoiceNumber] = useState<string | null>(null)
   const pathname = usePathname()
 
   const allowedPaths = [
@@ -684,6 +720,8 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
           // show the wall when the API positively reports an expired subscription.
           setIsExpired(false)
           setSubscriptionType(null)
+          setCycleAmountDue(null)
+          setCycleInvoiceNumber(null)
           setIsChecking(false)
           return
         }
@@ -710,6 +748,60 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
         )
         setRealPlans(currentPlanOnly.length ? currentPlanOnly : plansArray.slice(0, 1))
 
+        const resolveCycleAmountDue = async () => {
+          try {
+            const [usageData, invoicesData] = await Promise.all([
+              adminApi.getUsageStats().catch(() => null),
+              adminApi.getInvoices({ search: "NET-BILL" }).catch(() => null),
+            ])
+
+            const invoices = Array.isArray((invoicesData as any)?.results)
+              ? (invoicesData as any).results
+              : []
+            const payableInvoice = invoices.find((invoice: any) =>
+              ["pending", "overdue", "partial", "draft"].includes(String(invoice?.status || "").toLowerCase())
+            )
+
+            if (payableInvoice) {
+              const balance = toMoneyNumber(
+                payableInvoice.balance_due ??
+                payableInvoice.balance ??
+                payableInvoice.total_amount ??
+                payableInvoice.amount
+              )
+              const paid = toMoneyNumber(payableInvoice.amount_paid)
+              const total = toMoneyNumber(payableInvoice.total_amount ?? payableInvoice.amount)
+              const due = balance > 0 ? balance : Math.max(total - paid, 0)
+              if (due > 0) {
+                setCycleAmountDue(due)
+                setCycleInvoiceNumber(payableInvoice.invoice_number || null)
+                return
+              }
+            }
+
+            const usageEstimate = toMoneyNumber(
+              (usageData as any)?.invoice_total_estimate ??
+              (usageData as any)?.total_estimate
+            )
+            if (usageEstimate > 0) {
+              setCycleAmountDue(usageEstimate)
+              setCycleInvoiceNumber((usageData as any)?.invoice_number || null)
+              return
+            }
+
+            const fallbackMinimum = toMoneyNumber(
+              (usageData as any)?.minimum_charge ??
+              (subscription.plan as any)?.base_license_fee ??
+              500
+            )
+            setCycleAmountDue(fallbackMinimum > 0 ? fallbackMinimum : 500)
+            setCycleInvoiceNumber(null)
+          } catch {
+            setCycleAmountDue(toMoneyNumber((subscription.plan as any)?.base_license_fee) || 500)
+            setCycleInvoiceNumber(null)
+          }
+        }
+
         const s = subscription.status
         const paidPeriodActive = Boolean(
           subscription.current_period_end &&
@@ -720,7 +812,7 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
         // ── ACTIVE / PAID SUBSCRIPTION ──
         if (s === "active" || convertedOrPaid) {
           localStorage.setItem("subscriptionStatus", "active")
-          setSubscriptionType("active")
+          setSubscriptionType(convertedOrPaid ? "active" : "trial")
 
           // FIX: For converted paid subscriptions (is_trial === false), ignore trial_ends_at
           // entirely — it will always be in the past and is irrelevant for paid accounts.
@@ -729,6 +821,12 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
             if (subscription.current_period_end) {
               const expired = checkDateExpired(new Date(subscription.current_period_end))
               setIsExpired(expired)
+              if (expired) {
+                await resolveCycleAmountDue()
+              } else {
+                setCycleAmountDue(null)
+                setCycleInvoiceNumber(null)
+              }
               if (!expired) {
                 localStorage.setItem("subscriptionExpiry", subscription.current_period_end)
               }
@@ -742,12 +840,16 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
           // Still on active trial (is_trial === true, status === "active")
           if (subscription.trial_expired === true) {
             setIsExpired(true)
+            setCycleAmountDue(null)
+            setCycleInvoiceNumber(null)
             setIsChecking(false)
             return
           }
 
           if (subscription.trial_ends_at && checkDateExpired(new Date(subscription.trial_ends_at))) {
             setIsExpired(true)
+            setCycleAmountDue(null)
+            setCycleInvoiceNumber(null)
             setIsChecking(false)
             return
           }
@@ -773,10 +875,16 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
 
           if (subscription.trial_expired === true) {
             setIsExpired(true)
+            setCycleAmountDue(null)
+            setCycleInvoiceNumber(null)
           } else if (subscription.trial_ends_at) {
             setIsExpired(checkDateExpired(new Date(subscription.trial_ends_at)))
+            setCycleAmountDue(null)
+            setCycleInvoiceNumber(null)
           } else {
             setIsExpired(false)
+            setCycleAmountDue(null)
+            setCycleInvoiceNumber(null)
           }
 
           setIsChecking(false)
@@ -787,12 +895,20 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
         if (["expired", "cancelled", "past_due"].includes(s)) {
           setIsExpired(true)
           setSubscriptionType(subscription.is_trial === false ? "active" : "trial")
+          if (subscription.is_trial === false) {
+            await resolveCycleAmountDue()
+          } else {
+            setCycleAmountDue(null)
+            setCycleInvoiceNumber(null)
+          }
           setIsChecking(false)
           return
         }
 
         // Unknown status — allow through
         setIsExpired(false)
+        setCycleAmountDue(null)
+        setCycleInvoiceNumber(null)
         setIsChecking(false)
       } catch (error) {
         console.error("TrialGuard error:", error)
@@ -800,6 +916,8 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
         setPlansLoading(false)
         setIsExpired(false)
         setSubscriptionType(null)
+        setCycleAmountDue(null)
+        setCycleInvoiceNumber(null)
         setIsChecking(false)
       }
     }
@@ -834,6 +952,8 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
           planName={planName || undefined}
           plans={realPlans}
           plansLoading={plansLoading}
+          amountDue={cycleAmountDue}
+          invoiceNumber={cycleInvoiceNumber}
         />
       </>
     )
