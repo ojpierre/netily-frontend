@@ -338,9 +338,9 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
             })()}
             {formatDuration(plan)}
           </p>
-          {isFreeTrial && hp.trial_duration_minutes && (
+          {isFreeTrial && (
             <p className="text-xs text-green-600 mt-1">
-              {hp.trial_duration_minutes} min session · 1 claim per MAC
+              {formatDuration(plan)} · 1 claim per MAC
             </p>
           )}
         </div>
@@ -437,9 +437,8 @@ export default function PlansPage() {
     limitation_type: 'UNLIMITED' as 'UNLIMITED' | 'DATA',
     data_limit_value: '',
     data_limit_unit: 'MB' as 'MB' | 'GB',
-    // NEW: Free trial fields
+    // NEW: Free trial field (removed trial_duration_minutes - uses validity instead)
     is_free_trial: false,
-    trial_duration_minutes: '30',
   })
 
   // Loading states
@@ -628,7 +627,6 @@ export default function PlansPage() {
           data_limit_unit: hp.data_limit_unit || 'MB',
           // NEW FREE TRIAL FIELDS
           is_free_trial: hp.is_free_trial || false,
-          trial_duration_minutes: hp.trial_duration_minutes || 30,
         })) as any[]
         allPlans.push(...mapped)
       }
@@ -676,7 +674,6 @@ export default function PlansPage() {
         data_limit_unit: hp.data_limit_unit || 'MB',
         // NEW FREE TRIAL FIELDS
         is_free_trial: hp.is_free_trial || false,
-        trial_duration_minutes: hp.trial_duration_minutes || 30,
       })) as any[]
       setHotspotPlans(mapped)
     } catch (error) {
@@ -846,9 +843,8 @@ export default function PlansPage() {
       limitation_type: 'UNLIMITED',
       data_limit_value: '',
       data_limit_unit: 'MB',
-      // NEW FREE TRIAL FIELDS
+      // NEW FREE TRIAL FIELD (removed trial_duration_minutes)
       is_free_trial: false,
-      trial_duration_minutes: '30',
     })
     setIsEditingHotspot(false)
     setEditingHotspotPlan(null)
@@ -957,9 +953,8 @@ export default function PlansPage() {
         limitation_type: (hp.limitation_type as 'UNLIMITED' | 'DATA') || 'UNLIMITED',
         data_limit_value: hp.data_limit_value?.toString() || '',
         data_limit_unit: (hp.data_limit_unit as 'MB' | 'GB') || 'MB',
-        // NEW FREE TRIAL FIELDS
+        // NEW FREE TRIAL FIELD (removed trial_duration_minutes)
         is_free_trial: hp.is_free_trial || false,
-        trial_duration_minutes: hp.trial_duration_minutes?.toString() || '30',
       })
       setEditingHotspotPlan(plan)
       setIsEditingHotspot(true)
@@ -1171,7 +1166,6 @@ export default function PlansPage() {
           data_limit_unit: 'MB',
           // NEW: Free trial is false for presets
           is_free_trial: false,
-          trial_duration_minutes: 30,
         } as any)
       }
       
@@ -1219,17 +1213,8 @@ export default function PlansPage() {
           ? parseInt(hotspotForm.data_limit_value) 
           : null,
         data_limit_unit: hotspotForm.data_limit_unit,
-        // NEW FREE TRIAL FIELDS
+        // NEW FREE TRIAL FIELD (removed trial_duration_minutes - uses validity instead)
         is_free_trial: hotspotForm.is_free_trial || false,
-        trial_duration_minutes: hotspotForm.is_free_trial 
-          ? parseInt(hotspotForm.validity_minutes || (
-              hotspotForm.validity_type === 'HOURS' 
-                ? String(parseInt(hotspotForm.validity_hours || '1') * 60)
-                : hotspotForm.validity_type === 'DAYS'
-                ? String(parseInt(hotspotForm.duration_days || '1') * 1440)
-                : '30'
-            ))
-          : 30,
       } as any
 
       if (isEditingHotspot && editingHotspotPlan) {
@@ -2362,6 +2347,11 @@ export default function PlansPage() {
                   </span>
                 )}
               </div>
+              {hotspotForm.is_free_trial && (
+                <p className="text-xs text-green-600 mt-1">
+                  Free trial uses the <span className="font-semibold">validity period</span> above — no separate duration needed.
+                </p>
+              )}
             </div>
 
             {/* Speed */}
@@ -2473,24 +2463,6 @@ export default function PlansPage() {
               </Label>
             </div>
 
-            {/* ─── TRIAL DURATION ─── */}
-            {hotspotForm.is_free_trial && (
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Trial Duration (minutes)</Label>
-                <Input
-                  type="number"
-                  min={5}
-                  max={1440}
-                  value={hotspotForm.trial_duration_minutes}
-                  onChange={(e) => setHotspotForm({ ...hotspotForm, trial_duration_minutes: e.target.value })}
-                  placeholder="30"
-                />
-                <p className="text-xs text-muted-foreground">
-                  How long the free trial lasts in minutes. Default is 30 minutes.
-                </p>
-              </div>
-            )}
-
             {/* Description */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Description</Label>
@@ -2574,9 +2546,9 @@ export default function PlansPage() {
                   })()}
                   {formatDuration(selectedPlan)}
                 </p>
-                {(selectedPlan as any).is_free_trial && (selectedPlan as any).trial_duration_minutes && (
+                {(selectedPlan as any).is_free_trial && (
                   <p className="text-xs text-green-600 mt-1">
-                    {(selectedPlan as any).trial_duration_minutes} min session · 1 claim per MAC
+                    {formatDuration(selectedPlan)} · 1 claim per MAC
                   </p>
                 )}
               </div>
