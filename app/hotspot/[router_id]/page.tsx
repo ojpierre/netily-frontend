@@ -32,6 +32,9 @@ interface HotspotPlan {
   simultaneous_devices?: number
   // Display
   is_popular?: boolean
+  // NEW FREE TRIAL FIELDS
+  is_free_trial?: boolean
+  trial_duration_minutes?: number
 }
 
 interface PortalConfig {
@@ -275,7 +278,34 @@ async function redeemVoucher(data: {
 }
 
 // ==========================================
-// NEW: Phone reconnect API
+// FREE TRIAL API FUNCTION
+// ==========================================
+async function claimFreeTrial(data: {
+  router_id: string
+  plan_id: string
+  mac_address: string
+  tenant: string
+}): Promise<{
+  status: string
+  access_code: string
+  expires_at: string
+  duration_display: string
+  plan_name: string
+  message: string
+}> {
+  const response = await fetch(`${getApiBase()}/hotspot/free-trial/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    cache: 'no-store',
+  })
+  const json = await response.json()
+  if (!response.ok) throw new Error(json.error || 'Failed to claim free trial')
+  return json
+}
+
+// ==========================================
+// Phone reconnect API
 // ==========================================
 async function phoneReconnect(data: {
   phone_number: string
@@ -1087,6 +1117,11 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const [voucherRedeeming, setVoucherRedeeming] = useState(false)
   const [voucherError, setVoucherError] = useState<string | null>(null)
 
+  // FREE TRIAL STATE
+  const [freeTrialClaiming, setFreeTrialClaiming] = useState(false)
+  const [freeTrialError, setFreeTrialError] = useState<string | null>(null)
+  const [freeTrialAlreadyClaimed, setFreeTrialAlreadyClaimed] = useState(false)
+
   // Ad state
   const [availableAd, setAvailableAd] = useState<HotspotAd | null>(null)
   const [showAdModal, setShowAdModal] = useState(false)
@@ -1371,8 +1406,62 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     setTvMacError(null)
   }
 
+  // ── FREE TRIAL HANDLER ──
+  const handleClaimFreeTrial = async (plan: HotspotPlan) => {
+    setFreeTrialClaiming(true)
+    setFreeTrialError(null)
+    setFreeTrialAlreadyClaimed(false)
+    
+    let finalMac = getMacAddress()
+    let finalRouter = routerId
+
+    if (targetDevice === "tv" && tvMacVerified) {
+      const rawMac = tvSelectedDevice ? tvSelectedDevice.mac : tvMacInput.trim()
+      const stripped = rawMac.replace(/[^a-fA-F0-9]/g, '').toUpperCase()
+      if (stripped.length === 12) {
+        finalMac = stripped.match(/.{2}/g)!.join(':')
+      } else {
+        finalMac = rawMac.toUpperCase()
+      }
+    }
+
+    try {
+      const result = await claimFreeTrial({
+        router_id: finalRouter,
+        plan_id: plan.id,
+        mac_address: finalMac,
+        tenant: getTenant(),
+      })
+      setAccessCode(result.access_code)
+      setExpiresAt(result.expires_at)
+      setSelectedPlan(plan)
+      setPaymentStatus('success')
+      
+      // Auto-login for THIS device (not TV)
+      if (loginUrl && result.access_code && targetDevice !== "tv") {
+        setReturningToRouter(true)
+        const u = encodeURIComponent(result.access_code)
+        setTimeout(() => {
+          window.location.href = `${loginUrl}?username=${u}&password=${u}`
+        }, 1500)
+      }
+    } catch (err: any) {
+      if (err.message?.includes('already used') || err.message?.includes('already claimed')) {
+        setFreeTrialAlreadyClaimed(true)
+      }
+      setFreeTrialError(err.message || 'Could not claim free trial')
+    } finally {
+      setFreeTrialClaiming(false)
+    }
+  }
+
   // ── Select plan and open payment modal ──
   const selectPlanAndPay = (plan: HotspotPlan) => {
+    // If it's a free trial plan, claim it directly without opening payment modal
+    if (plan.is_free_trial) {
+      handleClaimFreeTrial(plan)
+      return
+    }
     setSelectedPlan(plan)
     setShowPaymentModal(true)
     setPhoneError(null)
@@ -1779,6 +1868,10 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   // RENDER: Main Plan Selection
   // ==========================================
 
+  // Get free trial plans separately for display
+  const freeTrialPlans = plans.filter(p => p.is_free_trial)
+  const paidPlans = plans.filter(p => !p.is_free_trial)
+
   return (
     <div className={`${theme.pageBg} flex items-center justify-center p-4`}>
       <div className={`${theme.cardClass} max-w-md w-full overflow-hidden`}>
@@ -1962,6 +2055,65 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
             </button>
           )}
 
+          {/* ── FREE TRIAL SECTION ── */}
+          {freeTrialPlans.length > 0 && (
+            <div className="mb-5">
+              {freeTrialPlans.map(plan => (
+                <div key={plan.id} className="relative overflow-hidden rounded-2xl border-2 border-dashed border-green-400 bg-gradient-to-r from-green-50 to-emerald-50 p-5 mb-3">
+                  {/* Shimmer badge */}
+                  <div className="absolute top-3 right-3">
+                    <span className="bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide">
+                      FREE
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                      <Zap className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-base">{plan.name}</h3>
+                      <p className="text-sm text-green-700">{plan.duration_display} · No payment needed</p>
+                    </div>
+                  </div>
+
+                  {plan.description && (
+                    <p className="text-sm text-gray-600 mb-3">{plan.description}</p>
+                  )}
+
+                  {freeTrialAlreadyClaimed && (
+                    <div className="mb-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      This device has already used the free trial.
+                    </div>
+                  )}
+
+                  {freeTrialError && !freeTrialAlreadyClaimed && (
+                    <div className="mb-3 flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      {freeTrialError}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleClaimFreeTrial(plan)}
+                    disabled={freeTrialClaiming || freeTrialAlreadyClaimed || (targetDevice === "tv" && !tvMacVerified)}
+                    className="w-full py-3 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                  >
+                    {freeTrialClaiming ? (
+                      <><Loader2 className="w-5 h-5 animate-spin" /> Activating...</>
+                    ) : freeTrialAlreadyClaimed ? (
+                      'Trial already used on this device'
+                    ) : (
+                      <><Zap className="w-5 h-5" /> Get Free {plan.duration_display}</>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* DEVICE TARGET TOGGLE */}
           <div className="mb-6 bg-gray-100 p-1.5 rounded-xl flex items-center">
             <button 
@@ -2094,9 +2246,9 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
               : "space-y-3"
           }`}>
             {/* Featured layout: show popular plan first and larger */}
-            {theme.layoutType === "featured" && plans.some(p => p.is_popular) && (
+            {theme.layoutType === "featured" && paidPlans.some(p => p.is_popular) && (
               <div className="mb-3">
-                {plans.filter(p => p.is_popular).map((plan) => (
+                {paidPlans.filter(p => p.is_popular).map((plan) => (
                   <button
                     key={plan.id}
                     type="button"
@@ -2141,7 +2293,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
               </div>
             )}
             {/* Regular plans (or all plans for non-featured layouts) */}
-            {(theme.layoutType === "featured" ? plans.filter(p => !p.is_popular) : plans).map((plan) => (
+            {(theme.layoutType === "featured" ? paidPlans.filter(p => !p.is_popular) : paidPlans).map((plan) => (
               <button
                 key={plan.id}
                 type="button"

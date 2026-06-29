@@ -2582,6 +2582,10 @@ export interface HotspotPlan {
   // Computed
   total_validity_minutes?: number
   
+  // NEW FREE TRIAL FIELDS
+  is_free_trial?: boolean
+  trial_duration_minutes?: number
+  
   created_at?: string
   updated_at?: string
 }
@@ -2679,6 +2683,9 @@ export interface CaptivePortalPlan {
   data_limit_display: string
   // Display
   is_popular: boolean
+  // NEW FREE TRIAL FIELDS
+  is_free_trial?: boolean
+  trial_duration_minutes?: number
 }
 
 /** @deprecated Use CaptivePortalResponse instead */

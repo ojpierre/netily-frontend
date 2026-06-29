@@ -243,9 +243,12 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
   togglingId: number | null
   deletingId: number | null
 }) {
+  const hp = plan as any
+  const isFreeTrial = hp.is_free_trial === true
+
   return (
     <Card className={`relative ${plan.is_popular ? "ring-2 ring-ring" : ""}`}>
-      {plan.is_popular && (
+      {plan.is_popular && !isFreeTrial && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <Badge className="bg-primary text-white">
             <Zap className="w-3 h-3 mr-1" />
@@ -253,15 +256,28 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
           </Badge>
         </div>
       )}
+      {isFreeTrial && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <Badge className="bg-green-500 text-white">
+            <Zap className="w-3 h-3 mr-1" />
+            Free Trial
+          </Badge>
+        </div>
+      )}
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
             <CardTitle className="text-lg">{plan.name}</CardTitle>
-            <CardDescription className="flex items-center gap-2 mt-1">
+            <CardDescription className="flex items-center gap-2 mt-1 flex-wrap">
               {getTypeBadge(plan.plan_type)}
               <Badge variant={plan.is_active ? "default" : "secondary"}>
                 {plan.is_active ? "Active" : "Inactive"}
               </Badge>
+              {isFreeTrial && (
+                <Badge variant="outline" className="border-green-500 text-green-600 bg-green-50">
+                  🎁 Free
+                </Badge>
+              )}
             </CardDescription>
           </div>
           <DropdownMenu>
@@ -313,7 +329,7 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
       <CardContent className="space-y-4">
         <div className="text-center py-4 bg-muted rounded-lg">
           <p className="text-3xl font-bold">
-            {formatCurrency(plan.price ?? plan.base_price)}
+            {isFreeTrial ? 'FREE' : formatCurrency(plan.price ?? plan.base_price)}
           </p>
           <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
             {(() => {
@@ -322,6 +338,11 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
             })()}
             {formatDuration(plan)}
           </p>
+          {isFreeTrial && hp.trial_duration_minutes && (
+            <p className="text-xs text-green-600 mt-1">
+              {hp.trial_duration_minutes} min session · 1 claim per MAC
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-sm">
@@ -416,6 +437,9 @@ export default function PlansPage() {
     limitation_type: 'UNLIMITED' as 'UNLIMITED' | 'DATA',
     data_limit_value: '',
     data_limit_unit: 'MB' as 'MB' | 'GB',
+    // NEW: Free trial fields
+    is_free_trial: false,
+    trial_duration_minutes: '30',
   })
 
   // Loading states
@@ -565,7 +589,7 @@ export default function PlansPage() {
     }
   }, [routers.length])
 
-  // NEW: Fetch hotspot plans from all routers - UPDATED with subscriber_count
+  // NEW: Fetch hotspot plans from all routers - UPDATED with subscriber_count and free trial fields
   const fetchAllHotspotPlans = useCallback(async () => {
     try {
       const allPlans: Plan[] = []
@@ -602,6 +626,9 @@ export default function PlansPage() {
           limitation_type: hp.limitation_type || 'UNLIMITED',
           data_limit_value: hp.data_limit_value,
           data_limit_unit: hp.data_limit_unit || 'MB',
+          // NEW FREE TRIAL FIELDS
+          is_free_trial: hp.is_free_trial || false,
+          trial_duration_minutes: hp.trial_duration_minutes || 30,
         })) as any[]
         allPlans.push(...mapped)
       }
@@ -612,7 +639,7 @@ export default function PlansPage() {
     }
   }, [routers])
 
-  // Fetch HotspotPlan records for a specific router - UPDATED with subscriber_count
+  // Fetch HotspotPlan records for a specific router - UPDATED with subscriber_count and free trial fields
   const fetchHotspotPlans = useCallback(async (routerId: number) => {
     try {
       const hPlans = await adminApi.getHotspotPlans(routerId)
@@ -647,6 +674,9 @@ export default function PlansPage() {
         limitation_type: hp.limitation_type || 'UNLIMITED',
         data_limit_value: hp.data_limit_value,
         data_limit_unit: hp.data_limit_unit || 'MB',
+        // NEW FREE TRIAL FIELDS
+        is_free_trial: hp.is_free_trial || false,
+        trial_duration_minutes: hp.trial_duration_minutes || 30,
       })) as any[]
       setHotspotPlans(mapped)
     } catch (error) {
@@ -807,6 +837,23 @@ export default function PlansPage() {
     })
   }
 
+  // Reset hotspot form
+  const resetHotspotForm = () => {
+    setHotspotForm({ 
+      name: '', price: '', download_speed: '', upload_speed: '', 
+      validity_type: 'HOURS', duration_days: '1', validity_hours: '1', validity_minutes: '30', 
+      max_sessions: '1', description: '', features: '', is_active: true, is_popular: false,
+      limitation_type: 'UNLIMITED',
+      data_limit_value: '',
+      data_limit_unit: 'MB',
+      // NEW FREE TRIAL FIELDS
+      is_free_trial: false,
+      trial_duration_minutes: '30',
+    })
+    setIsEditingHotspot(false)
+    setEditingHotspotPlan(null)
+  }
+
   // Create plan
   const handleCreate = async () => {
     if (!planForm.name || !planForm.price) {
@@ -910,6 +957,9 @@ export default function PlansPage() {
         limitation_type: (hp.limitation_type as 'UNLIMITED' | 'DATA') || 'UNLIMITED',
         data_limit_value: hp.data_limit_value?.toString() || '',
         data_limit_unit: (hp.data_limit_unit as 'MB' | 'GB') || 'MB',
+        // NEW FREE TRIAL FIELDS
+        is_free_trial: hp.is_free_trial || false,
+        trial_duration_minutes: hp.trial_duration_minutes?.toString() || '30',
       })
       setEditingHotspotPlan(plan)
       setIsEditingHotspot(true)
@@ -1119,6 +1169,9 @@ export default function PlansPage() {
           limitation_type: 'UNLIMITED',
           data_limit_value: null,
           data_limit_unit: 'MB',
+          // NEW: Free trial is false for presets
+          is_free_trial: false,
+          trial_duration_minutes: 30,
         } as any)
       }
       
@@ -1134,19 +1187,6 @@ export default function PlansPage() {
     } finally {
       setHotspotCreating(false)
     }
-  }
-
-  const resetHotspotForm = () => {
-    setHotspotForm({ 
-      name: '', price: '', download_speed: '', upload_speed: '', 
-      validity_type: 'HOURS', duration_days: '1', validity_hours: '1', validity_minutes: '30', 
-      max_sessions: '1', description: '', features: '', is_active: true, is_popular: false,
-      limitation_type: 'UNLIMITED',
-      data_limit_value: '',
-      data_limit_unit: 'MB',
-    })
-    setIsEditingHotspot(false)
-    setEditingHotspotPlan(null)
   }
 
   // Hotspot custom create/edit handler — supports 'all' routers for create, single router for edit
@@ -1179,6 +1219,17 @@ export default function PlansPage() {
           ? parseInt(hotspotForm.data_limit_value) 
           : null,
         data_limit_unit: hotspotForm.data_limit_unit,
+        // NEW FREE TRIAL FIELDS
+        is_free_trial: hotspotForm.is_free_trial || false,
+        trial_duration_minutes: hotspotForm.is_free_trial 
+          ? parseInt(hotspotForm.validity_minutes || (
+              hotspotForm.validity_type === 'HOURS' 
+                ? String(parseInt(hotspotForm.validity_hours || '1') * 60)
+                : hotspotForm.validity_type === 'DAYS'
+                ? String(parseInt(hotspotForm.duration_days || '1') * 1440)
+                : '30'
+            ))
+          : 30,
       } as any
 
       if (isEditingHotspot && editingHotspotPlan) {
@@ -2393,6 +2444,36 @@ export default function PlansPage() {
               )}
             </div>
 
+            {/* ─── FREE TRIAL TOGGLE ─── */}
+            <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <Switch
+                checked={hotspotForm.is_free_trial || false}
+                onCheckedChange={(c) => setHotspotForm({ ...hotspotForm, is_free_trial: c })}
+              />
+              <Label className="text-sm">
+                <Zap className="w-3 h-3 inline mr-1 text-green-500" />
+                Free Trial <span className="text-xs text-muted-foreground">(1 per device ever)</span>
+              </Label>
+            </div>
+
+            {/* ─── TRIAL DURATION ─── */}
+            {hotspotForm.is_free_trial && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Trial Duration (minutes)</Label>
+                <Input
+                  type="number"
+                  min={5}
+                  max={1440}
+                  value={hotspotForm.trial_duration_minutes}
+                  onChange={(e) => setHotspotForm({ ...hotspotForm, trial_duration_minutes: e.target.value })}
+                  placeholder="30"
+                />
+                <p className="text-xs text-muted-foreground">
+                  How long the free trial lasts in minutes. Default is 30 minutes.
+                </p>
+              </div>
+            )}
+
             {/* Description */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Description</Label>
@@ -2457,10 +2538,18 @@ export default function PlansPage() {
                     Popular
                   </Badge>
                 )}
+                {(selectedPlan as any).is_free_trial && (
+                  <Badge className="bg-green-500 text-white">
+                    <Zap className="w-3 h-3 mr-1" />
+                    Free Trial
+                  </Badge>
+                )}
               </div>
 
               <div className="text-center py-6 bg-muted rounded-lg">
-                <p className="text-4xl font-bold">{formatCurrency(selectedPlan.price ?? selectedPlan.base_price)}</p>
+                <p className="text-4xl font-bold">
+                  {(selectedPlan as any).is_free_trial ? 'FREE' : formatCurrency(selectedPlan.price ?? selectedPlan.base_price)}
+                </p>
                 <p className="text-muted-foreground flex items-center justify-center gap-1">
                   {(() => {
                     const Icon = getValidityIcon(selectedPlan)
@@ -2468,6 +2557,11 @@ export default function PlansPage() {
                   })()}
                   {formatDuration(selectedPlan)}
                 </p>
+                {(selectedPlan as any).is_free_trial && (selectedPlan as any).trial_duration_minutes && (
+                  <p className="text-xs text-green-600 mt-1">
+                    {(selectedPlan as any).trial_duration_minutes} min session · 1 claim per MAC
+                  </p>
+                )}
               </div>
 
               <Separator />
