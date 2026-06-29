@@ -1183,7 +1183,7 @@ export default function PlansPage() {
     }
   }
 
-  // Hotspot custom create/edit handler — supports 'all' routers for create, single router for edit
+  // Hotspot custom create/edit handler — UPDATED with proper error handling
   const handleHotspotCustomCreate = async () => {
     if (!hotspotForm.name || !hotspotForm.price) {
       toast.error('Name and price are required')
@@ -1243,7 +1243,22 @@ export default function PlansPage() {
       if (selectedRouterId === 'all') fetchAllHotspotPlans()
       else if (selectedRouterId) fetchHotspotPlans(selectedRouterId as number)
     } catch (error: any) {
-      toast.error(error.message || 'Failed to save hotspot plan')
+      console.error('Failed to save hotspot plan:', error)
+      
+      // ─── USER-FRIENDLY ERROR HANDLING ──────────────────────────────
+      // Check for free trial duplicate error
+      const errorMsg = error.message || 'Failed to save hotspot plan'
+      const errorData = error.response?.data || {}
+      
+      // Check if the error is about free trial
+      if (errorMsg.toLowerCase().includes('free trial') || 
+          errorData?.is_free_trial?.toLowerCase?.()?.includes('free trial')) {
+        toast.error('This router already has a free trial plan. Only one free trial is allowed per router.')
+      } else if (errorData?.name?.toLowerCase?.()?.includes('already exists')) {
+        toast.error('A hotspot plan with this name already exists for this router.')
+      } else {
+        toast.error(errorMsg)
+      }
     } finally {
       setHotspotCreating(false)
     }
@@ -2267,7 +2282,7 @@ export default function PlansPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Hotspot Create / Edit Dialog */}
+      {/* Hotspot Create / Edit Dialog — UPDATED with disabled toggle when editing */}
       <Dialog open={isHotspotCreateOpen} onOpenChange={(open) => { if (!open) { setIsHotspotCreateOpen(false); resetHotspotForm() } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -2343,8 +2358,7 @@ export default function PlansPage() {
                 />
                 {hotspotForm.is_free_trial && (
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 font-semibold">
-                    FREE
-                  </span>
+                    FREE                  </span>
                 )}
               </div>
               {hotspotForm.is_free_trial && (
@@ -2446,22 +2460,46 @@ export default function PlansPage() {
               )}
             </div>
 
-            {/* ─── FREE TRIAL TOGGLE ─── */}
-            <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <Switch
-                checked={hotspotForm.is_free_trial || false}
-                onCheckedChange={(c) => setHotspotForm({ 
-                  ...hotspotForm, 
-                  is_free_trial: c,
-                  // Auto-zero the price when free trial is enabled
-                  price: c ? '0' : hotspotForm.price,
-                })}
-              />
-              <Label className="text-sm">
-                <Zap className="w-3 h-3 inline mr-1 text-green-500" />
-                Free Trial <span className="text-xs text-muted-foreground">(1 per device ever)</span>
-              </Label>
-            </div>
+            {/* ─── FREE TRIAL TOGGLE WITH DISABLED STATE FOR EDITING ─── */}
+            {(() => {
+              // Check if there's already a free trial on this router (excluding the one being edited)
+              const hasFreeTrial = isEditingHotspot && editingHotspotPlan
+                ? (hotspotPlans as any[]).some(
+                    (p: any) => p._routerId === (editingHotspotPlan as any)._routerId && p.is_free_trial && p.id !== editingHotspotPlan.id
+                  )
+                : false
+              
+              const isFreeTrial = hotspotForm.is_free_trial || false
+
+              return (
+                <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-3 flex-1">
+                    <Switch
+                      checked={isFreeTrial}
+                      onCheckedChange={(c) => {
+                        setHotspotForm({ 
+                          ...hotspotForm, 
+                          is_free_trial: c,
+                          price: c ? '0' : hotspotForm.price,
+                        })
+                      }}
+                      disabled={hasFreeTrial}
+                      className={hasFreeTrial ? 'opacity-50 cursor-not-allowed' : ''}
+                    />
+                    <Label className="text-sm flex items-center gap-1">
+                      <Zap className="w-3 h-3 inline text-green-500" />
+                      Free Trial
+                      <span className="text-xs text-muted-foreground ml-1">(1 per device ever)</span>
+                    </Label>
+                  </div>
+                  {hasFreeTrial && (
+                    <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                      ⚠️ Router already has a free trial
+                    </span>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* Description */}
             <div className="space-y-2">
