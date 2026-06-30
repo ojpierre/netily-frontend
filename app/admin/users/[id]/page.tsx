@@ -2,11 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Link from "next/link"
 import { motion } from "framer-motion"
 import {
   ArrowLeft,
-  Edit,
   Trash2,
   MoreVertical,
   User,
@@ -76,6 +74,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { adminApi } from "@/lib/admin-api"
 import type { Customer, CustomerService, Payment, SupportTicket, RADIUSAccountingSession, CustomerRADIUSCredentials, IPPool } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -361,7 +360,6 @@ export default function UserDetailPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("overview")
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isDisconnectDialogOpen, setIsDisconnectDialogOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserDetail | null>(null)
   const [sessions, setSessions] = useState<SessionEntry[]>([])
@@ -379,13 +377,17 @@ export default function UserDetailPage() {
     routerName?: string
   }>({ status: 'loading', label: 'Checking...', detail: '' })
   const [deleting, setDeleting] = useState(false)
-  const [disconnecting, setDisconnecting] = useState(false)
   const [editingBilling, setEditingBilling] = useState(false)
   const [billingNumberEdit, setBillingNumberEdit] = useState("")
   const [savingBilling, setSavingBilling] = useState(false)
   
   // FIX 3: Add showPassword state
   const [showPassword, setShowPassword] = useState(false)
+  
+  // FIX: SMS state
+  const [showSmsDialog, setShowSmsDialog] = useState(false)
+  const [smsMessage, setSmsMessage] = useState("")
+  const [sendingSms, setSendingSms] = useState(false)
   
   const userId = Number(params.id)
 
@@ -599,26 +601,6 @@ export default function UserDetailPage() {
     }
   }
 
-  const handleDisconnect = async () => {
-    try {
-      setDisconnecting(true)
-      const services = await adminApi.getCustomerServices(userId)
-      const primaryService = services.find(s => s.status === 'active') || services[0]
-      if (primaryService) {
-        await adminApi.suspendService(userId, primaryService.id, 'Manual disconnect from admin')
-        toast.success('User disconnected successfully')
-      } else {
-        toast.error('No active service found to disconnect')
-      }
-      setIsDisconnectDialogOpen(false)
-      await fetchUserData()
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to disconnect user')
-    } finally {
-      setDisconnecting(false)
-    }
-  }
-
   const handleSaveBillingNumber = async () => {
     if (!user || !billingNumberEdit.trim()) return
     try {
@@ -642,6 +624,22 @@ export default function UserDetailPage() {
       toast.error(err.message || 'Failed to update billing number')
     } finally {
       setSavingBilling(false)
+    }
+  }
+
+  // FIX: SMS handler
+  const handleSendSms = async () => {
+    if (!user || !smsMessage.trim()) return
+    try {
+      setSendingSms(true)
+      await adminApi.sendSMS({ recipient: user.phone, message: smsMessage.trim() })
+      toast.success(`SMS sent to ${user.fullName}`)
+      setShowSmsDialog(false)
+      setSmsMessage("")
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send SMS')
+    } finally {
+      setSendingSms(false)
     }
   }
 
@@ -738,17 +736,8 @@ export default function UserDetailPage() {
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
+        {/* FIX: Simplified header actions - only dropdown with SMS and Delete */}
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsDisconnectDialogOpen(true)}>
-            <Ban className="w-4 h-4 mr-2" />
-            Disconnect
-          </Button>
-          <Link href={`/admin/users/${params.id}/edit`}>
-            <Button>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit User
-            </Button>
-          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon">
@@ -756,17 +745,9 @@ export default function UserDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowSmsDialog(true)}>
                 <Send className="w-4 h-4 mr-2" />
                 Send SMS
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Mail className="w-4 h-4 mr-2" />
-                Send Email
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Reset Password
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
@@ -997,7 +978,7 @@ export default function UserDetailPage() {
               </CardContent>
             </Card>
 
-            {/* FIX 3: Network Credentials Card with show/hide password */}
+            {/* FIX 3: Network Credentials Card with show/hide password - REMOVED duplicate expiry badge */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
@@ -1071,20 +1052,7 @@ export default function UserDetailPage() {
                       </div>
                     </div>
 
-                    {/* Expiry badge */}
-                    {user.radiusCredentials?.expiration_date && (
-                      <div className="pt-2 border-t dark:border-slate-700">
-                        <p className="text-xs text-slate-400 mb-1.5">Subscription Status</p>
-                        {(() => {
-                          const diff = new Date(user.radiusCredentials.expiration_date).getTime() - Date.now()
-                          const d = Math.floor(diff / 86400000)
-                          const h = Math.floor((diff % 86400000) / 3600000)
-                          if (diff <= 0) return <Badge variant="destructive">Expired</Badge>
-                          if (h < 24) return <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400">{h}h remaining</Badge>
-                          return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">{d}d remaining</Badge>
-                        })()}
-                      </div>
-                    )}
+                    {/* FIX 2: REMOVED duplicate expiry badge - now only shows status badge */}
                     <div className="flex items-center gap-2 text-xs pt-1">
                       <Badge variant={user.radiusCredentials?.is_enabled !== false ? "default" : "secondary"} className="text-xs">
                         {user.radiusCredentials?.is_enabled !== false ? 'Enabled' : 'Disabled'}
@@ -1313,31 +1281,30 @@ export default function UserDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Disconnect Dialog */}
-      <Dialog open={isDisconnectDialogOpen} onOpenChange={setIsDisconnectDialogOpen}>
+      {/* FIX: SMS Dialog */}
+      <Dialog open={showSmsDialog} onOpenChange={setShowSmsDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Disconnect User</DialogTitle>
+            <DialogTitle>Send SMS</DialogTitle>
             <DialogDescription>
-              Are you sure you want to disconnect <strong>{user.fullName}</strong> from the network?
-              This will immediately terminate their active session.
+              Send a message to {user.fullName} ({user.phone})
             </DialogDescription>
           </DialogHeader>
+          <Textarea
+            placeholder="Type your message..."
+            value={smsMessage}
+            onChange={(e) => setSmsMessage(e.target.value)}
+            rows={4}
+          />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDisconnectDialogOpen(false)} disabled={disconnecting}>
+            <Button variant="outline" onClick={() => setShowSmsDialog(false)} disabled={sendingSms}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDisconnect} disabled={disconnecting}>
-              {disconnecting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Disconnecting...
-                </>
+            <Button onClick={handleSendSms} disabled={sendingSms || !smsMessage.trim()}>
+              {sendingSms ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending...</>
               ) : (
-                <>
-                  <Ban className="w-4 h-4 mr-2" />
-                  Disconnect
-                </>
+                <><Send className="w-4 h-4 mr-2" />Send SMS</>
               )}
             </Button>
           </DialogFooter>

@@ -342,6 +342,14 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [serverPage, setServerPage] = useState(1)
+  
+  // ============================================================
+  // FIX 1: Infinite scroll state
+  // ============================================================
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const observerTarget = useRef<HTMLDivElement | null>(null)
+  
   const [hotspotClients, setHotspotClients] = useState<HotspotClientData[]>([])
   const [activeSubscriptions, setActiveSubscriptions] = useState<ActiveSubscriptionsResponse>({ pppoe: [], hotspot: [], total: 0 })
   const [hotspotLoading, setHotspotLoading] = useState(false)
@@ -403,7 +411,6 @@ export default function UsersPage() {
   const [availableIPs, setAvailableIPs] = useState<AvailableIP[] & { total_available?: number }>([])
   const [availableIPsLoading, setAvailableIPsLoading] = useState(false)
   const [ipSearchQuery, setIpSearchQuery] = useState("")
-  // FIX: Replace onlineSessions and onlineUsernameSet with onlineMap
   const [onlineSessions, setOnlineSessions] = useState<OnlineSession[]>([])
   const [onlineSessionsLoading, setOnlineSessionsLoading] = useState(false)
   const [onlineTotal, setOnlineTotal] = useState(0)
@@ -489,7 +496,6 @@ export default function UsersPage() {
   const [expiredUsers, setExpiredUsers] = useState<User[]>([])
   const [expiredUsersLoading, setExpiredUsersLoading] = useState(false)
 
-  // FIX: Replace onlineUsernameSet with onlineMap
   const [onlineMap, setOnlineMap] = useState<Record<string, { usage: string; ip: string; mac: string; router_ip: string }>>({})
   const [onlineMapLoading, setOnlineMapLoading] = useState(false)
 
@@ -546,7 +552,6 @@ export default function UsersPage() {
     }
   }
 
-  // loadExpiredUsersFromRADIUS - fetch ALL pages using page_size=100
   const loadExpiredUsersFromRADIUS = async () => {
     if (expiredUsersLoading) return
     try {
@@ -650,7 +655,7 @@ export default function UsersPage() {
     }).catch(() => {})
   }, [])
 
-  // FIX: Initial load - load users and online map in parallel
+  // Initial load
   useEffect(() => {
     if (hasFetched.current) return
     hasFetched.current = true
@@ -692,7 +697,6 @@ export default function UsersPage() {
     }
   }
 
-  // FIX: NEW - Fast load just for status/usage mapping (called on page load)
   const loadOnlineMap = async () => {
     try {
       setOnlineMapLoading(true)
@@ -706,7 +710,6 @@ export default function UsersPage() {
     }
   }
 
-  // FIX: Keep this for the Online Sessions tab display (called only when tab is opened)
   const loadOnlineSessions = async (page = 1) => {
     try {
       setOnlineSessionsLoading(true)
@@ -814,9 +817,12 @@ export default function UsersPage() {
     setIpSearchQuery("")
   }, [selectedPlanPool])
 
-  const loadUsers = async (page = 1, search?: string, status?: string) => {
+  // ============================================================
+  // FIX 2: loadUsers with append parameter for infinite scroll
+  // ============================================================
+  const loadUsers = async (page = 1, search?: string, status?: string, append = false) => {
     try {
-      setLoading(true)
+      append ? setLoadingMore(true) : setLoading(true)
       setError(null)
       const params: Record<string, string> = {
         page_size: "50",
@@ -838,6 +844,7 @@ export default function UsersPage() {
 
       if (effectiveStatus === "expired") {
         setLoading(false)
+        setLoadingMore(false)
         return
       }
 
@@ -847,21 +854,53 @@ export default function UsersPage() {
 
       const response = await adminApi.getCustomers(params)
       const mappedUsers = response.results.map(mapCustomerToUser)
-      setUsers(mappedUsers)
+      setUsers(prev => append ? [...prev, ...mappedUsers] : mappedUsers)
       setTotalCount(response.count)
+      setHasMore(page * 50 < response.count)
     } catch (err) {
       console.error('Failed to load users:', err)
       setError("Failed to load users. Please try again.")
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
 
-  // FIX: handleRefresh - load online map instead of online sessions
+  // ============================================================
+  // FIX 3: loadMoreUsers - triggers next page load
+  // ============================================================
+  const loadMoreUsers = () => {
+    if (loadingMore || loading || !hasMore) return
+    const nextPage = serverPage + 1
+    setServerPage(nextPage)
+    loadUsers(nextPage, searchQuery, statusFilter, true)
+  }
+
+  // ============================================================
+  // FIX 4: Infinite scroll observer effect
+  // ============================================================
+  useEffect(() => {
+    const target = observerTarget.current
+    if (!target) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMoreUsers()
+      },
+      { threshold: 0.1 }
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [loadingMore, loading, hasMore, serverPage, searchQuery, statusFilter])
+
+  // ============================================================
+  // FIX 5: handleRefresh - resets pagination state
+  // ============================================================
   const handleRefresh = async () => {
     setRefreshing(true)
+    setServerPage(1)
+    setHasMore(true)
     await Promise.all([
-      loadUsers(serverPage, searchQuery, statusFilter),
+      loadUsers(1, searchQuery, statusFilter, false),
       loadOnlineMap(),
       loadServerStats(),
       loadStatusCounts(),
@@ -997,7 +1036,9 @@ export default function UsersPage() {
       setIpSearchQuery("")
       setShowAddUserDialog(false)
       
-      await loadUsers(serverPage, searchQuery, statusFilter)
+      await loadUsers(1, searchQuery, statusFilter, false)
+      setServerPage(1)
+      setHasMore(true)
       await loadServerStats()
       await loadStatusCounts()
       
@@ -1081,7 +1122,6 @@ export default function UsersPage() {
     return username.slice(-9)
   }
 
-  // FIX: Build map from onlineSessions for detailed session info (kept for tab display)
   const onlineSessionsByUsername = useMemo(() => {
     const map = new Map<string, OnlineSession>()
     for (const s of onlineSessions) {
@@ -1090,7 +1130,6 @@ export default function UsersPage() {
     return map
   }, [onlineSessions])
 
-  // FIX: enrichedUsers - uses onlineMap for online/offline status
   const enrichedUsers = useMemo(() => {
     return users.map((user) => {
       const username = user.radiusCredentials?.username
@@ -1118,7 +1157,6 @@ export default function UsersPage() {
     });
   }, [hotspotClients]);
 
-  // FIX: stats - uses Object.keys(onlineMap).length for online count
   const stats: UserStats = useMemo(() => {
     const onlineCount = Object.keys(onlineMap).length
     
@@ -1172,7 +1210,6 @@ export default function UsersPage() {
 
   const totalPages = Math.ceil(totalCount / 50)
 
-  // FIX: Filtered online sessions with proper pagination
   const filteredOnlineSessions = useMemo(() => {
     return onlineSessions.filter((session) => {
       const matchesSearch = !onlineSearchQuery || (
@@ -1207,22 +1244,20 @@ export default function UsersPage() {
     return set
   }, [onlineSessions])
 
-  // FIX: Debounced search via useEffect - prevents input losing focus
+  // ============================================================
+  // FIX 6: Debounced search - resets pagination
+  // ============================================================
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
     searchDebounceRef.current = setTimeout(() => {
       setServerPage(1)
-      loadUsers(1, searchQuery, statusFilter)
+      setHasMore(true)
+      loadUsers(1, searchQuery, statusFilter, false)
     }, 400)
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
     }
   }, [searchQuery, statusFilter])
-
-  const handlePageChange = (newPage: number) => {
-    setServerPage(newPage)
-    loadUsers(newPage, searchQuery, statusFilter)
-  }
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -1303,7 +1338,7 @@ export default function UsersPage() {
     try {
       await adminApi.suspendService(user.customerId, user.serviceId, 'Manual disconnect')
       toast.success(`${user.name} disconnected`)
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineMap()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter, false), loadOnlineMap()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to disconnect user')
     }
@@ -1415,7 +1450,7 @@ export default function UsersPage() {
 
       setShowChangePlanDialog(false)
       setUserToChangePlan(null)
-      await loadUsers(serverPage, searchQuery, statusFilter)
+      await loadUsers(serverPage, searchQuery, statusFilter, false)
       await loadServerStats()
     } catch (err: any) {
       console.error("Failed to change plan:", err)
@@ -1441,7 +1476,7 @@ export default function UsersPage() {
       setShowEditIPDialog(false)
       setUserToEditIP(null)
       setEditIPPoolId(null)
-      await loadUsers(serverPage, searchQuery, statusFilter)
+      await loadUsers(serverPage, searchQuery, statusFilter, false)
       await loadOnlineMap()
     } catch (err: any) {
       toast.error(err.message || 'Failed to change IP address')
@@ -1511,7 +1546,7 @@ export default function UsersPage() {
       setExtendManualDate("")
       setExtendManualTime("23:59")
       setExtendMode("duration")
-      await loadUsers(serverPage, searchQuery, statusFilter)
+      await loadUsers(serverPage, searchQuery, statusFilter, false)
       await loadServerStats()
     } catch (err: any) {
       toast.error(err.message || 'Failed to extend subscription')
@@ -1533,7 +1568,7 @@ export default function UsersPage() {
       toast.success(`${userToDelete.name} deleted successfully. RADIUS credentials cleaned up.`)
       setShowDeleteConfirmDialog(false)
       setUserToDelete(null)
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter, false), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete user')
     } finally {
@@ -1551,10 +1586,10 @@ export default function UsersPage() {
       }
       toast.success(`${usersToDelete.length} user(s) deleted successfully`)
       setSelectedUsers([])
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter, false), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete some users')
-      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter, false), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
     } finally {
       setDeleting(false)
     }
@@ -1569,7 +1604,7 @@ export default function UsersPage() {
       setActivating(true)
       await adminApi.activateService(user.customerId, user.serviceId)
       toast.success(`${user.name} activated! Expiration timer starts now.`)
-      await loadUsers(serverPage, searchQuery, statusFilter)
+      await loadUsers(serverPage, searchQuery, statusFilter, false)
       await loadServerStats()
     } catch (err: any) {
       toast.error(err.message || 'Failed to activate user')
@@ -1587,7 +1622,7 @@ export default function UsersPage() {
         enable ? 'Enabled via admin panel' : 'Disabled via admin panel'
       )
       toast.success(`RADIUS ${enable ? 'enabled' : 'disabled'} for ${user.name}`)
-      await loadUsers(serverPage, searchQuery, statusFilter)
+      await loadUsers(serverPage, searchQuery, statusFilter, false)
     } catch (err: any) {
       toast.error(err.message || `Failed to ${enable ? 'enable' : 'disable'} RADIUS`)
     } finally {
@@ -1644,7 +1679,7 @@ export default function UsersPage() {
       
       toast.success('User updated successfully!')
       setShowEditUserDialog(false)
-      await loadUsers(serverPage, searchQuery, statusFilter)
+      await loadUsers(serverPage, searchQuery, statusFilter, false)
       
     } catch (err: any) {
       console.error('Failed to update user:', err)
@@ -1809,7 +1844,7 @@ export default function UsersPage() {
 
   return (
     <PageWrapper>
-      {/* Header - same as before */}
+      {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Users Management</h1>
@@ -2194,7 +2229,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Stats Bar - Same as before */}
+      {/* Stats Bar */}
       <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-x-auto relative">
         {[
           { label: "Total", value: stats.total, key: "all", tab: "all", status: "all", color: "text-slate-800 dark:text-slate-200" },
@@ -2329,7 +2364,12 @@ export default function UsersPage() {
                 key={value}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setStatusFilter(value)}
+                onClick={() => {
+                  setStatusFilter(value)
+                  setServerPage(1)
+                  setHasMore(true)
+                  loadUsers(1, searchQuery, value, false)
+                }}
                 className={`relative px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   statusFilter === value
                     ? "text-white shadow-sm"
@@ -2381,7 +2421,7 @@ export default function UsersPage() {
         )}
       </motion.div>
 
-      {/* Search - inline without card wrapper */}
+      {/* Search */}
       {!["online-sessions", "active-subs", "hotspot"].includes(activeTab) && (
         <motion.div 
           initial={{ opacity: 0, y: 4 }}
@@ -2425,7 +2465,7 @@ export default function UsersPage() {
         </motion.div>
       )}
 
-      {/* -- Online Sessions Tab (kept the same) -- */}
+      {/* -- Online Sessions Tab -- */}
       {activeTab === "online-sessions" && (
         <motion.div
           key="online-sessions"
@@ -2633,7 +2673,7 @@ export default function UsersPage() {
         </motion.div>
       )}
 
-      {/* -- Active Subscriptions Tab (kept the same) -- */}
+      {/* -- Active Subscriptions Tab -- */}
       {activeTab === "active-subs" && (
         <motion.div
           key="active-subs"
@@ -2872,7 +2912,7 @@ export default function UsersPage() {
         </motion.div>
       )}
 
-      {/* -- Hotspot Clients Tab (kept the same) -- */}
+      {/* -- Hotspot Clients Tab -- */}
       {activeTab === "hotspot" && (
         <motion.div
           key="hotspot"
@@ -3301,31 +3341,23 @@ export default function UsersPage() {
                     </Table>
                   </div>
 
-                  {totalPages > 1 && statusFilter !== "expired" && (
-                    <div className="flex items-center justify-between mt-4">
-                      <p className="text-sm text-muted-foreground">
-                        Page {serverPage} of {totalPages}
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={serverPage === 1}
-                          onClick={() => handlePageChange(serverPage - 1)}
-                          className="transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                          Previous
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={serverPage === totalPages}
-                          onClick={() => handlePageChange(serverPage + 1)}
-                          className="transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                          Next
-                        </Button>
-                      </div>
+                  {/* ============================================================
+                      FIX 7: Infinite scroll sentinel - replaces pagination buttons
+                      ============================================================ */}
+                  {statusFilter !== "expired" && (
+                    <div ref={observerTarget} className="flex items-center justify-center py-6">
+                      {loadingMore && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Loading more users...
+                        </div>
+                      )}
+                      {!hasMore && users.length > 0 && (
+                        <p className="text-xs text-slate-400">You've reached the end</p>
+                      )}
+                      {!loadingMore && !hasMore && users.length === 0 && (
+                        <p className="text-xs text-slate-400">No users to display</p>
+                      )}
                     </div>
                   )}
                 </>
@@ -3334,9 +3366,6 @@ export default function UsersPage() {
           </Card>
         </motion.div>
       )}
-
-      {/* All dialogs - kept the same as before, too long to repeat here */}
-      {/* ... (all the dialogs from the original file go here) ... */}
 
       {/* Edit User Dialog */}
       <Dialog open={showEditUserDialog} onOpenChange={setShowEditUserDialog}>
@@ -3608,7 +3637,7 @@ export default function UsersPage() {
                           toast.success(`${userToExtend.name} will expire in 1 minute`)
                           setShowExtendDialog(false)
                           setUserToExtend(null)
-                          await loadUsers(serverPage, searchQuery, statusFilter)
+                          await loadUsers(serverPage, searchQuery, statusFilter, false)
                         } catch (err: any) {
                           toast.error(err.message || 'Failed to expire user')
                         } finally {
@@ -3718,7 +3747,7 @@ export default function UsersPage() {
                         toast.success(`${userToExtend.name} will expire in 1 minute`)
                         setShowExtendDialog(false)
                         setUserToExtend(null)
-                        await loadUsers(serverPage, searchQuery, statusFilter)
+                        await loadUsers(serverPage, searchQuery, statusFilter, false)
                       } catch (err: any) {
                         toast.error(err.message || 'Failed to expire user')
                       } finally {
