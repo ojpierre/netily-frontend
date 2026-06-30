@@ -160,7 +160,7 @@ const getStatusBadge = (status: string) => {
 }
 
 // ============================================================
-// FIX 2: CustomerSearchCombobox - Using adminApi's base URL
+// FIX 2: CustomerSearchCombobox - Using adminApi.rawRequest()
 // ============================================================
 function CustomerSearchCombobox({ value, onChange }: {
   value: { id: number; full_name: string; customer_code: string } | null
@@ -173,31 +173,25 @@ function CustomerSearchCombobox({ value, onChange }: {
   const timer = useRef<any>(null)
 
   // ============================================================
-  // FIX: Use dynamic API_BASE and proper token retrieval
+  // FIX: Use adminApi.rawRequest() instead of raw fetch with manual token
+  // This properly handles:
+  // - Host-scoped token resolution (adminToken:pink4.netily.co.ke)
+  // - 401 → refresh token retry logic
+  // - Proper error handling
   // ============================================================
   const search = useCallback(async (q: string) => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken') || ''
-      // Use the dynamic API_BASE
-      const res = await fetch(`${API_BASE}/billing/customers/search/?q=${encodeURIComponent(q)}&limit=8`, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setResults(data.results || [])
-      } else {
-        console.error('Search failed:', res.status, await res.text().catch(() => ''))
-        setResults([])
-      }
+      // ✅ Use adminApi.rawRequest - it handles token resolution correctly
+      const data = await adminApi.rawRequest<{ results: any[] }>(
+        `/billing/customers/search/?q=${encodeURIComponent(q)}&limit=8`
+      )
+      setResults(data.results || [])
     } catch (e) {
       console.error('Customer search error:', e)
       setResults([])
-    } finally { 
-      setLoading(false) 
+    } finally {
+      setLoading(false)
     }
   }, [])
 
@@ -491,41 +485,44 @@ export default function InvoiceManagementPage() {
     reason: '',
   })
 
-  const getToken = () =>
-    (typeof window !== 'undefined' && (localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken'))) || ''
+  // ✅ FIX: Use adminApi for all API calls instead of raw fetch with manual token
+  // This ensures consistent token handling across the entire page
 
   const fetchData = useCallback(async () => {
     try {
-      const token = getToken()
       const params = new URLSearchParams({ ordering: '-created_at' })
       if (activeTab !== 'all') params.set('status', activeTab.toUpperCase())
       if (searchQuery) params.set('search', searchQuery)
 
-      const [invRes, settingsRes] = await Promise.all([
-        fetch(`${API_BASE}/billing/invoices/?${params}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/billing/invoice-settings/`, { headers: { Authorization: `Bearer ${token}` } }),
+      // ✅ Use adminApi.rawRequest instead of raw fetch
+      const [invData, settingsData, brandingData] = await Promise.all([
+        adminApi.rawRequest<any>(`/billing/invoices/?${params}`),
+        adminApi.rawRequest<any>('/billing/invoice-settings/').catch(() => null),
+        adminApi.rawRequest<any>('/core/branding/').catch(() => null),
       ])
 
-      if (invRes.ok) {
-        const data = await invRes.json()
-        setInvoices(Array.isArray(data) ? data : data.results || [])
-        if (data.stats) setStats(data.stats)
-      }
-      if (settingsRes.ok) {
-        const s = await settingsRes.json()
-        setAutoGenEnabled(s.auto_generate_enabled)
+      // Handle invoices response
+      if (invData) {
+        setInvoices(Array.isArray(invData) ? invData : invData.results || [])
+        if (invData.stats) setStats(invData.stats)
       }
 
-      // Company name
-      try {
-        const br = await fetch(`${API_BASE}/core/branding/`, { headers: { Authorization: `Bearer ${token}` } })
-        if (br.ok) { const d = await br.json(); setCompanyName(d.name || 'ISP Management') }
-      } catch { }
+      // Handle settings
+      if (settingsData) {
+        setAutoGenEnabled(settingsData.auto_generate_enabled)
+      }
+
+      // Handle company name
+      if (brandingData) {
+        setCompanyName(brandingData.name || 'ISP Management')
+      }
 
     } catch (e) {
-      console.error(e)
+      console.error('Fetch error:', e)
       toast.error('Failed to load invoices')
-    } finally { setIsLoading(false) }
+    } finally {
+      setIsLoading(false)
+    }
   }, [activeTab, searchQuery])
 
   useEffect(() => { fetchData() }, [fetchData])
@@ -540,42 +537,39 @@ export default function InvoiceManagementPage() {
   const handleToggleAutoGen = async (val: boolean) => {
     setAutoGenLoading(true)
     try {
-      const token = getToken()
-      const res = await fetch(`${API_BASE}/billing/invoice-settings/`, {
+      await adminApi.rawRequest('/billing/invoice-settings/', {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ auto_generate_enabled: val })
       })
-      if (res.ok) {
-        setAutoGenEnabled(val)
-        toast.success(val ? 'Auto-generation enabled' : 'Auto-generation disabled')
-      }
-    } catch { toast.error('Failed to update setting') } finally { setAutoGenLoading(false) }
+      setAutoGenEnabled(val)
+      toast.success(val ? 'Auto-generation enabled' : 'Auto-generation disabled')
+    } catch {
+      toast.error('Failed to update setting')
+    } finally {
+      setAutoGenLoading(false)
+    }
   }
 
   const handleViewDetails = async (invoice: any) => {
     setSelectedInvoice(invoice)
     setIsDetailOpen(true)
     try {
-      const token = getToken()
-      const res = await fetch(`${API_BASE}/billing/invoices/${invoice.id}/payments/`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.ok) { const data = await res.json(); setInvoicePayments(data || []) }
-    } catch { }
+      const data = await adminApi.rawRequest<any>(`/billing/invoices/${invoice.id}/payments/`)
+      setInvoicePayments(data || [])
+    } catch {
+      setInvoicePayments([])
+    }
   }
 
   const handlePreview = async (invoice: any) => {
     // Fetch full invoice with items if not loaded
     if (!invoice.items || invoice.items.length === 0) {
       try {
-        const token = getToken()
-        const res = await fetch(`${API_BASE}/billing/invoices/${invoice.id}/`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        if (res.ok) { const d = await res.json(); setSelectedInvoice(d) }
-        else setSelectedInvoice(invoice)
-      } catch { setSelectedInvoice(invoice) }
+        const data = await adminApi.rawRequest<any>(`/billing/invoices/${invoice.id}/`)
+        setSelectedInvoice(data)
+      } catch {
+        setSelectedInvoice(invoice)
+      }
     } else {
       setSelectedInvoice(invoice)
     }
@@ -584,12 +578,11 @@ export default function InvoiceManagementPage() {
 
   const handleDownloadPDF = async (invoice: any) => {
     try {
-      const token = getToken()
-      const res = await fetch(`${API_BASE}/billing/invoices/${invoice.id}/pdf/`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await adminApi.rawRequest<Blob>(`/billing/invoices/${invoice.id}/pdf/`, {
+        headers: { 'Accept': 'application/pdf' }
       })
-      if (!res.ok) throw new Error('Download failed')
-      const blob = await res.blob()
+      // Handle blob response
+      const blob = response as unknown as Blob
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -597,7 +590,9 @@ export default function InvoiceManagementPage() {
       a.click()
       URL.revokeObjectURL(url)
       toast.success('PDF downloaded')
-    } catch { toast.error('PDF download failed') }
+    } catch {
+      toast.error('PDF download failed')
+    }
   }
 
   const handleAddPayment = async () => {
@@ -635,15 +630,14 @@ export default function InvoiceManagementPage() {
   const handleDeleteInvoice = async (invoice: any) => {
     if (!confirm(`Delete invoice ${invoice.invoice_number}? This cannot be undone.`)) return
     try {
-      const token = getToken()
-      const res = await fetch(`${API_BASE}/billing/invoices/${invoice.id}/`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+      await adminApi.rawRequest(`/billing/invoices/${invoice.id}/`, {
+        method: 'DELETE'
       })
-      if (res.ok || res.status === 204) {
-        toast.success('Invoice deleted')
-        fetchData()
-      } else toast.error('Failed to delete invoice')
-    } catch { toast.error('Failed to delete invoice') }
+      toast.success('Invoice deleted')
+      fetchData()
+    } catch {
+      toast.error('Failed to delete invoice')
+    }
   }
 
   // ============================================================
@@ -658,8 +652,6 @@ export default function InvoiceManagementPage() {
 
     setIsSubmitting(true)
     try {
-      const token = getToken()
-
       // ============================================================
       // FIX: Proper payload with no 'invoice' field in items
       // Added service_period_start and service_period_end
@@ -681,16 +673,10 @@ export default function InvoiceManagementPage() {
         })),
       }
 
-      const res = await fetch(`${API_BASE}/billing/invoices/`, {
+      await adminApi.rawRequest('/billing/invoices/', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.detail || JSON.stringify(err) || 'Failed to create invoice')
-      }
 
       toast.success('Invoice created successfully')
       setIsCreateOpen(false)
