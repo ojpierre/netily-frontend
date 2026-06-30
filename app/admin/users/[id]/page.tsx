@@ -391,184 +391,129 @@ export default function UserDetailPage() {
   
   const userId = Number(params.id)
 
+  // OPTIMIZED: fetchUserData with Promise.all batching
   const fetchUserData = useCallback(async () => {
     try {
       setLoading(true)
-      
-      // Fetch customer
-      const customer = await adminApi.getCustomer(userId)
-      
-      // Fetch services
-      let services: CustomerService[] = []
-      try {
-        const servicesRes = await adminApi.getCustomerServices(userId)
-        services = servicesRes || []
-      } catch (err) {
-        console.warn('Failed to load services:', err)
+
+      // WAVE 1 — none of these depend on each other, only on userId
+      const [customer, servicesRes, radiusListRes] = await Promise.all([
+        adminApi.getCustomer(userId),
+        adminApi.getCustomerServices(userId).catch((err) => {
+          console.warn('Failed to load services:', err)
+          return [] as CustomerService[]
+        }),
+        adminApi.getRADIUSCredentials({ customer: String(userId), page_size: '1' }).catch((err) => {
+          console.warn('Failed to load RADIUS creds:', err)
+          return { results: [] } as any
+        }),
+      ])
+
+      if (!customer) {
+        setLoading(false)
+        return
       }
 
-      // FIX 3: Fetch RADIUS credentials - use detail endpoint to get password
-      let radiusCreds = null
-      try {
-        const credsRes = await adminApi.getRADIUSCredentials({ customer: String(userId), page_size: '1' })
-        const credSummary = credsRes?.results?.[0] || null
-        if (credSummary?.id) {
-          try {
-            // Detail endpoint uses CustomerRadiusCredentialsDetailSerializer which exposes password
-            const credDetail = await adminApi.getRADIUSCredential(String(credSummary.id))
-            radiusCreds = credDetail
-          } catch {
-            // fall back to summary
-            radiusCreds = credSummary
-          }
+      const services: CustomerService[] = servicesRes || []
+      const credSummary = radiusListRes?.results?.[0] || null
+      const mappedUser = mapCustomerToUser(customer, services, credSummary)
+      const pppoeUser = mappedUser.pppoeUsername || credSummary?.username
+
+      // WAVE 2 — all depend only on userId / credSummary, fire together
+      const [paymentsRes, ticketsRes, sessionsRes, credDetail, poolRes] = await Promise.all([
+        adminApi.getPayments({ customer: String(userId), page_size: '20' })
+          .catch((err) => { console.warn('Failed to load payments:', err); return { results: [] } as any }),
+        adminApi.getTickets({ customer_id: String(userId), page_size: '20' })
+          .catch((err) => { console.warn('Failed to load tickets:', err); return { results: [] } as any }),
+        pppoeUser
+          ? adminApi.getRADIUSSessions({ username: pppoeUser, page_size: '20' })
+              .catch((err) => { console.warn('Failed to load RADIUS sessions:', err); return { results: [] } as any })
+          : Promise.resolve({ results: [] } as any),
+        credSummary?.id
+          ? adminApi.getRADIUSCredential(String(credSummary.id)).catch(() => credSummary)
+          : Promise.resolve(null),
+        credSummary?.router && credSummary?.ip_pool
+          ? adminApi.getIPPools({ router_id: String(credSummary.router), name: credSummary.ip_pool }).catch(() => null)
+          : Promise.resolve(null),
+      ])
+
+      setPaymentsLoading(false)
+      setTicketsLoading(false)
+      setSessionsLoading(false)
+
+      // Payments
+      const paymentsList = paymentsRes.results || []
+      mappedUser.totalPayments = paymentsList.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0)
+      setPayments(paymentsList.map(mapPayment))
+
+      // Tickets
+      setTickets((ticketsRes.results || []).map(mapTicket))
+
+      // Sessions + live status
+      if (sessionsRes?.results?.length) {
+        setSessions(sessionsRes.results.map(mapSession))
+        mappedUser.totalSessions = sessionsRes.results.length
+        const latestSession = sessionsRes.results[0]
+        if (!latestSession.acctstoptime) {
+          mappedUser.connectionStatus = 'online'
+          mappedUser.ipAddress = latestSession.framedipaddress || mappedUser.ipAddress
+          mappedUser.macAddress = latestSession.callingstationid || mappedUser.macAddress
+          mappedUser.router = (latestSession as any).router_name || latestSession.nasipaddress || mappedUser.router
+          mappedUser.lastSeen = 'Now'
         } else {
-          radiusCreds = credSummary
+          mappedUser.connectionStatus = 'offline'
+          mappedUser.lastSeen = new Date(latestSession.acctstoptime).toLocaleString()
+          mappedUser.macAddress = latestSession.callingstationid || mappedUser.macAddress
+          mappedUser.router = (latestSession as any).router_name || latestSession.nasipaddress || mappedUser.router
         }
-      } catch (err) {
-        console.warn('Failed to load RADIUS creds:', err)
+      } else {
+        setSessions([])
       }
 
-      if (customer) {
-        const mappedUser = mapCustomerToUser(customer, services, radiusCreds)
-        
-        // Fetch payments
-        try {
-          setPaymentsLoading(true)
-          const paymentsRes = await adminApi.getPayments({ customer: String(userId), page_size: '20' })
-          const paymentsList = paymentsRes.results || []
-          const totalPayments = paymentsList.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
-          mappedUser.totalPayments = totalPayments
-          setPayments(paymentsList.map(mapPayment))
-        } catch (err) {
-          console.warn('Failed to load payments:', err)
-          setPayments([])
-        } finally {
-          setPaymentsLoading(false)
-        }
+      // Merge detailed RADIUS cred (has password) into mappedUser before render
+      const finalCred = credDetail || credSummary
+      mappedUser.radiusCredentials = finalCred
+      mappedUser.pppoePassword = finalCred?.password || mappedUser.pppoePassword
+      setRadiusCreds(finalCred)
 
-        // Fetch tickets
-        try {
-          setTicketsLoading(true)
-          const ticketsRes = await adminApi.getTickets({ customer_id: String(userId), page_size: '20' })
-          const ticketsList = ticketsRes.results || []
-          setTickets(ticketsList.map(mapTicket))
-        } catch (err) {
-          console.warn('Failed to load tickets:', err)
-          setTickets([])
-        } finally {
-          setTicketsLoading(false)
-        }
+      setUser(mappedUser)
 
-        // Fetch RADIUS sessions
-        const pppoeUser = mappedUser.pppoeUsername
-        if (pppoeUser) {
-          try {
-            setSessionsLoading(true)
-            const sessionsRes = await adminApi.getRADIUSSessions({ username: pppoeUser, page_size: '20' })
-            if (sessionsRes?.results) {
-              setSessions(sessionsRes.results.map(mapSession))
-              mappedUser.totalSessions = sessionsRes.results.length
-
-              // Enrich from latest RADIUS session
-              const latestSession = sessionsRes.results[0]
-              if (latestSession) {
-                // Check if currently online (no stop time)
-                if (!latestSession.acctstoptime) {
-                  mappedUser.connectionStatus = 'online'
-                  mappedUser.ipAddress = latestSession.framedipaddress || mappedUser.ipAddress
-                  mappedUser.macAddress = latestSession.callingstationid || mappedUser.macAddress
-                  mappedUser.router = (latestSession as any).router_name || latestSession.nasipaddress || mappedUser.router
-                  mappedUser.lastSeen = 'Now'
-                } else {
-                  mappedUser.connectionStatus = 'offline'
-                  mappedUser.lastSeen = latestSession.acctstoptime
-                    ? new Date(latestSession.acctstoptime).toLocaleString()
-                    : mappedUser.lastSeen
-                  mappedUser.macAddress = latestSession.callingstationid || mappedUser.macAddress
-                  mappedUser.router = (latestSession as any).router_name || latestSession.nasipaddress || mappedUser.router
-                }
-              }
-            }
-          } catch (err) {
-            console.warn('Failed to load RADIUS sessions:', err)
-            setSessions([])
-          } finally {
-            setSessionsLoading(false)
-          }
-        } else {
-          setSessions([])
-          setSessionsLoading(false)
-        }
-
-        setUser(mappedUser)
-
-        // Internet Check: Fetch RADIUS credentials
-        try {
-          const credsRes = await adminApi.getRADIUSCredentials({ customer: String(userId), page_size: '1' })
-          const cred = credsRes?.results?.[0] || null
-          setRadiusCreds(cred)
-
-          if (!cred) {
-            setInternetCheck({
-              status: 'none',
-              label: 'No RADIUS',
-              detail: 'No RADIUS credentials found for this customer.',
-            })
-          } else if (!cred.is_enabled) {
-            setInternetCheck({
-              status: 'red',
-              label: 'Disabled',
-              detail: `RADIUS account disabled: ${cred.disabled_reason || 'No reason given'}`,
-              routerName: cred.router_name,
-            })
-          } else if (!cred.ip_pool) {
-            setInternetCheck({
-              status: 'yellow',
-              label: 'No Pool',
-              detail: 'RADIUS credentials exist but no IP pool (Framed-Pool) is assigned. The router will use its default pool.',
-              routerName: cred.router_name,
-            })
-          } else {
-            // Pool is set — try to verify it exists on the assigned router
-            let poolValid = false
-            if (cred.router) {
-              try {
-                const poolsRes = await adminApi.getIPPools({ router_id: String(cred.router), name: cred.ip_pool })
-                poolValid = (poolsRes?.results?.length || 0) > 0
-              } catch {
-                // If pool check fails, assume valid
-                poolValid = true
-              }
-            } else {
-              poolValid = true // No router assigned, can't verify
-            }
-
-            if (poolValid) {
-              setInternetCheck({
+      // Internet health check — reuses finalCred/poolRes, no extra network call
+      if (!finalCred) {
+        setInternetCheck({ status: 'none', label: 'No RADIUS', detail: 'No RADIUS credentials found for this customer.' })
+      } else if (!finalCred.is_enabled) {
+        setInternetCheck({
+          status: 'red',
+          label: 'Disabled',
+          detail: `RADIUS account disabled: ${finalCred.disabled_reason || 'No reason given'}`,
+          routerName: finalCred.router_name,
+        })
+      } else if (!finalCred.ip_pool) {
+        setInternetCheck({
+          status: 'yellow',
+          label: 'No Pool',
+          detail: 'RADIUS credentials exist but no IP pool (Framed-Pool) is assigned. The router will use its default pool.',
+          routerName: finalCred.router_name,
+        })
+      } else {
+        const poolValid = finalCred.router ? (poolRes?.results?.length || 0) > 0 : true
+        setInternetCheck(
+          poolValid
+            ? {
                 status: 'green',
                 label: 'Connected',
-                detail: `Pool "${cred.ip_pool}" is configured${cred.router_name ? ` on ${cred.router_name}` : ''}. RADIUS will assign an IP from this pool.`,
-                pool: cred.ip_pool,
-                routerName: cred.router_name,
-              })
-            } else {
-              setInternetCheck({
+                detail: `Pool "${finalCred.ip_pool}" is configured${finalCred.router_name ? ` on ${finalCred.router_name}` : ''}. RADIUS will assign an IP from this pool.`,
+                pool: finalCred.ip_pool,
+                routerName: finalCred.router_name,
+              }
+            : {
                 status: 'red',
                 label: 'Pool Mismatch',
-                detail: `Pool "${cred.ip_pool}" does not exist on router ${cred.router_name || 'Unknown'}. Customer will NOT get an IP address.`,
-                pool: cred.ip_pool,
-                routerName: cred.router_name,
-              })
-            }
-          }
-        } catch (err) {
-          console.warn('Failed to check RADIUS status:', err)
-          setInternetCheck({
-            status: 'none',
-            label: 'Unknown',
-            detail: 'Could not check RADIUS status.',
-          })
-        }
+                detail: `Pool "${finalCred.ip_pool}" does not exist on router ${finalCred.router_name || 'Unknown'}. Customer will NOT get an IP address.`,
+                pool: finalCred.ip_pool,
+                routerName: finalCred.router_name,
+              }
+        )
       }
     } catch (err) {
       console.error('Failed to load user data:', err)
