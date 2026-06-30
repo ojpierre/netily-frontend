@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
@@ -217,6 +217,15 @@ export default function AdminDashboard() {
   // State for expired customers count (derived from RADIUS credentials)
   const [expiredCount, setExpiredCount] = useState<number>(0)
 
+  // ─── FAST PATH: top-4-card stats, loaded independently of the heavy dashboard fetch ───
+  const [quickStats, setQuickStats] = useState<{
+    total_customers: number
+    active_subscriptions: { pppoe: number; hotspot: number; total: number }
+    expired_customers: number
+    online_count: number
+  } | null>(null)
+  const quickStatsLoading = quickStats === null
+
   // ─── NEW: SMS attention state ───
   const [smsAttention, setSmsAttention] = useState<{ configured: boolean; lowBalance: boolean; balance: number | null }>({
     configured: false,
@@ -250,6 +259,16 @@ export default function AdminDashboard() {
     { href: "/admin/plans", label: "Manage Plans", icon: BarChart3, className: "text-cyan-600" },
     { href: "/admin/invoices", label: "Invoices", icon: DollarSign, className: "text-green-600" },
   ].filter((item) => canOpenRoute(item.href))
+
+  // ─── FAST PATH: fetch quick stats independently ───
+  const fetchQuickStats = useCallback(async () => {
+    try {
+      const data = await adminApi.getUnifiedDashboard()
+      setQuickStats(data)
+    } catch (err) {
+      console.warn("Quick stats fetch failed:", err)
+    }
+  }, [])
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -349,15 +368,25 @@ export default function AdminDashboard() {
     }
   }, [])
 
+  // ─── INITIAL FETCH ──────────────────────────────────────────
   useEffect(() => {
+    // Fetch quick stats first (fast path)
+    fetchQuickStats()
+    // Then fetch the rest of the dashboard
     fetchDashboardData()
+    
     // Auto-refresh every 60 seconds
-    const interval = setInterval(fetchDashboardData, 60000)
+    const interval = setInterval(() => {
+      fetchQuickStats()
+      fetchDashboardData()
+    }, 60000)
     return () => clearInterval(interval)
-  }, [fetchDashboardData])
+  }, [fetchQuickStats, fetchDashboardData])
 
+  // ─── HANDLE REFRESH ─────────────────────────────────────────
   const handleRefresh = () => {
     setIsRefreshing(true)
+    fetchQuickStats()
     fetchDashboardData()
   }
 
@@ -528,12 +557,12 @@ export default function AdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {quickStatsLoading ? (
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
                 <div className="text-[28px] font-bold leading-none tracking-[-0.04em] text-foreground tabular-nums">
-                  {(core?.total_customers ?? 0).toLocaleString()}
+                  {(quickStats?.total_customers ?? core?.total_customers ?? 0).toLocaleString()}
                 </div>
                 <p className="mt-2 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">All PPPoE/Static users</p>
               </>
@@ -548,12 +577,12 @@ export default function AdminDashboard() {
             <UserCheck className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {quickStatsLoading ? (
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
                 <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-green-600 dark:text-green-400 leading-none">
-                  {activeSubscriptionsCount.toLocaleString()}
+                  {(quickStats?.active_subscriptions.total ?? activeSubscriptionsCount).toLocaleString()}
                 </div>
                 <p className="mt-2 flex items-center gap-1 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
                   <TrendingUp className="w-3 h-3 text-emerald-500" />
@@ -574,12 +603,12 @@ export default function AdminDashboard() {
             <UserX className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {quickStatsLoading ? (
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
                 <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-red-600 dark:text-red-400 leading-none">
-                  {expiredCount.toLocaleString()}
+                  {(quickStats?.expired_customers ?? expiredCount).toLocaleString()}
                 </div>
                 <p className="mt-2 flex items-center gap-1 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
                   <TrendingDown className="w-3 h-3 text-red-500" />
@@ -608,11 +637,11 @@ export default function AdminDashboard() {
             </span>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {quickStatsLoading ? (
               <Skeleton className="h-20 w-full" />
             ) : (() => {
-              const onlineCount = effectiveOnlineCount
-              const activeCount = activeSubscriptionsCount
+              const onlineCount = quickStats?.online_count ?? effectiveOnlineCount
+              const activeCount = quickStats?.active_subscriptions.total ?? activeSubscriptionsCount
               const pct = activeCount > 0 ? Math.round((onlineCount / activeCount) * 100) : 0
 
               return (
@@ -646,11 +675,11 @@ export default function AdminDashboard() {
                   <div className="flex gap-3 pt-0.5">
                     <span className="flex items-center gap-1.5 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
                       <span className="inline-block h-2 w-2 rounded-full bg-primary" />
-                      PPPoE: {activeSubscriptions.pppoe?.length || 0}
+                      PPPoE: {quickStats?.active_subscriptions.pppoe ?? (activeSubscriptions.pppoe?.length || 0)}
                     </span>
                     <span className="flex items-center gap-1.5 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
                       <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />
-                      Hotspot: {(activeSubscriptions.hotspot || []).filter(h => 
+                      Hotspot: {quickStats?.active_subscriptions.hotspot ?? (activeSubscriptions.hotspot || []).filter(h => 
                         h.is_active_sub ?? (h.subscription_status === 'active' && h.expiry_date && new Date(h.expiry_date) > new Date())
                       ).length}
                     </span>
