@@ -182,6 +182,13 @@ export interface SubscriptionInvoiceSummary {
   paid: number
   calculated_total: string
   hotspot_revenue: string
+  duplicates_hidden?: number
+}
+
+export interface SubscriptionInvoiceReminderSettings {
+  enabled: boolean
+  days_before: number[]
+  channels: Array<"email" | "sms" | "in_app">
 }
 
 export interface SubscriptionInvoice {
@@ -1109,6 +1116,19 @@ class SuperadminApiService {
   }
 
   // ── SMS Overview ──
+
+  async getSubscriptionInvoiceReminderSettings(): Promise<SubscriptionInvoiceReminderSettings> {
+    return this.request("/superadmin/subscription-invoices/reminder-settings/")
+  }
+
+  async updateSubscriptionInvoiceReminderSettings(
+    data: SubscriptionInvoiceReminderSettings,
+  ): Promise<SubscriptionInvoiceReminderSettings> {
+    return this.request("/superadmin/subscription-invoices/reminder-settings/", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+  }
 
   async getSMSOverview(): Promise<SMSOverview> {
     return this.request("/superadmin/sms/overview/")

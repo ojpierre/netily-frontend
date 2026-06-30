@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { Calculator, Mail, MessageSquare, RefreshCw, Search, Send, Smartphone, WalletCards } from "lucide-react"
+import { Bell, Calculator, Mail, MessageSquare, RefreshCw, Search, Smartphone, WalletCards } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,8 +11,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { superadminApi, type SubscriptionInvoice, type SubscriptionInvoiceSummary } from "@/lib/superadmin-api"
+import {
+  superadminApi,
+  type SubscriptionInvoice,
+  type SubscriptionInvoiceReminderSettings,
+  type SubscriptionInvoiceSummary,
+} from "@/lib/superadmin-api"
 
 const money = (value?: string | number | null) =>
   `Ksh ${Number(value || 0).toLocaleString("en-KE", { maximumFractionDigits: 2 })}`
@@ -43,6 +49,12 @@ export default function SuperadminSubscriptionInvoicesPage() {
   const [discountReason, setDiscountReason] = useState("")
   const [adjustmentAmount, setAdjustmentAmount] = useState("")
   const [adjustmentDescription, setAdjustmentDescription] = useState("")
+  const [reminderSettings, setReminderSettings] = useState<SubscriptionInvoiceReminderSettings>({
+    enabled: true,
+    days_before: [3, 1],
+    channels: ["email", "in_app"],
+  })
+  const [savingReminders, setSavingReminders] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const fetchInvoices = async () => {
@@ -65,12 +77,43 @@ export default function SuperadminSubscriptionInvoicesPage() {
     fetchInvoices()
   }, [status])
 
+  useEffect(() => {
+    superadminApi.getSubscriptionInvoiceReminderSettings()
+      .then(setReminderSettings)
+      .catch(() => {})
+  }, [])
+
   const cards = useMemo(() => [
     { label: "Invoices Tracked", value: summary?.count ?? rows.length, icon: WalletCards },
     { label: "Estimated Total", value: money(summary?.calculated_total), icon: Calculator },
     { label: "Hotspot Revenue", value: money(summary?.hotspot_revenue), icon: Smartphone },
-    { label: "Invoiced Cycles", value: summary?.invoiced ?? 0, icon: Send },
+    { label: "Duplicates Hidden", value: summary?.duplicates_hidden ?? 0, icon: Bell },
   ], [summary, rows.length])
+
+  const saveReminderSettings = async () => {
+    setSavingReminders(true)
+    try {
+      const updated = await superadminApi.updateSubscriptionInvoiceReminderSettings(reminderSettings)
+      setReminderSettings(updated)
+      toast.success("Reminder automation updated")
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to update reminder automation")
+    } finally {
+      setSavingReminders(false)
+    }
+  }
+
+  const toggleReminderChannel = (channel: "email" | "sms" | "in_app") => {
+    setReminderSettings((current) => {
+      const exists = current.channels.includes(channel)
+      return {
+        ...current,
+        channels: exists
+          ? current.channels.filter((item) => item !== channel)
+          : [...current.channels, channel],
+      }
+    })
+  }
 
   const openAdjustment = async (row: SubscriptionInvoice) => {
     try {
@@ -146,6 +189,58 @@ export default function SuperadminSubscriptionInvoicesPage() {
           </Card>
         ))}
       </div>
+
+      <Card className="border-slate-800 bg-slate-900/80">
+        <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-violet-500/15 p-3 text-violet-300">
+              <Bell className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-white">Automatic invoice reminders</p>
+              <p className="text-sm text-slate-400">
+                Sends reminders {reminderSettings.days_before.join(" and ")} day(s) before due date using selected channels.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-[auto_160px_auto] sm:items-center">
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={reminderSettings.enabled}
+                onCheckedChange={(enabled) => setReminderSettings((current) => ({ ...current, enabled }))}
+              />
+              <span className="text-sm text-slate-300">{reminderSettings.enabled ? "Enabled" : "Paused"}</span>
+            </div>
+            <Input
+              value={reminderSettings.days_before.join(",")}
+              onChange={(event) => {
+                const days = event.target.value
+                  .split(",")
+                  .map((part) => Number(part.trim()))
+                  .filter((day) => Number.isFinite(day) && day > 0)
+                setReminderSettings((current) => ({ ...current, days_before: days }))
+              }}
+              className="border-slate-700 bg-slate-950 text-white"
+            />
+            <div className="flex flex-wrap gap-2">
+              {(["email", "sms", "in_app"] as const).map((channel) => (
+                <Button
+                  key={channel}
+                  size="sm"
+                  variant={reminderSettings.channels.includes(channel) ? "default" : "outline"}
+                  className={reminderSettings.channels.includes(channel) ? "bg-violet-600 hover:bg-violet-500" : "border-slate-700"}
+                  onClick={() => toggleReminderChannel(channel)}
+                >
+                  {channel === "in_app" ? "In-app" : channel.toUpperCase()}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <Button onClick={saveReminderSettings} disabled={savingReminders} className="bg-violet-600 hover:bg-violet-500">
+            {savingReminders ? "Saving..." : "Save reminders"}
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card className="border-slate-800 bg-slate-900/80">
         <CardHeader>
