@@ -58,7 +58,7 @@ function BillingContent() {
         adminApi.getCurrentSubscription(),
         adminApi.getUsageStats(),
         // FIX: Use search filter for NET-BILL prefix to isolate Netily platform invoices
-        adminApi.getInvoices({ search: 'NET-BILL' })
+        adminApi.getInvoices({ search: 'NET-BILL', page_size: 100 })
       ])
 
       // FIX 1: Handle Paginated vs List responses for Plans
@@ -149,7 +149,11 @@ function BillingContent() {
         if (res.status === 'completed') {
           setPaymentStatus("")
           setPendingPaymentId(null)
-          toast.success("Payment confirmed! Your plan is now active.", { duration: 6000 })
+          if (res.subscription_activated === false) {
+            toast.info(res.message || "Payment received. Please settle the remaining invoice balance to reactivate.", { duration: 8000 })
+          } else {
+            toast.success("Payment confirmed! Your plan is now active.", { duration: 6000 })
+          }
           loadBillingData()
           return
         }

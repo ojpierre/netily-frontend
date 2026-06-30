@@ -163,6 +163,12 @@ function PaymentDialog({
         if (res.status === "completed") {
           clearInterval(pollInterval)
           await refreshBillingCycleAfterPayment(res)
+          if (res.subscription_activated === false) {
+            setPaymentStatus("failed")
+            setPaymentError(res.message || "Payment received, but a balance remains on this invoice.")
+            setStep("failed")
+            return
+          }
           localStorage.setItem("mpesaPayPhone", phoneNumber)
           setPaymentStatus("success")
           setStep("success")
