@@ -3670,6 +3670,10 @@ async activateService(
     }
   }
 
+  async getBillingCycleBreakdowns(limit = 12): Promise<{ count: number; results: import('./types').BillingCycleBreakdown[] }> {
+    return this.request(`/subscriptions/billing-cycles/breakdowns/?limit=${limit}`)
+  }
+
   async initiateSubscriptionPayment(data: {
     plan_id: string  // 'starter' | 'professional' | 'enterprise'
     payment_method: 'mpesa_stk' | 'mpesa_paybill' | 'bank_transfer'

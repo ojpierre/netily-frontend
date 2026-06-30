@@ -2500,6 +2500,38 @@ export interface UsageStats {
   hotspot_revenue_note?: string
 }
 
+export interface BillingCycleInvoiceItem {
+  description: string
+  quantity: string | number
+  unit_price: string | number
+  amount: string | number
+}
+
+export interface BillingCycleBreakdown {
+  id: string
+  status: string
+  start_date: string
+  end_date: string
+  is_first_paid_cycle: boolean
+  minimum_charge: string | number
+  pppoe_count: number
+  pppoe_unit_price: string | number
+  pppoe_charge: string | number
+  hotspot_revenue: string | number
+  hotspot_share_pct: string | number
+  hotspot_share_amount: string | number
+  usage_subtotal: string | number
+  minimum_adjustment: string | number
+  total_charge: string | number
+  invoice_id?: string | null
+  invoice_number?: string
+  invoice_status?: string
+  invoice_total?: string | number | null
+  invoice_amount_paid?: string | number | null
+  invoice_balance?: string | number | null
+  invoice_items?: BillingCycleInvoiceItem[]
+}
+
 export interface SettlementSummary {
   pending_balance: string
   total_commission: string

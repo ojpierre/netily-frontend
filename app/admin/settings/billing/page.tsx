@@ -18,7 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { adminApi } from "@/lib/admin-api"
-import type { NetilyPlan, CompanySubscription, UsageStats as ApiUsageStats, Invoice } from "@/lib/types"
+import type { NetilyPlan, CompanySubscription, UsageStats as ApiUsageStats, Invoice, BillingCycleBreakdown } from "@/lib/types"
 
 const kes = (amount: number | string) => 
   new Intl.NumberFormat("en-KE", {
@@ -34,6 +34,7 @@ function BillingContent() {
   const [apiPlans, setApiPlans] = useState<NetilyPlan[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [usage, setUsage] = useState<ApiUsageStats | null>(null)
+  const [cycleBreakdowns, setCycleBreakdowns] = useState<BillingCycleBreakdown[]>([])
   const [payingInvoiceId, setPayingInvoiceId] = useState<number | null>(null)
   const [payPhone, setPayPhone] = useState("")
   const [payLoading, setPayLoading] = useState(false)
@@ -53,12 +54,13 @@ function BillingContent() {
     if (showSpinner) setIsLoading(true)
     try {
       adminApi.invalidateSubscriptionCache()
-      const [plansData, subData, usageData, invoicesData] = await Promise.all([
+      const [plansData, subData, usageData, invoicesData, cycleBreakdownsData] = await Promise.all([
         adminApi.getNetilyPlans(),
         adminApi.getCurrentSubscription(),
         adminApi.getUsageStats(),
         // FIX: Use search filter for NET-BILL prefix to isolate Netily platform invoices
-        adminApi.getInvoices({ search: 'NET-BILL', page_size: 100 })
+        adminApi.getInvoices({ search: 'NET-BILL', page_size: 100 }),
+        adminApi.getBillingCycleBreakdowns(12).catch(() => ({ count: 0, results: [] }))
       ])
 
       // FIX 1: Handle Paginated vs List responses for Plans
@@ -111,6 +113,7 @@ function BillingContent() {
 
       // FIX 2: Safe Invoice extraction
       setInvoices(invoicesData?.results || [])
+      setCycleBreakdowns(cycleBreakdownsData?.results || [])
       
     } catch (error) {
       console.error("Billing load error:", error)
@@ -1011,6 +1014,151 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                       </Card>
                     </div>
                   </div>
+                )
+              })()}
+
+              {subscription?.plan?.is_metered && (() => {
+                const previousCycles = cycleBreakdowns.filter((cycle) => cycle.id !== usage.billing_cycle_id)
+                if (previousCycles.length === 0) return null
+
+                return (
+                  <Card className="border-slate-200">
+                    <CardHeader>
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <CardTitle className="text-base font-bold text-foreground">Previous Billing Cycles</CardTitle>
+                          <CardDescription>Historical usage breakdowns tied to this tenant</CardDescription>
+                        </div>
+                        <Badge variant="outline">{previousCycles.length} shown</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Period</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">PPPoE</TableHead>
+                            <TableHead className="text-right">Hotspot Share</TableHead>
+                            <TableHead className="text-right">Minimum Adj.</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                            <TableHead className="text-right">Breakdown</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {previousCycles.map((cycle) => {
+                            const items = cycle.invoice_items || []
+                            const hasItems = items.length > 0
+                            return (
+                              <TableRow key={cycle.id}>
+                                <TableCell className="whitespace-nowrap">
+                                  <div className="font-medium text-foreground">
+                                    {new Date(cycle.start_date).toLocaleDateString('en-KE')} - {new Date(cycle.end_date).toLocaleDateString('en-KE')}
+                                  </div>
+                                  {cycle.invoice_number && (
+                                    <div className="text-xs text-slate-500">{cycle.invoice_number}</div>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={cycle.status === 'paid' || cycle.invoice_status === 'PAID' ? 'default' : 'secondary'}>
+                                    {(cycle.invoice_status || cycle.status).replaceAll("_", " ")}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right whitespace-nowrap">
+                                  {cycle.pppoe_count} x {kes(cycle.pppoe_unit_price)}
+                                </TableCell>
+                                <TableCell className="text-right whitespace-nowrap">{kes(cycle.hotspot_share_amount)}</TableCell>
+                                <TableCell className="text-right whitespace-nowrap">{kes(cycle.minimum_adjustment)}</TableCell>
+                                <TableCell className="text-right font-bold whitespace-nowrap">{kes(cycle.invoice_total ?? cycle.total_charge)}</TableCell>
+                                <TableCell className="text-right">
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button size="sm" variant="outline">
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        View
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-2xl">
+                                      <DialogHeader>
+                                        <DialogTitle>Billing Cycle Breakdown</DialogTitle>
+                                        <DialogDescription>
+                                          {new Date(cycle.start_date).toLocaleDateString('en-KE', { dateStyle: 'medium' })} - {new Date(cycle.end_date).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
+                                          {cycle.invoice_number ? ` · ${cycle.invoice_number}` : ''}
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      <div className="space-y-4">
+                                        <div className="grid gap-3 sm:grid-cols-3">
+                                          <div className="rounded-lg border p-3">
+                                            <p className="text-xs text-slate-500">PPPoE Users</p>
+                                            <p className="text-lg font-bold">{cycle.pppoe_count}</p>
+                                            <p className="text-xs text-slate-500">{kes(cycle.pppoe_charge)}</p>
+                                          </div>
+                                          <div className="rounded-lg border p-3">
+                                            <p className="text-xs text-slate-500">Hotspot Revenue</p>
+                                            <p className="text-lg font-bold">{kes(cycle.hotspot_revenue)}</p>
+                                            <p className="text-xs text-slate-500">{cycle.hotspot_share_pct}% share</p>
+                                          </div>
+                                          <div className="rounded-lg border p-3">
+                                            <p className="text-xs text-slate-500">Invoice Total</p>
+                                            <p className="text-lg font-bold">{kes(cycle.invoice_total ?? cycle.total_charge)}</p>
+                                            <p className="text-xs text-slate-500">Balance {kes(cycle.invoice_balance ?? 0)}</p>
+                                          </div>
+                                        </div>
+
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow>
+                                              <TableHead>Item</TableHead>
+                                              <TableHead className="text-right">Qty</TableHead>
+                                              <TableHead className="text-right">Unit</TableHead>
+                                              <TableHead className="text-right">Amount</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {hasItems ? items.map((item, index) => (
+                                              <TableRow key={`${cycle.id}-${index}`}>
+                                                <TableCell>{item.description}</TableCell>
+                                                <TableCell className="text-right">{Number(item.quantity).toLocaleString('en-KE')}</TableCell>
+                                                <TableCell className="text-right">{kes(item.unit_price)}</TableCell>
+                                                <TableCell className="text-right font-medium">{kes(item.amount)}</TableCell>
+                                              </TableRow>
+                                            )) : (
+                                              <>
+                                                <TableRow>
+                                                  <TableCell>PPPoE usage</TableCell>
+                                                  <TableCell className="text-right">{cycle.pppoe_count}</TableCell>
+                                                  <TableCell className="text-right">{kes(cycle.pppoe_unit_price)}</TableCell>
+                                                  <TableCell className="text-right font-medium">{kes(cycle.pppoe_charge)}</TableCell>
+                                                </TableRow>
+                                                <TableRow>
+                                                  <TableCell>Hotspot revenue share</TableCell>
+                                                  <TableCell className="text-right">{cycle.hotspot_share_pct}%</TableCell>
+                                                  <TableCell className="text-right">{kes(cycle.hotspot_revenue)}</TableCell>
+                                                  <TableCell className="text-right font-medium">{kes(cycle.hotspot_share_amount)}</TableCell>
+                                                </TableRow>
+                                                {Number(cycle.minimum_adjustment) > 0 && (
+                                                  <TableRow>
+                                                    <TableCell>Minimum charge adjustment</TableCell>
+                                                    <TableCell className="text-right">1</TableCell>
+                                                    <TableCell className="text-right">{kes(cycle.minimum_adjustment)}</TableCell>
+                                                    <TableCell className="text-right font-medium">{kes(cycle.minimum_adjustment)}</TableCell>
+                                                  </TableRow>
+                                                )}
+                                              </>
+                                            )}
+                                          </TableBody>
+                                        </Table>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
                 )
               })()}
 
