@@ -3701,6 +3701,8 @@ async activateService(
     billing_cycle_status?: string | null
     invoice_reference?: string | null
     invoice_number?: string | null
+    subscription_activated?: boolean
+    invoice_balance_remaining?: string | null
   }> {
     return this.request(`/subscriptions/payments/${paymentId}/status/`)
   }
