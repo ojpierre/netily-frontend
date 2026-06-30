@@ -726,8 +726,14 @@ export default function UserDetailPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white font-black text-lg">
-                    {user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                  {/* Premium Avatar with glow effect */}
+                  <div className="relative w-14 h-14 rounded-2xl shrink-0">
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 blur-md opacity-50" />
+                    <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 ring-1 ring-white/20 shadow-lg shadow-indigo-500/30 flex items-center justify-center text-white font-black text-lg tracking-wide">
+                      <span className="drop-shadow-sm">
+                        {user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                      </span>
+                    </div>
                   </div>
                   <div>
                     <p className="font-bold text-foreground">{user.fullName}</p>

@@ -2566,14 +2566,17 @@ export default function UsersPage() {
                           >
                             <TableCell>
                               <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-medium text-xs">
-                                  {((session.full_name || session.username) ?? 'HS')
-                                    .toString()
-                                    .split(' ')
-                                    .map((n: string) => n?.[0] ?? '')
-                                    .join('')
-                                    .toUpperCase()
-                                    .slice(0, 2) || 'HS'}
+                                <div className="relative w-9 h-9 shrink-0">
+                                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 blur-sm opacity-40" />
+                                  <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 ring-1 ring-white/20 shadow-md shadow-emerald-500/25 flex items-center justify-center text-white font-semibold text-xs">
+                                    {((session.full_name || session.username) ?? 'HS')
+                                      .toString()
+                                      .split(' ')
+                                      .map((n: string) => n?.[0] ?? '')
+                                      .join('')
+                                      .toUpperCase()
+                                      .slice(0, 2) || 'HS'}
+                                  </div>
                                 </div>
                                 <div>
                                   <p className="font-medium text-foreground">
@@ -2765,12 +2768,21 @@ export default function UsersPage() {
                           >
                             <TableCell>
                               <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium text-xs">
-                                  {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                <div className="relative w-9 h-9 shrink-0">
+                                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 blur-sm opacity-40" />
+                                  <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 ring-1 ring-white/20 shadow-md shadow-indigo-500/25 flex items-center justify-center text-white font-semibold text-xs">
+                                    {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                  </div>
                                 </div>
                                 <div>
                                   <p className="font-medium text-foreground">{user.name}</p>
                                   <p className="text-xs text-muted-foreground">{user.phone}</p>
+                                  {user.location && (
+                                    <p className="text-[11px] text-muted-foreground/70 flex items-center gap-0.5 mt-0.5">
+                                      <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                      <span className="truncate max-w-[140px]">{user.location}</span>
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             </TableCell>
@@ -3215,12 +3227,21 @@ export default function UsersPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium text-sm">
-                                    {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                  <div className="relative w-10 h-10 shrink-0">
+                                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 blur-sm opacity-40" />
+                                    <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 ring-1 ring-white/20 shadow-md shadow-indigo-500/25 flex items-center justify-center text-white font-semibold text-sm">
+                                      {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                    </div>
                                   </div>
                                   <div>
                                     <p className="font-medium text-foreground">{user.name}</p>
                                     <p className="text-xs text-muted-foreground">{user.phone}</p>
+                                    {user.location && (
+                                      <p className="text-[11px] text-muted-foreground/70 flex items-center gap-0.5 mt-0.5">
+                                        <MapPin className="w-2.5 h-2.5 shrink-0" />
+                                        <span className="truncate max-w-[140px]">{user.location}</span>
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
                               </TableCell>
