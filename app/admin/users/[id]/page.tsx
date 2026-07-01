@@ -252,7 +252,7 @@ function mapTicket(t: SupportTicket): TicketEntry {
   }
 }
 
-// Premium Live Bandwidth Chart using Recharts
+// Premium Live Bandwidth Chart using Recharts - Calm, Vercel-style
 function LiveBandwidthChart() {
   const [data, setData] = useState(
     Array.from({ length: 40 }, (_, i) => ({
@@ -275,30 +275,27 @@ function LiveBandwidthChart() {
           },
         ]
       })
-    }, 700)
+    }, 2200)
 
     return () => clearInterval(interval)
   }, [])
 
   return (
-    <div className="relative h-[240px] w-full rounded-2xl bg-[#050816] p-4 overflow-hidden">
-      {/* Animated glow behind the chart */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#0ea5e933,transparent_70%)] animate-pulse pointer-events-none" />
-      
+    <div className="h-[220px] px-6 pb-4 pt-2">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data}>
           <defs>
             <linearGradient id="download" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#00F5A0" stopOpacity={0.8} />
+              <stop offset="0%" stopColor="#00F5A0" stopOpacity={0.08} />
               <stop offset="100%" stopColor="#00F5A0" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="upload" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#7C3AED" stopOpacity={0.7} />
-              <stop offset="100%" stopColor="#7C3AED" stopOpacity={0} />
+              <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.08} />
+              <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0} />
             </linearGradient>
           </defs>
 
-          <CartesianGrid stroke="#16223a" strokeDasharray="4 4" />
+          <CartesianGrid stroke="#1e293b" strokeDasharray="4 4" opacity={0.4} />
 
           <XAxis hide />
 
@@ -306,8 +303,8 @@ function LiveBandwidthChart() {
 
           <Tooltip
             contentStyle={{
-              background: "#111827",
-              border: "1px solid #334155",
+              background: "#0f172a",
+              border: "1px solid #1e293b",
               borderRadius: 12,
               color: "#f1f5f9",
             }}
@@ -318,36 +315,22 @@ function LiveBandwidthChart() {
             type="monotone"
             dataKey="download"
             stroke="#00F5A0"
-            strokeWidth={4}
+            strokeWidth={2}
             fill="url(#download)"
             strokeLinecap="round"
-            strokeLinejoin="round"
             dot={false}
-            activeDot={{
-              r: 7,
-              stroke: "#fff",
-              strokeWidth: 2,
-            }}
-            animationDuration={500}
-            isAnimationActive
+            isAnimationActive={false}
           />
 
           <Area
             type="monotone"
             dataKey="upload"
             stroke="#8B5CF6"
-            strokeWidth={3}
+            strokeWidth={2}
             fill="url(#upload)"
             strokeLinecap="round"
-            strokeLinejoin="round"
             dot={false}
-            activeDot={{
-              r: 7,
-              stroke: "#fff",
-              strokeWidth: 2,
-            }}
-            animationDuration={500}
-            isAnimationActive
+            isAnimationActive={false}
           />
         </AreaChart>
       </ResponsiveContainer>
@@ -381,22 +364,18 @@ export default function UserDetailPage() {
   const [billingNumberEdit, setBillingNumberEdit] = useState("")
   const [savingBilling, setSavingBilling] = useState(false)
   
-  // FIX 3: Add showPassword state
   const [showPassword, setShowPassword] = useState(false)
   
-  // FIX: SMS state
   const [showSmsDialog, setShowSmsDialog] = useState(false)
   const [smsMessage, setSmsMessage] = useState("")
   const [sendingSms, setSendingSms] = useState(false)
   
   const userId = Number(params.id)
 
-  // OPTIMIZED: fetchUserData with Promise.all batching
   const fetchUserData = useCallback(async () => {
     try {
       setLoading(true)
 
-      // WAVE 1 — none of these depend on each other, only on userId
       const [customer, servicesRes, radiusListRes] = await Promise.all([
         adminApi.getCustomer(userId),
         adminApi.getCustomerServices(userId).catch((err) => {
@@ -419,7 +398,6 @@ export default function UserDetailPage() {
       const mappedUser = mapCustomerToUser(customer, services, credSummary)
       const pppoeUser = mappedUser.pppoeUsername || credSummary?.username
 
-      // WAVE 2 — all depend only on userId / credSummary, fire together
       const [paymentsRes, ticketsRes, sessionsRes, credDetail, poolRes] = await Promise.all([
         adminApi.getPayments({ customer: String(userId), page_size: '20' })
           .catch((err) => { console.warn('Failed to load payments:', err); return { results: [] } as any }),
@@ -441,15 +419,12 @@ export default function UserDetailPage() {
       setTicketsLoading(false)
       setSessionsLoading(false)
 
-      // Payments
       const paymentsList = paymentsRes.results || []
       mappedUser.totalPayments = paymentsList.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0)
       setPayments(paymentsList.map(mapPayment))
 
-      // Tickets
       setTickets((ticketsRes.results || []).map(mapTicket))
 
-      // Sessions + live status
       if (sessionsRes?.results?.length) {
         setSessions(sessionsRes.results.map(mapSession))
         mappedUser.totalSessions = sessionsRes.results.length
@@ -470,7 +445,6 @@ export default function UserDetailPage() {
         setSessions([])
       }
 
-      // Merge detailed RADIUS cred (has password) into mappedUser before render
       const finalCred = credDetail || credSummary
       mappedUser.radiusCredentials = finalCred
       mappedUser.pppoePassword = finalCred?.password || mappedUser.pppoePassword
@@ -478,7 +452,6 @@ export default function UserDetailPage() {
 
       setUser(mappedUser)
 
-      // Internet health check — reuses finalCred/poolRes, no extra network call
       if (!finalCred) {
         setInternetCheck({ status: 'none', label: 'No RADIUS', detail: 'No RADIUS credentials found for this customer.' })
       } else if (!finalCred.is_enabled) {
@@ -572,7 +545,6 @@ export default function UserDetailPage() {
     }
   }
 
-  // FIX: SMS handler
   const handleSendSms = async () => {
     if (!user || !smsMessage.trim()) return
     try {
@@ -591,46 +563,46 @@ export default function UserDetailPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-success/15 text-success">Active</Badge>
+        return <Badge className="bg-success/15 text-success rounded-xl">Active</Badge>
       case "expired":
-        return <Badge className="bg-destructive/15 text-destructive">Expired</Badge>
+        return <Badge className="bg-destructive/15 text-destructive rounded-xl">Expired</Badge>
       case "suspended":
-        return <Badge className="bg-warning/15 text-warning">Suspended</Badge>
+        return <Badge className="bg-warning/15 text-warning rounded-xl">Suspended</Badge>
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return <Badge variant="outline" className="rounded-xl">{status}</Badge>
     }
   }
 
   const getTypeBadge = (type: string) => {
     switch (type) {
       case "hotspot":
-        return <Badge variant="outline" className="border-primary/20 text-primary">Hotspot</Badge>
+        return <Badge variant="outline" className="border-primary/20 text-primary rounded-xl">Hotspot</Badge>
       case "pppoe":
-        return <Badge variant="outline" className="border-purple-200 text-purple-700">PPPoE</Badge>
+        return <Badge variant="outline" className="border-purple-200 text-purple-700 rounded-xl">PPPoE</Badge>
       case "static":
-        return <Badge variant="outline" className="border-warning/20 text-warning">Static IP</Badge>
+        return <Badge variant="outline" className="border-warning/20 text-warning rounded-xl">Static IP</Badge>
       default:
-        return <Badge variant="outline">{type}</Badge>
+        return <Badge variant="outline" className="rounded-xl">{type}</Badge>
     }
   }
 
   const getPaymentStatusBadge = (status: string) => {
     const s = status?.toLowerCase() || ''
     if (s === 'completed' || s === 'paid' || s === 'confirmed') {
-      return <Badge className="bg-success/15 text-success">Completed</Badge>
+      return <Badge className="bg-success/15 text-success rounded-xl">Completed</Badge>
     } else if (s === 'pending' || s === 'processing') {
-      return <Badge className="bg-warning/15 text-warning">Pending</Badge>
+      return <Badge className="bg-warning/15 text-warning rounded-xl">Pending</Badge>
     } else if (s === 'failed') {
-      return <Badge variant="destructive">Failed</Badge>
+      return <Badge variant="destructive" className="rounded-xl">Failed</Badge>
     }
-    return <Badge variant="outline">{status}</Badge>
+    return <Badge variant="outline" className="rounded-xl">{status}</Badge>
   }
 
   if (loading || !user) {
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => router.back()}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
@@ -639,9 +611,9 @@ export default function UserDetailPage() {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 rounded-2xl" />)}
         </div>
-        <Skeleton className="h-64" />
+        <Skeleton className="h-64 rounded-2xl" />
       </div>
     )
   }
@@ -655,12 +627,12 @@ export default function UserDetailPage() {
     >
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <Button variant="ghost" size="icon" className="rounded-xl transition-all duration-200 active:scale-95" onClick={() => router.back()}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-foreground">{user.fullName}</h1>
+            <h1 className="text-[28px] font-semibold tracking-tight text-foreground">{user.fullName}</h1>
             {getTypeBadge(user.type)}
             {getStatusBadge(user.status)}
             {user.connectionStatus === 'online' ? (
@@ -675,28 +647,27 @@ export default function UserDetailPage() {
               <span className="text-sm text-slate-400">Offline</span>
             )}
           </div>
-          <p className="text-muted-foreground mt-1">User ID: {params.id} • Joined {user.createdAt}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">User ID: {params.id} • Joined {user.createdAt}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh}>
+        <Button variant="outline" size="sm" className="rounded-xl transition-all duration-200 active:scale-95" onClick={handleRefresh}>
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
-        {/* FIX: Simplified header actions - only dropdown with SMS and Delete */}
         <div className="flex gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="rounded-xl transition-all duration-200 active:scale-95">
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setShowSmsDialog(true)}>
+              <DropdownMenuItem onClick={() => setShowSmsDialog(true)} className="rounded-xl">
                 <Send className="w-4 h-4 mr-2" />
                 Send SMS
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                className="text-destructive"
+                className="text-destructive rounded-xl"
                 onClick={() => setIsDeleteDialogOpen(true)}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -707,29 +678,49 @@ export default function UserDetailPage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs - Pill style */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap gap-1 h-auto p-1">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="sessions">Sessions</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="tickets">Tickets</TabsTrigger>
+        <TabsList className="rounded-2xl bg-muted/40 p-1">
+          <TabsTrigger 
+            value="overview" 
+            className="rounded-xl transition-all duration-200 data-[state=active]:shadow-md data-[state=active]:bg-background active:scale-95"
+          >
+            Overview
+          </TabsTrigger>
+          <TabsTrigger 
+            value="sessions"
+            className="rounded-xl transition-all duration-200 data-[state=active]:shadow-md data-[state=active]:bg-background active:scale-95"
+          >
+            Sessions
+          </TabsTrigger>
+          <TabsTrigger 
+            value="payments"
+            className="rounded-xl transition-all duration-200 data-[state=active]:shadow-md data-[state=active]:bg-background active:scale-95"
+          >
+            Payments
+          </TabsTrigger>
+          <TabsTrigger 
+            value="tickets"
+            className="rounded-xl transition-all duration-200 data-[state=active]:shadow-md data-[state=active]:bg-background active:scale-95"
+          >
+            Tickets
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4 mt-4">
+        <TabsContent value="overview" className="space-y-5 mt-4">
           {/* Top row - Identity + Connection */}
           <div className="grid md:grid-cols-3 gap-4">
             {/* Identity Card */}
-            <Card className="md:col-span-1">
+            <Card className="rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Identity</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-3">
-                  {/* Premium Avatar with glow effect */}
+                  {/* Minimal Avatar */}
                   <div className="relative w-14 h-14 rounded-2xl shrink-0">
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 blur-md opacity-50" />
-                    <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 ring-1 ring-white/20 shadow-lg shadow-indigo-500/30 flex items-center justify-center text-white font-black text-lg tracking-wide">
+                    <div className="absolute inset-0 rounded-2xl bg-primary/15 blur-xl" />
+                    <div className="relative w-14 h-14 rounded-2xl bg-primary ring-1 ring-white/20 shadow-lg flex items-center justify-center text-white font-black text-lg tracking-wide">
                       <span className="drop-shadow-sm">
                         {user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                       </span>
@@ -741,22 +732,64 @@ export default function UserDetailPage() {
                   </div>
                 </div>
                 <Separator />
-                {[
-                  { icon: Mail, label: user.email || '—' },
-                  { icon: Phone, label: user.phone || '—' },
-                  { icon: MapPin, label: user.location || user.address || '—' },
-                  { icon: Calendar, label: `Member since ${user.createdAt}` },
-                ].map(({ icon: Icon, label }) => (
-                  <div key={label} className="flex items-center gap-2 text-sm">
-                    <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="text-slate-700 dark:text-slate-300 truncate">{label}</span>
+                
+                {/* Personal Details - Hover reveal style */}
+                <div className="group flex items-center justify-between py-2 border-b border-border/40 last:border-0">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Email</p>
+                    <p className="font-medium">{user.email || '—'}</p>
                   </div>
-                ))}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-xl opacity-0 group-hover:opacity-100 transition duration-200 h-8 w-8"
+                    onClick={() => { navigator.clipboard.writeText(user.email); toast.success('Copied') }}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                <div className="group flex items-center justify-between py-2 border-b border-border/40 last:border-0">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Phone</p>
+                    <p className="font-medium">{user.phone || '—'}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-xl opacity-0 group-hover:opacity-100 transition duration-200 h-8 w-8"
+                    onClick={() => { navigator.clipboard.writeText(user.phone); toast.success('Copied') }}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                <div className="group flex items-center justify-between py-2 border-b border-border/40 last:border-0">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Address</p>
+                    <p className="font-medium">{user.location || user.address || '—'}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-xl opacity-0 group-hover:opacity-100 transition duration-200 h-8 w-8"
+                    onClick={() => { navigator.clipboard.writeText(user.location || user.address); toast.success('Copied') }}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                <div className="group flex items-center justify-between py-2 border-b border-border/40 last:border-0">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Member Since</p>
+                    <p className="font-medium">{user.createdAt}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
             {/* Connection Status Card */}
-            <Card className="md:col-span-2">
+            <Card className="md:col-span-2 rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center justify-between">
                   Connection
@@ -797,7 +830,7 @@ export default function UserDetailPage() {
                 {/* Internet Health */}
                 <div className="mt-4 pt-3 border-t dark:border-slate-700">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
                       internetCheck.status === 'green' ? 'bg-success/15' :
                       internetCheck.status === 'yellow' ? 'bg-warning/15' :
                       internetCheck.status === 'red' ? 'bg-destructive/15' : 'bg-slate-100 dark:bg-slate-800'
@@ -825,12 +858,12 @@ export default function UserDetailPage() {
           {/* Subscription + Credentials row */}
           <div className="grid md:grid-cols-2 gap-4">
             {/* Subscription Card */}
-            <Card>
+            <Card className="rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Subscription</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="p-3 rounded-xl bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 border border-violet-100 dark:border-violet-900/30">
+              <CardContent className="space-y-5">
+                <div className="rounded-2xl border border-primary/10 bg-primary/5 p-5">
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-bold text-foreground">{user.package.name}</p>
@@ -861,13 +894,14 @@ export default function UserDetailPage() {
                     </p>
                   </div>
                 </div>
+                
                 {/* Billing Account - WITH EDIT FUNCTIONALITY */}
                 <div className="pt-2 border-t dark:border-slate-700">
                   <p className="text-xs text-slate-400 dark:text-slate-500 mb-1.5">Billing Account (M-Pesa Paybill Ref)</p>
                   {editingBilling ? (
                     <div className="flex items-center gap-2">
                       <Input
-                        className="flex-1 font-mono text-sm"
+                        className="flex-1 font-mono text-sm rounded-xl"
                         value={billingNumberEdit}
                         onChange={(e) => setBillingNumberEdit(e.target.value.toUpperCase())}
                         maxLength={20}
@@ -877,7 +911,7 @@ export default function UserDetailPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-green-600 dark:text-green-400"
+                        className="text-green-600 dark:text-green-400 rounded-xl transition-all duration-200 active:scale-95"
                         onClick={handleSaveBillingNumber}
                         disabled={savingBilling}
                       >
@@ -886,6 +920,7 @@ export default function UserDetailPage() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="rounded-xl transition-all duration-200 active:scale-95"
                         onClick={() => setEditingBilling(false)}
                       >
                         <X className="w-3 h-3" />
@@ -895,20 +930,20 @@ export default function UserDetailPage() {
                     <div className="flex items-center gap-2">
                       {user.billingAccountNumber ? (
                         <>
-                          <code className="flex-1 font-mono font-bold text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <code className="flex-1 font-mono font-bold text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-xl border border-blue-200 dark:border-blue-800">
                             {user.billingAccountNumber}
                           </code>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { navigator.clipboard.writeText(user.billingAccountNumber!); toast.success('Copied') }}>
+                          <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 transition-all duration-200 active:scale-95" onClick={() => { navigator.clipboard.writeText(user.billingAccountNumber!); toast.success('Copied') }}>
                             <Copy className="w-3.5 h-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setBillingNumberEdit(user.billingAccountNumber || ''); setEditingBilling(true) }}>
+                          <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 transition-all duration-200 active:scale-95" onClick={() => { setBillingNumberEdit(user.billingAccountNumber || ''); setEditingBilling(true) }}>
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
                         </>
                       ) : (
                         <>
                           <p className="text-xs text-slate-400 italic flex-1">Not assigned</p>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setBillingNumberEdit(''); setEditingBilling(true) }}>
+                          <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 transition-all duration-200 active:scale-95" onClick={() => { setBillingNumberEdit(''); setEditingBilling(true) }}>
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
                         </>
@@ -916,6 +951,7 @@ export default function UserDetailPage() {
                     </div>
                   )}
                 </div>
+                
                 {/* Data usage */}
                 {user.dataLimitThisMonth > 0 && (
                   <div className="pt-2 border-t dark:border-slate-700">
@@ -929,83 +965,74 @@ export default function UserDetailPage() {
               </CardContent>
             </Card>
 
-            {/* FIX 3: Network Credentials Card with show/hide password - REMOVED duplicate expiry badge */}
-            <Card>
+            {/* Network Credentials Card with show/hide password */}
+            <Card className="rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
                   <Wifi className="w-4 h-4" />
                   PPPoE Credentials
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-5">
                 {!user.pppoeUsername && user.serviceStatus === 'PENDING' ? (
-                  <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 text-sm text-orange-700 dark:text-orange-300">
+                  <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800 text-sm text-orange-700 dark:text-orange-300">
                     Credentials created after activation.
                   </div>
                 ) : user.pppoeUsername ? (
-                  <div className="space-y-3">
+                  <>
                     {/* Username row */}
-                    <div>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mb-1">Username</p>
-                      <div className="flex items-center gap-2">
-                        <code className="flex-1 text-sm font-mono bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-lg border dark:border-slate-700">
-                          {user.pppoeUsername}
-                        </code>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8" 
-                          onClick={() => { 
-                            navigator.clipboard.writeText(user.pppoeUsername)
-                            toast.success('Username copied') 
-                          }}
+                    <div className="group flex items-center justify-between rounded-xl border border-border/50 px-4 py-3 transition hover:bg-muted/40">
+                      <div>
+                        <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Username</p>
+                        <p className="font-mono text-sm">{user.pppoeUsername}</p>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="rounded-xl h-8 w-8 transition-all duration-200 active:scale-95"
+                          onClick={() => { navigator.clipboard.writeText(user.pppoeUsername); toast.success('Username copied') }}
                         >
-                          <Copy className="w-3.5 h-3.5" />
+                          <Copy className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
 
                     {/* Password row with show/hide */}
-                    <div>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mb-1">Password</p>
-                      <div className="flex items-center gap-2">
-                        <code className="flex-1 text-sm font-mono bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-lg border dark:border-slate-700">
+                    <div className="group flex items-center justify-between rounded-xl border border-border/50 px-4 py-3 transition hover:bg-muted/40">
+                      <div>
+                        <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Password</p>
+                        <p className="font-mono text-sm">
                           {showPassword 
                             ? (user.pppoePassword || <span className="italic text-slate-400">not loaded</span>)
-                            : '••••••••'
-                          }
-                        </code>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
+                            : '••••••••'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="rounded-xl h-8 w-8 transition-all duration-200 active:scale-95"
                           onClick={() => setShowPassword(v => !v)}
                           title={showPassword ? 'Hide password' : 'Show password'}
                         >
-                          {showPassword 
-                            ? <EyeOff className="w-3.5 h-3.5" /> 
-                            : <Eye className="w-3.5 h-3.5" />
-                          }
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </Button>
                         {user.pppoePassword && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8" 
-                            onClick={() => { 
-                              navigator.clipboard.writeText(user.pppoePassword)
-                              toast.success('Password copied') 
-                            }}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-xl h-8 w-8 transition-all duration-200 active:scale-95"
+                            onClick={() => { navigator.clipboard.writeText(user.pppoePassword); toast.success('Password copied') }}
                           >
-                            <Copy className="w-3.5 h-3.5" />
+                            <Copy className="w-4 h-4" />
                           </Button>
                         )}
                       </div>
                     </div>
 
-                    {/* FIX 2: REMOVED duplicate expiry badge - now only shows status badge */}
                     <div className="flex items-center gap-2 text-xs pt-1">
-                      <Badge variant={user.radiusCredentials?.is_enabled !== false ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={user.radiusCredentials?.is_enabled !== false ? "default" : "secondary"} className="text-xs rounded-xl">
                         {user.radiusCredentials?.is_enabled !== false ? 'Enabled' : 'Disabled'}
                       </Badge>
                       <span className="text-slate-400">{user.radiusCredentials?.connection_type || 'PPPOE'}</span>
@@ -1013,7 +1040,7 @@ export default function UserDetailPage() {
                         <span className="text-green-600 dark:text-green-400 font-medium">✓ Synced</span>
                       )}
                     </div>
-                  </div>
+                  </>
                 ) : (
                   <p className="text-sm text-slate-400 italic">No credentials found</p>
                 )}
@@ -1023,7 +1050,7 @@ export default function UserDetailPage() {
 
           {/* Live Bandwidth Graph - Premium Recharts Version */}
           {user.connectionStatus === 'online' && user.pppoeUsername && (
-            <Card className="bg-slate-950/70 backdrop-blur-xl border-slate-800 shadow-[0_0_80px_rgba(59,130,246,.08)] rounded-2xl overflow-hidden">
+            <Card className="rounded-2xl border bg-card overflow-hidden shadow-sm transition-all duration-200 hover:shadow-xl hover:-translate-y-[2px]">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-2">
                   <Activity className="w-4 h-4 text-emerald-500" />
@@ -1043,16 +1070,16 @@ export default function UserDetailPage() {
           {/* Stats row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: 'Balance', value: `KES ${user.balance.toLocaleString()}`, icon: CreditCard, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' },
-              { label: 'Sessions', value: user.totalSessions.toString(), icon: Activity, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-              { label: 'Total Paid', value: `KES ${user.totalPayments.toLocaleString()}`, icon: TrendingUp, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-900/20' },
-              { label: 'Loyalty Pts', value: user.loyaltyPoints.toString(), icon: Gift, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' },
-            ].map(({ label, value, icon: Icon, color, bg }) => (
-              <Card key={label} className="border-0 shadow-sm">
+              { label: 'Balance', value: `KES ${user.balance.toLocaleString()}`, icon: CreditCard },
+              { label: 'Sessions', value: user.totalSessions.toString(), icon: Activity },
+              { label: 'Total Paid', value: `KES ${user.totalPayments.toLocaleString()}`, icon: TrendingUp },
+              { label: 'Loyalty Pts', value: user.loyaltyPoints.toString(), icon: Gift },
+            ].map(({ label, value, icon: Icon }) => (
+              <Card key={label} className="group rounded-2xl border-border/50 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center`}>
-                      <Icon className={`w-4 h-4 ${color}`} />
+                    <div className="w-11 h-11 rounded-xl bg-primary/8 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-primary" />
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">{label}</p>
@@ -1066,7 +1093,7 @@ export default function UserDetailPage() {
         </TabsContent>
 
         <TabsContent value="sessions" className="mt-4">
-          <Card>
+          <Card className="rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
             <CardHeader>
               <CardTitle>Session History</CardTitle>
               <CardDescription>Recent connection sessions</CardDescription>
@@ -1074,7 +1101,7 @@ export default function UserDetailPage() {
             <CardContent>
               {sessionsLoading ? (
                 <div className="space-y-2">
-                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
                 </div>
               ) : sessions.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -1110,7 +1137,7 @@ export default function UserDetailPage() {
         </TabsContent>
 
         <TabsContent value="payments" className="mt-4">
-          <Card>
+          <Card className="rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
             <CardHeader>
               <CardTitle>Payment History</CardTitle>
               <CardDescription>All transactions for this user</CardDescription>
@@ -1118,7 +1145,7 @@ export default function UserDetailPage() {
             <CardContent>
               {paymentsLoading ? (
                 <div className="space-y-2">
-                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
                 </div>
               ) : payments.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -1154,7 +1181,7 @@ export default function UserDetailPage() {
         </TabsContent>
 
         <TabsContent value="tickets" className="mt-4">
-          <Card>
+          <Card className="rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
             <CardHeader>
               <CardTitle>Support Tickets</CardTitle>
               <CardDescription>Tickets raised by this user</CardDescription>
@@ -1162,7 +1189,7 @@ export default function UserDetailPage() {
             <CardContent>
               {ticketsLoading ? (
                 <div className="space-y-2">
-                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
                 </div>
               ) : tickets.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -1185,7 +1212,7 @@ export default function UserDetailPage() {
                         <TableCell className="font-mono">{ticket.id}</TableCell>
                         <TableCell>{ticket.subject}</TableCell>
                         <TableCell>
-                          <Badge className={ticket.status === "open" ? "bg-primary/15 text-primary" : "bg-success/15 text-success"}>
+                          <Badge className={ticket.status === "open" ? "bg-primary/15 text-primary rounded-xl" : "bg-success/15 text-success rounded-xl"}>
                             {ticket.status}
                           </Badge>
                         </TableCell>
@@ -1202,7 +1229,7 @@ export default function UserDetailPage() {
 
       {/* Delete Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-red-600">Delete User</DialogTitle>
             <DialogDescription>
@@ -1212,10 +1239,10 @@ export default function UserDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={deleting}>
+            <Button variant="outline" className="rounded-xl transition-all duration-200 active:scale-95" onClick={() => setIsDeleteDialogOpen(false)} disabled={deleting}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            <Button variant="destructive" className="rounded-xl transition-all duration-200 active:scale-95" onClick={handleDelete} disabled={deleting}>
               {deleting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1232,9 +1259,9 @@ export default function UserDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* FIX: SMS Dialog */}
+      {/* SMS Dialog */}
       <Dialog open={showSmsDialog} onOpenChange={setShowSmsDialog}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>Send SMS</DialogTitle>
             <DialogDescription>
@@ -1242,16 +1269,17 @@ export default function UserDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <Textarea
+            className="rounded-xl"
             placeholder="Type your message..."
             value={smsMessage}
             onChange={(e) => setSmsMessage(e.target.value)}
             rows={4}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSmsDialog(false)} disabled={sendingSms}>
+            <Button variant="outline" className="rounded-xl transition-all duration-200 active:scale-95" onClick={() => setShowSmsDialog(false)} disabled={sendingSms}>
               Cancel
             </Button>
-            <Button onClick={handleSendSms} disabled={sendingSms || !smsMessage.trim()}>
+            <Button className="rounded-xl transition-all duration-200 active:scale-95" onClick={handleSendSms} disabled={sendingSms || !smsMessage.trim()}>
               {sendingSms ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending...</>
               ) : (
