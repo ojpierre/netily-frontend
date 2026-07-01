@@ -180,6 +180,9 @@ export interface SubscriptionInvoiceSummary {
   active: number
   invoiced: number
   paid: number
+  partial?: number
+  past_due?: number
+  outstanding_total?: string
   calculated_total: string
   hotspot_revenue: string
   duplicates_hidden?: number
@@ -200,6 +203,9 @@ export interface SubscriptionInvoice {
   company_email?: string
   company_phone?: string
   status: "active" | "invoiced" | "paid"
+  subscription_status?: string
+  plan_name?: string
+  billing_period?: string
   start_date: string | null
   end_date: string | null
   grace_ends_at: string | null
@@ -224,8 +230,15 @@ export interface SubscriptionInvoice {
     manual_adjustment_amount?: string
     manual_adjustment_description?: string
     total_amount: string
+    amount_paid?: string
     balance: string
+    billing_date?: string | null
     due_date: string | null
+    paid_at?: string | null
+    created_at?: string | null
+    updated_at?: string | null
+    is_overdue?: boolean
+    overdue_days?: number
     notes: string
     internal_notes: string
   } | null
@@ -1101,6 +1114,38 @@ class SuperadminApiService {
   ): Promise<SubscriptionInvoice> {
     return this.request(`/superadmin/subscription-invoices/${id}/`, {
       method: "PATCH",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async holdSubscriptionInvoice(
+    id: string,
+    data: { amount_paid: string | number; reason?: string },
+  ): Promise<SubscriptionInvoice> {
+    return this.request(`/superadmin/subscription-invoices/${id}/hold/`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async reconcileSubscriptionInvoice(
+    id: string,
+    data: {
+      invoice_status?: string
+      cycle_status?: string
+      subscription_status?: string
+      amount_paid?: string | number
+      balance?: string | number
+      billing_date?: string
+      due_date?: string
+      start_date?: string
+      end_date?: string
+      sync_tenant_access?: boolean
+      reason: string
+    },
+  ): Promise<SubscriptionInvoice> {
+    return this.request(`/superadmin/subscription-invoices/${id}/reconcile/`, {
+      method: "POST",
       body: JSON.stringify(data),
     })
   }
