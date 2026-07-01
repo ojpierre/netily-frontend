@@ -35,6 +35,9 @@ import {
   X,
   Eye,
   EyeOff,
+  DollarSign,
+  Shield,
+  Users,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -62,7 +65,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import {
   Dialog,
@@ -625,99 +627,189 @@ export default function UserDetailPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
     >
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="rounded-xl transition-all duration-200 active:scale-95" onClick={() => router.back()}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-[28px] font-semibold tracking-tight text-foreground">{user.fullName}</h1>
-            {getTypeBadge(user.type)}
-            {getStatusBadge(user.status)}
-            {user.connectionStatus === 'online' ? (
-              <div className="flex items-center gap-1.5">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                </span>
-                <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Online</span>
+      {/* Header - matching router page style */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4 flex-wrap">
+            <Button variant="outline" size="sm" onClick={() => router.back()}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+
+            <div className={`p-3 rounded-lg ${
+              user.connectionStatus === "online" ? "bg-success/15" : "bg-destructive/15"
+            }`}>
+              {user.connectionStatus === "online" ? (
+                <CheckCircle className="w-6 h-6 text-success" />
+              ) : (
+                <XCircle className="w-6 h-6 text-destructive" />
+              )}
+            </div>
+
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold">{user.fullName}</h1>
               </div>
-            ) : (
-              <span className="text-sm text-slate-400">Offline</span>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground mt-0.5">User ID: {params.id} • Joined {user.createdAt}</p>
-        </div>
-        <Button variant="outline" size="sm" className="rounded-xl transition-all duration-200 active:scale-95" onClick={handleRefresh}>
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh
-        </Button>
-        <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="rounded-xl transition-all duration-200 active:scale-95">
-                <MoreVertical className="w-4 h-4" />
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <Badge variant="outline" className="font-mono">{user.id}</Badge>
+                {getTypeBadge(user.type)}
+                {getStatusBadge(user.status)}
+                {user.connectionStatus === 'online' ? (
+                  <Badge variant="outline" className="bg-success/15 text-success border-success/30">
+                    <span className="relative flex h-2 w-2 mr-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    </span>
+                    Online
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-slate-400">Offline</Badge>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={handleRefresh}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setShowSmsDialog(true)} className="rounded-xl">
-                <Send className="w-4 h-4 mr-2" />
-                Send SMS
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="text-destructive rounded-xl"
-                onClick={() => setIsDeleteDialogOpen(true)}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete User
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <MoreVertical className="w-4 h-4 mr-2" />
+                    Actions
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowSmsDialog(true)}>
+                    <Send className="w-4 h-4 mr-2" />
+                    Send SMS
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="text-destructive"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete User
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Premium Stats Cards - matching router page style */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Balance Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 group hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300">
+          <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(circle at 80% -20%, rgba(16,185,129,0.18), transparent 60%)' }} />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 opacity-80" />
+          <div className="relative flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Balance</p>
+              <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 leading-none">
+                KES {user.balance.toLocaleString()}
+              </p>
+              <p className="text-xs text-slate-400 mt-1.5">Current balance</p>
+            </div>
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-lg shadow-emerald-500/25">
+              <DollarSign className="w-5 h-5 text-white" />
+            </div>
+          </div>
+        </div>
+
+        {/* Total Paid Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 group hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300">
+          <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(circle at 80% -20%, rgba(59,130,246,0.15), transparent 60%)' }} />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 opacity-80" />
+          <div className="relative flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Total Paid</p>
+              <p className="text-2xl font-extrabold text-foreground leading-none">
+                KES {user.totalPayments.toLocaleString()}
+              </p>
+              <p className="text-xs text-slate-400 mt-1.5">Lifetime payments</p>
+            </div>
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/25">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+          </div>
+        </div>
+
+        {/* Sessions Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 group hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300">
+          <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(circle at 80% -20%, rgba(139,92,246,0.15), transparent 60%)' }} />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-400 via-violet-400 to-fuchsia-400 opacity-80" />
+          <div className="relative flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Sessions</p>
+              <p className="text-2xl font-extrabold text-foreground leading-none">
+                {user.totalSessions}
+              </p>
+              <p className="text-xs text-slate-400 mt-1.5">Total connections</p>
+            </div>
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-400 to-violet-500 shadow-lg shadow-purple-500/25">
+              <Activity className="w-5 h-5 text-white" />
+            </div>
+          </div>
+        </div>
+
+        {/* Loyalty Points Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 group hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300">
+          <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(circle at 80% -20%, rgba(245,158,11,0.15), transparent 60%)' }} />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400 opacity-80" />
+          <div className="relative flex items-start justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Loyalty Points</p>
+              <p className="text-2xl font-extrabold text-foreground leading-none">
+                {user.loyaltyPoints}
+              </p>
+              <p className="text-xs text-slate-400 mt-1.5">Rewards balance</p>
+            </div>
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/25">
+              <Gift className="w-5 h-5 text-white" />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Tabs - Pill style */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="rounded-2xl bg-muted/40 p-1">
-          <TabsTrigger 
-            value="overview" 
-            className="rounded-xl transition-all duration-200 data-[state=active]:shadow-md data-[state=active]:bg-background active:scale-95"
-          >
-            Overview
+      {/* Tabs - Pill style matching router page */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="flex flex-wrap gap-1 h-auto p-1">
+          <TabsTrigger value="overview" className="gap-2">
+            <User className="w-4 h-4" />
+            <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="sessions"
-            className="rounded-xl transition-all duration-200 data-[state=active]:shadow-md data-[state=active]:bg-background active:scale-95"
-          >
-            Sessions
+          <TabsTrigger value="sessions" className="gap-2">
+            <History className="w-4 h-4" />
+            <span className="hidden sm:inline">Sessions</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="payments"
-            className="rounded-xl transition-all duration-200 data-[state=active]:shadow-md data-[state=active]:bg-background active:scale-95"
-          >
-            Payments
+          <TabsTrigger value="payments" className="gap-2">
+            <CreditCard className="w-4 h-4" />
+            <span className="hidden sm:inline">Payments</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="tickets"
-            className="rounded-xl transition-all duration-200 data-[state=active]:shadow-md data-[state=active]:bg-background active:scale-95"
-          >
-            Tickets
+          <TabsTrigger value="tickets" className="gap-2">
+            <Activity className="w-4 h-4" />
+            <span className="hidden sm:inline">Tickets</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-5 mt-4">
-          {/* Top row - Identity + Connection */}
+        <TabsContent value="overview" className="mt-6 space-y-6">
+          {/* Top row - Identity + Connection - styled like router page cards */}
           <div className="grid md:grid-cols-3 gap-4">
-            {/* Identity Card */}
-            <Card className="rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Identity</CardTitle>
+            {/* Identity Card - with gradient top border */}
+            <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 opacity-80" />
+              <CardHeader className="pb-3 pt-5">
+                <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Identity
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 pb-5">
                 <div className="flex items-center gap-3">
-                  {/* Minimal Avatar */}
                   <div className="relative w-14 h-14 rounded-2xl shrink-0">
                     <div className="absolute inset-0 rounded-2xl bg-primary/15 blur-xl" />
                     <div className="relative w-14 h-14 rounded-2xl bg-primary ring-1 ring-white/20 shadow-lg flex items-center justify-center text-white font-black text-lg tracking-wide">
@@ -733,7 +825,6 @@ export default function UserDetailPage() {
                 </div>
                 <Separator />
                 
-                {/* Personal Details - Hover reveal style */}
                 <div className="group flex items-center justify-between py-2 border-b border-border/40 last:border-0">
                   <div>
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Email</p>
@@ -742,7 +833,7 @@ export default function UserDetailPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="rounded-xl opacity-0 group-hover:opacity-100 transition duration-200 h-8 w-8"
+                    className="rounded-xl h-8 w-8"
                     onClick={() => { navigator.clipboard.writeText(user.email); toast.success('Copied') }}
                   >
                     <Copy className="w-4 h-4" />
@@ -757,7 +848,7 @@ export default function UserDetailPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="rounded-xl opacity-0 group-hover:opacity-100 transition duration-200 h-8 w-8"
+                    className="rounded-xl h-8 w-8"
                     onClick={() => { navigator.clipboard.writeText(user.phone); toast.success('Copied') }}
                   >
                     <Copy className="w-4 h-4" />
@@ -772,14 +863,14 @@ export default function UserDetailPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="rounded-xl opacity-0 group-hover:opacity-100 transition duration-200 h-8 w-8"
+                    className="rounded-xl h-8 w-8"
                     onClick={() => { navigator.clipboard.writeText(user.location || user.address); toast.success('Copied') }}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
 
-                <div className="group flex items-center justify-between py-2 border-b border-border/40 last:border-0">
+                <div className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
                   <div>
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Member Since</p>
                     <p className="font-medium">{user.createdAt}</p>
@@ -788,11 +879,15 @@ export default function UserDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Connection Status Card */}
-            <Card className="md:col-span-2 rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
-              <CardHeader className="pb-3">
+            {/* Connection Status Card - with gradient top border */}
+            <Card className="md:col-span-2 relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 opacity-80" />
+              <CardHeader className="pb-3 pt-5">
                 <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center justify-between">
-                  Connection
+                  <span className="flex items-center gap-2">
+                    <Signal className="w-4 h-4" />
+                    Connection
+                  </span>
                   <div className="flex items-center gap-1.5">
                     {user.connectionStatus === 'online' ? (
                       <>
@@ -808,7 +903,7 @@ export default function UserDetailPage() {
                   </div>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pb-5">
                 <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   {[
                     { label: 'Type', value: user.type?.toUpperCase() || '—' },
@@ -857,12 +952,16 @@ export default function UserDetailPage() {
 
           {/* Subscription + Credentials row */}
           <div className="grid md:grid-cols-2 gap-4">
-            {/* Subscription Card */}
-            <Card className="rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Subscription</CardTitle>
+            {/* Subscription Card - with gradient top border */}
+            <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-400 via-violet-400 to-fuchsia-400 opacity-80" />
+              <CardHeader className="pb-3 pt-5">
+                <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  Subscription
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-5">
+              <CardContent className="space-y-5 pb-5">
                 <div className="rounded-2xl border border-primary/10 bg-primary/5 p-5">
                   <div className="flex justify-between items-start">
                     <div>
@@ -965,50 +1064,49 @@ export default function UserDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Network Credentials Card with show/hide password */}
-            <Card className="rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
-              <CardHeader className="pb-3">
+            {/* Network Credentials Card - with gradient top border */}
+            <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400 opacity-80" />
+              <CardHeader className="pb-3 pt-5">
                 <CardTitle className="text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
                   <Wifi className="w-4 h-4" />
                   PPPoE Credentials
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-5">
+              <CardContent className="space-y-5 pb-5">
                 {!user.pppoeUsername && user.serviceStatus === 'PENDING' ? (
                   <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800 text-sm text-orange-700 dark:text-orange-300">
                     Credentials created after activation.
                   </div>
                 ) : user.pppoeUsername ? (
                   <>
-                    {/* Username row */}
-                    <div className="group flex items-center justify-between rounded-xl border border-border/50 px-4 py-3 transition hover:bg-muted/40">
+                    {/* Username row - always visible copy */}
+                    <div className="flex items-center justify-between rounded-xl border border-border/50 px-4 py-3">
                       <div>
                         <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Username</p>
                         <p className="font-mono text-sm">{user.pppoeUsername}</p>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="rounded-xl h-8 w-8 transition-all duration-200 active:scale-95"
-                          onClick={() => { navigator.clipboard.writeText(user.pppoeUsername); toast.success('Username copied') }}
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-xl h-8 w-8 transition-all duration-200 active:scale-95"
+                        onClick={() => { navigator.clipboard.writeText(user.pppoeUsername); toast.success('Username copied') }}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
                     </div>
 
-                    {/* Password row with show/hide */}
-                    <div className="group flex items-center justify-between rounded-xl border border-border/50 px-4 py-3 transition hover:bg-muted/40">
+                    {/* Password row - always visible eye and copy, with blur when masked */}
+                    <div className="flex items-center justify-between rounded-xl border border-border/50 px-4 py-3">
                       <div>
                         <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Password</p>
-                        <p className="font-mono text-sm">
+                        <p className={`font-mono text-sm ${!showPassword ? 'blur-sm select-none' : ''}`}>
                           {showPassword 
                             ? (user.pppoePassword || <span className="italic text-slate-400">not loaded</span>)
                             : '••••••••'}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                      <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1050,8 +1148,9 @@ export default function UserDetailPage() {
 
           {/* Live Bandwidth Graph - Premium Recharts Version */}
           {user.connectionStatus === 'online' && user.pppoeUsername && (
-            <Card className="rounded-2xl border bg-card overflow-hidden shadow-sm transition-all duration-200 hover:shadow-xl hover:-translate-y-[2px]">
-              <CardHeader className="pb-2">
+            <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 opacity-80" />
+              <CardHeader className="pb-2 pt-5">
                 <CardTitle className="text-sm font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-2">
                   <Activity className="w-4 h-4 text-emerald-500" />
                   Live Bandwidth
@@ -1061,44 +1160,21 @@ export default function UserDetailPage() {
                   </span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
+              <CardContent className="pt-0 pb-5">
                 <LiveBandwidthChart />
               </CardContent>
             </Card>
           )}
-
-          {/* Stats row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: 'Balance', value: `KES ${user.balance.toLocaleString()}`, icon: CreditCard },
-              { label: 'Sessions', value: user.totalSessions.toString(), icon: Activity },
-              { label: 'Total Paid', value: `KES ${user.totalPayments.toLocaleString()}`, icon: TrendingUp },
-              { label: 'Loyalty Pts', value: user.loyaltyPoints.toString(), icon: Gift },
-            ].map(({ label, value, icon: Icon }) => (
-              <Card key={label} className="group rounded-2xl border-border/50 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-primary/8 flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">{label}</p>
-                      <p className="font-bold text-foreground">{value}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
         </TabsContent>
 
-        <TabsContent value="sessions" className="mt-4">
-          <Card className="rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
-            <CardHeader>
+        <TabsContent value="sessions" className="mt-6">
+          <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 opacity-80" />
+            <CardHeader className="pt-5">
               <CardTitle>Session History</CardTitle>
               <CardDescription>Recent connection sessions</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pb-5">
               {sessionsLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
@@ -1136,13 +1212,14 @@ export default function UserDetailPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="payments" className="mt-4">
-          <Card className="rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
-            <CardHeader>
+        <TabsContent value="payments" className="mt-6">
+          <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 opacity-80" />
+            <CardHeader className="pt-5">
               <CardTitle>Payment History</CardTitle>
               <CardDescription>All transactions for this user</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pb-5">
               {paymentsLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
@@ -1180,13 +1257,14 @@ export default function UserDetailPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="tickets" className="mt-4">
-          <Card className="rounded-2xl border border-border/60 bg-card/70 backdrop-blur-md shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/20">
-            <CardHeader>
+        <TabsContent value="tickets" className="mt-6">
+          <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-400 via-violet-400 to-fuchsia-400 opacity-80" />
+            <CardHeader className="pt-5">
               <CardTitle>Support Tickets</CardTitle>
               <CardDescription>Tickets raised by this user</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pb-5">
               {ticketsLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
