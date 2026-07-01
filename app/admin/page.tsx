@@ -57,15 +57,6 @@ import type {
 // TYPES
 // ──────────────────────────────────────
 
-interface DashboardData {
-  core: DashboardStats | null
-  routers: RouterDashboardStats | null
-  payments: PaymentDashboardStats | null
-  tickets: SupportTicketStats | null
-  recentActivity: ActivityItem[]
-  reports: any | null
-}
-
 interface ActivityItem {
   id: number
   user__email: string
@@ -193,14 +184,6 @@ export default function AdminDashboard() {
   const { user } = useAdminAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [data, setData] = useState<DashboardData>({
-    core: null,
-    routers: null,
-    payments: null,
-    tickets: null,
-    recentActivity: [],
-    reports: null,
-  })
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [weekView, setWeekView] = useState<"this" | "last">("this")
   const [yearView, setYearView] = useState<"this" | "last">("last")
@@ -214,15 +197,29 @@ export default function AdminDashboard() {
   })
   const [onlineTotal, setOnlineTotal] = useState(0)
 
-  // State for expired customers count (derived from RADIUS credentials)
-  const [expiredCount, setExpiredCount] = useState<number>(0)
-
   // ─── FAST PATH: top-4-card stats, loaded independently of the heavy dashboard fetch ───
   const [quickStats, setQuickStats] = useState<{
     total_customers: number
     active_subscriptions: { pppoe: number; hotspot: number; total: number }
     expired_customers: number
     online_count: number
+    routers: RouterDashboardStats
+    revenue: { today: number; today_change: number; week: number; month: number; month_change: number; transactions_today: number }
+    tickets: { total: number; open: number; in_progress: number; resolved: number; avg_response_time: string }
+    recent_activity: ActivityItem[]
+    overview: {
+      today_revenue: number
+      today_change: number
+      week_revenue: number
+      week_change: number 
+      month_revenue: number
+      month_change: number
+      total_transactions_today: number
+      weekly_income: any[]
+      last_week_income: any[]
+      monthly_earnings: any[]
+      last_year_earnings: any[]
+    }
   } | null>(null)
   const quickStatsLoading = quickStats === null
 
@@ -270,36 +267,19 @@ export default function AdminDashboard() {
     }
   }, [])
 
+  // ─── TRIMMED: fetchDashboardData - only what's NOT in quickStats ───
   const fetchDashboardData = useCallback(async () => {
     try {
       setError(null)
 
-      // Fetch all dashboard data in parallel (excluding expired count which uses single endpoint)
-      const [coreRes, routerRes, paymentRes, ticketRes, reportsRes, sessionsRes, activeSubsRes] = await Promise.allSettled([
-        adminApi.getDashboard(),
-        adminApi.getRouterDashboardStats(),
-        adminApi.getPaymentDashboardStats(),
-        adminApi.getTicketStats(),
-        adminApi.getReportsData("30d"),
-        adminApi.getOnlineSessions(1, 1),  // ← page=1, pageSize=1 — just need the total count
+      // Only fetch data that's NOT in quickStats
+      const [sessionsRes, activeSubsRes] = await Promise.allSettled([
+        adminApi.getOnlineSessions(1, 1),
         adminApi.getActiveSubscriptions?.(),
       ])
 
-      setData({
-        core: coreRes.status === "fulfilled" ? coreRes.value : null,
-        routers: routerRes.status === "fulfilled" ? routerRes.value : null,
-        payments: paymentRes.status === "fulfilled" ? paymentRes.value : null,
-        tickets: ticketRes.status === "fulfilled" ? ticketRes.value : null,
-        recentActivity:
-          coreRes.status === "fulfilled" && (coreRes.value as any)?.recent_activity
-            ? (coreRes.value as any).recent_activity
-            : [],
-        reports: reportsRes.status === "fulfilled" ? reportsRes.value : null,
-      })
-
       // Update live data separately
       if (sessionsRes.status === "fulfilled") {
-        // Use response.total (all active sessions), not sessions.length (just page 1)
         setOnlineSessions(sessionsRes.value?.sessions || [])
         setOnlineTotal(sessionsRes.value?.total || sessionsRes.value?.sessions?.length || 0)
       }
@@ -308,24 +288,7 @@ export default function AdminDashboard() {
         setActiveSubscriptions(subs)
       }
 
-      // ─────────────────────────────────────────────────────────────
-      // FAST EXPIRED COUNT – single API call
-      // Uses the new /radius/credentials/expired_count/ endpoint
-      // ─────────────────────────────────────────────────────────────
-      let expiredViaRadius = 0
-      try {
-        expiredViaRadius = await adminApi.getExpiredRADIUSCount()
-      } catch (radiusErr) {
-        console.warn('Failed to fetch expired RADIUS count:', radiusErr)
-        // Fallback to core stats if available
-        if (coreRes.status === "fulfilled") {
-          expiredViaRadius = (coreRes.value?.expired_customers || 0)
-        }
-      }
-      
-      setExpiredCount(expiredViaRadius)
-
-      // ─── NEW: Fetch SMS data ──────────────────────────────
+      // ─── SMS attention data (unchanged) ──────────────────────
       try {
         const [notifSettings, gatewayConfigs, smsWallet, smsBalance] = await Promise.all([
           adminApi.getSMSNotificationSettings().catch(() => null),
@@ -354,10 +317,8 @@ export default function AdminDashboard() {
 
         setSmsAttention({ configured, lowBalance, balance })
       } catch (smsErr) {
-        // non-critical — don't block dashboard
         console.warn('SMS attention data fetch failed:', smsErr)
       }
-      // ─── End SMS fetch ────────────────────────────────────
 
     } catch (err: any) {
       console.error("Dashboard fetch error:", err)
@@ -390,13 +351,7 @@ export default function AdminDashboard() {
     fetchDashboardData()
   }
 
-  // Derive stats from data
-  const core = data.core
-  const routers = data.routers
-  const payments = data.payments
-  const tickets = data.tickets
-
-  if (error && !core) {
+  if (error && !quickStats) {
     return (
       <div className="space-y-6">
         <div>
@@ -440,7 +395,7 @@ export default function AdminDashboard() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                 </span>
-                {(routers?.online_routers ?? 0)} ONLINE RIGHT NOW
+                {(quickStats?.routers?.online_routers ?? 0)} ONLINE RIGHT NOW
               </span>
             </div>
 
@@ -455,12 +410,12 @@ export default function AdminDashboard() {
             {/* Attention items + contextual subtext – UPDATED call */}
             {(() => {
               const items = getAttentionItems(
-                routers?.offline_routers ?? 0,
+                quickStats?.routers?.offline_routers ?? 0,
                 smsAttention.balance,
                 smsAttention.configured,
                 smsAttention.lowBalance,
-                tickets?.open ?? 0,
-                expiredCount
+                quickStats?.tickets?.open ?? 0,
+                quickStats?.expired_customers ?? 0
               )
               return items.length > 0 ? (
                 <p className="text-sm text-muted-foreground max-w-lg mt-1">
@@ -490,12 +445,12 @@ export default function AdminDashboard() {
         </div>
 
         {/* ── Needs Attention Banner (updated condition and pills) ── */}
-        {!loading && ((routers?.offline_routers ?? 0) > 0 || !smsAttention.configured || smsAttention.lowBalance || (tickets?.open ?? 0) > 3 || expiredCount > 20) && (
+        {!loading && ((quickStats?.routers?.offline_routers ?? 0) > 0 || !smsAttention.configured || smsAttention.lowBalance || (quickStats?.tickets?.open ?? 0) > 3 || (quickStats?.expired_customers ?? 0) > 20) && (
           <div className="relative mt-4 pt-4 border-t border-border/50">
             <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">NEEDS YOUR ATTENTION</p>
             <div className="flex flex-wrap gap-2">
               {/* Offline routers pills (max 3) */}
-              {Array.from({ length: Math.min(routers?.offline_routers ?? 0, 3) }).map((_, i) => (
+              {Array.from({ length: Math.min(quickStats?.routers?.offline_routers ?? 0, 3) }).map((_, i) => (
                 <Link key={i} href="/admin/routers?status=offline">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-100 transition-colors cursor-pointer">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
@@ -525,21 +480,21 @@ export default function AdminDashboard() {
               )}
 
               {/* Open tickets */}
-              {(tickets?.open ?? 0) > 3 && (
+              {(quickStats?.tickets?.open ?? 0) > 3 && (
                 <Link href="/admin/tickets?status=open">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition-colors cursor-pointer">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
-                    {tickets?.open} open tickets
+                    {quickStats?.tickets?.open} open tickets
                   </div>
                 </Link>
               )}
 
               {/* Expired subscriptions */}
-              {expiredCount > 20 && (
+              {(quickStats?.expired_customers ?? 0) > 20 && (
                 <Link href="/admin/users?status=expired">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-muted-foreground hover:bg-slate-100 transition-colors cursor-pointer">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
-                    {expiredCount} expired subs
+                    {quickStats?.expired_customers} expired subs
                   </div>
                 </Link>
               )}
@@ -562,7 +517,7 @@ export default function AdminDashboard() {
             ) : (
               <>
                 <div className="text-[28px] font-bold leading-none tracking-[-0.04em] text-foreground tabular-nums">
-                  {(quickStats?.total_customers ?? core?.total_customers ?? 0).toLocaleString()}
+                  {(quickStats?.total_customers ?? 0).toLocaleString()}
                 </div>
                 <p className="mt-2 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">All PPPoE/Static users</p>
               </>
@@ -608,7 +563,7 @@ export default function AdminDashboard() {
             ) : (
               <>
                 <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-red-600 dark:text-red-400 leading-none">
-                  {(quickStats?.expired_customers ?? expiredCount).toLocaleString()}
+                  {(quickStats?.expired_customers ?? 0).toLocaleString()}
                 </div>
                 <p className="mt-2 flex items-center gap-1 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
                   <TrendingDown className="w-3 h-3 text-red-500" />
@@ -711,17 +666,18 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {quickStatsLoading ? (
               <div className="space-y-3">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : (() => {
+              const rt = quickStats?.routers
               const commentary = getRouterStatuscommentary(
-                routers?.online_routers ?? 0,
-                routers?.offline_routers ?? 0,
-                routers?.warning_routers ?? 0,
-                routers?.total_routers ?? 0
+                rt?.online_routers ?? 0,
+                rt?.offline_routers ?? 0,
+                rt?.warning_routers ?? 0,
+                rt?.total_routers ?? 0
               )
               return (
                 <div className="space-y-4">
@@ -746,23 +702,23 @@ export default function AdminDashboard() {
                   {/* Status pills */}
                   <div className="grid grid-cols-3 gap-2">
                     <div className="flex flex-col items-center rounded-xl border border-border/60 bg-muted/30 p-2.5">
-                      <span className="text-xl font-bold text-emerald-600">{routers?.online_routers ?? 0}</span>
+                      <span className="text-xl font-bold text-emerald-600">{rt?.online_routers ?? 0}</span>
                       <span className="mt-0.5 text-[10px] font-medium text-muted-foreground">Online</span>
                     </div>
                     <div className="flex flex-col items-center rounded-xl border border-border/60 bg-muted/30 p-2.5">
-                      <span className="text-xl font-bold text-red-600">{routers?.offline_routers ?? 0}</span>
+                      <span className="text-xl font-bold text-red-600">{rt?.offline_routers ?? 0}</span>
                       <span className="mt-0.5 text-[10px] font-medium text-muted-foreground">Offline</span>
                     </div>
                     <div className="flex flex-col items-center rounded-xl border border-border/60 bg-muted/30 p-2.5">
-                      <span className="text-xl font-bold text-amber-600">{(routers?.warning_routers ?? 0) + (routers?.maintenance_routers ?? 0)}</span>
+                      <span className="text-xl font-bold text-amber-600">{(rt?.warning_routers ?? 0) + (rt?.maintenance_routers ?? 0)}</span>
                       <span className="mt-0.5 text-[10px] font-medium text-muted-foreground">Flagged</span>
                     </div>
                   </div>
 
                   {/* Footer */}
                   <div className="flex items-center justify-between border-t border-border/60 pt-3 text-sm">
-                    <span className="text-muted-foreground">{routers?.total_routers ?? 0} total routers</span>
-                    <span className="text-xs text-muted-foreground">{routers?.total_connected_users ?? 0} users connected</span>
+                    <span className="text-muted-foreground">{rt?.total_routers ?? 0} total routers</span>
+                    <span className="text-xs text-muted-foreground">{rt?.total_connected_users ?? 0} users connected</span>
                   </div>
                 </div>
               )
@@ -788,17 +744,18 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {quickStatsLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
               </div>
             ) : (() => {
-              const todayRev = parseFloat(String(data.reports?.overview?.today_revenue ?? payments?.amount_today ?? 0))
-              const weekRev = parseFloat(String(data.reports?.overview?.week_revenue ?? 0))
-              const monthRev = parseFloat(String(data.reports?.overview?.month_revenue ?? payments?.amount_this_month ?? 0))
-              const todayChange = data.reports?.overview?.today_change ?? 0
+              const ov = quickStats?.overview
+              const todayRev = parseFloat(String(ov?.today_revenue ?? 0))
+              const weekRev = parseFloat(String(ov?.week_revenue ?? 0))
+              const monthRev = parseFloat(String(ov?.month_revenue ?? 0))
+              const todayChange = ov?.today_change ?? 0
               const commentary = getRevenueCommentary(todayRev, weekRev, monthRev, todayChange)
               return (
                 <div className="space-y-2">
@@ -830,9 +787,7 @@ export default function AdminDashboard() {
                         {formatKSh(weekRev)}
                       </p>
                     </div>
-                    {(data.reports?.overview?.week_change ?? 0) !== 0 && (
-                      <ChangeBadge value={data.reports?.overview?.week_change ?? 0} />
-                    )}
+                    {(ov?.week_change ?? 0) !== 0 && <ChangeBadge value={ov?.week_change ?? 0} />}
                   </div>
 
                   {/* This month */}
@@ -843,16 +798,14 @@ export default function AdminDashboard() {
                         {formatKSh(monthRev)}
                       </p>
                     </div>
-                    {(data.reports?.overview?.month_change ?? 0) !== 0 && (
-                      <ChangeBadge value={data.reports?.overview?.month_change ?? 0} />
-                    )}
+                    {(ov?.month_change ?? 0) !== 0 && <ChangeBadge value={ov?.month_change ?? 0} />}
                   </div>
 
                   {/* Footer */}
                   <div className="flex items-center justify-between border-t border-border/60 pt-2 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
                     <span>Transactions today</span>
                     <span className="font-medium text-foreground">
-                      {data.reports?.overview?.total_transactions_today ?? payments?.payments_today ?? 0}
+                      {ov?.total_transactions_today ?? 0}
                     </span>
                   </div>
                 </div>
@@ -879,42 +832,45 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {quickStatsLoading ? (
               <div className="space-y-3">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-lg border border-red-200/60 bg-red-50 p-3 text-center dark:border-red-900 dark:bg-red-950/30">
-                    <p className="text-2xl font-bold text-red-600">{tickets?.open ?? 0}</p>
-                    <p className="text-xs text-muted-foreground">Open</p>
+            ) : (() => {
+              const tk = quickStats?.tickets
+              return (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border border-red-200/60 bg-red-50 p-3 text-center dark:border-red-900 dark:bg-red-950/30">
+                      <p className="text-2xl font-bold text-red-600">{tk?.open ?? 0}</p>
+                      <p className="text-xs text-muted-foreground">Open</p>
+                    </div>
+                    <div className="rounded-lg border border-amber-200/60 bg-amber-50 p-3 text-center dark:border-amber-900 dark:bg-amber-950/30">
+                      <p className="text-2xl font-bold text-amber-600">{tk?.in_progress ?? 0}</p>
+                      <p className="text-xs text-muted-foreground">In Progress</p>
+                    </div>
                   </div>
-                  <div className="rounded-lg border border-amber-200/60 bg-amber-50 p-3 text-center dark:border-amber-900 dark:bg-amber-950/30">
-                    <p className="text-2xl font-bold text-amber-600">{tickets?.in_progress ?? 0}</p>
-                    <p className="text-xs text-muted-foreground">In Progress</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border border-green-200/60 bg-green-50 p-3 text-center dark:border-green-900 dark:bg-green-950/30">
+                      <p className="text-2xl font-bold text-green-600">{tk?.resolved ?? 0}</p>
+                      <p className="text-xs text-muted-foreground">Resolved</p>
+                    </div>
+                    <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-center">
+                      <p className="text-2xl font-bold text-primary">{tk?.total ?? 0}</p>
+                      <p className="text-xs text-muted-foreground">Total</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-border/60 pt-2 text-sm">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      Avg Response
+                    </div>
+                    <span className="font-medium">{tk?.avg_response_time ?? "—"}</span>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-lg border border-green-200/60 bg-green-50 p-3 text-center dark:border-green-900 dark:bg-green-950/30">
-                    <p className="text-2xl font-bold text-green-600">{tickets?.resolved ?? 0}</p>
-                    <p className="text-xs text-muted-foreground">Resolved</p>
-                  </div>
-                  <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-center">
-                    <p className="text-2xl font-bold text-primary">{tickets?.total ?? 0}</p>
-                    <p className="text-xs text-muted-foreground">Total</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between border-t border-border/60 pt-2 text-sm">
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    Avg Response
-                  </div>
-                  <span className="font-medium">{tickets?.avg_response_time ?? "—"}</span>
-                </div>
-              </div>
-            )}
+              )
+            })()}
           </CardContent>
         </Card>
       </div>
@@ -959,13 +915,13 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {quickStatsLoading ? (
               <div className="h-[220px] flex items-center justify-center">
                 <NetilyLoader size={32} className="opacity-50" />
               </div>
             ) : !(weekView === "this"
-                ? data.reports?.overview?.weekly_income
-                : data.reports?.overview?.last_week_income
+                ? quickStats?.overview?.weekly_income
+                : quickStats?.overview?.last_week_income
               )?.length ? (
               <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-muted-foreground">
                 <BarChart3 className="w-10 h-10 opacity-30" />
@@ -976,12 +932,11 @@ export default function AdminDashboard() {
                 <BarChart
                   data={
                     weekView === "this"
-                      ? data.reports?.overview?.weekly_income
-                      : data.reports?.overview?.last_week_income
+                      ? quickStats?.overview?.weekly_income
+                      : quickStats?.overview?.last_week_income
                   }
                   barSize={28}
                   margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -1061,13 +1016,13 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {quickStatsLoading ? (
               <div className="h-[220px] flex items-center justify-center">
                 <NetilyLoader size={32} className="opacity-50" />
               </div>
             ) : !(yearView === "this"
-                ? data.reports?.overview?.monthly_earnings
-                : data.reports?.overview?.last_year_earnings
+                ? quickStats?.overview?.monthly_earnings
+                : quickStats?.overview?.last_year_earnings
               )?.length ? (
               <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-muted-foreground">
                 <BarChart3 className="w-10 h-10 opacity-30" />
@@ -1078,12 +1033,11 @@ export default function AdminDashboard() {
                 <BarChart
                   data={
                     yearView === "this"
-                      ? data.reports?.overview?.monthly_earnings
-                      : data.reports?.overview?.last_year_earnings
+                      ? quickStats?.overview?.monthly_earnings
+                      : quickStats?.overview?.last_year_earnings
                   }
                   barSize={18}
                   margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -1167,7 +1121,7 @@ export default function AdminDashboard() {
             <CardDescription>Latest system events from audit log</CardDescription>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {quickStatsLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="flex items-center gap-3">
@@ -1179,14 +1133,14 @@ export default function AdminDashboard() {
                   </div>
                 ))}
               </div>
-            ) : data.recentActivity.length === 0 ? (
+            ) : (quickStats?.recent_activity ?? []).length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
                 <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>No recent activity</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-[340px] overflow-y-auto">
-                {data.recentActivity.map((activity) => (
+                {(quickStats?.recent_activity ?? []).map((activity) => (
                   <div
                     key={activity.id}
                     className="flex items-start gap-3 rounded-lg p-2.5 transition-colors hover:bg-muted/30"
