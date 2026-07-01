@@ -716,6 +716,16 @@ class AdminApiService {
     return this.request<DashboardStats>('/core/dashboard/')
   }
 
+  // FAST PATH: single parallelized endpoint for top dashboard cards
+  // Uses ThreadPoolExecutor internally to run all 4 queries concurrently
+  async getUnifiedDashboard(): Promise<{
+    total_customers: number
+    active_subscriptions: { pppoe: number; hotspot: number; total: number }
+    expired_customers: number
+    online_count: number
+  }> {
+    return this.request<any>('/core/dashboard/unified/')
+  }
   // ------------------------------------------
   // USERS/STAFF - /core/users/
   // ------------------------------------------
