@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next"
 import { blogPosts } from "@/lib/blog-data"
+import { alternativePages } from "@/lib/alternatives-data"
 
 const BASE = "https://netily.co.ke"
 
@@ -9,6 +10,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: new Date(post.updatedAt),
     changeFrequency: "monthly",
     priority: 0.8,
+  }))
+
+  const alternativeEntries: MetadataRoute.Sitemap = alternativePages.map((page) => ({
+    url: `${BASE}/alternatives/${page.slug}`,
+    lastModified: new Date(),
+    changeFrequency: "monthly",
+    priority: 0.82,
   }))
 
   return [
@@ -25,12 +33,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: `${BASE}/alternatives`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.88,
+    },
+    {
       url: `${BASE}/docs`,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.9,
     },
     ...blogEntries,
+    ...alternativeEntries,
     {
       url: `${BASE}/login`,
       lastModified: new Date(),

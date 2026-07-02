@@ -2400,7 +2400,8 @@ export function LandingPage() {
                     </li>
                   ))}
                   <li><Link href="#contact" onClick={(e) => { e.preventDefault(); scrollTo("contact") }} className="text-sm text-slate-400 hover:text-white transition-colors">Start Free Trial</Link></li>
-                  <li><Link href="#contact" onClick={(e) => { e.preventDefault(); scrollTo("contact") }} className="text-sm text-slate-400 hover:text-white transition-colors">Sign In</Link></li>
+                  <li><Link href="/alternatives" className="text-sm text-slate-400 hover:text-white transition-colors">ISP Billing Alternatives</Link></li>
+                  <li><Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors">Sign In</Link></li>
                 </ul>
               </div>
 
@@ -2408,13 +2409,11 @@ export function LandingPage() {
               <div>
                 <h4 className="text-sm font-semibold text-white mb-4">Resources</h4>
                 <ul className="space-y-2.5">
-                  {["Documentation", "API Reference", "Status Page", "Community"].map((item) => (
-                    <li key={item}>
-                      <a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">
-                        {item}
-                      </a>
-                    </li>
-                  ))}
+                  <li><Link href="/docs" className="text-sm text-slate-400 hover:text-white transition-colors">Documentation</Link></li>
+                  <li><Link href="/blog" className="text-sm text-slate-400 hover:text-white transition-colors">ISP Growth Blog</Link></li>
+                  <li><Link href="/blog/isp-billing-software-kenya-2026" className="text-sm text-slate-400 hover:text-white transition-colors">ISP Billing Buyer Guide</Link></li>
+                  <li><Link href="/alternatives/isp-man" className="text-sm text-slate-400 hover:text-white transition-colors">ISP Man Alternative</Link></li>
+                  <li><Link href="/alternatives/lipanet" className="text-sm text-slate-400 hover:text-white transition-colors">Lipanet Alternative</Link></li>
                 </ul>
               </div>
 
