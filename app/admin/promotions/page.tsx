@@ -51,6 +51,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { usePagePermissions } from "@/hooks/use-page-permissions"
 import {
@@ -551,7 +552,7 @@ export default function PromotionsPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white">
+                  <div className="w-12 h-12 rounded-lg bg-linear-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white">
                     <Sparkles className="w-6 h-6" />
                   </div>
                   <div>

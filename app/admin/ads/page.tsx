@@ -343,7 +343,7 @@ export default function AdsPage() {
               {filteredAds.map(ad => (
                 <div key={ad.id} className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${ad.is_active ? 'border-success/20 bg-success/10/40' : 'border-slate-200 bg-white opacity-70'}`}>
                   {/* Thumbnail */}
-                  <div className="w-16 h-12 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <div className="w-16 h-12 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 overflow-hidden">
                     {ad.media_url ? (
                       ad.media_type === 'IMAGE'
                         ? <img src={ad.media_url} alt="" className="w-full h-full object-cover rounded-lg" />
@@ -420,7 +420,7 @@ export default function AdsPage() {
 
               {saveError && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                   {saveError}
                 </div>
               )}

@@ -855,7 +855,7 @@ add address=10.10.0.1/24 interface=bridge-hotspot
                     </div>
 
                     {/* Quick Setup Guide */}
-                    <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                    <Card className="bg-linear-to-r from-blue-50 to-indigo-50 border-blue-200">
                       <CardHeader>
                         <CardTitle className="text-lg flex items-center gap-2">
                           <CheckCircle2 className="w-5 h-5 text-blue-600" />
@@ -1502,13 +1502,13 @@ add address=10.10.0.1/24 interface=bridge-hotspot
               <p className="text-sm text-muted-foreground">Choose a visual theme for the captive portal login page</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { id: 1, name: "Classic",    bg: "bg-gradient-to-br from-blue-50 to-indigo-100", accent: "bg-blue-600" },
-                  { id: 2, name: "Dark",       bg: "bg-gradient-to-br from-gray-900 to-gray-800", accent: "bg-cyan-500" },
-                  { id: 3, name: "Gradient",   bg: "bg-gradient-to-br from-purple-600 to-pink-500", accent: "bg-purple-600" },
+                  { id: 1, name: "Classic",    bg: "bg-linear-to-br from-blue-50 to-indigo-100", accent: "bg-blue-600" },
+                  { id: 2, name: "Dark",       bg: "bg-linear-to-br from-gray-900 to-gray-800", accent: "bg-cyan-500" },
+                  { id: 3, name: "Gradient",   bg: "bg-linear-to-br from-purple-600 to-pink-500", accent: "bg-purple-600" },
                   { id: 4, name: "Minimal",    bg: "bg-gray-50",                                  accent: "bg-gray-900" },
-                  { id: 5, name: "Vibrant",    bg: "bg-gradient-to-br from-amber-400 to-orange-500", accent: "bg-orange-500" },
-                  { id: 6, name: "Corporate",  bg: "bg-gradient-to-br from-slate-100 to-slate-200", accent: "bg-slate-700" },
-                  { id: 7, name: "Glass",      bg: "bg-gradient-to-br from-teal-400 to-blue-500", accent: "bg-white" },
+                  { id: 5, name: "Vibrant",    bg: "bg-linear-to-br from-amber-400 to-orange-500", accent: "bg-orange-500" },
+                  { id: 6, name: "Corporate",  bg: "bg-linear-to-br from-slate-100 to-slate-200", accent: "bg-slate-700" },
+                  { id: 7, name: "Glass",      bg: "bg-linear-to-br from-teal-400 to-blue-500", accent: "bg-white" },
                 ].map((tmpl) => (
                   <button
                     key={tmpl.id}

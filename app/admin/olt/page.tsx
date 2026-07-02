@@ -62,6 +62,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { usePagePermissions } from "@/hooks/use-page-permissions"
 import {
@@ -95,6 +96,7 @@ import { Separator } from "@/components/ui/separator"
 import type { OLT, PONPort } from "@/lib/types"
 
 type OLTStatus = 'online' | 'offline' | 'warning' | 'maintenance'
+type OLTManufacturer = NonNullable<OLT["manufacturer"]>
 
 const getStatusIcon = (status: OLTStatus) => {
   switch (status) {
@@ -170,7 +172,15 @@ export default function OLTManagementPage() {
   }, [fetchOLTs])
 
   // Form state for new OLT
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string
+    ip_address: string
+    model: string
+    manufacturer: OLTManufacturer
+    serial_number: string
+    location: string
+    total_pon_ports: number
+  }>({
     name: "",
     ip_address: "",
     model: "",
@@ -762,7 +772,7 @@ export default function OLTManagementPage() {
                 <Label htmlFor="manufacturer">Manufacturer</Label>
                 <Select 
                   value={formData.manufacturer} 
-                  onValueChange={(v) => setFormData({ ...formData, manufacturer: v })}
+                  onValueChange={(v) => setFormData({ ...formData, manufacturer: v as OLTManufacturer })}
                 >
                   <SelectTrigger>
                     <SelectValue />

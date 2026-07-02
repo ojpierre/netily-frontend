@@ -58,6 +58,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { usePagePermissions } from "@/hooks/use-page-permissions"
 import {
@@ -425,7 +426,7 @@ export default function ONUManagementPage() {
                     <span className="text-sm text-muted-foreground">
                       {selectedRows.length} selected
                     </span>
-                    {perms.canEdit && selectedONUs.length > 0 && (
+                    {perms.canEdit && selectedRows.length > 0 && (
                       <Button variant="outline" size="sm">
                         <Power className="mr-2 h-4 w-4" />
                         Reboot Selected

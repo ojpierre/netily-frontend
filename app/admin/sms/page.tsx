@@ -1420,7 +1420,7 @@ export default function SMSPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 p-5 text-white">
+                  <div className="rounded-xl bg-linear-to-br from-slate-800 to-slate-900 p-5 text-white">
                     <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">
                       {notifSettings.use_inbuilt_system ? 'Wallet Units' : 'Provider Balance'}
                     </p>

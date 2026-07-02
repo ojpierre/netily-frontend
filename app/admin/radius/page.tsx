@@ -20,10 +20,13 @@ import {
   Wifi,
   WifiOff,
   Shield,
+  ShieldAlert,
   Settings,
   Clock,
   Download,
   Upload,
+  Power,
+  Check,
   Radio,
   Eye,
   EyeOff,
@@ -89,17 +92,8 @@ import type {
   RADIUSDashboardStats,
   Customer,
   CustomerRADIUSCredentials,
+  Plan,
 } from "@/lib/types"
-
-// BillingPlan interface for plans dropdown
-interface BillingPlan {
-  id: number
-  name: string
-  download_speed: number
-  upload_speed: number
-  price: string
-  is_active: boolean
-}
 
 // Helper function to format bytes
 function formatBytes(bytes: number): string {
@@ -209,7 +203,7 @@ export default function RADIUSPage() {
   const [sessions, setSessions] = useState<RADIUSAccountingSession[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [credentials, setCredentials] = useState<CustomerRADIUSCredentials[]>([])
-  const [plans, setPlans] = useState<BillingPlan[]>([])
+  const [plans, setPlans] = useState<Plan[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [activeTab, setActiveTab] = useState("users")
@@ -450,6 +444,7 @@ export default function RADIUSPage() {
       password: "",
       customer_id: "",
       profile_id: "",
+      plan_id: "",
       download_speed: "10000",
       upload_speed: "5000",
       simultaneous_use: "1",
@@ -1266,7 +1261,7 @@ export default function RADIUSPage() {
                   ) : (
                     plans.filter(p => p.is_active).map((p) => (
                       <SelectItem key={p.id} value={p.id.toString()}>
-                        {p.name} - {p.download_speed}M/{p.upload_speed}M (KES {p.base_price})
+                        {p.name} - {p.download_speed ?? "Manual"}M/{p.upload_speed ?? "Manual"}M (KES {p.base_price})
                       </SelectItem>
                     ))
                   )}

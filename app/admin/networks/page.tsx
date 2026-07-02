@@ -58,6 +58,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { usePagePermissions } from "@/hooks/use-page-permissions"
 import { Input } from "@/components/ui/input"

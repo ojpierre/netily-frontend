@@ -432,7 +432,7 @@ export default function RoutersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-linear-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
             Router Management
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -445,7 +445,7 @@ export default function RoutersPage() {
             Refresh
           </Button>
           {perms.canAdd && (
-            <Button onClick={() => setIsAddDialogOpen(true)} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+            <Button onClick={() => setIsAddDialogOpen(true)} className="rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
               <Plus className="w-4 h-4 mr-2" />
               Add Router
             </Button>
@@ -455,24 +455,24 @@ export default function RoutersPage() {
 
       {/* Stats Cards - Glassmorphism redesign */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Card className="bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+        <Card className="bg-linear-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-xl">
+              <div className="p-2 bg-linear-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-xl">
                 <Server className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               </div>
               <div>
-                <p className="text-2xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">{localStats.total_routers}</p>
+                <p className="text-2xl font-bold bg-linear-to-r from-slate-700 to-slate-900 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">{localStats.total_routers}</p>
                 <p className="text-xs text-muted-foreground font-medium">Total Routers</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+        <Card className="bg-linear-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-500/20 dark:to-emerald-500/10 rounded-xl">
+              <div className="p-2 bg-linear-to-br from-emerald-100 to-emerald-200 dark:from-emerald-500/20 dark:to-emerald-500/10 rounded-xl">
                 <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
@@ -483,10 +483,10 @@ export default function RoutersPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+        <Card className="bg-linear-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-red-100 to-red-200 dark:from-red-500/20 dark:to-red-500/10 rounded-xl">
+              <div className="p-2 bg-linear-to-br from-red-100 to-red-200 dark:from-red-500/20 dark:to-red-500/10 rounded-xl">
                 <XCircle className="w-5 h-5 text-destructive dark:text-destructive" />
               </div>
               <div>
@@ -497,10 +497,10 @@ export default function RoutersPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+        <Card className="bg-linear-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-500/20 dark:to-emerald-500/10 rounded-xl">
+              <div className="p-2 bg-linear-to-br from-emerald-100 to-emerald-200 dark:from-emerald-500/20 dark:to-emerald-500/10 rounded-xl">
                 <Activity className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
@@ -511,10 +511,10 @@ export default function RoutersPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+        <Card className="bg-linear-to-br from-white/80 to-white/40 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-500/20 dark:to-purple-500/10 rounded-xl">
+              <div className="p-2 bg-linear-to-br from-purple-100 to-purple-200 dark:from-purple-500/20 dark:to-purple-500/10 rounded-xl">
                 <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
@@ -653,15 +653,15 @@ export default function RoutersPage() {
                   />
 
                   {/* Top gradient line — animates on hover */}
-                  <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${statusConfig.gradient} opacity-70 group-hover:opacity-100 transition-opacity`} />
+                  <div className={`absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r ${statusConfig.gradient} opacity-70 group-hover:opacity-100 transition-opacity`} />
 
                   <CardHeader className="relative pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3.5 min-w-0">
                         {/* Icon with layered glow */}
-                        <div className="relative flex-shrink-0">
-                          <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${statusConfig.gradient} opacity-30 blur-md group-hover:opacity-50 group-hover:blur-lg transition-all duration-500`} />
-                          <div className={`relative w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-br ${statusConfig.gradient} shadow-lg`}>
+                        <div className="relative shrink-0">
+                          <div className={`absolute inset-0 rounded-2xl bg-linear-to-br ${statusConfig.gradient} opacity-30 blur-md group-hover:opacity-50 group-hover:blur-lg transition-all duration-500`} />
+                          <div className={`relative w-12 h-12 rounded-2xl flex items-center justify-center bg-linear-to-br ${statusConfig.gradient} shadow-lg`}>
                             <Server className="w-5 h-5 text-white drop-shadow-sm" strokeWidth={2.25} />
                           </div>
                           <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${statusConfig.dot} ring-[3px] ring-white dark:ring-slate-900 ${statusConfig.dotRing} ${r.status === 'online' ? 'animate-pulse' : ''}`} />
@@ -677,7 +677,7 @@ export default function RoutersPage() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-1 flex-shrink-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-1 shrink-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -738,13 +738,13 @@ export default function RoutersPage() {
                     {/* Location */}
                     {r.location && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                        <MapPin className="w-3.5 h-3.5 shrink-0" />
                         <span className="truncate">{r.location}</span>
                       </div>
                     )}
 
                     {/* Hero metric — connected users, big and bold */}
-                    <div className="flex items-center justify-between rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/60 dark:to-slate-800/20 px-4 py-3 border border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between rounded-2xl bg-linear-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/60 dark:to-slate-800/20 px-4 py-3 border border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-white dark:bg-slate-900 rounded-xl shadow-sm">
                           <Users className="w-4 h-4 text-primary dark:text-primary/80" />
@@ -778,7 +778,7 @@ export default function RoutersPage() {
                     <div className="space-y-1.5">
                       <Progress
                         value={r.uptime_percentage && r.uptime_percentage > 0 ? r.uptime_percentage : r.status === 'online' ? 100 : 0}
-                        className={`h-1.5 rounded-full ${!meetsSla && r.status !== 'online' ? "[&>div]:bg-destructive" : `[&>div]:bg-gradient-to-r [&>div]:${statusConfig.gradient}`}`}
+                        className={`h-1.5 rounded-full ${!meetsSla && r.status !== 'online' ? "[&>div]:bg-destructive" : `[&>div]:bg-linear-to-r [&>div]:${statusConfig.gradient}`}`}
                       />
                     </div>
 
@@ -795,7 +795,7 @@ export default function RoutersPage() {
                           const dash = (value / 100) * circ
                           return (
                             <div key={label} className="rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-2.5 border border-slate-100 dark:border-slate-800/50">
-                              <svg width="32" height="32" className="-rotate-90 flex-shrink-0">
+                              <svg width="32" height="32" className="-rotate-90 shrink-0">
                                 <circle cx="16" cy="16" r={R} fill="none" stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeWidth="3" />
                                 <circle cx="16" cy="16" r={R} fill="none"
                                   stroke={value > 80 ? "#ef4444" : value > 60 ? "#f59e0b" : "#3b82f6"}
@@ -839,7 +839,7 @@ export default function RoutersPage() {
                       <span className="text-xs font-medium text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
                         Open dashboard
                       </span>
-                      <div className={`flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br ${statusConfig.gradient} opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300`}>
+                      <div className={`flex items-center justify-center w-7 h-7 rounded-full bg-linear-to-br ${statusConfig.gradient} opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300`}>
                         <ArrowUpRight className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
                       </div>
                     </div>
@@ -865,7 +865,7 @@ export default function RoutersPage() {
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-800/50 dark:to-slate-800/30">
+                  <TableRow className="bg-linear-to-r from-slate-50 to-slate-100/50 dark:from-slate-800/50 dark:to-slate-800/30">
                     <TableHead className="font-semibold">Name</TableHead>
                     <TableHead className="font-semibold">IP Address</TableHead>
                     <TableHead className="font-semibold">Type</TableHead>
@@ -1061,7 +1061,7 @@ export default function RoutersPage() {
             <Button variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm() }} className="rounded-xl">
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={isSubmitting} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+            <Button onClick={handleCreate} disabled={isSubmitting} className="rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
               {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
               Add Router
             </Button>
