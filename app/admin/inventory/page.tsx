@@ -104,6 +104,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import type {
   EquipmentItem,
   EquipmentType,
@@ -147,6 +148,7 @@ const formatCurrency = (amount: string | number) => {
 }
 
 export default function InventoryPage() {
+  const perms = usePagePermissions("/admin/inventory")
   // Data states
   const [equipment, setEquipment] = useState<EquipmentItem[]>([])
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([])
@@ -699,10 +701,12 @@ export default function InventoryPage() {
             <Download className="mr-2 h-4 w-4" />
             Export
           </Button>
-          <Button onClick={() => setIsAddItemOpen(true)} className="w-full sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Equipment
-          </Button>
+          {perms.canAdd && (
+            <Button onClick={() => setIsAddItemOpen(true)} className="w-full sm:w-auto">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Equipment
+            </Button>
+          )}
         </div>
       </div>
 
@@ -941,36 +945,46 @@ export default function InventoryPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewDetails(item)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditEquipment(item)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
+                            {perms.canViewDetails && (
+                              <DropdownMenuItem onClick={() => handleViewDetails(item)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                            )}
+                            {perms.canEdit && (
+                              <DropdownMenuItem onClick={() => handleEditEquipment(item)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
-                            {item.is_available && (
+                            {perms.canEdit && item.is_available && (
                               <DropdownMenuItem onClick={() => handleAssign(item)}>
                                 <UserCheck className="mr-2 h-4 w-4" />
                                 Assign to Employee
                               </DropdownMenuItem>
                             )}
-                            {item.status === 'assigned' && (
+                            {perms.canEdit && item.status === 'assigned' && (
                               <DropdownMenuItem onClick={() => handleReturn(item)}>
                                 <Undo2 className="mr-2 h-4 w-4" />
                                 Return to Stock
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onClick={() => handleSendToMaintenance(item)}>
-                              <Wrench className="mr-2 h-4 w-4" />
-                              Send to Maintenance
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteEquipment(item)}>
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
+                            {perms.canEdit && (
+                              <DropdownMenuItem onClick={() => handleSendToMaintenance(item)}>
+                                <Wrench className="mr-2 h-4 w-4" />
+                                Send to Maintenance
+                              </DropdownMenuItem>
+                            )}
+                            {perms.canDelete && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteEquipment(item)}>
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

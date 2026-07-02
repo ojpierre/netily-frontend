@@ -44,6 +44,7 @@ import {
   WifiOff,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import type { 
   Customer, 
   CustomerService, 
@@ -331,6 +332,7 @@ const generateSimplePassword = (length: number = 8): string => {
 }
 
 export default function UsersPage() {
+  const perms = usePagePermissions("/admin/users")
   const router = useRouter()
   const ipSearchDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const editIPSearchDebounceRef = useRef<NodeJS.Timeout | null>(null)
@@ -1868,19 +1870,20 @@ export default function UsersPage() {
             <FileUp className="w-4 h-4 mr-2" />
             Bulk Import
           </Button>
-          <Dialog open={showAddUserDialog} onOpenChange={(open) => {
-            setShowAddUserDialog(open)
-            if (open) {
-              loadPlans()
-              loadRouters()
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
-                <UserPlus className="w-4 h-4 mr-2" />
-                Add User
-              </Button>
-            </DialogTrigger>
+          {perms.canAdd && (
+            <Dialog open={showAddUserDialog} onOpenChange={(open) => {
+              setShowAddUserDialog(open)
+              if (open) {
+                loadPlans()
+                loadRouters()
+              }
+            }}>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add User
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 border-0">
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 20 }}
@@ -2226,6 +2229,7 @@ export default function UsersPage() {
               </motion.div>
             </DialogContent>
           </Dialog>
+          )}
         </div>
       </div>
 
@@ -2847,27 +2851,33 @@ export default function UsersPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="dark:bg-slate-900 dark:border-slate-700">
-                                  <DropdownMenuItem onClick={() => handleViewUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                    <Eye className="w-4 h-4 mr-2" />
-                                    View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleExtendSubscription(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                    <Calendar className="w-4 h-4 mr-2" />
-                                    Extend Subscription
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleOpenChangePlan(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                    <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                    Change Plan
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleEditUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                    <Edit className="w-4 h-4 mr-2" />
-                                    Edit User
-                                  </DropdownMenuItem>
-                                  {(user.type === "pppoe" || user.type === "static") && (
-                                    <DropdownMenuItem onClick={() => handleEditIP(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
-                                      <Server className="w-4 h-4 mr-2" />
-                                      Edit IP Address
+                                  {perms.canViewDetails && (
+                                    <DropdownMenuItem onClick={() => handleViewUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      View Details
                                     </DropdownMenuItem>
+                                  )}
+                                  {perms.canEdit && (
+                                    <>
+                                      <DropdownMenuItem onClick={() => handleExtendSubscription(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                        <Calendar className="w-4 h-4 mr-2" />
+                                        Extend Subscription
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleOpenChangePlan(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                        <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                        Change Plan
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleEditUser(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                        <Edit className="w-4 h-4 mr-2" />
+                                        Edit User
+                                      </DropdownMenuItem>
+                                      {(user.type === "pppoe" || user.type === "static") && (
+                                        <DropdownMenuItem onClick={() => handleEditIP(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
+                                          <Server className="w-4 h-4 mr-2" />
+                                          Edit IP Address
+                                        </DropdownMenuItem>
+                                      )}
+                                    </>
                                   )}
                                   <DropdownMenuItem onClick={() => handleOpenUserSms(user)} className="dark:text-slate-200 dark:hover:bg-slate-800">
                                     <Send className="w-4 h-4 mr-2" />
@@ -2901,14 +2911,18 @@ export default function UsersPage() {
                                       Disconnect
                                     </DropdownMenuItem>
                                   )}
-                                  <DropdownMenuSeparator className="dark:bg-slate-700" />
-                                  <DropdownMenuItem 
-                                    onClick={() => handleDeleteUser(user)}
-                                    className="text-red-600 dark:text-red-400 dark:hover:bg-slate-800"
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Remove User
-                                  </DropdownMenuItem>
+                                  {perms.canDelete && (
+                                    <>
+                                      <DropdownMenuSeparator className="dark:bg-slate-700" />
+                                      <DropdownMenuItem 
+                                        onClick={() => handleDeleteUser(user)}
+                                        className="text-red-600 dark:text-red-400 dark:hover:bg-slate-800"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Remove User
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>

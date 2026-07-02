@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import {
@@ -98,6 +98,7 @@ import type {
   SupportTicketCategory,
   Customer,
 } from "@/lib/types"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 
 type TicketStatus = SupportTicketStatus
 type TicketPriority = SupportTicketPriority
@@ -127,6 +128,7 @@ interface CustomerSearchResult {
 }
 
 export default function TicketsPage() {
+  const perms = usePagePermissions("/admin/tickets")
   // ── Data state ───────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -486,7 +488,7 @@ export default function TicketsPage() {
             Refresh
           </Button>
 
-          {/* ── Create Ticket Dialog ── */}
+          {perms.canAdd && (
           <Dialog
             open={showNewTicketDialog}
             onOpenChange={(open) => {
@@ -699,6 +701,7 @@ export default function TicketsPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          )}
         </div>
       </div>
 
@@ -898,10 +901,14 @@ export default function TicketsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              {perms.canViewDetails && (
                               <DropdownMenuItem onClick={() => handleViewTicket(ticket)}>
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
+                              )}
+                              {perms.canEdit && (
+                              <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleUpdateStatus(ticket.id, "in_progress")}>
                                 <Clock className="w-4 h-4 mr-2" />
@@ -915,6 +922,10 @@ export default function TicketsPage() {
                                 <AlertCircle className="w-4 h-4 mr-2" />
                                 Escalate to Urgent
                               </DropdownMenuItem>
+                              </>
+                              )}
+                              {perms.canDelete && (
+                              <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive"
@@ -923,6 +934,8 @@ export default function TicketsPage() {
                                 <XCircle className="w-4 h-4 mr-2" />
                                 Close Ticket
                               </DropdownMenuItem>
+                              </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

@@ -92,6 +92,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import type { Technician, DispatchJob, Customer, SupportTicket, JobType } from "@/lib/types"
 
 type JobStatus = 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
@@ -150,6 +151,7 @@ const getTypeBadge = (type: JobType) => {
 }
 
 export default function DispatchPage() {
+  const perms = usePagePermissions("/admin/dispatch")
   const [loading, setLoading] = useState(true)
   const [technicians, setTechnicians] = useState<(Technician & { active_jobs: number; completed_today: number })[]>([])
   const [jobs, setJobs] = useState<DispatchJob[]>([])
@@ -570,10 +572,9 @@ export default function DispatchPage() {
             )}
             <div>{getStatusBadge(job.status)}</div>
             <div className="flex justify-end gap-2">
-              {!job.technician_name && (
+              {!job.technician_name && perms.canEdit && (
                 <Button
                   size="sm"
-                  variant="outline"
                   onClick={() => {
                     setJobToAssign(job)
                     setIsAssignDialogOpen(true)
@@ -582,9 +583,11 @@ export default function DispatchPage() {
                   Assign
                 </Button>
               )}
-              <Button size="sm" variant="ghost" onClick={() => handleEditJob(job)}>
-                Edit
-              </Button>
+              {perms.canEdit && (
+                <Button size="sm" variant="ghost" onClick={() => handleEditJob(job)}>
+                  Edit
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -607,14 +610,18 @@ export default function DispatchPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button variant="outline" onClick={() => setIsCreateTechnicianOpen(true)}>
-            <Users className="mr-2 h-4 w-4" />
-            Add Technician
-          </Button>
-          <Button onClick={() => { resetJobForm(); setIsCreateJobOpen(true) }}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Job
-          </Button>
+          {perms.canAdd && (
+            <>
+              <Button variant="outline" onClick={() => setIsCreateTechnicianOpen(true)}>
+                <Users className="mr-2 h-4 w-4" />
+                Add Technician
+              </Button>
+              <Button onClick={() => { resetJobForm(); setIsCreateJobOpen(true) }}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Job
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

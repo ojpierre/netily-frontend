@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { adminApi } from "@/lib/admin-api"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 
 type LeadStatus = "not_yet" | "converted"
 
@@ -52,6 +53,7 @@ const emptyForm = {
 }
 
 export default function LeadsPage() {
+  const perms = usePagePermissions("/admin/leads")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [leads, setLeads] = useState<Lead[]>([])
@@ -148,10 +150,12 @@ export default function LeadsPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Lead
-          </Button>
+          {perms.canAdd && (
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Lead
+            </Button>
+          )}
         </div>
       </div>
 
@@ -267,16 +271,20 @@ export default function LeadsPage() {
                       <TableCell className="max-w-xs truncate text-sm text-muted-foreground">{lead.message || "-"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateStatus(lead, lead.status === "converted" || lead.is_contacted ? "not_yet" : "converted")}
-                          >
-                            {lead.status === "converted" || lead.is_contacted ? "Mark Not Yet" : "Convert"}
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => deleteLead(lead)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {perms.canEdit && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateStatus(lead, lead.status === "converted" || lead.is_contacted ? "not_yet" : "converted")}
+                            >
+                              {lead.status === "converted" || lead.is_contacted ? "Mark Not Yet" : "Convert"}
+                            </Button>
+                          )}
+                          {perms.canDelete && (
+                            <Button size="icon" variant="ghost" onClick={() => deleteLead(lead)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
