@@ -6,7 +6,6 @@ import {
   Users,
   Plus,
   Search,
-  Filter,
   MoreHorizontal,
   Mail,
   Phone,
@@ -15,17 +14,30 @@ import {
   HeadphonesIcon,
   Pencil,
   CheckCircle,
-  XCircle,
   Loader2,
   ChevronDown,
   UserCog,
-  RefreshCw,
   Trash2,
+  Shield,
+  Eye,
+  SquarePen,
+  PlusCircle,
+  Trash,
+  FileText,
 } from "lucide-react"
 import { toast } from "sonner"
 
 import { adminApi } from "@/lib/admin-api"
-import { adminRouteAccessRules } from "@/lib/rbac"
+import {
+  adminRouteAccessRules,
+  defaultTokensForRole,
+  encodeAction,
+  getPaths,
+  getActionsForPath,
+  PAGE_ACTION_LABELS,
+  type PageAction,
+  type RouteAccessRule,
+} from "@/lib/rbac"
 import type { User, StaffRole, Gender, CreateStaffUserRequest } from "@/lib/types"
 
 import { Button } from "@/components/ui/button"
@@ -54,7 +66,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   DropdownMenu,
@@ -120,58 +131,34 @@ const STAFF_ROLES: { value: StaffRole; label: string; description: string; icon:
   },
 ]
 
-// 🟢 FIX: Gender values changed to match backend choices (M/F/O)
 const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: "M" as any, label: "Male" },
   { value: "F" as any, label: "Female" },
   { value: "O" as any, label: "Other" },
 ]
 
+// Action icons for the permission editor
+const ACTION_ICONS: Record<PageAction, React.ElementType> = {
+  view: Eye,
+  view_details: FileText,
+  add: PlusCircle,
+  edit: SquarePen,
+  delete: Trash,
+}
+
+// Pages that should be excluded from the staff permissions editor
+const ADMIN_ONLY_PATHS = ["/admin/staff", "/admin/plans", "/admin/notifications", "/admin/logs", "/admin/settings"]
+
 // ==========================================
 // HELPER FUNCTIONS
 // ==========================================
-
-function getRoleBadgeVariant(role?: string): "default" | "secondary" | "outline" | "destructive" {
-  switch (role) {
-    case "technician":
-      return "secondary"
-    case "accountant":
-      return "outline"
-    case "support":
-      return "default"
-    default:
-      return "default"
-  }
-}
-
-function getRoleIcon(role?: string): React.ElementType {
-  switch (role) {
-    case "technician":
-      return Wrench
-    case "accountant":
-      return Calculator
-    case "support":
-      return HeadphonesIcon
-    default:
-      return Users
-  }
-}
-
-function formatDate(dateString?: string): string {
-  if (!dateString) return "N/A"
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  })
-}
 
 function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
 function validatePhone(phone: string): boolean {
-  if (!phone) return true // Optional field
+  if (!phone) return true
   return /^\+?[0-9]{10,15}$/.test(phone.replace(/[\s-]/g, ""))
 }
 
@@ -199,7 +186,6 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
   const [showOptionalFields, setShowOptionalFields] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Form state
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -213,13 +199,11 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
     date_of_birth: "",
   })
 
-  // Password validation
   const passwordValidation = useMemo(
     () => validatePassword(formData.password),
     [formData.password]
   )
 
-  // Reset form when dialog closes
   useEffect(() => {
     if (!open) {
       setFormData({
@@ -241,7 +225,6 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }))
     }
@@ -250,21 +233,14 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
 
-    // Required fields
-    if (!formData.first_name.trim()) {
-      newErrors.first_name = "First name is required"
-    }
-    if (!formData.last_name.trim()) {
-      newErrors.last_name = "Last name is required"
-    }
+    if (!formData.first_name.trim()) newErrors.first_name = "First name is required"
+    if (!formData.last_name.trim()) newErrors.last_name = "Last name is required"
     if (!formData.email.trim()) {
       newErrors.email = "Email is required"
     } else if (!validateEmail(formData.email)) {
       newErrors.email = "Invalid email format"
     }
-    if (!formData.role) {
-      newErrors.role = "Role is required"
-    }
+    if (!formData.role) newErrors.role = "Role is required"
     if (!formData.password) {
       newErrors.password = "Password is required"
     } else if (!passwordValidation.valid) {
@@ -275,8 +251,6 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match"
     }
-
-    // Phone number is required
     if (!formData.phone_number?.trim()) {
       newErrors.phone_number = "Phone number is required"
     } else if (!validatePhone(formData.phone_number)) {
@@ -298,107 +272,58 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
     setIsSubmitting(true)
 
     try {
-      // Build payload - DO NOT include confirmPassword (backend doesn't accept it)
       const payload: CreateStaffUserRequest = {
         email: formData.email.trim(),
         password: formData.password,
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
-        role: formData.role as StaffRole, // Already lowercase from STAFF_ROLES
+        role: formData.role as StaffRole,
         is_staff: true,
       }
 
-      // Add optional fields if provided
-      if (formData.phone_number?.trim()) {
-        payload.phone_number = formData.phone_number.trim()
-      }
-      if (formData.id_number?.trim()) {
-        payload.id_number = formData.id_number.trim()
-      }
-      if (formData.gender) {
-        payload.gender = formData.gender as Gender
-      }
-      if (formData.date_of_birth) {
-        payload.date_of_birth = formData.date_of_birth
-      }
-
-      // Debug log for troubleshooting
-      console.log("Sending staff creation payload:", JSON.stringify(payload, null, 2))
+      if (formData.phone_number?.trim()) payload.phone_number = formData.phone_number.trim()
+      if (formData.id_number?.trim()) payload.id_number = formData.id_number.trim()
+      if (formData.gender) payload.gender = formData.gender as Gender
+      if (formData.date_of_birth) payload.date_of_birth = formData.date_of_birth
 
       const response = await adminApi.createStaffUser(payload)
-
-      // 🟢 FIX 1: Safely extract user object from response
       const createdUser = (response as any).user ?? response
       toast.success(
         `Staff account created for ${createdUser.first_name} ${createdUser.last_name}`,
-        {
-          description: `Role: ${formData.role}. They can now log in with their email and password.`,
-        }
+        { description: `Role: ${formData.role}. They can now log in with their email and password.` }
       )
-
       onOpenChange(false)
       onSuccess()
     } catch (error: unknown) {
-      console.error("Failed to create staff user - Full error:", error)
-
-      // Handle API errors - check if it's a 400 error with field-specific messages
+      console.error("Failed to create staff user:", error)
       if (error && typeof error === "object") {
         const errorObj = error as Record<string, unknown>
-        
-        // Build a user-friendly error message
         const errorMessages: string[] = []
-        
-        // Check for field-specific errors from backend (DRF format)
-        if (errorObj.email) {
-          const emailError = Array.isArray(errorObj.email) ? errorObj.email[0] : String(errorObj.email)
-          setErrors((prev) => ({ ...prev, email: emailError }))
-          errorMessages.push(`Email: ${emailError}`)
+        const fieldMap: Record<string, string> = {
+          email: "Email",
+          password: "Password",
+          role: "Role",
+          first_name: "First name",
+          last_name: "Last name",
+          phone_number: "Phone",
         }
-        if (errorObj.password) {
-          const pwError = Array.isArray(errorObj.password) ? errorObj.password[0] : String(errorObj.password)
-          setErrors((prev) => ({ ...prev, password: pwError }))
-          errorMessages.push(`Password: ${pwError}`)
-        }
-        if (errorObj.role) {
-          const roleError = Array.isArray(errorObj.role) ? errorObj.role[0] : String(errorObj.role)
-          setErrors((prev) => ({ ...prev, role: roleError }))
-          errorMessages.push(`Role: ${roleError}`)
-        }
-        if (errorObj.first_name) {
-          const fnError = Array.isArray(errorObj.first_name) ? errorObj.first_name[0] : String(errorObj.first_name)
-          setErrors((prev) => ({ ...prev, first_name: fnError }))
-          errorMessages.push(`First name: ${fnError}`)
-        }
-        if (errorObj.last_name) {
-          const lnError = Array.isArray(errorObj.last_name) ? errorObj.last_name[0] : String(errorObj.last_name)
-          setErrors((prev) => ({ ...prev, last_name: lnError }))
-          errorMessages.push(`Last name: ${lnError}`)
-        }
-        if (errorObj.phone_number) {
-          const phoneError = Array.isArray(errorObj.phone_number) ? errorObj.phone_number[0] : String(errorObj.phone_number)
-          setErrors((prev) => ({ ...prev, phone_number: phoneError }))
-          errorMessages.push(`Phone: ${phoneError}`)
+        for (const [field, label] of Object.entries(fieldMap)) {
+          if (errorObj[field]) {
+            const msg = Array.isArray(errorObj[field]) ? (errorObj[field] as any[])[0] : String(errorObj[field])
+            setErrors((prev) => ({ ...prev, [field]: msg }))
+            errorMessages.push(`${label}: ${msg}`)
+          }
         }
         if (errorObj.non_field_errors) {
-          const nfError = Array.isArray(errorObj.non_field_errors) ? errorObj.non_field_errors[0] : String(errorObj.non_field_errors)
-          errorMessages.push(nfError)
+          errorMessages.push(Array.isArray(errorObj.non_field_errors) ? String((errorObj.non_field_errors as any[])[0]) : String(errorObj.non_field_errors))
         }
-        if (errorObj.detail) {
-          errorMessages.push(String(errorObj.detail))
-        }
-
-        const description = errorMessages.length > 0 
-          ? errorMessages.join(". ") 
-          : (errorObj.message ? String(errorObj.message) : "Please check the form for errors")
-
-        toast.error("Failed to create staff account", { description })
-      } else if (error instanceof Error) {
+        if (errorObj.detail) errorMessages.push(String(errorObj.detail))
         toast.error("Failed to create staff account", {
-          description: error.message,
+          description: errorMessages.length > 0 ? errorMessages.join(". ") : "Please check the form for errors",
         })
       } else {
         toast.error("Failed to create staff account", {
-          description: "An unexpected error occurred. Please try again.",
+          description: error instanceof Error ? error.message : "An unexpected error occurred.",
         })
       }
     } finally {
@@ -415,8 +340,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
             Create Staff Account
           </DialogTitle>
           <DialogDescription>
-            Add a new staff member to your ISP team. They will be able to log in and access the
-            admin dashboard based on their assigned role.
+            Add a new staff member. They will access the admin dashboard based on their role and permissions.
           </DialogDescription>
         </DialogHeader>
 
@@ -449,11 +373,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                       <Icon className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p
-                        className={`font-medium ${
-                          isSelected ? "text-primary" : "text-foreground"
-                        }`}
-                      >
+                      <p className={`font-medium ${isSelected ? "text-primary" : "text-foreground"}`}>
                         {role.label}
                       </p>
                       <p className="text-xs text-slate-500 line-clamp-2">{role.description}</p>
@@ -470,12 +390,9 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
           {/* Personal Information */}
           <div className="space-y-4">
             <h4 className="font-medium text-foreground">Personal Information</h4>
-
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="first_name">
-                  First Name <span className="text-destructive">*</span>
-                </Label>
+                <Label htmlFor="first_name">First Name <span className="text-destructive">*</span></Label>
                 <Input
                   id="first_name"
                   placeholder="Jane"
@@ -483,15 +400,10 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                   onChange={(e) => handleInputChange("first_name", e.target.value)}
                   className={errors.first_name ? "border-destructive" : ""}
                 />
-                {errors.first_name && (
-                  <p className="text-sm text-destructive">{errors.first_name}</p>
-                )}
+                {errors.first_name && <p className="text-sm text-destructive">{errors.first_name}</p>}
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="last_name">
-                  Last Name <span className="text-destructive">*</span>
-                </Label>
+                <Label htmlFor="last_name">Last Name <span className="text-destructive">*</span></Label>
                 <Input
                   id="last_name"
                   placeholder="Doe"
@@ -505,9 +417,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="email">
-                  Email Address <span className="text-destructive">*</span>
-                </Label>
+                <Label htmlFor="email">Email Address <span className="text-destructive">*</span></Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
@@ -521,11 +431,8 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                 </div>
                 {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="phone_number">
-                  Phone Number <span className="text-destructive">*</span>
-                </Label>
+                <Label htmlFor="phone_number">Phone Number <span className="text-destructive">*</span></Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
@@ -545,12 +452,9 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
           {/* Password Section */}
           <div className="space-y-4">
             <h4 className="font-medium text-foreground">Login Credentials</h4>
-
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="password">
-                  Password <span className="text-destructive">*</span>
-                </Label>
+                <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
                 <Input
                   id="password"
                   type="password"
@@ -561,11 +465,8 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                 />
                 {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">
-                  Confirm Password <span className="text-destructive">*</span>
-                </Label>
+                <Label htmlFor="confirmPassword">Confirm Password <span className="text-destructive">*</span></Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -574,13 +475,10 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                   onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                   className={errors.confirmPassword ? "border-destructive" : ""}
                 />
-                {errors.confirmPassword && (
-                  <p className="text-sm text-destructive">{errors.confirmPassword}</p>
-                )}
+                {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
               </div>
             </div>
 
-            {/* Password requirements */}
             {formData.password && (
               <div className="flex flex-wrap gap-2">
                 {[
@@ -592,7 +490,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                   <Badge
                     key={req.label}
                     variant={req.met ? "default" : "secondary"}
-                    className={req.met ? "bg-success/15 text-success" : ""}
+                    className={req.met ? "bg-emerald-50 text-emerald-600 border-emerald-200" : ""}
                   >
                     {req.met && <CheckCircle className="w-3 h-3 mr-1" />}
                     {req.label}
@@ -608,9 +506,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
               <Button type="button" variant="ghost" className="w-full justify-between">
                 <span className="text-sm text-slate-600">Optional Information</span>
                 <ChevronDown
-                  className={`w-4 h-4 transition-transform ${
-                    showOptionalFields ? "rotate-180" : ""
-                  }`}
+                  className={`w-4 h-4 transition-transform ${showOptionalFields ? "rotate-180" : ""}`}
                 />
               </Button>
             </CollapsibleTrigger>
@@ -625,13 +521,9 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                     onChange={(e) => handleInputChange("id_number", e.target.value)}
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="gender">Gender</Label>
-                  <Select
-                    value={formData.gender}
-                    onValueChange={(value) => handleInputChange("gender", value)}
-                  >
+                  <Select value={formData.gender} onValueChange={(value) => handleInputChange("gender", value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
@@ -645,7 +537,6 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                   </Select>
                 </div>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="date_of_birth">Date of Birth</Label>
                 <Input
@@ -660,25 +551,14 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
           </Collapsible>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
-                </>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</>
               ) : (
-                <>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Account
-                </>
+                <><Plus className="w-4 h-4 mr-2" />Create Account</>
               )}
             </Button>
           </DialogFooter>
@@ -735,9 +615,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
     } else if (!validateEmail(formData.email)) {
       newErrors.email = "Invalid email format"
     }
-    if (!formData.role) {
-      newErrors.role = "Role is required"
-    }
+    if (!formData.role) newErrors.role = "Role is required"
     if (formData.new_password) {
       const pwCheck = validatePassword(formData.new_password)
       if (!pwCheck.valid) newErrors.new_password = "Password does not meet requirements"
@@ -763,7 +641,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
         role: formData.role,
       }
       if (formData.new_password) {
-        payload.new_password = formData.new_password  // FIX: Use new_password instead of password
+        payload.new_password = formData.new_password
       }
 
       await adminApi.updateStaffUser(user.id, payload)
@@ -808,16 +686,10 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
                     type="button"
                     onClick={() => handleInputChange("role", role.value)}
                     className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all ${
-                      isSelected
-                        ? "border-primary bg-primary/10"
-                        : "border-slate-200 hover:border-slate-300"
+                      isSelected ? "border-primary bg-primary/10" : "border-slate-200 hover:border-slate-300"
                     }`}
                   >
-                    <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                        isSelected ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isSelected ? "bg-primary text-white" : "bg-slate-100 text-slate-600"}`}>
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -836,9 +708,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
 
           {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="edit-email">
-              Email Address <span className="text-destructive">*</span>
-            </Label>
+            <Label htmlFor="edit-email">Email Address <span className="text-destructive">*</span></Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
@@ -881,12 +751,8 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
                   onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                   className={errors.confirmPassword ? "border-destructive" : ""}
                 />
-                {errors.confirmPassword && (
-                  <p className="text-sm text-destructive">{errors.confirmPassword}</p>
-                )}
+                {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
               </div>
-
-              {/* Password strength badges */}
               <div className="flex flex-wrap gap-2">
                 {[
                   { label: "8+ chars", met: formData.new_password.length >= 8 },
@@ -897,7 +763,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
                   <Badge
                     key={req.label}
                     variant={req.met ? "default" : "secondary"}
-                    className={req.met ? "bg-success/15 text-success" : ""}
+                    className={req.met ? "bg-emerald-50 text-emerald-600 border-emerald-200" : ""}
                   >
                     {req.met && <CheckCircle className="w-3 h-3 mr-1" />}
                     {req.label}
@@ -913,15 +779,9 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
               ) : (
-                <>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Save Changes
-                </>
+                <><CheckCircle className="w-4 h-4 mr-2" />Save Changes</>
               )}
             </Button>
           </DialogFooter>
@@ -932,7 +792,267 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
 }
 
 // ==========================================
-// MAIN STAFF PAGE COMPONENT
+// GRANULAR PERMISSIONS MODAL
+// ==========================================
+
+interface PagePermState {
+  // Whether this page is included at all
+  enabled: boolean
+  // Which CRUD actions are toggled ON
+  actions: Set<PageAction>
+}
+
+interface EditPermissionsModalProps {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  role: {
+    id: StaffRole
+    name: string
+    description: string
+    accent: string
+    allowedTokens: string[]  // encoded action tokens like "/admin/leads::view"
+  } | null
+  onSave: (role: StaffRole, allowedTokens: string[]) => Promise<void>
+}
+
+// Collapsible page row inside the permissions modal
+function PermissionPageRow({
+  rule,
+  state,
+  onChange,
+}: {
+  rule: RouteAccessRule
+  state: PagePermState
+  onChange: (newState: PagePermState) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const availableActions = rule.actions || (["view"] as PageAction[])
+
+  const togglePage = () => {
+    const newEnabled = !state.enabled
+    // When disabling, clear all actions. When enabling, select all by default.
+    const newActions = newEnabled ? new Set<PageAction>(availableActions) : new Set<PageAction>()
+    onChange({ enabled: newEnabled, actions: newActions })
+    if (newEnabled) setExpanded(true)
+  }
+
+  const toggleAction = (action: PageAction) => {
+    const newActions = new Set(state.actions)
+    if (newActions.has(action)) {
+      newActions.delete(action)
+      // If no actions remain, disable the page entirely
+      if (newActions.size === 0) {
+        onChange({ enabled: false, actions: new Set() })
+        return
+      }
+    } else {
+      newActions.add(action)
+    }
+    onChange({ enabled: state.enabled, actions: newActions })
+  }
+
+  return (
+    <div
+      className={`rounded-xl border transition-all duration-200 ${
+        state.enabled
+          ? "border-primary/30 bg-primary/5"
+          : "border-border bg-background"
+      }`}
+    >
+      {/* Page header row */}
+      <div className="flex items-center gap-3 p-3">
+        <input
+          type="checkbox"
+          id={`page-${rule.pathPrefix}`}
+          checked={state.enabled}
+          onChange={togglePage}
+          className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary"
+        />
+        <label
+          htmlFor={`page-${rule.pathPrefix}`}
+          className="flex-1 cursor-pointer"
+        >
+          <span className={`block text-sm font-semibold ${state.enabled ? "text-primary" : "text-foreground"}`}>
+            {rule.label}
+          </span>
+          <span className="block text-[11px] text-muted-foreground">{rule.pathPrefix}</span>
+        </label>
+
+        {state.enabled && (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-muted"
+          >
+            <span>{state.actions.size} action{state.actions.size !== 1 ? "s" : ""}</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+          </button>
+        )}
+      </div>
+
+      {/* Expanded CRUD actions */}
+      {state.enabled && expanded && (
+        <div className="px-3 pb-3 grid grid-cols-2 gap-2 border-t border-primary/10 pt-3">
+          {availableActions.map((action) => {
+            const Icon = ACTION_ICONS[action]
+            const isChecked = state.actions.has(action)
+            return (
+              <label
+                key={action}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border transition-all ${
+                  isChecked
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-foreground hover:bg-muted"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => toggleAction(action)}
+                  className="sr-only"
+                />
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span className="text-xs font-semibold">{PAGE_ACTION_LABELS[action]}</span>
+              </label>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function EditPermissionsModal({ open, onOpenChange, role, onSave }: EditPermissionsModalProps) {
+  const [pageStates, setPageStates] = useState<Map<string, PagePermState>>(new Map())
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Eligible pages (exclude admin-only)
+  const eligibleRules = useMemo(
+    () => adminRouteAccessRules.filter((r) => !ADMIN_ONLY_PATHS.some((p) => r.pathPrefix === p)),
+    []
+  )
+
+  useEffect(() => {
+    if (!role || !open) return
+    const currentTokens = role.allowedTokens || []
+
+    const map = new Map<string, PagePermState>()
+    for (const rule of eligibleRules) {
+      const actionsForPage = getActionsForPath(currentTokens, rule.pathPrefix)
+      // Legacy plain-path support
+      const plainPaths = getPaths(currentTokens)
+      const legacyEnabled = plainPaths.includes(rule.pathPrefix)
+
+      const availableActions = rule.actions || (["view"] as PageAction[])
+      let grantedActions: PageAction[] = actionsForPage
+
+      // If no action tokens found but page is in legacy plain list, grant all available
+      if (grantedActions.length === 0 && legacyEnabled) {
+        grantedActions = availableActions
+      }
+
+      map.set(rule.pathPrefix, {
+        enabled: grantedActions.length > 0,
+        actions: new Set(grantedActions),
+      })
+    }
+    setPageStates(map)
+  }, [role, open, eligibleRules])
+
+  if (!role) return null
+
+  const handlePageChange = (pathPrefix: string, newState: PagePermState) => {
+    setPageStates((current) => {
+      const next = new Map(current)
+      next.set(pathPrefix, newState)
+      return next
+    })
+  }
+
+  const buildTokens = (): string[] => {
+    const tokens: string[] = []
+    for (const [pathPrefix, state] of pageStates.entries()) {
+      if (!state.enabled) continue
+      for (const action of state.actions) {
+        tokens.push(encodeAction(pathPrefix, action))
+      }
+    }
+    return tokens
+  }
+
+  const enabledCount = [...pageStates.values()].filter((s) => s.enabled).length
+  const totalActions = [...pageStates.values()].reduce((acc, s) => acc + s.actions.size, 0)
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[640px] p-0 overflow-hidden bg-background flex flex-col max-h-[92vh]">
+        {/* Header */}
+        <div className="p-6 border-b border-border shrink-0">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              Edit {role.name} permissions
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-sm text-muted-foreground">
+              {role.description}
+              <br /><br />
+              Choose which dashboard pages and CRUD operations this role can perform.
+              Changes apply to <strong>all staff members</strong> assigned to this role.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+
+        {/* Scrollable page list */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-card">
+          {eligibleRules.map((rule) => {
+            const state = pageStates.get(rule.pathPrefix) ?? { enabled: false, actions: new Set() }
+            return (
+              <PermissionPageRow
+                key={rule.pathPrefix}
+                rule={rule}
+                state={state}
+                onChange={(newState) => handlePageChange(rule.pathPrefix, newState)}
+              />
+            )
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-border bg-background p-4 shrink-0 gap-3">
+          <div className="text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground">{enabledCount}</span> page{enabledCount !== 1 ? "s" : ""}
+            {" · "}
+            <span className="font-semibold text-foreground">{totalActions}</span> action{totalActions !== 1 ? "s" : ""} granted
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-semibold">
+              Cancel
+            </Button>
+            <Button
+              disabled={isSaving}
+              onClick={async () => {
+                setIsSaving(true)
+                try {
+                  await onSave(role.id, buildTokens())
+                  onOpenChange(false)
+                } finally {
+                  setIsSaving(false)
+                }
+              }}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
+            >
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Save permissions
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ==========================================
+// ROLE DEFINITIONS
 // ==========================================
 
 const NETILY_ROLE_DEFINITIONS: Array<{
@@ -967,92 +1087,9 @@ const NETILY_ROLE_DEFINITIONS: Array<{
   },
 ]
 
-const defaultPathsForRole = (role: StaffRole) =>
-  adminRouteAccessRules
-    .filter((rule) => rule.allowedRoles?.includes(role))
-    .map((rule) => rule.pathPrefix)
-
-const labelForPath = (path: string) => adminRouteAccessRules.find((rule) => rule.pathPrefix === path)?.label || path
-
-function EditPermissionsModal({
-  open,
-  onOpenChange,
-  role,
-  onSave,
-}: {
-  open: boolean
-  onOpenChange: (v: boolean) => void
-  role: any
-  onSave: (role: StaffRole, allowedPaths: string[]) => Promise<void>
-}) {
-  const [selectedPaths, setSelectedPaths] = useState<string[]>([])
-  const [isSaving, setIsSaving] = useState(false)
-
-  useEffect(() => {
-    if (role) setSelectedPaths(role.allowedPaths || [])
-  }, [role])
-
-  if (!role) return null;
-  const togglePath = (path: string) => {
-    setSelectedPaths((current) => current.includes(path) ? current.filter((item) => item !== path) : [...current, path])
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[620px] p-0 overflow-hidden bg-background">
-        <div className="p-6 border-b border-border">
-           <DialogHeader>
-             <DialogTitle className="text-xl font-bold text-foreground">Edit {role.name} access</DialogTitle>
-             <DialogDescription className="pt-2 text-sm text-muted-foreground">
-               {role.description}<br/><br/>
-               Choose the dashboard pages this role can access. Changes apply to all staff members assigned to this role.
-             </DialogDescription>
-           </DialogHeader>
-        </div>
-        <div className="p-6 max-h-[60vh] overflow-y-auto bg-card">
-          <div className="space-y-3">
-            {adminRouteAccessRules
-              .filter((rule) => !rule.allowedRoles?.every((item) => item === "admin" || item === "super_admin"))
-              .map((rule) => (
-              <label key={rule.pathPrefix} className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
-                <input
-                  type="checkbox"
-                  checked={selectedPaths.includes(rule.pathPrefix)}
-                  onChange={() => togglePath(rule.pathPrefix)}
-                  className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary"
-                />
-                <span>
-                  <span className="block text-sm font-semibold text-foreground">{rule.label}</span>
-                  <span className="block text-xs text-muted-foreground">{rule.pathPrefix}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center justify-between border-t border-border bg-background p-4">
-           <p className="text-xs text-muted-foreground">{selectedPaths.length} dashboard area(s) selected</p>
-           <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-semibold">Cancel</Button>
-           <Button
-             disabled={isSaving}
-             onClick={async () => {
-               setIsSaving(true)
-               try {
-                 await onSave(role.id, selectedPaths)
-                 onOpenChange(false)
-               } finally {
-                 setIsSaving(false)
-               }
-             }}
-             className="bg-primary text-primary-foreground hover:bg-primary/90"
-           >
-             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-             Save access
-           </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
+// ==========================================
+// MAIN STAFF PAGE COMPONENT
+// ==========================================
 
 export default function StaffManagementPage() {
   const router = useRouter()
@@ -1066,8 +1103,9 @@ export default function StaffManagementPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Role access policies: maps role -> array of encoded permission tokens
   const [rolePolicies, setRolePolicies] = useState<Record<string, string[]>>({})
-  
   const [editingRole, setEditingRole] = useState<any | null>(null)
 
   useEffect(() => {
@@ -1079,7 +1117,7 @@ export default function StaffManagementPage() {
       setIsLoading(true)
       const data = await adminApi.getStaffUsers({ staff_only: "true" })
       const rawUsers = (data as any).results || data
-      const hiddenEmails = ['peter@netily.co.ke', 'mark@netily.co.ke', 'admin@netily.co.ke']
+      const hiddenEmails = ["peter@netily.co.ke", "mark@netily.co.ke", "admin@netily.co.ke"]
       setStaffUsers(
         rawUsers.filter((u: any) => {
           const email = u.email?.toLowerCase?.() || ""
@@ -1087,7 +1125,7 @@ export default function StaffManagementPage() {
           return !hiddenEmails.includes(email) && role !== "customer"
         })
       )
-      
+
       try {
         const policies = await adminApi.getRoleAccessPolicies()
         setRolePolicies(
@@ -1099,7 +1137,6 @@ export default function StaffManagementPage() {
       } catch (policyError) {
         console.warn("Role access policies endpoint not available yet:", policyError)
       }
-      
     } catch (error) {
       console.error("fetchStaff Error:", error)
       toast.error("Failed to fetch staff")
@@ -1130,28 +1167,40 @@ export default function StaffManagementPage() {
   const filteredStaff = staffUsers.filter((u) => {
     const role = String(u.role || "").toLowerCase()
     if (role === "customer") return false
-    return (u.first_name + " " + u.last_name + " " + (u.email || "")).toLowerCase().includes(searchQuery.toLowerCase())
+    return (u.first_name + " " + u.last_name + " " + (u.email || ""))
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
   })
 
-  const roleCards = NETILY_ROLE_DEFINITIONS.map((role) => ({
-    ...role,
-    allowedPaths: rolePolicies[role.id] || defaultPathsForRole(role.id),
-    permissions: (rolePolicies[role.id] || defaultPathsForRole(role.id)).map(labelForPath),
-    memberCount: staffUsers.filter((user) => {
-      return user.role === role.id
-    }).length,
-  }))
+  const roleCards = NETILY_ROLE_DEFINITIONS.map((roleDef) => {
+    const tokens = rolePolicies[roleDef.id] || defaultTokensForRole(roleDef.id)
+    const paths = getPaths(tokens)
+    const pageCount = paths.length
+    const totalActionCount = tokens.filter((t) => t.includes("::")).length
 
-  const saveRoleAccess = async (role: StaffRole, allowedPaths: string[]) => {
+    return {
+      ...roleDef,
+      allowedTokens: tokens,
+      pageCount,
+      totalActionCount,
+      memberCount: staffUsers.filter((u) => u.role === roleDef.id).length,
+      // Quick summary of page labels
+      pageLabels: paths
+        .map((p) => adminRouteAccessRules.find((r) => r.pathPrefix === p)?.label || p)
+        .filter(Boolean),
+    }
+  })
+
+  const saveRoleAccess = async (role: StaffRole, allowedTokens: string[]) => {
     try {
-      const updated = await adminApi.updateRoleAccessPolicy(role, allowedPaths)
+      const updated = await adminApi.updateRoleAccessPolicy(role, allowedTokens)
       setRolePolicies((current) => ({ ...current, [role]: updated.allowed_paths || [] }))
       window.dispatchEvent(new CustomEvent("netily-role-access-updated"))
-      toast.success("Role access updated", {
+      toast.success("Role permissions updated", {
         description: "Staff navigation and protected pages will now use the new access map.",
       })
     } catch (error: any) {
-      toast.error("Failed to update role access", {
+      toast.error("Failed to update role permissions", {
         description: error?.message || "Please try again.",
       })
       throw error
@@ -1165,12 +1214,17 @@ export default function StaffManagementPage() {
         <div className="flex justify-between items-start mb-8">
           <div>
             <h1 className="text-4xl font-black tracking-tight text-foreground flex items-center gap-3">
-              Staff & <span className="text-primary">access</span>
+              Staff &amp; <span className="text-primary">access</span>
             </h1>
-            <p className="mt-2 text-sm font-medium text-muted-foreground">Manage tenant staff accounts and the Netily dashboard areas each role can access.</p>
+            <p className="mt-2 text-sm font-medium text-muted-foreground">
+              Manage tenant staff accounts and the granular permissions each role has per dashboard page.
+            </p>
           </div>
           {activeTab === "members" && (
-            <Button onClick={() => setCreateDialogOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-full px-6 shadow-sm">
+            <Button
+              onClick={() => setCreateDialogOpen(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-full px-6 shadow-sm"
+            >
               <Plus className="w-4 h-4 mr-2" /> Add staff
             </Button>
           )}
@@ -1178,105 +1232,169 @@ export default function StaffManagementPage() {
 
         {/* Tabs */}
         <div className="flex items-center gap-2 mb-8 bg-card p-1 rounded-full border border-border shadow-sm w-fit">
-          <button 
+          <button
             onClick={() => setActiveTab("members")}
             className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all ${
-              activeTab === "members" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              activeTab === "members"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            Members <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === "members" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted"}`}>{staffUsers.length}</span>
+            Members{" "}
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] ${
+                activeTab === "members"
+                  ? "bg-primary-foreground/20 text-primary-foreground"
+                  : "bg-muted"
+              }`}
+            >
+              {staffUsers.length}
+            </span>
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab("roles")}
             className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all ${
-              activeTab === "roles" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              activeTab === "roles"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            Roles <span className={`px-2 py-0.5 rounded-full text-[10px] ${activeTab === "roles" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted"}`}>{roleCards.length}</span>
+            Roles &amp; Permissions{" "}
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] ${
+                activeTab === "roles"
+                  ? "bg-primary-foreground/20 text-primary-foreground"
+                  : "bg-muted"
+              }`}
+            >
+              {roleCards.length}
+            </span>
           </button>
         </div>
 
         {/* Content */}
         {activeTab === "members" ? (
           <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-             <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-muted/50 border-b border-border">
+            {/* Search */}
+            <div className="p-4 border-b border-border">
+              <div className="relative max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search staff..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/50 border-b border-border">
+                  <TableRow>
+                    <TableHead className="h-12 text-xs font-bold uppercase tracking-wider text-muted-foreground">Name</TableHead>
+                    <TableHead className="h-12 text-xs font-bold uppercase tracking-wider text-muted-foreground">Contact</TableHead>
+                    <TableHead className="h-12 text-xs font-bold uppercase tracking-wider text-muted-foreground">Role</TableHead>
+                    <TableHead className="h-12 text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</TableHead>
+                    <TableHead className="h-12 text-right text-xs font-bold uppercase tracking-wider text-muted-foreground">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
                     <TableRow>
-                      <TableHead className="h-12 text-xs font-bold uppercase tracking-wider text-muted-foreground">Name</TableHead>
-                      <TableHead className="h-12 text-xs font-bold uppercase tracking-wider text-muted-foreground">Contact</TableHead>
-                      <TableHead className="h-12 text-xs font-bold uppercase tracking-wider text-muted-foreground">Role</TableHead>
-                      <TableHead className="h-12 text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</TableHead>
-                      <TableHead className="h-12 text-right text-xs font-bold uppercase tracking-wider text-muted-foreground">Actions</TableHead>
+                      <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                        <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" /> Loading staff...
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoading ? (
-                      <TableRow><TableCell colSpan={5} className="py-10 text-center text-muted-foreground"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" /> Loading staff...</TableCell></TableRow>
-                    ) : filteredStaff.length === 0 ? (
-                      <TableRow><TableCell colSpan={5} className="py-10 text-center text-muted-foreground">No staff members found.</TableCell></TableRow>
-                    ) : (
-                      filteredStaff.map((staff) => (
-                        <TableRow key={staff.id} className="transition-colors hover:bg-muted/30">
-                          <TableCell className="py-4 font-semibold text-foreground">
-                            {staff.first_name} {staff.last_name}
-                          </TableCell>
-                          <TableCell className="py-4">
-                            <div className="flex flex-col gap-0.5">
-                              <span className="text-sm text-foreground/85">{staff.email || "No email"}</span>
-                              <span className="text-xs text-muted-foreground">{staff.phone_number || "No phone"}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-4">
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 capitalize">
-                              {staff.role}
+                  ) : filteredStaff.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                        No staff members found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredStaff.map((staff) => (
+                      <TableRow key={staff.id} className="transition-colors hover:bg-muted/30">
+                        <TableCell className="py-4 font-semibold text-foreground">
+                          {staff.first_name} {staff.last_name}
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-sm text-foreground/85">{staff.email || "No email"}</span>
+                            <span className="text-xs text-muted-foreground">{staff.phone_number || "No phone"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 capitalize">
+                            {staff.role}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          {staff.is_active !== false ? (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                              Active
                             </span>
-                          </TableCell>
-                          <TableCell className="py-4">
-                            {staff.is_active !== false ? (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
-                                Active
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
-                                Inactive
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right py-4">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-border bg-background shadow-sm hover:bg-muted">
-                                  <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-40 rounded-xl border-border shadow-lg">
-                                <DropdownMenuItem onClick={() => { setSelectedUser(staff); setEditDialogOpen(true); }} className="gap-2 text-sm font-medium cursor-pointer">
-                                  <Pencil className="h-4 w-4" /> Edit User
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => setUserToDelete(staff)}
-                                  className="gap-2 text-sm font-medium text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
-                                >
-                                  <Trash2 className="h-4 w-4" /> Remove User
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-             </div>
-             <div className="border-t border-border bg-muted/30 p-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-               © 2023-2026 Netily
-             </div>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+                              Inactive
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right py-4">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full border border-border bg-background shadow-sm hover:bg-muted">
+                                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44 rounded-xl border-border shadow-lg">
+                              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                                {staff.first_name} {staff.last_name}
+                              </DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => { setSelectedUser(staff); setEditDialogOpen(true) }}
+                                className="gap-2 text-sm font-medium cursor-pointer"
+                              >
+                                <Pencil className="h-4 w-4" /> Edit User
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  // Open permissions for this user's role
+                                  const roleCard = roleCards.find((r) => r.id === staff.role)
+                                  if (roleCard) setEditingRole(roleCard)
+                                }}
+                                className="gap-2 text-sm font-medium cursor-pointer"
+                              >
+                                <Shield className="h-4 w-4" /> Edit Permissions
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setUserToDelete(staff)}
+                                className="gap-2 text-sm font-medium text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                              >
+                                <Trash2 className="h-4 w-4" /> Remove User
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="border-t border-border bg-muted/30 p-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              © 2023-2026 Netily
+            </div>
           </div>
         ) : (
+          /* Roles & Permissions Tab */
           <div className="space-y-6">
-            <p className="max-w-4xl text-sm font-medium text-muted-foreground">Roles are connected to Netily's active route guards. When you edit a staff member's role, their dashboard navigation and protected pages update to match.</p>
+            <p className="max-w-4xl text-sm font-medium text-muted-foreground">
+              Roles are connected to Netily's active route guards. Each role can have granular{" "}
+              <span className="font-semibold text-foreground">page-level access</span> plus fine-grained{" "}
+              <span className="font-semibold text-foreground">CRUD action control</span> — so a support agent can view tickets but not delete them.
+            </p>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               {roleCards.map((role) => (
                 <div key={role.id} className="bg-card border border-border rounded-2xl shadow-sm flex flex-col">
@@ -1290,19 +1408,44 @@ export default function StaffManagementPage() {
                         <UserCog className="w-3.5 h-3.5" /> {role.memberCount}
                       </div>
                     </div>
-                    <p className="mb-6 min-h-[40px] text-sm text-muted-foreground">{role.description}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {role.permissions.map(perm => (
-                        <span key={perm} className="px-2 py-1 bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold tracking-wider rounded-md">
-                          {perm}
+                    <p className="mb-4 min-h-[40px] text-sm text-muted-foreground">{role.description}</p>
+
+                    {/* Summary badges */}
+                    <div className="flex flex-wrap gap-1.5 mb-4">
+                      {role.pageLabels.slice(0, 6).map((label) => (
+                        <span
+                          key={label}
+                          className="px-2 py-0.5 bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold tracking-wider rounded-md"
+                        >
+                          {label}
                         </span>
                       ))}
+                      {role.pageLabels.length > 6 && (
+                        <span className="px-2 py-0.5 bg-muted border border-border text-muted-foreground text-[10px] font-bold tracking-wider rounded-md">
+                          +{role.pageLabels.length - 6} more
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Stats row */}
+                    <div className="flex gap-4 text-xs text-muted-foreground">
+                      <span>
+                        <span className="font-bold text-foreground">{role.pageCount}</span> pages
+                      </span>
+                      <span>
+                        <span className="font-bold text-foreground">{role.totalActionCount}</span> actions granted
+                      </span>
                     </div>
                   </div>
                   <div className="p-4 border-t border-border flex justify-between items-center bg-muted/20 rounded-b-2xl">
-                    <span className="text-xs font-semibold text-muted-foreground">{role.permissions.length} dashboard areas</span>
-                    <button onClick={() => setEditingRole(role)} className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-4 py-2 text-sm font-bold text-foreground shadow-sm transition-colors hover:bg-muted hover:text-primary">
-                      <Pencil className="h-3.5 w-3.5" /> Edit access
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {role.memberCount} member{role.memberCount !== 1 ? "s" : ""}
+                    </span>
+                    <button
+                      onClick={() => setEditingRole(role)}
+                      className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-4 py-2 text-sm font-bold text-foreground shadow-sm transition-colors hover:bg-muted hover:text-primary"
+                    >
+                      <Shield className="h-3.5 w-3.5" /> Edit permissions
                     </button>
                   </div>
                 </div>
@@ -1312,9 +1455,15 @@ export default function StaffManagementPage() {
         )}
       </div>
 
+      {/* Dialogs */}
       <CreateStaffDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} onSuccess={fetchStaff} />
       <EditStaffDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} onSuccess={fetchStaff} user={selectedUser} />
-      <EditPermissionsModal open={!!editingRole} onOpenChange={(v) => !v && setEditingRole(null)} role={editingRole} onSave={saveRoleAccess} />
+      <EditPermissionsModal
+        open={!!editingRole}
+        onOpenChange={(v) => !v && setEditingRole(null)}
+        role={editingRole}
+        onSave={saveRoleAccess}
+      />
       <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1338,10 +1487,7 @@ export default function StaffManagementPage() {
               className="bg-red-600 text-white hover:bg-red-700"
             >
               {isDeleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Removing...
-                </>
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Removing...</>
               ) : (
                 "Remove staff"
               )}
