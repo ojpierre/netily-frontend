@@ -1150,6 +1150,13 @@ class SuperadminApiService {
     })
   }
 
+  async deleteSubscriptionInvoice(id: string, reason?: string): Promise<void> {
+    return this.request(`/superadmin/subscription-invoices/${id}/`, {
+      method: "DELETE",
+      body: JSON.stringify({ reason }),
+    })
+  }
+
   async sendSubscriptionInvoice(
     id: string,
     channel: "email" | "sms" | "in_app" | "all",
