@@ -814,7 +814,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Support Tickets */}
+        {/* Support Tickets - UPDATED with fallback to tickets variable */}
         <Card className={dashboardCardClass}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -838,7 +838,7 @@ export default function AdminDashboard() {
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : (() => {
-              const tk = quickStats?.tickets
+              const tk = quickStats?.tickets ?? tickets
               return (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
