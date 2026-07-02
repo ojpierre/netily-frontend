@@ -105,6 +105,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import type { Plan, PlanType, PlanDashboardStats, SubnetPrefixOption, CIDROption, SubnetPrefixOptionsResponse, Router } from "@/lib/types"
 
 const formatCurrency = (amount: string | number) => {
@@ -234,7 +235,7 @@ const HOTSPOT_PRESETS: HotspotPreset[] = [
 ]
 
 // Reusable PlanCard component
-function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deletingId }: {
+function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deletingId, canEdit = true, canDelete = true }: {
   plan: Plan
   onView: (p: Plan) => void
   onEdit: (p: Plan) => void
@@ -242,6 +243,8 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
   onDelete: (p: Plan) => void
   togglingId: number | null
   deletingId: number | null
+  canEdit?: boolean
+  canDelete?: boolean
 }) {
   const hp = plan as any
   const isFreeTrial = hp.is_free_trial === true
@@ -291,37 +294,45 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
                 <Eye className="w-4 h-4 mr-2" />
                 View Details
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEdit(plan)}>
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Plan
-              </DropdownMenuItem>
+              {canEdit && (
+                <DropdownMenuItem onClick={() => onEdit(plan)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Plan
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => onToggle(plan)}
-                disabled={togglingId === plan.id}
-              >
-                {togglingId === plan.id ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : plan.is_active ? (
-                  <Pause className="w-4 h-4 mr-2" />
-                ) : (
-                  <Play className="w-4 h-4 mr-2" />
-                )}
-                {plan.is_active ? "Deactivate" : "Activate"}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => onDelete(plan)}
-                disabled={deletingId === plan.id}
-                className="text-destructive focus:text-destructive focus:bg-destructive/10"
-              >
-                {deletingId === plan.id ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4 mr-2" />
-                )}
-                Delete Plan
-              </DropdownMenuItem>
+              {canEdit && (
+                <DropdownMenuItem
+                  onClick={() => onToggle(plan)}
+                  disabled={togglingId === plan.id}
+                >
+                  {togglingId === plan.id ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : plan.is_active ? (
+                    <Pause className="w-4 h-4 mr-2" />
+                  ) : (
+                    <Play className="w-4 h-4 mr-2" />
+                  )}
+                  {plan.is_active ? "Deactivate" : "Activate"}
+                </DropdownMenuItem>
+              )}
+              {canDelete && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => onDelete(plan)}
+                    disabled={deletingId === plan.id}
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                  >
+                    {deletingId === plan.id ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 mr-2" />
+                    )}
+                    Delete Plan
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -413,7 +424,8 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
 }
 
 export default function PlansPage() {
-  // Refs to prevent duplicate fetches
+  const perms = usePagePermissions("/admin/plans")
+  // ── States ──to prevent duplicate fetches
   const hasFetchedRef = useRef(false)
 
   // Data states
@@ -1376,35 +1388,37 @@ export default function PlansPage() {
             className="pl-9"
           />
         </div>
-        <Button
-          size="lg"
-          onClick={() => {
-            if (activeTab === "all") {
-              // Show plan type picker
-              setIsPlanTypePickerOpen(true)
-            } else if (activeTab === "hotspot") {
-              if (!selectedRouterId) {
-                toast.error('Please select a router first')
-                return
+        {perms.canAdd && (
+          <Button
+            size="lg"
+            onClick={() => {
+              if (activeTab === "all") {
+                // Show plan type picker
+                setIsPlanTypePickerOpen(true)
+              } else if (activeTab === "hotspot") {
+                if (!selectedRouterId) {
+                  toast.error('Please select a router first')
+                  return
+                }
+                setIsHotspotCreateOpen(true)
+              } else {
+                resetForm()
+                setPlanForm(prev => ({
+                  ...prev,
+                  plan_type: activeTab.toUpperCase() as PlanType,
+                }))
+                setIsCreateOpen(true)
               }
-              setIsHotspotCreateOpen(true)
-            } else {
-              resetForm()
-              setPlanForm(prev => ({
-                ...prev,
-                plan_type: activeTab.toUpperCase() as PlanType,
-              }))
-              setIsCreateOpen(true)
-            }
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          {activeTab === "all"
-            ? "Create Plan"
-            : activeTab === "hotspot"
-            ? "Create Hotspot Plan"
-            : "Create PPPoE Plan"}
-        </Button>
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {activeTab === "all"
+              ? "Create Plan"
+              : activeTab === "hotspot"
+              ? "Create Hotspot Plan"
+              : "Create PPPoE Plan"}
+          </Button>
+        )}
       </div>
 
       {/* ── Plan Type Picker Dialog (shown from "All Plans" tab) ── */}
@@ -1589,7 +1603,7 @@ export default function PlansPage() {
           ) : viewMode === "grid" ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPlans.map(plan => (
-                <PlanCard key={plan.id} plan={plan} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} />
+                <PlanCard key={plan.id} plan={plan} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} canEdit={perms.canEdit} canDelete={perms.canDelete} />
               ))}
             </div>
           ) : (
@@ -1644,22 +1658,32 @@ export default function PlansPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleViewDetails(plan)}>
-                                  <Eye className="w-4 h-4 mr-2" />View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openEditDialog(plan)}>
-                                  <Edit className="w-4 h-4 mr-2" />Edit Plan
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleToggleActive(plan)} disabled={togglingId === plan.id}>
-                                  {togglingId === plan.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : plan.is_active ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-                                  {plan.is_active ? "Deactivate" : "Activate"}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleDeleteRequest(plan)} disabled={deletingId === plan.id} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                  {deletingId === plan.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                                  Delete Plan
-                                </DropdownMenuItem>
+                                {perms.canViewDetails && (
+                                  <DropdownMenuItem onClick={() => handleViewDetails(plan)}>
+                                    <Eye className="w-4 h-4 mr-2" />View Details
+                                  </DropdownMenuItem>
+                                )}
+                                {perms.canEdit && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => openEditDialog(plan)}>
+                                      <Edit className="w-4 h-4 mr-2" />Edit Plan
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleToggleActive(plan)} disabled={togglingId === plan.id}>
+                                      {togglingId === plan.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : plan.is_active ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                                      {plan.is_active ? "Deactivate" : "Activate"}
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {perms.canDelete && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleDeleteRequest(plan)} disabled={deletingId === plan.id} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                      {deletingId === plan.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                                      Delete Plan
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -1688,7 +1712,7 @@ export default function PlansPage() {
           ) : viewMode === "grid" ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPlans.map(plan => (
-                <PlanCard key={plan.id} plan={plan} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} />
+                <PlanCard key={plan.id} plan={plan} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} canEdit={perms.canEdit} canDelete={perms.canDelete} />
               ))}
             </div>
           ) : (
@@ -1750,22 +1774,32 @@ export default function PlansPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleViewDetails(plan)}>
-                                  <Eye className="w-4 h-4 mr-2" />View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openEditDialog(plan)}>
-                                  <Edit className="w-4 h-4 mr-2" />Edit Plan
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleToggleActive(plan)} disabled={togglingId === plan.id}>
-                                  {togglingId === plan.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : plan.is_active ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-                                  {plan.is_active ? "Deactivate" : "Activate"}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleDeleteRequest(plan)} disabled={deletingId === plan.id} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                  {deletingId === plan.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                                  Delete Plan
-                                </DropdownMenuItem>
+                                {perms.canViewDetails && (
+                                  <DropdownMenuItem onClick={() => handleViewDetails(plan)}>
+                                    <Eye className="w-4 h-4 mr-2" />View Details
+                                  </DropdownMenuItem>
+                                )}
+                                {perms.canEdit && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => openEditDialog(plan)}>
+                                      <Edit className="w-4 h-4 mr-2" />Edit Plan
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleToggleActive(plan)} disabled={togglingId === plan.id}>
+                                      {togglingId === plan.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : plan.is_active ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                                      {plan.is_active ? "Deactivate" : "Activate"}
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {perms.canDelete && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleDeleteRequest(plan)} disabled={deletingId === plan.id} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                      {deletingId === plan.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                                      Delete Plan
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>

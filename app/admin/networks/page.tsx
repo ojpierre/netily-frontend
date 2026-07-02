@@ -58,8 +58,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -96,6 +96,7 @@ function getOctetFieldConfig(cidrPrefix: string) {
 }
 
 export default function IPv4NetworksPage() {
+  const perms = usePagePermissions("/admin/networks")
   const hasFetchedRef = useRef(false)
 
   // Data
@@ -388,10 +389,12 @@ export default function IPv4NetworksPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button onClick={() => { resetPoolForm(); loadSubnetPrefixOptions(); setIsPoolCreateOpen(true) }}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add IP Pool
-          </Button>
+          {perms.canAdd && (
+            <Button onClick={() => { resetPoolForm(); loadSubnetPrefixOptions(); setIsPoolCreateOpen(true) }}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add IP Pool
+            </Button>
+          )}
         </div>
       </div>
 
@@ -498,7 +501,8 @@ export default function IPv4NetworksPage() {
                     : 'IP pools define the address ranges for your customers. Create one to get started.'
                   }
                 </p>
-                {!searchQuery && (
+                <p className="text-muted-foreground mt-1">Add an IP address pool to assign to your customers.</p>
+                {perms.canAdd && (
                   <Button size="sm" className="mt-4" onClick={() => { resetPoolForm(); loadSubnetPrefixOptions(); setIsPoolCreateOpen(true) }}>
                     <Plus className="mr-2 h-4 w-4" />
                     Create IP Pool
@@ -518,10 +522,12 @@ export default function IPv4NetworksPage() {
                     {filteredPools.length} pool{filteredPools.length !== 1 ? 's' : ''} · {filteredPools.reduce((s, p) => s + (p.total_ips || 0), 0).toLocaleString()} total IPs
                   </CardDescription>
                 </div>
-                <Button size="sm" onClick={() => { resetPoolForm(); loadSubnetPrefixOptions(); setIsPoolCreateOpen(true) }}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Pool
-                </Button>
+                {perms.canAdd && (
+                  <Button size="sm" onClick={() => { resetPoolForm(); loadSubnetPrefixOptions(); setIsPoolCreateOpen(true) }}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Pool
+                  </Button>
+                )}
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
@@ -620,22 +626,30 @@ export default function IPv4NetworksPage() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => { loadSubnetPrefixOptions(); openPoolEdit(pool) }}>
-                                      <Edit className="w-4 h-4 mr-2" />
-                                      Edit Pool
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleTogglePoolActive(pool)}>
-                                      <Power className="w-4 h-4 mr-2" />
-                                      {pool.is_active ? 'Disable' : 'Enable'}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      onClick={() => { setSelectedPool(pool); setIsPoolDeleteOpen(true) }}
-                                      className="text-destructive"
-                                    >
-                                      <Trash2 className="w-4 h-4 mr-2" />
-                                      Delete Pool
-                                    </DropdownMenuItem>
+                                    {perms.canEdit && (
+                                      <>
+                                        <DropdownMenuItem onClick={() => { loadSubnetPrefixOptions(); openPoolEdit(pool) }}>
+                                          <Edit className="w-4 h-4 mr-2" />
+                                          Edit Pool
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleTogglePoolActive(pool)}>
+                                          <Power className="w-4 h-4 mr-2" />
+                                          {pool.is_active ? 'Disable' : 'Enable'}
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                    {perms.canDelete && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() => { setSelectedPool(pool); setIsPoolDeleteOpen(true) }}
+                                          className="text-destructive"
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          Delete Pool
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                                </td>
@@ -706,13 +720,13 @@ export default function IPv4NetworksPage() {
               <div className="text-center py-8">
                 <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                 <p className="font-medium">No Static IP Pools</p>
-                <p className="text-muted-foreground text-sm mt-1">
-                  Create a pool with type &quot;STATIC&quot; to manage static IP blocks.
-                </p>
-                <Button variant="outline" size="sm" className="mt-4" onClick={() => { resetPoolForm(); setPoolForm(prev => ({ ...prev, pool_type: 'STATIC' })); loadSubnetPrefixOptions(); setIsPoolCreateOpen(true) }}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Static Pool
-                </Button>
+                <p className="text-muted-foreground mt-1 text-sm">Static IPs are required for creating Static IP Plans.</p>
+                {perms.canAdd && (
+                  <Button variant="outline" size="sm" className="mt-4" onClick={() => { resetPoolForm(); setPoolForm(prev => ({ ...prev, pool_type: 'STATIC' })); loadSubnetPrefixOptions(); setIsPoolCreateOpen(true) }}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Static Pool
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="space-y-4">

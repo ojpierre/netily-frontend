@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useMemo, useEffect, useRef } from "react"
 import {
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -110,6 +111,7 @@ function StorageBar({ storage, loading }: { storage: StorageInfo | null; loading
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function AdsPage() {
+  const perms = usePagePermissions("/admin/ads")
   const [ads, setAds] = useState<HotspotAd[]>([])
   const [storage, setStorage] = useState<StorageInfo | null>(null)
   const [storageLoading, setStorageLoading] = useState(true)
@@ -288,7 +290,7 @@ export default function AdsPage() {
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />New Ad</Button>
+          {perms.canAdd && <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />New Ad</Button>}
         </div>
       </div>
 
@@ -333,8 +335,8 @@ export default function AdsPage() {
           ) : filteredAds.length === 0 ? (
             <div className="text-center py-12">
               <Play className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-              <p className="text-slate-500 mb-4">No ads yet. Create one to monetize your hotspot.</p>
-              <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />Create First Ad</Button>
+              <p className="text-muted-foreground mt-2 mb-4 max-w-sm">Create your first advertisement to show on the hotspot captive portal.</p>
+              {perms.canAdd && <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />Create First Ad</Button>}
             </div>
           ) : (
             <div className="space-y-3">
@@ -385,10 +387,14 @@ export default function AdsPage() {
                       <Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setPreviewAd(ad)}><Eye className="w-4 h-4 mr-2" />Preview</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openEdit(ad)}><Edit className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(ad)}><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
+                      {perms.canViewDetails && <DropdownMenuItem onClick={() => setPreviewAd(ad)}><Eye className="w-4 h-4 mr-2" />Preview</DropdownMenuItem>}
+                      {perms.canEdit && <DropdownMenuItem onClick={() => openEdit(ad)}><Edit className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>}
+                      {perms.canDelete && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(ad)}><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

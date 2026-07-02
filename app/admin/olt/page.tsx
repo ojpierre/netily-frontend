@@ -62,8 +62,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import {
   Sheet,
   SheetContent,
@@ -140,6 +140,7 @@ const getManufacturerBadge = (manufacturer: string) => {
 }
 
 export default function OLTManagementPage() {
+  const perms = usePagePermissions("/admin/olt")
   const [olts, setOlts] = useState<OLT[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -282,10 +283,12 @@ export default function OLTManagementPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add OLT
-          </Button>
+          {perms.canAdd && (
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add OLT
+            </Button>
+          )}
         </div>
       </div>
 
@@ -482,40 +485,52 @@ export default function OLTManagementPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetails(olt)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/admin/olt/${olt.id}`}>
-                            <Network className="mr-2 h-4 w-4" />
-                            View PON Ports
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleReboot(olt)}>
-                          <Power className="mr-2 h-4 w-4" />
-                          Reboot
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Terminal className="mr-2 h-4 w-4" />
-                          SSH Console
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => {
-                            setOltToDelete(olt)
-                            setIsDeleteDialogOpen(true)
-                          }}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
+                        {perms.canViewDetails && (
+                          <>
+                            <DropdownMenuItem onClick={() => handleViewDetails(olt)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/admin/olt/${olt.id}`}>
+                                <Network className="mr-2 h-4 w-4" />
+                                Manage PON Ports
+                              </Link>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {perms.canEdit && (
+                          <>
+                            <DropdownMenuItem>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleReboot(olt)}>
+                              <Power className="mr-2 h-4 w-4" />
+                              Reboot
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Terminal className="mr-2 h-4 w-4" />
+                              SSH Console
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {perms.canDelete && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => {
+                                setOltToDelete(olt)
+                                setIsDeleteDialogOpen(true)
+                              }}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete OLT
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

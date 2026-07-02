@@ -62,8 +62,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import {
   Sheet,
   SheetContent,
@@ -168,6 +168,7 @@ const getServiceTypeBadge = (serviceType: string | undefined) => {
 }
 
 export default function PaymentsPage() {
+  const perms = usePagePermissions("/admin/payments")
   // Data states
   const [payments, setPayments] = useState<Payment[]>([])
   const [stats, setStats] = useState<PaymentDashboardStats | null>(null)
@@ -638,28 +639,32 @@ export default function PaymentsPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <MoreVertical className="mr-2 h-4 w-4" />
-                Manual Entry
+          {perms.canAdd && (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <MoreVertical className="mr-2 h-4 w-4" />
+                    Manual Entry
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsMpesaOpen(true)}>
+                    <Smartphone className="mr-2 h-4 w-4" />
+                    M-Pesa STK Push (Legacy)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsBankOpen(true)}>
+                    <Building2 className="mr-2 h-4 w-4" />
+                    Record Bank Transfer
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button onClick={openPayNowDialog}>
+                <CreditCard className="mr-2 h-4 w-4" />
+                Pay Now
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsMpesaOpen(true)}>
-                <Smartphone className="mr-2 h-4 w-4" />
-                M-Pesa STK Push (Legacy)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsBankOpen(true)}>
-                <Building2 className="mr-2 h-4 w-4" />
-                Record Bank Transfer
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button onClick={openPayNowDialog}>
-            <CreditCard className="mr-2 h-4 w-4" />
-            Pay Now
-          </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -753,18 +758,22 @@ export default function PaymentsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetails(payment)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </DropdownMenuItem>
+                        {perms.canViewDetails && (
+                          <DropdownMenuItem onClick={() => handleViewDetails(payment)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                        )}
                         {/* Only show refund for completed payments (which is all we show now) */}
-                        <DropdownMenuItem onClick={() => {
-                          setSelectedPayment(payment)
-                          setIsRefundOpen(true)
-                        }}>
-                          <RotateCcw className="mr-2 h-4 w-4" />
-                          Refund
-                        </DropdownMenuItem>
+                        {perms.canEdit && (
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedPayment(payment)
+                            setIsRefundOpen(true)
+                          }} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                            <Undo className="mr-2 h-4 w-4" />
+                            Reverse Payment
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

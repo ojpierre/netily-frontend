@@ -58,8 +58,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import {
   Sheet,
   SheetContent,
@@ -134,6 +134,7 @@ const getPowerStatus = (power: number) => {
 }
 
 export default function ONUManagementPage() {
+  const perms = usePagePermissions("/admin/onu")
   const [onus, setOnus] = useState<ONU[]>([])
   const [unregisteredONUs, setUnregisteredONUs] = useState<ONU[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -424,10 +425,12 @@ export default function ONUManagementPage() {
                     <span className="text-sm text-muted-foreground">
                       {selectedRows.length} selected
                     </span>
-                    <Button variant="outline" size="sm">
-                      <Power className="mr-2 h-4 w-4" />
-                      Reboot Selected
-                    </Button>
+                    {perms.canEdit && selectedONUs.length > 0 && (
+                      <Button variant="outline" size="sm">
+                        <Power className="mr-2 h-4 w-4" />
+                        Reboot Selected
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -522,28 +525,38 @@ export default function ONUManagementPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewDetails(onu)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleReboot(onu)}>
-                              <RotateCcw className="mr-2 h-4 w-4" />
-                              Reboot ONU
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Terminal className="mr-2 h-4 w-4" />
-                              Run Diagnostics
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive">
-                              <Unplug className="mr-2 h-4 w-4" />
-                              Deregister
-                            </DropdownMenuItem>
+                            {perms.canViewDetails && (
+                              <DropdownMenuItem onClick={() => handleViewDetails(onu)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                            )}
+                            {perms.canEdit && (
+                              <>
+                                <DropdownMenuItem>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleReboot(onu)}>
+                                  <RotateCcw className="mr-2 h-4 w-4" />
+                                  Reboot ONU
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <Terminal className="mr-2 h-4 w-4" />
+                                  Run Diagnostics
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {perms.canDelete && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive">
+                                  <Unplug className="mr-2 h-4 w-4" />
+                                  Deregister
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -605,16 +618,18 @@ export default function ONUManagementPage() {
                       <TableCell>{onu.distance}m</TableCell>
                       <TableCell className="text-muted-foreground">{onu.last_seen}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setOnuToProvision(onu)
-                            setIsProvisionDialogOpen(true)
-                          }}
-                        >
-                          <Play className="mr-2 h-4 w-4" />
-                          Provision
-                        </Button>
+                        {perms.canEdit && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setOnuToProvision(onu)
+                              setIsProvisionDialogOpen(true)
+                            }}
+                          >
+                            <Play className="mr-2 h-4 w-4" />
+                            Provision
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

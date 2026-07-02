@@ -27,6 +27,7 @@ import {
   X,
   ChevronDown,
 } from "lucide-react"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -441,6 +442,7 @@ function InvoicePreviewModal({ invoice, open, onClose, companyName }: {
 
 // ── MAIN PAGE ─────────────────────────────────────────────────────────
 export default function InvoiceManagementPage() {
+  const perms = usePagePermissions("/admin/invoices")
   const [invoices, setInvoices] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
@@ -749,9 +751,11 @@ export default function InvoiceManagementPage() {
           <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />Refresh
           </Button>
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />Create Invoice
-          </Button>
+          {perms.canAdd && (
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />Create Invoice
+            </Button>
+          )}
         </div>
       </div>
 
@@ -846,31 +850,43 @@ export default function InvoiceManagementPage() {
                         <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handlePreview(inv)}>
-                          <Eye className="mr-2 h-4 w-4" />Preview
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleViewDetails(inv)}>
-                          <FileText className="mr-2 h-4 w-4" />Details
-                        </DropdownMenuItem>
-                        {inv.status?.toUpperCase() === 'DRAFT' && (
+                        {perms.canViewDetails && (
+                          <>
+                            <DropdownMenuItem onClick={() => handlePreview(inv)}>
+                              <Eye className="mr-2 h-4 w-4" />Preview
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewDetails(inv)}>
+                              <FileText className="mr-2 h-4 w-4" />Details
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {perms.canEdit && inv.status?.toUpperCase() === 'DRAFT' && (
                           <DropdownMenuItem onClick={() => handleIssue(inv)} disabled={issuingId === inv.id}>
                             {issuingId === inv.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                             Issue
                           </DropdownMenuItem>
                         )}
-                        {['ISSUED', 'SENT', 'PARTIAL', 'OVERDUE', 'PENDING'].includes((inv.status || '').toUpperCase()) && (
+                        {perms.canEdit && ['ISSUED', 'SENT', 'PARTIAL', 'OVERDUE', 'PENDING'].includes((inv.status || '').toUpperCase()) && (
                           <DropdownMenuItem onClick={() => { setSelectedInvoice(inv); setIsPaymentOpen(true) }}>
                             <CreditCard className="mr-2 h-4 w-4" />Add Payment
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDownloadPDF(inv)}>
-                          <Download className="mr-2 h-4 w-4" />Download PDF
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDeleteInvoice(inv)} className="text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" />Delete
-                        </DropdownMenuItem>
+                        {perms.canViewDetails && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleDownloadPDF(inv)}>
+                              <Download className="mr-2 h-4 w-4" />Download PDF
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {perms.canDelete && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleDeleteInvoice(inv)} className="text-destructive">
+                              <Trash2 className="mr-2 h-4 w-4" />Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

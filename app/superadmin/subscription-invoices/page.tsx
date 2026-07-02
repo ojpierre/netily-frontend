@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Search,
   Smartphone,
+  Trash2,
   WalletCards,
 } from "lucide-react"
 
@@ -94,6 +95,8 @@ export default function SuperadminSubscriptionInvoicesPage() {
   const [holdTarget, setHoldTarget] = useState<SubscriptionInvoice | null>(null)
   const [holdAmountPaid, setHoldAmountPaid] = useState("")
   const [holdReason, setHoldReason] = useState("")
+  const [deleteTarget, setDeleteTarget] = useState<SubscriptionInvoice | null>(null)
+  const [deleteReason, setDeleteReason] = useState("")
 
   const [reconcileTarget, setReconcileTarget] = useState<SubscriptionInvoice | null>(null)
   const [invoiceStatus, setInvoiceStatus] = useState("leave")
@@ -218,6 +221,16 @@ export default function SuperadminSubscriptionInvoicesPage() {
     }
   }
 
+  const openDelete = async (row: SubscriptionInvoice) => {
+    try {
+      const detail = await superadminApi.getSubscriptionInvoice(row.id)
+      setDeleteTarget(detail)
+      setDeleteReason("Duplicate/unissued subscription invoice cleanup")
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to open delete action")
+    }
+  }
+
   const saveAdjustment = async () => {
     if (!selected) return
     setSaving(true)
@@ -288,6 +301,21 @@ export default function SuperadminSubscriptionInvoicesPage() {
       fetchInvoices()
     } catch (error: any) {
       toast.error(error?.message || "Failed to reconcile invoice")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteInvoice = async () => {
+    if (!deleteTarget) return
+    setSaving(true)
+    try {
+      await superadminApi.deleteSubscriptionInvoice(deleteTarget.id, deleteReason)
+      toast.success("Duplicate subscription invoice deleted")
+      setDeleteTarget(null)
+      fetchInvoices()
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to delete subscription invoice")
     } finally {
       setSaving(false)
     }
@@ -454,6 +482,7 @@ export default function SuperadminSubscriptionInvoicesPage() {
                   const invoiceStatusText = invoice?.status || "NOT GENERATED"
                   const balance = Number(invoice?.balance || row.effective_total || row.calculated_total || 0)
                   const accountLocked = row.subscription_status === "past_due" || row.subscription_status === "expired"
+                  const canDelete = !["PAID", "PARTIAL"].includes(String(invoice?.status || "").toUpperCase()) && Number(invoice?.amount_paid || 0) <= 0
                   return (
                     <tr key={row.id} className="text-slate-300 hover:bg-slate-800/40">
                       <td className="px-4 py-4 align-top">
@@ -520,6 +549,11 @@ export default function SuperadminSubscriptionInvoicesPage() {
                           <Button size="sm" variant="outline" className="border-slate-700" onClick={() => sendInvoice(row, "sms")}>
                             <MessageSquare className="mr-1 h-3.5 w-3.5" /> SMS
                           </Button>
+                          {canDelete && (
+                            <Button size="sm" variant="outline" className="border-red-800 text-red-300" onClick={() => openDelete(row)}>
+                              <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -600,6 +634,36 @@ export default function SuperadminSubscriptionInvoicesPage() {
                 <Button variant="outline" className="border-slate-700" onClick={() => setHoldTarget(null)}>Cancel</Button>
                 <Button onClick={saveHold} disabled={saving} className="bg-amber-600 hover:bg-amber-500">
                   {saving ? "Applying..." : "Set Partial + Hold"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="border-slate-800 bg-slate-950 text-white sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Delete Duplicate Invoice</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Removes an unpaid duplicate billing cycle and its tenant invoice. Paid and partial invoices are protected.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteTarget && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm">
+                <p className="font-medium text-red-100">{deleteTarget.tenant_name}</p>
+                <p className="text-red-200/80">Invoice: {deleteTarget.invoice?.invoice_number || "Not generated"}</p>
+                <p className="text-red-200/80">Total: {money(deleteTarget.invoice?.total_amount || deleteTarget.calculated_total)}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Reason</Label>
+                <Textarea value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)} className="border-slate-700 bg-slate-900 text-white" />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" className="border-slate-700" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+                <Button onClick={deleteInvoice} disabled={saving} className="bg-red-700 hover:bg-red-600">
+                  {saving ? "Deleting..." : "Delete Duplicate"}
                 </Button>
               </div>
             </div>

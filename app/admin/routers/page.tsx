@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
@@ -51,6 +51,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -77,6 +78,7 @@ import { adminApi } from "@/lib/admin-api"
 import type { Router as RouterType2, RouterType, RouterStatus, RouterDashboardStats } from "@/lib/types"
 
 export default function RoutersPage() {
+  const perms = usePagePermissions("/admin/routers")
   const router = useRouter()
   const hasFetchedRef = React.useRef(false)
   
@@ -442,10 +444,12 @@ export default function RoutersPage() {
             <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button onClick={() => setIsAddDialogOpen(true)} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Router
-          </Button>
+          {perms.canAdd && (
+            <Button onClick={() => setIsAddDialogOpen(true)} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Router
+            </Button>
+          )}
         </div>
       </div>
 
@@ -678,34 +682,44 @@ export default function RoutersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/routers/${r.id}`) }}>
-                            <Eye className="w-4 h-4 mr-2" /> View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(r) }}>
-                            <Edit className="w-4 h-4 mr-2" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => { e.stopPropagation(); handleTestConnection(r.id) }}
-                            disabled={isTesting === r.id}
-                          >
-                            {isTesting === r.id ? (
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            ) : (
-                              <TestTube className="w-4 h-4 mr-2" />
-                            )}
-                            Test Connection
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReboot(r.id) }}>
-                            <RotateCcw className="w-4 h-4 mr-2" /> Reboot
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={(e) => { e.stopPropagation(); setSelectedRouter(r); setIsDeleteDialogOpen(true) }}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" /> Delete
-                          </DropdownMenuItem>
+                          {perms.canViewDetails && (
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/routers/${r.id}`) }}>
+                              <Eye className="w-4 h-4 mr-2" /> View Details
+                            </DropdownMenuItem>
+                          )}
+                          {perms.canEdit && (
+                            <>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(r) }}>
+                                <Edit className="w-4 h-4 mr-2" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => { e.stopPropagation(); handleTestConnection(r.id) }}
+                                disabled={isTesting === r.id}
+                              >
+                                {isTesting === r.id ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <TestTube className="w-4 h-4 mr-2" />
+                                )}
+                                Test Connection
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReboot(r.id) }}>
+                                <RotateCcw className="w-4 h-4 mr-2" /> Reboot
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {perms.canDelete && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={(e) => { e.stopPropagation(); setSelectedRouter(r); setIsDeleteDialogOpen(true) }}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -926,30 +940,46 @@ export default function RoutersPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/routers/${r.id}`) }}>
-                              <Eye className="w-4 h-4 mr-2" /> View
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(r) }}>
-                              <Edit className="w-4 h-4 mr-2" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={(e) => { e.stopPropagation(); handleTestConnection(r.id) }}
-                              disabled={isTesting === r.id}
-                            >
-                              {isTesting === r.id ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              ) : (
-                                <TestTube className="w-4 h-4 mr-2" />
-                              )}
-                              Test
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={(e) => { e.stopPropagation(); setSelectedRouter(r); setIsDeleteDialogOpen(true) }}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" /> Delete
-                            </DropdownMenuItem>
+                            {perms.canViewDetails && (
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/routers/${r.id}`) }}>
+                                <Eye className="w-4 h-4 mr-2" /> View
+                              </DropdownMenuItem>
+                            )}
+                            {perms.canEdit && (
+                              <>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(r) }}>
+                                  <Edit className="w-4 h-4 mr-2" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e) => { e.stopPropagation(); handleTestConnection(r.id) }}
+                                  disabled={isTesting === r.id}
+                                >
+                                  {isTesting === r.id ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <TestTube className="w-4 h-4 mr-2" />
+                                  )}
+                                  Test
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={(e) => { e.stopPropagation(); handleReboot(r.id) }}
+                                >
+                                  <RotateCcw className="w-4 h-4 mr-2" /> Reboot
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {perms.canDelete && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={(e) => { e.stopPropagation(); setSelectedRouter(r); setIsDeleteDialogOpen(true) }}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

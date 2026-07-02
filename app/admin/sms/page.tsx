@@ -8,6 +8,7 @@ import {
   ChevronDown, ChevronRight, Copy, AlertCircle, Package, CreditCard,
   Phone, Smartphone, ToggleLeft, ToggleRight, Info,
 } from "lucide-react"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -433,6 +434,7 @@ function TopupSheet({ open, onClose, onSuccess }: { open: boolean; onClose: () =
 // -----------------------------------------------------------------------------
 
 export default function SMSPage() {
+  const perms = usePagePermissions("/admin/sms")
   const [activeTab, setActiveTab] = useState("history")
   const [messages, setMessages] = useState<SMSMessage[]>([])
   const [templates, setTemplates] = useState<SMSTemplate[]>([])
@@ -871,7 +873,7 @@ export default function SMSPage() {
                                 <Button variant="ghost" size="icon" className="h-7 w-7"><MoreVertical className="w-3.5 h-3.5" /></Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {m.status === 'failed' && (
+                                {m.status === 'failed' && perms.canEdit && (
                                   <DropdownMenuItem onClick={() => adminApi.retrySMS(m.id).then(() => toast.success('Retrying...'))}>
                                     <RefreshCw className="w-4 h-4 mr-2" />Retry
                                   </DropdownMenuItem>
@@ -907,9 +909,13 @@ export default function SMSPage() {
                     <CardTitle>Message Templates</CardTitle>
                     <CardDescription>Reusable messages with smart variable substitution</CardDescription>
                   </div>
-                  <Button size="sm" onClick={() => { setEditingTemplate(null); setIsTemplateOpen(true) }}>
-                    <Plus className="w-4 h-4 mr-1.5" />New Template
-                  </Button>
+                  <div className="flex gap-2">
+                  {perms.canAdd && (
+                    <Button size="sm" onClick={() => { setEditingTemplate(null); setIsTemplateOpen(true) }}>
+                      <Plus className="w-4 h-4 mr-1.5" />New Template
+                    </Button>
+                  )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -942,19 +948,23 @@ export default function SMSPage() {
                             </div>
                           )}
                         </div>
-                        <div className="flex gap-1 shrink-0">
+                        <div className="flex gap-1 justify-end">
                           <Button variant="outline" size="sm" className="h-7 text-xs"
                             onClick={() => { setComposeForm(p => ({ ...p, message: t.content })); setIsComposeOpen(true) }}>
                             Use
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7"
-                            onClick={() => { setEditingTemplate(t); setIsTemplateOpen(true) }}>
-                            <Eye className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteTemplate(t.id)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          {perms.canEdit && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7"
+                              onClick={() => { setEditingTemplate(t); setIsTemplateOpen(true) }}>
+                              <Eye className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                          {perms.canDelete && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteTemplate(t.id)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1359,43 +1369,39 @@ export default function SMSPage() {
                                   <span className="text-slate-400 text-xs">{gw.sender_id}</span>
                                 )}
                               </div>
-                              <div className="flex gap-1">
-                                {!gw.is_active && (
+                              <div className="flex items-center justify-end gap-1">
+                                {!gw.is_active && perms.canEdit && (
                                   <Button size="sm" variant="ghost" className="h-6 text-xs"
                                     onClick={() => adminApi.activateSMSGateway(gw.id).then(fetchAll)}>
                                     Activate
                                   </Button>
                                 )}
-                                <Button size="sm" variant="ghost" className="h-6 text-xs"
-                                  onClick={() => {
-                                    setGwEditing(gw.id)
-                                    setGwForm({
-                                      provider: gw.provider,
-                                      is_active: gw.is_active,
-                                      use_inbuilt_system: false,
-                                      api_key: '', api_secret: '',
-                                      username: gw.username,
-                                      sender_id: gw.sender_id,
-                                      extra_config: gw.extra_config ?? {},
-                                      auto_payment_confirmation: gw.auto_payment_confirmation,
-                                      auto_expiry_reminder: gw.auto_expiry_reminder,
-                                      auto_welcome_message: gw.auto_welcome_message,
-                                      auto_service_suspension: gw.auto_service_suspension,
-                                    })
-                                  }}>
-                                  Edit
-                                </Button>
-                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive"
-                                  onClick={() => adminApi.deleteSMSGatewayConfig(gw.id).then(fetchAll)}>
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
+                                {perms.canEdit && (
+                                  <Button size="sm" variant="ghost" className="h-6 text-xs"
+                                    onClick={() => {
+                                      setGwEditing(gw.id)
+                                      setGwForm(gw)
+                                    }}>
+                                    Edit
+                                  </Button>
+                                )}
+                                {perms.canDelete && (
+                                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive"
+                                    onClick={() => adminApi.deleteSMSGatewayConfig(gw.id).then(fetchAll)}>
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           ))}
-                          <Button variant="outline" size="sm" className="w-full text-xs"
-                            onClick={() => { setGwEditing(null); setGwForm({ provider: 'africastalking', is_active: true, use_inbuilt_system: false, api_key: '', api_secret: '', username: '', sender_id: '', extra_config: {}, auto_payment_confirmation: true, auto_expiry_reminder: true, auto_welcome_message: true, auto_service_suspension: false }) }}>
-                            <Plus className="w-3.5 h-3.5 mr-1.5" />Add Another Gateway
-                          </Button>
+                          {perms.canAdd && (
+                            <div className="mt-4 pt-4 border-t">
+                              <Button variant="outline" size="sm" className="w-full text-xs"
+                                onClick={() => { setGwEditing(null); setGwForm({ provider: 'africastalking', is_active: true, use_inbuilt_system: false, api_key: '', api_secret: '', username: '', sender_id: '', extra_config: {}, auto_payment_confirmation: true, auto_expiry_reminder: true, auto_welcome_message: true, auto_service_suspension: false }) }}>
+                                <Plus className="w-3.5 h-3.5 mr-1.5" />Add Another Gateway
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </>
@@ -1621,13 +1627,17 @@ export default function SMSPage() {
                   onChange={e => setComposeForm(p => ({ ...p, message: e.target.value }))}
                 />
               </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsComposeOpen(false)}>Cancel</Button>
+                {perms.canAdd && (
+                  <Button onClick={handleSend} disabled={isSending || selectedRecipients.length === 0 || !composeForm.message}>
+                    {isSending ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                    Send to {selectedRecipients.length} recipient(s)
+                  </Button>
+                )}
+              </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsComposeOpen(false)}>Cancel</Button>
-              <Button onClick={handleSend} disabled={isSending || selectedRecipients.length === 0 || !composeForm.message}>
-                {isSending ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                Send to {selectedRecipients.length} recipient(s)
-              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

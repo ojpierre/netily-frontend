@@ -43,6 +43,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import {
   Sheet,
   SheetContent,
@@ -113,6 +114,7 @@ const getStatusBadge = (status: ReceiptStatus) => {
 }
 
 export default function ReceiptsPage() {
+  const perms = usePagePermissions("/admin/receipts")
   // Data states
   const [receipts, setReceipts] = useState<Receipt[]>([])
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null)
@@ -402,11 +404,13 @@ export default function ReceiptsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetails(receipt)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </DropdownMenuItem>
-                        {receipt.status === 'DRAFT' && (
+                        {perms.canViewDetails && (
+                          <DropdownMenuItem onClick={() => handleViewDetails(receipt)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                        )}
+                        {perms.canEdit && receipt.status === 'DRAFT' && (
                           <DropdownMenuItem 
                             onClick={() => handleIssue(receipt)}
                             disabled={issuingId === receipt.id}
@@ -419,7 +423,7 @@ export default function ReceiptsPage() {
                             Issue Receipt
                           </DropdownMenuItem>
                         )}
-                        {receipt.status === 'ISSUED' && (
+                        {perms.canViewDetails && receipt.status === 'ISSUED' && (
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 

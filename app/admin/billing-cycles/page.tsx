@@ -45,6 +45,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import {
   Sheet,
   SheetContent,
@@ -99,6 +100,7 @@ const getStatusBadge = (status: BillingCycleStatus) => {
 }
 
 export default function BillingCyclesPage() {
+  const perms = usePagePermissions("/admin/billing-cycles")
   // Data states
   const [cycles, setCycles] = useState<BillingCycle[]>([])
   const [currentCycle, setCurrentCycle] = useState<BillingCycle | null>(null)
@@ -282,10 +284,12 @@ export default function BillingCyclesPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Cycle
-          </Button>
+          {perms.canAdd && (
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Cycle
+            </Button>
+          )}
         </div>
       </div>
 
@@ -470,15 +474,19 @@ export default function BillingCyclesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewSummary(cycle)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Summary
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleCalculateTotals(cycle)}>
-                            <Calculator className="mr-2 h-4 w-4" />
-                            Calculate Totals
-                          </DropdownMenuItem>
-                          {cycle.status === 'OPEN' && (
+                          {perms.canViewDetails && (
+                            <DropdownMenuItem onClick={() => handleViewSummary(cycle)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Summary
+                            </DropdownMenuItem>
+                          )}
+                          {perms.canEdit && (
+                            <DropdownMenuItem onClick={() => handleCalculateTotals(cycle)}>
+                              <Calculator className="mr-2 h-4 w-4" />
+                              Calculate Totals
+                            </DropdownMenuItem>
+                          )}
+                          {perms.canEdit && cycle.status === 'OPEN' && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
@@ -504,10 +512,12 @@ export default function BillingCyclesPage() {
               <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
               <h3 className="mt-4 text-lg font-semibold">No billing cycles found</h3>
               <p className="text-muted-foreground">Create your first billing cycle to get started.</p>
-              <Button className="mt-4" onClick={() => setIsCreateOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Billing Cycle
-              </Button>
+              {perms.canAdd && (
+                <Button className="mt-4" onClick={() => setIsCreateOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Billing Cycle
+                </Button>
+              )}
             </div>
           )}
         </CardContent>

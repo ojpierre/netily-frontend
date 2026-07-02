@@ -80,6 +80,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import type {
   RADIUSUser,
   RADIUSProfile,
@@ -199,6 +200,7 @@ function getExpirationStatus(expirationDate: string | null): {
 }
 
 export default function RADIUSPage() {
+  const perms = usePagePermissions("/admin/radius")
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<RADIUSDashboardStats | null>(null)
   const [users, setUsers] = useState<RADIUSUser[]>([])
@@ -631,10 +633,12 @@ export default function RADIUSPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={() => setCreateUserDialogOpen(true)} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              New User
-            </Button>
+            {perms.canAdd && (
+              <Button onClick={() => setCreateUserDialogOpen(true)} className="w-full sm:w-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                New User
+              </Button>
+            )}
           </div>
 
           <Card>
@@ -713,31 +717,37 @@ export default function RADIUSPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleToggleUserStatus(user)}>
-                              {user.status === "enabled" ? (
-                                <>
-                                  <UserX className="h-4 w-4 mr-2" /> Disable
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="h-4 w-4 mr-2" /> Enable
-                                </>
-                              )}
-                            </DropdownMenuItem>
+                            {perms.canEdit && (
+                              <DropdownMenuItem onClick={() => handleToggleUserStatus(user)}>
+                                {user.status === "enabled" ? (
+                                  <>
+                                    <UserX className="h-4 w-4 mr-2" /> Disable
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserCheck className="h-4 w-4 mr-2" /> Enable
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => handleDisconnectUser(user.username)}>
                               <WifiOff className="h-4 w-4 mr-2" /> Disconnect
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => {
-                                setSelectedItem(user)
-                                setDeleteType("user")
-                                setDeleteDialogOpen(true)
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" /> Delete
-                            </DropdownMenuItem>
+                            {perms.canDelete && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => {
+                                    setSelectedItem(user)
+                                    setDeleteType("user")
+                                    setDeleteDialogOpen(true)
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -752,10 +762,12 @@ export default function RADIUSPage() {
         {/* Profiles Tab */}
         <TabsContent value="profiles" className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={() => setCreateProfileDialogOpen(true)} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              New Profile
-            </Button>
+            {perms.canAdd && (
+              <Button onClick={() => setCreateProfileDialogOpen(true)} className="w-full sm:w-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                New Profile
+              </Button>
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -774,18 +786,20 @@ export default function RADIUSPage() {
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => {
-                              setSelectedItem(profile)
-                              setDeleteType("profile")
-                              setDeleteDialogOpen(true)
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
+                        {perms.canDelete && (
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => {
+                                setSelectedItem(profile)
+                                setDeleteType("profile")
+                                setDeleteDialogOpen(true)
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        )}
                       </DropdownMenu>
                     </div>
                   </div>
@@ -828,10 +842,12 @@ export default function RADIUSPage() {
         {/* NAS Tab */}
         <TabsContent value="nas" className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={() => setCreateNASDialogOpen(true)} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              New NAS
-            </Button>
+            {perms.canAdd && (
+              <Button onClick={() => setCreateNASDialogOpen(true)} className="w-full sm:w-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                New NAS
+              </Button>
+            )}
           </div>
 
           <Card>
@@ -874,18 +890,20 @@ export default function RADIUSPage() {
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => {
-                                setSelectedItem(nas)
-                                setDeleteType("nas")
-                                setDeleteDialogOpen(true)
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
+                          {perms.canDelete && (
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => {
+                                  setSelectedItem(nas)
+                                  setDeleteType("nas")
+                                  setDeleteDialogOpen(true)
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          )}
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
@@ -1060,65 +1078,72 @@ export default function RADIUSPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => {
-                              // Copy password to clipboard
-                              navigator.clipboard.writeText(cred.password || '')
-                              toast.success('Password copied to clipboard')
-                            }}>
-                              <Key className="h-4 w-4 mr-2" /> Copy Password
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={async () => {
-                              try {
-                                await adminApi.syncRADIUSCredential(cred.id)
-                                toast.success('Credential synced to RADIUS')
-                                fetchData()
-                              } catch (e: any) {
-                                toast.error(e.message || 'Failed to sync')
-                              }
-                            }}>
-                              <RefreshCw className="h-4 w-4 mr-2" /> Sync to RADIUS
-                            </DropdownMenuItem>
-                            {/* Renewal Option */}
-                            {(expStatus.status === 'expired' || expStatus.status === 'expiring') && (
-                              <DropdownMenuItem 
-                                className="text-primary"
-                                onClick={async () => {
-                                  try {
-                                    await adminApi.renewRADIUSCredential(cred.id)
-                                    toast.success('Subscription renewed! Expiration extended.')
-                                    fetchData()
-                                  } catch (e: any) {
-                                    toast.error(e.message || 'Failed to renew')
-                                  }
-                                }}
-                              >
-                                <RotateCcw className="h-4 w-4 mr-2" /> Renew Subscription
+                            {perms.canViewDetails && (
+                              <DropdownMenuItem onClick={() => {
+                                navigator.clipboard.writeText(cred.password || '')
+                                toast.success('Password copied to clipboard')
+                              }}>
+                                <Eye className="h-4 w-4 mr-2" /> Copy Password
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className={cred.is_enabled ? "text-destructive" : "text-success"}
-                              onClick={async () => {
-                                try {
-                                  if (cred.is_enabled) {
-                                    await adminApi.disableRADIUSCredential(cred.id)
-                                    toast.success('Credential disabled')
-                                  } else {
-                                    await adminApi.enableRADIUSCredential(cred.id)
-                                    toast.success('Credential enabled')
+                            {perms.canEdit && (
+                              <>
+                                <DropdownMenuItem onClick={async () => {
+                                  try {
+                                    await adminApi.syncRADIUSCredential(cred.id)
+                                    toast.success('Credential synced to RADIUS')
+                                    fetchData()
+                                  } catch (e: any) {
+                                    toast.error(e.message || 'Failed to sync')
                                   }
-                                  fetchData()
-                                } catch (e: any) {
-                                  toast.error(e.message || 'Failed to update')
-                                }
-                              }}
-                            >
-                              {cred.is_enabled ? (
-                                <><UserX className="h-4 w-4 mr-2" /> Disable</>
-                              ) : (
-                                <><UserCheck className="h-4 w-4 mr-2" /> Enable</>
-                              )}
-                            </DropdownMenuItem>
+                                }}>
+                                  <RefreshCw className="h-4 w-4 mr-2" /> Sync Manually
+                                </DropdownMenuItem>
+                                
+                                {/* Renewal Option */}
+                                {(expStatus.status === 'expired' || expStatus.status === 'expiring') && (
+                                  <DropdownMenuItem 
+                                    className="text-primary"
+                                    onClick={async () => {
+                                      try {
+                                        await adminApi.renewRADIUSCredential(cred.id)
+                                        toast.success('Subscription renewed!')
+                                        fetchData()
+                                      } catch (e: any) {
+                                        toast.error(e.message || 'Failed to renew')
+                                      }
+                                    }}
+                                  >
+                                    <ShieldAlert className="h-4 w-4 mr-2" /> Renew Credential
+                                  </DropdownMenuItem>
+                                )}
+                                
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className={cred.is_enabled ? "text-destructive" : "text-success"}
+                                  onClick={async () => {
+                                    try {
+                                      if (cred.is_enabled) {
+                                        await adminApi.disableRADIUSCredential(cred.id)
+                                        toast.success('Credential disabled')
+                                      } else {
+                                        await adminApi.enableRADIUSCredential(cred.id)
+                                        toast.success('Credential enabled')
+                                      }
+                                      fetchData()
+                                    } catch (e: any) {
+                                      toast.error(e.message || 'Failed to update')
+                                    }
+                                  }}
+                                >
+                                  {cred.is_enabled ? (
+                                    <><Power className="h-4 w-4 mr-2" /> Disable Credential</>
+                                  ) : (
+                                    <><Check className="h-4 w-4 mr-2" /> Enable Credential</>
+                                  )}
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

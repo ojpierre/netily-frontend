@@ -14,8 +14,10 @@ import {
   Copy,
   ShoppingCart,
   Pencil,
-  Trash2
+  Trash2,
+  AlertCircle
 } from "lucide-react"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -113,6 +115,7 @@ const getVoucherStatusBadge = (status: string) => {
 }
 
 export default function VouchersPage() {
+  const perms = usePagePermissions("/admin/vouchers")
   // Data states
   const [vouchers, setVouchers] = useState<VoucherItem[]>([])
   const [summary, setSummary] = useState<VoucherSummary>({ total: 0, used: 0, unused: 0 })
@@ -331,10 +334,12 @@ export default function VouchersPage() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button onClick={() => setIsGenerateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Generate Vouchers
-          </Button>
+          {perms.canAdd && (
+            <Button onClick={() => setIsGenerateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Generate Vouchers
+            </Button>
+          )}
         </div>
       </div>
 
@@ -431,42 +436,48 @@ export default function VouchersPage() {
                     <TableCell>{formatDate(voucher.expires_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => copyCode(voucher.code)}
-                          title="Copy code"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedVoucher(voucher)
-                            setEditExpiryDate(
-                              voucher.expires_at 
-                                ? new Date(voucher.expires_at).toISOString().slice(0, 16) 
-                                : ''
-                            )
-                            setIsEditOpen(true)
-                          }}
-                          title="Edit expiry"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => {
-                            setSelectedVoucher(voucher)
-                            setIsDeleteOpen(true)
-                          }}
-                          title="Delete voucher"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {perms.canViewDetails && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => copyCode(voucher.code)}
+                            title="Copy code"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {perms.canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedVoucher(voucher)
+                              setEditExpiryDate(
+                                voucher.expires_at 
+                                  ? new Date(voucher.expires_at).toISOString().slice(0, 16) 
+                                  : ''
+                              )
+                              setIsEditOpen(true)
+                            }}
+                            title="Edit expiry"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {perms.canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => {
+                              setSelectedVoucher(voucher)
+                              setIsDeleteOpen(true)
+                            }}
+                            title="Delete voucher"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

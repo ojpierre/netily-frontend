@@ -51,8 +51,8 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import {
   Dialog,
   DialogContent,
@@ -152,6 +152,7 @@ const formatDate = (dateString: string): string => {
 }
 
 export default function PromotionsPage() {
+  const perms = usePagePermissions("/admin/promotions")
   // TODO: Connect to promotions API when available
   const [promotions, setPromotions] = useState<Promotion[]>([])
   const [vouchers] = useState<Voucher[]>([])
@@ -257,14 +258,18 @@ export default function PromotionsPage() {
           <p className="text-muted-foreground">Manage promotional offers, vouchers, and referral programs</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setGenerateVouchersDialogOpen(true)}>
-            <Ticket className="w-4 h-4 mr-2" />
-            Generate Vouchers
-          </Button>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create Promotion
-          </Button>
+          {perms.canAdd && (
+            <Button variant="outline" onClick={() => setGenerateVouchersDialogOpen(true)}>
+              <Ticket className="w-4 h-4 mr-2" />
+              Generate Vouchers
+            </Button>
+          )}
+          {perms.canAdd && (
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Promotion
+            </Button>
+          )}
         </div>
       </div>
 
@@ -391,26 +396,38 @@ export default function PromotionsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openPromoDetail(promo)}>
-                          <Eye className="w-4 h-4 mr-2" /> View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Edit className="w-4 h-4 mr-2" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => togglePromotionStatus(promo.id)}>
-                          {promo.status === "active" ? (
-                            <><Pause className="w-4 h-4 mr-2" /> Pause</>
-                          ) : (
-                            <><Play className="w-4 h-4 mr-2" /> Activate</>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Copy className="w-4 h-4 mr-2" /> Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="w-4 h-4 mr-2" /> Delete
-                        </DropdownMenuItem>
+                        {perms.canViewDetails && (
+                          <DropdownMenuItem onClick={() => openPromoDetail(promo)}>
+                            <Eye className="w-4 h-4 mr-2" /> View Details
+                          </DropdownMenuItem>
+                        )}
+                        {perms.canEdit && (
+                          <>
+                            <DropdownMenuItem>
+                              <Edit className="w-4 h-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => togglePromotionStatus(promo.id)}>
+                              {promo.status === "active" ? (
+                                <><Pause className="w-4 h-4 mr-2" /> Pause</>
+                              ) : (
+                                <><Play className="w-4 h-4 mr-2" /> Activate</>
+                              )}
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {perms.canAdd && (
+                          <DropdownMenuItem>
+                            <Copy className="w-4 h-4 mr-2" /> Duplicate
+                          </DropdownMenuItem>
+                        )}
+                        {perms.canDelete && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive">
+                              <Trash2 className="w-4 h-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -457,10 +474,12 @@ export default function PromotionsPage() {
                   <CardTitle>Generated Vouchers</CardTitle>
                   <CardDescription>Individual voucher codes for promotions</CardDescription>
                 </div>
-                <Button onClick={() => setGenerateVouchersDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Generate More
-                </Button>
+                {perms.canAdd && (
+                  <Button onClick={() => setGenerateVouchersDialogOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Generate More
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -505,10 +524,12 @@ export default function PromotionsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Copy className="w-4 h-4 mr-2" /> Copy Code
-                            </DropdownMenuItem>
-                            {voucher.status === "unused" && (
+                            {perms.canViewDetails && (
+                              <DropdownMenuItem>
+                                <Copy className="w-4 h-4 mr-2" /> Copy Code
+                              </DropdownMenuItem>
+                            )}
+                            {perms.canEdit && voucher.status === "unused" && (
                               <DropdownMenuItem className="text-destructive">
                                 <XCircle className="w-4 h-4 mr-2" /> Invalidate
                               </DropdownMenuItem>
@@ -540,10 +561,12 @@ export default function PromotionsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch checked={referralProgram.isActive} />
-                  <Button variant="outline">
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit Program
-                  </Button>
+                  {perms.canEdit && (
+                    <Button variant="outline">
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Program
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -733,16 +756,20 @@ export default function PromotionsPage() {
 
                 {/* Actions */}
                 <div className="flex gap-2">
-                  <Button className="flex-1" variant="outline">
-                    <Edit className="w-4 h-4 mr-2" /> Edit
-                  </Button>
-                  <Button className="flex-1" variant="outline" onClick={() => togglePromotionStatus(selectedPromotion.id)}>
-                    {selectedPromotion.status === "active" ? (
-                      <><Pause className="w-4 h-4 mr-2" /> Pause</>
-                    ) : (
-                      <><Play className="w-4 h-4 mr-2" /> Activate</>
-                    )}
-                  </Button>
+                  {perms.canEdit && (
+                    <>
+                      <Button className="flex-1" variant="outline">
+                        <Edit className="w-4 h-4 mr-2" /> Edit
+                      </Button>
+                      <Button className="flex-1" variant="outline" onClick={() => togglePromotionStatus(selectedPromotion.id)}>
+                        {selectedPromotion.status === "active" ? (
+                          <><Pause className="w-4 h-4 mr-2" /> Pause</>
+                        ) : (
+                          <><Play className="w-4 h-4 mr-2" /> Activate</>
+                        )}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </ScrollArea>

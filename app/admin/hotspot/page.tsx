@@ -65,6 +65,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -145,6 +146,7 @@ function formatCurrency(amount: number): string {
 // ========================================
 
 export default function HotspotManagementPage() {
+  const perms = usePagePermissions("/admin/hotspot")
   // State
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
@@ -643,10 +645,12 @@ add address=10.10.0.1/24 interface=bridge-hotspot
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
-          <Button onClick={() => setShowSetupWizard(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Setup New Hotspot
-          </Button>
+          {perms.canAdd && (
+            <Button onClick={() => setShowSetupWizard(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Setup New Hotspot
+            </Button>
+          )}
         </div>
       </div>
 
@@ -874,10 +878,14 @@ add address=10.10.0.1/24 interface=bridge-hotspot
                               Create hotspot plans
                             </span>
                             {plans.length === 0 && (
-                              <Button size="sm" variant="outline" onClick={() => handleOpenPlanDialog()}>
-                                <Plus className="w-3 h-3 mr-1" />
-                                Add Plan
-                              </Button>
+                              <div className="flex items-center">
+                                {perms.canAdd && (
+                                  <Button size="sm" variant="outline" onClick={() => handleOpenPlanDialog()}>
+                                    <Plus className="w-3 h-3 mr-1" />
+                                    Add Plan
+                                  </Button>
+                                )}
+                              </div>
                             )}
                           </div>
                           
@@ -941,10 +949,12 @@ add address=10.10.0.1/24 interface=bridge-hotspot
                           Manage hotspot pricing plans for <span className="font-medium text-foreground">{selectedRouter.name}</span>
                         </p>
                       </div>
-                      <Button onClick={() => handleOpenPlanDialog()}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Plan
-                      </Button>
+                      {perms.canAdd && (
+                        <Button onClick={() => handleOpenPlanDialog()}>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Plan
+                        </Button>
+                      )}
                     </div>
 
                     {/* Plans table */}
@@ -1001,12 +1011,16 @@ add address=10.10.0.1/24 interface=bridge-hotspot
                                 </TableCell>
                                 <TableCell className="text-right">
                                   <div className="flex items-center justify-end gap-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenPlanDialog(plan)}>
-                                      <Edit className="w-4 h-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeletePlan(plan)}>
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
+                                    {perms.canEdit && (
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenPlanDialog(plan)}>
+                                        <Edit className="w-4 h-4" />
+                                      </Button>
+                                    )}
+                                    {perms.canDelete && (
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeletePlan(plan)}>
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    )}
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -1023,10 +1037,12 @@ add address=10.10.0.1/24 interface=bridge-hotspot
                             Create pricing plans that customers will see when connecting to this hotspot.
                             Use a preset to get started quickly.
                           </p>
-                          <Button onClick={() => handleOpenPlanDialog()}>
-                            <Plus className="w-4 h-4 mr-2" />
-                            Create First Plan
-                          </Button>
+                          {perms.canAdd && (
+                            <Button onClick={() => handleOpenPlanDialog()}>
+                              <Plus className="w-4 h-4 mr-2" />
+                              Create First Plan
+                            </Button>
+                          )}
                         </CardContent>
                       </Card>
                     )}

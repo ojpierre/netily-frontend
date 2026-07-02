@@ -9,6 +9,7 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card"
+import { usePagePermissions } from "@/hooks/use-page-permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -196,6 +197,7 @@ function getDayName(day: number): string {
 }
 
 export default function QoSPage() {
+  const perms = usePagePermissions("/admin/qos")
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("policies")
   const [selectedPolicy, setSelectedPolicy] = useState<QoSPolicy | null>(null)
@@ -253,107 +255,109 @@ export default function QoSPage() {
             Manage quality of service policies, traffic prioritization, and bandwidth control
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export Policies
-          </Button>
-          <Dialog open={showCreatePolicy} onOpenChange={setShowCreatePolicy}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Policy
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Create QoS Policy</DialogTitle>
-                <DialogDescription>
-                  Define a new quality of service policy with rules and conditions
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="policy-name">Policy Name</Label>
-                    <Input id="policy-name" placeholder="e.g., Gaming Priority" />
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Export Policies
+            </Button>
+            {perms.canAdd && activeTab === "policies" && (
+              <Dialog open={showCreatePolicy} onOpenChange={setShowCreatePolicy}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Policy
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Create QoS Policy</DialogTitle>
+                    <DialogDescription>
+                      Define a new quality of service policy with rules and conditions
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="policy-name">Policy Name</Label>
+                        <Input id="policy-name" placeholder="e.g., Gaming Priority" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="policy-type">Policy Type</Label>
+                        <Select defaultValue="plan">
+                          <SelectTrigger id="policy-type">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="plan">Plan-Based</SelectItem>
+                            <SelectItem value="custom">Custom</SelectItem>
+                            <SelectItem value="global">Global</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="policy-desc">Description</Label>
+                      <Textarea
+                        id="policy-desc"
+                        placeholder="Describe what this policy does..."
+                        rows={2}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="policy-priority">Priority (1-5)</Label>
+                        <Select defaultValue="3">
+                          <SelectTrigger id="policy-priority">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1 - Highest</SelectItem>
+                            <SelectItem value="2">2 - High</SelectItem>
+                            <SelectItem value="3">3 - Normal</SelectItem>
+                            <SelectItem value="4">4 - Low</SelectItem>
+                            <SelectItem value="5">5 - Lowest</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="apply-to">Apply To</Label>
+                        <Select defaultValue="all">
+                          <SelectTrigger id="apply-to">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Plans</SelectItem>
+                            <SelectItem value="premium">Premium Plans</SelectItem>
+                            <SelectItem value="standard">Standard Plans</SelectItem>
+                            <SelectItem value="business">Business Plans</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Rules</Label>
+                        <Button size="sm" variant="outline">
+                          <Plus className="mr-1 h-3 w-3" />
+                          Add Rule
+                        </Button>
+                      </div>
+                      <div className="rounded-md border p-4 text-center text-sm text-muted-foreground">
+                        No rules added yet. Click "Add Rule" to create traffic rules.
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="policy-type">Policy Type</Label>
-                    <Select defaultValue="plan">
-                      <SelectTrigger id="policy-type">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="plan">Plan-Based</SelectItem>
-                        <SelectItem value="custom">Custom</SelectItem>
-                        <SelectItem value="global">Global</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="policy-desc">Description</Label>
-                  <Textarea
-                    id="policy-desc"
-                    placeholder="Describe what this policy does..."
-                    rows={2}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="policy-priority">Priority (1-5)</Label>
-                    <Select defaultValue="3">
-                      <SelectTrigger id="policy-priority">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 - Highest</SelectItem>
-                        <SelectItem value="2">2 - High</SelectItem>
-                        <SelectItem value="3">3 - Normal</SelectItem>
-                        <SelectItem value="4">4 - Low</SelectItem>
-                        <SelectItem value="5">5 - Lowest</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="apply-to">Apply To</Label>
-                    <Select defaultValue="all">
-                      <SelectTrigger id="apply-to">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Plans</SelectItem>
-                        <SelectItem value="premium">Premium Plans</SelectItem>
-                        <SelectItem value="standard">Standard Plans</SelectItem>
-                        <SelectItem value="business">Business Plans</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Rules</Label>
-                    <Button size="sm" variant="outline">
-                      <Plus className="mr-1 h-3 w-3" />
-                      Add Rule
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowCreatePolicy(false)}>
+                      Cancel
                     </Button>
-                  </div>
-                  <div className="rounded-md border p-4 text-center text-sm text-muted-foreground">
-                    No rules added yet. Click "Add Rule" to create traffic rules.
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowCreatePolicy(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => setShowCreatePolicy(false)}>Create Policy</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+                    <Button onClick={() => setShowCreatePolicy(false)}>Create Policy</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
       </div>
 
       {/* Stats Cards */}
@@ -540,11 +544,13 @@ export default function QoSPage() {
                     Configure priority queues and bandwidth allocation per traffic class
                   </CardDescription>
                 </div>
+              {perms.canAdd && (
                 <Button size="sm">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Class
                 </Button>
-              </div>
+              )}
+            </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -736,11 +742,13 @@ export default function QoSPage() {
                     Time-based bandwidth adjustments and traffic shaping rules
                   </CardDescription>
                 </div>
+              {perms.canAdd && (
                 <Button size="sm">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Schedule
                 </Button>
-              </div>
+              )}
+            </div>
             </CardHeader>
             <CardContent>
               <Table>
@@ -1163,17 +1171,23 @@ export default function QoSPage() {
               <Separator />
 
               <div className="flex gap-2">
-                <Button className="flex-1">
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Policy
-                </Button>
-                <Button variant="outline">
-                  <Copy className="mr-2 h-4 w-4" />
-                  Duplicate
-                </Button>
-                <Button variant="destructive" size="icon">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {perms.canEdit && (
+                  <Button className="flex-1">
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Policy
+                  </Button>
+                )}
+                {perms.canAdd && (
+                  <Button variant="outline">
+                    <Copy className="mr-2 h-4 w-4" />
+                    Duplicate
+                  </Button>
+                )}
+                {perms.canDelete && (
+                  <Button variant="destructive" size="icon">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </ScrollArea>
@@ -1264,10 +1278,12 @@ export default function QoSPage() {
               <Separator />
 
               <div className="flex gap-2">
-                <Button className="flex-1">Save Changes</Button>
-                <Button variant="destructive" size="icon">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {perms.canEdit && <Button className="flex-1">Save Changes</Button>}
+                {perms.canDelete && (
+                  <Button variant="destructive" size="icon">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </ScrollArea>
