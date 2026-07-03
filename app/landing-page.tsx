@@ -1596,7 +1596,7 @@ export function LandingPage() {
               </h2>
               {/* Semantic triple for pricing model */}
               <p className="text-base font-medium text-slate-700 dark:text-slate-300 mb-3">
-                <strong>Netily pricing</strong> uses <strong>usage-based metered billing at KES 25 per PPPoE subscriber per month plus 3% hotspot revenue share</strong> with <strong>KES 500 minimum monthly payment</strong>.
+                <strong>Netily pricing</strong> uses <strong>KES 25 per PPPoE subscriber</strong>, <strong>3% hotspot revenue share</strong>, and a <strong>KES 500 minimum monthly payment</strong>.
               </p>
               <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
                 Honest pricing that grows with you. No surprises, no contracts.
@@ -2410,7 +2410,7 @@ export function LandingPage() {
                       </a>
                     </li>
                   ))}
-                  <li><Link href="#contact" onClick={(e) => { e.preventDefault(); scrollTo("contact") }} className="text-sm text-slate-400 hover:text-white transition-colors">Start Free Trial</Link></li>
+                  <li><Link href="#contact" onClick={(e) => { e.preventDefault(); scrollTo("contact") }} className="text-sm text-slate-400 hover:text-white transition-colors">Start a Netily Trial</Link></li>
                   <li><Link href="/alternatives" className="text-sm text-slate-400 hover:text-white transition-colors">ISP Billing Alternatives</Link></li>
                   <li><Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors">Sign In</Link></li>
                 </ul>
@@ -2423,6 +2423,9 @@ export function LandingPage() {
                   <li><Link href="/docs" className="text-sm text-slate-400 hover:text-white transition-colors">Documentation</Link></li>
                   <li><Link href="/blog" className="text-sm text-slate-400 hover:text-white transition-colors">ISP Growth Blog</Link></li>
                   <li><Link href="/blog/isp-billing-software-kenya-2026" className="text-sm text-slate-400 hover:text-white transition-colors">ISP Billing Buyer Guide</Link></li>
+                  <li><Link href="/solutions/isp-billing-software-kenya-counties" className="text-sm text-slate-400 hover:text-white transition-colors">ISP Billing in All Kenya Counties</Link></li>
+                  <li><Link href="/solutions/isp-billing-software-nairobi" className="text-sm text-slate-400 hover:text-white transition-colors">Nairobi Enterprise ISP Billing</Link></li>
+                  <li><Link href="/solutions/isp-billing-software-mombasa" className="text-sm text-slate-400 hover:text-white transition-colors">Mombasa Hotel WiFi Billing</Link></li>
                   <li><Link href="/alternatives/isp-man" className="text-sm text-slate-400 hover:text-white transition-colors">ISP Man Alternative</Link></li>
                   <li><Link href="/alternatives/lipanet" className="text-sm text-slate-400 hover:text-white transition-colors">Lipanet Alternative</Link></li>
                 </ul>
@@ -2435,7 +2438,7 @@ export function LandingPage() {
                   <li><a href="#contact" onClick={(e) => { e.preventDefault(); scrollTo("contact") }} className="text-sm text-slate-400 hover:text-white transition-colors">Contact Us</a></li>
                   <li><Link href="/privacy" className="text-sm text-slate-400 hover:text-white transition-colors">Privacy Policy</Link></li>
                   <li><Link href="/terms" className="text-sm text-slate-400 hover:text-white transition-colors">Terms of Service</Link></li>
-                  <li><Link href="#contact" onClick={(e) => { e.preventDefault(); scrollTo("contact") }} className="text-sm text-slate-400 hover:text-white transition-colors">Get Started Free</Link></li>
+                  <li><Link href="#contact" onClick={(e) => { e.preventDefault(); scrollTo("contact") }} className="text-sm text-slate-400 hover:text-white transition-colors">Contact Netily Sales</Link></li>
                 </ul>
               </div>
             </div>

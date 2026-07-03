@@ -13,6 +13,12 @@ const solutionSlugs = [
   "isp-billing-software-rwanda",
   "isp-billing-software-burundi",
   "isp-billing-software-south-sudan",
+  "isp-billing-software-nairobi",
+  "isp-billing-software-mombasa",
+  "isp-billing-software-kisumu",
+  "isp-billing-software-eldoret",
+  "isp-billing-software-nakuru",
+  "isp-billing-software-kenya-counties",
 ]
 
 export default function sitemap(): MetadataRoute.Sitemap {

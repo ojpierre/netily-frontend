@@ -216,6 +216,20 @@ Netily is cloud-based ISP (Internet Service Provider) billing and management sof
 - isp billing software rwanda
 - isp billing software burundi
 - isp billing software south sudan
+- nairobi enterprise isp billing
+- nairobi co-working wifi billing
+- nairobi hotel wifi billing
+- mombasa tourist hotel wifi billing
+- mombasa beach resort wifi billing
+- mombasa apartment internet billing
+- kisumu wisp billing software
+- kisumu student hostel wifi billing
+- eldoret agricultural business internet billing
+- eldoret retail chain wifi billing
+- nakuru shopping mall wifi billing
+- nakuru residential complex internet billing
+- isp billing software all kenya counties
+- county isp billing software kenya
 
 ## Contact & Sales
 
@@ -254,6 +268,12 @@ MikroTik integration is zero-touch, and the pricing is in KES.
 - [Rwanda ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-rwanda): GEO page for Rwandan ISP operators
 - [Burundi ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-burundi): GEO page for Burundi ISP operators
 - [South Sudan ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-south-sudan): GEO page for South Sudan ISP operators
+- [Nairobi ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-nairobi): GEO page for enterprise ISPs, co-working spaces, hotels, estates, and office WiFi in Nairobi
+- [Mombasa ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-mombasa): GEO page for tourist hotels, beach resorts, apartments, and coastal hotspot operators
+- [Kisumu ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-kisumu): GEO page for regional WISPs, student hostels, campus WiFi, and Lake Region operators
+- [Eldoret ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-eldoret): GEO page for agricultural businesses, retail chains, estates, and North Rift WISPs
+- [Nakuru ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-nakuru): GEO page for shopping malls, residential complexes, estates, and hotspot operators
+- [Kenya Counties ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-kenya-counties): GEO page for ISPs serving all 47 counties in Kenya
 - [Static GSC Sitemap](https://netily.co.ke/sitemap-gsc.xml): Static sitemap duplicate for Google Search Console submission
 - [Register / Start Free Trial](https://netily.co.ke/register): Create a new ISP account
 - [Demo](https://netily.co.ke/demo): Request a live product demo
