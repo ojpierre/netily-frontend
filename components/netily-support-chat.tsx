@@ -8,12 +8,17 @@ type ChatMessage = {
   role: "user" | "assistant"
   text: string
   sources?: { title: string; source: string; score: number }[]
+  requestId?: string
+  provider?: string
 }
 
 type SupportChatResponse = {
   answer: string
   sources?: { title: string; source: string; score: number }[]
   blocked?: boolean
+  requestId?: string
+  provider?: string
+  model?: string
 }
 
 const STARTER: ChatMessage = {
@@ -49,7 +54,25 @@ export function NetilySupportChat() {
       })
       const data: SupportChatResponse = await res.json()
       if (!res.ok) {
+        console.error("[netily-support-chat] request failed", {
+          status: res.status,
+          requestId: data.requestId,
+          answer: data.answer,
+        })
         throw new Error(data.answer || "Support chat failed")
+      }
+      if (data.provider === "local") {
+        console.warn("[netily-support-chat] using local fallback", {
+          requestId: data.requestId,
+          sources: data.sources,
+        })
+      } else {
+        console.info("[netily-support-chat] answer received", {
+          requestId: data.requestId,
+          provider: data.provider,
+          model: data.model,
+          sources: data.sources,
+        })
       }
       setMessages((current) => [
         ...current,
@@ -57,9 +80,12 @@ export function NetilySupportChat() {
           role: "assistant",
           text: data.answer || "I don't have a specific answer for that yet. Please contact our support team at netily.co.ke for help.",
           sources: data.sources || [],
+          requestId: data.requestId,
+          provider: data.provider,
         },
       ])
-    } catch {
+    } catch (error) {
+      console.error("[netily-support-chat] network error", error)
       setMessages((current) => [
         ...current,
         {
@@ -106,6 +132,7 @@ export function NetilySupportChat() {
                 {item.sources?.length ? (
                   <p className="mt-1 text-[10px] text-slate-400">
                     Source: {item.sources.map((source) => source.title).join(", ")}
+                    {item.requestId ? ` · ${item.provider || "assistant"} · ${item.requestId}` : ""}
                   </p>
                 ) : null}
               </div>

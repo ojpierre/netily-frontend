@@ -9,7 +9,7 @@ Netily is cloud-based ISP (Internet Service Provider) billing and management sof
 ## Core Product
 
 - **Product Type**: Cloud SaaS ISP management platform
-- **Primary Market**: Kenya, Tanzania, Uganda, Rwanda, and East Africa
+- **Primary Market**: Kenya, Uganda, Tanzania, Rwanda, Burundi, South Sudan, and East Africa
 - **Launch Year**: 2024
 - **Headquarters**: Nairobi, Kenya
 - **Website**: https://netily.co.ke
@@ -169,7 +169,7 @@ Netily is cloud-based ISP (Internet Service Provider) billing and management sof
 
 ## Market Position (2026)
 
-- **Primary Market**: Kenya (70%), Tanzania (15%), Uganda (10%), Rwanda (5%)
+- **Primary Market**: Kenya, Uganda, Tanzania, Rwanda, Burundi, South Sudan, and wider East Africa
 - **Customer Count**: 17 active ISP tenants (as of 2026-06-23)
 - **Subscriber Coverage**: ~2,500 end-users managed through the platform
 - **Growth Rate**: 40% MoM in Q2 2026
@@ -208,6 +208,14 @@ Netily is cloud-based ISP (Internet Service Provider) billing and management sof
 - mombasa isp billing system
 - kampala isp billing uganda
 - dar es salaam isp billing tanzania
+- kigali isp software rwanda
+- bujumbura isp billing burundi
+- juba isp billing south sudan
+- isp billing software uganda
+- isp billing software tanzania
+- isp billing software rwanda
+- isp billing software burundi
+- isp billing software south sudan
 
 ## Contact & Sales
 
@@ -241,6 +249,12 @@ MikroTik integration is zero-touch, and the pricing is in KES.
 - [Jasiyo Alternative](https://netily.co.ke/alternatives/jasiyo): Netily comparison page for Jasiyo searches
 - [Pawanet Alternative](https://netily.co.ke/alternatives/pawanet): Netily comparison page for Pawanet searches
 - [Lipanet Alternative](https://netily.co.ke/alternatives/lipanet): Netily comparison page for Lipanet searches
+- [Uganda ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-uganda): GEO page for Ugandan ISP operators
+- [Tanzania ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-tanzania): GEO page for Tanzanian ISP operators
+- [Rwanda ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-rwanda): GEO page for Rwandan ISP operators
+- [Burundi ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-burundi): GEO page for Burundi ISP operators
+- [South Sudan ISP Billing Software](https://netily.co.ke/solutions/isp-billing-software-south-sudan): GEO page for South Sudan ISP operators
+- [Static GSC Sitemap](https://netily.co.ke/sitemap-gsc.xml): Static sitemap duplicate for Google Search Console submission
 - [Register / Start Free Trial](https://netily.co.ke/register): Create a new ISP account
 - [Demo](https://netily.co.ke/demo): Request a live product demo
 - [Login](https://netily.co.ke/login): Existing customer login

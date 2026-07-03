@@ -49,7 +49,7 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: "ImagesiftBot", allow: "/" },
       { userAgent: "omgili", allow: "/" },
     ],
-    sitemap: "https://netily.co.ke/sitemap.xml",
+    sitemap: ["https://netily.co.ke/sitemap.xml", "https://netily.co.ke/sitemap-gsc.xml"],
     host: "https://netily.co.ke",
   }
 }

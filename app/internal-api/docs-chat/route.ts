@@ -8,6 +8,15 @@ type DocsSection = {
   score: number
 }
 
+type ChatLogMeta = {
+  requestId: string
+  question: string
+  selectedSources?: { title: string; score: number }[]
+  provider?: string
+  model?: string
+  error?: string
+}
+
 const GEMINI_MODELS = process.env.GEMINI_MODEL
   ? [process.env.GEMINI_MODEL]
   : ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-latest"]
@@ -38,6 +47,33 @@ const STOP_WORDS = new Set([
   "your",
 ])
 
+const ROUTER_SETUP_TERMS = new Set([
+  "add",
+  "authentication",
+  "connect",
+  "first",
+  "magic",
+  "mikrotik",
+  "provision",
+  "router",
+  "routeros",
+  "script",
+  "setup",
+  "terminal",
+  "vpn",
+])
+
+function logDocsChat(level: "info" | "warn" | "error", event: string, meta: ChatLogMeta) {
+  const safeMeta = {
+    ...meta,
+    question: meta.question.slice(0, 180),
+  }
+  const line = `[docs-chat:${event}] ${JSON.stringify(safeMeta)}`
+  if (level === "error") console.error(line)
+  else if (level === "warn") console.warn(line)
+  else console.info(line)
+}
+
 function splitDocs(markdown: string): DocsSection[] {
   return markdown.split(/\n(?=##\s+)/g).map((section) => ({
     title: section.match(/^##\s+(.+)$/m)?.[1]?.trim() || "Netily Documentation",
@@ -54,14 +90,35 @@ function questionTerms(question: string) {
     .filter((term) => term.length > 2 && !STOP_WORDS.has(term))
 }
 
+function isRouterSetupQuestion(question: string, terms: string[]) {
+  const normalized = question.toLowerCase()
+  return (
+    normalized.includes("first router") ||
+    normalized.includes("connect") && normalized.includes("router") ||
+    normalized.includes("add") && normalized.includes("router") ||
+    normalized.includes("provision") && normalized.includes("router") ||
+    terms.some((term) => ROUTER_SETUP_TERMS.has(term))
+  )
+}
+
 function selectContext(markdown: string, question: string) {
   const terms = questionTerms(question)
+  const routerSetupQuestion = isRouterSetupQuestion(question, terms)
 
   const sections = splitDocs(markdown)
     .map((section) => {
       const haystack = section.text.toLowerCase()
-      const titleBoost = terms.some((term) => section.title.toLowerCase().includes(term)) ? 3 : 0
-      const score = terms.reduce((total, term) => total + (haystack.includes(term) ? 1 : 0), titleBoost)
+      const title = section.title.toLowerCase()
+      const titleBoost = terms.some((term) => title.includes(term)) ? 4 : 0
+      const routerSetupBoost =
+        routerSetupQuestion && title.includes("routers")
+          ? 10 + ["authentication script", "provisioning script", "cloud controller", "mikrotik terminal", "vpn tunnel"]
+              .reduce((total, phrase) => total + (haystack.includes(phrase) ? 4 : 0), 0)
+          : 0
+      const score = terms.reduce((total, term) => {
+        const exactHits = haystack.match(new RegExp(`\\b${term}\\b`, "g"))?.length || 0
+        return total + Math.min(exactHits, 5)
+      }, titleBoost + routerSetupBoost)
       return { ...section, score }
     })
     .filter((section) => section.score > 0)
@@ -71,7 +128,27 @@ function selectContext(markdown: string, question: string) {
   return sections.length ? sections : splitDocs(markdown).slice(0, 2)
 }
 
-function localFallback(sections: DocsSection[]) {
+function routerSetupFallback() {
+  return [
+    "**Connect your first MikroTik router**",
+    "",
+    "1. Open **Admin > Routers** and click **Add Router**.",
+    "2. Enter the router name, location, public or reachable IP details, API port, and any required credentials shown in the form.",
+    "3. Save the router, then open its details page.",
+    "4. Go to **Cloud Controller** and copy the **Provisioning Script** or **Authentication Script**.",
+    "5. Open your MikroTik terminal, paste the one-line script, and run it.",
+    "6. Return to Netily and click **Refresh Status**. The router should move to online once the VPN/API tunnel responds.",
+    "7. After it is online, configure PPPoE, Hotspot, ports, queues, captive portal, and backups from the router tabs.",
+    "",
+    "**If it remains offline:** confirm the router has internet, the script completed without errors, API access is allowed, and the VPN/provisioning status is visible under **Cloud Controller**.",
+  ].join("\n")
+}
+
+function localFallback(sections: DocsSection[], question: string) {
+  if (isRouterSetupQuestion(question, questionTerms(question))) {
+    return routerSetupFallback()
+  }
+
   const best = sections[0]
   if (!best) {
     return "I don't have a specific answer for that yet. Please reach out to our support team at netily.co.ke for help."
@@ -107,11 +184,14 @@ async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs = 20
 }
 
 export async function POST(request: NextRequest) {
+  const requestId = crypto.randomUUID()
+  let question = ""
   try {
     const { message } = await request.json()
-    const question = String(message || "").trim()
+    question = String(message || "").trim()
 
     if (!question) {
+      logDocsChat("warn", "empty-question", { requestId, question })
       return NextResponse.json({ answer: "Please ask a Netily support question.", blocked: true }, { status: 400 })
     }
 
@@ -128,12 +208,20 @@ export async function POST(request: NextRequest) {
       score: section.score,
     }))
 
+    logDocsChat("info", "request", {
+      requestId,
+      question,
+      selectedSources: sources.map((source) => ({ title: source.title, score: source.score })),
+    })
+
     if (!GEMINI_API_KEY) {
+      logDocsChat("warn", "local-no-api-key", { requestId, question, provider: "local" })
       return NextResponse.json({
-        answer: localFallback(contextSections),
+        answer: localFallback(contextSections, question),
         sources,
         blocked: false,
         provider: "local",
+        requestId,
       })
     }
 
@@ -155,21 +243,29 @@ export async function POST(request: NextRequest) {
     let lastGeminiError = ""
 
     for (const model of GEMINI_MODELS) {
-      const geminiResponse = await fetchWithTimeout(`${geminiEndpoint(model)}?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,
-            topP: 0.8,
-            maxOutputTokens: 700,
-          },
-        }),
-      })
+      let geminiResponse: Response
+      try {
+        geminiResponse = await fetchWithTimeout(`${geminiEndpoint(model)}?key=${GEMINI_API_KEY}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.2,
+              topP: 0.8,
+              maxOutputTokens: 700,
+            },
+          }),
+        })
+      } catch (error) {
+        lastGeminiError = `${model}: ${error instanceof Error ? error.message : "request failed"}`
+        logDocsChat("warn", "provider-request-failed", { requestId, question, provider: "gemini", model, error: lastGeminiError })
+        continue
+      }
 
       if (!geminiResponse.ok) {
         lastGeminiError = `${model}: ${geminiResponse.status} ${await geminiResponse.text().catch(() => "unknown error")}`
+        logDocsChat("warn", "provider-bad-response", { requestId, question, provider: "gemini", model, error: lastGeminiError })
         continue
       }
 
@@ -180,28 +276,41 @@ export async function POST(request: NextRequest) {
     }
 
     if (!answer) {
-      console.error("Gemini API Error:", lastGeminiError || "No model returned an answer")
+      logDocsChat("error", "fallback-after-provider-failure", {
+        requestId,
+        question,
+        provider: "local",
+        error: lastGeminiError || "No model returned an answer",
+      })
       return NextResponse.json({
-        answer: localFallback(contextSections),
+        answer: localFallback(contextSections, question),
         sources,
         blocked: false,
         provider: "local",
+        requestId,
       })
     }
 
+    logDocsChat("info", "success", { requestId, question, provider: "gemini", model: modelUsed })
     return NextResponse.json({
       answer,
       sources,
       blocked: answer.toLowerCase().includes("i do not have that in the netily docs yet"),
       provider: "gemini",
       model: modelUsed,
+      requestId,
     })
   } catch (error) {
-    console.error("Docs Chat API Error:", error)
+    logDocsChat("error", "unhandled", {
+      requestId,
+      question,
+      error: error instanceof Error ? `${error.name}: ${error.message}` : "Unknown error",
+    })
     return NextResponse.json(
       {
         answer: "I'm having trouble connecting right now. Please try again in a moment, or reach out to us at netily.co.ke.",
         blocked: true,
+        requestId,
       },
       { status: 500 },
     )

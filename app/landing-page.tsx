@@ -947,8 +947,8 @@ export function LandingPage() {
   const [leadSubmitted, setLeadSubmitted] = useState(false)
 
   // Enterprise inline lead form (pricing card)
-  const [entForm, setEntForm] = useState({ name: "", email: "", company: "", subscribers: "", lead_source: "", referral_name: "" })
-  const [entErrors, setEntErrors] = useState<{ name?: string; email?: string }>({})
+  const [entForm, setEntForm] = useState({ name: "", email: "", phone: "", company: "", subscribers: "", lead_source: "", referral_name: "" })
+  const [entErrors, setEntErrors] = useState<{ name?: string; email?: string; phone?: string }>({})
   const [entSubmitting, setEntSubmitting] = useState(false)
   const [entSubmitted, setEntSubmitted] = useState(false)
 
@@ -1742,6 +1742,16 @@ export function LandingPage() {
                             />
                             {entErrors.email && <p className="text-xs text-red-400 mt-1">{entErrors.email}</p>}
                           </div>
+                          <div>
+                            <input
+                              type="tel"
+                              placeholder="Phone / WhatsApp *"
+                              value={entForm.phone}
+                              onChange={(e) => { setEntForm({ ...entForm, phone: e.target.value }); if (entErrors.phone) setEntErrors((p) => ({ ...p, phone: undefined })) }}
+                              className={`w-full h-10 px-3 rounded-lg text-sm bg-slate-800 border text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${ entErrors.phone ? "border-red-500" : "border-slate-600" }`}
+                            />
+                            {entErrors.phone && <p className="text-xs text-red-400 mt-1">{entErrors.phone}</p>}
+                          </div>
                           <input
                             type="text"
                             placeholder="Company / ISP name"
@@ -1779,20 +1789,21 @@ export function LandingPage() {
                           disabled={entSubmitting}
                           onClick={async () => {
                             // Validate
-                            const errs: { name?: string; email?: string } = {}
+                            const errs: { name?: string; email?: string; phone?: string } = {}
                             if (!entForm.name.trim()) errs.name = "Required"
                             if (!entForm.email.trim() || !/^[^@]+@[^@]+\.[^@]+$/.test(entForm.email)) errs.email = "Valid email required"
+                            if (!entForm.phone.trim()) errs.phone = "Phone required"
                             if (Object.keys(errs).length) { setEntErrors(errs); return }
                             setEntSubmitting(true)
                             try {
                               await submitLead({
                                 name: entForm.name.trim(),
                                 email: entForm.email.trim(),
-                                phone: "",
+                                phone: entForm.phone.trim(),
                                 company: entForm.company.trim(),
                                 lead_source: entForm.lead_source,
                                 referral_name: entForm.referral_name.trim(),
-                                message: `Enterprise enquiry from ${geo.countryName}. Est. subscribers: ${entForm.subscribers || "not specified"}.`,
+                                message: `Enterprise enquiry from ${geo.countryName}. Phone: ${entForm.phone.trim()}. Est. subscribers: ${entForm.subscribers || "not specified"}.`,
                               })
                               setEntSubmitted(true)
                             } catch {

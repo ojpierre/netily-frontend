@@ -1,0 +1,28 @@
+{
+  "name": "Netily — ISP Management Platform",
+  "short_name": "Netily",
+  "description": "Automate ISP billing, M-Pesa payments, MikroTik provisioning, and customer management. Built for Kenyan & East African ISPs.",
+  "start_url": "/admin",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#1e3a5f",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false
+}

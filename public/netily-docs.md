@@ -473,6 +473,22 @@ Toggle the Popular switch when editing the plan. It adds a badge to the plan car
 
 Add and manage all your network devices — monitor status, manage users, and configure hotspot, firewall, and bandwidth settings.
 
+### Connect Your First Router
+
+Use this flow when onboarding a MikroTik router for the first time:
+
+1. Open **Admin > Routers**.
+2. Click **Add Router**.
+3. Enter the router name, location, router IP or reachable address, API port, and credentials requested in the form.
+4. Save the router, then open the router details page.
+5. Go to **Cloud Controller**.
+6. Copy the **Provisioning Script** or **Authentication Script** shown by Netily.
+7. Open the MikroTik terminal, paste the one-line script, and run it.
+8. Return to Netily and click **Refresh Status**.
+9. Once the router is online, continue with PPPoE users, Hotspot settings, port manager, queues, backups, and captive portal setup.
+
+If the router remains offline, confirm the router has internet access, the script completed without errors, API access is allowed, and the VPN/provisioning status is visible under **Cloud Controller**.
+
 ### Stats Bar
 
 | Stat | What It Shows |

@@ -3,6 +3,17 @@ import { blogPosts } from "@/lib/blog-data"
 import { alternativePages } from "@/lib/alternatives-data"
 
 const BASE = "https://netily.co.ke"
+const solutionSlugs = [
+  "isp-billing-software-kenya",
+  "hotspot-billing-software-kenya",
+  "mikrotik-billing-software",
+  "mpesa-isp-billing",
+  "isp-billing-software-uganda",
+  "isp-billing-software-tanzania",
+  "isp-billing-software-rwanda",
+  "isp-billing-software-burundi",
+  "isp-billing-software-south-sudan",
+]
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
@@ -17,6 +28,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: new Date(),
     changeFrequency: "monthly",
     priority: 0.82,
+  }))
+
+  const solutionEntries: MetadataRoute.Sitemap = solutionSlugs.map((slug) => ({
+    url: `${BASE}/solutions/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: "monthly",
+    priority: 0.84,
   }))
 
   return [
@@ -46,6 +64,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     ...blogEntries,
     ...alternativeEntries,
+    ...solutionEntries,
     {
       url: `${BASE}/login`,
       lastModified: new Date(),

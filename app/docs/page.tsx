@@ -19,6 +19,8 @@ type ChatMessage = {
   role: "user" | "assistant"
   text: string
   sources?: { title: string; source: string; score: number }[]
+  requestId?: string
+  provider?: string
 }
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -225,15 +227,37 @@ function DockedAssistant({ onClose }: { onClose: () => void }) {
         body: JSON.stringify({ message: trimmed }),
       })
       const data = await res.json()
+      if (!res.ok) {
+        console.error("[docs-assistant] request failed", {
+          status: res.status,
+          requestId: data.requestId,
+          answer: data.answer,
+        })
+      } else if (data.provider === "local") {
+        console.warn("[docs-assistant] using local fallback", {
+          requestId: data.requestId,
+          sources: data.sources,
+        })
+      } else {
+        console.info("[docs-assistant] answer received", {
+          requestId: data.requestId,
+          provider: data.provider,
+          model: data.model,
+          sources: data.sources,
+        })
+      }
       setMessages((current) => [
         ...current,
         {
           role: "assistant",
           text: data.answer || "I don't have a specific answer for that yet. Please contact our support team at netily.co.ke for help.",
           sources: data.sources || [],
+          requestId: data.requestId,
+          provider: data.provider,
         },
       ])
-    } catch {
+    } catch (error) {
+      console.error("[docs-assistant] network error", error)
       setMessages((current) => [
         ...current,
         {
@@ -278,6 +302,7 @@ function DockedAssistant({ onClose }: { onClose: () => void }) {
             {item.sources?.length ? (
               <p className="mt-1 text-[10px] text-slate-400">
                 Source: {item.sources.map((s) => s.title).join(", ")}
+                {item.requestId ? ` · ${item.provider || "assistant"} · ${item.requestId}` : ""}
               </p>
             ) : null}
           </div>
