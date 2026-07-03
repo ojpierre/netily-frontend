@@ -154,7 +154,7 @@ function routerSetupFallback() {
   return [
     "**Connect your first MikroTik router**",
     "",
-    "1. Open **Admin > Routers** and click **Add Router**.",
+    "1. Open <u>Admin > Routers</u> and click **Add Router**.",
     "2. Enter the router name, location, public or reachable IP details, API port, and any required credentials shown in the form.",
     "3. Save the router, then open its details page.",
     "4. Go to **Cloud Controller** and copy the **Provisioning Script** or **Authentication Script**.",
@@ -173,7 +173,7 @@ function localFallback(sections: DocsSection[], question: string) {
 
   const best = sections[0]
   if (!best) {
-    return "I don't have a specific answer for that yet. Please reach out to our support team at netily.co.ke for help."
+    return "I may need a little more detail to guide you properly. You can ask me about Netily setup, routers, billing, hotspot, SMS, staff roles, or dashboards. For direct help, contact Netily Support on **0111 325 479** or **0799538923**."
   }
 
   const excerpt = best.text
@@ -185,7 +185,7 @@ function localFallback(sections: DocsSection[], question: string) {
     .slice(0, 4)
     .join("\n\n")
 
-  return `${best.title}\n\n${excerpt}`.slice(0, 1200)
+  return `Here is what I found for **${best.title}**:\n\n${excerpt}\n\nIf you want, ask me a more specific question and I will guide you step by step. For direct support, contact **0111 325 479** or **0799538923**.`.slice(0, 1400)
 }
 
 function extractGeminiText(payload: any) {
@@ -278,11 +278,15 @@ export async function POST(request: NextRequest) {
     }
 
     const prompt = [
-      "You are Netily Support Assistant, an expert technical writer.",
-      "Answer only using the approved Netily documentation excerpts below.",
-      "If the answer is not clearly present in the excerpts, say: I do not have that in the Netily docs yet. Please contact Netily Support.",
-      "Do not explain internal architecture, credentials, deployment secrets, environment variables, source code, or anything outside tenant onboarding and product usage.",
-      "Format your responses beautifully using Markdown. Use bold headings (e.g., **Navigate to:**) and numbered step-by-step lists. Make it look professional and highly structured.",
+      "You are the public Netily Assistant for prospects, customers, and tenant admins.",
+      "Your job is to help people navigate Netily clearly and warmly.",
+      "Use the approved Netily documentation excerpts as your source of truth, but answer conversationally instead of copying whole sections.",
+      "You may make reasonable product-navigation inferences from the excerpts, but do not invent credentials, pricing, legal terms, hidden settings, integrations, or internal architecture.",
+      "Do not mention documentation excerpts, sources, request ids, models, internal APIs, environment variables, or implementation details.",
+      "If the user is unclear, casual, or says something like 'slowly slowly', respond naturally and ask what they would like help with next.",
+      "If the question is far outside Netily or cannot be answered from the docs, politely say you may not have enough detail and invite them to contact Netily Support on **0111 325 479** or **0799538923**.",
+      "Format for the chat UI: short paragraphs, direct answers, numbered steps when useful, **bold** for important labels, *italic* sparingly, and <u>underline</u> for navigation paths such as <u>Admin > Routers</u>.",
+      "Avoid markdown tables unless the user asks. Avoid long bullet lists. Keep most answers under 180 words unless the user asks for detail.",
       "",
       "Approved Netily documentation excerpts:",
       context,
@@ -303,9 +307,9 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: {
-              temperature: 0.2,
-              topP: 0.8,
-              maxOutputTokens: 700,
+              temperature: 0.35,
+              topP: 0.9,
+              maxOutputTokens: 1100,
             },
           }),
         })

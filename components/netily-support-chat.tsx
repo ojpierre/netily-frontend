@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Bot, Send, Sparkles, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { AssistantMessage } from "@/components/assistant-message"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -91,7 +92,7 @@ export function NetilySupportChat() {
         ...current,
         {
           role: "assistant",
-          text: data.answer || "I don't have a specific answer for that yet. Please contact our support team at netily.co.ke for help.",
+          text: data.answer || "I may need a little more detail to guide you properly. For direct help, contact Netily Support on **0111 325 479** or **0799538923**.",
           sources: data.sources || [],
           requestId: data.requestId,
           provider: data.provider,
@@ -105,7 +106,7 @@ export function NetilySupportChat() {
         ...current,
         {
           role: "assistant",
-          text: "I'm having trouble connecting right now. Please try again in a moment, or reach out to us at netily.co.ke.",
+          text: "I'm having trouble connecting right now. Please try again in a moment. For direct help, contact Netily Support on **0111 325 479** or **0799538923**.",
         },
       ])
     } finally {
@@ -142,15 +143,8 @@ export function NetilySupportChat() {
                       : "bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100"
                   }`}
                 >
-                  {item.text}
+                  {item.role === "assistant" ? <AssistantMessage text={item.text} /> : item.text}
                 </div>
-                {item.sources?.length ? (
-                  <p className="mt-1 text-[10px] text-slate-400">
-                    Source: {item.sources.map((source) => source.title).join(", ")}
-                    {item.requestId ? ` · ${item.provider || "assistant"}${item.model ? `/${item.model}` : ""} · ${item.requestId}` : ""}
-                    {item.diagnostics?.reason ? ` · ${item.diagnostics.reason}` : ""}
-                  </p>
-                ) : null}
               </div>
             ))}
             {loading && (

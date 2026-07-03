@@ -7,6 +7,7 @@ import {
   ArrowRight, BookOpen, CheckCircle2, Copy, FileText, Menu, Moon, Search,
   Sparkles, Sun, X, ChevronRight, ChevronLeft, Bot, Send, Check, Expand, Shrink
 } from "lucide-react"
+import { AssistantMessage } from "@/components/assistant-message"
 
 type PageData = {
   id: string
@@ -262,7 +263,7 @@ function DockedAssistant({ onClose }: { onClose: () => void }) {
         ...current,
         {
           role: "assistant",
-          text: data.answer || "I don't have a specific answer for that yet. Please contact our support team at netily.co.ke for help.",
+          text: data.answer || "I may need a little more detail to guide you properly. For direct help, contact Netily Support on **0111 325 479** or **0799538923**.",
           sources: data.sources || [],
           requestId: data.requestId,
           provider: data.provider,
@@ -276,7 +277,7 @@ function DockedAssistant({ onClose }: { onClose: () => void }) {
         ...current,
         {
           role: "assistant",
-          text: "I'm having trouble connecting right now. Please try again in a moment, or reach out to us at netily.co.ke.",
+          text: "I'm having trouble connecting right now. Please try again in a moment. For direct help, contact Netily Support on **0111 325 479** or **0799538923**.",
         },
       ])
     } finally {
@@ -311,15 +312,8 @@ function DockedAssistant({ onClose }: { onClose: () => void }) {
                   : "bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100"
               }`}
             >
-              {item.text}
+              {item.role === "assistant" ? <AssistantMessage text={item.text} /> : item.text}
             </div>
-            {item.sources?.length ? (
-              <p className="mt-1 text-[10px] text-slate-400">
-                Source: {item.sources.map((s) => s.title).join(", ")}
-                {item.requestId ? ` · ${item.provider || "assistant"}${item.model ? `/${item.model}` : ""} · ${item.requestId}` : ""}
-                {item.diagnostics?.reason ? ` · ${item.diagnostics.reason}` : ""}
-              </p>
-            ) : null}
           </div>
         ))}
         {loading && (
