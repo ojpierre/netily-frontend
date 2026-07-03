@@ -71,6 +71,9 @@ export function NetilySupportChat() {
         throw new Error(data.answer || "Support chat failed")
       }
       if (data.provider === "local") {
+        console.warn(
+          `[netily-support-chat] local fallback reason=${data.diagnostics?.reason || "unknown"} error=${data.diagnostics?.error || "none"}`,
+        )
         console.warn("[netily-support-chat] using local fallback", {
           requestId: data.requestId,
           sources: data.sources,

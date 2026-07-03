@@ -21,7 +21,8 @@ type ChatLogMeta = {
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const DEFAULT_GEMINI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-latest"]
+const PREFERRED_GEMINI_MODEL = "gemini-3-flash-preview"
+const DEFAULT_GEMINI_MODELS = [PREFERRED_GEMINI_MODEL, "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-latest"]
 const GEMINI_KEY_ENV_NAMES = [
   "GEMINI_API_KEY",
   "GOOGLE_GENERATIVE_AI_API_KEY",
@@ -80,17 +81,18 @@ function logDocsChat(level: "info" | "warn" | "error", event: string, meta: Chat
 }
 
 function getGeminiConfig() {
-  const models = (process.env.GEMINI_MODEL || process.env.GOOGLE_GEMINI_MODEL || "")
+  const envModels = (process.env.GEMINI_MODEL || process.env.GOOGLE_GEMINI_MODEL || "")
     .split(",")
     .map((model) => model.trim())
     .filter(Boolean)
+  const models = Array.from(new Set([PREFERRED_GEMINI_MODEL, ...envModels, ...DEFAULT_GEMINI_MODELS]))
 
   const keyName = GEMINI_KEY_ENV_NAMES.find((name) => Boolean(process.env[name]?.trim()))
 
   return {
     apiKey: keyName ? process.env[keyName]?.trim() || "" : "",
     keyName,
-    models: models.length ? models : DEFAULT_GEMINI_MODELS,
+    models,
   }
 }
 

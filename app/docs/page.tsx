@@ -242,6 +242,9 @@ function DockedAssistant({ onClose }: { onClose: () => void }) {
           answer: data.answer,
         })
       } else if (data.provider === "local") {
+        console.warn(
+          `[docs-assistant] local fallback reason=${data.diagnostics?.reason || "unknown"} error=${data.diagnostics?.error || "none"}`,
+        )
         console.warn("[docs-assistant] using local fallback", {
           requestId: data.requestId,
           sources: data.sources,
