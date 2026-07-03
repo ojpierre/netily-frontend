@@ -42,6 +42,39 @@ const SUGGESTED_PROMPTS = [
   "How do I set up hotspot vouchers?",
 ]
 
+function getDocsChatEndpoint() {
+  if (typeof window === "undefined") return "/internal-api/docs-chat"
+
+  const { hostname, protocol } = window.location
+  const isNetilyTenant =
+    hostname.endsWith(".netily.co.ke") &&
+    hostname !== "www.netily.co.ke" &&
+    hostname !== "api.netily.co.ke"
+
+  if (protocol === "https:" && isNetilyTenant) {
+    return "https://netily.co.ke/internal-api/docs-chat"
+  }
+
+  return "/internal-api/docs-chat"
+}
+
+async function readSupportChatResponse(response: Response): Promise<SupportChatResponse> {
+  const text = await response.text()
+  if (!text) return { answer: "" }
+
+  try {
+    return JSON.parse(text) as SupportChatResponse
+  } catch {
+    return {
+      answer: "The assistant endpoint returned an unexpected response. Please try again in a moment.",
+      diagnostics: {
+        reason: "invalid_assistant_response",
+        error: text.slice(0, 240),
+      },
+    }
+  }
+}
+
 export function NetilySupportChat() {
   const [open, setOpen] = useState(false)
   const [message, setMessage] = useState("")
@@ -57,17 +90,22 @@ export function NetilySupportChat() {
     setLoading(true)
 
     try {
-      const res = await fetch("/internal-api/docs-chat", {
+      const endpoint = getDocsChatEndpoint()
+      const res = await fetch(endpoint, {
         method: "POST",
+        mode: endpoint.startsWith("http") ? "cors" : "same-origin",
+        credentials: "omit",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: trimmed }),
       })
-      const data: SupportChatResponse = await res.json()
+      const data = await readSupportChatResponse(res)
       if (!res.ok) {
         console.error("[netily-support-chat] request failed", {
+          endpoint,
           status: res.status,
           requestId: data.requestId,
           answer: data.answer,
+          diagnostics: data.diagnostics,
         })
         throw new Error(data.answer || "Support chat failed")
       }
@@ -101,7 +139,10 @@ export function NetilySupportChat() {
         },
       ])
     } catch (error) {
-      console.error("[netily-support-chat] network error", error)
+      console.error("[netily-support-chat] network error", {
+        endpoint: getDocsChatEndpoint(),
+        error,
+      })
       setMessages((current) => [
         ...current,
         {

@@ -28,6 +28,7 @@ const GEMINI_KEY_ENV_NAMES = [
   "GOOGLE_GENERATIVE_AI_API_KEY",
   "GOOGLE_API_KEY",
 ] as const
+const PUBLIC_APP_ORIGIN = "https://netily.co.ke"
 
 const geminiEndpoint = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
@@ -94,6 +95,35 @@ function getGeminiConfig() {
     keyName,
     models,
   }
+}
+
+function corsHeaders(request: NextRequest) {
+  const origin = request.headers.get("origin") || ""
+  const allowedOrigin =
+    origin.endsWith(".netily.co.ke") ||
+    origin === "https://netily.co.ke" ||
+    origin === "https://www.netily.co.ke" ||
+    origin.startsWith("http://localhost") ||
+    origin.startsWith("http://127.0.0.1")
+      ? origin
+      : PUBLIC_APP_ORIGIN
+
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Vary": "Origin",
+  }
+}
+
+function docsChatJson(request: NextRequest, body: unknown, init?: ResponseInit) {
+  return NextResponse.json(body, {
+    ...init,
+    headers: {
+      ...corsHeaders(request),
+      ...(init?.headers || {}),
+    },
+  })
 }
 
 function splitDocs(markdown: string): DocsSection[] {
@@ -213,9 +243,16 @@ async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs = 20
   }
 }
 
-export async function GET() {
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders(request),
+  })
+}
+
+export async function GET(request: NextRequest) {
   const geminiConfig = getGeminiConfig()
-  return NextResponse.json({
+  return docsChatJson(request, {
     ok: true,
     provider: geminiConfig.apiKey ? "gemini" : "local",
     geminiConfigured: Boolean(geminiConfig.apiKey),
@@ -233,7 +270,7 @@ export async function POST(request: NextRequest) {
 
     if (!question) {
       logDocsChat("warn", "empty-question", { requestId, question })
-      return NextResponse.json({ answer: "Please ask a Netily support question.", blocked: true }, { status: 400 })
+      return docsChatJson(request, { answer: "Please ask a Netily support question.", blocked: true }, { status: 400 })
     }
 
     const docsPath = path.join(process.cwd(), "public", "netily-docs.md")
@@ -264,7 +301,7 @@ export async function POST(request: NextRequest) {
         provider: "local",
         config: `missing one of ${GEMINI_KEY_ENV_NAMES.join(", ")}`,
       })
-      return NextResponse.json({
+      return docsChatJson(request, {
         answer: localFallback(contextSections, question),
         sources,
         blocked: false,
@@ -340,7 +377,7 @@ export async function POST(request: NextRequest) {
         provider: "local",
         error: lastGeminiError || "No model returned an answer",
       })
-      return NextResponse.json({
+      return docsChatJson(request, {
         answer: localFallback(contextSections, question),
         sources,
         blocked: false,
@@ -362,7 +399,7 @@ export async function POST(request: NextRequest) {
       model: modelUsed,
       config: `key=${geminiConfig.keyName}`,
     })
-    return NextResponse.json({
+    return docsChatJson(request, {
       answer,
       sources,
       blocked: answer.toLowerCase().includes("i do not have that in the netily docs yet"),
@@ -376,9 +413,10 @@ export async function POST(request: NextRequest) {
       question,
       error: error instanceof Error ? `${error.name}: ${error.message}` : "Unknown error",
     })
-    return NextResponse.json(
+    return docsChatJson(
+      request,
       {
-        answer: "I'm having trouble connecting right now. Please try again in a moment, or reach out to us at netily.co.ke.",
+        answer: "I'm having trouble connecting right now. Please try again in a moment. For direct help, contact Netily Support on **0111 325 479** or **0799538923**.",
         blocked: true,
         requestId,
       },
