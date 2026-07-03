@@ -10,6 +10,14 @@ type ChatMessage = {
   sources?: { title: string; source: string; score: number }[]
   requestId?: string
   provider?: string
+  model?: string
+  diagnostics?: {
+    reason?: string
+    error?: string
+    keyEnv?: string
+    modelsTried?: string[]
+    expectedEnv?: string[]
+  }
 }
 
 type SupportChatResponse = {
@@ -19,6 +27,7 @@ type SupportChatResponse = {
   requestId?: string
   provider?: string
   model?: string
+  diagnostics?: ChatMessage["diagnostics"]
 }
 
 const STARTER: ChatMessage = {
@@ -65,6 +74,7 @@ export function NetilySupportChat() {
         console.warn("[netily-support-chat] using local fallback", {
           requestId: data.requestId,
           sources: data.sources,
+          diagnostics: data.diagnostics,
         })
       } else {
         console.info("[netily-support-chat] answer received", {
@@ -82,6 +92,8 @@ export function NetilySupportChat() {
           sources: data.sources || [],
           requestId: data.requestId,
           provider: data.provider,
+          model: data.model,
+          diagnostics: data.diagnostics,
         },
       ])
     } catch (error) {
@@ -132,7 +144,8 @@ export function NetilySupportChat() {
                 {item.sources?.length ? (
                   <p className="mt-1 text-[10px] text-slate-400">
                     Source: {item.sources.map((source) => source.title).join(", ")}
-                    {item.requestId ? ` · ${item.provider || "assistant"} · ${item.requestId}` : ""}
+                    {item.requestId ? ` · ${item.provider || "assistant"}${item.model ? `/${item.model}` : ""} · ${item.requestId}` : ""}
+                    {item.diagnostics?.reason ? ` · ${item.diagnostics.reason}` : ""}
                   </p>
                 ) : null}
               </div>

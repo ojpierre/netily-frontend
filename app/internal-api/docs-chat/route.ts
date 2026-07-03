@@ -15,13 +15,18 @@ type ChatLogMeta = {
   provider?: string
   model?: string
   error?: string
+  config?: string
 }
 
-const GEMINI_MODELS = process.env.GEMINI_MODEL
-  ? [process.env.GEMINI_MODEL]
-  : ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-latest"]
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || ""
+const DEFAULT_GEMINI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-latest"]
+const GEMINI_KEY_ENV_NAMES = [
+  "GEMINI_API_KEY",
+  "GOOGLE_GENERATIVE_AI_API_KEY",
+  "GOOGLE_API_KEY",
+] as const
 
 const geminiEndpoint = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
@@ -72,6 +77,21 @@ function logDocsChat(level: "info" | "warn" | "error", event: string, meta: Chat
   if (level === "error") console.error(line)
   else if (level === "warn") console.warn(line)
   else console.info(line)
+}
+
+function getGeminiConfig() {
+  const models = (process.env.GEMINI_MODEL || process.env.GOOGLE_GEMINI_MODEL || "")
+    .split(",")
+    .map((model) => model.trim())
+    .filter(Boolean)
+
+  const keyName = GEMINI_KEY_ENV_NAMES.find((name) => Boolean(process.env[name]?.trim()))
+
+  return {
+    apiKey: keyName ? process.env[keyName]?.trim() || "" : "",
+    keyName,
+    models: models.length ? models : DEFAULT_GEMINI_MODELS,
+  }
 }
 
 function splitDocs(markdown: string): DocsSection[] {
@@ -173,6 +193,14 @@ function extractGeminiText(payload: any) {
     .trim()
 }
 
+function summarizeGeminiResponse(payload: any) {
+  const candidate = payload?.candidates?.[0]
+  const finishReason = candidate?.finishReason
+  const blockReason = payload?.promptFeedback?.blockReason
+  const safetyRatings = candidate?.safetyRatings || payload?.promptFeedback?.safetyRatings
+  return JSON.stringify({ finishReason, blockReason, safetyRatings }).slice(0, 500)
+}
+
 async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs = 20_000) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
@@ -181,6 +209,17 @@ async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs = 20
   } finally {
     clearTimeout(timeout)
   }
+}
+
+export async function GET() {
+  const geminiConfig = getGeminiConfig()
+  return NextResponse.json({
+    ok: true,
+    provider: geminiConfig.apiKey ? "gemini" : "local",
+    geminiConfigured: Boolean(geminiConfig.apiKey),
+    keyEnv: geminiConfig.keyName || null,
+    models: geminiConfig.models,
+  })
 }
 
 export async function POST(request: NextRequest) {
@@ -214,14 +253,25 @@ export async function POST(request: NextRequest) {
       selectedSources: sources.map((source) => ({ title: source.title, score: source.score })),
     })
 
-    if (!GEMINI_API_KEY) {
-      logDocsChat("warn", "local-no-api-key", { requestId, question, provider: "local" })
+    const geminiConfig = getGeminiConfig()
+
+    if (!geminiConfig.apiKey) {
+      logDocsChat("warn", "local-no-api-key", {
+        requestId,
+        question,
+        provider: "local",
+        config: `missing one of ${GEMINI_KEY_ENV_NAMES.join(", ")}`,
+      })
       return NextResponse.json({
         answer: localFallback(contextSections, question),
         sources,
         blocked: false,
         provider: "local",
         requestId,
+        diagnostics: {
+          reason: "missing_gemini_api_key",
+          expectedEnv: GEMINI_KEY_ENV_NAMES,
+        },
       })
     }
 
@@ -242,10 +292,10 @@ export async function POST(request: NextRequest) {
     let modelUsed = ""
     let lastGeminiError = ""
 
-    for (const model of GEMINI_MODELS) {
+    for (const model of geminiConfig.models) {
       let geminiResponse: Response
       try {
-        geminiResponse = await fetchWithTimeout(`${geminiEndpoint(model)}?key=${GEMINI_API_KEY}`, {
+        geminiResponse = await fetchWithTimeout(`${geminiEndpoint(model)}?key=${geminiConfig.apiKey}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -273,6 +323,8 @@ export async function POST(request: NextRequest) {
       answer = extractGeminiText(payload) || ""
       modelUsed = model
       if (answer) break
+      lastGeminiError = `${model}: empty answer ${summarizeGeminiResponse(payload)}`
+      logDocsChat("warn", "provider-empty-answer", { requestId, question, provider: "gemini", model, error: lastGeminiError })
     }
 
     if (!answer) {
@@ -288,10 +340,22 @@ export async function POST(request: NextRequest) {
         blocked: false,
         provider: "local",
         requestId,
+        diagnostics: {
+          reason: "gemini_provider_failed",
+          error: lastGeminiError,
+          keyEnv: geminiConfig.keyName,
+          modelsTried: geminiConfig.models,
+        },
       })
     }
 
-    logDocsChat("info", "success", { requestId, question, provider: "gemini", model: modelUsed })
+    logDocsChat("info", "success", {
+      requestId,
+      question,
+      provider: "gemini",
+      model: modelUsed,
+      config: `key=${geminiConfig.keyName}`,
+    })
     return NextResponse.json({
       answer,
       sources,

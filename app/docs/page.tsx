@@ -21,6 +21,14 @@ type ChatMessage = {
   sources?: { title: string; source: string; score: number }[]
   requestId?: string
   provider?: string
+  model?: string
+  diagnostics?: {
+    reason?: string
+    error?: string
+    keyEnv?: string
+    modelsTried?: string[]
+    expectedEnv?: string[]
+  }
 }
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -237,6 +245,7 @@ function DockedAssistant({ onClose }: { onClose: () => void }) {
         console.warn("[docs-assistant] using local fallback", {
           requestId: data.requestId,
           sources: data.sources,
+          diagnostics: data.diagnostics,
         })
       } else {
         console.info("[docs-assistant] answer received", {
@@ -254,6 +263,8 @@ function DockedAssistant({ onClose }: { onClose: () => void }) {
           sources: data.sources || [],
           requestId: data.requestId,
           provider: data.provider,
+          model: data.model,
+          diagnostics: data.diagnostics,
         },
       ])
     } catch (error) {
@@ -302,7 +313,8 @@ function DockedAssistant({ onClose }: { onClose: () => void }) {
             {item.sources?.length ? (
               <p className="mt-1 text-[10px] text-slate-400">
                 Source: {item.sources.map((s) => s.title).join(", ")}
-                {item.requestId ? ` · ${item.provider || "assistant"} · ${item.requestId}` : ""}
+                {item.requestId ? ` · ${item.provider || "assistant"}${item.model ? `/${item.model}` : ""} · ${item.requestId}` : ""}
+                {item.diagnostics?.reason ? ` · ${item.diagnostics.reason}` : ""}
               </p>
             ) : null}
           </div>
