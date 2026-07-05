@@ -331,6 +331,34 @@ const generateSimplePassword = (length: number = 8): string => {
   return password
 }
 
+// Snippet A: Helper function for time remaining formatting
+function formatTimeRemaining(expiryDate: string | Date): { label: string; isCritical: boolean; isExpired: boolean } {
+  const target = typeof expiryDate === "string" ? new Date(expiryDate) : expiryDate
+  const diffMs = target.getTime() - Date.now()
+
+  if (diffMs <= 0) {
+    const pastMs = Math.abs(diffMs)
+    const days = Math.floor(pastMs / 86400000)
+    if (days > 0) return { label: `${days}d ago`, isCritical: true, isExpired: true }
+    const hours = Math.floor(pastMs / 3600000)
+    if (hours > 0) return { label: `${hours}h ago`, isCritical: true, isExpired: true }
+    const minutes = Math.floor(pastMs / 60000)
+    return { label: `${minutes}m ago`, isCritical: true, isExpired: true }
+  }
+
+  const days = Math.floor(diffMs / 86400000)
+  const hours = Math.floor((diffMs % 86400000) / 3600000)
+  const minutes = Math.floor((diffMs % 3600000) / 60000)
+
+  if (days >= 1) {
+    return { label: hours > 0 ? `${days}d ${hours}h left` : `${days}d left`, isCritical: false, isExpired: false }
+  }
+  if (hours >= 1) {
+    return { label: `${hours}h ${minutes}m left`, isCritical: true, isExpired: false }
+  }
+  return { label: `${minutes}m left`, isCritical: true, isExpired: false }
+}
+
 export default function UsersPage() {
   const perms = usePagePermissions("/admin/users")
   const router = useRouter()
@@ -3019,9 +3047,9 @@ export default function UsersPage() {
                             const expiryLabel = item.expiry_date
                               ? new Date(item.expiry_date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
                               : '—'
-                            const daysLeft = item.expiry_date
-                              ? Math.ceil((new Date(item.expiry_date).getTime() - Date.now()) / 86400000)
-                              : null
+                            
+                            // Snippet B: Replace daysLeft with timeRemaining
+                            const timeRemaining = item.expiry_date ? formatTimeRemaining(item.expiry_date) : null
 
                             return (
                               <motion.tr
@@ -3063,12 +3091,13 @@ export default function UsersPage() {
                                     <Badge className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs">Expired</Badge>
                                   )}
                                 </TableCell>
+                                {/* Snippet C: Replace expiry table cell with new JSX */}
                                 <TableCell>
                                   <div>
                                     <p className="text-sm dark:text-slate-300">{expiryLabel}</p>
-                                    {daysLeft !== null && (
-                                      <p className={`text-xs ${daysLeft > 0 ? 'text-slate-400 dark:text-slate-500' : 'text-red-500 dark:text-red-400'}`}>
-                                        {daysLeft > 0 ? `${daysLeft}d left` : `${Math.abs(daysLeft)}d ago`}
+                                    {timeRemaining && (
+                                      <p className={`text-xs ${timeRemaining.isCritical ? 'text-red-500 dark:text-red-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                                        {timeRemaining.label}
                                       </p>
                                     )}
                                   </div>
