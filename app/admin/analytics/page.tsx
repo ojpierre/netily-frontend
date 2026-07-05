@@ -179,6 +179,12 @@ export default function ReportsPage() {
   const [networkLoading, setNetworkLoading] = useState(false)
   const networkFetchedRef = useRef(false)
   
+  // ── PPPoE vs Hotspot Revenue Split State ──
+  const [revenueSplit, setRevenueSplit] = useState<{
+    daily_revenue: { date: string; hotspot_revenue: number; pppoe_revenue: number; total: number }[]
+    summary: { total_hotspot: number; total_pppoe: number }
+  } | null>(null)
+  
   const fetchedRef = useRef(false)
 
   const fetchData = useCallback(async () => {
@@ -219,6 +225,16 @@ export default function ReportsPage() {
     }
   }, [])
 
+  // ── Fetch Revenue Split ──
+  const fetchRevenueSplit = useCallback(async (tr: string) => {
+    try {
+      const res = await adminApi.getDailyRevenueSplit(tr)
+      setRevenueSplit(res)
+    } catch (err) {
+      console.error("Failed to fetch revenue split:", err)
+    }
+  }, [])
+
   useEffect(() => {
     if (!fetchedRef.current) { fetchedRef.current = true; fetchData() }
   }, [fetchData])
@@ -240,6 +256,11 @@ export default function ReportsPage() {
       fetchNetworkDeep(timeRange === "7d" ? "7d" : timeRange === "30d" ? "30d" : "90d")
     }
   }, [timeRange, fetchNetworkDeep])
+
+  // Fetch revenue split on timeRange change
+  useEffect(() => {
+    fetchRevenueSplit(timeRange)
+  }, [timeRange, fetchRevenueSplit])
 
   // Click outside handler for router dropdown - FIXED
   useEffect(() => {
@@ -610,7 +631,7 @@ export default function ReportsPage() {
         </TabsContent>
 
         {/* ════════════════════════════════════════════════
-            FINANCIAL TAB (unchanged)
+            FINANCIAL TAB (updated with PPPoE vs Hotspot chart)
            ════════════════════════════════════════════════ */}
         <TabsContent value="financial" className="mt-6 space-y-6">
           <div className="grid lg:grid-cols-2 gap-6">
@@ -704,6 +725,42 @@ export default function ReportsPage() {
                     <Bar dataKey="peak_hours" name="Peak Hours" stackId="a" fill={C.orange} />
                     <Bar dataKey="business_hours" name="Business Hours" stackId="a" fill={C.blue} />
                     <Bar dataKey="off_hours" name="Off Hours" stackId="a" fill={C.purple} radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── PPPoE vs Hotspot Daily Revenue Split ── */}
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 rounded-full bg-emerald-500" />
+                  <div>
+                    <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200">PPPoE vs Hotspot Daily Revenue</CardTitle>
+                    <CardDescription className="text-[11px]">Fiber/DSL vs Hotspot income per day</CardDescription>
+                  </div>
+                </div>
+                {revenueSplit?.summary && (
+                  <div className="flex gap-4 text-xs">
+                    <span className="text-primary font-semibold">PPPoE: {fmtKshFull(revenueSplit.summary.total_pppoe)}</span>
+                    <span className="text-emerald-600 font-semibold">Hotspot: {fmtKshFull(revenueSplit.summary.total_hotspot)}</span>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!revenueSplit?.daily_revenue?.length ? <div className="h-[260px] flex items-center justify-center"><EmptyChart /></div> : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={revenueSplit.daily_revenue} barSize={12} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis dataKey="date" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} interval={Math.max(1, Math.floor(revenueSplit.daily_revenue.length / 10))} />
+                    <YAxis tickFormatter={fmtKsh} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={65} />
+                    <Tooltip content={(p) => <ChartTooltip {...p} fmt={fmtKshFull} />} />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                    <Bar dataKey="pppoe_revenue" name="PPPoE (Fiber/DSL)" stackId="a" fill={C.blue} />
+                    <Bar dataKey="hotspot_revenue" name="Hotspot" stackId="a" fill={C.emerald} radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}

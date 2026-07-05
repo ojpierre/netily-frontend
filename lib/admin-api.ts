@@ -3101,6 +3101,13 @@ async activateService(
     return this.request<any>(`/analytics/router-revenue/?${params.toString()}`)
   }
 
+  async getDailyRevenueSplit(timeRange: string = '30d'): Promise<{
+  daily_revenue: { date: string; hotspot_revenue: number; pppoe_revenue: number; total: number }[]
+  summary: { total_hotspot: number; total_pppoe: number }
+  }> {
+    return this.request(`/analytics/revenue-split/?time_range=${timeRange}`)
+  }
+
   // ============================================================
   // NEW: Analytics Contract Endpoints
   // ============================================================
