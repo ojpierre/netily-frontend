@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
@@ -67,6 +67,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import { useColorTheme } from "@/components/theme-provider"
+import { HotspotPruneSettingsCard } from "@/components/settings/hotspot-prune-settings"
 
 // Account Settings Tab Component
 // -- Coming Soon placeholder --
@@ -1454,7 +1455,7 @@ export default function SettingsPage() {
           <ComingSoonTab label="Notifications" />
         </TabsContent>
 
-        {/* Security Tab - Complete Replacement with Customer Portal Plans */}
+        {/* Security Tab - Complete Replacement with Customer Portal Plans + Hotspot Prune Settings */}
         <TabsContent value="security" className="space-y-6">
           {/* Admin Login Security Card */}
           <Card>
@@ -1592,6 +1593,9 @@ export default function SettingsPage() {
               </Button>
             </CardFooter>
           </Card>
+
+          {/* Hotspot Prune Settings Card */}
+          <HotspotPruneSettingsCard />
         </TabsContent>
 
         {/* Appearance Tab */}

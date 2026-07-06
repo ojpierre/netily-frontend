@@ -125,6 +125,7 @@ import type {
   HotspotPlan,
   HotspotSession,
   HotspotBranding,
+  HotspotPruneSettings,
   // VPN types
   VPNServer,
   VPNCertificate,
@@ -4364,6 +4365,21 @@ async activateService(
   }): Promise<{ status: string; session_id: string; new_expiry: string; message: string }> {
     return this.request(`/hotspot/admin/sessions/${sessionId}/extend/`, {
       method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+    // ------------------------------------------
+  // HOTSPOT PRUNE SETTINGS
+  // ------------------------------------------
+  
+  async getHotspotPruneSettings(): Promise<HotspotPruneSettings> {
+    return this.request<HotspotPruneSettings>('/billing/hotspot-prune-settings/')
+  }
+
+  async updateHotspotPruneSettings(data: Partial<Pick<HotspotPruneSettings, 'prune_window_days' | 'is_enabled'>>): Promise<HotspotPruneSettings> {
+    return this.request<HotspotPruneSettings>('/billing/hotspot-prune-settings/', {
+      method: 'PATCH',
       body: JSON.stringify(data),
     })
   }

@@ -2674,6 +2674,17 @@ export interface HotspotBranding {
 }
 
 // ==========================================
+// HOTSPOT PRUNE SETTINGS
+// ==========================================
+
+export interface HotspotPruneSettings {
+  prune_window_days: 1 | 7 | 30
+  is_enabled: boolean
+  last_pruned_at: string | null
+  choices?: [number, string][]
+}
+
+// ==========================================
 // HOTSPOT PORTAL (Public)
 // ==========================================
 
@@ -2865,6 +2876,8 @@ export type SMSProvider =
   | 'hubtel'
   | 'bytewave'
   | 'blessedtexts'
+  | 'texin'
+  
 
 export interface SMSGatewayConfig {
   id: number
