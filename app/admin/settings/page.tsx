@@ -1308,6 +1308,10 @@ export default function SettingsPage() {
               <Shield className="w-4 h-4" />
               <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
+            <TabsTrigger value="system" className="flex items-center gap-2">
+              <Server className="w-4 h-4" />
+              <span className="hidden sm:inline">System</span>
+            </TabsTrigger>
             <TabsTrigger value="system-notifications" className="flex items-center gap-2">
               <Bell className="w-4 h-4" />
               <span className="hidden sm:inline">Notifications</span>
@@ -1322,6 +1326,152 @@ export default function SettingsPage() {
         {/* Account Settings */}
         <TabsContent value="account" className="space-y-6">
           <AccountSettingsTab />
+        </TabsContent>
+
+        {/* Security Tab - Admin Login Security ONLY */}
+        <TabsContent value="security" className="space-y-6">
+          {/* Admin Login Security Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Admin Login Security</CardTitle>
+              <CardDescription>
+                Tenant-specific 2FA policy for admin sign-ins. OTP is disabled by default and can be enabled anytime.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                <div>
+                  <p className="font-medium text-foreground">Email OTP for Admin Login</p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    When enabled, admins must enter a one-time code after password login.
+                  </p>
+                  <p className="text-xs text-slate-400 mt-2">
+                    Applies when its enabled.
+                  </p>
+                </div>
+                <Switch
+                  checked={securitySettings.adminOtpEnabled}
+                  onCheckedChange={(checked) =>
+                    setSecuritySettings((prev) => ({ ...prev, adminOtpEnabled: checked }))
+                  }
+                />
+              </div>
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Default policy</AlertTitle>
+                <AlertDescription>
+                  New and existing tenants start with OTP disabled until an admin enables it here.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+            <CardFooter>
+              <Button
+                onClick={async () => {
+                  const token = getAdminToken()
+                  if (!token) { toast.error("Not authenticated"); return }
+                  const apiBase = getAdminSettingsApiBase()
+                  try {
+                    const res = await fetch(`${apiBase}/core/settings/`, {
+                      method: "PATCH",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({
+                        admin_email_otp_enabled: securitySettings.adminOtpEnabled,
+                      }),
+                    })
+                    if (!res.ok) throw new Error("Save failed")
+                    toast.success(
+                      securitySettings.adminOtpEnabled
+                        ? "OTP login enabled. Admins will need to verify via email."
+                        : "OTP login disabled. Admins can log in with password only."
+                    )
+                  } catch (e: any) {
+                    toast.error(e.message || "Failed to save security settings")
+                  }
+                }}
+                disabled={isLoading}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Security Settings
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        {/* System Tab - Customer Portal Plans + Hotspot Prune Settings */}
+        <TabsContent value="system" className="space-y-6">
+          {/* Customer Portal Plans Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer Portal Plans</CardTitle>
+              <CardDescription>
+                Control which plans customers see when they log in and view available plans.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                <div>
+                  <p className="font-medium text-foreground">
+                    Hide lower-priced plans
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    When enabled, customers only see their current plan and plans priced
+                    the same or higher — no downgrade options shown.
+                  </p>
+                  <p className="text-xs text-slate-400 mt-2">
+                    Off by default.
+                  </p>
+                </div>
+                <Switch
+                  checked={portalSettings.hideLowerPlans}
+                  onCheckedChange={(checked) =>
+                    setPortalSettings((prev) => ({ ...prev, hideLowerPlans: checked }))
+                  }
+                />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button
+                onClick={async () => {
+                  const token = getAdminToken()
+                  if (!token) { toast.error("Not authenticated"); return }
+                  setPortalSaving(true)
+                  const apiBase = getAdminSettingsApiBase()
+                  try {
+                    const res = await fetch(`${apiBase}/core/settings/`, {
+                      method: "PATCH",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({
+                        hide_lower_plans_in_customer_portal: portalSettings.hideLowerPlans,
+                      }),
+                    })
+                    if (!res.ok) throw new Error("Save failed")
+                    toast.success(
+                      portalSettings.hideLowerPlans
+                        ? "Customers will now only see their plan and higher-tier plans."
+                        : "Customers will now see all available plans again."
+                    )
+                  } catch (e: any) {
+                    toast.error(e.message || "Failed to save portal settings")
+                  } finally {
+                    setPortalSaving(false)
+                  }
+                }}
+                disabled={portalSaving}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Portal Settings
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Hotspot Prune Settings Card */}
+          <HotspotPruneSettingsCard />
         </TabsContent>
 
         {/* System Notifications Tab */}
@@ -1453,149 +1603,6 @@ export default function SettingsPage() {
         {/* Notification Settings — TODO: coming soon */}
         <TabsContent value="notifications" className="space-y-6">
           <ComingSoonTab label="Notifications" />
-        </TabsContent>
-
-        {/* Security Tab - Complete Replacement with Customer Portal Plans + Hotspot Prune Settings */}
-        <TabsContent value="security" className="space-y-6">
-          {/* Admin Login Security Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Admin Login Security</CardTitle>
-              <CardDescription>
-                Tenant-specific 2FA policy for admin sign-ins. OTP is disabled by default and can be enabled anytime.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
-                <div>
-                  <p className="font-medium text-foreground">Email OTP for Admin Login</p>
-                  <p className="text-sm text-slate-500 mt-1">
-                    When enabled, admins must enter a one-time code after password login.
-                  </p>
-                  <p className="text-xs text-slate-400 mt-2">
-                    Applies to this tenant domain only.
-                  </p>
-                </div>
-                <Switch
-                  checked={securitySettings.adminOtpEnabled}
-                  onCheckedChange={(checked) =>
-                    setSecuritySettings((prev) => ({ ...prev, adminOtpEnabled: checked }))
-                  }
-                />
-              </div>
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Default policy</AlertTitle>
-                <AlertDescription>
-                  New and existing tenants start with OTP disabled until an admin enables it here.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-            <CardFooter>
-              <Button
-                onClick={async () => {
-                  const token = getAdminToken()
-                  if (!token) { toast.error("Not authenticated"); return }
-                  const apiBase = getAdminSettingsApiBase()
-                  try {
-                    const res = await fetch(`${apiBase}/core/settings/`, {
-                      method: "PATCH",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: JSON.stringify({
-                        admin_email_otp_enabled: securitySettings.adminOtpEnabled,
-                      }),
-                    })
-                    if (!res.ok) throw new Error("Save failed")
-                    toast.success(
-                      securitySettings.adminOtpEnabled
-                        ? "OTP login enabled. Admins will need to verify via email."
-                        : "OTP login disabled. Admins can log in with password only."
-                    )
-                  } catch (e: any) {
-                    toast.error(e.message || "Failed to save security settings")
-                  }
-                }}
-                disabled={isLoading}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Security Settings
-              </Button>
-            </CardFooter>
-          </Card>
-
-          {/* Customer Portal Plans Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer Portal Plans</CardTitle>
-              <CardDescription>
-                Control which plans customers see when they log in and view available plans.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
-                <div>
-                  <p className="font-medium text-foreground">
-                    Hide lower-priced plans
-                  </p>
-                  <p className="text-sm text-slate-500 mt-1">
-                    When enabled, customers only see their current plan and plans priced
-                    the same or higher — no downgrade options shown.
-                  </p>
-                  <p className="text-xs text-slate-400 mt-2">
-                    Applies to this tenant only. Off by default.
-                  </p>
-                </div>
-                <Switch
-                  checked={portalSettings.hideLowerPlans}
-                  onCheckedChange={(checked) =>
-                    setPortalSettings((prev) => ({ ...prev, hideLowerPlans: checked }))
-                  }
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button
-                onClick={async () => {
-                  const token = getAdminToken()
-                  if (!token) { toast.error("Not authenticated"); return }
-                  setPortalSaving(true)
-                  const apiBase = getAdminSettingsApiBase()
-                  try {
-                    const res = await fetch(`${apiBase}/core/settings/`, {
-                      method: "PATCH",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: JSON.stringify({
-                        hide_lower_plans_in_customer_portal: portalSettings.hideLowerPlans,
-                      }),
-                    })
-                    if (!res.ok) throw new Error("Save failed")
-                    toast.success(
-                      portalSettings.hideLowerPlans
-                        ? "Customers will now only see their plan and higher-tier plans."
-                        : "Customers will now see all available plans again."
-                    )
-                  } catch (e: any) {
-                    toast.error(e.message || "Failed to save portal settings")
-                  } finally {
-                    setPortalSaving(false)
-                  }
-                }}
-                disabled={portalSaving}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Portal Settings
-              </Button>
-            </CardFooter>
-          </Card>
-
-          {/* Hotspot Prune Settings Card */}
-          <HotspotPruneSettingsCard />
         </TabsContent>
 
         {/* Appearance Tab */}

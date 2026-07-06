@@ -380,6 +380,14 @@ export default function UsersPage() {
   const [hasMore, setHasMore] = useState(true)
   const observerTarget = useRef<HTMLDivElement | null>(null)
   
+  // Online tab infinite scroll
+  const [onlineLoadingMore, setOnlineLoadingMore] = useState(false)
+  const [onlineHasMore, setOnlineHasMore] = useState(true)
+  const onlineObserverTarget = useRef<HTMLDivElement | null>(null)
+
+  // Hotspot tab infinite scroll (client-side reveal)
+  const hotspotObserverTarget = useRef<HTMLDivElement | null>(null)
+  
   const [hotspotClients, setHotspotClients] = useState<HotspotClientData[]>([])
   const [activeSubscriptions, setActiveSubscriptions] = useState<ActiveSubscriptionsResponse>({ pppoe: [], hotspot: [], total: 0 })
   const [hotspotLoading, setHotspotLoading] = useState(false)
@@ -740,20 +748,30 @@ export default function UsersPage() {
     }
   }
 
-  const loadOnlineSessions = async (page = 1) => {
+  // ============================================================
+  // STEP 2: Replace loadOnlineSessions with append-aware version
+  // ============================================================
+  const loadOnlineSessions = async (page = 1, append = false) => {
     try {
-      setOnlineSessionsLoading(true)
+      append ? setOnlineLoadingMore(true) : setOnlineSessionsLoading(true)
       const response = await adminApi.getOnlineSessions(page, onlinePageSize)
-      const allSessions = response.sessions || []
-      setOnlineSessions(allSessions)
-      setOnlineTotal(response.total || allSessions.length)
+      const newSessions = response.sessions || []
+      setOnlineSessions(prev => append ? [...prev, ...newSessions] : newSessions)
+      setOnlineTotal(response.total || newSessions.length)
       setOnlinePage(page)
+      setOnlineHasMore(page * onlinePageSize < (response.total || 0))
     } catch (err) {
       console.error('Failed to load online sessions:', err)
-      setOnlineSessions([])
+      if (!append) setOnlineSessions([])
     } finally {
       setOnlineSessionsLoading(false)
+      setOnlineLoadingMore(false)
     }
+  }
+
+  const loadMoreOnlineSessions = () => {
+    if (onlineLoadingMore || onlineSessionsLoading || !onlineHasMore) return
+    loadOnlineSessions(onlinePage + 1, true)
   }
 
   const loadHotspotClients = async () => {
@@ -907,7 +925,7 @@ export default function UsersPage() {
   }
 
   // ============================================================
-  // FIX 4: Infinite scroll observer effect
+  // FIX 4: Infinite scroll observer effect for PPPoE/Static
   // ============================================================
   useEffect(() => {
     const target = observerTarget.current
@@ -921,6 +939,40 @@ export default function UsersPage() {
     observer.observe(target)
     return () => observer.disconnect()
   }, [loadingMore, loading, hasMore, serverPage, searchQuery, statusFilter])
+
+  // ============================================================
+  // STEP 3: Add observer effects for Online and Hotspot
+  // ============================================================
+  useEffect(() => {
+    const target = onlineObserverTarget.current
+    if (!target || activeTab !== "online-sessions") return
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) loadMoreOnlineSessions() },
+      { threshold: 0.1 }
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [onlineLoadingMore, onlineSessionsLoading, onlineHasMore, onlinePage, activeTab])
+
+  useEffect(() => {
+    const target = hotspotObserverTarget.current
+    if (!target || activeTab !== "hotspot") return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting) return
+        setHotspotPage(p => {
+          const filtered = activeSubscriptions.hotspot.filter(item => {
+            const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
+            return hotspotSubFilter === "active" ? isActive : !isActive
+          })
+          return p * hotspotPageSize >= filtered.length ? p : p + 1
+        })
+      },
+      { threshold: 0.1 }
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [activeTab, activeSubscriptions.hotspot, hotspotSubFilter])
 
   // ============================================================
   // FIX 5: handleRefresh - resets pagination state
@@ -2279,7 +2331,12 @@ export default function UsersPage() {
                 setActiveStatFilter(key)
                 setActiveTab(tab)
                 setStatusFilter(status)
-                if (tab === "online-sessions") loadOnlineSessions()
+                // Reset online sessions when clicking Online stat
+                if (tab === "online-sessions") {
+                  setOnlinePage(1)
+                  setOnlineHasMore(true)
+                  loadOnlineSessions(1, false)
+                }
               }}
               className={`relative flex flex-col items-center px-4 py-2 rounded-lg transition-all duration-200 shrink-0 ${
                 isActive ? "bg-slate-100 dark:bg-slate-800 ring-1 ring-slate-300 dark:ring-slate-600" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
@@ -2316,6 +2373,7 @@ export default function UsersPage() {
                 setActiveTab(tab)
                 setStatusFilter("all")
                 setHotspotSubFilter("active")
+                setHotspotPage(1)
               }}
               className={`relative flex flex-col items-center px-4 py-2 rounded-lg transition-all duration-200 shrink-0 ${
                 isActive ? "bg-slate-100 dark:bg-slate-800 ring-1 ring-slate-300 dark:ring-slate-600" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
@@ -2355,10 +2413,18 @@ export default function UsersPage() {
               onClick={() => {
                 setActiveTab(value)
                 if (!["all"].includes(value)) setStatusFilter("all")
-                if (value === "online-sessions") loadOnlineSessions()
+                // Reset online sessions when clicking Online tab
+                if (value === "online-sessions") {
+                  setOnlinePage(1)
+                  setOnlineHasMore(true)
+                  loadOnlineSessions(1, false)
+                }
                 if (value === "active-subs") loadAllActiveUsers()
                 if (value === "hotspot" && activeSubscriptions.hotspot?.length === 0) loadActiveSubscriptions()
-                if (value === "hotspot") setHotspotSubFilter("active")
+                if (value === "hotspot") {
+                  setHotspotSubFilter("active")
+                  setHotspotPage(1)
+                }
               }}
               className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap z-10 ${
                 activeTab === value
@@ -2432,7 +2498,10 @@ export default function UsersPage() {
                 key={value}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setHotspotSubFilter(value)}
+                onClick={() => {
+                  setHotspotSubFilter(value)
+                  setHotspotPage(1)
+                }}
                 className={`relative px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   hotspotSubFilter === value
                     ? "text-white shadow-sm"
@@ -2537,7 +2606,7 @@ export default function UsersPage() {
                       <SelectItem value="STATIC">Static</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="icon" onClick={() => loadOnlineSessions(onlinePage)} disabled={onlineSessionsLoading}>
+                  <Button variant="outline" size="icon" onClick={() => loadOnlineSessions(1, false)} disabled={onlineSessionsLoading}>
                     <RefreshCw className={`w-4 h-4 ${onlineSessionsLoading ? 'animate-spin' : ''}`} />
                   </Button>
                 </div>
@@ -2587,7 +2656,7 @@ export default function UsersPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredOnlineSessions.map((session) => (
+                        {onlineSessions.map((session) => (
                           <motion.tr
                             key={session.radacctid}
                             initial={{ opacity: 0 }}
@@ -2671,36 +2740,18 @@ export default function UsersPage() {
                       </TableBody>
                     </Table>
                   </div>
-                  {Math.ceil(onlineTotal / onlinePageSize) > 1 && (
-                    <div className="flex items-center justify-between mt-4">
-                      <p className="text-sm text-muted-foreground">
-                        Showing {((onlinePage - 1) * onlinePageSize) + 1}–{Math.min(onlinePage * onlinePageSize, onlineTotal)} of {onlineTotal} sessions
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={onlinePage === 1 || onlineSessionsLoading}
-                          onClick={() => loadOnlineSessions(onlinePage - 1)}
-                          className="transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                          Previous
-                        </Button>
-                        <span className="flex items-center px-3 text-sm text-muted-foreground">
-                          Page {onlinePage} of {Math.ceil(onlineTotal / onlinePageSize)}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={onlinePage >= Math.ceil(onlineTotal / onlinePageSize) || onlineSessionsLoading}
-                          onClick={() => loadOnlineSessions(onlinePage + 1)}
-                          className="transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                          Next
-                        </Button>
+                  {/* STEP 5: Replace pagination with sentinel */}
+                  <div ref={onlineObserverTarget} className="flex items-center justify-center py-6">
+                    {onlineLoadingMore && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading more sessions...
                       </div>
-                    </div>
-                  )}
+                    )}
+                    {!onlineHasMore && onlineSessions.length > 0 && (
+                      <p className="text-xs text-slate-400">You've reached the end</p>
+                    )}
+                  </div>
                 </>
               )}
             </CardContent>
@@ -3036,10 +3087,8 @@ export default function UsersPage() {
                             )
                             return hotspotSubFilter === "active" ? isActive : !isActive
                           })
-                          const paginated = filtered.slice(
-                            (hotspotPage - 1) * hotspotPageSize,
-                            hotspotPage * hotspotPageSize
-                          )
+                          // STEP 6: Change to growing slice
+                          const paginated = filtered.slice(0, hotspotPage * hotspotPageSize)
                           return paginated.map((item) => {
                             const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
                             const liveUsage = item.canonical_username ? hotspotLiveUsageMap.get(item.canonical_username) : undefined
@@ -3136,29 +3185,24 @@ export default function UsersPage() {
                     </Table>
                   </div>
 
-                  {activeSubscriptions.hotspot.length > hotspotPageSize && (
-                    <div className="flex items-center justify-between mt-4">
-                      <p className="text-sm text-muted-foreground">
-                        {(() => {
-                          const filtered = activeSubscriptions.hotspot.filter(item => {
-                            const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
-                            return hotspotSubFilter === "active" ? isActive : !isActive
-                          })
-                          const count = filtered.length
-                          const start = ((hotspotPage - 1) * hotspotPageSize) + 1
-                          const end = Math.min(hotspotPage * hotspotPageSize, count)
-                          return `Showing ${start}–${end} of ${count}`
-                        })()}
-                      </p>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" disabled={hotspotPage === 1} onClick={() => setHotspotPage(p => p - 1)} className="transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">Previous</Button>
-                        <Button variant="outline" size="sm" disabled={hotspotPage * hotspotPageSize >= activeSubscriptions.hotspot.filter(item => {
-                          const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
-                          return hotspotSubFilter === "active" ? isActive : !isActive
-                        }).length} onClick={() => setHotspotPage(p => p + 1)} className="transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">Next</Button>
-                      </div>
-                    </div>
-                  )}
+                  {/* STEP 6: Replace pagination with sentinel */}
+                  <div ref={hotspotObserverTarget} className="flex items-center justify-center py-6">
+                    {(() => {
+                      const filtered = activeSubscriptions.hotspot.filter(item => {
+                        const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
+                        return hotspotSubFilter === "active" ? isActive : !isActive
+                      })
+                      const shown = Math.min(hotspotPage * hotspotPageSize, filtered.length)
+                      return shown < filtered.length ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Loading more clients...
+                        </div>
+                      ) : filtered.length > 0 ? (
+                        <p className="text-xs text-slate-400">You've reached the end</p>
+                      ) : null
+                    })()}
+                  </div>
                 </>
               )}
             </CardContent>

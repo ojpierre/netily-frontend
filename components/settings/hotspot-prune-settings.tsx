@@ -64,8 +64,7 @@ export function HotspotPruneSettingsCard() {
           <div className="flex-1">
             <CardTitle className="text-base">Hotspot Client Cleanup</CardTitle>
             <CardDescription>
-              Automatically remove hotspot clients who haven't purchased a plan in a while,
-              freeing up your client list and RADIUS tables.
+              Automatically remove hotspot clients who haven't purchased a plan in a while.
             </CardDescription>
           </div>
           <Switch checked={enabled} onCheckedChange={setEnabled} />
@@ -92,7 +91,7 @@ export function HotspotPruneSettingsCard() {
           </SelectContent>
         </Select>
         <p className="text-xs text-slate-500">
-          Runs automatically once a day. Clients with an active or paid session are never deleted.
+           Clients with an active or paid session are never deleted.
         </p>
         {lastPrunedAt && (
           <p className="text-xs text-slate-400">
