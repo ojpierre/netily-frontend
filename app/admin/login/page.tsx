@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Shield, AlertCircle, Mail, Wifi, Eye, EyeOff, Check } from "lucide-react"
+import { Loader2, Shield, AlertCircle, Mail, Wifi } from "lucide-react"
 import {
   Card,
   CardContent,
@@ -33,292 +33,6 @@ const formatDuration = (totalSeconds: number): string => {
   return `${mins}:${String(secs).padStart(2, "0")}`
 }
 
-// ─── PARTICLE SYSTEM ───
-interface Particle {
-  x: number
-  y: number
-  vx: number
-  vy: number
-  size: number
-  opacity: number
-  baseOpacity: number
-}
-
-class ParticleSystem {
-  private canvas: HTMLCanvasElement
-  private ctx: CanvasRenderingContext2D
-  private particles: Particle[] = []
-  private animationId: number | null = null
-  private mouseX: number = -1000
-  private mouseY: number = -1000
-  private mouseRadius: number = 300
-  private width: number = 0
-  private height: number = 0
-  private networkOpacity: number = 0.04
-  private running: boolean = true
-
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas
-    this.ctx = canvas.getContext('2d')!
-    this.resize()
-    this.initParticles()
-    this.bindEvents()
-    this.animate()
-  }
-
-  private resize() {
-    const rect = this.canvas.parentElement?.getBoundingClientRect()
-    if (rect) {
-      this.width = rect.width
-      this.height = rect.height
-    } else {
-      this.width = window.innerWidth
-      this.height = window.innerHeight
-    }
-    this.canvas.width = this.width * window.devicePixelRatio
-    this.canvas.height = this.height * window.devicePixelRatio
-    this.canvas.style.width = `${this.width}px`
-    this.canvas.style.height = `${this.height}px`
-    this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
-  }
-
-  private initParticles() {
-    const count = Math.min(90, Math.max(70, Math.floor((this.width * this.height) / 10000)))
-    this.particles = []
-    for (let i = 0; i < count; i++) {
-      this.particles.push({
-        x: Math.random() * this.width,
-        y: Math.random() * this.height,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        size: 1 + Math.random() * 3,
-        opacity: 0.15 + Math.random() * 0.35,
-        baseOpacity: 0.15 + Math.random() * 0.35,
-      })
-    }
-  }
-
-  private bindEvents() {
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = this.canvas.getBoundingClientRect()
-      this.mouseX = e.clientX - rect.left
-      this.mouseY = e.clientY - rect.top
-    }
-
-    const handleMouseLeave = () => {
-      this.mouseX = -1000
-      this.mouseY = -1000
-    }
-
-    const handleResize = () => {
-      this.resize()
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mouseleave', handleMouseLeave)
-    window.addEventListener('resize', handleResize)
-
-    this.canvas.addEventListener('mouseleave', handleMouseLeave)
-
-    // Store cleanup
-    this.canvas.dataset.cleanup = JSON.stringify([handleMouseMove, handleMouseLeave, handleResize])
-  }
-
-  private animate() {
-    if (!this.running) return
-    this.update()
-    this.draw()
-    this.animationId = requestAnimationFrame(() => this.animate())
-  }
-
-  private update() {
-    const w = this.width
-    const h = this.height
-
-    for (const p of this.particles) {
-      p.x += p.vx
-      p.y += p.vy
-
-      // Wrap around
-      if (p.x < -10) p.x = w + 10
-      if (p.x > w + 10) p.x = -10
-      if (p.y < -10) p.y = h + 10
-      if (p.y > h + 10) p.y = -10
-
-      // Mouse interaction - subtle attraction
-      if (this.mouseX > 0 && this.mouseY > 0) {
-        const dx = this.mouseX - p.x
-        const dy = this.mouseY - p.y
-        const dist = Math.sqrt(dx * dx + dy * dy)
-        if (dist < this.mouseRadius && dist > 0) {
-          const force = (1 - dist / this.mouseRadius) * 0.02
-          p.vx += (dx / dist) * force
-          p.vy += (dy / dist) * force
-          // Limit velocity
-          const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy)
-          if (speed > 0.5) {
-            p.vx = (p.vx / speed) * 0.5
-            p.vy = (p.vy / speed) * 0.5
-          }
-        }
-      }
-
-      // Damping
-      p.vx *= 0.999
-      p.vy *= 0.999
-
-      // Random slight drift
-      p.vx += (Math.random() - 0.5) * 0.001
-      p.vy += (Math.random() - 0.5) * 0.001
-
-      // Opacity variation
-      p.opacity = p.baseOpacity + Math.sin(Date.now() / 5000 + p.x + p.y) * 0.05
-      p.opacity = Math.max(0.05, Math.min(0.6, p.opacity))
-    }
-  }
-
-  private draw() {
-    const ctx = this.ctx
-    const w = this.width
-    const h = this.height
-
-    // Clear with transparency
-    ctx.clearRect(0, 0, w, h)
-
-    // Draw connections (network)
-    ctx.strokeStyle = `rgba(99, 102, 241, ${this.networkOpacity})`
-    ctx.lineWidth = 0.5
-
-    const particles = this.particles
-    const connectionDist = Math.min(w, h) * 0.15
-
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x
-        const dy = particles[i].y - particles[j].y
-        const dist = Math.sqrt(dx * dx + dy * dy)
-        if (dist < connectionDist) {
-          const opacity = (1 - dist / connectionDist) * this.networkOpacity
-          ctx.beginPath()
-          ctx.moveTo(particles[i].x, particles[i].y)
-          ctx.lineTo(particles[j].x, particles[j].y)
-          ctx.strokeStyle = `rgba(99, 102, 241, ${opacity})`
-          ctx.stroke()
-        }
-      }
-    }
-
-    // Draw particles
-    for (const p of particles) {
-      const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 2)
-      gradient.addColorStop(0, `rgba(99, 102, 241, ${p.opacity})`)
-      gradient.addColorStop(0.5, `rgba(99, 102, 241, ${p.opacity * 0.5})`)
-      gradient.addColorStop(1, `rgba(99, 102, 241, 0)`)
-
-      ctx.beginPath()
-      ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2)
-      ctx.fillStyle = gradient
-      ctx.fill()
-
-      ctx.beginPath()
-      ctx.arc(p.x, p.y, p.size * 0.5, 0, Math.PI * 2)
-      ctx.fillStyle = `rgba(99, 102, 241, ${p.opacity * 0.8})`
-      ctx.fill()
-    }
-
-    // Mouse glow
-    if (this.mouseX > 0 && this.mouseY > 0) {
-      const gradient = ctx.createRadialGradient(
-        this.mouseX, this.mouseY, 0,
-        this.mouseX, this.mouseY, this.mouseRadius
-      )
-      gradient.addColorStop(0, `rgba(99, 102, 241, 0.03)`)
-      gradient.addColorStop(0.5, `rgba(99, 102, 241, 0.015)`)
-      gradient.addColorStop(1, `rgba(99, 102, 241, 0)`)
-      ctx.fillStyle = gradient
-      ctx.fillRect(0, 0, w, h)
-    }
-  }
-
-  public destroy() {
-    this.running = false
-    if (this.animationId) {
-      cancelAnimationFrame(this.animationId)
-      this.animationId = null
-    }
-    // Cleanup events
-    if (this.canvas.dataset.cleanup) {
-      const handlers = JSON.parse(this.canvas.dataset.cleanup)
-      // Type-safe cleanup would need proper event tracking
-    }
-    this.canvas.removeEventListener('mouseleave', () => {})
-  }
-}
-
-// ─── NOISE TEXTURE ───
-const NoiseTexture: React.FC = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animationRef = useRef<number>()
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    let width = 0
-    let height = 0
-
-    const resize = () => {
-      width = window.innerWidth
-      height = window.innerHeight
-      canvas.width = width
-      canvas.height = height
-    }
-
-    resize()
-    window.addEventListener('resize', resize)
-
-    let frame = 0
-    const animate = () => {
-      if (!ctx) return
-
-      const imageData = ctx.getImageData(0, 0, width, height)
-      const data = imageData.data
-
-      for (let i = 0; i < data.length; i += 4) {
-        const noise = Math.random() * 8
-        data[i] = noise
-        data[i + 1] = noise
-        data[i + 2] = noise
-        data[i + 3] = 6 + Math.random() * 2
-      }
-
-      ctx.putImageData(imageData, 0, 0)
-      frame++
-      animationRef.current = requestAnimationFrame(animate)
-    }
-
-    animate()
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-      }
-      window.removeEventListener('resize', resize)
-    }
-  }, [])
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 pointer-events-none"
-      style={{ opacity: 0.6, mixBlendMode: 'overlay' }}
-    />
-  )
-}
-
 export default function AdminLoginPage() {
   const router = useRouter()
   const { establishSession, user, loading: authLoading } = useAdminAuth()
@@ -329,11 +43,10 @@ export default function AdminLoginPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showPassword, setShowPassword] = useState(false)
 
-  // Particle system ref
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const particleSystemRef = useRef<ParticleSystem | null>(null)
+  // Mouse position for gradient lighting effect
+  const [mouse, setMouse] = useState({ x: 0, y: 0 })
+  const cardRef = useRef<HTMLDivElement>(null)
 
   // OTP state
   const [step, setStep] = useState<"credentials" | "otp">("credentials")
@@ -375,18 +88,19 @@ export default function AdminLoginPage() {
     }
   }
 
-  // Initialize particle system
+  // Mouse tracking for gradient lighting
   useEffect(() => {
-    if (canvasRef.current && !particleSystemRef.current) {
-      particleSystemRef.current = new ParticleSystem(canvasRef.current)
-    }
-
-    return () => {
-      if (particleSystemRef.current) {
-        particleSystemRef.current.destroy()
-        particleSystemRef.current = null
+    const handleMouseMove = (e: MouseEvent) => {
+      if (cardRef.current) {
+        const rect = cardRef.current.getBoundingClientRect()
+        setMouse({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        })
       }
     }
+    window.addEventListener("mousemove", handleMouseMove)
+    return () => window.removeEventListener("mousemove", handleMouseMove)
   }, [])
 
   // Redirect if already logged in
@@ -549,7 +263,7 @@ export default function AdminLoginPage() {
   // Show loading state while checking auth
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
         <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
       </div>
     )
@@ -557,235 +271,208 @@ export default function AdminLoginPage() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950">
-      {/* ─── ANIMATED BACKGROUND ─── */}
-      
-      {/* Particle canvas - full screen */}
-      <canvas
-        ref={canvasRef}
-        className="fixed inset-0 pointer-events-none"
-        style={{ zIndex: 0 }}
-      />
-
-      {/* Radial lighting - drifting blobs */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-blue-500/15 blur-[120px] animate-[drift_35s_ease-in-out_infinite_alternate]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-violet-500/12 blur-[140px] animate-[drift_40s_ease-in-out_infinite_alternate_reverse]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-indigo-500/8 blur-[120px] animate-[drift_30s_ease-in-out_infinite_alternate]" />
-        <div className="absolute bottom-[10%] left-[20%] w-[300px] h-[300px] rounded-full bg-cyan-500/8 blur-[100px] animate-[drift_45s_ease-in-out_infinite_alternate_reverse]" />
-        <div className="absolute top-[10%] right-[20%] w-[350px] h-[350px] rounded-full bg-blue-400/8 blur-[110px] animate-[drift_38s_ease-in-out_infinite_alternate]" />
+      {/* Animated background orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-250px] left-[-150px] w-[600px] h-[600px] rounded-full bg-blue-500/20 blur-[140px] animate-pulse" />
+        <div className="absolute bottom-[-250px] right-[-100px] w-[500px] h-[500px] rounded-full bg-violet-500/20 blur-[150px] animate-pulse [animation-duration:8s]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-indigo-500/10 blur-[120px] animate-pulse [animation-duration:10s]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,.06),transparent_60%)]" />
       </div>
 
-      {/* Noise texture overlay */}
-      <NoiseTexture />
+      {/* Floating particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 24 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full bg-white/10"
+            style={{
+              width: `${2 + Math.random() * 4}px`,
+              height: `${2 + Math.random() * 4}px`,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `float ${6 + Math.random() * 8}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 5}s`,
+            }}
+          />
+        ))}
+      </div>
 
-      {/* Vignette */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.5)_100%)]" />
+      <Card
+        ref={cardRef}
+        className="relative w-full max-w-md backdrop-blur-2xl bg-white/5 dark:bg-slate-900/50 border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,.4)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_45px_100px_rgba(0,0,0,.5)] animate-in fade-in zoom-in-95 duration-700 overflow-hidden"
+      >
+        {/* Mouse gradient lighting */}
+        <div
+          className="absolute inset-0 pointer-events-none transition-opacity duration-300 opacity-30"
+          style={{
+            background: `radial-gradient(400px circle at ${mouse.x}px ${mouse.y}px, rgba(255,255,255,.12), transparent 50%)`,
+          }}
+        />
 
-      {/* ─── LOGIN CONTENT ─── */}
-      <div className="relative z-10 w-full max-w-md mx-auto">
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {/* Logo */}
-          <div className="text-center space-y-4">
-            <div className="flex justify-center">
-              <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center shadow-xl shadow-blue-500/20 ring-1 ring-white/10">
-                <Wifi className="w-8 h-8 text-white" />
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-400/20 to-transparent" />
+        {step === "credentials" ? (
+          <>
+            <CardHeader className="text-center space-y-4 relative z-10">
+              <div className="relative mx-auto w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center shadow-xl before:absolute before:inset-0 before:rounded-3xl before:border before:border-white/20 before:animate-pulse">
+                <Shield className="w-10 h-10 text-white drop-shadow-lg" />
               </div>
-            </div>
+              <CardTitle className="text-2xl font-bold text-white tracking-tight">
+                Network Operations
+              </CardTitle>
+              <CardDescription className="text-slate-400 text-sm">
+                Secure access to your management console
+              </CardDescription>
+            </CardHeader>
 
-            {step === "credentials" ? (
-              <>
-                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-                  Welcome back
-                </h1>
-                <p className="text-slate-400 text-sm md:text-base">
-                  Sign in to manage your network operations
-                </p>
-              </>
-            ) : (
-              <>
-                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-                  Verify your identity
-                </h1>
-                <p className="text-slate-400 text-sm md:text-base">
-                  Enter the 6-digit code sent to{" "}
-                  <span className="text-slate-300 font-medium">{otpMaskedEmail}</span>
-                </p>
-              </>
-            )}
-          </div>
-
-          {/* Form */}
-          {step === "credentials" ? (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+            <CardContent className="relative z-10">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {error && (
                   <Alert variant="destructive" className="bg-red-950/40 border-red-800/50 text-red-300">
                     <AlertCircle className="w-4 h-4" />
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
-                </div>
-              )}
+                )}
 
-              {/* Email */}
-              <div className="space-y-1.5 group">
-                <Label htmlFor="email" className="text-slate-300 text-sm font-medium">
-                  Email
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="admin@example.com"
-                    value={formData.email}
-                    onChange={handleInputChange}
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-slate-300 text-sm font-medium">Email</Label>
+                  <div className="relative">
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="admin@example.com"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      disabled={loading}
+                      autoComplete="email"
+                      required
+                      className="h-12 rounded-xl bg-white/5 border-slate-700/50 text-white placeholder:text-slate-500 transition-all duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-500 focus:scale-[1.01]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="password" className="text-slate-300 text-sm font-medium">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      disabled={loading}
+                      required
+                      className="h-12 rounded-xl bg-white/5 border-slate-700/50 text-white placeholder:text-slate-500 transition-all duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-500 focus:scale-[1.01]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="rememberMe"
+                    checked={formData.rememberMe}
+                    onCheckedChange={handleCheckboxChange}
                     disabled={loading}
-                    autoComplete="email"
-                    required
-                    className="h-12 px-4 pt-1 pb-0 bg-transparent border-0 border-b-2 border-slate-700/50 rounded-none text-white placeholder:text-slate-500 transition-all duration-300 focus:border-b-blue-500 focus:ring-0 focus:outline-none hover:border-slate-500 pl-0"
+                    className="border-slate-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                   />
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-blue-500 scale-x-0 transition-transform duration-300 origin-center group-focus-within:scale-x-100" />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div className="space-y-1.5 group">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-slate-300 text-sm font-medium">
-                    Password
+                  <Label htmlFor="rememberMe" className="text-sm text-slate-400 cursor-pointer hover:text-slate-300 transition-colors">
+                    Remember me
                   </Label>
                 </div>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    disabled={loading}
-                    required
-                    className="h-12 px-4 pt-1 pb-0 bg-transparent border-0 border-b-2 border-slate-700/50 rounded-none text-white placeholder:text-slate-500 transition-all duration-300 focus:border-b-blue-500 focus:ring-0 focus:outline-none hover:border-slate-500 pl-0 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                  <div className="absolute inset-x-0 bottom-0 h-0.5 bg-blue-500 scale-x-0 transition-transform duration-300 origin-center group-focus-within:scale-x-100" />
-                </div>
-              </div>
 
-              {/* Remember Me */}
-              <div className="flex items-center space-x-2 pt-1">
-                <Checkbox
-                  id="rememberMe"
-                  checked={formData.rememberMe}
-                  onCheckedChange={handleCheckboxChange}
+                <Button
+                  type="submit"
+                  className="relative overflow-hidden w-full h-12 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-violet-600 hover:scale-[1.02] active:scale-[.98] transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 text-white group"
                   disabled={loading}
-                  className="border-slate-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:text-white"
-                />
-                <Label
-                  htmlFor="rememberMe"
-                  className="text-sm text-slate-400 cursor-pointer hover:text-slate-300 transition-colors"
                 >
-                  Remember me
-                </Label>
+                  <span className="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000" />
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </>
+        ) : (
+          <>
+            <CardHeader className="text-center space-y-4 relative z-10">
+              <div className="relative mx-auto w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center shadow-xl before:absolute before:inset-0 before:rounded-3xl before:border before:border-white/20 before:animate-pulse">
+                <Mail className="w-10 h-10 text-white drop-shadow-lg" />
               </div>
+              <CardTitle className="text-2xl font-bold text-white tracking-tight">
+                Verify Your Identity
+              </CardTitle>
+              <CardDescription className="text-slate-400 text-sm">
+                We sent a 6-digit code to <span className="font-medium text-slate-300">{otpMaskedEmail}</span>
+              </CardDescription>
+            </CardHeader>
 
-              {/* Submit */}
-              <Button
-                type="submit"
-                className="relative overflow-hidden w-full h-12 rounded-xl font-semibold text-base bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 text-white group"
-                disabled={loading}
-              >
-                <span className="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-[200%] transition-transform duration-700" />
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  "Sign in"
-                )}
-              </Button>
-            </form>
-          ) : (
-            /* ─── OTP Screen ─── */
-            <div className="space-y-6">
+            <CardContent className="relative z-10 space-y-6">
               {error && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Alert variant="destructive" className="bg-red-950/40 border-red-800/50 text-red-300">
-                    <AlertCircle className="w-4 h-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                </div>
+                <Alert variant="destructive" className="bg-red-950/40 border-red-800/50 text-red-300">
+                  <AlertCircle className="w-4 h-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
 
               <div className="flex justify-center gap-2 sm:gap-3" onPaste={handleOtpPaste}>
                 {otpValues.map((val, i) => (
-                  <div key={i} className="relative group">
-                    <Input
-                      ref={(el) => { otpInputRefs.current[i] = el }}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={val}
-                      onChange={(e) => handleOtpChange(i, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      className="w-12 h-16 sm:w-14 sm:h-16 bg-transparent border-0 border-b-2 border-slate-700/50 rounded-none text-2xl font-bold text-center text-white transition-all duration-300 focus:border-b-blue-500 focus:ring-0 focus:outline-none hover:border-slate-500 px-0"
-                      disabled={loading}
-                    />
-                    <div className="absolute inset-x-0 bottom-0 h-0.5 bg-blue-500 scale-x-0 transition-transform duration-300 origin-center group-focus-within:scale-x-100" />
-                  </div>
+                  <Input
+                    key={i}
+                    ref={(el) => { otpInputRefs.current[i] = el }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={val}
+                    onChange={(e) => handleOtpChange(i, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                    className="w-14 h-16 rounded-2xl text-2xl font-bold text-center bg-white/5 border-slate-700/50 text-white transition-all duration-300 focus:scale-110 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 hover:border-slate-500"
+                    disabled={loading}
+                  />
                 ))}
               </div>
 
               <Button
                 onClick={handleVerifyOtp}
-                className="relative overflow-hidden w-full h-12 rounded-xl font-semibold text-base bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 text-white group"
+                className="relative overflow-hidden w-full h-12 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-violet-600 hover:scale-[1.02] active:scale-[.98] transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 text-white group"
                 disabled={loading || otpValues.join("").length !== 6}
               >
-                <span className="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-[200%] transition-transform duration-700" />
+                <span className="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000" />
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Verifying...
                   </>
                 ) : (
-                  "Verify & continue"
+                  "Verify & Continue"
                 )}
               </Button>
 
-              <div className="text-center text-sm space-y-2">
+              <div className="text-center text-sm">
                 {otpResendCooldown > 0 ? (
-                  <span className="text-slate-500">
-                    Resend in {formatDuration(otpResendCooldown)}
-                  </span>
+                  <span className="text-slate-500">Resend in {formatDuration(otpResendCooldown)}</span>
                 ) : (
                   <button
                     onClick={handleResendOtp}
                     disabled={otpResendCount >= otpMaxResends}
                     className="text-blue-400 hover:text-blue-300 hover:underline font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Resend code
+                    Resend OTP
                   </button>
                 )}
-                <div className="text-xs text-slate-500">
-                  {otpExpiresIn > 0
-                    ? `Code expires in ${formatDuration(otpExpiresIn)}`
-                    : "Code expired. Resend to continue."}
-                </div>
-                <div className="text-xs text-slate-500">
-                  Resends used: {otpResendCount}/{otpMaxResends}
-                </div>
+              </div>
+
+              <div className="text-center text-xs text-slate-500">
+                {otpExpiresIn > 0 ? `Code expires in ${formatDuration(otpExpiresIn)}` : "Code expired. Resend to continue."}
+              </div>
+
+              <div className="text-center text-xs text-slate-500">
+                Resends used: {otpResendCount}/{otpMaxResends}
               </div>
 
               <button
@@ -802,19 +489,16 @@ export default function AdminLoginPage() {
               >
                 Back to login
               </button>
-            </div>
-          )}
-        </div>
-      </div>
+            </CardContent>
+          </>
+        )}
+      </Card>
 
-      {/* ─── STYLES ─── */}
       <style jsx>{`
-        @keyframes drift {
-          0% { transform: translate(0, 0) scale(1); }
-          25% { transform: translate(5%, -3%) scale(1.05); }
-          50% { transform: translate(-2%, 4%) scale(0.95); }
-          75% { transform: translate(-5%, -2%) scale(1.02); }
-          100% { transform: translate(3%, 3%) scale(0.98); }
+        @keyframes float {
+          0% { transform: translateY(0px); opacity: 0.3; }
+          50% { transform: translateY(-18px); opacity: 0.7; }
+          100% { transform: translateY(0px); opacity: 0.3; }
         }
       `}</style>
     </div>
