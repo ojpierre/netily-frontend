@@ -3560,12 +3560,10 @@ export const SMS_TEMPLATE_VARIABLES: Record<string, SMSTemplateVariable[]> = {
   ],
 
   // PPPoE templates
-  pppoe_welcome: [
+pppoe_welcome: [
     { key: '{customer_name}', label: 'Customer Name', example: 'John' },
-    { key: '{username}', label: 'PPPoE Username', example: '712345678' },
-    { key: '{password}', label: 'PPPoE Password', example: 'abc12345' },
-    { key: '{plan_name}', label: 'Plan Name', example: 'Home 10Mbps' },
-    { key: '{customer_account}', label: 'Account Number', example: '0712345678' },
+    { key: '{account_number}', label: 'Account Number', example: '0712345678' },
+    { key: '{phone_number}', label: 'Phone Number', example: '0712345678' },
   ],
   pppoe_payment: [
     { key: '{customer_name}', label: 'Customer Name', example: 'John' },
