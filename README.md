@@ -1,2 +1,2 @@
 # netily-frontend
-ISP Management System
+netily
