@@ -46,6 +46,7 @@ import { Progress } from "@/components/ui/progress"
 import { useAdminAuth } from "./admin-auth-context"
 import { adminApi } from "@/lib/admin-api"
 import { canAccess, getAccessRuleForPath } from "@/lib/rbac"
+import { RevenueStatCard } from "@/components/ui/revenue-stat-card"
 import type {
   DashboardStats,
   RouterDashboardStats,
@@ -186,7 +187,8 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [weekView, setWeekView] = useState<"this" | "last">("this")
-  const [yearView, setYearView] = useState<"this" | "last">("last")
+  // FIX: Default to "this" (current year) instead of "last"
+  const [yearView, setYearView] = useState<"this" | "last">("this")
   
   // State for live online sessions and active subscriptions
   const [onlineSessions, setOnlineSessions] = useState<any[]>([])
@@ -726,7 +728,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Revenue Card - Human language */}
+        {/* Revenue Card - UPDATED with RevenueStatCard component */}
         <Card className={dashboardCardClass}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -745,63 +747,47 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             {quickStatsLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
+              <div className="grid grid-cols-1 gap-3">
+                <Skeleton className="h-24 w-full rounded-2xl" />
+                <Skeleton className="h-24 w-full rounded-2xl" />
+                <Skeleton className="h-24 w-full rounded-2xl" />
               </div>
             ) : (() => {
               const ov = quickStats?.overview
               const todayRev = parseFloat(String(ov?.today_revenue ?? 0))
               const weekRev = parseFloat(String(ov?.week_revenue ?? 0))
               const monthRev = parseFloat(String(ov?.month_revenue ?? 0))
-              const todayChange = ov?.today_change ?? 0
-              const commentary = getRevenueCommentary(todayRev, weekRev, monthRev, todayChange)
+
+              // Sparkline sources: reuse chart data already fetched — no extra calls
+              const weeklySpark = (ov?.weekly_income ?? []).map(d => ({ amount: d.amount }))
+              const monthlySpark = (ov?.monthly_earnings ?? []).map(d => ({ amount: d.amount }))
+              // "Today" spark: last 2 points of the week series (yesterday → today) padded for shape
+              const todaySpark = weeklySpark.length >= 2 ? weeklySpark.slice(-2) : weeklySpark
+
               return (
-                <div className="space-y-2">
-                  {/* Human revenue commentary */}
-                  <p className={`text-xs px-1 pb-1 ${
-                    commentary.tone === "positive" ? "text-emerald-600 dark:text-emerald-400" :
-                    commentary.tone === "low" ? "text-amber-600 dark:text-amber-400" :
-                    "text-muted-foreground"
-                  }`}>
-                    {commentary.message}
-                  </p>
+                <div className="grid grid-cols-1 gap-3">
+                  <RevenueStatCard
+                    label="Today"
+                    value={todayRev}
+                    deltaPct={ov?.today_change}
+                    color="#d97234"
+                    sparklineData={todaySpark.length ? todaySpark : [{ amount: 0 }, { amount: todayRev }]}
+                  />
+                  <RevenueStatCard
+                    label="This Week"
+                    value={weekRev}
+                    deltaPct={ov?.week_change}
+                    color="#3d7a5f"
+                    sparklineData={weeklySpark.length ? weeklySpark : [{ amount: 0 }, { amount: weekRev }]}
+                  />
+                  <RevenueStatCard
+                    label="This Month"
+                    value={monthRev}
+                    deltaPct={ov?.month_change}
+                    color="#000000"
+                    sparklineData={monthlySpark.length ? monthlySpark : [{ amount: 0 }, { amount: monthRev }]}
+                  />
 
-                  {/* Today */}
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/30">
-                    <div>
-                      <p className="text-[10px] font-semibold tracking-[0.08em] text-blue-400 uppercase">Today</p>
-                      <p className="text-base font-semibold text-foreground mt-0.5">
-                        {formatKSh(todayRev)}
-                      </p>
-                    </div>
-                    {todayChange !== 0 && <ChangeBadge value={todayChange} />}
-                  </div>
-
-                  {/* This week */}
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
-                    <div>
-                      <p className="text-[10px] font-semibold tracking-[0.08em] text-green-500 uppercase">This week</p>
-                      <p className="text-base font-semibold text-foreground mt-0.5">
-                        {formatKSh(weekRev)}
-                      </p>
-                    </div>
-                    {(ov?.week_change ?? 0) !== 0 && <ChangeBadge value={ov?.week_change ?? 0} />}
-                  </div>
-
-                  {/* This month */}
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
-                    <div>
-                      <p className="text-[10px] font-semibold tracking-[0.08em] text-amber-500 uppercase">This month</p>
-                      <p className="text-base font-semibold text-foreground mt-0.5">
-                        {formatKSh(monthRev)}
-                      </p>
-                    </div>
-                    {(ov?.month_change ?? 0) !== 0 && <ChangeBadge value={ov?.month_change ?? 0} />}
-                  </div>
-
-                  {/* Footer */}
                   <div className="flex items-center justify-between border-t border-border/60 pt-2 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
                     <span>Transactions today</span>
                     <span className="font-medium text-foreground">
@@ -838,7 +824,7 @@ export default function AdminDashboard() {
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : (() => {
-              const tk = quickStats?.tickets ?? tickets
+              const tk = quickStats?.tickets
               return (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
