@@ -14,6 +14,9 @@ import type { AdminLoginResponse } from "@/lib/admin-api"
 // Set NEXT_PUBLIC_USE_MOCK=true in .env.local to use mock data
 const USE_MOCK_AUTH = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
 const ADMIN_ALLOWED_ROLES = ["admin", "staff", "accountant", "support", "superadmin", "super_admin"]
+const debugAdminAuth = (...args: unknown[]) => {
+  if (process.env.NODE_ENV !== "production") console.log(...args)
+}
 const PLATFORM_ADMIN_EMAILS = String(process.env.NEXT_PUBLIC_PLATFORM_ADMIN_EMAILS || "")
   .split(",")
   .map((v) => v.trim().toLowerCase())
@@ -186,16 +189,16 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!token) {
-        console.log('loadUser: No token found in storage. Aborting auth check and clearing cookies.')
+        debugAdminAuth('loadUser: No token found in storage. Aborting auth check and clearing cookies.')
         setUser(null)
         clearAuthCookies()
         return
       }
       
-      console.log('loadUser: Token found?', !!token)
+      debugAdminAuth('loadUser: Token found?', !!token)
       
       // Verify token by getting current admin user
-      console.log('loadUser: Fetching user from /core/users/me/...')
+      debugAdminAuth('loadUser: Fetching user from /core/users/me/...')
       let userData: any
       try {
         userData = await adminApi.getCurrentAdmin() as any
@@ -203,7 +206,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         // If 402 Payment Required, user is valid but subscription expired
         // Use cached user data so TrialGuard can show the payment wall
         if (apiError?.status === 402 || apiError?.isPaymentRequired) {
-          console.log('loadUser: 402 Payment Required — subscription expired, using cached user')
+          debugAdminAuth('loadUser: 402 Payment Required — subscription expired, using cached user')
           const cachedUser =
             localStorage.getItem(hostScopedKey("adminUser")) ||
             sessionStorage.getItem(hostScopedKey("adminUser")) ||
@@ -220,7 +223,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         throw apiError // Re-throw non-402 errors
       }
       
-      console.log('loadUser: Received user data:', userData)
+      debugAdminAuth('loadUser: Received user data:', userData)
       
       // Check for admin privileges - support multiple field formats
       const resolvedRole = String(userData?.role || "").toLowerCase()
@@ -229,14 +232,14 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       const isStaffOrSuper = userData?.is_staff || userData?.is_superuser
       const isPlatformAdminEmail = !!userData?.email && PLATFORM_ADMIN_EMAILS.includes(String(userData.email).toLowerCase())
       
-      console.log('loadUser: Privilege check:', { role: resolvedRole, access_level: resolvedAccessLevel, hasAdminRole, isStaffOrSuper, isPlatformAdminEmail })
+      debugAdminAuth('loadUser: Privilege check:', { role: resolvedRole, access_level: resolvedAccessLevel, hasAdminRole, isStaffOrSuper, isPlatformAdminEmail })
       
       if (!hasAdminRole && !isStaffOrSuper && !isPlatformAdminEmail) {
-        console.log('loadUser: User does not have admin privileges')
+        debugAdminAuth('loadUser: User does not have admin privileges')
         throw new Error("Not an admin user")
       }
       
-      console.log('loadUser: Setting user successfully')
+      debugAdminAuth('loadUser: Setting user successfully')
       setUser(normalizeAdminUser(userData))
       
     } catch (error) {
@@ -286,9 +289,9 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Call /core/auth/login/ with email
       // The adminApi.login already validates admin privileges
-      console.log('login: Calling API with email:', email)
+      debugAdminAuth('login: Calling API with email:', email)
       const response = await adminApi.login(email, password)
-      console.log('login: API response:', response)
+      debugAdminAuth('login: API response:', response)
 
       if ((response as any).requires_otp) {
         // OTP challenge flow is handled by login page.
@@ -299,7 +302,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       // Store both access and refresh tokens
       const storage = rememberMe ? localStorage : sessionStorage
       const other = rememberMe ? sessionStorage : localStorage
-      console.log('login: Using storage:', rememberMe ? 'localStorage' : 'sessionStorage')
+      debugAdminAuth('login: Using storage:', rememberMe ? 'localStorage' : 'sessionStorage')
       other.removeItem(hostScopedKey("adminToken"))
       other.removeItem(hostScopedKey("adminRefreshToken"))
       other.removeItem(hostScopedKey("adminUser"))
@@ -320,7 +323,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       storage.setItem("adminUser", JSON.stringify(resolved.user))
       
       // Verify tokens were saved
-      console.log('login: Token saved?', !!storage.getItem("adminToken"))
+      debugAdminAuth('login: Token saved?', !!storage.getItem("adminToken"))
       
       // Sync access token to cookies for middleware
       document.cookie = `adminToken=${resolved.access}; path=/; max-age=${rememberMe ? 86400 * 7 : 3600}; SameSite=Lax`
@@ -333,7 +336,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         setUser(normalizeAdminUser(resolved.user))
       }
-      console.log('login: User set, login complete')
+      debugAdminAuth('login: User set, login complete')
     } catch (error: any) {
       setLoading(false)
       throw new Error(error.message || "Login failed. Please check your credentials.")
@@ -406,7 +409,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         await adminApi.logout()
       }
     } catch (error) {
-      console.log("Logout API call failed, continuing with local cleanup")
+      debugAdminAuth("Logout API call failed, continuing with local cleanup")
     }
     
     // Clear all storage
