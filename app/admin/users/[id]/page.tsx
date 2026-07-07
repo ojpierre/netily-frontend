@@ -78,7 +78,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { adminApi } from "@/lib/admin-api"
-import type { Customer, CustomerService, Payment, SupportTicket, RADIUSAccountingSession, CustomerRADIUSCredentials, IPPool } from "@/lib/types"
+import type { Customer, CustomerService, Payment, SupportTicket, RADIUSAccountingSession, CustomerRADIUSCredentials, IPPool, SMSMessage } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import {
@@ -353,6 +353,8 @@ export default function UserDetailPage() {
   const [paymentsLoading, setPaymentsLoading] = useState(true)
   const [tickets, setTickets] = useState<TicketEntry[]>([])
   const [ticketsLoading, setTicketsLoading] = useState(true)
+  const [smsHistory, setSmsHistory] = useState<SMSMessage[]>([])
+  const [smsHistoryLoading, setSmsHistoryLoading] = useState(true)
   const [radiusCreds, setRadiusCreds] = useState<CustomerRADIUSCredentials | null>(null)
   const [internetCheck, setInternetCheck] = useState<{
     status: 'green' | 'yellow' | 'red' | 'loading' | 'none'
@@ -400,7 +402,8 @@ export default function UserDetailPage() {
       const mappedUser = mapCustomerToUser(customer, services, credSummary)
       const pppoeUser = mappedUser.pppoeUsername || credSummary?.username
 
-      const [paymentsRes, ticketsRes, sessionsRes, credDetail, poolRes] = await Promise.all([
+      // Extended Promise.all to include SMS history
+      const [paymentsRes, ticketsRes, sessionsRes, credDetail, poolRes, smsRes] = await Promise.all([
         adminApi.getPayments({ customer: String(userId), page_size: '20' })
           .catch((err) => { console.warn('Failed to load payments:', err); return { results: [] } as any }),
         adminApi.getTickets({ customer_id: String(userId), page_size: '20' })
@@ -415,11 +418,17 @@ export default function UserDetailPage() {
         credSummary?.router && credSummary?.ip_pool
           ? adminApi.getIPPools({ router_id: String(credSummary.router), name: credSummary.ip_pool }).catch(() => null)
           : Promise.resolve(null),
+        adminApi.getSMSMessages({ customer: String(userId), page_size: '100' })
+          .catch((err) => { console.warn('Failed to load SMS history:', err); return { results: [] } as any }),
       ])
 
       setPaymentsLoading(false)
       setTicketsLoading(false)
       setSessionsLoading(false)
+      setSmsHistoryLoading(false)
+
+      // Set SMS history
+      setSmsHistory(smsRes.results || [])
 
       const paymentsList = paymentsRes.results || []
       mappedUser.totalPayments = paymentsList.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0)
@@ -555,6 +564,8 @@ export default function UserDetailPage() {
       toast.success(`SMS sent to ${user.fullName}`)
       setShowSmsDialog(false)
       setSmsMessage("")
+      // Refresh SMS history after sending
+      await fetchUserData()
     } catch (err: any) {
       toast.error(err.message || 'Failed to send SMS')
     } finally {
@@ -775,7 +786,7 @@ export default function UserDetailPage() {
         </div>
       </div>
 
-      {/* Tabs - Pill style matching router page */}
+      {/* Tabs - Pill style matching router page, with SMS History tab added */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex flex-wrap gap-1 h-auto p-1">
           <TabsTrigger value="overview" className="gap-2">
@@ -793,6 +804,10 @@ export default function UserDetailPage() {
           <TabsTrigger value="tickets" className="gap-2">
             <Activity className="w-4 h-4" />
             <span className="hidden sm:inline">Tickets</span>
+          </TabsTrigger>
+          <TabsTrigger value="sms" className="gap-2">
+            <Send className="w-4 h-4" />
+            <span className="hidden sm:inline">SMS History</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1295,6 +1310,66 @@ export default function UserDetailPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>{ticket.createdAt}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* SMS History Tab Content */}
+        <TabsContent value="sms" className="mt-6">
+          <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 opacity-80" />
+            <CardHeader className="pt-5">
+              <CardTitle>SMS History</CardTitle>
+              <CardDescription>All messages sent to this user — automated and manually sent</CardDescription>
+            </CardHeader>
+            <CardContent className="pb-5">
+              {smsHistoryLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
+                </div>
+              ) : smsHistory.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Send className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                  <p>No SMS sent to this user yet</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Message</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {smsHistory.map((sms: any) => (
+                      <TableRow key={sms.id}>
+                        <TableCell>
+                          {sms.sent_at ? new Date(sms.sent_at).toLocaleString() : new Date(sms.created_at).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize rounded-xl">
+                            {sms.type || sms.message_type || 'single'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-md truncate" title={sms.message}>
+                          {sms.message}
+                        </TableCell>
+                        <TableCell>
+                          {sms.status === 'sent' || sms.status === 'delivered' ? (
+                            <Badge className="bg-success/15 text-success rounded-xl capitalize">{sms.status}</Badge>
+                          ) : sms.status === 'pending' ? (
+                            <Badge className="bg-warning/15 text-warning rounded-xl capitalize">{sms.status}</Badge>
+                          ) : (
+                            <Badge variant="destructive" className="rounded-xl capitalize">{sms.status}</Badge>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

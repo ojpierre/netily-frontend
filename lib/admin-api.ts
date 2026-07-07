@@ -125,6 +125,7 @@ import type {
   HotspotPlan,
   HotspotSession,
   HotspotBranding,
+  HotspotPruneSettings,
   // VPN types
   VPNServer,
   VPNCertificate,
@@ -3104,6 +3105,13 @@ async activateService(
     return this.request<any>(`/analytics/router-revenue/?${params.toString()}`)
   }
 
+  async getDailyRevenueSplit(timeRange: string = '30d'): Promise<{
+  daily_revenue: { date: string; hotspot_revenue: number; pppoe_revenue: number; total: number }[]
+  summary: { total_hotspot: number; total_pppoe: number }
+  }> {
+    return this.request(`/analytics/revenue-split/?time_range=${timeRange}`)
+  }
+
   // ============================================================
   // NEW: Analytics Contract Endpoints
   // ============================================================
@@ -4360,6 +4368,21 @@ async activateService(
   }): Promise<{ status: string; session_id: string; new_expiry: string; message: string }> {
     return this.request(`/hotspot/admin/sessions/${sessionId}/extend/`, {
       method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+    // ------------------------------------------
+  // HOTSPOT PRUNE SETTINGS
+  // ------------------------------------------
+  
+  async getHotspotPruneSettings(): Promise<HotspotPruneSettings> {
+    return this.request<HotspotPruneSettings>('/billing/hotspot-prune-settings/')
+  }
+
+  async updateHotspotPruneSettings(data: Partial<Pick<HotspotPruneSettings, 'prune_window_days' | 'is_enabled'>>): Promise<HotspotPruneSettings> {
+    return this.request<HotspotPruneSettings>('/billing/hotspot-prune-settings/', {
+      method: 'PATCH',
       body: JSON.stringify(data),
     })
   }

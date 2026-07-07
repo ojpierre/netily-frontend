@@ -2674,6 +2674,17 @@ export interface HotspotBranding {
 }
 
 // ==========================================
+// HOTSPOT PRUNE SETTINGS
+// ==========================================
+
+export interface HotspotPruneSettings {
+  prune_window_days: 1 | 7 | 30
+  is_enabled: boolean
+  last_pruned_at: string | null
+  choices?: [number, string][]
+}
+
+// ==========================================
 // HOTSPOT PORTAL (Public)
 // ==========================================
 
@@ -2865,6 +2876,8 @@ export type SMSProvider =
   | 'hubtel'
   | 'bytewave'
   | 'blessedtexts'
+  | 'texin'
+  
 
 export interface SMSGatewayConfig {
   id: number
@@ -3547,12 +3560,10 @@ export const SMS_TEMPLATE_VARIABLES: Record<string, SMSTemplateVariable[]> = {
   ],
 
   // PPPoE templates
-  pppoe_welcome: [
+pppoe_welcome: [
     { key: '{customer_name}', label: 'Customer Name', example: 'John' },
-    { key: '{username}', label: 'PPPoE Username', example: '712345678' },
-    { key: '{password}', label: 'PPPoE Password', example: 'abc12345' },
-    { key: '{plan_name}', label: 'Plan Name', example: 'Home 10Mbps' },
-    { key: '{customer_account}', label: 'Account Number', example: '0712345678' },
+    { key: '{account_number}', label: 'Account Number', example: '0712345678' },
+    { key: '{phone_number}', label: 'Phone Number', example: '0712345678' },
   ],
   pppoe_payment: [
     { key: '{customer_name}', label: 'Customer Name', example: 'John' },

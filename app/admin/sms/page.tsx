@@ -70,6 +70,7 @@ const PROVIDER_OPTIONS: { value: SMSProvider; label: string }[] = [
   { value: 'hubtel', label: 'Hubtel' },
   { value: 'bytewave', label: 'Bytewave (Netily)' },
   { value: 'blessedtexts', label: 'BlessedTexts' },
+  { value: 'texin', label: 'Texin' },  // ← ADDED
 ]
 
 const PROVIDER_FIELDS: Record<SMSProvider, { key: string; label: string; type?: string }[]> = {
@@ -82,6 +83,10 @@ const PROVIDER_FIELDS: Record<SMSProvider, { key: string; label: string; type?: 
   hubtel: [{ key: 'api_key', label: 'Client ID', type: 'password' }, { key: 'api_secret', label: 'Client Secret', type: 'password' }, { key: 'sender_id', label: 'Sender ID' }],
   bytewave: [{ key: 'api_key', label: 'API Token', type: 'password' }, { key: 'sender_id', label: 'Sender ID' }],
   blessedtexts: [
+    { key: 'api_key', label: 'API Key', type: 'password' },
+    { key: 'sender_id', label: 'Sender ID' },
+  ],
+  texin: [
     { key: 'api_key', label: 'API Key', type: 'password' },
     { key: 'sender_id', label: 'Sender ID' },
   ],

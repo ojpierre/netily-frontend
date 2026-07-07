@@ -27,6 +27,34 @@ import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import type { ActiveSubscription } from "@/lib/types"
 
+// Snippet D: Helper function for time remaining formatting
+function formatTimeRemaining(expiryDate: string | Date): { label: string; isCritical: boolean; isExpired: boolean } {
+  const target = typeof expiryDate === "string" ? new Date(expiryDate) : expiryDate
+  const diffMs = target.getTime() - Date.now()
+
+  if (diffMs <= 0) {
+    const pastMs = Math.abs(diffMs)
+    const days = Math.floor(pastMs / 86400000)
+    if (days > 0) return { label: `${days}d ago`, isCritical: true, isExpired: true }
+    const hours = Math.floor(pastMs / 3600000)
+    if (hours > 0) return { label: `${hours}h ago`, isCritical: true, isExpired: true }
+    const minutes = Math.floor(pastMs / 60000)
+    return { label: `${minutes}m ago`, isCritical: true, isExpired: true }
+  }
+
+  const days = Math.floor(diffMs / 86400000)
+  const hours = Math.floor((diffMs % 86400000) / 3600000)
+  const minutes = Math.floor((diffMs % 3600000) / 60000)
+
+  if (days >= 1) {
+    return { label: hours > 0 ? `${days}d ${hours}h left` : `${days}d left`, isCritical: false, isExpired: false }
+  }
+  if (hours >= 1) {
+    return { label: `${hours}h ${minutes}m left`, isCritical: true, isExpired: false }
+  }
+  return { label: `${minutes}m left`, isCritical: true, isExpired: false }
+}
+
 export default function HotspotClientDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -174,7 +202,8 @@ export default function HotspotClientDetailPage() {
   const username = client.canonical_username || ""
   const now = new Date()
   const expiryDate = activeSubscription?.expiry_date ? new Date(activeSubscription.expiry_date) : null
-  const daysLeft = expiryDate ? Math.ceil((expiryDate.getTime() - now.getTime()) / 86400000) : null
+  // Snippet E: Replace daysLeft with timeRemaining
+  const timeRemaining = expiryDate ? formatTimeRemaining(expiryDate) : null
 
   return (
     <div className="p-6 space-y-6 max-w-3xl mx-auto">
@@ -232,11 +261,12 @@ export default function HotspotClientDetailPage() {
                   {expiryDate ? expiryDate.toLocaleString() : "—"}
                 </span>
               </div>
-              {daysLeft !== null && (
+              {/* Snippet F: Replace Time Left badge block */}
+              {timeRemaining && (
                 <div className="flex justify-between">
                   <span className="text-slate-500">Time Left</span>
-                  <Badge className={daysLeft > 1 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
-                    {daysLeft > 0 ? `${daysLeft}d` : "Expired"}
+                  <Badge className={timeRemaining.isExpired ? "bg-red-100 text-red-700" : timeRemaining.isCritical ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}>
+                    {timeRemaining.isExpired ? "Expired" : timeRemaining.label}
                   </Badge>
                 </div>
               )}
