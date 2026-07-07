@@ -728,7 +728,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Revenue Card - UPDATED with RevenueStatCard component */}
+        {/* Revenue Card - UPDATED with RevenueStatCard component with staggered delays */}
         <Card className={dashboardCardClass}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -772,6 +772,7 @@ export default function AdminDashboard() {
                     deltaPct={ov?.today_change}
                     color="#d97234"
                     sparklineData={todaySpark.length ? todaySpark : [{ amount: 0 }, { amount: todayRev }]}
+                    animationDelay={0}
                   />
                   <RevenueStatCard
                     label="This Week"
@@ -779,6 +780,7 @@ export default function AdminDashboard() {
                     deltaPct={ov?.week_change}
                     color="#3d7a5f"
                     sparklineData={weeklySpark.length ? weeklySpark : [{ amount: 0 }, { amount: weekRev }]}
+                    animationDelay={0.1}
                   />
                   <RevenueStatCard
                     label="This Month"
@@ -786,6 +788,7 @@ export default function AdminDashboard() {
                     deltaPct={ov?.month_change}
                     color="#000000"
                     sparklineData={monthlySpark.length ? monthlySpark : [{ amount: 0 }, { amount: monthRev }]}
+                    animationDelay={0.2}
                   />
 
                   <div className="flex items-center justify-between border-t border-border/60 pt-2 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
