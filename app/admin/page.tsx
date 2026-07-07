@@ -650,7 +650,7 @@ export default function AdminDashboard() {
 
       {/* ─── Row 2: Network & Revenue ─── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 relative">
-        {/* Router Status - Human language */}
+        {/* Router Status - UPDATED with refined CardContent */}
         <Card className={dashboardCardClass}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -668,6 +668,12 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent>
+            <style>{`
+              @keyframes routerSlideUp {
+                from { opacity: 0; transform: translateY(8px); }
+                to   { opacity: 1; transform: translateY(0); }
+              }
+            `}</style>
             {quickStatsLoading ? (
               <div className="space-y-3">
                 <Skeleton className="h-10 w-full" />
@@ -681,46 +687,68 @@ export default function AdminDashboard() {
                 rt?.warning_routers ?? 0,
                 rt?.total_routers ?? 0
               )
+
+              const urgencyStyle = {
+                good:     { bar: "#3d7a5f", bg: "rgba(61,122,95,0.07)",    text: "#2a5c42",  sub: "#3d7a5f"  },
+                warn:     { bar: "#c5840a", bg: "rgba(197,132,10,0.07)",   text: "#7a5008",  sub: "#c5840a"  },
+                critical: { bar: "#c0392b", bg: "rgba(192,57,43,0.07)",    text: "#8b2219",  sub: "#c0392b"  },
+              }[commentary.urgency]
+
+              const flagged = (rt?.warning_routers ?? 0) + (rt?.maintenance_routers ?? 0)
+
               return (
-                <div className="space-y-4">
-                  {/* Human headline */}
-                  <div className={`p-3 rounded-xl ${
-                    commentary.urgency === "good" ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900" :
-                    commentary.urgency === "critical" ? "bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900" :
-                    "bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900"
-                  }`}>
-                    <p className={`text-sm font-semibold ${
-                      commentary.urgency === "good" ? "text-emerald-800 dark:text-emerald-300" :
-                      commentary.urgency === "critical" ? "text-red-800 dark:text-red-300" :
-                      "text-amber-800 dark:text-amber-300"
-                    }`}>{commentary.headline}</p>
-                    <p className={`text-xs mt-0.5 ${
-                      commentary.urgency === "good" ? "text-emerald-600 dark:text-emerald-400" :
-                      commentary.urgency === "critical" ? "text-red-600 dark:text-red-400" :
-                      "text-amber-600 dark:text-amber-400"
-                    }`}>{commentary.subtext}</p>
+                <div
+                  className="space-y-4"
+                  style={{ animation: "routerSlideUp 0.4s cubic-bezier(0.16,1,0.3,1) both" }}
+                >
+                  {/* Status banner — left accent bar style */}
+                  <div
+                    className="flex gap-3 rounded-xl p-3"
+                    style={{ background: urgencyStyle.bg }}
+                  >
+                    <div
+                      className="w-0.5 rounded-full shrink-0 self-stretch"
+                      style={{ background: urgencyStyle.bar }}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold leading-snug" style={{ color: urgencyStyle.text }}>
+                        {commentary.headline}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: urgencyStyle.sub }}>
+                        {commentary.subtext}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Status pills */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="flex flex-col items-center rounded-xl border border-border/60 bg-muted/30 p-2.5">
-                      <span className="text-xl font-bold text-emerald-600">{rt?.online_routers ?? 0}</span>
-                      <span className="mt-0.5 text-[10px] font-medium text-muted-foreground">Online</span>
-                    </div>
-                    <div className="flex flex-col items-center rounded-xl border border-border/60 bg-muted/30 p-2.5">
-                      <span className="text-xl font-bold text-red-600">{rt?.offline_routers ?? 0}</span>
-                      <span className="mt-0.5 text-[10px] font-medium text-muted-foreground">Offline</span>
-                    </div>
-                    <div className="flex flex-col items-center rounded-xl border border-border/60 bg-muted/30 p-2.5">
-                      <span className="text-xl font-bold text-amber-600">{(rt?.warning_routers ?? 0) + (rt?.maintenance_routers ?? 0)}</span>
-                      <span className="mt-0.5 text-[10px] font-medium text-muted-foreground">Flagged</span>
-                    </div>
+                  {/* Stat numbers — no boxes, divided by hairlines */}
+                  <div className="grid grid-cols-3 divide-x divide-border/50">
+                    {[
+                      { label: "Online",  value: rt?.online_routers  ?? 0, color: "#3d7a5f", delay: "0s"    },
+                      { label: "Offline", value: rt?.offline_routers ?? 0, color: "#c0392b", delay: "0.05s" },
+                      { label: "Flagged", value: flagged,                  color: "#c5840a", delay: "0.1s"  },
+                    ].map(({ label, value, color, delay }) => (
+                      <div
+                        key={label}
+                        className="text-center py-1"
+                        style={{ animation: `routerSlideUp 0.4s cubic-bezier(0.16,1,0.3,1) ${delay} both` }}
+                      >
+                        <p
+                          className="text-2xl font-extrabold tabular-nums leading-none"
+                          style={{ color }}
+                        >
+                          {value}
+                        </p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider mt-1 text-muted-foreground">
+                          {label}
+                        </p>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between border-t border-border/60 pt-3 text-sm">
-                    <span className="text-muted-foreground">{rt?.total_routers ?? 0} total routers</span>
-                    <span className="text-xs text-muted-foreground">{rt?.total_connected_users ?? 0} users connected</span>
+                  <div className="flex items-center justify-between border-t border-border/60 pt-3 text-xs text-muted-foreground">
+                    <span>{rt?.total_routers ?? 0} total routers</span>
+                    <span>{rt?.total_connected_users ?? 0} users connected</span>
                   </div>
                 </div>
               )
@@ -803,7 +831,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Support Tickets - UPDATED with fallback to tickets variable */}
+        {/* Support Tickets - UPDATED with refined CardContent */}
         <Card className={dashboardCardClass}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -821,6 +849,12 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent>
+            <style>{`
+              @keyframes ticketFadeUp {
+                from { opacity: 0; transform: translateY(6px); }
+                to   { opacity: 1; transform: translateY(0); }
+              }
+            `}</style>
             {quickStatsLoading ? (
               <div className="space-y-3">
                 <Skeleton className="h-10 w-full" />
@@ -828,34 +862,94 @@ export default function AdminDashboard() {
               </div>
             ) : (() => {
               const tk = quickStats?.tickets
+              const total  = tk?.total      ?? 0
+              const open   = tk?.open       ?? 0
+              const prog   = tk?.in_progress ?? 0
+              const resolved = tk?.resolved ?? 0
+
+              // Proportion bar segments
+              const safeDenom = total || 1
+              const segments = [
+                { pct: (open     / safeDenom) * 100, color: "#c0392b" },
+                { pct: (prog     / safeDenom) * 100, color: "#c5840a" },
+                { pct: (resolved / safeDenom) * 100, color: "#3d7a5f" },
+              ]
+
+              const rows = [
+                { label: "Open",        value: open,     color: "#c0392b", delay: "0s"    },
+                { label: "In Progress", value: prog,     color: "#c5840a", delay: "0.06s" },
+                { label: "Resolved",    value: resolved, color: "#3d7a5f", delay: "0.12s" },
+                { label: "Total",       value: total,    color: "#6366f1", delay: "0.18s" },
+              ]
+
               return (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg border border-red-200/60 bg-red-50 p-3 text-center dark:border-red-900 dark:bg-red-950/30">
-                      <p className="text-2xl font-bold text-red-600">{tk?.open ?? 0}</p>
-                      <p className="text-xs text-muted-foreground">Open</p>
-                    </div>
-                    <div className="rounded-lg border border-amber-200/60 bg-amber-50 p-3 text-center dark:border-amber-900 dark:bg-amber-950/30">
-                      <p className="text-2xl font-bold text-amber-600">{tk?.in_progress ?? 0}</p>
-                      <p className="text-xs text-muted-foreground">In Progress</p>
+                <div
+                  className="space-y-4"
+                  style={{ animation: "ticketFadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both" }}
+                >
+                  {/* Hero total + proportion bar */}
+                  <div>
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-[0.11em] mb-1"
+                      style={{ color: "#8a8274" }}
+                    >
+                      All tickets
+                    </p>
+                    <p
+                      className="text-4xl font-extrabold tabular-nums leading-none"
+                      style={{ color: "#6366f1", letterSpacing: "-0.02em" }}
+                    >
+                      {total}
+                    </p>
+
+                    {/* Segmented proportion bar */}
+                    <div className="mt-3 flex h-1 rounded-full overflow-hidden gap-px">
+                      {total === 0 ? (
+                        <div className="flex-1 rounded-full bg-border" />
+                      ) : segments.map((s, i) => (
+                        s.pct > 0 && (
+                          <div
+                            key={i}
+                            className="h-full rounded-sm transition-all duration-700"
+                            style={{ width: `${s.pct}%`, background: s.color }}
+                          />
+                        )
+                      ))}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg border border-green-200/60 bg-green-50 p-3 text-center dark:border-green-900 dark:bg-green-950/30">
-                      <p className="text-2xl font-bold text-green-600">{tk?.resolved ?? 0}</p>
-                      <p className="text-xs text-muted-foreground">Resolved</p>
-                    </div>
-                    <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-center">
-                      <p className="text-2xl font-bold text-primary">{tk?.total ?? 0}</p>
-                      <p className="text-xs text-muted-foreground">Total</p>
-                    </div>
+
+                  {/* Rows */}
+                  <div className="space-y-0 divide-y divide-border/50">
+                    {rows.map(({ label, value, color, delay }) => (
+                      <div
+                        key={label}
+                        className="flex items-center justify-between py-2.5"
+                        style={{ animation: `ticketFadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${delay} both` }}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className="w-1.5 h-1.5 rounded-full shrink-0"
+                            style={{ background: color }}
+                          />
+                          <span className="text-sm text-muted-foreground">{label}</span>
+                        </div>
+                        <span
+                          className="text-sm font-bold tabular-nums"
+                          style={{ color }}
+                        >
+                          {value}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center justify-between border-t border-border/60 pt-2 text-sm">
-                    <div className="flex items-center gap-1 text-muted-foreground">
+
+                  {/* Footer: avg response */}
+                  <div className="flex items-center justify-between border-t border-border/60 pt-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       Avg Response
                     </div>
-                    <span className="font-medium">{tk?.avg_response_time ?? "—"}</span>
+                    <span className="font-medium text-foreground">{tk?.avg_response_time ?? "—"}</span>
                   </div>
                 </div>
               )
