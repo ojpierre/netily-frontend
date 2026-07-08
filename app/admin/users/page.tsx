@@ -2685,12 +2685,12 @@ export default function UsersPage() {
                       </TableHeader>
                       <TableBody>
                         {onlineSessions.map((session) => (
+                          // FIX: Removed whileHover={{ backgroundColor: "#faf5ff" }}
                           <motion.tr
                             key={session.radacctid}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.15 }}
-                            whileHover={{ backgroundColor: "#faf5ff" }}
                             className="transition-colors duration-200 hover:bg-violet-50 dark:hover:bg-violet-950/30 dark:border-slate-700"
                           >
                             <TableCell>
@@ -2869,12 +2869,12 @@ export default function UsersPage() {
                         const daysLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
                         const hoursLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60))
                         return (
+                          // FIX: Removed whileHover={{ backgroundColor: "#faf5ff" }}
                           <motion.tr
                             key={user.id}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.15 }}
-                            whileHover={{ backgroundColor: "#faf5ff" }}
                             className="transition-colors duration-200 hover:bg-violet-50 dark:hover:bg-violet-950/30 dark:border-slate-700"
                           >
                             <TableCell>
@@ -3129,13 +3129,13 @@ export default function UsersPage() {
                             const timeRemaining = item.expiry_date ? formatTimeRemaining(item.expiry_date) : null
 
                             return (
+                              // FIX: Removed whileHover={{ backgroundColor: "#faf5ff" }}
                               <motion.tr
                                 key={`${hotspotIdentifier}-${item.session_id || item.subscribed_at}`}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ duration: 0.15 }}
-                                whileHover={{ backgroundColor: "#faf5ff", cursor: "pointer" }}
-                                className="transition-colors duration-200 hover:bg-violet-50 dark:hover:bg-violet-950/30 dark:border-slate-700"
+                                className="transition-colors duration-200 hover:bg-violet-50 dark:hover:bg-violet-950/30 dark:border-slate-700 cursor-pointer"
                                 onClick={() => handleOpenHotspotDetail(item)}
                               >
                                 <TableCell>
@@ -3323,12 +3323,12 @@ export default function UsersPage() {
                       <TableBody>
                         {filteredUsers.map((user) => {
                           return (
+                            // FIX: Removed whileHover={{ backgroundColor: "#faf5ff" }}
                             <motion.tr
                               key={user.id}
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               transition={{ duration: 0.15 }}
-                              whileHover={{ backgroundColor: "#faf5ff" }}
                               className="transition-all duration-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:shadow-sm group dark:border-slate-700 cursor-pointer"
                               onClick={() => router.push(`/admin/users/${user.customerId}`)}
                             >
