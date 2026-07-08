@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
@@ -161,6 +161,24 @@ export default function RoutersPage() {
                 ))
               })
               .catch(() => {}) // silently ignore failures
+          })
+
+        // ============================================================
+        // FIX 1: Background-fetch real connected-user counts
+        // Cards show stale DB field otherwise — this keeps them accurate
+        // ============================================================
+        routersList
+          .filter(r => r.status === 'online')
+          .slice(0, 10)
+          .forEach(r => {
+            adminApi.getRouterUsers(r.id)
+              .then((data: any) => {
+                const total = data?.total ?? (data?.hotspot_users || 0) + (data?.pppoe_users || 0)
+                setRouters(prev => prev.map(router =>
+                  router.id === r.id ? { ...router, active_users: total } : router
+                ))
+              })
+              .catch(() => {}) // silently ignore
           })
       }
     } catch (error: unknown) {
@@ -782,46 +800,48 @@ export default function RoutersPage() {
                       />
                     </div>
 
-                    {/* CPU/RAM metrics */}
-                    {r.status === 'online' && r.metrics ? (
-                      <div className="grid grid-cols-2 gap-2.5 pt-1">
-                        {[
-                          { label: "CPU", value: r.metrics.cpu_usage },
-                          { label: "Memory", value: r.metrics.memory_usage },
-                        ].map(({ label, value }) => {
-                          const barClass = value > 80 ? "bg-destructive" : value > 60 ? "bg-warning" : "bg-primary"
-                          const textClass = value > 80 ? "text-destructive dark:text-destructive" : value > 60 ? "text-warning dark:text-warning" : "text-primary dark:text-primary/80"
-                          const R = 13; const circ = 2 * Math.PI * R
-                          const dash = (value / 100) * circ
-                          return (
-                            <div key={label} className="rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-2.5 border border-slate-100 dark:border-slate-800/50">
-                              <svg width="32" height="32" className="-rotate-90 shrink-0">
-                                <circle cx="16" cy="16" r={R} fill="none" stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeWidth="3" />
-                                <circle cx="16" cy="16" r={R} fill="none"
-                                  stroke={value > 80 ? "#ef4444" : value > 60 ? "#f59e0b" : "#3b82f6"}
-                                  strokeWidth="3" strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
-                                  style={{ transition: "stroke-dasharray 0.6s ease" }} />
-                              </svg>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-baseline">
-                                  <span className="text-[11px] font-semibold text-muted-foreground">{label}</span>
-                                  <span className={`text-xs font-bold ${textClass}`}>{value}%</span>
-                                </div>
-                                <div className="mt-1 h-1 bg-white dark:bg-slate-700 rounded-full overflow-hidden">
-                                  <div className={`h-full rounded-full ${barClass} transition-all duration-700`} style={{ width: `${value}%` }} />
+                    {/* ============================================================
+                        FIX 2: CPU/Memory rings persist (100%) when offline
+                        instead of vanishing — always render with fallback
+                        ============================================================ */}
+                    {(() => {
+                      const displayMetrics = (r.status === 'online' && r.metrics)
+                        ? r.metrics
+                        : { cpu_usage: 100, memory_usage: 100 }
+                      return (
+                        <div className="grid grid-cols-2 gap-2.5 pt-1">
+                          {[
+                            { label: "CPU", value: displayMetrics.cpu_usage },
+                            { label: "Memory", value: displayMetrics.memory_usage },
+                          ].map(({ label, value }) => {
+                            const barClass = value > 80 ? "bg-destructive" : value > 60 ? "bg-warning" : "bg-primary"
+                            const textClass = value > 80 ? "text-destructive dark:text-destructive" : value > 60 ? "text-warning dark:text-warning" : "text-primary dark:text-primary/80"
+                            const R = 13; const circ = 2 * Math.PI * R
+                            const dash = (value / 100) * circ
+                            return (
+                              <div key={label} className="rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-2.5 border border-slate-100 dark:border-slate-800/50">
+                                <svg width="32" height="32" className="-rotate-90 shrink-0">
+                                  <circle cx="16" cy="16" r={R} fill="none" stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeWidth="3" />
+                                  <circle cx="16" cy="16" r={R} fill="none"
+                                    stroke={value > 80 ? "#ef4444" : value > 60 ? "#f59e0b" : "#3b82f6"}
+                                    strokeWidth="3" strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+                                    style={{ transition: "stroke-dasharray 0.6s ease" }} />
+                                </svg>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex justify-between items-baseline">
+                                    <span className="text-[11px] font-semibold text-muted-foreground">{label}</span>
+                                    <span className={`text-xs font-bold ${textClass}`}>{value}%</span>
+                                  </div>
+                                  <div className="mt-1 h-1 bg-white dark:bg-slate-700 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full ${barClass} transition-all duration-700`} style={{ width: `${value}%` }} />
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    ) : r.status === 'online' ? (
-                      <div className="text-center py-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/50">
-                        <p className="text-[11px] text-slate-400">
-                          Live metrics load on open
-                        </p>
-                      </div>
-                    ) : null}
+                            )
+                          })}
+                        </div>
+                      )
+                    })()}
 
                     {/* Tags */}
                     {r.tags && r.tags.length > 0 && (

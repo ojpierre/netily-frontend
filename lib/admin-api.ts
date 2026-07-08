@@ -1159,8 +1159,8 @@ async activateService(
     return this.request<PaginatedResponse<RouterEvent>>(`/network/routers/${id}/events/${queryString}`)
   }
 
-  async getRouterUsers(id: number): Promise<{ active_users: number; total_users: number; users: any[] }> {
-    return this.request<{ active_users: number; total_users: number; users: any[] }>(`/network/routers/${id}/users/`)
+  async getRouterUsers(id: number): Promise<{ hotspot_users: number; pppoe_users: number; total: number }> {
+    return this.request<{ hotspot_users: number; pppoe_users: number; total: number }>(`/network/routers/${id}/users/`)
   }
 
   async syncRouterUsers(id: number): Promise<{ message: string; synced_count: number }> {
