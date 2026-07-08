@@ -225,6 +225,9 @@ const getPlatformAdminEmails = (): string[] =>
 // Get environment variable (inlined at build time for client)
 const ENV_API_URL = process.env.NEXT_PUBLIC_API_URL
 const ENV_API_PORT = process.env.NEXT_PUBLIC_API_PORT || '8000'
+const debugAdminApi = (...args: unknown[]) => {
+  if (process.env.NODE_ENV !== 'production') console.log(...args)
+}
 
 // Smart API URL detection
 const getBaseUrl = (): string => {
@@ -236,20 +239,20 @@ const getBaseUrl = (): string => {
   const hostname = window.location.hostname
   const protocol = window.location.protocol
   
-  console.log('[AdminAPI] Detecting URL for hostname:', hostname)
+  debugAdminApi('[AdminAPI] Detecting URL for hostname:', hostname)
   
   // Case 1: Local development with subdomains (e.g., yellow2.localhost)
   // Use same hostname with different port for API
   if (hostname.endsWith('.localhost') || hostname === 'localhost') {
     const url = `${protocol}//${hostname}:${ENV_API_PORT}/api/v1`
-    console.log('[AdminAPI] Local subdomain mode:', url)
+    debugAdminApi('[AdminAPI] Local subdomain mode:', url)
     return url
   }
   
   // Case 2: IP-based local development (127.0.0.1, 192.168.x.x)
   if (hostname.startsWith('127.') || hostname.startsWith('192.168.')) {
     const url = `${protocol}//${hostname}:${ENV_API_PORT}/api/v1`
-    console.log('[AdminAPI] IP-based local mode:', url)
+    debugAdminApi('[AdminAPI] IP-based local mode:', url)
     return url
   }
   
@@ -258,7 +261,7 @@ const getBaseUrl = (): string => {
   if (hostname.includes('ngrok') || hostname.includes('pinggy') || 
       hostname.includes('loca.lt') || hostname.includes('localhost.run')) {
     if (ENV_API_URL && ENV_API_URL.trim() !== '') {
-      console.log('[AdminAPI] Tunnel mode, using ENV_API_URL:', ENV_API_URL)
+      debugAdminApi('[AdminAPI] Tunnel mode, using ENV_API_URL:', ENV_API_URL)
       return ENV_API_URL
     }
     console.warn('[AdminAPI] WARNING: Using tunnel but NEXT_PUBLIC_API_URL not set!')
@@ -282,18 +285,18 @@ const getBaseUrl = (): string => {
     // Same-origin: pink4.netily.co.ke/api/v1/... → nginx → Django
     // OR: bentrextechnologies.com/api/v1/... → nginx → Django
     const url = `${protocol}//${hostname}/api/v1`
-    console.log('[AdminAPI] Tenant domain (same-origin):', url)
+    debugAdminApi('[AdminAPI] Tenant domain (same-origin):', url)
     return url
   }
 
   if (ENV_API_URL && ENV_API_URL.trim() !== '') {
-    console.log('[AdminAPI] Production mode, using ENV_API_URL:', ENV_API_URL)
+    debugAdminApi('[AdminAPI] Production mode, using ENV_API_URL:', ENV_API_URL)
     return ENV_API_URL
   }
   
   // Fallback: Use subdomain detection from subdomain.ts
   const dynamicUrl = getApiBaseUrl()
-  console.log('[AdminAPI] Fallback to dynamic URL:', dynamicUrl)
+  debugAdminApi('[AdminAPI] Fallback to dynamic URL:', dynamicUrl)
   return dynamicUrl
 }
 
@@ -603,7 +606,7 @@ class AdminApiService {
     otp?: { challenge_id: string; otp_code: string }
   ): Promise<AdminLoginResponse | AdminLoginChallengeResponse> {
     const loginUrl = `${this.baseUrl}/core/auth/login/`
-    console.log('AdminAPI login: Attempting to fetch:', loginUrl)
+    debugAdminApi('AdminAPI login: Attempting to fetch:', loginUrl)
     
     const response = await fetch(loginUrl, {
       method: 'POST',
@@ -626,13 +629,13 @@ class AdminApiService {
     }
     
     // Debug: log the user data to see what fields are returned
-    console.log('Login response user:', (data as AdminLoginResponse).user)
+    debugAdminApi('Login response user:', (data as AdminLoginResponse).user)
     
     // Check for admin privileges - support multiple field formats
     // Backend may use role field or is_staff/is_superuser
     const user = (data as AdminLoginResponse).user as any
     if (!this.isAdminLikeUser(user)) {
-      console.log('Access check failed:', { role: user?.role, is_staff: user?.is_staff, is_superuser: user?.is_superuser })
+      debugAdminApi('Access check failed:', { role: user?.role, is_staff: user?.is_staff, is_superuser: user?.is_superuser })
       throw new Error('Access denied. Admin privileges required.')
     }
     

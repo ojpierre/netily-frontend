@@ -12,7 +12,7 @@ interface RoleGuardProps extends AccessRule {
 
 const list = (items?: string[]) => items?.map((item) => item.replace("_", " ")).join(", ")
 
-export function RoleGuard({ allowedRoles, allowedDepartments, areaLabel = "this page", children }: RoleGuardProps) {
+export function RoleGuard({ allowedRoles, allowedDepartments, href, pathPrefix, areaLabel = "this page", children }: RoleGuardProps) {
   const { user, loading } = useAdminAuth()
 
   if (loading) {
@@ -23,7 +23,7 @@ export function RoleGuard({ allowedRoles, allowedDepartments, areaLabel = "this 
     )
   }
 
-  const rule = { allowedRoles, allowedDepartments }
+  const rule = { allowedRoles, allowedDepartments, href, pathPrefix }
   if (canAccess(user, rule)) return <>{children}</>
 
   return (

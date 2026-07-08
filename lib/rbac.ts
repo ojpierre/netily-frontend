@@ -65,7 +65,7 @@ export const getActionsForPath = (allowed: string[], pathPrefix: string): PageAc
 // ─────────────────────────────────────────────────────────────
 // Runtime state – loaded once from backend at app boot
 // ─────────────────────────────────────────────────────────────
-const normalize = (value?: string | null) => String(value || "").trim().toLowerCase()
+const normalize = (value?: string | null) => String(value || "").trim().toLowerCase().replace(/[\s-]+/g, "_")
 let roleAccessPolicies: Record<string, string[]> = {}
 
 export const ADMIN_ROLES = ["admin", "super_admin"]
@@ -105,11 +105,13 @@ export const canAccess = (user: RbacUser | null | undefined, rule?: AccessRule):
   if (ADMIN_ROLES.includes(role) || ADMIN_ROLES.includes(accessLevel)) return true
 
   const targetPath = rule.pathPrefix || rule.href
-  if (targetPath && roleAccessPolicies[role]) {
-    const granted = getPaths(roleAccessPolicies[role])
-    if (granted.length > 0) {
-      return granted.some((path) => targetPath === path || targetPath.startsWith(`${path}/`))
-    }
+  if (targetPath && Object.prototype.hasOwnProperty.call(roleAccessPolicies, role)) {
+    const granted = roleAccessPolicies[role]
+    return granted.some((token) => {
+      const [path, action] = token.split("::")
+      if (action) return path === targetPath && action === "view"
+      return targetPath === path || targetPath.startsWith(`${path}/`)
+    })
   }
 
   const allowedRoles = rule.allowedRoles?.map(normalize) || []
@@ -135,7 +137,10 @@ export const canDo = (
   const accessLevel = normalize(user.access_level)
   if (ADMIN_ROLES.includes(role) || ADMIN_ROLES.includes(accessLevel)) return true
 
+  const hasPolicy = Object.prototype.hasOwnProperty.call(roleAccessPolicies, role)
   const policies = roleAccessPolicies[role]
+  if (!hasPolicy) return true
+  if (!policies || policies.length === 0) return false
   if (!policies || policies.length === 0) return true // No policy yet → allow (graceful default)
 
   // Check encoded action token

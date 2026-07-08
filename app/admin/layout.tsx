@@ -264,7 +264,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Debug logging
   useEffect(() => {
-    console.log('AdminLayout state:', { loading, user: user?.email || user?.username, isPublicPage, mounted, pathname })
+    if (process.env.NODE_ENV !== "production") {
+      console.log('AdminLayout state:', { loading, user: user?.email || user?.username, isPublicPage, mounted, pathname })
+    }
   }, [loading, user, isPublicPage, mounted, pathname])
 
   // FORCE REDIRECT IF NO USER FOUND
@@ -573,6 +575,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               {routeAccessRule ? (
                 <RoleGuard
                   areaLabel={routeAccessRule.label}
+                  pathPrefix={routeAccessRule.pathPrefix}
                   allowedRoles={routeAccessRule.allowedRoles}
                   allowedDepartments={routeAccessRule.allowedDepartments}
                 >

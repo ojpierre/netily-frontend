@@ -34,6 +34,7 @@ import {
   encodeAction,
   getPaths,
   getActionsForPath,
+  setRoleAccessPolicies,
   PAGE_ACTION_LABELS,
   type PageAction,
   type RouteAccessRule,
@@ -973,6 +974,10 @@ function EditPermissionsModal({ open, onOpenChange, role, onSave }: EditPermissi
     const tokens: string[] = []
     for (const [pathPrefix, state] of pageStates.entries()) {
       if (!state.enabled) continue
+      const rule = adminRouteAccessRules.find((item) => item.pathPrefix === pathPrefix)
+      if (rule?.actions?.includes("view") && !state.actions.has("view")) {
+        tokens.push(encodeAction(pathPrefix, "view"))
+      }
       for (const action of state.actions) {
         tokens.push(encodeAction(pathPrefix, action))
       }
@@ -1194,7 +1199,14 @@ export default function StaffManagementPage() {
   const saveRoleAccess = async (role: StaffRole, allowedTokens: string[]) => {
     try {
       const updated = await adminApi.updateRoleAccessPolicy(role, allowedTokens)
-      setRolePolicies((current) => ({ ...current, [role]: updated.allowed_paths || [] }))
+      const nextPolicies = { ...rolePolicies, [role]: updated.allowed_paths || [] }
+      setRolePolicies(nextPolicies)
+      setRoleAccessPolicies(
+        Object.entries(nextPolicies).map(([policyRole, allowed_paths]) => ({
+          role: policyRole,
+          allowed_paths,
+        })),
+      )
       window.dispatchEvent(new CustomEvent("netily-role-access-updated"))
       toast.success("Role permissions updated", {
         description: "Staff navigation and protected pages will now use the new access map.",
