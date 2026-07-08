@@ -1817,6 +1817,15 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                 <p className="text-sm text-amber-600 mt-1">Time remaining to complete payment</p>
               </div>
 
+              {/* NEW: STK cancel warning */}
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-red-600 text-left">
+                  Do not cancel this M-Pesa prompt more than 3 times. Repeated cancellations
+                  may permanently block you from making further purchases.
+                </p>
+              </div>
+
               <div className={`${theme.planBg} rounded-xl p-4 text-left space-y-2 border ${theme.planBorder}`}>
                 <div className="flex justify-between">
                   <span className={theme.mutedText}>Plan</span>
