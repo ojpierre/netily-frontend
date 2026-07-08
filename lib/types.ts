@@ -3254,6 +3254,7 @@ export interface CustomerRADIUSCredentials {
   customer: string
   customer_name: string
   customer_code: string
+  customer_phone?: string
   username: string
   password?: string  // Write-only in non-detail views
   router: number | null

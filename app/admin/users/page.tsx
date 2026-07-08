@@ -590,6 +590,9 @@ export default function UsersPage() {
     }
   }
 
+  // ============================================================
+  // FIX: loadExpiredUsersFromRADIUS - uses customer_phone from backend
+  // ============================================================
   const loadExpiredUsersFromRADIUS = async () => {
     if (expiredUsersLoading) return
     try {
@@ -633,6 +636,7 @@ export default function UsersPage() {
         return
       }
       
+      // FIX: Use customer_phone from backend (was hardcoded "")
       const mapped = allResults.map((cred: any) => ({
         id: cred.customer_code || `CRED-${cred.id}`,
         customerId: parseInt(String(cred.customer)),
@@ -640,7 +644,7 @@ export default function UsersPage() {
         billingAccountNumber: undefined,
         name: cred.customer_name || "Unknown",
         email: "",
-        phone: "",
+        phone: cred.customer_phone || "",   // FIX: was hardcoded ""
         location: "",
         status: "expired" as UserStatus,
         serviceStatus: "ACTIVE",
@@ -1831,8 +1835,20 @@ export default function UsersPage() {
     setShowUserSmsDialog(true)
   }
 
+  // ============================================================
+  // FIX: handleSendUserSms - belt-and-braces phone guard
+  // ============================================================
   const handleSendUserSms = async () => {
     if (!userSmsTarget || !userSmsMessage.trim()) return
+    
+    // ============================================================
+    // FIX: Belt-and-braces guard - prevent 400 from missing phone
+    // ============================================================
+    if (!userSmsTarget.phone || userSmsTarget.phone === "No phone") {
+      toast.error("This user has no phone number on file — cannot send SMS")
+      return
+    }
+    
     try {
       setSendingUserSms(true)
       const resolved = resolveMessageVariables(userSmsMessage, userSmsTarget)
@@ -1847,8 +1863,20 @@ export default function UsersPage() {
     }
   }
 
+  // ============================================================
+  // FIX: handleSendSingleSms - belt-and-braces phone guard
+  // ============================================================
   const handleSendSingleSms = async () => {
     if (!smsTarget || !smsMessage.trim()) return
+    
+    // ============================================================
+    // FIX: Belt-and-braces guard - prevent 400 from missing phone
+    // ============================================================
+    if (!smsTarget.phone || smsTarget.phone === "No phone") {
+      toast.error("This user has no phone number on file — cannot send SMS")
+      return
+    }
+    
     try {
       setSendingSms(true)
       
