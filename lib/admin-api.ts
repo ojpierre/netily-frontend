@@ -4106,6 +4106,20 @@ async activateService(
     return this.request(`/radius/credentials/${id}/renew/`, { method: 'POST' })
   }
 
+    /**
+   * Kick a customer off their router right now (no RADIUS disable, no
+   * expiration change). Router auto-reconnects them — acts as a "refresh".
+   */
+  async refreshInternet(credentialId: string): Promise<{
+    status: 'success' | 'not_connected' | 'error'
+    message: string
+    details?: { hotspot?: boolean; pppoe?: boolean }
+  }> {
+    return this.request(`/radius/credentials/${credentialId}/refresh_internet/`, {
+      method: 'POST',
+    })
+  }
+
   /**
    * Update RADIUS credentials for a customer by customer ID
    * This is a convenience method that first fetches the credential ID

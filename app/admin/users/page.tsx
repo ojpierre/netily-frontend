@@ -1430,6 +1430,28 @@ export default function UsersPage() {
     }
   }
 
+  // ============================================================
+  // NEW: Refresh Internet handler
+  // ============================================================
+  const handleRefreshInternet = async (user: User) => {
+    if (!user.radiusCredentials?.id) {
+      toast.error("No RADIUS credentials found for this user")
+      return
+    }
+    try {
+      const result = await adminApi.refreshInternet(user.radiusCredentials.id)
+      if (result.status === 'success') {
+        toast.success(result.message)
+      } else if (result.status === 'not_connected') {
+        toast.info(result.message)
+      } else {
+        toast.error(result.message || 'Failed to refresh internet')
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to refresh internet')
+    }
+  }
+
   const handleEditIP = async (user: User) => {
     setUserToEditIP(user)
     setSelectedNewIPId("")
@@ -2685,7 +2707,6 @@ export default function UsersPage() {
                       </TableHeader>
                       <TableBody>
                         {onlineSessions.map((session) => (
-                          // FIX: Removed whileHover={{ backgroundColor: "#faf5ff" }}
                           <motion.tr
                             key={session.radacctid}
                             initial={{ opacity: 0 }}
@@ -2768,7 +2789,6 @@ export default function UsersPage() {
                       </TableBody>
                     </Table>
                   </div>
-                  {/* STEP 5: Replace pagination with sentinel */}
                   <div ref={onlineObserverTarget} className="flex items-center justify-center py-6">
                     {onlineLoadingMore && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -2869,7 +2889,6 @@ export default function UsersPage() {
                         const daysLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
                         const hoursLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60))
                         return (
-                          // FIX: Removed whileHover={{ backgroundColor: "#faf5ff" }}
                           <motion.tr
                             key={user.id}
                             initial={{ opacity: 0 }}
@@ -3018,6 +3037,18 @@ export default function UsersPage() {
                                       Disconnect
                                     </DropdownMenuItem>
                                   )}
+                                  {/* ============================================================
+                                      NEW: Refresh Internet dropdown item in Active Subs tab
+                                      ============================================================ */}
+                                  {user.radiusCredentials && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleRefreshInternet(user)}
+                                      className="text-blue-600 dark:text-blue-400 dark:hover:bg-slate-800"
+                                    >
+                                      <RefreshCw className="w-4 h-4 mr-2" />
+                                      Refresh Internet
+                                    </DropdownMenuItem>
+                                  )}
                                   {perms.canDelete && (
                                     <>
                                       <DropdownMenuSeparator className="dark:bg-slate-700" />
@@ -3115,7 +3146,6 @@ export default function UsersPage() {
                             )
                             return hotspotSubFilter === "active" ? isActive : !isActive
                           })
-                          // STEP 6: Change to growing slice
                           const paginated = filtered.slice(0, hotspotPage * hotspotPageSize)
                           return paginated.map((item) => {
                             const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
@@ -3125,11 +3155,9 @@ export default function UsersPage() {
                               ? new Date(item.expiry_date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
                               : '—'
                             
-                            // Snippet B: Replace daysLeft with timeRemaining
                             const timeRemaining = item.expiry_date ? formatTimeRemaining(item.expiry_date) : null
 
                             return (
-                              // FIX: Removed whileHover={{ backgroundColor: "#faf5ff" }}
                               <motion.tr
                                 key={`${hotspotIdentifier}-${item.session_id || item.subscribed_at}`}
                                 initial={{ opacity: 0 }}
@@ -3168,7 +3196,6 @@ export default function UsersPage() {
                                     <Badge className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs">Expired</Badge>
                                   )}
                                 </TableCell>
-                                {/* Snippet C: Replace expiry table cell with new JSX */}
                                 <TableCell>
                                   <div>
                                     <p className="text-sm dark:text-slate-300">{expiryLabel}</p>
@@ -3213,7 +3240,6 @@ export default function UsersPage() {
                     </Table>
                   </div>
 
-                  {/* STEP 6: Replace pagination with sentinel */}
                   <div ref={hotspotObserverTarget} className="flex items-center justify-center py-6">
                     {(() => {
                       const filtered = activeSubscriptions.hotspot.filter(item => {
@@ -3323,7 +3349,6 @@ export default function UsersPage() {
                       <TableBody>
                         {filteredUsers.map((user) => {
                           return (
-                            // FIX: Removed whileHover={{ backgroundColor: "#faf5ff" }}
                             <motion.tr
                               key={user.id}
                               initial={{ opacity: 0 }}
@@ -3459,6 +3484,18 @@ export default function UsersPage() {
                                         Disconnect
                                       </DropdownMenuItem>
                                     )}
+                                    {/* ============================================================
+                                        NEW: Refresh Internet dropdown item in main table
+                                        ============================================================ */}
+                                    {user.radiusCredentials && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleRefreshInternet(user)}
+                                        className="text-blue-600 dark:text-blue-400 dark:hover:bg-slate-800"
+                                      >
+                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                        Refresh Internet
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuSeparator className="dark:bg-slate-700" />
                                     <DropdownMenuItem 
                                       onClick={() => handleDeleteUser(user)}
@@ -3477,25 +3514,20 @@ export default function UsersPage() {
                     </Table>
                   </div>
 
-                  {/* ============================================================
-                      FIX 7: Infinite scroll sentinel - replaces pagination buttons
-                      ============================================================ */}
-                  {statusFilter !== "expired" && (
-                    <div ref={observerTarget} className="flex items-center justify-center py-6">
-                      {loadingMore && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Loading more users...
-                        </div>
-                      )}
-                      {!hasMore && users.length > 0 && (
-                        <p className="text-xs text-slate-400">You've reached the end</p>
-                      )}
-                      {!loadingMore && !hasMore && users.length === 0 && (
-                        <p className="text-xs text-slate-400">No users to display</p>
-                      )}
-                    </div>
-                  )}
+                  <div ref={observerTarget} className="flex items-center justify-center py-6">
+                    {loadingMore && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading more users...
+                      </div>
+                    )}
+                    {!hasMore && users.length > 0 && (
+                      <p className="text-xs text-slate-400">You've reached the end</p>
+                    )}
+                    {!loadingMore && !hasMore && users.length === 0 && (
+                      <p className="text-xs text-slate-400">No users to display</p>
+                    )}
+                  </div>
                 </>
               )}
             </CardContent>
