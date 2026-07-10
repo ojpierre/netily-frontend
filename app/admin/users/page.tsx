@@ -374,11 +374,10 @@ export default function UsersPage() {
   const [serverPage, setServerPage] = useState(1)
   
   // ============================================================
-  // FIX 1: Infinite scroll state with mutating guard
+  // FIX 1: Infinite scroll state
   // ============================================================
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
-  const [mutating, setMutating] = useState(false)
   const observerTarget = useRef<HTMLDivElement | null>(null)
   
   // Online tab infinite scroll
@@ -871,7 +870,7 @@ export default function UsersPage() {
   }, [selectedPlanPool])
 
   // ============================================================
-  // FIX 2: loadUsers with append parameter and stale page self-healing
+  // FIX 2: loadUsers with append parameter for infinite scroll
   // ============================================================
   const loadUsers = async (page = 1, search?: string, status?: string, append = false) => {
     try {
@@ -910,26 +909,9 @@ export default function UsersPage() {
       setUsers(prev => append ? [...prev, ...mappedUsers] : mappedUsers)
       setTotalCount(response.count)
       setHasMore(page * 50 < response.count)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load users:', err)
-      
-      // ============================================================
-      // FIX 3: Self-healing for stale page errors
-      // ============================================================
-      const isInvalidPage = /invalid page/i.test(err?.message || '')
-      if (isInvalidPage && page !== 1) {
-        // Stale pagination race — self-heal by resetting to page 1
-        console.warn('⚠️ Stale page detected, resetting to page 1')
-        setHasMore(false)
-        setServerPage(1)
-        // Retry page 1 silently without showing error
-        await loadUsers(1, search, status, false)
-        return
-      }
-      
-      if (!append) {
-        setError("Failed to load users. Please try again.")
-      }
+      setError("Failed to load users. Please try again.")
     } finally {
       setLoading(false)
       setLoadingMore(false)
@@ -937,17 +919,17 @@ export default function UsersPage() {
   }
 
   // ============================================================
-  // FIX 4: loadMoreUsers - guards against mutating state
+  // FIX 3: loadMoreUsers - triggers next page load
   // ============================================================
   const loadMoreUsers = () => {
-    if (loadingMore || loading || !hasMore || mutating) return
+    if (loadingMore || loading || !hasMore) return
     const nextPage = serverPage + 1
     setServerPage(nextPage)
     loadUsers(nextPage, searchQuery, statusFilter, true)
   }
 
   // ============================================================
-  // FIX 5: Infinite scroll observer effect for PPPoE/Static
+  // FIX 4: Infinite scroll observer effect for PPPoE/Static
   // ============================================================
   useEffect(() => {
     const target = observerTarget.current
@@ -960,7 +942,7 @@ export default function UsersPage() {
     )
     observer.observe(target)
     return () => observer.disconnect()
-  }, [loadingMore, loading, hasMore, serverPage, searchQuery, statusFilter, mutating])
+  }, [loadingMore, loading, hasMore, serverPage, searchQuery, statusFilter])
 
   // ============================================================
   // STEP 3: Add observer effects for Online and Hotspot
@@ -997,28 +979,21 @@ export default function UsersPage() {
   }, [activeTab, activeSubscriptions.hotspot, hotspotSubFilter])
 
   // ============================================================
-  // FIX 6: handleRefresh - resets pagination state with mutating guard
+  // FIX 5: handleRefresh - resets pagination state
   // ============================================================
   const handleRefresh = async () => {
-    if (refreshing) return
     setRefreshing(true)
-    setMutating(true)
     setServerPage(1)
-    setHasMore(false)
+    setHasMore(true)
     await Promise.all([
       loadUsers(1, searchQuery, statusFilter, false),
       loadOnlineMap(),
       loadServerStats(),
       loadStatusCounts(),
     ])
-    setHasMore(true)
-    setMutating(false)
     setRefreshing(false)
   }
 
-  // ============================================================
-  // FIX 7: handleCreateCustomer - resets pagination with mutating guard
-  // ============================================================
   const handleCreateCustomer = async () => {
     if (!newCustomerForm.first_name || !newCustomerForm.last_name) {
       toast.error("First name and last name are required")
@@ -1035,8 +1010,6 @@ export default function UsersPage() {
 
     try {
       setCreating(true)
-      setMutating(true)
-      
       const customerData = {
         first_name: newCustomerForm.first_name,
         last_name: newCustomerForm.last_name,
@@ -1149,21 +1122,15 @@ export default function UsersPage() {
       setIpSearchQuery("")
       setShowAddUserDialog(false)
       
-      // ============================================================
-      // FIX: Reset pagination BEFORE reload
-      // ============================================================
-      setServerPage(1)
-      setHasMore(false)
       await loadUsers(1, searchQuery, statusFilter, false)
+      setServerPage(1)
       setHasMore(true)
       await loadServerStats()
       await loadStatusCounts()
-      setMutating(false)
       
     } catch (err: any) {
       console.error('Failed to create customer:', err)
       toast.error(err.message || "Failed to create customer. Please try again.")
-      setMutating(false)
     } finally {
       setCreating(false)
     }
@@ -1364,18 +1331,14 @@ export default function UsersPage() {
   }, [onlineSessions])
 
   // ============================================================
-  // FIX 8: Debounced search - resets pagination with mutating guard
+  // FIX 6: Debounced search - resets pagination
   // ============================================================
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
     searchDebounceRef.current = setTimeout(() => {
-      setMutating(true)
       setServerPage(1)
-      setHasMore(false)
-      loadUsers(1, searchQuery, statusFilter, false).finally(() => {
-        setHasMore(true)
-        setMutating(false)
-      })
+      setHasMore(true)
+      loadUsers(1, searchQuery, statusFilter, false)
     }, 400)
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
@@ -1570,8 +1533,6 @@ export default function UsersPage() {
 
     try {
       setChangePlanSaving(true)
-      setMutating(true)
-      
       const result = await adminApi.changeCustomerPlan(
         userToChangePlan.customerId,
         parseInt(selectedChangePlanId, 10),
@@ -1597,17 +1558,11 @@ export default function UsersPage() {
 
       setShowChangePlanDialog(false)
       setUserToChangePlan(null)
-      
-      setServerPage(1)
-      setHasMore(false)
-      await loadUsers(1, searchQuery, statusFilter, false)
-      setHasMore(true)
+      await loadUsers(serverPage, searchQuery, statusFilter, false)
       await loadServerStats()
-      setMutating(false)
     } catch (err: any) {
       console.error("Failed to change plan:", err)
       toast.error(err.message || "Failed to change plan")
-      setMutating(false)
     } finally {
       setChangePlanSaving(false)
     }
@@ -1620,8 +1575,6 @@ export default function UsersPage() {
     }
     try {
       setSavingIP(true)
-      setMutating(true)
-      
       const result = await adminApi.changeServiceIP(
         userToEditIP.customerId,
         userToEditIP.serviceId,
@@ -1631,16 +1584,10 @@ export default function UsersPage() {
       setShowEditIPDialog(false)
       setUserToEditIP(null)
       setEditIPPoolId(null)
-      
-      setServerPage(1)
-      setHasMore(false)
-      await loadUsers(1, searchQuery, statusFilter, false)
-      setHasMore(true)
+      await loadUsers(serverPage, searchQuery, statusFilter, false)
       await loadOnlineMap()
-      setMutating(false)
     } catch (err: any) {
       toast.error(err.message || 'Failed to change IP address')
-      setMutating(false)
     } finally {
       setSavingIP(false)
     }
@@ -1663,7 +1610,6 @@ export default function UsersPage() {
     }
     try {
       setExtending(true)
-      setMutating(true)
       
       if (extendMode === "date" && extendManualDate) {
         const timePart = extendManualTime || "23:59"
@@ -1708,16 +1654,10 @@ export default function UsersPage() {
       setExtendManualDate("")
       setExtendManualTime("23:59")
       setExtendMode("duration")
-      
-      setServerPage(1)
-      setHasMore(false)
-      await loadUsers(1, searchQuery, statusFilter, false)
-      setHasMore(true)
+      await loadUsers(serverPage, searchQuery, statusFilter, false)
       await loadServerStats()
-      setMutating(false)
     } catch (err: any) {
       toast.error(err.message || 'Failed to extend subscription')
-      setMutating(false)
     } finally {
       setExtending(false)
     }
@@ -1732,26 +1672,13 @@ export default function UsersPage() {
     if (!userToDelete) return
     try {
       setDeleting(true)
-      setMutating(true)
-      
       await adminApi.deleteCustomer(userToDelete.customerId)
       toast.success(`${userToDelete.name} deleted successfully. RADIUS credentials cleaned up.`)
       setShowDeleteConfirmDialog(false)
       setUserToDelete(null)
-      
-      setServerPage(1)
-      setHasMore(false)
-      await Promise.all([
-        loadUsers(1, searchQuery, statusFilter, false),
-        loadOnlineMap(),
-        loadServerStats(),
-        loadStatusCounts()
-      ])
-      setHasMore(true)
-      setMutating(false)
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter, false), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete user')
-      setMutating(false)
     } finally {
       setDeleting(false)
     }
@@ -1762,36 +1689,15 @@ export default function UsersPage() {
     const usersToDelete = enrichedUsers.filter(u => selectedUsers.includes(u.id))
     try {
       setDeleting(true)
-      setMutating(true)
-      
       for (const user of usersToDelete) {
         await adminApi.deleteCustomer(user.customerId)
       }
       toast.success(`${usersToDelete.length} user(s) deleted successfully`)
       setSelectedUsers([])
-      
-      setServerPage(1)
-      setHasMore(false)
-      await Promise.all([
-        loadUsers(1, searchQuery, statusFilter, false),
-        loadOnlineMap(),
-        loadServerStats(),
-        loadStatusCounts()
-      ])
-      setHasMore(true)
-      setMutating(false)
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter, false), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete some users')
-      setServerPage(1)
-      setHasMore(false)
-      await Promise.all([
-        loadUsers(1, searchQuery, statusFilter, false),
-        loadOnlineMap(),
-        loadServerStats(),
-        loadStatusCounts()
-      ])
-      setHasMore(true)
-      setMutating(false)
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter, false), loadOnlineMap(), loadServerStats(), loadStatusCounts()])
     } finally {
       setDeleting(false)
     }
@@ -1804,20 +1710,12 @@ export default function UsersPage() {
     }
     try {
       setActivating(true)
-      setMutating(true)
-      
       await adminApi.activateService(user.customerId, user.serviceId)
       toast.success(`${user.name} activated! Expiration timer starts now.`)
-      
-      setServerPage(1)
-      setHasMore(false)
-      await loadUsers(1, searchQuery, statusFilter, false)
-      setHasMore(true)
+      await loadUsers(serverPage, searchQuery, statusFilter, false)
       await loadServerStats()
-      setMutating(false)
     } catch (err: any) {
       toast.error(err.message || 'Failed to activate user')
-      setMutating(false)
     } finally {
       setActivating(false)
     }
@@ -1826,23 +1724,15 @@ export default function UsersPage() {
   const handleToggleRadius = async (user: User, enable: boolean) => {
     try {
       setTogglingRadius(true)
-      setMutating(true)
-      
       await adminApi.toggleRadius(
         user.customerId,
         enable,
         enable ? 'Enabled via admin panel' : 'Disabled via admin panel'
       )
       toast.success(`RADIUS ${enable ? 'enabled' : 'disabled'} for ${user.name}`)
-      
-      setServerPage(1)
-      setHasMore(false)
-      await loadUsers(1, searchQuery, statusFilter, false)
-      setHasMore(true)
-      setMutating(false)
+      await loadUsers(serverPage, searchQuery, statusFilter, false)
     } catch (err: any) {
       toast.error(err.message || `Failed to ${enable ? 'enable' : 'disable'} RADIUS`)
-      setMutating(false)
     } finally {
       setTogglingRadius(false)
     }
@@ -1867,7 +1757,6 @@ export default function UsersPage() {
     
     try {
       setUpdating(true)
-      setMutating(true)
       
       await adminApi.updateCustomer(selectedUser.customerId, {
         first_name: editForm.first_name,
@@ -1898,17 +1787,11 @@ export default function UsersPage() {
       
       toast.success('User updated successfully!')
       setShowEditUserDialog(false)
-      
-      setServerPage(1)
-      setHasMore(false)
-      await loadUsers(1, searchQuery, statusFilter, false)
-      setHasMore(true)
-      setMutating(false)
+      await loadUsers(serverPage, searchQuery, statusFilter, false)
       
     } catch (err: any) {
       console.error('Failed to update user:', err)
       toast.error(err.message || 'Failed to update user')
-      setMutating(false)
     } finally {
       setUpdating(false)
     }
@@ -2155,10 +2038,6 @@ export default function UsersPage() {
                         placeholder="John"
                         value={newCustomerForm.first_name}
                         onChange={(e) => setNewCustomerForm({...newCustomerForm, first_name: e.target.value})}
-                        name="new-customer-first-name"
-                        id="new-customer-first-name"
-                        autoComplete="off"
-                        data-lpignore="true"
                       />
                     </div>
                     <div className="space-y-1">
@@ -2167,10 +2046,6 @@ export default function UsersPage() {
                         placeholder="Doe"
                         value={newCustomerForm.last_name}
                         onChange={(e) => setNewCustomerForm({...newCustomerForm, last_name: e.target.value})}
-                        name="new-customer-last-name"
-                        id="new-customer-last-name"
-                        autoComplete="off"
-                        data-lpignore="true"
                       />
                     </div>
                   </div>
@@ -2181,10 +2056,6 @@ export default function UsersPage() {
                         placeholder="07XXXXXXXX"
                         value={newCustomerForm.phone}
                         onChange={(e) => setNewCustomerForm({...newCustomerForm, phone: e.target.value})}
-                        name="new-customer-phone"
-                        id="new-customer-phone"
-                        autoComplete="off"
-                        data-lpignore="true"
                       />
                     </div>
                     <div className="space-y-1">
@@ -2193,10 +2064,6 @@ export default function UsersPage() {
                         placeholder="john@example.com"
                         value={newCustomerForm.email}
                         onChange={(e) => setNewCustomerForm({...newCustomerForm, email: e.target.value})}
-                        name="new-customer-email"
-                        id="new-customer-email"
-                        autoComplete="off"
-                        data-lpignore="true"
                       />
                     </div>
                   </div>
@@ -2206,10 +2073,6 @@ export default function UsersPage() {
                       placeholder="e.g. Westlands, Nairobi"
                       value={newCustomerForm.location}
                       onChange={(e) => setNewCustomerForm({...newCustomerForm, location: e.target.value})}
-                      name="new-customer-location"
-                      id="new-customer-location"
-                      autoComplete="off"
-                      data-lpignore="true"
                     />
                   </div>
                   <div className="space-y-1">
@@ -2219,10 +2082,6 @@ export default function UsersPage() {
                       placeholder="Enter password for customer portal"
                       value={newCustomerForm.password}
                       onChange={(e) => setNewCustomerForm({...newCustomerForm, password: e.target.value})}
-                      name="new-customer-password"
-                      id="new-customer-password"
-                      autoComplete="off"
-                      data-lpignore="true"
                     />
                     <p className="text-xs text-muted-foreground">Used for customer portal login. Also used as RADIUS password if not specified below.</p>
                   </div>
@@ -2286,10 +2145,6 @@ export default function UsersPage() {
                             }
                           }}
                           className="flex-1"
-                          name="new-customer-ip-search"
-                          id="new-customer-ip-search"
-                          autoComplete="off"
-                          data-lpignore="true"
                         />
                       </div>
                       {availableIPsLoading ? (
@@ -2355,10 +2210,6 @@ export default function UsersPage() {
                           value={newCustomerForm.radius_username}
                           onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_username: e.target.value})}
                           className="font-mono text-sm"
-                          name="new-customer-radius-username"
-                          id="new-customer-radius-username"
-                          autoComplete="off"
-                          data-lpignore="true"
                         />
                         {newCustomerForm.phone && (
                           <Button
@@ -2385,10 +2236,6 @@ export default function UsersPage() {
                           value={newCustomerForm.radius_password}
                           onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_password: e.target.value})}
                           className="font-mono text-sm"
-                          name="new-customer-radius-password"
-                          id="new-customer-radius-password"
-                          autoComplete="off"
-                          data-lpignore="true"
                         />
                         <Button
                           type="button"
@@ -2486,10 +2333,6 @@ export default function UsersPage() {
                             placeholder="0.00"
                             value={newCustomerForm.initial_payment_amount || ''}
                             onChange={(e) => setNewCustomerForm({...newCustomerForm, initial_payment_amount: e.target.value})}
-                            name="new-customer-initial-payment-amount"
-                            id="new-customer-initial-payment-amount"
-                            autoComplete="off"
-                            data-lpignore="true"
                           />
                         </div>
                         <div className="space-y-1">
@@ -2498,22 +2341,12 @@ export default function UsersPage() {
                             placeholder="MPESA receipt / auto"
                             value={newCustomerForm.initial_payment_reference || ''}
                             onChange={(e) => setNewCustomerForm({...newCustomerForm, initial_payment_reference: e.target.value})}
-                            name="new-customer-initial-payment-ref"
-                            id="new-customer-initial-payment-ref"
-                            autoComplete="off"
-                            data-lpignore="true"
                           />
                         </div>
                       </div>
                     )}
                   </div>
                 )}
-
-                {/* ============================================================
-                    AUTOFILL FIX: Hidden decoy inputs to absorb Chrome autofill
-                    ============================================================ */}
-                <input type="text" style={{ display: 'none' }} autoComplete="username" />
-                <input type="password" style={{ display: 'none' }} autoComplete="new-password" />
 
                 <DialogFooter className="mt-4">
                   <Button variant="outline" onClick={() => setShowAddUserDialog(false)} disabled={creating}>
@@ -2754,13 +2587,7 @@ export default function UsersPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 bg-white dark:bg-slate-900 transition-all duration-300 focus:ring-4 focus:ring-violet-100 dark:focus:ring-violet-900/30 focus:border-violet-500"
-              name="users-page-search-query"
-              id="users-page-search-query"
               autoComplete="off"
-              data-lpignore="true"
-              data-form-type="other"
-              autoCorrect="off"
-              spellCheck={false}
             />
           </div>
           <Button variant="outline" className="shrink-0 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
@@ -3731,9 +3558,6 @@ export default function UsersPage() {
                     id="edit_first_name"
                     value={editForm.first_name}
                     onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
-                    name="edit-first-name"
-                    autoComplete="off"
-                    data-lpignore="true"
                   />
                 </div>
                 <div>
@@ -3742,9 +3566,6 @@ export default function UsersPage() {
                     id="edit_last_name"
                     value={editForm.last_name}
                     onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
-                    name="edit-last-name"
-                    autoComplete="off"
-                    data-lpignore="true"
                   />
                 </div>
               </div>
@@ -3755,9 +3576,6 @@ export default function UsersPage() {
                   type="email"
                   value={editForm.email}
                   onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  name="edit-email"
-                  autoComplete="off"
-                  data-lpignore="true"
                 />
               </div>
               <div>
@@ -3766,9 +3584,6 @@ export default function UsersPage() {
                   id="edit_phone"
                   value={editForm.phone}
                   onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                  name="edit-phone"
-                  autoComplete="off"
-                  data-lpignore="true"
                 />
               </div>
               <div>
@@ -3778,9 +3593,6 @@ export default function UsersPage() {
                   placeholder="e.g. Westlands, Nairobi"
                   value={editForm.location}
                   onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                  name="edit-location"
-                  autoComplete="off"
-                  data-lpignore="true"
                 />
               </div>
               
@@ -3798,9 +3610,6 @@ export default function UsersPage() {
                         value={editForm.radius_username}
                         onChange={(e) => setEditForm({ ...editForm, radius_username: e.target.value })}
                         placeholder="e.g., 712345678"
-                        name="edit-radius-username"
-                        autoComplete="off"
-                        data-lpignore="true"
                       />
                       <Button 
                         type="button" 
@@ -3822,9 +3631,6 @@ export default function UsersPage() {
                         value={editForm.radius_password}
                         onChange={(e) => setEditForm({ ...editForm, radius_password: e.target.value })}
                         placeholder="Enter new password or generate"
-                        name="edit-radius-password"
-                        autoComplete="off"
-                        data-lpignore="true"
                       />
                       <Button 
                         type="button" 
@@ -3839,9 +3645,6 @@ export default function UsersPage() {
                   </div>
                 </div>
               </div>
-              {/* Autofill decoy */}
-              <input type="text" style={{ display: 'none' }} autoComplete="username" />
-              <input type="password" style={{ display: 'none' }} autoComplete="new-password" />
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowEditUserDialog(false)}>
