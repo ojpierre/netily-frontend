@@ -437,6 +437,34 @@ export interface RouterEvent {
   created_at: string
 }
 
+// ==========================================
+// ROUTER REACHABILITY HISTORY (Heatmap)
+// ==========================================
+
+export interface RouterReachabilityIncident {
+  start: string
+  end: string
+  duration_minutes: number
+}
+
+export interface RouterReachabilityDay {
+  date: string
+  uptime_pct: number
+  incident_count: number
+  incidents: RouterReachabilityIncident[]
+}
+
+export interface RouterReachabilityResponse {
+  router_id: number
+  days: RouterReachabilityDay[]
+  summary: {
+    total_incidents: number
+    total_downtime_minutes: number
+    overall_uptime_pct: number
+    period_days: number
+  }
+}
+
 export interface Router {
   id: number
   name: string

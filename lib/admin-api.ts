@@ -51,6 +51,7 @@ import type {
   Router,
   RouterMetrics,
   RouterEvent,
+  RouterReachabilityResponse,
   RouterDashboardStats,
   RouterVPNStatus,
   // Router Live Management types
@@ -1161,6 +1162,32 @@ async activateService(
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
     return this.request<PaginatedResponse<RouterEvent>>(`/network/routers/${id}/events/${queryString}`)
   }
+ 
+    // ────────────────────────────────────────────────────────────────
+  // ROUTER REACHABILITY HISTORY (Heatmap / Uptime Chart)
+  // ────────────────────────────────────────────────────────────────
+  async getRouterReachability(id: number, days: number = 90): Promise<{
+    router_id: number
+    days: Array<{
+      date: string
+      uptime_pct: number
+      incident_count: number
+      incidents: Array<{
+        start: string
+        end: string
+        duration_minutes: number
+      }>
+    }>
+    summary: {
+      total_incidents: number
+      total_downtime_minutes: number
+      overall_uptime_pct: number
+      period_days: number
+    }
+  }> {
+    return this.request(`/network/routers/${id}/reachability/?days=${Math.min(days, 365)}`)
+  }
+
 
   async getRouterUsers(id: number): Promise<{ hotspot_users: number; pppoe_users: number; total: number }> {
     return this.request<{ hotspot_users: number; pppoe_users: number; total: number }>(`/network/routers/${id}/users/`)
