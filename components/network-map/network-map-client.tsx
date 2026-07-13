@@ -8,6 +8,7 @@ import "react-leaflet-cluster/lib/assets/MarkerCluster.Default.css"
 import L from "leaflet"
 import {
   MapContainer,
+  TileLayer,          // ← ADDED THIS (was missing)
   LayersControl,
   Marker,
   Polyline,
@@ -117,12 +118,13 @@ const DEFAULT_CENTER: [number, number] = [-1.286389, 36.817223] // Nairobi fallb
 function buildIcon(type: TypeConfig, faulty: boolean) {
   const size = 28
   const bg = faulty ? "#dc2626" : type.color
+  const ring = faulty ? "3px solid #fbbf24" : "2px solid #fff"
   return L.divIcon({
     className: "netily-map-marker",
     html: `
       <div style="position:relative;width:${size}px;height:${size}px;">
         ${faulty ? `<div class="netily-pulse" style="position:absolute;inset:-6px;border-radius:9999px;background:${bg};opacity:0.35;"></div>` : ""}
-        <div style="position:relative;width:${size}px;height:${size}px;border-radius:9999px;background:${bg};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;">
+        <div style="position:relative;width:${size}px;height:${size}px;border-radius:9999px;background:${bg};border:${ring};box-shadow:0 1px 4px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${type.icon}</svg>
         </div>
       </div>`,
@@ -179,6 +181,12 @@ const pulseStyles = `
     100% { transform: scale(1.8); opacity: 0; }
   }
   .netily-pulse { animation: netily-pulse 1.6s ease-out infinite; }
+
+  .netily-map-marker.leaflet-div-icon,
+  .netily-cluster-icon.leaflet-div-icon {
+    background: transparent !important;
+    border: none !important;
+  }
 `
 
 export function NetworkMapClient() {
