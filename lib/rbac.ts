@@ -68,7 +68,7 @@ export const getActionsForPath = (allowed: string[], pathPrefix: string): PageAc
 const normalize = (value?: string | null) => String(value || "").trim().toLowerCase().replace(/[\s-]+/g, "_")
 let roleAccessPolicies: Record<string, string[]> = {}
 
-export const ADMIN_ROLES = ["admin", "super_admin"]
+export const ADMIN_ROLES = ["admin", "super_admin", "superadmin"]
 export const USER_MANAGEMENT_ROLES = [...ADMIN_ROLES, "staff", "support", "accountant"]
 export const NETWORK_ROLES = [...ADMIN_ROLES, "technician"]
 export const FINANCE_ROLES = [...ADMIN_ROLES, "accountant"]
@@ -141,7 +141,6 @@ export const canDo = (
   const policies = roleAccessPolicies[role]
   if (!hasPolicy) return true
   if (!policies || policies.length === 0) return false
-  if (!policies || policies.length === 0) return true // No policy yet → allow (graceful default)
 
   // Check encoded action token
   const actionToken = encodeAction(pathPrefix, action)
