@@ -217,13 +217,19 @@ export default function PaymentMethodsPage() {
   useEffect(() => { fetchMethods(); fetchStats() }, [fetchMethods, fetchStats])
 
   /* ── Derived ── */
-  const activeMethods = methods.filter((m) => m.is_active)
-  const isFirstTime = !methodsLoading && methods.length === 0
+  // FIX: Netily tab should only show Tuma-routed methods, never Daraja-linked ones.
+  // Daraja-linked methods (mpesa_configuration set) belong exclusively to the
+  // "M-Pesa Daraja" tab (MpesaSettingsPanel).
+  const netilyMethods = methods.filter((m) => !(m as any).mpesa_configuration)
+  const activeMethods = netilyMethods.filter((m) => m.is_active)
+  const isFirstTime = !methodsLoading && netilyMethods.length === 0
+
   const [integrationTab, setIntegrationTab] = useState("netily")
 
   /* ── CRUD ── */
   const openAdd = () => {
-    if (methods.length >= MAX_METHODS) {
+    // Use netilyMethods.length for the cap check
+    if (netilyMethods.length >= MAX_METHODS) {
       toast.error(`Maximum ${MAX_METHODS} payment methods allowed`, { description: "Delete an existing method to add a new one." })
       return
     }
@@ -290,7 +296,7 @@ export default function PaymentMethodsPage() {
           description: "To link Daraja credentials, use the M-Pesa Daraja tab.",
         })
       } else {
-        const isFirst = methods.length === 0
+        const isFirst = netilyMethods.length === 0
         await adminApi.createPaymentMethod(payload)
         toast.success("Payment method created", {
           description: isFirst
@@ -459,8 +465,9 @@ export default function PaymentMethodsPage() {
             Manage your collection channels. Each method is available to customers on invoices.
           </p>
         </div>
-        <Button onClick={openAdd} disabled={methods.length >= MAX_METHODS}>
-          <Plus className="h-4 w-4 mr-1.5" />{methods.length >= MAX_METHODS ? `Limit (${MAX_METHODS})` : "Add Method"}
+        <Button onClick={openAdd} disabled={netilyMethods.length >= MAX_METHODS}>
+          <Plus className="h-4 w-4 mr-1.5" />
+          {netilyMethods.length >= MAX_METHODS ? `Limit (${MAX_METHODS})` : "Add Method"}
         </Button>
       </div>
 
@@ -514,8 +521,9 @@ export default function PaymentMethodsPage() {
             <>
               <div className="flex items-center justify-between">
                 <div />
-                <Button onClick={openAdd} disabled={methods.length >= MAX_METHODS}>
-                  <Plus className="h-4 w-4 mr-1.5" />{methods.length >= MAX_METHODS ? `Limit (${MAX_METHODS})` : "Add Method"}
+                <Button onClick={openAdd} disabled={netilyMethods.length >= MAX_METHODS}>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  {netilyMethods.length >= MAX_METHODS ? `Limit (${MAX_METHODS})` : "Add Method"}
                 </Button>
               </div>
 
@@ -559,11 +567,11 @@ export default function PaymentMethodsPage() {
                 />
                 <StatCard
                   title="Active Channels"
-                  value={`${activeMethods.length} / ${methods.length}`}
+                  value={`${activeMethods.length} / ${netilyMethods.length}`}
                   icon={Zap}
                   iconColor="text-warning"
                   iconBg="bg-warning/10 dark:bg-amber-950/30"
-                  sub={`${methods.length} total configured`}
+                  sub={`${netilyMethods.length} total configured`}
                 />
               </div>
 
@@ -575,7 +583,8 @@ export default function PaymentMethodsPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {methods.map((m) => {
+                  {/* Use netilyMethods here instead of methods */}
+                  {netilyMethods.map((m) => {
                     const Icon = iconFor(m.method_type)
                     const c = colorFor(m.method_type)
                     const colors = colorMap[c]
@@ -634,13 +643,9 @@ export default function PaymentMethodsPage() {
                             </div>
                           )}
 
-                          {/* Provider badge */}
+                          {/* Provider badge - only show Netily badge since these are all Netily methods */}
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            {(m as any).mpesa_configuration_details?.business_shortcode ? (
-                              <Badge variant="outline" className="text-[10px] border-primary/20 text-primary dark:border-primary/20 dark:text-primary/80">
-                                Direct M-Pesa · {(m as any).mpesa_configuration_details.business_shortcode}
-                              </Badge>
-                            ) : (m.method_type?.startsWith('MPESA')) ? (
+                            {(m.method_type?.startsWith('MPESA')) ? (
                               <Badge variant="outline" className="text-[10px]">Netily</Badge>
                             ) : null}
                           </div>
@@ -686,8 +691,8 @@ export default function PaymentMethodsPage() {
                     )
                   })}
 
-                  {/* Add new card */}
-                  {methods.length < MAX_METHODS && (
+                  {/* Add new card - use netilyMethods.length for limit check */}
+                  {netilyMethods.length < MAX_METHODS && (
                     <button
                       onClick={openAdd}
                       className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-muted-foreground/20 p-8 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all duration-200 min-h-[200px] cursor-pointer group"
