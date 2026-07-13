@@ -177,6 +177,8 @@ import type {
   LoyaltyStats,
   // Hotspot Client Detail types
   HotspotClientDetailResponse,
+  // Network Map types
+  NetworkMapElement,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -1094,6 +1096,47 @@ async activateService(
 
   async healthCheck(): Promise<{ status: string }> {
     return this.request<{ status: string }>('/core/health/')
+  }
+
+  // ------------------------------------------
+  // NETWORK MAP - /network-map/elements/
+  // ------------------------------------------
+
+  async getNetworkMapElements(params?: { element_type?: string; status?: string }): Promise<NetworkMapElement[]> {
+    const qs = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : ''
+    const res = await this.request<any>(`/network-map/elements/${qs}`)
+    return Array.isArray(res) ? res : (res.results || [])
+  }
+
+  async createNetworkMapElement(data: Partial<NetworkMapElement>): Promise<NetworkMapElement> {
+    return this.request<NetworkMapElement>('/network-map/elements/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateNetworkMapElement(id: string, data: Partial<NetworkMapElement>): Promise<NetworkMapElement> {
+    return this.request<NetworkMapElement>(`/network-map/elements/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteNetworkMapElement(id: string): Promise<void> {
+    await this.request(`/network-map/elements/${id}/`, { method: 'DELETE' })
+  }
+
+  async reportNetworkMapFault(id: string, data: { severity?: string; note?: string }): Promise<NetworkMapElement> {
+    return this.request<NetworkMapElement>(`/network-map/elements/${id}/report_fault/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async resolveNetworkMapFault(id: string): Promise<NetworkMapElement> {
+    return this.request<NetworkMapElement>(`/network-map/elements/${id}/mark_resolved/`, {
+      method: 'POST',
+    })
   }
 
   // ------------------------------------------
@@ -2429,6 +2472,7 @@ async activateService(
       payhero_channel_id: item?.payhero_channel_id ?? item?.channel_id,
       mpesa_configuration: item?.mpesa_configuration ?? null,           // ADD
       mpesa_configuration_details: item?.mpesa_configuration_details ?? null, // ADD
+      tuma_configuration: item?.tuma_configuration ?? null,             // ADD
       config,
       is_active: typeof item?.is_active === 'boolean' ? item.is_active : item?.status === 'ACTIVE',
     }

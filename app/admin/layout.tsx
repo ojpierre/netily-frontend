@@ -47,6 +47,7 @@ import {
   Megaphone,
   MessageSquareText,
   Sparkles,
+  Map as MapIcon,   // ← ADDED THIS LINE
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { PageTransition, AnimatedNavItem } from "@/components/page-transition"
@@ -116,6 +117,7 @@ const navigationSections: NavigationSection[] = [
       { name: "RADIUS", href: "/admin/radius", icon: Key },
       { name: "FUP", href: "/admin/fup", icon: Gauge },
       { name: "Usage", href: "/admin/usage", icon: BarChart3 },
+      { name: "Fiber Map", href: "/admin/network-map", icon: MapIcon },   // ← ADDED THIS LINE
     ],
   },
   {
