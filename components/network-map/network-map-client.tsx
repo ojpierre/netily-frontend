@@ -3,16 +3,20 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import dynamic from "next/dynamic"
 import "leaflet/dist/leaflet.css"
+import "react-leaflet-cluster/lib/assets/MarkerCluster.css"
+import "react-leaflet-cluster/lib/assets/MarkerCluster.Default.css"
 import L from "leaflet"
 import {
   MapContainer,
-  TileLayer,
+  LayersControl,
   Marker,
   Polyline,
   Popup,
+  Tooltip,
   useMap,
   useMapEvents,
 } from "react-leaflet"
+import MarkerClusterGroup from "react-leaflet-cluster"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -34,44 +38,97 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { adminApi, type NetworkMapElement } from "@/lib/admin-api"
 import { Loader2, MapPin, Cable, Trash2, AlertTriangle, CheckCircle2, X } from "lucide-react"
 
-// ── Element type catalogue ─────────────────────────────────────────────
+// ── Element type catalogue with SVG icons ─────────────────────────────
 type TypeConfig = {
   value: NetworkMapElement["element_type"]
   label: string
   color: string
   geometry: "POINT" | "LINE"
+  icon: string // inner SVG path markup
 }
 
 const ELEMENT_TYPES: TypeConfig[] = [
-  { value: "CABLE", label: "Fiber Cable", color: "#2563eb", geometry: "LINE" },
-  { value: "SPLITTER", label: "Splitter", color: "#f59e0b", geometry: "POINT" },
-  { value: "ODF", label: "ODF / Distribution Frame", color: "#7c3aed", geometry: "POINT" },
-  { value: "NAP", label: "Network Access Point", color: "#0891b2", geometry: "POINT" },
-  { value: "POLE", label: "Pole", color: "#78716c", geometry: "POINT" },
-  { value: "MANHOLE", label: "Manhole / Handhole", color: "#57534e", geometry: "POINT" },
-  { value: "JOINT_CLOSURE", label: "Joint Closure", color: "#059669", geometry: "POINT" },
-  { value: "CUSTOMER_DROP", label: "Customer Drop", color: "#16a34a", geometry: "POINT" },
-  { value: "EQUIPMENT", label: "Router / Equipment", color: "#4f46e5", geometry: "POINT" },
-  { value: "ISSUE", label: "Fault / Cut (standalone marker)", color: "#dc2626", geometry: "POINT" },
-  { value: "OTHER", label: "Other", color: "#64748b", geometry: "POINT" },
+  {
+    value: "CABLE", label: "Fiber Cable", color: "#2563eb", geometry: "LINE",
+    icon: '<path d="M4 4l7 7M20 20l-7-7M9 4L4 9m11 11l5-5"/><circle cx="12" cy="12" r="2.5"/>',
+  },
+  {
+    value: "SPLITTER", label: "Splitter", color: "#f59e0b", geometry: "POINT",
+    icon: '<path d="M6 3v6l6 6v6M18 3v6l-6 6"/><circle cx="6" cy="3" r="1.5" fill="#fff"/><circle cx="18" cy="3" r="1.5" fill="#fff"/><circle cx="12" cy="21" r="1.5" fill="#fff"/>',
+  },
+  {
+    value: "ODF", label: "ODF / Distribution Frame", color: "#7c3aed", geometry: "POINT",
+    icon: '<rect x="4" y="3" width="16" height="7" rx="1"/><rect x="4" y="14" width="16" height="7" rx="1"/><line x1="8" y1="6.5" x2="8" y2="6.5"/><line x1="8" y1="17.5" x2="8" y2="17.5"/>',
+  },
+  {
+    value: "NAP", label: "Network Access Point", color: "#0891b2", geometry: "POINT",
+    icon: '<path d="M5 12.5a7 7 0 0114 0"/><path d="M8.5 15a3.5 3.5 0 017 0"/><circle cx="12" cy="18" r="1.5" fill="#fff"/>',
+  },
+  {
+    value: "POLE", label: "Pole", color: "#78716c", geometry: "POINT",
+    icon: '<line x1="12" y1="2" x2="12" y2="22"/><line x1="6" y1="6" x2="18" y2="6"/><line x1="7" y1="10" x2="17" y2="10"/>',
+  },
+  {
+    value: "MANHOLE", label: "Manhole / Handhole", color: "#57534e", geometry: "POINT",
+    icon: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/>',
+  },
+  {
+    value: "JOINT_CLOSURE", label: "Joint Closure", color: "#059669", geometry: "POINT",
+    icon: '<path d="M9 15a4 4 0 010-6l2-2a4 4 0 016 6l-1 1"/><path d="M15 9a4 4 0 010 6l-2 2a4 4 0 01-6-6l1-1"/>',
+  },
+  {
+    value: "CUSTOMER_DROP", label: "Customer Drop", color: "#16a34a", geometry: "POINT",
+    icon: '<path d="M4 11.5L12 4l8 7.5"/><path d="M6 10v9h12v-9"/>',
+  },
+  {
+    value: "EQUIPMENT", label: "Router / Equipment", color: "#4f46e5", geometry: "POINT",
+    icon: '<rect x="3" y="10" width="18" height="6" rx="1"/><circle cx="8" cy="13" r="0.8" fill="#fff"/><circle cx="12" cy="13" r="0.8" fill="#fff"/><path d="M6 10V7a2 2 0 012-2h8a2 2 0 012 2v3"/>',
+  },
+  {
+    value: "ISSUE", label: "Fault / Cut (standalone marker)", color: "#dc2626", geometry: "POINT",
+    icon: '<path d="M12 2L2 20h20L12 2z"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="17" r="0.8" fill="#fff"/>',
+  },
+  {
+    value: "OTHER", label: "Other", color: "#64748b", geometry: "POINT",
+    icon: '<path d="M12 21s-7-6-7-11a7 7 0 0114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  },
 ]
 
 const typeConfig = (t: string) => ELEMENT_TYPES.find((c) => c.value === t) || ELEMENT_TYPES[ELEMENT_TYPES.length - 1]
 
 const DEFAULT_CENTER: [number, number] = [-1.286389, 36.817223] // Nairobi fallback
 
-function buildIcon(color: string, faulty: boolean) {
-  const ring = faulty ? "box-shadow:0 0 0 5px rgba(220,38,38,0.30);" : "box-shadow:0 1px 3px rgba(0,0,0,0.35);"
+// ── Build icon with SVG ────────────────────────────────────────────────
+function buildIcon(type: TypeConfig, faulty: boolean) {
+  const size = 28
+  const bg = faulty ? "#dc2626" : type.color
   return L.divIcon({
     className: "netily-map-marker",
-    html: `<div style="width:14px;height:14px;border-radius:9999px;background:${faulty ? "#dc2626" : color};border:2px solid #fff;${ring}"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
+    html: `
+      <div style="position:relative;width:${size}px;height:${size}px;">
+        ${faulty ? `<div class="netily-pulse" style="position:absolute;inset:-6px;border-radius:9999px;background:${bg};opacity:0.35;"></div>` : ""}
+        <div style="position:relative;width:${size}px;height:${size}px;border-radius:9999px;background:${bg};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${type.icon}</svg>
+        </div>
+      </div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
   })
 }
 
@@ -115,6 +172,15 @@ type FormState = {
 
 type FaultDialogState = { open: boolean; elementId: string | null; severity: string; note: string }
 
+// ── Global CSS for pulse animation ─────────────────────────────────────
+const pulseStyles = `
+  @keyframes netily-pulse {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+  .netily-pulse { animation: netily-pulse 1.6s ease-out infinite; }
+`
+
 export function NetworkMapClient() {
   const [elements, setElements] = useState<NetworkMapElement[]>([])
   const [loading, setLoading] = useState(true)
@@ -128,6 +194,7 @@ export function NetworkMapClient() {
 
   const [form, setForm] = useState<FormState | null>(null)
   const [faultDialog, setFaultDialog] = useState<FaultDialogState>({ open: false, elementId: null, severity: "MEDIUM", note: "" })
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
 
   const loadElements = useCallback(async () => {
     try {
@@ -143,6 +210,15 @@ export function NetworkMapClient() {
   useEffect(() => {
     loadElements()
   }, [loadElements])
+
+  // ── ESC key cancels placing mode ─────────────────────────────────────
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && placing) cancelPlacing()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [placing])
 
   const filtered = elements.filter((el) => {
     if (filterType !== "ALL" && el.element_type !== filterType) return false
@@ -264,14 +340,19 @@ export function NetworkMapClient() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this map element? This cannot be undone.")) return
+  // ── Delete with confirmation dialog ─────────────────────────────
+  const requestDelete = (id: string) => setDeleteTargetId(id)
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return
     try {
-      await adminApi.deleteNetworkMapElement(id)
+      await adminApi.deleteNetworkMapElement(deleteTargetId)
       toast.success("Deleted")
       await loadElements()
     } catch (err: any) {
       toast.error(err.message || "Failed to delete")
+    } finally {
+      setDeleteTargetId(null)
     }
   }
 
@@ -304,6 +385,8 @@ export function NetworkMapClient() {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+      <style jsx global>{pulseStyles}</style>
+
       {/* ── Sidebar ── */}
       <div className="space-y-4">
         <Card>
@@ -370,6 +453,25 @@ export function NetworkMapClient() {
                 </SelectContent>
               </Select>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* ── Legend ── */}
+        <Card>
+          <CardContent className="pt-4 space-y-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Legend</p>
+            {ELEMENT_TYPES.map((t) => (
+              <div key={t.value} className="flex items-center gap-2 text-xs">
+                <span
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+                  style={{ backgroundColor: t.color }}
+                  dangerouslySetInnerHTML={{
+                    __html: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">${t.icon}</svg>`,
+                  }}
+                />
+                {t.label}
+              </div>
+            ))}
           </CardContent>
         </Card>
 
@@ -441,18 +543,30 @@ export function NetworkMapClient() {
             scrollWheelZoom
             className="h-[75vh] w-full rounded-xl border z-0"
           >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+            <LayersControl position="topright">
+              <LayersControl.BaseLayer checked name="Detailed">
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+              </LayersControl.BaseLayer>
+              <LayersControl.BaseLayer name="Simple (no labels)">
+                <TileLayer
+                  attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+                  url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
+                />
+              </LayersControl.BaseLayer>
+            </LayersControl>
+
             <FitToElements elements={elements} />
             <ClickCapture enabled={placing} onClick={handleMapClick} />
 
-            {/* Existing elements */}
-            {filtered.map((el) => {
-              const cfg = typeConfig(el.element_type)
-              const faulty = el.status === "FAULTY"
-              if (el.geometry_type === "LINE" && el.coordinates.length >= 2) {
+            {/* Lines stay outside clustering */}
+            {filtered
+              .filter((el) => el.geometry_type === "LINE" && el.coordinates.length >= 2)
+              .map((el) => {
+                const cfg = typeConfig(el.element_type)
+                const faulty = el.status === "FAULTY"
                 return (
                   <Polyline
                     key={el.id}
@@ -467,30 +581,71 @@ export function NetworkMapClient() {
                       <ElementPopup
                         el={el}
                         onEdit={() => openEditDialog(el)}
-                        onDelete={() => handleDelete(el.id)}
+                        onDelete={() => requestDelete(el.id)}
                         onReportFault={() => openFaultDialog(el.id)}
                         onResolve={() => resolveFault(el.id)}
                       />
                     </Popup>
                   </Polyline>
                 )
-              }
-              const point = el.coordinates[0]
-              if (!point) return null
-              return (
-                <Marker key={el.id} position={point} icon={buildIcon(el.color || cfg.color, faulty)}>
-                  <Popup>
-                    <ElementPopup
-                      el={el}
-                      onEdit={() => openEditDialog(el)}
-                      onDelete={() => handleDelete(el.id)}
-                      onReportFault={() => openFaultDialog(el.id)}
-                      onResolve={() => resolveFault(el.id)}
-                    />
-                  </Popup>
-                </Marker>
-              )
-            })}
+              })}
+
+            {/* Points get clustered */}
+            <MarkerClusterGroup
+              chunkedLoading
+              maxClusterRadius={50}
+              spiderfyOnMaxZoom
+              showCoverageOnHover={false}
+              iconCreateFunction={(cluster: any) => {
+                const count = cluster.getChildCount()
+                const markers = cluster.getAllChildMarkers()
+                const hasFault = markers.some((m: any) => m.options.faulty)
+                const size = count < 10 ? 34 : count < 50 ? 42 : 50
+                const bg = hasFault ? "#dc2626" : "#2563eb"
+                return L.divIcon({
+                  html: `<div style="
+                    width:${size}px;height:${size}px;border-radius:9999px;
+                    background:${bg};border:3px solid #fff;
+                    box-shadow:0 2px 6px rgba(0,0,0,0.35);
+                    display:flex;align-items:center;justify-content:center;
+                    color:#fff;font-weight:600;font-size:${count < 100 ? 13 : 11}px;
+                    font-family:inherit;">
+                    ${count}${hasFault ? '<span style="position:absolute;top:-2px;right:-2px;width:10px;height:10px;background:#fbbf24;border-radius:9999px;border:2px solid #fff;"></span>' : ''}
+                  </div>`,
+                  className: "netily-cluster-icon",
+                  iconSize: L.point(size, size, true),
+                })
+              }}
+            >
+              {filtered
+                .filter((el) => el.geometry_type !== "LINE")
+                .map((el) => {
+                  const cfg = typeConfig(el.element_type)
+                  const faulty = el.status === "FAULTY"
+                  const point = el.coordinates[0]
+                  if (!point) return null
+                  return (
+                    <Marker
+                      key={el.id}
+                      position={point}
+                      icon={buildIcon(cfg, faulty)}
+                      // @ts-expect-error custom flag read by iconCreateFunction
+                      faulty={faulty}
+                    >
+                      <Tooltip direction="top" offset={[0, -14]} opacity={0.95}>{el.name}</Tooltip>
+                      <Popup>
+                        <ElementPopup
+                          el={el}
+                          onEdit={() => openEditDialog(el)}
+                          onDelete={() => requestDelete(el.id)}
+                          onReportFault={() => openFaultDialog(el.id)}
+                          onResolve={() => resolveFault(el.id)}
+                        />
+                      </Popup>
+                    </Marker>
+                  )
+                })}
+            </MarkerClusterGroup>
 
             {/* Live drawing preview */}
             {drawPoints.length > 0 && (
@@ -583,6 +738,24 @@ export function NetworkMapClient() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Delete confirmation dialog ── */}
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this map element?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The element will be permanently removed from the map.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={confirmDelete}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Fault dialog ── */}
       <Dialog open={faultDialog.open} onOpenChange={(open) => !open && setFaultDialog({ open: false, elementId: null, severity: "MEDIUM", note: "" })}>
