@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import dynamic from "next/dynamic"
 import "leaflet/dist/leaflet.css"
-import "react-leaflet-cluster/lib/assets/MarkerCluster.css"
-import "react-leaflet-cluster/lib/assets/MarkerCluster.Default.css"
+import "react-leaflet-cluster/dist/assets/MarkerCluster.css"
+import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css"
 import L from "leaflet"
 import {
   MapContainer,
