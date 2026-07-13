@@ -4,25 +4,14 @@ import React, { useState, useEffect, useCallback } from "react"
 import {
   AlertCircle,
   Loader2,
-  CreditCard,
-  RefreshCw,
-  Plus,
-  MoreVertical,
-  Pencil,
-  Smartphone,
   Landmark,
-  Link2,
-  ChevronRight,
-  ArrowLeft,
-  TrendingUp,
-  CircleDollarSign,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Zap,
-  ArrowRight,
-  Sparkles,
+  Smartphone,
   Shield,
+  Wallet,
+  CheckCircle2,
+  ChevronRight,
+  Zap,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -31,7 +20,6 @@ import { OtpGuard } from "@/components/otp-guard"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -43,16 +31,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -60,137 +40,61 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import { MpesaSettingsPanel } from "@/components/mpesa-settings-panel"
-import type { PaymentMethod, PaymentMethodType, PaymentDashboardStats } from "@/lib/types"
+import type { PaymentMethod, PaymentDashboardStats } from "@/lib/types"
 
 // =============================================================================
-// CONSTANTS - UPDATED to match Tuma's exact database values
+// CONSTANTS
 // =============================================================================
 const TUMA_BANKS = [
-  "Kenya Commercial Bank",
-  "Equity Bank",
-  "Cooperative Bank",
-  "Absa Bank",
-  "Standard Chartered Bank",
-  "Stanbic Bank",
-  "Diamond Trust Bank",
-  "Family Bank",
-  "National Bank of Kenya",
-  "NCBA Bank",
-  "I&M Bank",
-  "Ecobank Savings & Current",
-  "Ecobank Xpress",
-  "Faulu Bank",
-  "Kingdom Bank",
-  "SBM Bank Kenya",
-  "Sidian Bank",
-  "Bank of Africa",
-  "Bank of Baroda",
-  "Post Bank",
-  "LOOP BUSINESS",
-  "LOOP C2B",
-  "Fortune Sacco",
-  "K Unity Sacco",
-  "Tower Sacco Society",
-  "Zemo Pay",
+  "Kenya Commercial Bank", "Equity Bank", "Cooperative Bank", "Absa Bank",
+  "Standard Chartered Bank", "Stanbic Bank", "Diamond Trust Bank", "Family Bank",
+  "National Bank of Kenya", "NCBA Bank", "I&M Bank", "Ecobank Savings & Current",
+  "Ecobank Xpress", "Faulu Bank", "Kingdom Bank", "SBM Bank Kenya", "Sidian Bank",
+  "Bank of Africa", "Bank of Baroda", "Post Bank", "LOOP BUSINESS", "LOOP C2B",
+  "Fortune Sacco", "K Unity Sacco", "Tower Sacco Society", "Zemo Pay",
 ]
 
-// Removed MOBILE_MONEY and PAYMENT_LINK from METHOD_TYPES
-const METHOD_TYPES: { value: string; label: string; icon: typeof CreditCard; desc: string; color: string }[] = [
-  { value: "MPESA_PAYBILL", label: "M-Pesa Paybill", icon: Smartphone, desc: "Customer sends money to your Paybill number", color: "emerald" },
-  { value: "MPESA_TILL", label: "M-Pesa Till (Buy Goods)", icon: Smartphone, desc: "Customer pays via Till / Buy Goods number", color: "emerald" },
-  { value: "BANK_TRANSFER", label: "Bank Transfer", icon: Landmark, desc: "Direct EFT or bank deposit via supported banks", color: "blue" },
-]
+type ChannelKind = "bank" | "till" | "paybill"
 
-const MOBILE_PROVIDERS = [
-  { value: "SAFARICOM", label: "Safaricom M-Pesa", placeholder: "e.g. 254712345678" },
-  { value: "AIRTEL", label: "Airtel Money", placeholder: "e.g. 254733123456" },
-  { value: "TELKOM", label: "Telkom T-Kash", placeholder: "e.g. 254770123456" },
-]
-
-const MAX_METHODS = 3
-
-// =============================================================================
-// HELPERS
-// =============================================================================
-function iconFor(type: string) {
-  const m: Record<string, typeof CreditCard> = {
-    MPESA_NUMBER: Smartphone, MPESA: Smartphone, MPESA_STK: Smartphone,
-    MPESA_PAYBILL: Smartphone, MPESA_TILL: Smartphone, AIRTEL_MONEY: Smartphone,
-    BANK: Landmark, BANK_TRANSFER: Landmark, CARD: CreditCard,
-    CREDIT_CARD: CreditCard, DEBIT_CARD: CreditCard,
-  }
-  return m[type] || CreditCard
+const CHANNEL_META: Record<ChannelKind, { title: string; methodType: string }> = {
+  bank: { title: "Bank Account", methodType: "BANK_TRANSFER" },
+  till: { title: "Till Number", methodType: "MPESA_TILL" },
+  paybill: { title: "Paybill", methodType: "MPESA_PAYBILL" },
 }
 
-function colorFor(type: string): string {
-  if (type.startsWith("MPESA")) return "emerald"
-  if (type === "BANK" || type === "BANK_TRANSFER") return "blue"
-  return "slate"
-}
-
-function labelFor(type: string): string {
-  return METHOD_TYPES.find((m) => m.value === type)?.label ??
-    ({ MPESA_STK: "M-Pesa STK Push" }[type] ?? type)
-}
-
-function configSummary(m: PaymentMethod): string {
+function summaryForChannel(kind: ChannelKind, m?: PaymentMethod) {
+  if (!m) return undefined
   const c = (m.config || {}) as Record<string, string>
-  const provider = MOBILE_PROVIDERS.find((p) => p.value === c.mobile_provider)
-  if (c.phone_number && provider) return `${provider.label}: ${c.phone_number}`
-  if (c.phone_number) return `Mobile: ${c.phone_number}`
-  if (c.paybill_number) return `Paybill: ${c.paybill_number}`
-  if (c.till_number) return `Till: ${c.till_number}`
-  if (c.shortcode) return `Shortcode: ${c.shortcode}`
-  if (c.bank_name) return `${c.bank_name}${c.account_number ? ` · ${c.account_number}` : ""}`
-  if (c.custom_link) return c.custom_link.replace(/^https?:\/\//, "").slice(0, 30)
-  return m.description || ""
-}
-
-const colorMap: Record<string, { bg: string; text: string; icon: string; ring: string }> = {
-  emerald: { bg: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-emerald-700 dark:text-emerald-400", icon: "text-emerald-600", ring: "ring-emerald-200 dark:ring-emerald-800" },
-  blue:    { bg: "bg-primary/10 dark:bg-blue-950/30", text: "text-primary dark:text-primary/80", icon: "text-primary", ring: "ring-blue-200 dark:ring-blue-800" },
-  violet:  { bg: "bg-violet-50 dark:bg-violet-950/30", text: "text-violet-700 dark:text-violet-400", icon: "text-violet-600", ring: "ring-violet-200 dark:ring-violet-800" },
-  slate:   { bg: "bg-slate-50 dark:bg-slate-900/30", text: "text-slate-700 dark:text-slate-400", icon: "text-slate-600", ring: "ring-slate-200 dark:ring-slate-800" },
+  if (kind === "bank") {
+    return c.bank_name ? `${c.bank_name}${c.account_number ? ` · ${c.account_number}` : ""}` : undefined
+  }
+  if (kind === "till") return c.till_number ? `Till: ${c.till_number}` : undefined
+  return c.paybill_number ? `Paybill: ${c.paybill_number}` : undefined
 }
 
 // =============================================================================
 // PAGE
 // =============================================================================
 export default function PaymentMethodsPage() {
-  /* ── Payment methods ── */
   const [methods, setMethods] = useState<PaymentMethod[]>([])
   const [methodsLoading, setMethodsLoading] = useState(true)
   const [methodsError, setMethodsError] = useState<string | null>(null)
 
-  /* ── Dashboard stats ── */
   const [stats, setStats] = useState<PaymentDashboardStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
 
-  /* ── Add / Edit dialog ── */
-  const [dlgOpen, setDlgOpen] = useState(false)
-  const [dlgStep, setDlgStep] = useState<"pick" | "details">("pick")
-  const [editing, setEditing] = useState<PaymentMethod | null>(null)
-  const [form, setForm] = useState({
-    method_type: "",
-    name: "",
-    description: "",
-    is_default: false,
-    cfg: {} as Record<string, string>,
-  })
-  const [saving, setSaving] = useState(false)
+  const [busyId, setBusyId] = useState<number | null>(null)
 
-  /* ── Activate / Deactivate ── */
-  const [toggleTarget, setToggleTarget] = useState<{ method: PaymentMethod; action: 'activate' | 'deactivate' } | null>(null)
-  const [toggling, setToggling] = useState(false)
+  const [channelDialog, setChannelDialog] = useState<ChannelKind | null>(null)
+  const [darajaOpen, setDarajaOpen] = useState(false)
+  const [kopoOpen, setKopoOpen] = useState(false)
 
-  /* ── Fetch ── */
+  const [kopoConfig, setKopoConfig] = useState<Record<string, string>>({})
+
   const fetchMethods = useCallback(async () => {
     try {
       setMethodsError(null)
@@ -208,105 +112,385 @@ export default function PaymentMethodsPage() {
       const data = await adminApi.getPaymentDashboardStats()
       setStats(data)
     } catch {
-      // Stats are supplementary — fail silently
+      // supplementary — fail silently
     } finally {
       setStatsLoading(false)
     }
   }, [])
 
-  useEffect(() => { fetchMethods(); fetchStats() }, [fetchMethods, fetchStats])
+  useEffect(() => {
+    fetchMethods()
+    fetchStats()
+    adminApi.getKopoKopoConfig().then((d: any) => setKopoConfig(d || {})).catch(() => {})
+  }, [fetchMethods, fetchStats])
 
-  /* ── Derived ── */
-  // FIX: Netily tab should only show Tuma-routed methods, never Daraja-linked ones.
-  // Daraja-linked methods (mpesa_configuration set) belong exclusively to the
-  // "M-Pesa Daraja" tab (MpesaSettingsPanel).
-  const netilyMethods = methods.filter((m) => !(m as any).mpesa_configuration)
-  const activeMethods = netilyMethods.filter((m) => m.is_active)
-  const isFirstTime = !methodsLoading && netilyMethods.length === 0
+  // ── Split by gateway. Now that the backend actually returns
+  // mpesa_configuration, this correctly excludes Daraja-linked methods
+  // from the Tuma-backed channel cards. ──
+  const darajaMethods = methods.filter((m) => !!m.mpesa_configuration)
+  const tumaMethods = methods.filter((m) => !m.mpesa_configuration)
 
-  const [integrationTab, setIntegrationTab] = useState("netily")
+  const bankMethod = tumaMethods.find((m) => m.method_type === "BANK_TRANSFER")
+  const tillMethod = tumaMethods.find((m) => m.method_type === "MPESA_TILL")
+  const paybillMethod = tumaMethods.find((m) => m.method_type === "MPESA_PAYBILL")
 
-  /* ── CRUD ── */
-  const openAdd = () => {
-    // Use netilyMethods.length for the cap check
-    if (netilyMethods.length >= MAX_METHODS) {
-      toast.error(`Maximum ${MAX_METHODS} payment methods allowed`, { description: "Delete an existing method to add a new one." })
-      return
+  const activeMethod = methods.find((m) => m.is_active)
+  const activeDaraja = darajaMethods.find((m) => m.is_active)
+  const darajaSummary = activeDaraja?.mpesa_configuration_details
+    ? `${activeDaraja.mpesa_configuration_details.shortcode_type === "TILL" ? "Till" : "Paybill"}: ${activeDaraja.mpesa_configuration_details.business_shortcode}`
+    : darajaMethods.length > 0
+    ? `${darajaMethods.length} configuration${darajaMethods.length > 1 ? "s" : ""} saved`
+    : undefined
+
+  const kopoConfigured = !!kopoConfig?.client_id
+
+  const channelMethod = (kind: ChannelKind) =>
+    kind === "bank" ? bankMethod : kind === "till" ? tillMethod : paybillMethod
+
+  const handleActivate = async (method: PaymentMethod) => {
+    if (method.is_active) return
+    setBusyId(method.id)
+    try {
+      const result = await adminApi.togglePaymentMethodActive(method.id)
+      const channel = result.settlement_channel || method.name
+      toast.success(`${method.name} activated`, {
+        description:
+          result.tuma_synced !== false
+            ? `Subscribers now pay via ${channel}.`
+            : `Activated locally. Sync pending${result.tuma_error ? `: ${result.tuma_error}` : "."}`,
+      })
+      fetchMethods()
+      fetchStats()
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to activate")
+    } finally {
+      setBusyId(null)
     }
-    setEditing(null)
-    setForm({
-      method_type: "",
-      name: "",
-      description: "",
-      is_default: false,
-      cfg: {},
-    })
-    setDlgStep("pick")
-    setDlgOpen(true)
   }
 
-  const openEdit = (m: PaymentMethod) => {
-    setEditing(m)
-    setForm({
-      method_type: m.method_type,
-      name: m.name,
-      description: m.description || "",
-      is_default: m.is_default,
-      cfg: (m.config || {}) as Record<string, string>,
-    })
-    setDlgStep("details")
-    setDlgOpen(true)
+  const connectedCount =
+    (bankMethod ? 1 : 0) + (tillMethod ? 1 : 0) + (paybillMethod ? 1 : 0) +
+    (darajaMethods.length > 0 ? 1 : 0) + (kopoConfigured ? 1 : 0)
+
+  if (methodsLoading) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <Skeleton className="h-8 w-56" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+        </div>
+      </div>
+    )
   }
 
-  const pickType = (type: string) => {
-    const meta = METHOD_TYPES.find((m) => m.value === type)
-    setForm((p) => ({
-      ...p,
-      method_type: type,
-      name: meta?.label || type,
-      cfg: {},
-    }))
-    setDlgStep("details")
-  }
+  return (
+    <InactivityGuard timeoutMinutes={5}>
+      <OtpGuard
+        title="Payment Methods Verification"
+        description="Verify your identity before managing payment methods and settlement channels."
+      >
+        <div className="flex flex-col gap-6 p-6 animate-in fade-in duration-300">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Payments</h1>
+              <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                Pick one gateway so subscribers can pay you. Only one is active at a time — switching
+                is one click and saved credentials are kept.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => { setMethodsLoading(true); fetchMethods() }}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Refresh
+            </Button>
+          </div>
+
+          {methodsError && (
+            <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4">
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <p className="text-sm font-medium text-destructive flex-1">{methodsError}</p>
+              <Button variant="outline" size="sm" onClick={() => { setMethodsLoading(true); fetchMethods() }}>
+                Retry
+              </Button>
+            </div>
+          )}
+
+          {activeMethod && (
+            <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-4 py-3 text-sm">
+              <Zap className="h-4 w-4 text-primary shrink-0" />
+              <span>
+                Subscribers are currently paying via <span className="font-semibold">{activeMethod.name}</span>.
+              </span>
+            </div>
+          )}
+
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            5 gateways available · {connectedCount} connected
+            {statsLoading ? "" : stats ? ` · KES ${Number(stats.amount_this_month || stats.total_amount || 0).toLocaleString()} this month` : ""}
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <GatewayCard
+              icon={Landmark}
+              title="Bank Account"
+              tags={["Bank transfer"]}
+              summary={summaryForChannel("bank", bankMethod)}
+              configured={!!bankMethod}
+              active={!!bankMethod?.is_active}
+              busy={busyId === bankMethod?.id}
+              footNote={bankMethod ? "Settlement: 1–2 business days" : "Not configured"}
+              onConfigure={() => setChannelDialog("bank")}
+              onActivate={bankMethod ? () => handleActivate(bankMethod) : undefined}
+              iconColor="text-primary"
+              iconBg="bg-primary/10"
+            />
+            <GatewayCard
+              icon={Smartphone}
+              title="Till Number"
+              subtitle="No API keys"
+              tags={["Mobile Money"]}
+              summary={summaryForChannel("till", tillMethod)}
+              configured={!!tillMethod}
+              active={!!tillMethod?.is_active}
+              busy={busyId === tillMethod?.id}
+              footNote={tillMethod ? "Settlement: instant" : "Not configured"}
+              onConfigure={() => setChannelDialog("till")}
+              onActivate={tillMethod ? () => handleActivate(tillMethod) : undefined}
+              iconColor="text-emerald-600"
+              iconBg="bg-emerald-50 dark:bg-emerald-950/30"
+            />
+            <GatewayCard
+              icon={Smartphone}
+              title="Paybill"
+              subtitle="No API keys"
+              tags={["Mobile Money"]}
+              summary={summaryForChannel("paybill", paybillMethod)}
+              configured={!!paybillMethod}
+              active={!!paybillMethod?.is_active}
+              busy={busyId === paybillMethod?.id}
+              footNote={paybillMethod ? "Settlement: instant" : "Not configured"}
+              onConfigure={() => setChannelDialog("paybill")}
+              onActivate={paybillMethod ? () => handleActivate(paybillMethod) : undefined}
+              iconColor="text-emerald-600"
+              iconBg="bg-emerald-50 dark:bg-emerald-950/30"
+            />
+            <GatewayCard
+              icon={Shield}
+              title="M-Pesa Paybill / Till"
+              subtitle="Your API keys"
+              tags={["STK Push", "Paybill", "Till"]}
+              summary={darajaSummary}
+              configured={darajaMethods.length > 0}
+              active={!!activeDaraja}
+              footNote="Instant · powers hotspot & PPPoE STK"
+              onConfigure={() => setDarajaOpen(true)}
+              iconColor="text-violet-600"
+              iconBg="bg-violet-50 dark:bg-violet-950/30"
+            />
+            <GatewayCard
+              icon={Wallet}
+              title="KopoKopo"
+              tags={["Mobile Money"]}
+              summary={kopoConfigured ? "Credentials saved" : undefined}
+              configured={kopoConfigured}
+              active={false}
+              footNote="Coming soon to checkout"
+              onConfigure={() => setKopoOpen(true)}
+              iconColor="text-amber-600"
+              iconBg="bg-amber-50 dark:bg-amber-950/30"
+            />
+          </div>
+        </div>
+
+        {/* Bank / Till / Paybill edit dialog */}
+        <ChannelFormDialog
+          kind={channelDialog}
+          open={!!channelDialog}
+          onOpenChange={(o) => !o && setChannelDialog(null)}
+          existing={channelDialog ? channelMethod(channelDialog) : undefined}
+          onSaved={() => {
+            setChannelDialog(null)
+            fetchMethods()
+            fetchStats()
+          }}
+        />
+
+        {/* Daraja dialog — reuses your existing multi-config panel as-is */}
+        <Dialog open={darajaOpen} onOpenChange={setDarajaOpen}>
+          <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>M-Pesa Paybill / Till (API Keys)</DialogTitle>
+              <DialogDescription>
+                Connect your own Safaricom Daraja credentials for instant STK push and Paybill matching.
+                You can save multiple numbers here; only one can be active at a time.
+              </DialogDescription>
+            </DialogHeader>
+            <MpesaSettingsPanel />
+          </DialogContent>
+        </Dialog>
+
+        {/* KopoKopo dialog */}
+        <Dialog open={kopoOpen} onOpenChange={setKopoOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>KopoKopo</DialogTitle>
+              <DialogDescription>Connect your KopoKopo account to accept payments.</DialogDescription>
+            </DialogHeader>
+            <KopoKopoSettings onSaved={(cfg) => setKopoConfig(cfg)} />
+          </DialogContent>
+        </Dialog>
+      </OtpGuard>
+    </InactivityGuard>
+  )
+}
+
+// =============================================================================
+// GATEWAY CARD
+// =============================================================================
+function GatewayCard({
+  icon: Icon,
+  title,
+  subtitle,
+  tags,
+  summary,
+  footNote,
+  configured,
+  active,
+  busy,
+  onConfigure,
+  onActivate,
+  iconColor = "text-primary",
+  iconBg = "bg-primary/10",
+}: {
+  icon: typeof Landmark
+  title: string
+  subtitle?: string
+  tags: string[]
+  summary?: string
+  footNote?: string
+  configured: boolean
+  active: boolean
+  busy?: boolean
+  onConfigure: () => void
+  onActivate?: () => void
+  iconColor?: string
+  iconBg?: string
+}) {
+  return (
+    <Card className={active ? "border-primary/40 shadow-sm" : ""}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-3">
+          <div className={`p-2.5 rounded-xl ${iconBg}`}>
+            <Icon className={`h-5 w-5 ${iconColor}`} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+              {subtitle && <Badge variant="outline" className="text-[10px]">{subtitle}</Badge>}
+            </div>
+            <div className="mt-1">
+              {active ? (
+                <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-0 text-[10px] gap-1">
+                  <CheckCircle2 className="h-3 w-3" />Active
+                </Badge>
+              ) : configured ? (
+                <Badge variant="secondary" className="text-[10px]">Connected</Badge>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-1.5">
+          {tags.map((t) => (
+            <Badge key={t} variant="outline" className="text-[10px] font-normal">{t}</Badge>
+          ))}
+        </div>
+        {summary && (
+          <div className="text-xs font-mono px-3 py-2 rounded-lg bg-muted/50 truncate">{summary}</div>
+        )}
+        <div className="flex items-center justify-between pt-2 border-t">
+          <span className="text-xs text-muted-foreground">{footNote}</span>
+          <div className="flex items-center gap-2">
+            {configured && !active && onActivate && (
+              <Button size="sm" variant="secondary" onClick={onActivate} disabled={busy}>
+                {busy && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}Activate
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={onConfigure}>
+              {configured ? "Edit" : "Configure"}<ChevronRight className="h-3.5 w-3.5 ml-1" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// =============================================================================
+// BANK / TILL / PAYBILL EDIT DIALOG (single-instance, edit-in-place)
+// =============================================================================
+function ChannelFormDialog({
+  kind,
+  open,
+  onOpenChange,
+  existing,
+  onSaved,
+}: {
+  kind: ChannelKind | null
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  existing?: PaymentMethod
+  onSaved: () => void
+}) {
+  const [bankName, setBankName] = useState("")
+  const [accountNumber, setAccountNumber] = useState("")
+  const [number, setNumber] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const c = (existing?.config || {}) as Record<string, string>
+    setBankName(c.bank_name || "")
+    setAccountNumber(c.account_number || "")
+    setNumber(c.till_number || c.paybill_number || "")
+  }, [open, existing])
+
+  if (!kind) return null
+  const meta = CHANNEL_META[kind]
 
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error("Name is required"); return }
-    if (form.method_type === "MOBILE_MONEY" && !form.cfg.mobile_provider) {
-      toast.error("Please select a mobile provider"); return
-    }
-    if (form.method_type === "MOBILE_MONEY" && !form.cfg.phone_number) {
-      toast.error("Phone number is required"); return
+    if (kind === "bank") {
+      if (!bankName) return toast.error("Select a bank")
+      if (!accountNumber.trim()) return toast.error("Account number is required")
+    } else if (!number.trim()) {
+      return toast.error(`${kind === "till" ? "Till" : "Paybill"} number is required`)
     }
 
     setSaving(true)
     try {
-      const code = form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 20)
+      const cfg: Record<string, string> =
+        kind === "bank"
+          ? { bank_name: bankName, account_number: accountNumber.trim() }
+          : kind === "till"
+          ? { till_number: number.trim() }
+          : { paybill_number: number.trim() }
+
       const payload: Partial<PaymentMethod> = {
-        name: form.name.trim(),
-        code,
-        method_type: form.method_type as PaymentMethodType,
-        description: form.description.trim(),
-        is_default: form.is_default,
-        config: form.cfg,
+        name: meta.title,
+        code: existing?.code || `tuma-${kind}-${Date.now().toString(36)}`,
+        method_type: meta.methodType as any,
+        config: cfg,
       }
 
-      if (editing) {
-        await adminApi.updatePaymentMethod(editing.id, payload)
-        toast.success("Payment method updated", {
-          description: "To link Daraja credentials, use the M-Pesa Daraja tab.",
-        })
+      if (existing) {
+        await adminApi.updatePaymentMethod(existing.id, payload)
+        toast.success(`${meta.title} updated`)
       } else {
-        const isFirst = netilyMethods.length === 0
         await adminApi.createPaymentMethod(payload)
-        toast.success("Payment method created", {
-          description: isFirst
-            ? "Active via Netily gateway. Link Daraja keys in the M-Pesa Daraja tab if needed."
-            : "Added as inactive — activate to switch.",
+        toast.success(`${meta.title} saved`, {
+          description: "Activate it on the card to start collecting payments here.",
         })
       }
-      setDlgOpen(false)
-      fetchMethods()
-      fetchStats()
+      onSaved()
     } catch (err: any) {
       toast.error(err?.message || "Failed to save")
     } finally {
@@ -314,605 +498,70 @@ export default function PaymentMethodsPage() {
     }
   }
 
-  const confirmToggle = (m: PaymentMethod, action: 'activate' | 'deactivate') => {
-    setToggleTarget({ method: m, action })
-  }
-
-  const handleActivateDeactivate = async () => {
-    if (!toggleTarget) return
-    setToggling(true)
-    const { method, action } = toggleTarget
-    try {
-      // Backend toggle handles: deactivate others + Tuma settlement sync
-      const result = await adminApi.togglePaymentMethodActive(method.id)
-
-      if (action === 'activate') {
-        const channel = result.settlement_channel || method.name
-        const ref = result.tuma_reference ? ` (ref: ${result.tuma_reference})` : ''
-        const synced = result.tuma_synced !== false
-
-        toast.success(`${method.name} activated`, {
-          description: synced
-            ? `Settlement channel: ${channel}${ref}. All customer payments now route here.`
-            : `Activated locally. Sync pending${result.tuma_error ? `: ${result.tuma_error}` : '.'}`,
-          duration: synced ? 4000 : 6000,
-        })
-        if (result.note) {
-          toast.info(result.note, { duration: 5000 })
-        }
-      } else {
-        toast.success(`${method.name} deactivated`, {
-          description: result.tuma_synced !== false
-            ? 'Settlement paused. No active payment channel — activate another to resume collections.'
-            : 'Deactivated locally. Customers will no longer see this option.',
-        })
-      }
-      setToggleTarget(null)
-      fetchMethods()
-      fetchStats()
-    } catch (err: any) {
-      toast.error(err?.message || `Failed to ${action}`)
-    } finally {
-      setToggling(false)
-    }
-  }
-
-  /* ── Dynamic config fields for dialog ── */
-  const renderFields = () => {
-    const t = form.method_type
-    const c = form.cfg
-    const set = (k: string, v: string) => setForm((p) => ({ ...p, cfg: { ...p.cfg, [k]: v } }))
-
-    let fields: React.ReactNode = null
-
-    if (t === "MOBILE_MONEY" || t === "MPESA_NUMBER") {
-      const selectedProvider = MOBILE_PROVIDERS.find((p) => p.value === c.mobile_provider)
-      fields = (
-        <>
-          <div className="space-y-2">
-            <Label>Mobile Provider <span className="text-destructive">*</span></Label>
-            <Select value={c.mobile_provider || ""} onValueChange={(v) => set("mobile_provider", v)}>
-              <SelectTrigger><SelectValue placeholder="Select provider..." /></SelectTrigger>
-              <SelectContent>
-                {MOBILE_PROVIDERS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <Field
-            label="Phone Number"
-            required
-            ph={selectedProvider?.placeholder || "e.g. 254712345678"}
-            value={c.phone_number}
-            onChange={(v) => set("phone_number", v.replace(/[^0-9]/g, ""))}
-          />
-          <p className="text-xs text-muted-foreground -mt-1">
-            {c.mobile_provider === "AIRTEL" ? "The Airtel Money registered number." :
-             c.mobile_provider === "TELKOM" ? "The T-Kash registered number." :
-             "The M-Pesa registered number for STK Push payments."}
-          </p>
-        </>
-      )
-    } else if (t === "MPESA" || t === "MPESA_STK") {
-      fields = (
-        <>
-          <Field label="Shortcode / Paybill" ph="e.g. 174379" value={c.shortcode} onChange={(v) => set("shortcode", v)} />
-          <Field label="Account Reference" ph="e.g. CompanyXLTD" value={c.account_reference} onChange={(v) => set("account_reference", v)} />
-        </>
-      )
-    } else if (t === "MPESA_PAYBILL") {
-      fields = <Field label="Paybill Number" required ph="e.g. 600100" value={c.paybill_number} onChange={(v) => set("paybill_number", v.replace(/\D/g, ""))} />
-    } else if (t === "MPESA_TILL") {
-      fields = <Field label="Till Number" required ph="e.g. 123456" value={c.till_number} onChange={(v) => set("till_number", v.replace(/\D/g, ""))} />
-    } else if (t === "BANK_TRANSFER" || t === "BANK") {
-      fields = (
-        <>
-          <div className="space-y-2">
-            <Label>Bank <span className="text-destructive">*</span></Label>
-            <Select value={c.bank_name || ""} onValueChange={(v) => set("bank_name", v)}>
-              <SelectTrigger><SelectValue placeholder="Select bank..." /></SelectTrigger>
-              <SelectContent className="max-h-60">
-                {TUMA_BANKS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Banks supported by Netily payment gateway</p>
-          </div>
-          <Field label="Account Number" required ph="e.g. 0112345678" value={c.account_number} onChange={(v) => set("account_number", v)} />
-        </>
-      )
-    } else if (t === "PAYMENT_LINK") {
-      fields = <Field label="Payment URL" ph="https://pay.example.com/..." value={c.custom_link} onChange={(v) => set("custom_link", v)} type="url" />
-    }
-
-    return <>{fields}</>
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // LOADING STATE
-  // ═══════════════════════════════════════════════════════════════════
-  if (methodsLoading) {
-    return (
-      <div className="flex flex-col gap-6 p-6">
-        <Skeleton className="h-8 w-56" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
-        </div>
-      </div>
-    )
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // MAIN VIEW — analytics + card grid
-  // ═══════════════════════════════════════════════════════════════════
-  const totalCollected = stats ? parseFloat(stats.amount_this_month || stats.total_amount || "0") : 0
-  const todayAmount = stats ? parseFloat(stats.amount_today || "0") : 0
-  const successRate = stats ? Math.round((Number(stats.completed_payments || 0) / Math.max(Number(stats.total_payments || 0), 1)) * 100) : 0
-
   return (
-    <InactivityGuard timeoutMinutes={5}>
-    <OtpGuard
-      title="Payment Methods Verification"
-      description="Verify your identity before managing payment methods and settlement channels."
-    >
-    <div className="flex flex-col gap-6 p-6 animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Payment Methods</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage your collection channels. Each method is available to customers on invoices.
-          </p>
-        </div>
-        <Button onClick={openAdd} disabled={netilyMethods.length >= MAX_METHODS}>
-          <Plus className="h-4 w-4 mr-1.5" />
-          {netilyMethods.length >= MAX_METHODS ? `Limit (${MAX_METHODS})` : "Add Method"}
-        </Button>
-      </div>
-
-      {/* Integration Tabs */}
-      <Tabs value={integrationTab} onValueChange={setIntegrationTab}>
-        <TabsList className="grid w-full max-w-lg grid-cols-3">
-          <TabsTrigger value="netily" className="gap-1.5">
-            <Shield className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Netily</span>
-          </TabsTrigger>
-          <TabsTrigger value="daraja" className="gap-1.5">
-            <Smartphone className="h-3.5 w-3.5" />
-            M-Pesa Daraja
-          </TabsTrigger>
-          <TabsTrigger value="kopokopo" className="gap-1.5">
-            <Landmark className="h-3.5 w-3.5" />
-            KopoKopo
-          </TabsTrigger>
-        </TabsList>
-
-        {/* ─── TAB 1: Netily ─── */}
-        <TabsContent value="netily" className="space-y-6 mt-4">
-          {isFirstTime ? (
-            /* ─── NEW USER ONBOARDING (ONLY SHOWS IN NETILY TAB) ─── */
-            <div className="max-w-2xl mt-4 animate-in fade-in duration-300">
-              <Card className="border-dashed border-2 mb-6">
-                <CardContent className="pt-8 pb-8">
-                  <div className="text-center space-y-4">
-                    <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-                      <Sparkles className="h-8 w-8 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold">Welcome! Let&apos;s set up payments methods with no APIs</h2>
-                      <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                        Add collection wallets e.g. Paybills, Tills and any bank account. Funds land instantly when clients pay.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Button onClick={openAdd} size="lg" className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Payment Method
-              </Button>
-              <p className="text-center text-xs text-muted-foreground mt-3">
-                Powered by <a href="https://netily.co.ke" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">Netily</a>
-              </p>
-            </div>
-          ) : (
-            /* ─── EXISTING USER DASHBOARD (SHOWS WHEN THEY HAVE METHODS) ─── */
-            <>
-              <div className="flex items-center justify-between">
-                <div />
-                <Button onClick={openAdd} disabled={netilyMethods.length >= MAX_METHODS}>
-                  <Plus className="h-4 w-4 mr-1.5" />
-                  {netilyMethods.length >= MAX_METHODS ? `Limit (${MAX_METHODS})` : "Add Method"}
-                </Button>
-              </div>
-
-              {/* Error banner */}
-              {methodsError && (
-                <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 dark:border-red-900/50 dark:bg-red-950/30 p-4">
-                  <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                  <p className="text-sm font-medium text-red-800 dark:text-destructive/80 flex-1">{methodsError}</p>
-                  <Button variant="outline" size="sm" onClick={() => { setMethodsLoading(true); fetchMethods() }}>
-                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />Retry
-                  </Button>
-                </div>
-              )}
-
-              {/* ─── Analytics Summary Cards ─── */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard
-                  title="Collected This Month"
-                  value={statsLoading ? "—" : `KES ${totalCollected.toLocaleString()}`}
-                  icon={CircleDollarSign}
-                  iconColor="text-emerald-600"
-                  iconBg="bg-emerald-50 dark:bg-emerald-950/30"
-                  sub={stats?.payments_this_month ? `${stats.payments_this_month} transactions` : undefined}
-                />
-                <StatCard
-                  title="Today"
-                  value={statsLoading ? "—" : `KES ${todayAmount.toLocaleString()}`}
-                  icon={TrendingUp}
-                  iconColor="text-primary"
-                  iconBg="bg-primary/10 dark:bg-blue-950/30"
-                  sub={stats?.payments_today ? `${stats.payments_today} payments` : undefined}
-                />
-                <StatCard
-                  title="Success Rate"
-                  value={statsLoading ? "—" : `${successRate}%`}
-                  icon={CheckCircle2}
-                  iconColor="text-emerald-600"
-                  iconBg="bg-emerald-50 dark:bg-emerald-950/30"
-                  sub={stats ? `${Number(stats.completed_payments ?? 0)} completed · ${Number(stats.failed_payments ?? 0)} failed` : undefined}
-                  progress={statsLoading ? undefined : successRate}
-                />
-                <StatCard
-                  title="Active Channels"
-                  value={`${activeMethods.length} / ${netilyMethods.length}`}
-                  icon={Zap}
-                  iconColor="text-warning"
-                  iconBg="bg-warning/10 dark:bg-amber-950/30"
-                  sub={`${netilyMethods.length} total configured`}
-                />
-              </div>
-
-              {/* ─── Payment Method Cards Grid ─── */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Collection Channels</h2>
-                  <p className="text-xs text-muted-foreground">{activeMethods.length} active</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Use netilyMethods here instead of methods */}
-                  {netilyMethods.map((m) => {
-                    const Icon = iconFor(m.method_type)
-                    const c = colorFor(m.method_type)
-                    const colors = colorMap[c]
-                    const summary = configSummary(m)
-
-                    return (
-                      <Card
-                        key={m.id}
-                        className={`relative overflow-hidden transition-all duration-200 ${
-                          m.is_active
-                            ? "hover:shadow-md"
-                            : "opacity-50 grayscale"
-                        }`}
-                      >
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-center gap-3">
-                              <div className={`p-2.5 rounded-xl ${colors.bg} ring-1 ${colors.ring}`}>
-                                <Icon className={`h-5 w-5 ${colors.icon}`} />
-                              </div>
-                              <div className="min-w-0">
-                                <CardTitle className="text-sm font-semibold truncate">{m.name}</CardTitle>
-                                <CardDescription className="text-xs">{labelFor(m.method_type)}</CardDescription>
-                              </div>
-                            </div>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 -mr-2 -mt-1">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openEdit(m)}>
-                                  <Pencil className="h-3.5 w-3.5 mr-2" />Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                {m.is_active ? (
-                                  <DropdownMenuItem onClick={() => confirmToggle(m, 'deactivate')}>
-                                    <XCircle className="h-3.5 w-3.5 mr-2" />Deactivate
-                                  </DropdownMenuItem>
-                                ) : (
-                                  <DropdownMenuItem onClick={() => confirmToggle(m, 'activate')}>
-                                    <CheckCircle2 className="h-3.5 w-3.5 mr-2" />Activate
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </CardHeader>
-
-                        <CardContent className="pb-4 space-y-3">
-                          {/* Config summary */}
-                          {summary && (
-                            <div className={`text-xs font-mono px-3 py-2 rounded-lg ${colors.bg} ${colors.text} truncate`}>
-                              {summary}
-                            </div>
-                          )}
-
-                          {/* Provider badge - only show Netily badge since these are all Netily methods */}
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            {(m.method_type?.startsWith('MPESA')) ? (
-                              <Badge variant="outline" className="text-[10px]">Netily</Badge>
-                            ) : null}
-                          </div>
-
-                          {/* Method breakdown from stats */}
-                          {stats?.payment_methods_breakdown && (() => {
-                            const breakdown = stats.payment_methods_breakdown?.find(
-                              (b) => b.method === m.method_type || b.method === m.code
-                            )
-                            if (!breakdown) return null
-                            return (
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span>{breakdown.count} transactions</span>
-                                <span className="font-medium text-foreground">KES {parseFloat(breakdown.amount).toLocaleString()}</span>
-                              </div>
-                            )
-                          })()}
-
-                          {/* Footer: status + toggle */}
-                          <div className="flex items-center justify-between pt-2 border-t">
-                            <div className="flex items-center gap-1.5">
-                              {m.is_active ? (
-                                <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-0 text-[10px] gap-1">
-                                  <CheckCircle2 className="h-3 w-3" />Active
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="text-[10px] gap-1">
-                                  <XCircle className="h-3 w-3" />Inactive
-                                </Badge>
-                              )}
-                              {m.is_default && (
-                                <Badge variant="outline" className="text-[10px]">Default</Badge>
-                              )}
-                            </div>
-                            <Switch
-                              checked={m.is_active}
-                              onCheckedChange={() => confirmToggle(m, m.is_active ? 'deactivate' : 'activate')}
-                              className="scale-90"
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )
-                  })}
-
-                  {/* Add new card - use netilyMethods.length for limit check */}
-                  {netilyMethods.length < MAX_METHODS && (
-                    <button
-                      onClick={openAdd}
-                      className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-muted-foreground/20 p-8 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all duration-200 min-h-[200px] cursor-pointer group"
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-muted/50 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
-                        <Plus className="h-6 w-6" />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm font-medium">Add Collection Channel</p>
-                        <p className="text-xs mt-0.5">M-Pesa or Bank</p>
-                      </div>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </TabsContent>
-
-        {/* ─── TAB 2: M-Pesa Daraja (Own Keys) ─── */}
-        <TabsContent value="daraja" className="mt-4">
-          <MpesaSettingsPanel />
-        </TabsContent>
-
-        {/* ─── TAB 3: KopoKopo ─── */}
-        <TabsContent value="kopokopo" className="mt-4">
-          <KopoKopoSettings />
-        </TabsContent>
-      </Tabs>
-
-      {/* ═══════════════════════════════════════════
-         ADD / EDIT DIALOG (unchanged UX)
-      ═══════════════════════════════════════════ */}
-      <AddEditDialog
-        open={dlgOpen}
-        onOpenChange={setDlgOpen}
-        dlgStep={dlgStep}
-        setDlgStep={setDlgStep}
-        editing={editing}
-        form={form}
-        setForm={setForm}
-        saving={saving}
-        onSave={handleSave}
-        onPickType={pickType}
-        renderFields={renderFields}
-      />
-
-      {/* Activate / Deactivate confirm */}
-      <Dialog open={!!toggleTarget} onOpenChange={(o) => { if (!o) setToggleTarget(null) }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>
-              {toggleTarget?.action === 'activate' ? 'Activate Payment Method?' : 'Deactivate Payment Method?'}
-            </DialogTitle>
-            <DialogDescription>
-              {toggleTarget?.action === 'activate' ? (
-                <>
-                  <span className="font-medium">{toggleTarget.method.name}</span> will become the active payment method.
-                  {activeMethods.filter((m) => m.id !== toggleTarget.method.id).length > 0 && (
-                    <> <span className="font-medium">{activeMethods.filter((m) => m.id !== toggleTarget.method.id).map((m) => m.name).join(', ')}</span> will be deactivated. Only one method can be active at a time.</>
-                  )}
-                </>
-              ) : (
-                <>Deactivating <span className="font-medium">{toggleTarget?.method.name}</span> means customers will no longer see this payment option. You can reactivate it anytime.</>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setToggleTarget(null)}>Cancel</Button>
-            <Button
-              variant={toggleTarget?.action === 'deactivate' ? 'destructive' : 'default'}
-              onClick={handleActivateDeactivate}
-              disabled={toggling}
-            >
-              {toggling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {toggleTarget?.action === 'activate' ? 'Activate' : 'Deactivate'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-    </OtpGuard>
-    </InactivityGuard>
-  )
-}
-
-// =============================================================================
-// STAT CARD
-// =============================================================================
-function StatCard({ title, value, icon: Icon, iconColor, iconBg, sub, progress: progressVal }: {
-  title: string; value: string; icon: typeof CreditCard; iconColor: string; iconBg: string; sub?: string; progress?: number
-}) {
-  return (
-    <Card>
-      <CardContent className="pt-5 pb-4">
-        <div className="flex items-start justify-between mb-3">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
-          <div className={`p-1.5 rounded-lg ${iconBg}`}><Icon className={`h-4 w-4 ${iconColor}`} /></div>
-        </div>
-        <p className="text-2xl font-bold tracking-tight">{value}</p>
-        {progressVal !== undefined && (
-          <Progress value={progressVal} className="h-1.5 mt-2" />
-        )}
-        {sub && <p className="text-xs text-muted-foreground mt-1.5">{sub}</p>}
-      </CardContent>
-    </Card>
-  )
-}
-
-// =============================================================================
-// ADD / EDIT DIALOG (extracted, same UX)
-// =============================================================================
-function AddEditDialog({ open, onOpenChange, dlgStep, setDlgStep, editing, form, setForm, saving, onSave, onPickType, renderFields }: {
-  open: boolean
-  onOpenChange: (o: boolean) => void
-  dlgStep: "pick" | "details"
-  setDlgStep: (s: "pick" | "details") => void
-  editing: PaymentMethod | null
-  form: { method_type: string; name: string; description: string; is_default: boolean; cfg: Record<string, string> }
-  setForm: React.Dispatch<React.SetStateAction<typeof form>>
-  saving: boolean
-  onSave: () => void
-  onPickType: (type: string) => void
-  renderFields: () => React.ReactNode
-}) {
-  return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onOpenChange(false) }}>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {editing ? "Edit Payment Method" : dlgStep === "pick" ? "Add Payment Method" : `Set Up ${METHOD_TYPES.find((m) => m.value === form.method_type)?.label || "Method"}`}
-          </DialogTitle>
+          <DialogTitle>{existing ? `Edit ${meta.title}` : `Set Up ${meta.title}`}</DialogTitle>
           <DialogDescription>
-            {dlgStep === "pick"
-              ? "Choose the type of collection channel to add."
-              : "Configure the details. This will be visible to your customers on invoices."}
+            {kind === "bank"
+              ? "Funds settle directly to this bank account."
+              : `Customers pay to this ${kind === "till" ? "Till" : "Paybill"} number.`}
           </DialogDescription>
         </DialogHeader>
-
-        {dlgStep === "pick" ? (
-          <div className="grid gap-2 py-2">
-            {METHOD_TYPES.map((mt) => {
-              const Icon = mt.icon
-              return (
-                <button
-                  key={mt.value}
-                  onClick={() => onPickType(mt.value)}
-                  className="flex items-center gap-3 rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors group"
-                >
-                  <div className="p-2 rounded-lg bg-muted/50 shrink-0 group-hover:bg-primary/10 transition-colors">
-                    <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{mt.label}</p>
-                    <p className="text-xs text-muted-foreground">{mt.desc}</p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                </button>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="space-y-4 py-2">
-            {!editing && (
-              <button
-                onClick={() => setDlgStep("pick")}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ArrowLeft className="h-3 w-3" />Back to type selection
-              </button>
-            )}
-            <Field label="Display Name" required ph="e.g. M-Pesa Business" value={form.name} onChange={(v) => setForm((p) => ({ ...p, name: v }))} />
+        <div className="space-y-4 py-2">
+          {kind === "bank" ? (
+            <>
+              <div className="space-y-2">
+                <Label>Bank <span className="text-destructive">*</span></Label>
+                <Select value={bankName} onValueChange={setBankName}>
+                  <SelectTrigger><SelectValue placeholder="Select bank..." /></SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {TUMA_BANKS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Account Number <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="e.g. 0112345678"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                />
+              </div>
+            </>
+          ) : (
             <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                placeholder="Instructions shown to customers (optional)"
-                value={form.description}
-                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                rows={2}
+              <Label>{kind === "till" ? "Till Number" : "Paybill Number"} <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder={kind === "till" ? "e.g. 123456" : "e.g. 600100"}
+                value={number}
+                onChange={(e) => setNumber(e.target.value.replace(/\D/g, ""))}
               />
             </div>
-            {renderFields()}
-            <div className="flex items-center justify-between py-1">
-              <Label htmlFor="method-default" className="text-sm">Set as default</Label>
-              <Switch id="method-default" checked={form.is_default} onCheckedChange={(v) => setForm((p) => ({ ...p, is_default: v }))} />
-            </div>
-          </div>
-        )}
-
-        {dlgStep === "details" && (
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button onClick={onSave} disabled={saving}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{editing ? "Update" : "Create"}
-            </Button>
-          </DialogFooter>
-        )}
+          )}
+          <p className="text-xs text-muted-foreground">
+            {existing
+              ? "Changing these details updates your existing settlement channel — no need to delete and re-add."
+              : "This channel starts inactive. Activate it from its card once saved."}
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {existing ? "Save Changes" : "Save"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
 
 // =============================================================================
-// REUSABLE INPUT FIELD
+// KOPOKOPO SETTINGS
 // =============================================================================
-function Field({ label, ph, value, onChange, required, type }: {
-  label: string; ph?: string; value?: string; onChange: (v: string) => void; required?: boolean; type?: string
-}) {
-  return (
-    <div className="space-y-2">
-      <Label>{label}{required && <span className="text-destructive"> *</span>}</Label>
-      <Input type={type || "text"} placeholder={ph} value={value || ""} onChange={(e) => onChange(e.target.value)} />
-    </div>
-  )
-}
-
-// =============================================================================
-// KOPOKOPO SETTINGS PANEL
-// =============================================================================
-function KopoKopoSettings() {
+function KopoKopoSettings({ onSaved }: { onSaved?: (cfg: Record<string, string>) => void }) {
   const [config, setConfig] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -929,6 +578,7 @@ function KopoKopoSettings() {
     try {
       await adminApi.saveKopoKopoConfig(config)
       toast.success("KopoKopo configuration saved")
+      onSaved?.(config)
     } catch (err: any) {
       toast.error(err?.message || "Failed to save KopoKopo configuration")
     } finally {
@@ -938,7 +588,7 @@ function KopoKopoSettings() {
 
   if (loading) {
     return (
-      <div className="space-y-4 max-w-lg">
+      <div className="space-y-4">
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-full" />
@@ -947,51 +597,38 @@ function KopoKopoSettings() {
   }
 
   return (
-    <div className="space-y-6 max-w-lg">
-      <div>
-        <h3 className="text-base font-semibold">KopoKopo Integration</h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Connect your KopoKopo account to accept M-Pesa and other payments directly.
-        </p>
-      </div>
-      <div className="space-y-4">
-        <Field
-          label="Client ID"
-          ph="Your KopoKopo client ID"
-          value={config.client_id}
-          onChange={(v) => setConfig((c) => ({ ...c, client_id: v }))}
-          required
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Client ID <span className="text-destructive">*</span></Label>
+        <Input
+          placeholder="Your KopoKopo client ID"
+          value={config.client_id || ""}
+          onChange={(e) => setConfig((c) => ({ ...c, client_id: e.target.value }))}
         />
-        <Field
-          label="Client Secret"
-          ph="Your KopoKopo client secret"
-          value={config.client_secret}
-          onChange={(v) => setConfig((c) => ({ ...c, client_secret: v }))}
-          required
+      </div>
+      <div className="space-y-2">
+        <Label>Client Secret <span className="text-destructive">*</span></Label>
+        <Input
           type="password"
+          placeholder="Your KopoKopo client secret"
+          value={config.client_secret || ""}
+          onChange={(e) => setConfig((c) => ({ ...c, client_secret: e.target.value }))}
         />
-        <Field
-          label="Webhook Secret"
-          ph="Optional — for verifying webhook signatures"
-          value={config.webhook_secret}
-          onChange={(v) => setConfig((c) => ({ ...c, webhook_secret: v }))}
-        />
-        <div className="flex items-center gap-3 rounded-lg border p-4">
-          <Switch
-            id="kk-sandbox"
-            checked={config.is_sandbox === "true"}
-            onCheckedChange={(v) => setConfig((c) => ({ ...c, is_sandbox: v ? "true" : "false" }))}
-          />
-          <div>
-            <Label htmlFor="kk-sandbox" className="cursor-pointer font-medium">Sandbox mode</Label>
-            <p className="text-xs text-muted-foreground">Use KopoKopo test environment</p>
-          </div>
-        </div>
       </div>
-      <Button onClick={handleSave} disabled={saving}>
-        {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Save KopoKopo Settings
-      </Button>
+      <div className="space-y-2">
+        <Label>Webhook Secret</Label>
+        <Input
+          placeholder="Optional — for verifying webhook signatures"
+          value={config.webhook_secret || ""}
+          onChange={(e) => setConfig((c) => ({ ...c, webhook_secret: e.target.value }))}
+        />
+      </div>
+      <DialogFooter>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Save KopoKopo Settings
+        </Button>
+      </DialogFooter>
     </div>
   )
 }

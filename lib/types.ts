@@ -1990,6 +1990,7 @@ export interface PaymentMethod {
   // PayHero integration
   use_payhero: boolean
   payhero_channel_id?: number
+  // M-Pesa Daraja configuration fields
   mpesa_configuration?: number | null
   mpesa_configuration_details?: {
     id: number
@@ -1999,6 +2000,8 @@ export interface PaymentMethod {
     is_active: boolean
     validation_status?: 'PENDING' | 'VALID' | 'INVALID'
   } | null
+  // Tuma configuration ID (read-only)
+  tuma_configuration?: number | null
   // Configuration fields (JSON for flexibility)
   config?: {
     // Mobile Money config
