@@ -870,7 +870,7 @@ export default function UsersPage() {
   }, [selectedPlanPool])
 
   // ============================================================
-  // FIX 2: loadUsers with retry and non-destructive error handling
+  // FIX 2: loadUsers with retry, Invalid page detection, and non-destructive error handling
   // ============================================================
   const loadUsers = async (
     page = 1,
@@ -915,19 +915,34 @@ export default function UsersPage() {
       setUsers(prev => append ? [...prev, ...mappedUsers] : mappedUsers)
       setTotalCount(response.count)
       setHasMore(page * 50 < response.count)
-    } catch (err) {
-      // Tenants with many customers occasionally hit a slow/transient response
-      // right after a create (RADIUS/billing signals still settling). Retry
-      // once before treating it as a real failure.
-      if (retryCount < 1) {
+    } catch (err: any) {
+      // "Invalid page" (404) means the page number is stale/out of range —
+      // e.g. the result set shrank after a search/filter change while the
+      // user had already scrolled deep. Retrying it can never succeed, so
+      // stop pagination immediately instead of looping forever.
+      const isInvalidPage = err?.message?.toLowerCase?.().includes('invalid page')
+
+      if (!isInvalidPage && retryCount < 1) {
+        // Tenants with many customers occasionally hit a slow/transient response
+        // right after a create (RADIUS/billing signals still settling). Retry
+        // once before treating it as a real failure.
         console.warn('loadUsers failed, retrying once...', err)
         await new Promise((resolve) => setTimeout(resolve, 800))
         return loadUsers(page, search, status, append, retryCount + 1)
       }
+
       console.error('Failed to load users:', err)
-      // Don't blow away an already-populated list on a transient failure —
-      // only show the full error state if we truly have nothing to show.
-      if (!append && users.length === 0) {
+
+      if (append) {
+        // This was a "load more" request — disable further pagination so the
+        // infinite-scroll observer doesn't keep re-firing on the same broken page.
+        setHasMore(false)
+        if (!isInvalidPage) {
+          toast.error("Couldn't load more users.")
+        }
+      } else if (users.length === 0) {
+        // Don't blow away an already-populated list on a transient failure —
+        // only show the full error state if we truly have nothing to show.
         setError("Failed to load users. Please try again.")
       } else {
         toast.error("Couldn't refresh the users list — showing existing data.")
