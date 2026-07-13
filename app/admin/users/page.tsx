@@ -870,9 +870,15 @@ export default function UsersPage() {
   }, [selectedPlanPool])
 
   // ============================================================
-  // FIX 2: loadUsers with append parameter for infinite scroll
+  // FIX 2: loadUsers with retry and non-destructive error handling
   // ============================================================
-  const loadUsers = async (page = 1, search?: string, status?: string, append = false) => {
+  const loadUsers = async (
+    page = 1,
+    search?: string,
+    status?: string,
+    append = false,
+    retryCount = 0
+  ) => {
     try {
       append ? setLoadingMore(true) : setLoading(true)
       setError(null)
@@ -910,8 +916,22 @@ export default function UsersPage() {
       setTotalCount(response.count)
       setHasMore(page * 50 < response.count)
     } catch (err) {
+      // Tenants with many customers occasionally hit a slow/transient response
+      // right after a create (RADIUS/billing signals still settling). Retry
+      // once before treating it as a real failure.
+      if (retryCount < 1) {
+        console.warn('loadUsers failed, retrying once...', err)
+        await new Promise((resolve) => setTimeout(resolve, 800))
+        return loadUsers(page, search, status, append, retryCount + 1)
+      }
       console.error('Failed to load users:', err)
-      setError("Failed to load users. Please try again.")
+      // Don't blow away an already-populated list on a transient failure —
+      // only show the full error state if we truly have nothing to show.
+      if (!append && users.length === 0) {
+        setError("Failed to load users. Please try again.")
+      } else {
+        toast.error("Couldn't refresh the users list — showing existing data.")
+      }
     } finally {
       setLoading(false)
       setLoadingMore(false)
@@ -1121,7 +1141,14 @@ export default function UsersPage() {
       setAvailableIPs([])
       setIpSearchQuery("")
       setShowAddUserDialog(false)
-      
+
+      // ============================================================
+      // FIX 6: Small delay so the newly created customer/service/RADIUS
+      // rows are fully committed before we re-query the list
+      // (matters on large tenants).
+      // ============================================================
+      await new Promise((resolve) => setTimeout(resolve, 400))
+
       await loadUsers(1, searchQuery, statusFilter, false)
       setServerPage(1)
       setHasMore(true)
@@ -1331,7 +1358,7 @@ export default function UsersPage() {
   }, [onlineSessions])
 
   // ============================================================
-  // FIX 6: Debounced search - resets pagination
+  // FIX 7: Debounced search - resets pagination
   // ============================================================
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
@@ -3037,9 +3064,6 @@ export default function UsersPage() {
                                       Disconnect
                                     </DropdownMenuItem>
                                   )}
-                                  {/* ============================================================
-                                      NEW: Refresh Internet dropdown item in Active Subs tab
-                                      ============================================================ */}
                                   {user.radiusCredentials && (
                                     <DropdownMenuItem
                                       onClick={() => handleRefreshInternet(user)}
@@ -3484,9 +3508,6 @@ export default function UsersPage() {
                                         Disconnect
                                       </DropdownMenuItem>
                                     )}
-                                    {/* ============================================================
-                                        NEW: Refresh Internet dropdown item in main table
-                                        ============================================================ */}
                                     {user.radiusCredentials && (
                                       <DropdownMenuItem
                                         onClick={() => handleRefreshInternet(user)}
