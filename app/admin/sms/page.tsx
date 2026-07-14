@@ -70,7 +70,8 @@ const PROVIDER_OPTIONS: { value: SMSProvider; label: string }[] = [
   { value: 'hubtel', label: 'Hubtel' },
   { value: 'bytewave', label: 'Bytewave (Netily)' },
   { value: 'blessedtexts', label: 'BlessedTexts' },
-  { value: 'texin', label: 'Texin' },  // ← ADDED
+  { value: 'texin', label: 'Texin' },
+  { value: 'celcom', label: 'Celcom Africa' },
 ]
 
 const PROVIDER_FIELDS: Record<SMSProvider, { key: string; label: string; type?: string }[]> = {
@@ -89,6 +90,10 @@ const PROVIDER_FIELDS: Record<SMSProvider, { key: string; label: string; type?: 
   texin: [
     { key: 'api_key', label: 'API Key', type: 'password' },
     { key: 'sender_id', label: 'Sender ID' },
+  ],
+  celcom: [
+    { key: 'api_key', label: 'API Key', type: 'password' },
+    { key: 'sender_id', label: 'Short Code' },
   ],
 }
 
@@ -1323,6 +1328,18 @@ export default function SMSPage() {
                         <div className="space-y-1.5">
                           <Label>Partner ID</Label>
                           <Input
+                            value={gwForm.extra_config?.partner_id ?? ''}
+                            onChange={e => setGwForm(p => ({
+                              ...p, extra_config: { ...p.extra_config, partner_id: e.target.value }
+                            }))}
+                          />
+                        </div>
+                      )}
+                      {gwForm.provider === 'celcom' && (
+                        <div className="space-y-1.5">
+                          <Label>Partner ID</Label>
+                          <Input
+                            placeholder="Celcom Partner ID"
                             value={gwForm.extra_config?.partner_id ?? ''}
                             onChange={e => setGwForm(p => ({
                               ...p, extra_config: { ...p.extra_config, partner_id: e.target.value }
