@@ -1,14 +1,14 @@
-import { LandingPage } from "./landing-page"
+﻿import { LandingPage } from "./landing-page"
 import type { Metadata } from "next"
 import { blogPosts } from "@/lib/blog-data"
 
-// Static page — no per-request rendering needed; maximises caching and Core Web Vitals
+// Static page â€” no per-request rendering needed; maximises caching and Core Web Vitals
 export const metadata: Metadata = {
-  title: "ISP Billing Software Kenya | M-Pesa & MikroTik — Netily",
+  title: "Internetily | ISP Billing Software Kenya | M-Pesa & MikroTik",
   description:
-    "Kenya's leading ISP billing software. Automate M-Pesa STK Push, MikroTik PPPoE & hotspot billing. Free trial, no card required.",
+    "Internetily, formerly Netily, is Kenya's ISP billing software for M-Pesa STK Push, MikroTik PPPoE, hotspot billing, and ISP operations.",
   keywords: [
-    // ── Exact-match Ahrefs targets (high intent) ──────
+    // â”€â”€ Exact-match Ahrefs targets (high intent) â”€â”€â”€â”€â”€â”€
     "isp billing software",
     "isp billing software kenya",
     "best isp billing software",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     "isp management system with mikrotik api",
     "mikrotik isp management software",
     "isp management",
-    // ── 2026-specific keywords ────────────────────────
+    // â”€â”€ 2026-specific keywords â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     "isp billing software kenya 2026",
     "best isp management software 2026",
     "isp automation software 2026",
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     "wisp billing software 2026",
     "5g isp billing kenya 2026",
     "starlink isp billing kenya 2026",
-    // ── Branded & geo ─────────────────────────────────
+    // â”€â”€ Branded & geo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     "ISP billing software Kenya",
     "ISP management software Kenya 2026",
     "best ISP billing system Kenya",
@@ -96,7 +96,7 @@ export const metadata: Metadata = {
     "East Africa ISP SaaS",
     "affordable ISP billing software Africa",
     "free trial ISP software",
-    // ── Emerging tech & trends 2026 ──────────────────
+    // â”€â”€ Emerging tech & trends 2026 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     "ai isp billing kenya",
     "machine learning isp churn prediction",
     "predictive isp analytics 2026",
@@ -112,7 +112,7 @@ export const metadata: Metadata = {
     "serverless isp billing",
     "api-first isp management",
     "headless isp billing cms",
-    // ── Competitor comparisons ────────────────────────
+    // â”€â”€ Competitor comparisons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     "Splynx alternative Kenya",
     "WHMCS alternative ISP Africa",
     "Ucrm alternative Kenya",
@@ -129,7 +129,7 @@ export const metadata: Metadata = {
     "Splynx alternative 2026",
     "modern splynx competitor",
     "splynx replacement kenya",
-    // ── Vertical / use-case ───────────────────────────
+    // â”€â”€ Vertical / use-case â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     "school WiFi billing software Kenya",
     "hotel WiFi billing system Kenya",
     "matatu WiFi billing Kenya",
@@ -139,7 +139,7 @@ export const metadata: Metadata = {
     "fixed wireless access billing Kenya",
     "church WiFi billing Kenya",
     "campus WiFi management Kenya",
-    // ── Long-tail queries ─────────────────────────────
+    // â”€â”€ Long-tail queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     "how to automate ISP billing with M-Pesa",
     "best ISP billing software with mikrotik api",
     "mikrotik pppoe auto suspend on expiry Kenya",
@@ -149,7 +149,7 @@ export const metadata: Metadata = {
     "ISP reconciliation software M-Pesa Safaricom",
     "automated internet billing Kenya",
     "PPPoE subscriber auto-suspend software Kenya",
-    // ── More cities/regions ───────────────────────────
+    // â”€â”€ More cities/regions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     "Thika ISP billing",
     "Machakos ISP software",
     "Nyeri internet billing",
@@ -163,9 +163,24 @@ export const metadata: Metadata = {
     "ISP billing software Rwanda",
     "ISP billing software Burundi",
     "ISP billing software South Sudan",
-    // ── Brand ─────────────────────────────────────────
+    // â”€â”€ Brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    "Internetily",
+    "Internetily ISP billing",
+    "Internetily ISP platform",
+    "Internetily billing software",
+    "Internetily Kenya",
+    "Internetily formerly Netily",
+    "Netily now Internetily",
+    "Internetily Netily",
+    "Netily Internetily",
+    "Internetily Netily ISP billing",
+    "Internetily MikroTik integration",
+    "Internetily hotspot billing",
     "Netily",
     "Netily ISP billing",
+    "Netily ISP platform",
+    "Netily billing software",
+    "Netily Kenya",
     "Netily vs Splynx",
     "Netily MikroTik integration",
     "Netily hotspot billing",
@@ -178,28 +193,37 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "ISP Billing Software Kenya | M-Pesa & MikroTik — Netily",
+    title: "Internetily | ISP Billing Software Kenya | M-Pesa & MikroTik",
     description:
-      "Kenya's #1 ISP billing software. Automate M-Pesa STK Push, MikroTik PPPoE, RADIUS & hotspot billing. Free trial available.",
+      "Internetily, formerly Netily, automates M-Pesa STK Push, MikroTik PPPoE, RADIUS and hotspot billing for Kenyan and East African ISPs.",
     url: "https://netily.co.ke",
-    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "Netily — ISP Billing Software Kenya" }],
+    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "Internetily, formerly Netily - ISP Billing Software Kenya" }],
   },
 }
 
-// ─── Structured Data (server-rendered in initial HTML) ────────────────────────
+// â”€â”€â”€ Structured Data (server-rendered in initial HTML) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const softwareSchema = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "Netily",
+  "@id": "https://netily.co.ke/#software",
+  name: "Internetily",
+  alternateName: [
+    "Netily",
+    "Internetily formerly Netily",
+    "Netily ISP Billing Software",
+    "Internetily ISP Billing Software",
+  ],
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   url: "https://netily.co.ke",
   description:
-    "ISP billing software for Kenya and East Africa. Automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and ISP management.",
+    "Internetily, formerly Netily, is ISP billing software for Kenya and East Africa. It automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and ISP management.",
   publisher: {
     "@type": "Organization",
-    name: "Netily",
+    "@id": "https://netily.co.ke/#organization",
+    name: "Internetily",
+    alternateName: "Netily",
     url: "https://netily.co.ke",
     address: {
       "@type": "PostalAddress",
@@ -257,9 +281,17 @@ const softwareSchema = {
 const orgSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "Netily",
+  "@id": "https://netily.co.ke/#organization",
+  name: "Internetily",
+  alternateName: [
+    "Netily",
+    "Internetily formerly Netily",
+    "Netily ISP Platform",
+  ],
   url: "https://netily.co.ke",
-  logo: "https://netily.co.ke/logo.png",
+  logo: "https://netily.co.ke/internetily-icon-512.png",
+  description:
+    "Internetily is the current brand for the ISP billing and management platform also known as Netily.",
   sameAs: [
     "https://x.com/netily",
     "https://linkedin.com/company/netily",
@@ -300,9 +332,11 @@ const orgSchema = {
 const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "Netily",
+  "@id": "https://netily.co.ke/#website",
+  name: "Internetily",
+  alternateName: ["Netily", "Internetily formerly Netily", "Netily ISP Blog"],
   url: "https://netily.co.ke",
-  description: "ISP billing software and management platform for Kenya and East Africa",
+  description: "Internetily, formerly Netily, is ISP billing software and a management platform for Kenya and East Africa",
   potentialAction: {
     "@type": "SearchAction",
     target: "https://netily.co.ke/?q={search_term_string}",
@@ -313,11 +347,14 @@ const websiteSchema = {
 const financialWorkflowSchema = {
   "@context": "https://schema.org",
   "@type": "Service",
-  name: "Netily Payment and Billing Workflow",
+  name: "Internetily / Netily Payment and Billing Workflow",
+  alternateName: "Netily Payment and Billing Workflow",
   serviceType: "ISP billing automation",
   provider: {
     "@type": "Organization",
-    name: "Netily",
+    "@id": "https://netily.co.ke/#organization",
+    name: "Internetily",
+    alternateName: "Netily",
     url: "https://netily.co.ke",
   },
   areaServed: [
@@ -342,10 +379,18 @@ const faqSchema = {
   mainEntity: [
     {
       "@type": "Question",
+      name: "Are Internetily and Netily the same platform?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Internetily is the current brand for the ISP billing and management platform formerly known as Netily. Netily search terms, Netily billing software, Netily ISP platform, and Internetily refer to the same product family for M-Pesa billing, MikroTik automation, hotspot billing, and ISP operations.",
+      },
+    },
+    {
+      "@type": "Question",
       name: "What is Netily?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Netily is ISP billing software for Kenya and East Africa. It automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and customer self-service for internet service providers.",
+        text: "Netily is the former and still-recognized name for Internetily, an ISP billing software platform for Kenya and East Africa. It automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and customer self-service for internet service providers.",
       },
     },
     {
@@ -353,7 +398,7 @@ const faqSchema = {
       name: "Does Netily support M-Pesa STK Push?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Netily has native M-Pesa STK Push integration. When a subscriber pays, their internet service activates automatically within seconds — no manual reconciliation.",
+        text: "Yes. Netily has native M-Pesa STK Push integration. When a subscriber pays, their internet service activates automatically within seconds â€” no manual reconciliation.",
       },
     },
     {
@@ -393,7 +438,7 @@ const faqSchema = {
       name: "What is the best ISP billing software in Kenya?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Netily is widely regarded as the best ISP billing software in Kenya for small and medium ISPs. It natively supports M-Pesa STK Push, MikroTik PPPoE auto-provisioning, RADIUS authentication, and hotspot billing — all priced in KES with a free trial.",
+        text: "Netily is widely regarded as the best ISP billing software in Kenya for small and medium ISPs. It natively supports M-Pesa STK Push, MikroTik PPPoE auto-provisioning, RADIUS authentication, and hotspot billing â€” all priced in KES with a free trial.",
       },
     },
     {
@@ -401,7 +446,7 @@ const faqSchema = {
       name: "Is there free ISP billing software?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Netily offers a free trial with no credit card required — giving ISPs full access to billing, M-Pesa integration, and MikroTik provisioning before committing. After the trial, tenants activate with KES 500, then recurring billing is based on PPPoE footprint and hotspot revenue usage. Open-source alternatives like ZAL ISP Management System exist but require self-hosting and technical setup.",
+        text: "Netily offers a free trial with no credit card required â€” giving ISPs full access to billing, M-Pesa integration, and MikroTik provisioning before committing. After the trial, tenants activate with KES 500, then recurring billing is based on PPPoE footprint and hotspot revenue usage. Open-source alternatives like ZAL ISP Management System exist but require self-hosting and technical setup.",
       },
     },
     {
@@ -433,20 +478,24 @@ const faqSchema = {
       name: "Is Netily a good Splynx alternative for Kenya?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Netily is Kenya's leading Splynx alternative. It offers native M-Pesa STK Push, MikroTik auto-provisioning, RADIUS integration, and hotspot billing — all at a fraction of Splynx's cost and priced in KES. Most Kenyan ISPs switching from Splynx are live on Netily within 24 hours.",
+        text: "Yes. Netily is Kenya's leading Splynx alternative. It offers native M-Pesa STK Push, MikroTik auto-provisioning, RADIUS integration, and hotspot billing â€” all at a fraction of Splynx's cost and priced in KES. Most Kenyan ISPs switching from Splynx are live on Netily within 24 hours.",
       },
     },
   ],
 }
 
-// ─── LocalBusiness Schema (2026) — Enhanced GEO targeting ──────────────────────
+// â”€â”€â”€ LocalBusiness Schema (2026) â€” Enhanced GEO targeting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const localBusinessSchema = {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
   "@id": "https://netily.co.ke/#business",
-  name: "Netily",
-  alternateName: "Netily ISP Billing Software",
-  description: "Cloud-based ISP billing and management platform for Kenya and East Africa. Automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, and hotspot billing for internet service providers.",
+  name: "Internetily",
+  alternateName: [
+    "Netily",
+    "Netily ISP Billing Software",
+    "Internetily formerly Netily",
+  ],
+  description: "Internetily, formerly Netily, is a cloud-based ISP billing and management platform for Kenya and East Africa. It automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, and hotspot billing for internet service providers.",
   url: "https://netily.co.ke",
   telephone: "+254-700-000-000",
   email: "hello@netily.co.ke",
@@ -565,7 +614,7 @@ const localBusinessSchema = {
   makesOffer: [
     {
       "@type": "Offer",
-      name: "Starter Plan — ISP Billing Software",
+      name: "Starter Plan â€” ISP Billing Software",
       description: "Usage-based metered billing for small to medium ISPs. KES 500 activation + KES 25/PPPoE subscriber + 3% hotspot revenue share.",
       price: "500",
       priceCurrency: "KES",
@@ -580,14 +629,15 @@ const localBusinessSchema = {
       eligibleRegion: ["KE", "TZ", "UG", "RW"],
       itemOffered: {
         "@type": "SoftwareApplication",
-        name: "Netily Starter Plan",
+        name: "Internetily Starter Plan",
+        alternateName: "Netily Starter Plan",
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
       },
     },
     {
       "@type": "Offer",
-      name: "Enterprise Plan — Custom ISP Billing",
+      name: "Enterprise Plan â€” Custom ISP Billing",
       description: "Custom pricing for large ISPs with white-label branding, dedicated support, and SLA guarantees.",
       price: "0",
       priceCurrency: "KES",
@@ -596,7 +646,8 @@ const localBusinessSchema = {
       eligibleRegion: ["KE", "TZ", "UG", "RW"],
       itemOffered: {
         "@type": "SoftwareApplication",
-        name: "Netily Enterprise Plan",
+        name: "Internetily Enterprise Plan",
+        alternateName: "Netily Enterprise Plan",
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
       },
@@ -736,7 +787,7 @@ const localBusinessSchema = {
   },
 }
 
-// ─── BreadcrumbList Schema (2026) — Helps Google understand site hierarchy ────
+// â”€â”€â”€ BreadcrumbList Schema (2026) â€” Helps Google understand site hierarchy â”€â”€â”€â”€
 const breadcrumbSchema = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
@@ -769,11 +820,12 @@ const breadcrumbSchema = {
 }
 
 export default function Page() {
-  // Blog list schema — helps Google understand the content cluster
+  // Blog list schema â€” helps Google understand the content cluster
   const blogListSchema = {
     "@context": "https://schema.org",
     "@type": "Blog",
-    name: "Netily ISP Blog",
+    name: "Internetily ISP Blog",
+    alternateName: "Netily ISP Blog",
     url: "https://netily.co.ke/blog",
     description: "Expert guides on ISP billing software, MikroTik automation, and M-Pesa integration for Kenyan ISPs",
     blogPost: blogPosts.map((post) => ({
@@ -790,7 +842,7 @@ export default function Page() {
 
   return (
     <>
-      {/* JSON-LD schemas in initial server HTML — not afterInteractive */}
+      {/* JSON-LD schemas in initial server HTML â€” not afterInteractive */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}

@@ -259,11 +259,11 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
 
   if (!solution) {
     return (
-      <main className="min-h-screen bg-white px-4 py-24 text-slate-900 dark:bg-slate-950 dark:text-white">
+      <main className="public-site min-h-screen bg-zinc-950 px-4 py-24 text-white">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm uppercase tracking-[0.28em] text-slate-400">Not found</p>
-          <h1 className="mt-4 text-4xl font-bold">Solution page unavailable</h1>
-          <Link href="/" className="mt-8 inline-flex items-center gap-2 text-primary dark:text-primary/80">
+          <p className="text-sm uppercase tracking-[0.28em] text-zinc-500">Not found</p>
+          <h1 className="mt-4 text-4xl font-normal">Solution page unavailable</h1>
+          <Link href="/" className="mt-8 inline-flex items-center gap-2 text-amber-300">
             Back to homepage
             <ArrowRight className="h-4 w-4" />
           </Link>
@@ -282,30 +282,40 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
   const HeroIcon = iconMap[solution.eyebrow as keyof typeof iconMap] || Wifi
 
   return (
-    <main className="min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-white">
-      <section className="relative overflow-hidden px-4 py-24 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-slate-50 dark:from-blue-950/30 dark:via-slate-950 dark:to-slate-950" />
+    <main className="public-site min-h-screen bg-zinc-950 text-white">
+      <section className="relative overflow-hidden border-b border-zinc-800 px-4 py-24 sm:px-6 lg:px-8">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.025]"
+          style={{
+            backgroundImage:
+              "url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><filter id=%22noise%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%224%22 result=%22noise%22 /></filter><rect width=%22100%22 height=%22100%22 filter=%22url(%23noise)%22 fill=%22%23ffffff%22/></svg>')",
+          }}
+        />
         <div className="relative mx-auto max-w-5xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-medium text-primary dark:border-primary/20 dark:bg-blue-950/40 dark:text-primary/60">
+          <Link href="/" className="mb-10 inline-flex items-center gap-2 text-sm font-semibold text-amber-300 hover:text-white">
+            Back to Internetily
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <div className="inline-flex items-center gap-2 border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-200">
             <HeroIcon className="h-4 w-4" />
             {solution.eyebrow}
           </div>
-          <h1 className="mt-6 max-w-4xl text-4xl font-extrabold tracking-tight md:text-6xl">
+          <h1 className="mt-6 max-w-4xl text-4xl font-normal tracking-tight md:text-6xl">
             {solution.title}
           </h1>
-          <p className="mt-5 max-w-3xl text-lg leading-relaxed text-slate-600 dark:text-slate-400">
+          <p className="mt-5 max-w-3xl text-lg leading-relaxed text-zinc-400">
             {solution.hero}
           </p>
           <div className="mt-10 grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-[28px] border border-slate-200 bg-white/90 p-6 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900/90">
-              <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">{solution.summary}</p>
+            <div className="border border-zinc-800 bg-zinc-900 p-6">
+              <p className="text-sm leading-relaxed text-zinc-400">{solution.summary}</p>
             </div>
-            <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-6 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900/70">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">What this page covers</p>
+            <div className="border border-zinc-800 bg-zinc-900 p-6">
+              <p className="text-sm font-semibold text-white">What this page covers</p>
               <div className="mt-4 space-y-3">
                 {solution.bullets.map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-400">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <div key={item} className="flex items-start gap-3 text-sm text-zinc-400">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                     <span>{item}</span>
                   </div>
                 ))}
@@ -315,14 +325,14 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <Link
               href="/#contact"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary"
+              className="inline-flex items-center gap-2 bg-white px-6 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-zinc-200"
             >
-              Talk to Netily
+              Talk to Internetily
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/#pricing"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-primary dark:text-primary/80"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-amber-300"
             >
               View pricing
               <ArrowRight className="h-4 w-4" />

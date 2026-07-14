@@ -548,3 +548,442 @@ html::-webkit-scrollbar-thumb:hover {
   }
 }
 
+/* Public marketing pages: make the shared theme toggle work with the bespoke landing aesthetic. */
+.public-site {
+  --public-accent: #38bdf8;
+  --public-accent-strong: #0ea5e9;
+  --public-accent-soft: rgb(186 230 253 / 0.32);
+  --public-accent-border: rgb(14 165 233 / 0.34);
+}
+
+.public-site .bg-amber-500,
+.public-site .bg-amber-400,
+.public-site .bg-yellow-500,
+.public-site .bg-yellow-400 {
+  background-color: var(--public-accent) !important;
+}
+
+.public-site .bg-amber-500\/10,
+.public-site .bg-amber-400\/10,
+.public-site .bg-yellow-500\/10,
+.public-site .bg-yellow-400\/10 {
+  background-color: var(--public-accent-soft) !important;
+}
+
+.public-site .border-amber-500,
+.public-site .border-amber-400,
+.public-site .border-yellow-500,
+.public-site .border-yellow-400 {
+  border-color: var(--public-accent-strong) !important;
+}
+
+.public-site .border-amber-500\/20,
+.public-site .border-amber-500\/25,
+.public-site .border-amber-500\/30,
+.public-site .border-amber-500\/40,
+.public-site .border-yellow-500\/30 {
+  border-color: var(--public-accent-border) !important;
+}
+
+.public-site .text-amber-100,
+.public-site .text-amber-200,
+.public-site .text-amber-300,
+.public-site .text-amber-400,
+.public-site .text-yellow-100,
+.public-site .text-yellow-200,
+.public-site .text-yellow-300,
+.public-site .text-yellow-400 {
+  color: var(--public-accent-strong) !important;
+}
+
+.public-site .hover\:text-amber-200:hover,
+.public-site .hover\:text-amber-300:hover,
+.public-site .hover\:text-amber-400:hover,
+.public-site .group:hover .group-hover\:text-amber-200,
+.public-site .group:hover .group-hover\:text-amber-300 {
+  color: #0284c7 !important;
+}
+
+.public-site .hover\:border-amber-500\/50:hover,
+.public-site .hover\:border-amber-500\/60:hover,
+.public-site .group:hover.group-hover\:border-amber-500\/50 {
+  border-color: rgb(14 165 233 / 0.6) !important;
+}
+
+.public-site input:focus,
+.public-site select:focus,
+.public-site textarea:focus {
+  border-color: var(--public-accent-strong) !important;
+}
+
+html:not(.dark) .public-site {
+  background-color: #f5f9ff !important;
+  color: #0f172a !important;
+}
+
+html:not(.dark) .public-site .bg-zinc-950,
+html:not(.dark) .public-site .bg-zinc-950\/95,
+html:not(.dark) .public-site .bg-zinc-950\/80,
+html:not(.dark) .public-site .bg-zinc-950\/75,
+html:not(.dark) .public-site .bg-zinc-950\/65,
+html:not(.dark) .public-site .bg-zinc-950\/35,
+html:not(.dark) .public-site .bg-zinc-900,
+html:not(.dark) .public-site .bg-zinc-900\/80,
+html:not(.dark) .public-site .bg-zinc-900\/70,
+html:not(.dark) .public-site .bg-zinc-900\/65,
+html:not(.dark) .public-site .bg-zinc-900\/30,
+html:not(.dark) .public-site .bg-zinc-800 {
+  background-color: #ffffff !important;
+}
+
+html:not(.dark) .public-site section.bg-zinc-950,
+html:not(.dark) .public-site section.bg-zinc-900,
+html:not(.dark) .public-site main.bg-zinc-950,
+html:not(.dark) .public-site header.bg-zinc-950 {
+  background-color: #f5f9ff !important;
+}
+
+html:not(.dark) .public-site .border-zinc-800,
+html:not(.dark) .public-site .border-zinc-700,
+html:not(.dark) .public-site .border-white\/10,
+html:not(.dark) .public-site .border-white\/15,
+html:not(.dark) .public-site .border-white\/20,
+html:not(.dark) .public-site .border-white\/25,
+html:not(.dark) .public-site .border-white\/30 {
+  border-color: #dbeafe !important;
+}
+
+html:not(.dark) .public-site .text-white,
+html:not(.dark) .public-site .text-zinc-100,
+html:not(.dark) .public-site .text-zinc-200,
+html:not(.dark) .public-site .text-zinc-300 {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .public-site .text-zinc-400,
+html:not(.dark) .public-site .text-zinc-500,
+html:not(.dark) .public-site .text-zinc-600,
+html:not(.dark) .public-site .text-white\/80,
+html:not(.dark) .public-site .text-white\/70,
+html:not(.dark) .public-site .text-white\/65,
+html:not(.dark) .public-site .text-white\/60,
+html:not(.dark) .public-site .text-white\/55 {
+  color: #475569 !important;
+}
+
+html:not(.dark) .public-site .bg-white,
+html:not(.dark) .public-site .bg-white\/5,
+html:not(.dark) .public-site .bg-white\/10,
+html:not(.dark) .public-site .bg-white\/15,
+html:not(.dark) .public-site .bg-white\/\[0\.03\],
+html:not(.dark) .public-site .bg-white\/\[0\.04\] {
+  background-color: #eff6ff !important;
+}
+
+html:not(.dark) .public-site .bg-black,
+html:not(.dark) .public-site .bg-black.text-white {
+  background-color: #020617 !important;
+}
+
+html:not(.dark) .public-site .bg-black.text-white,
+html:not(.dark) .public-site .bg-blue-600.text-white,
+html:not(.dark) .public-site .bg-\[\#25D366\].text-white {
+  color: #ffffff !important;
+}
+
+html:not(.dark) .public-site .public-hero .text-white,
+html:not(.dark) .public-site .public-hero .text-white\/80,
+html:not(.dark) .public-site .public-hero .text-white\/70,
+html:not(.dark) .public-site .public-hero .text-white\/65,
+html:not(.dark) .public-site .public-hero .text-white\/60,
+html:not(.dark) .public-site .public-hero .text-white\/55 {
+  color: #ffffff !important;
+}
+
+html:not(.dark) .public-site input,
+html:not(.dark) .public-site select,
+html:not(.dark) .public-site textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.public-header .public-nav {
+  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(2 6 23 / 0.44);
+  min-height: 5.25rem;
+  padding: 0.5rem 1rem;
+  backdrop-filter: blur(18px);
+}
+
+@media (max-width: 640px) {
+  .public-header .public-nav {
+    min-height: 4.75rem;
+  }
+}
+
+html:not(.dark) .public-header .public-nav {
+  border-color: rgb(14 165 233 / 0.22) !important;
+  background: linear-gradient(135deg, rgb(2 6 23 / 0.9), rgb(15 23 42 / 0.78)) !important;
+  box-shadow: 0 18px 60px rgb(15 23 42 / 0.18);
+}
+
+html:not(.dark) .public-header .text-white,
+html:not(.dark) .public-header .text-white\/70,
+html:not(.dark) .public-header .text-white\/75,
+html:not(.dark) .public-header .hover\:text-white:hover,
+html:not(.dark) .public-header .public-announcement,
+html:not(.dark) .public-header .public-announcement .text-white,
+html:not(.dark) .public-header .public-announcement strong {
+  color: #ffffff !important;
+}
+
+html:not(.dark) .public-header .public-announcement {
+  border-color: rgb(56 189 248 / 0.32) !important;
+  background: linear-gradient(135deg, rgb(14 165 233 / 0.22), rgb(2 6 23 / 0.72)) !important;
+}
+
+html:not(.dark) .public-header .public-mobile-menu {
+  border-color: rgb(14 165 233 / 0.24) !important;
+  background-color: rgb(2 6 23 / 0.96) !important;
+}
+
+html:not(.dark) .public-header .public-mobile-menu,
+html:not(.dark) .public-header .public-mobile-menu a,
+html:not(.dark) .public-header .public-mobile-menu .text-zinc-300 {
+  color: #ffffff !important;
+}
+
+html:not(.dark) .public-site .public-hero .bg-white\/\[0\.04\],
+html:not(.dark) .public-site .public-hero .bg-white\/5 {
+  border-color: rgb(255 255 255 / 0.22) !important;
+  background-color: rgb(15 23 42 / 0.46) !important;
+  box-shadow: 0 20px 70px rgb(2 6 23 / 0.2);
+}
+
+html:not(.dark) .public-site .public-hero .text-zinc-950 {
+  color: #020617 !important;
+}
+
+html:not(.dark) .public-site .public-footer.bg-black {
+  background-color: #f8fbff !important;
+  color: #0f172a !important;
+}
+
+html:not(.dark) .public-site .public-footer .public-footer-logo-dark {
+  display: none !important;
+}
+
+html:not(.dark) .public-site .public-footer .public-footer-logo-light {
+  display: block !important;
+}
+
+html:not(.dark) .public-site .public-footer .text-white,
+html:not(.dark) .public-site .public-footer h4 {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .public-site .public-footer .text-zinc-500,
+html:not(.dark) .public-site .public-footer .text-zinc-600 {
+  color: #475569 !important;
+}
+
+html:not(.dark) .public-site .public-footer .border-white\/10 {
+  border-color: #dbeafe !important;
+}
+
+/* Public light-mode refinement pass */
+html:not(.dark) .public-site {
+  --public-page: #f6faff;
+  --public-band: #eef7ff;
+  --public-card: #ffffff;
+  --public-card-soft: #f8fbff;
+  --public-border-light: #d8e8fb;
+  --public-text: #0f172a;
+  --public-muted: #475569;
+  --public-muted-soft: #64748b;
+  --public-action: #0f172a;
+  --public-action-hover: #1e293b;
+  background:
+    linear-gradient(180deg, #f7fbff 0%, #eef7ff 46%, #f8fbff 100%) !important;
+}
+
+html:not(.dark) .public-site section.bg-zinc-950,
+html:not(.dark) .public-site #calculator.bg-zinc-950,
+html:not(.dark) .public-site #faqs.bg-zinc-950,
+html:not(.dark) .public-site #contact.bg-zinc-950 {
+  background-color: var(--public-page) !important;
+}
+
+html:not(.dark) .public-site section.bg-zinc-900,
+html:not(.dark) .public-site #problem.bg-zinc-900 {
+  background:
+    radial-gradient(circle at 12% 0%, rgb(56 189 248 / 0.13), transparent 32%),
+    linear-gradient(180deg, var(--public-band), #f8fbff) !important;
+}
+
+html:not(.dark) .public-site .border.bg-zinc-950,
+html:not(.dark) .public-site .border.bg-zinc-950\/35,
+html:not(.dark) .public-site .border.bg-zinc-900,
+html:not(.dark) .public-site .border.bg-zinc-900\/65,
+html:not(.dark) .public-site .border.bg-white\/\[0\.03\],
+html:not(.dark) .public-site .border.bg-white\/\[0\.04\] {
+  background-color: var(--public-card) !important;
+  border-color: var(--public-border-light) !important;
+  box-shadow: 0 18px 52px rgb(15 23 42 / 0.07);
+}
+
+html:not(.dark) .public-site .bg-white\/\[0\.025\],
+html:not(.dark) .public-site .bg-white\/\[0\.03\],
+html:not(.dark) .public-site .bg-white\/\[0\.04\],
+html:not(.dark) .public-site .bg-white\/5,
+html:not(.dark) .public-site .bg-white\/10,
+html:not(.dark) .public-site .bg-white\/15 {
+  background-color: rgb(239 246 255 / 0.86) !important;
+}
+
+html:not(.dark) .public-site .bg-zinc-800,
+html:not(.dark) .public-site .bg-zinc-900,
+html:not(.dark) .public-site .bg-zinc-950 {
+  background-color: var(--public-card) !important;
+}
+
+html:not(.dark) .public-site .border-zinc-600,
+html:not(.dark) .public-site .border-zinc-700,
+html:not(.dark) .public-site .border-zinc-800,
+html:not(.dark) .public-site .border-white\/10,
+html:not(.dark) .public-site .border-white\/15,
+html:not(.dark) .public-site .border-white\/20,
+html:not(.dark) .public-site .border-white\/25,
+html:not(.dark) .public-site .border-white\/30 {
+  border-color: var(--public-border-light) !important;
+}
+
+html:not(.dark) .public-site .text-white,
+html:not(.dark) .public-site .text-zinc-100,
+html:not(.dark) .public-site .text-zinc-200,
+html:not(.dark) .public-site .text-zinc-300 {
+  color: var(--public-text) !important;
+}
+
+html:not(.dark) .public-site .text-zinc-400,
+html:not(.dark) .public-site .text-zinc-500,
+html:not(.dark) .public-site .text-zinc-600,
+html:not(.dark) .public-site .text-zinc-700,
+html:not(.dark) .public-site .text-white\/80,
+html:not(.dark) .public-site .text-white\/75,
+html:not(.dark) .public-site .text-white\/70,
+html:not(.dark) .public-site .text-white\/65,
+html:not(.dark) .public-site .text-white\/60,
+html:not(.dark) .public-site .text-white\/55 {
+  color: var(--public-muted) !important;
+}
+
+html:not(.dark) .public-site a.bg-white,
+html:not(.dark) .public-site button.bg-white {
+  background-color: var(--public-action) !important;
+  color: #ffffff !important;
+  box-shadow: 0 16px 36px rgb(15 23 42 / 0.14);
+}
+
+html:not(.dark) .public-site a.bg-white:hover,
+html:not(.dark) .public-site button.bg-white:hover {
+  background-color: var(--public-action-hover) !important;
+}
+
+html:not(.dark) .public-site .public-header a.bg-white,
+html:not(.dark) .public-site .public-hero a.bg-white {
+  background-color: #ffffff !important;
+  color: #020617 !important;
+  box-shadow: 0 18px 48px rgb(2 6 23 / 0.24);
+}
+
+html:not(.dark) .public-site .public-hero,
+html:not(.dark) .public-site .public-header,
+html:not(.dark) .public-site .public-mobile-menu {
+  color: #ffffff !important;
+}
+
+html:not(.dark) .public-site .public-hero .text-white,
+html:not(.dark) .public-site .public-hero .text-white\/80,
+html:not(.dark) .public-site .public-hero .text-white\/75,
+html:not(.dark) .public-site .public-hero .text-white\/70,
+html:not(.dark) .public-site .public-hero .text-white\/65,
+html:not(.dark) .public-site .public-hero .text-white\/60,
+html:not(.dark) .public-site .public-hero .text-white\/55,
+html:not(.dark) .public-site .public-header .text-white,
+html:not(.dark) .public-site .public-header .text-white\/75,
+html:not(.dark) .public-site .public-header .text-white\/70,
+html:not(.dark) .public-site .public-header .text-zinc-300 {
+  color: #ffffff !important;
+}
+
+html:not(.dark) .public-site .public-hero .bg-white\/\[0\.04\],
+html:not(.dark) .public-site .public-hero .bg-white\/5 {
+  background: rgb(15 23 42 / 0.48) !important;
+  border-color: rgb(255 255 255 / 0.22) !important;
+  box-shadow: 0 22px 70px rgb(2 6 23 / 0.22);
+}
+
+html:not(.dark) .public-header .absolute.bg-zinc-950,
+html:not(.dark) .public-header .hover\:bg-zinc-900:hover {
+  background-color: rgb(2 6 23 / 0.98) !important;
+}
+
+html:not(.dark) .public-header .absolute.bg-zinc-950,
+html:not(.dark) .public-header .absolute.bg-zinc-950 .text-zinc-300,
+html:not(.dark) .public-header .absolute.bg-zinc-950 span {
+  color: #ffffff !important;
+}
+
+html:not(.dark) .public-site input,
+html:not(.dark) .public-site select,
+html:not(.dark) .public-site textarea {
+  background-color: #ffffff !important;
+  border-color: #cbdff6 !important;
+  color: var(--public-text) !important;
+  box-shadow: inset 0 1px 0 rgb(15 23 42 / 0.03);
+}
+
+html:not(.dark) .public-site input::placeholder,
+html:not(.dark) .public-site textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html:not(.dark) .public-site label {
+  color: #334155 !important;
+}
+
+html:not(.dark) .public-site input[type="range"]::-webkit-slider-thumb {
+  background-color: #ffffff !important;
+  border-color: var(--public-accent-strong) !important;
+}
+
+html:not(.dark) .public-site input[type="range"]::-moz-range-thumb {
+  background-color: #ffffff !important;
+  border-color: var(--public-accent-strong) !important;
+}
+
+html:not(.dark) .public-site .bg-black,
+html:not(.dark) .public-site a.bg-black,
+html:not(.dark) .public-site button.bg-black {
+  background-color: var(--public-action) !important;
+}
+
+html:not(.dark) .public-site .bg-black,
+html:not(.dark) .public-site a.bg-black,
+html:not(.dark) .public-site button.bg-black,
+html:not(.dark) .public-site .bg-black .text-white {
+  color: #ffffff !important;
+}
+
+html:not(.dark) .public-site .public-footer .text-white\/\[0\.035\] {
+  color: rgb(14 165 233 / 0.07) !important;
+}
+
+html:not(.dark) .public-site .public-footer {
+  border-top: 1px solid var(--public-border-light);
+}
+
+html:not(.dark) .public-site .public-footer a:hover {
+  color: var(--public-accent-strong) !important;
+}

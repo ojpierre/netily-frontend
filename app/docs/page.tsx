@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState, useRef } from "react"
 import Link from "next/link"
+import { useTheme } from "next-themes"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowRight, BookOpen, CheckCircle2, Copy, FileText, Menu, Moon, Search,
@@ -97,9 +98,9 @@ function parseMarkdownPages(markdown: string): PageData[] {
 function renderInline(text: string) {
   return text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g).map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) return <strong key={index}>{part.slice(2, -2)}</strong>
-    if (part.startsWith("`") && part.endsWith("`")) return <code key={index} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-mono text-blue-700 dark:bg-slate-800 dark:text-blue-300">{part.slice(1, -1)}</code>
+    if (part.startsWith("`") && part.endsWith("`")) return <code key={index} className="bg-zinc-900 px-1.5 py-0.5 text-xs font-mono text-amber-300">{part.slice(1, -1)}</code>
     const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
-    if (link) return <a key={index} href={link[2]} className="font-semibold text-blue-600 hover:underline dark:text-blue-300">{link[1]}</a>
+    if (link) return <a key={index} href={link[2]} className="font-semibold text-amber-300 hover:text-white">{link[1]}</a>
     return part
   })
 }
@@ -112,22 +113,22 @@ function parseTable(lines: string[]): React.ReactNode | null {
   const body = lines.slice(2)
 
   return (
-    <div className="my-6 overflow-x-auto rounded-2xl border border-slate-200 shadow-sm dark:border-slate-700">
+    <div className="my-6 overflow-x-auto border border-zinc-800">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60">
+          <tr className="border-b border-zinc-800 bg-zinc-900">
             {headers.map((header, i) => (
-              <th key={i} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+              <th key={i} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-zinc-400">
                 {header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 bg-white dark:divide-slate-800 dark:bg-slate-900/50">
+        <tbody className="divide-y divide-zinc-800 bg-zinc-950">
           {body.map((row, ri) => (
-            <tr key={ri} className="transition-colors hover:bg-blue-50/40 dark:hover:bg-blue-950/20">
+            <tr key={ri} className="transition-colors hover:bg-zinc-900">
               {parseRow(row).map((cell, ci) => (
-                <td key={ci} className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                <td key={ci} className="px-4 py-3 text-zinc-300">
                   {renderInline(cell)}
                 </td>
               ))}
@@ -147,10 +148,10 @@ function MarkdownBody({ markdown }: { markdown: string }) {
   const flushList = () => {
     if (!list.length) return
     nodes.push(
-      <ul key={`list-${nodes.length}`} className="my-5 space-y-2 rounded-2xl border border-blue-100/70 bg-slate-50 p-5 text-slate-700 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+      <ul key={`list-${nodes.length}`} className="my-5 space-y-2 border border-zinc-800 bg-zinc-900 p-5 text-zinc-300">
         {list.map((item, index) => (
           <li key={index} className="flex gap-3">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-300" />
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
             <span>{renderInline(item)}</span>
           </li>
         ))}
@@ -189,17 +190,17 @@ function MarkdownBody({ markdown }: { markdown: string }) {
     flushList()
     
     if (trimmed.startsWith("# ")) {
-      nodes.push(<h1 key={index} className="mb-6 text-4xl font-black tracking-tight text-slate-950 dark:text-white">{renderInline(trimmed.slice(2))}</h1>)
+      nodes.push(<h1 key={index} className="mb-6 text-4xl font-normal tracking-tight text-white">{renderInline(trimmed.slice(2))}</h1>)
     } else if (trimmed.startsWith("## ")) {
       const title = trimmed.slice(3)
-      nodes.push(<h2 id={slugify(title)} key={index} className="scroll-mt-28 pt-8 text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">{renderInline(title)}</h2>)
+      nodes.push(<h2 id={slugify(title)} key={index} className="scroll-mt-28 pt-8 text-2xl font-normal tracking-tight text-white">{renderInline(title)}</h2>)
     } else if (trimmed.startsWith("### ")) {
       const title = trimmed.slice(4)
-      nodes.push(<h3 id={slugify(title)} key={index} className="pt-6 text-lg font-bold text-slate-800 dark:text-slate-200">{renderInline(title)}</h3>)
+      nodes.push(<h3 id={slugify(title)} key={index} className="pt-6 text-lg font-medium text-zinc-100">{renderInline(title)}</h3>)
     } else if (trimmed.startsWith("> ")) {
-      nodes.push(<blockquote key={index} className="my-5 rounded-2xl border-l-4 border-blue-500 bg-blue-50/80 p-4 text-sm text-blue-950 dark:bg-blue-950/40 dark:text-blue-100">{renderInline(trimmed.slice(2))}</blockquote>)
+      nodes.push(<blockquote key={index} className="my-5 border-l-4 border-amber-500 bg-amber-500/10 p-4 text-sm text-amber-100">{renderInline(trimmed.slice(2))}</blockquote>)
     } else {
-      nodes.push(<p key={index} className="my-4 leading-8 text-slate-600 dark:text-slate-300">{renderInline(trimmed)}</p>)
+      nodes.push(<p key={index} className="my-4 leading-8 text-zinc-300">{renderInline(trimmed)}</p>)
     }
   })
   flushList()
@@ -213,7 +214,7 @@ function DockedAssistant({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([{
     role: "assistant",
-    text: "Hi! 👋 I'm the Netily assistant. Ask me anything about getting started, managing your ISP, routers, billing, hotspot, SMS, or any feature in the platform."
+    text: "Hi! I'm the Internetily assistant. Ask me anything about getting started, managing your ISP, routers, billing, hotspot, SMS, or any feature in the platform."
   }])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -263,7 +264,7 @@ function DockedAssistant({ onClose }: { onClose: () => void }) {
         ...current,
         {
           role: "assistant",
-          text: data.answer || "I may need a little more detail to guide you properly. For direct help, contact Netily Support on **0111 325 479** or **0799538923**.",
+          text: data.answer || "I may need a little more detail to guide you properly. For direct help, contact Internetily Support on **0111 325 479** or **0799538923**.",
           sources: data.sources || [],
           requestId: data.requestId,
           provider: data.provider,
@@ -277,7 +278,7 @@ function DockedAssistant({ onClose }: { onClose: () => void }) {
         ...current,
         {
           role: "assistant",
-          text: "I'm having trouble connecting right now. Please try again in a moment. For direct help, contact Netily Support on **0111 325 479** or **0799538923**.",
+          text: "I'm having trouble connecting right now. Please try again in a moment. For direct help, contact Internetily Support on **0111 325 479** or **0799538923**.",
         },
       ])
     } finally {
@@ -376,7 +377,7 @@ export default function DocsPage() {
   const [query, setQuery] = useState("")
   const [menuOpen, setMenuOpen] = useState(false)
   const [assistantOpen, setAssistantOpen] = useState(false)
-  const [dark, setDark] = useState(false)
+  const { resolvedTheme, setTheme } = useTheme()
   
   const [copiedLink, setCopiedLink] = useState(false)
   const [copiedContent, setCopiedContent] = useState(false)
@@ -390,10 +391,6 @@ export default function DocsPage() {
       })
       .catch(() => setPages([{ id: "error", title: "Error", category: "Other", content: "Could not load docs." }]))
   }, [])
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark)
-  }, [dark])
 
   const filteredPages = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -441,7 +438,7 @@ export default function DocsPage() {
   const handleAskAI = (provider: 'chatgpt' | 'claude' | 'gemini') => {
     if (!activePage) return
     
-    const prompt = `Analyze this section of the Netily ISP Documentation and help me understand it, or draft a good copy based on it:\n\nTitle: ${activePage.title}\n\n${activePage.content}`
+    const prompt = `Analyze this section of the Internetily ISP Documentation and help me understand it, or draft a good copy based on it:\n\nTitle: ${activePage.title}\n\n${activePage.content}`
     
     navigator.clipboard.writeText(prompt)
     
@@ -463,19 +460,19 @@ export default function DocsPage() {
   }, [pages])
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-white text-slate-950 transition-colors dark:bg-slate-950 dark:text-white">
+    <div className="public-site flex h-screen flex-col overflow-hidden bg-zinc-950 text-white transition-colors">
       {/* Header */}
-      <header className="shrink-0 border-b border-slate-200 bg-white/70 backdrop-blur-2xl dark:border-slate-800 dark:bg-slate-950/70">
+      <header className="shrink-0 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-2xl">
         <div className="mx-auto flex h-16 w-full items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
             <button onClick={() => setMenuOpen(!menuOpen)} className="rounded-xl border border-slate-200 bg-white/80 p-2 lg:hidden dark:border-white/10 dark:bg-white/10">
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
             <Link href="/" className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/25">
+              <div className="flex h-9 w-9 items-center justify-center bg-amber-500 text-black">
                 <BookOpen className="h-4 w-4" />
               </div>
-              <p className="text-sm font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400">Netily Docs</p>
+              <p className="text-sm font-black uppercase tracking-[0.2em] text-amber-300">Internetily Docs</p>
             </Link>
           </div>
           
@@ -501,9 +498,13 @@ export default function DocsPage() {
               <Sparkles className="h-4 w-4" />
               Ask Assistant
             </button>
-            <Link href="/#contact" className="hidden rounded-full bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 sm:block">Create account</Link>
-            <button onClick={() => setDark(!dark)} className="rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
-              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            <Link href="/#contact" className="hidden bg-white px-5 py-2 text-sm font-bold text-zinc-950 hover:bg-zinc-200 sm:block">Create account</Link>
+            <button
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              className="rounded-full border border-slate-200 bg-slate-50 p-2 text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
+              aria-label="Toggle theme"
+            >
+              {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
           </div>
         </div>
@@ -513,7 +514,7 @@ export default function DocsPage() {
       <div className="flex flex-1 overflow-hidden">
         
         {/* Left Sidebar (Navigation) */}
-        <aside className={`${menuOpen ? "absolute inset-0 z-30 bg-white dark:bg-slate-950 lg:relative lg:bg-transparent" : "hidden lg:block"} w-full shrink-0 border-r border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/20 lg:w-[260px] xl:w-[280px]`}>
+        <aside className={`${menuOpen ? "absolute inset-0 z-30 bg-zinc-950 lg:relative lg:bg-transparent" : "hidden lg:block"} w-full shrink-0 border-r border-zinc-800 bg-zinc-900/30 lg:w-[260px] xl:w-[280px]`}>
           <div className="flex h-full flex-col overflow-y-auto p-4 lg:p-6">
             <div className="mb-6 md:hidden">
                <div className="relative">
@@ -540,10 +541,10 @@ export default function DocsPage() {
                             setMenuOpen(false)
                             window.history.pushState(null, "", `#${p.id}`)
                           }}
-                          className={`w-full rounded-xl px-3 py-2 text-left text-sm transition ${
+                          className={`w-full px-3 py-2 text-left text-sm transition ${
                             activeId === p.id
-                              ? "bg-blue-50 font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                              : "font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/50"
+                              ? "bg-amber-500 font-bold text-black"
+                              : "font-medium text-zinc-400 hover:bg-zinc-900 hover:text-white"
                           }`}
                         >
                           {p.title}
@@ -558,7 +559,7 @@ export default function DocsPage() {
         </aside>
 
         {/* Middle Column (Content) */}
-        <main className="flex-1 overflow-y-auto bg-white scroll-smooth dark:bg-slate-950">
+        <main className="flex-1 overflow-y-auto bg-zinc-950 scroll-smooth">
           <div className="mx-auto max-w-3xl px-6 py-10 lg:px-10 lg:py-16">
             {activePage ? (
               <motion.div 
@@ -568,11 +569,11 @@ export default function DocsPage() {
                 transition={{ duration: 0.2 }}
               >
                 {/* Breadcrumb */}
-                <p className="mb-3 text-sm font-bold text-blue-600 dark:text-blue-400">{activePage.category}</p>
+                <p className="mb-3 text-sm font-bold text-amber-300">{activePage.category}</p>
                 
                 {/* Title & Actions */}
                 <div className="mb-10 flex flex-col items-start justify-between gap-4 border-b border-slate-100 pb-6 dark:border-slate-800 sm:flex-row sm:items-end">
-                  <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">{activePage.title}</h1>
+                  <h1 className="text-4xl font-normal tracking-tight text-white">{activePage.title}</h1>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <div className="flex items-center gap-2">
                       <button 

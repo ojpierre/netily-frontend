@@ -71,46 +71,52 @@ export default async function AlternativeDetailPage({ params }: { params: Promis
   ]
 
   return (
-    <main className="min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-white">
+    <main className="public-site min-h-screen bg-zinc-950 text-white">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
       />
-      <section className="relative overflow-hidden px-4 py-20 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 bg-linear-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-950 dark:to-blue-950/25" />
+      <section className="relative overflow-hidden border-b border-zinc-800 px-4 py-20 sm:px-6 lg:px-8">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.025]"
+          style={{
+            backgroundImage:
+              "url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><filter id=%22noise%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%224%22 result=%22noise%22 /></filter><rect width=%22100%22 height=%22100%22 filter=%22url(%23noise)%22 fill=%22%23ffffff%22/></svg>')",
+          }}
+        />
         <div className="relative mx-auto max-w-6xl">
-          <Link href="/alternatives" className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+          <Link href="/alternatives" className="inline-flex items-center gap-2 text-sm font-semibold text-amber-300 hover:text-white">
             ISP billing alternatives
             <ArrowRight className="h-4 w-4" />
           </Link>
           <div className="mt-10 grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-600 dark:text-blue-300">
-                {page.competitor} comparison
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-300">
+                Informational comparison
               </p>
-              <h1 className="mt-4 text-4xl font-extrabold tracking-tight md:text-6xl">{page.headline}</h1>
-              <p className="mt-5 text-lg leading-relaxed text-slate-600 dark:text-slate-400">{page.intro}</p>
+              <h1 className="mt-4 text-4xl font-normal tracking-tight md:text-6xl">{page.headline}</h1>
+              <p className="mt-5 text-lg leading-relaxed text-zinc-400">{page.intro}</p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/#contact" className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700">
+                <Link href="/#contact" className="inline-flex items-center gap-2 bg-white px-6 py-3 text-sm font-semibold text-zinc-950 hover:bg-zinc-200">
                   Compare your workflow
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link href="/demo" className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
+                <Link href="/demo" className="inline-flex items-center gap-2 border border-zinc-700 px-6 py-3 text-sm font-semibold text-zinc-200 hover:border-amber-500/60 hover:text-amber-200">
                   Request demo
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             </div>
-            <aside className="rounded-[28px] border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-900/10 dark:border-slate-800 dark:bg-slate-900/90">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">Search terms this page supports</p>
+            <aside className="border border-zinc-800 bg-zinc-900 p-6">
+              <p className="text-sm font-semibold text-white">Search terms this page supports</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {page.searchNames.map((name) => (
-                  <span key={name} className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                  <span key={name} className="border border-zinc-700 bg-zinc-950 px-3 py-1 text-xs font-semibold text-zinc-300">
                     {name}
                   </span>
                 ))}
               </div>
-              <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
+              <div className="mt-6 border border-zinc-800 bg-zinc-950 p-4 text-sm leading-relaxed text-zinc-400">
                 {page.bestFor}
               </div>
             </aside>
@@ -122,60 +128,60 @@ export default async function AlternativeDetailPage({ params }: { params: Promis
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">
             {highlights.map((item) => (
-              <article key={item.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">
+              <article key={item.label} className="border border-zinc-800 bg-zinc-900 p-5">
+                <div className="flex h-11 w-11 items-center justify-center bg-amber-500 text-black">
                   <item.icon className="h-5 w-5" />
                 </div>
-                <h2 className="mt-4 text-base font-bold">{item.label}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{item.text}</p>
+                <h2 className="mt-4 text-base font-medium text-white">{item.label}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400">{item.text}</p>
               </article>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="bg-slate-50 px-4 py-16 dark:bg-slate-900/50 sm:px-6 lg:px-8">
+      <section className="border-y border-zinc-800 bg-zinc-900 px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-600 dark:text-blue-300">
-              Why Netily should be on the shortlist
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-300">
+              Why Internetily should be on the shortlist
             </p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
+            <h2 className="mt-3 text-3xl font-normal tracking-tight md:text-4xl">
               More than billing: a growth operating system for ISPs
             </h2>
-            <p className="mt-4 text-base leading-relaxed text-slate-600 dark:text-slate-400">
+            <p className="mt-4 text-base leading-relaxed text-zinc-400">
               {page.netilyAngle}
             </p>
           </div>
 
-          <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <div className="mt-8 overflow-hidden border border-zinc-800 bg-zinc-950">
             <table className="w-full text-sm">
-              <thead className="bg-slate-100 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+              <thead className="bg-zinc-900 text-left text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   <th className="px-5 py-4 font-bold">Area</th>
-                  <th className="px-5 py-4 font-bold">How Netily helps</th>
+                  <th className="px-5 py-4 font-bold">How Internetily helps</th>
                 </tr>
               </thead>
               <tbody>
                 {alternativeFeatureRows.map(([area, detail]) => (
-                  <tr key={area} className="border-t border-slate-100 dark:border-slate-800">
-                    <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white">{area}</td>
-                    <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{detail}</td>
+                  <tr key={area} className="border-t border-zinc-800">
+                    <td className="px-5 py-4 font-semibold text-white">{area}</td>
+                    <td className="px-5 py-4 text-zinc-400">{detail}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <div className="mt-10 rounded-[28px] bg-blue-600 p-8 text-white md:p-10">
+          <div className="mt-10 border border-amber-500/30 bg-amber-500 p-8 text-black md:p-10">
             <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Turn comparison traffic into qualified ISP leads</h2>
-                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-blue-100">
-                  Netily gives prospects a clear path from Google search to demo, trial, onboarding, M-Pesa setup, MikroTik connection, and active subscriber billing.
+                <h2 className="text-2xl font-normal tracking-tight md:text-3xl">Turn comparison traffic into qualified ISP leads</h2>
+                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-black/70">
+                  Internetily gives prospects a clear path from Google search to demo, trial, onboarding, M-Pesa setup, MikroTik connection, and active subscriber billing.
                 </p>
               </div>
-              <Link href="/#contact" className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">
+              <Link href="/#contact" className="inline-flex items-center justify-center gap-2 bg-black px-6 py-3 text-sm font-semibold text-white hover:bg-zinc-900">
                 Start conversation
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -190,11 +196,11 @@ export default async function AlternativeDetailPage({ params }: { params: Promis
                 <Link
                   key={item.slug}
                   href={`/alternatives/${item.slug}`}
-                  className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm transition hover:border-blue-300 hover:bg-blue-50/60 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-blue-950/20"
+                  className="flex items-start gap-3 border border-zinc-800 bg-zinc-950 p-4 text-sm transition hover:border-amber-500/50"
                 >
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-300" />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                   <span>
-                    Also compare Netily with <strong>{item.competitor}</strong>
+                    Also compare Internetily with <strong>{item.competitor}</strong>
                   </span>
                 </Link>
               ))}
