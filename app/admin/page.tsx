@@ -424,27 +424,24 @@ export default function AdminDashboard() {
       {/* ─── Apple-Style Greeting Hero Card (Theme-Aware) ─── */}
       <div
         key={greetKey}
-        className="relative overflow-hidden rounded-2xl p-10 md:p-14 shadow-sm flex flex-col items-center justify-center text-center min-h-[260px] border border-transparent dark:border-border/60"
-        style={{
-          background: "var(--hero-bg, #0a0a0c)",
-        }}
+        className="relative overflow-hidden rounded-2xl p-10 md:p-14 shadow-sm flex flex-col items-center justify-center text-center min-h-[260px] border border-border/60 bg-card"
       >
-        {/* Subtle Apple-style radial glow, no gradients/blobs */}
+        {/* Subtle Apple-style radial glow */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05) 0%, transparent 60%)",
+              "radial-gradient(circle at 50% 0%, color-mix(in oklch, var(--foreground) 6%, transparent) 0%, transparent 60%)",
           }}
         />
 
         <div className="relative">
-          <p className="apple-hello-sub text-[11px] font-medium uppercase tracking-[0.25em] text-white/40 mb-3">
+          <p className="apple-hello-sub text-[11px] font-medium uppercase tracking-[0.25em] text-muted-foreground/70 mb-3">
             {getShiftLabel()}
           </p>
 
           <h1
-            className="font-semibold text-white leading-none"
+            className="font-semibold text-foreground leading-none"
             style={{
               fontSize: "clamp(2.5rem, 6vw, 4.5rem)",
               letterSpacing: "-0.03em",
@@ -456,7 +453,7 @@ export default function AdminDashboard() {
               {getGreeting()},
             </span>{" "}
             <span
-              className="apple-hello-word text-white/90"
+              className="apple-hello-word text-foreground/90"
               style={{ animationDelay: "0.2s" }}
             >
               {user?.first_name || user?.username || "there"}.
@@ -473,7 +470,7 @@ export default function AdminDashboard() {
               quickStats?.expired_customers ?? 0
             )
             return (
-              <p className="apple-hello-sub mt-4 text-sm md:text-base text-white/50 max-w-md mx-auto">
+              <p className="apple-hello-sub mt-4 text-sm md:text-base text-muted-foreground max-w-md mx-auto">
                 {items.length > 0
                   ? `${items.join(" · ")} — a few things need a minute.`
                   : `Everything looks clean today.`}
@@ -481,7 +478,7 @@ export default function AdminDashboard() {
             )
           })()}
 
-          <p className="apple-hello-sub mt-2 text-xs text-white/30 tracking-wide">
+          <p className="apple-hello-sub mt-2 text-xs text-muted-foreground/60 tracking-wide">
             {new Date().toLocaleDateString("en-KE", {
               weekday: "long",
               day: "numeric",
@@ -490,14 +487,14 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        {/* Refresh, positioned top-right, ghost style to match Apple minimalism */}
+        {/* Refresh button - positioned top-right */}
         <div className="absolute top-5 right-5">
           <Button
             variant="ghost"
             size="sm"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="rounded-full text-white/60 hover:text-white hover:bg-white/10"
+            className="rounded-full text-muted-foreground hover:text-foreground hover:bg-accent"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
           </Button>
@@ -813,7 +810,7 @@ export default function AdminDashboard() {
                     label="This Month"
                     value={monthRev}
                     deltaPct={ov?.month_change}
-                    color="#000000"
+                    color="currentColor"
                     sparklineData={monthlySpark.length ? monthlySpark : [{ amount: 0 }, { amount: monthRev }]}
                     animationDelay={0.2}
                   />
