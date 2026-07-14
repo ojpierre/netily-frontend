@@ -445,8 +445,6 @@ export default function AdminDashboard() {
             style={{
               fontSize: "clamp(2.5rem, 6vw, 4.5rem)",
               letterSpacing: "-0.03em",
-              fontFamily:
-                '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif',
             }}
           >
             <span className="apple-hello-word" style={{ animationDelay: "0.05s" }}>
