@@ -147,8 +147,8 @@ const ACTION_ICONS: Record<PageAction, React.ElementType> = {
   delete: Trash,
 }
 
-// Pages that should be excluded from the staff permissions editor
-const ADMIN_ONLY_PATHS = ["/admin/staff", "/admin/plans", "/admin/notifications", "/admin/logs", "/admin/settings"]
+// Routes that manage this permission editor itself should remain owner/admin-only.
+const NON_DELEGABLE_PATHS = ["/admin/staff"]
 
 // ==========================================
 // HELPER FUNCTIONS
@@ -926,15 +926,28 @@ function PermissionPageRow({
 function EditPermissionsModal({ open, onOpenChange, role, onSave }: EditPermissionsModalProps) {
   const [pageStates, setPageStates] = useState<Map<string, PagePermState>>(new Map())
   const [isSaving, setIsSaving] = useState(false)
+  const [permissionSearch, setPermissionSearch] = useState("")
 
-  // Eligible pages (exclude admin-only)
+  // Eligible pages (exclude the permission editor itself)
   const eligibleRules = useMemo(
-    () => adminRouteAccessRules.filter((r) => !ADMIN_ONLY_PATHS.some((p) => r.pathPrefix === p)),
+    () => adminRouteAccessRules.filter((r) => !NON_DELEGABLE_PATHS.some((p) => r.pathPrefix === p)),
     []
   )
 
+  const displayedRules = useMemo(() => {
+    const query = permissionSearch.trim().toLowerCase()
+    if (!query) return eligibleRules
+    return eligibleRules.filter((rule) => {
+      return (
+        rule.label.toLowerCase().includes(query) ||
+        rule.pathPrefix.toLowerCase().includes(query)
+      )
+    })
+  }, [eligibleRules, permissionSearch])
+
   useEffect(() => {
     if (!role || !open) return
+    setPermissionSearch("")
     const currentTokens = role.allowedTokens || []
 
     const map = new Map<string, PagePermState>()
@@ -1009,7 +1022,18 @@ function EditPermissionsModal({ open, onOpenChange, role, onSave }: EditPermissi
 
         {/* Scrollable page list */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-card">
-          {eligibleRules.map((rule) => {
+          <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b border-border bg-card/95 p-4 backdrop-blur">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={permissionSearch}
+                onChange={(event) => setPermissionSearch(event.target.value)}
+                placeholder="Search pages or routes..."
+                className="pl-9"
+              />
+            </div>
+          </div>
+          {displayedRules.map((rule) => {
             const state = pageStates.get(rule.pathPrefix) ?? { enabled: false, actions: new Set() }
             return (
               <PermissionPageRow
@@ -1020,6 +1044,11 @@ function EditPermissionsModal({ open, onOpenChange, role, onSave }: EditPermissi
               />
             )
           })}
+          {displayedRules.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border bg-background p-8 text-center text-sm text-muted-foreground">
+              No matching routes.
+            </div>
+          )}
         </div>
 
         {/* Footer */}

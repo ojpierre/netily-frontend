@@ -437,6 +437,34 @@ export interface RouterEvent {
   created_at: string
 }
 
+// ==========================================
+// ROUTER REACHABILITY HISTORY (Heatmap)
+// ==========================================
+
+export interface RouterReachabilityIncident {
+  start: string
+  end: string
+  duration_minutes: number
+}
+
+export interface RouterReachabilityDay {
+  date: string
+  uptime_pct: number
+  incident_count: number
+  incidents: RouterReachabilityIncident[]
+}
+
+export interface RouterReachabilityResponse {
+  router_id: number
+  days: RouterReachabilityDay[]
+  summary: {
+    total_incidents: number
+    total_downtime_minutes: number
+    overall_uptime_pct: number
+    period_days: number
+  }
+}
+
 export interface Router {
   id: number
   name: string
@@ -1962,6 +1990,7 @@ export interface PaymentMethod {
   // PayHero integration
   use_payhero: boolean
   payhero_channel_id?: number
+  // M-Pesa Daraja configuration fields
   mpesa_configuration?: number | null
   mpesa_configuration_details?: {
     id: number
@@ -1971,6 +2000,8 @@ export interface PaymentMethod {
     is_active: boolean
     validation_status?: 'PENDING' | 'VALID' | 'INVALID'
   } | null
+  // Tuma configuration ID (read-only)
+  tuma_configuration?: number | null
   // Configuration fields (JSON for flexibility)
   config?: {
     // Mobile Money config

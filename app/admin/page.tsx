@@ -190,6 +190,9 @@ export default function AdminDashboard() {
   // FIX: Default to "this" (current year) instead of "last"
   const [yearView, setYearView] = useState<"this" | "last">("this")
   
+  // ─── ANIMATION RETRIGGER KEY ───
+  const [greetKey, setGreetKey] = useState(0)
+  
   // State for live online sessions and active subscriptions
   const [onlineSessions, setOnlineSessions] = useState<any[]>([])
   const [activeSubscriptions, setActiveSubscriptions] = useState<{ pppoe: any[]; hotspot: any[]; total: number }>({ 
@@ -331,12 +334,22 @@ export default function AdminDashboard() {
     }
   }, [])
 
+  // ─── HANDLE REFRESH ─────────────────────────────────────────
+  const handleRefresh = () => {
+    setIsRefreshing(true)
+    setGreetKey((k) => k + 1) // Retrigger the hello animation
+    fetchQuickStats()
+    fetchDashboardData()
+  }
+
   // ─── INITIAL FETCH ──────────────────────────────────────────
   useEffect(() => {
     // Fetch quick stats first (fast path)
     fetchQuickStats()
     // Then fetch the rest of the dashboard
     fetchDashboardData()
+    // Play animation on mount
+    setGreetKey((k) => k + 1)
     
     // Auto-refresh every 60 seconds
     const interval = setInterval(() => {
@@ -345,13 +358,6 @@ export default function AdminDashboard() {
     }, 60000)
     return () => clearInterval(interval)
   }, [fetchQuickStats, fetchDashboardData])
-
-  // ─── HANDLE REFRESH ─────────────────────────────────────────
-  const handleRefresh = () => {
-    setIsRefreshing(true)
-    fetchQuickStats()
-    fetchDashboardData()
-  }
 
   if (error && !quickStats) {
     return (
@@ -370,6 +376,40 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6 relative">
+      {/* Apple-style keyframes */}
+      <style>{`
+        @keyframes appleHelloIn {
+          0% {
+            opacity: 0;
+            transform: scale(0.85);
+            filter: blur(6px);
+          }
+          55% {
+            opacity: 1;
+            filter: blur(0px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+            filter: blur(0px);
+          }
+        }
+
+        @keyframes appleFadeUp {
+          0% { opacity: 0; transform: translateY(10px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .apple-hello-word {
+          display: inline-block;
+          animation: appleHelloIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .apple-hello-sub {
+          animation: appleFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+        }
+      `}</style>
+
       {/* Refined radial gradient bloom background */}
       <div
         className="absolute inset-0 -mx-6 -mt-6 pointer-events-none"
@@ -381,128 +421,84 @@ export default function AdminDashboard() {
         }}
       />
 
-      {/* ─── Greeting Hero Card ─── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-border p-6 shadow-sm">
-        {/* Subtle decorative blob */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-primary/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-primary/10 to-transparent rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" />
+      {/* ─── Apple-Style Greeting Hero Card (Theme-Aware) ─── */}
+      <div
+        key={greetKey}
+        className="relative overflow-hidden rounded-2xl p-10 md:p-14 shadow-sm flex flex-col items-center justify-center text-center min-h-[260px] border border-border/60 bg-card"
+      >
+        {/* Subtle Apple-style radial glow */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 0%, color-mix(in oklch, var(--foreground) 6%, transparent) 0%, transparent 60%)",
+          }}
+        />
 
-        <div className="relative flex items-start justify-between gap-4 flex-wrap">
-          <div className="space-y-1">
-            {/* Shift label + online status */}
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">{getShiftLabel()}</span>
-              <span className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-                </span>
-                {(quickStats?.routers?.online_routers ?? 0)} ONLINE RIGHT NOW
-              </span>
-            </div>
+        <div className="relative">
+          <p className="apple-hello-sub text-[11px] font-medium uppercase tracking-[0.25em] text-muted-foreground/70 mb-3">
+            {getShiftLabel()}
+          </p>
 
-            {/* Greeting */}
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-              {getGreeting()},{" "}
-              <span className="text-primary italic font-extrabold">
-                {user?.first_name || user?.username || "there"}.
-              </span>
-            </h1>
+          <h1
+            className="font-semibold text-foreground leading-none"
+            style={{
+              fontSize: "clamp(2.5rem, 6vw, 4.5rem)",
+              letterSpacing: "-0.03em",
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif',
+            }}
+          >
+            <span className="apple-hello-word" style={{ animationDelay: "0.05s" }}>
+              {getGreeting()},
+            </span>{" "}
+            <span
+              className="apple-hello-word text-foreground/90"
+              style={{ animationDelay: "0.2s" }}
+            >
+              {user?.first_name || user?.username || "there"}.
+            </span>
+          </h1>
 
-            {/* Attention items + contextual subtext – UPDATED call */}
-            {(() => {
-              const items = getAttentionItems(
-                quickStats?.routers?.offline_routers ?? 0,
-                smsAttention.balance,
-                smsAttention.configured,
-                smsAttention.lowBalance,
-                quickStats?.tickets?.open ?? 0,
-                quickStats?.expired_customers ?? 0
-              )
-              return items.length > 0 ? (
-                <p className="text-sm text-muted-foreground max-w-lg mt-1">
-                  {items.join(" · ")} — a few things need a minute.
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Everything looks clean. Have a good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}.
-                </p>
-              )
-            })()}
+          {(() => {
+            const items = getAttentionItems(
+              quickStats?.routers?.offline_routers ?? 0,
+              smsAttention.balance,
+              smsAttention.configured,
+              smsAttention.lowBalance,
+              quickStats?.tickets?.open ?? 0,
+              quickStats?.expired_customers ?? 0
+            )
+            return (
+              <p className="apple-hello-sub mt-4 text-sm md:text-base text-muted-foreground max-w-md mx-auto">
+                {items.length > 0
+                  ? `${items.join(" · ")} — a few things need a minute.`
+                  : `Everything looks clean today.`}
+              </p>
+            )
+          })()}
 
-            {/* Day context */}
-            <p className="mt-2 flex items-center gap-1.5 text-xs italic text-muted-foreground">
-              {new Date().getHours() >= 6 && new Date().getHours() < 20 ? "☀️" : "🌙"}
-              {new Date().toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long" })}
-            </p>
-          </div>
-
-          {/* Right side: quick refresh */}
-          <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="rounded-xl bg-background/50 border-border">
-              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
-          </div>
+          <p className="apple-hello-sub mt-2 text-xs text-muted-foreground/60 tracking-wide">
+            {new Date().toLocaleDateString("en-KE", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
+          </p>
         </div>
 
-        {/* ── Needs Attention Banner (updated condition and pills) ── */}
-        {!loading && ((quickStats?.routers?.offline_routers ?? 0) > 0 || !smsAttention.configured || smsAttention.lowBalance || (quickStats?.tickets?.open ?? 0) > 3 || (quickStats?.expired_customers ?? 0) > 20) && (
-          <div className="relative mt-4 pt-4 border-t border-border/50">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">NEEDS YOUR ATTENTION</p>
-            <div className="flex flex-wrap gap-2">
-              {/* Offline routers pills (max 3) */}
-              {Array.from({ length: Math.min(quickStats?.routers?.offline_routers ?? 0, 3) }).map((_, i) => (
-                <Link key={i} href="/admin/routers?status=offline">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-100 transition-colors cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
-                    Router offline
-                  </div>
-                </Link>
-              ))}
-
-              {/* SMS not configured */}
-              {!smsAttention.configured && (
-                <Link href="/admin/sms?tab=gateway">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition-colors cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
-                    SMS not configured
-                  </div>
-                </Link>
-              )}
-
-              {/* SMS balance low */}
-              {smsAttention.configured && smsAttention.lowBalance && (
-                <Link href="/admin/sms?tab=wallet">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 text-xs font-medium text-orange-700 dark:text-orange-400 hover:bg-orange-100 transition-colors cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block" />
-                    SMS balance low{smsAttention.balance !== null ? ` (${smsAttention.balance})` : ""}
-                  </div>
-                </Link>
-              )}
-
-              {/* Open tickets */}
-              {(quickStats?.tickets?.open ?? 0) > 3 && (
-                <Link href="/admin/tickets?status=open">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 transition-colors cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
-                    {quickStats?.tickets?.open} open tickets
-                  </div>
-                </Link>
-              )}
-
-              {/* Expired subscriptions */}
-              {(quickStats?.expired_customers ?? 0) > 20 && (
-                <Link href="/admin/users?status=expired">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-muted-foreground hover:bg-slate-100 transition-colors cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
-                    {quickStats?.expired_customers} expired subs
-                  </div>
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Refresh button - positioned top-right */}
+        <div className="absolute top-5 right-5">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="rounded-full text-muted-foreground hover:text-foreground hover:bg-accent"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
 
       {/* ─── Row 1: Key Metrics ─── */}
@@ -814,7 +810,7 @@ export default function AdminDashboard() {
                     label="This Month"
                     value={monthRev}
                     deltaPct={ov?.month_change}
-                    color="#000000"
+                    color="currentColor"
                     sparklineData={monthlySpark.length ? monthlySpark : [{ amount: 0 }, { amount: monthRev }]}
                     animationDelay={0.2}
                   />

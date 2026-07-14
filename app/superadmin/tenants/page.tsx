@@ -22,6 +22,7 @@ import {
   Download,
   CalendarDays,
   Wrench,
+  ShieldCheck,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -74,6 +75,7 @@ const HARD_DELETE_STEPS = [
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [loading, setLoading] = useState(true)
+  const [rbacNormalizeLoading, setRbacNormalizeLoading] = useState(false)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [ordering, setOrdering] = useState("-created_at")
@@ -175,6 +177,35 @@ export default function TenantsPage() {
       toast.error(err.message || "Failed to update tenant emails")
     } finally {
       setEmailSupportSaving(false)
+    }
+  }
+
+  const normalizeRoleAccess = async (tenant?: Tenant) => {
+    const targetLabel = tenant ? tenant.company_name : "all tenants"
+    const confirmed = window.confirm(
+      `Normalize RBAC defaults for ${targetLabel}? This creates missing defaults and upgrades legacy defaults while preserving custom role edits.`,
+    )
+    if (!confirmed) return
+
+    setRbacNormalizeLoading(true)
+    try {
+      const result = await superadminApi.normalizeTenantRoleAccess({
+        tenant_id: tenant?.id,
+        mode: "normalize_legacy",
+      })
+      const summary = result.summary
+      toast.success("Role access policies normalized", {
+        description:
+          `${summary.tenants_processed}/${summary.tenants_total} tenants checked. ` +
+          `${summary.created} created, ${summary.updated} normalized, ` +
+          `${summary.deduplicated} duplicates removed, ${summary.custom_preserved} custom preserved` +
+          (summary.errors ? `, ${summary.errors} errors` : "") +
+          ".",
+      })
+    } catch (err: any) {
+      toast.error(err.message || "Failed to normalize role access policies")
+    } finally {
+      setRbacNormalizeLoading(false)
     }
   }
 
@@ -335,6 +366,20 @@ export default function TenantsPage() {
           <p className="text-sm text-slate-400 mt-1">{tenants.length} tenants on the platform</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => normalizeRoleAccess()}
+            disabled={rbacNormalizeLoading}
+            className="border-slate-700 text-slate-300"
+          >
+            {rbacNormalizeLoading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <ShieldCheck className="w-4 h-4 mr-2" />
+            )}
+            Normalize RBAC
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -565,6 +610,12 @@ export default function TenantsPage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEmailSupport(t)}>
                             <Wrench className="w-4 h-4 mr-2" /> Fix Login Email
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => normalizeRoleAccess(t)}
+                            disabled={rbacNormalizeLoading}
+                          >
+                            <ShieldCheck className="w-4 h-4 mr-2" /> Normalize RBAC
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {!isTenantSuspended(t) ? (

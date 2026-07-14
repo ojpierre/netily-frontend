@@ -175,6 +175,33 @@ export interface TenantDeletionJob {
   finished_at: string | null
 }
 
+export interface RoleAccessNormalizeResult {
+  mode: "normalize_legacy" | "reset_defaults" | string
+  dry_run: boolean
+  summary: {
+    tenants_total: number
+    tenants_processed: number
+    created: number
+    updated: number
+    unchanged: number
+    custom_preserved: number
+    deduplicated: number
+    errors: number
+  }
+  results?: Array<{
+    tenant_id?: string
+    schema_name: string
+    company_name?: string
+    created?: number
+    updated?: number
+    unchanged?: number
+    custom_preserved?: number
+    deduplicated?: number
+    error?: string
+  }>
+  truncated?: boolean
+}
+
 export interface SubscriptionInvoiceSummary {
   count: number
   active: number
@@ -937,6 +964,18 @@ class SuperadminApiService {
     return this.request(`/superadmin/tenants/${id}/`, {
       method: "PATCH",
       body: JSON.stringify(data),
+    })
+  }
+
+  async normalizeTenantRoleAccess(data?: {
+    tenant_id?: string
+    schema_name?: string
+    mode?: "normalize_legacy" | "reset_defaults"
+    dry_run?: boolean
+  }): Promise<RoleAccessNormalizeResult> {
+    return this.request("/superadmin/tenants/role-access/normalize/", {
+      method: "POST",
+      body: JSON.stringify(data || {}),
     })
   }
 

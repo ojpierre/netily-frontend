@@ -254,7 +254,7 @@ function mapTicket(t: SupportTicket): TicketEntry {
   }
 }
 
-// Premium Live Bandwidth Chart using Recharts - Calm, Vercel-style
+// Premium Live Bandwidth Chart - Vercel style with live readout
 function LiveBandwidthChart() {
   const [data, setData] = useState(
     Array.from({ length: 40 }, (_, i) => ({
@@ -282,60 +282,64 @@ function LiveBandwidthChart() {
     return () => clearInterval(interval)
   }, [])
 
+  const currentDown = data[data.length - 1]?.download.toFixed(1) ?? '0.0'
+  const currentUp = data[data.length - 1]?.upload.toFixed(1) ?? '0.0'
+
   return (
-    <div className="h-[220px] px-6 pb-4 pt-2">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data}>
-          <defs>
-            <linearGradient id="download" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#00F5A0" stopOpacity={0.08} />
-              <stop offset="100%" stopColor="#00F5A0" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="upload" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.08} />
-              <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0} />
-            </linearGradient>
-          </defs>
+    <div>
+      {/* Live readout row */}
+      <div className="flex items-center gap-6 px-6 pb-2">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
+          <span className="text-xs text-slate-400">Download</span>
+          <span className="text-sm font-bold text-emerald-500 tabular-nums">{currentDown} Mbps</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.7)]" />
+          <span className="text-xs text-slate-400">Upload</span>
+          <span className="text-sm font-bold text-violet-500 tabular-nums">{currentUp} Mbps</span>
+        </div>
+      </div>
 
-          <CartesianGrid stroke="#1e293b" strokeDasharray="4 4" opacity={0.4} />
-
-          <XAxis hide />
-
-          <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
-
-          <Tooltip
-            contentStyle={{
-              background: "#0f172a",
-              border: "1px solid #1e293b",
-              borderRadius: 12,
-              color: "#f1f5f9",
-            }}
-            labelStyle={{ color: "#94a3b8" }}
-          />
-
-          <Area
-            type="monotone"
-            dataKey="download"
-            stroke="#00F5A0"
-            strokeWidth={2}
-            fill="url(#download)"
-            strokeLinecap="round"
-            dot={false}
-            isAnimationActive={false}
-          />
-
-          <Area
-            type="monotone"
-            dataKey="upload"
-            stroke="#8B5CF6"
-            strokeWidth={2}
-            fill="url(#upload)"
-            strokeLinecap="round"
-            dot={false}
-            isAnimationActive={false}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+      <div className="h-[200px] px-2 pb-4">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="download" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#34D399" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#34D399" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="upload" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#A78BFA" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="#A78BFA" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} stroke="currentColor" className="text-slate-100 dark:text-slate-800" strokeDasharray="3 6" />
+            <XAxis hide />
+            <YAxis
+              stroke="currentColor"
+              className="text-slate-400 dark:text-slate-500"
+              tick={{ fontSize: 10 }}
+              width={30}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              contentStyle={{
+                background: 'var(--card, #fff)',
+                border: '1px solid rgba(148,163,184,0.2)',
+                borderRadius: 12,
+                fontSize: 12,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+              }}
+              labelFormatter={() => ''}
+              formatter={(value: number, name: string) => [`${value.toFixed(2)} Mbps`, name === 'download' ? 'Download' : 'Upload']}
+            />
+            <Area type="monotone" dataKey="download" stroke="#34D399" strokeWidth={2.5} fill="url(#download)" dot={false} isAnimationActive={false} />
+            <Area type="monotone" dataKey="upload" stroke="#A78BFA" strokeWidth={2.5} fill="url(#upload)" dot={false} isAnimationActive={false} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   )
 }
@@ -638,7 +642,7 @@ export default function UserDetailPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
     >
-      {/* Header - matching router page style */}
+      {/* Header - with avatar and pulse dot replacing check/x icon */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center gap-4 flex-wrap">
@@ -647,13 +651,23 @@ export default function UserDetailPage() {
               Back
             </Button>
 
-            <div className={`p-3 rounded-lg ${
-              user.connectionStatus === "online" ? "bg-success/15" : "bg-destructive/15"
-            }`}>
-              {user.connectionStatus === "online" ? (
-                <CheckCircle className="w-6 h-6 text-success" />
-              ) : (
-                <XCircle className="w-6 h-6 text-destructive" />
+            {/* FIX 1: Avatar with pulse dot instead of check/x box */}
+            <div className="relative w-14 h-14 shrink-0">
+              <div className={`absolute inset-0 rounded-2xl blur-lg opacity-50 ${
+                user.connectionStatus === "online" ? "bg-emerald-400" : "bg-slate-400"
+              }`} />
+              <div className={`relative w-14 h-14 rounded-2xl ring-1 ring-white/20 shadow-lg flex items-center justify-center text-white font-black text-lg ${
+                user.connectionStatus === "online"
+                  ? "bg-gradient-to-br from-emerald-400 to-teal-500 shadow-emerald-500/25"
+                  : "bg-gradient-to-br from-slate-400 to-slate-500 shadow-slate-500/25"
+              }`}>
+                {user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+              </div>
+              {user.connectionStatus === "online" && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
+                </span>
               )}
             </div>
 
@@ -814,7 +828,7 @@ export default function UserDetailPage() {
         <TabsContent value="overview" className="mt-6 space-y-6">
           {/* Top row - Identity + Connection - styled like router page cards */}
           <div className="grid md:grid-cols-3 gap-4">
-            {/* Identity Card - with gradient top border */}
+            {/* Identity Card - FIX 2: Consolidated details with consistent styling */}
             <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 opacity-80" />
               <CardHeader className="pb-3 pt-5">
@@ -823,78 +837,50 @@ export default function UserDetailPage() {
                   Identity
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 pb-5">
-                <div className="flex items-center gap-3">
-                  <div className="relative w-14 h-14 rounded-2xl shrink-0">
-                    <div className="absolute inset-0 rounded-2xl bg-primary/15 blur-xl" />
-                    <div className="relative w-14 h-14 rounded-2xl bg-primary ring-1 ring-white/20 shadow-lg flex items-center justify-center text-white font-black text-lg tracking-wide">
-                      <span className="drop-shadow-sm">
-                        {user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
-                      </span>
+              <CardContent className="space-y-1 pb-5">
+                <div className="flex items-center gap-3 pb-3">
+                  <div className="relative w-14 h-14 shrink-0">
+                    <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-lg" />
+                    <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 ring-1 ring-white/20 shadow-lg shadow-violet-500/25 flex items-center justify-center text-white font-black text-lg tracking-wide">
+                      {user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                     </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-foreground">{user.fullName}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{user.id}</p>
+                  <div className="min-w-0">
+                    <p className="font-bold text-foreground truncate">{user.fullName}</p>
+                    <p className="text-xs text-muted-foreground font-mono tabular-nums">{user.id}</p>
                   </div>
                 </div>
                 <Separator />
-                
-                <div className="group flex items-center justify-between py-2 border-b border-border/40 last:border-0">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Email</p>
-                    <p className="font-medium">{user.email || '—'}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-xl h-8 w-8"
-                    onClick={() => { navigator.clipboard.writeText(user.email); toast.success('Copied') }}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
 
-                <div className="group flex items-center justify-between py-2 border-b border-border/40 last:border-0">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Phone</p>
-                    <p className="font-medium">{user.phone || '—'}</p>
+                {[
+                  { label: "Email", value: user.email, copy: user.email },
+                  { label: "Phone", value: user.phone, copy: user.phone, mono: true },
+                  { label: "Address", value: user.location || user.address, copy: user.location || user.address },
+                  { label: "Member Since", value: user.createdAt, mono: true, noCopy: true },
+                ].map(({ label, value, copy, mono, noCopy }) => (
+                  <div key={label} className="group flex items-center justify-between py-2.5 border-b border-border/40 last:border-0">
+                    <div className="min-w-0">
+                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{label}</p>
+                      <p className={`font-semibold text-sm text-slate-800 dark:text-slate-200 truncate ${mono ? 'font-mono tabular-nums' : ''}`}>
+                        {value || '—'}
+                      </p>
+                    </div>
+                    {!noCopy && value && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-xl h-8 w-8 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity"
+                        onClick={() => { navigator.clipboard.writeText(copy!); toast.success('Copied') }}
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-xl h-8 w-8"
-                    onClick={() => { navigator.clipboard.writeText(user.phone); toast.success('Copied') }}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                <div className="group flex items-center justify-between py-2 border-b border-border/40 last:border-0">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Address</p>
-                    <p className="font-medium">{user.location || user.address || '—'}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-xl h-8 w-8"
-                    onClick={() => { navigator.clipboard.writeText(user.location || user.address); toast.success('Copied') }}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Member Since</p>
-                    <p className="font-medium">{user.createdAt}</p>
-                  </div>
-                </div>
+                ))}
               </CardContent>
             </Card>
 
-            {/* Connection Status Card - with gradient top border */}
+            {/* Connection Status Card - FIX 3: Font consistency in grid */}
             <Card className="md:col-span-2 relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 opacity-80" />
               <CardHeader className="pb-3 pt-5">
@@ -932,7 +918,9 @@ export default function UserDetailPage() {
                   ].map(({ label, value, mono }: any) => (
                     <div key={label}>
                       <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{label}</p>
-                      <p className={`font-semibold text-slate-800 dark:text-slate-200 mt-0.5 ${mono ? 'font-mono text-xs' : ''}`}>{value}</p>
+                      <p className={`font-semibold text-slate-800 dark:text-slate-200 mt-0.5 tabular-nums ${mono ? 'font-mono text-xs tracking-tight' : 'text-sm'}`}>
+                        {value}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -1079,7 +1067,7 @@ export default function UserDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Network Credentials Card - with gradient top border */}
+            {/* Network Credentials Card - FIX 4: Font consistency */}
             <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400 opacity-80" />
               <CardHeader className="pb-3 pt-5">
@@ -1095,11 +1083,11 @@ export default function UserDetailPage() {
                   </div>
                 ) : user.pppoeUsername ? (
                   <>
-                    {/* Username row - always visible copy */}
+                    {/* Username row - with font-mono and tabular-nums */}
                     <div className="flex items-center justify-between rounded-xl border border-border/50 px-4 py-3">
                       <div>
                         <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Username</p>
-                        <p className="font-mono text-sm">{user.pppoeUsername}</p>
+                        <p className="font-mono text-sm tabular-nums tracking-tight">{user.pppoeUsername}</p>
                       </div>
                       <Button
                         variant="ghost"
@@ -1111,11 +1099,11 @@ export default function UserDetailPage() {
                       </Button>
                     </div>
 
-                    {/* Password row - always visible eye and copy, with blur when masked */}
+                    {/* Password row - with font-mono and tabular-nums */}
                     <div className="flex items-center justify-between rounded-xl border border-border/50 px-4 py-3">
                       <div>
                         <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Password</p>
-                        <p className={`font-mono text-sm ${!showPassword ? 'blur-sm select-none' : ''}`}>
+                        <p className={`font-mono text-sm tabular-nums tracking-tight ${!showPassword ? 'blur-sm select-none' : ''}`}>
                           {showPassword 
                             ? (user.pppoePassword || <span className="italic text-slate-400">not loaded</span>)
                             : '••••••••'}
@@ -1161,7 +1149,7 @@ export default function UserDetailPage() {
             </Card>
           </div>
 
-          {/* Live Bandwidth Graph - Premium Recharts Version */}
+          {/* Live Bandwidth Graph - Premium Vercel-style version with live readout */}
           {user.connectionStatus === 'online' && user.pppoeUsername && (
             <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 opacity-80" />
@@ -1186,7 +1174,16 @@ export default function UserDetailPage() {
           <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 opacity-80" />
             <CardHeader className="pt-5">
-              <CardTitle>Session History</CardTitle>
+              {/* FIX 5: Add pulse dot to Sessions tab header */}
+              <CardTitle className="flex items-center gap-2">
+                Session History
+                {user.connectionStatus === 'online' && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
+                )}
+              </CardTitle>
               <CardDescription>Recent connection sessions</CardDescription>
             </CardHeader>
             <CardContent className="pb-5">
@@ -1231,7 +1228,16 @@ export default function UserDetailPage() {
           <Card className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-0">
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 opacity-80" />
             <CardHeader className="pt-5">
-              <CardTitle>Payment History</CardTitle>
+              {/* FIX 5: Add pulse dot to Payments tab header */}
+              <CardTitle className="flex items-center gap-2">
+                Payment History
+                {user.connectionStatus === 'online' && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
+                )}
+              </CardTitle>
               <CardDescription>All transactions for this user</CardDescription>
             </CardHeader>
             <CardContent className="pb-5">

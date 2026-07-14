@@ -41,7 +41,7 @@ export function RevenueStatCard({
   value,
   deltaPct,
   sub,
-  color = "#000000",
+  color = "currentColor",
   sparklineData,
   formatValue = defaultFormat,
   animationDelay = 0,
@@ -58,9 +58,8 @@ export function RevenueStatCard({
     <>
       <style>{sparklineStyle}</style>
       <div
-        className="relative overflow-hidden rounded-xl bg-white"
+        className="relative overflow-hidden rounded-xl bg-card border border-border/70"
         style={{
-          border: "1px solid rgba(0,0,0,0.07)",
           animation: `cardSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) ${animationDelay}s both`,
         }}
       >
@@ -71,16 +70,16 @@ export function RevenueStatCard({
           {/* Left: label + value + delta */}
           <div className="flex-1 px-3 py-3 flex flex-col justify-center gap-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <p
-                className="font-semibold uppercase truncate"
-                style={{ fontSize: 10, letterSpacing: "0.11em", color: "#8a8274" }}
-              >
+              <p className="font-semibold uppercase truncate text-muted-foreground" style={{ fontSize: 10, letterSpacing: "0.11em" }}>
                 {label}
               </p>
               {hasDelta && (
                 <span
                   className="flex items-center gap-0.5 font-semibold shrink-0"
-                  style={{ fontSize: 10, color: isPositive ? "#3d7a5f" : "#c0392b" }}
+                  style={{ 
+                    fontSize: 10, 
+                    color: isPositive ? "var(--success)" : "var(--destructive)" 
+                  }}
                 >
                   {isPositive
                     ? <TrendingUp size={10} strokeWidth={2.5} />
@@ -103,7 +102,7 @@ export function RevenueStatCard({
             </span>
 
             {sub && (
-              <p className="font-medium" style={{ fontSize: 10, color: "#8a8274" }}>
+              <p className="font-medium text-muted-foreground" style={{ fontSize: 10 }}>
                 {sub}
               </p>
             )}

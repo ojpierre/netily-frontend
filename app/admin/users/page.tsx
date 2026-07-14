@@ -870,9 +870,15 @@ export default function UsersPage() {
   }, [selectedPlanPool])
 
   // ============================================================
-  // FIX 2: loadUsers with append parameter for infinite scroll
+  // FIX 2: loadUsers with retry, Invalid page detection, and non-destructive error handling
   // ============================================================
-  const loadUsers = async (page = 1, search?: string, status?: string, append = false) => {
+  const loadUsers = async (
+    page = 1,
+    search?: string,
+    status?: string,
+    append = false,
+    retryCount = 0
+  ) => {
     try {
       append ? setLoadingMore(true) : setLoading(true)
       setError(null)
@@ -909,9 +915,38 @@ export default function UsersPage() {
       setUsers(prev => append ? [...prev, ...mappedUsers] : mappedUsers)
       setTotalCount(response.count)
       setHasMore(page * 50 < response.count)
-    } catch (err) {
+    } catch (err: any) {
+      // "Invalid page" (404) means the page number is stale/out of range —
+      // e.g. the result set shrank after a search/filter change while the
+      // user had already scrolled deep. Retrying it can never succeed, so
+      // stop pagination immediately instead of looping forever.
+      const isInvalidPage = err?.message?.toLowerCase?.().includes('invalid page')
+
+      if (!isInvalidPage && retryCount < 1) {
+        // Tenants with many customers occasionally hit a slow/transient response
+        // right after a create (RADIUS/billing signals still settling). Retry
+        // once before treating it as a real failure.
+        console.warn('loadUsers failed, retrying once...', err)
+        await new Promise((resolve) => setTimeout(resolve, 800))
+        return loadUsers(page, search, status, append, retryCount + 1)
+      }
+
       console.error('Failed to load users:', err)
-      setError("Failed to load users. Please try again.")
+
+      if (append) {
+        // This was a "load more" request — disable further pagination so the
+        // infinite-scroll observer doesn't keep re-firing on the same broken page.
+        setHasMore(false)
+        if (!isInvalidPage) {
+          toast.error("Couldn't load more users.")
+        }
+      } else if (users.length === 0) {
+        // Don't blow away an already-populated list on a transient failure —
+        // only show the full error state if we truly have nothing to show.
+        setError("Failed to load users. Please try again.")
+      } else {
+        toast.error("Couldn't refresh the users list — showing existing data.")
+      }
     } finally {
       setLoading(false)
       setLoadingMore(false)
@@ -1121,7 +1156,14 @@ export default function UsersPage() {
       setAvailableIPs([])
       setIpSearchQuery("")
       setShowAddUserDialog(false)
-      
+
+      // ============================================================
+      // FIX 6: Small delay so the newly created customer/service/RADIUS
+      // rows are fully committed before we re-query the list
+      // (matters on large tenants).
+      // ============================================================
+      await new Promise((resolve) => setTimeout(resolve, 400))
+
       await loadUsers(1, searchQuery, statusFilter, false)
       setServerPage(1)
       setHasMore(true)
@@ -1331,7 +1373,7 @@ export default function UsersPage() {
   }, [onlineSessions])
 
   // ============================================================
-  // FIX 6: Debounced search - resets pagination
+  // FIX 7: Debounced search - resets pagination
   // ============================================================
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
@@ -1427,6 +1469,28 @@ export default function UsersPage() {
       await Promise.all([loadUsers(serverPage, searchQuery, statusFilter, false), loadOnlineMap()])
     } catch (err: any) {
       toast.error(err.message || 'Failed to disconnect user')
+    }
+  }
+
+  // ============================================================
+  // NEW: Refresh Internet handler
+  // ============================================================
+  const handleRefreshInternet = async (user: User) => {
+    if (!user.radiusCredentials?.id) {
+      toast.error("No RADIUS credentials found for this user")
+      return
+    }
+    try {
+      const result = await adminApi.refreshInternet(user.radiusCredentials.id)
+      if (result.status === 'success') {
+        toast.success(result.message)
+      } else if (result.status === 'not_connected') {
+        toast.info(result.message)
+      } else {
+        toast.error(result.message || 'Failed to refresh internet')
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to refresh internet')
     }
   }
 
@@ -2685,7 +2749,6 @@ export default function UsersPage() {
                       </TableHeader>
                       <TableBody>
                         {onlineSessions.map((session) => (
-                          // FIX: Removed whileHover={{ backgroundColor: "#faf5ff" }}
                           <motion.tr
                             key={session.radacctid}
                             initial={{ opacity: 0 }}
@@ -2768,7 +2831,6 @@ export default function UsersPage() {
                       </TableBody>
                     </Table>
                   </div>
-                  {/* STEP 5: Replace pagination with sentinel */}
                   <div ref={onlineObserverTarget} className="flex items-center justify-center py-6">
                     {onlineLoadingMore && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -2869,7 +2931,6 @@ export default function UsersPage() {
                         const daysLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
                         const hoursLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60))
                         return (
-                          // FIX: Removed whileHover={{ backgroundColor: "#faf5ff" }}
                           <motion.tr
                             key={user.id}
                             initial={{ opacity: 0 }}
@@ -3018,6 +3079,15 @@ export default function UsersPage() {
                                       Disconnect
                                     </DropdownMenuItem>
                                   )}
+                                  {user.radiusCredentials && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleRefreshInternet(user)}
+                                      className="text-blue-600 dark:text-blue-400 dark:hover:bg-slate-800"
+                                    >
+                                      <RefreshCw className="w-4 h-4 mr-2" />
+                                      Refresh Internet
+                                    </DropdownMenuItem>
+                                  )}
                                   {perms.canDelete && (
                                     <>
                                       <DropdownMenuSeparator className="dark:bg-slate-700" />
@@ -3115,7 +3185,6 @@ export default function UsersPage() {
                             )
                             return hotspotSubFilter === "active" ? isActive : !isActive
                           })
-                          // STEP 6: Change to growing slice
                           const paginated = filtered.slice(0, hotspotPage * hotspotPageSize)
                           return paginated.map((item) => {
                             const isActive = item.is_active_sub ?? (item.subscription_status === 'active' && item.expiry_date && new Date(item.expiry_date) > new Date())
@@ -3125,11 +3194,9 @@ export default function UsersPage() {
                               ? new Date(item.expiry_date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
                               : '—'
                             
-                            // Snippet B: Replace daysLeft with timeRemaining
                             const timeRemaining = item.expiry_date ? formatTimeRemaining(item.expiry_date) : null
 
                             return (
-                              // FIX: Removed whileHover={{ backgroundColor: "#faf5ff" }}
                               <motion.tr
                                 key={`${hotspotIdentifier}-${item.session_id || item.subscribed_at}`}
                                 initial={{ opacity: 0 }}
@@ -3168,7 +3235,6 @@ export default function UsersPage() {
                                     <Badge className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs">Expired</Badge>
                                   )}
                                 </TableCell>
-                                {/* Snippet C: Replace expiry table cell with new JSX */}
                                 <TableCell>
                                   <div>
                                     <p className="text-sm dark:text-slate-300">{expiryLabel}</p>
@@ -3213,7 +3279,6 @@ export default function UsersPage() {
                     </Table>
                   </div>
 
-                  {/* STEP 6: Replace pagination with sentinel */}
                   <div ref={hotspotObserverTarget} className="flex items-center justify-center py-6">
                     {(() => {
                       const filtered = activeSubscriptions.hotspot.filter(item => {
@@ -3323,7 +3388,6 @@ export default function UsersPage() {
                       <TableBody>
                         {filteredUsers.map((user) => {
                           return (
-                            // FIX: Removed whileHover={{ backgroundColor: "#faf5ff" }}
                             <motion.tr
                               key={user.id}
                               initial={{ opacity: 0 }}
@@ -3459,6 +3523,15 @@ export default function UsersPage() {
                                         Disconnect
                                       </DropdownMenuItem>
                                     )}
+                                    {user.radiusCredentials && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleRefreshInternet(user)}
+                                        className="text-blue-600 dark:text-blue-400 dark:hover:bg-slate-800"
+                                      >
+                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                        Refresh Internet
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuSeparator className="dark:bg-slate-700" />
                                     <DropdownMenuItem 
                                       onClick={() => handleDeleteUser(user)}
@@ -3477,25 +3550,20 @@ export default function UsersPage() {
                     </Table>
                   </div>
 
-                  {/* ============================================================
-                      FIX 7: Infinite scroll sentinel - replaces pagination buttons
-                      ============================================================ */}
-                  {statusFilter !== "expired" && (
-                    <div ref={observerTarget} className="flex items-center justify-center py-6">
-                      {loadingMore && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Loading more users...
-                        </div>
-                      )}
-                      {!hasMore && users.length > 0 && (
-                        <p className="text-xs text-slate-400">You've reached the end</p>
-                      )}
-                      {!loadingMore && !hasMore && users.length === 0 && (
-                        <p className="text-xs text-slate-400">No users to display</p>
-                      )}
-                    </div>
-                  )}
+                  <div ref={observerTarget} className="flex items-center justify-center py-6">
+                    {loadingMore && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading more users...
+                      </div>
+                    )}
+                    {!hasMore && users.length > 0 && (
+                      <p className="text-xs text-slate-400">You've reached the end</p>
+                    )}
+                    {!loadingMore && !hasMore && users.length === 0 && (
+                      <p className="text-xs text-slate-400">No users to display</p>
+                    )}
+                  </div>
                 </>
               )}
             </CardContent>

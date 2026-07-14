@@ -66,6 +66,7 @@ import {
   RouterPortManagerTab,
   RouterPortalSettingsTab,
 } from "./components"
+import { RouterReachabilityChart } from "./components/router-reachability-chart"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -1116,9 +1117,10 @@ export default function RouterDetailPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Live Status Tab */}
-        <TabsContent value="live" className="mt-6">
+        {/* Live Status Tab - UPDATED with Reachability Chart */}
+        <TabsContent value="live" className="mt-6 space-y-6">
           <RouterOverviewTab routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
+          <RouterReachabilityChart routerId={parseInt(routerId)} isDemo={isUsingDemoData} />
         </TabsContent>
 
         {/* Overview Tab */}

@@ -51,6 +51,7 @@ import type {
   Router,
   RouterMetrics,
   RouterEvent,
+  RouterReachabilityResponse,
   RouterDashboardStats,
   RouterVPNStatus,
   // Router Live Management types
@@ -176,6 +177,8 @@ import type {
   LoyaltyStats,
   // Hotspot Client Detail types
   HotspotClientDetailResponse,
+  // Network Map types
+  NetworkMapElement,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -1096,6 +1099,47 @@ async activateService(
   }
 
   // ------------------------------------------
+  // NETWORK MAP - /network-map/elements/
+  // ------------------------------------------
+
+  async getNetworkMapElements(params?: { element_type?: string; status?: string }): Promise<NetworkMapElement[]> {
+    const qs = params ? '?' + new URLSearchParams(params as Record<string, string>).toString() : ''
+    const res = await this.request<any>(`/network-map/elements/${qs}`)
+    return Array.isArray(res) ? res : (res.results || [])
+  }
+
+  async createNetworkMapElement(data: Partial<NetworkMapElement>): Promise<NetworkMapElement> {
+    return this.request<NetworkMapElement>('/network-map/elements/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateNetworkMapElement(id: string, data: Partial<NetworkMapElement>): Promise<NetworkMapElement> {
+    return this.request<NetworkMapElement>(`/network-map/elements/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteNetworkMapElement(id: string): Promise<void> {
+    await this.request(`/network-map/elements/${id}/`, { method: 'DELETE' })
+  }
+
+  async reportNetworkMapFault(id: string, data: { severity?: string; note?: string }): Promise<NetworkMapElement> {
+    return this.request<NetworkMapElement>(`/network-map/elements/${id}/report_fault/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async resolveNetworkMapFault(id: string): Promise<NetworkMapElement> {
+    return this.request<NetworkMapElement>(`/network-map/elements/${id}/mark_resolved/`, {
+      method: 'POST',
+    })
+  }
+
+  // ------------------------------------------
   // ROUTER MANAGEMENT - /network/routers/
   // ------------------------------------------
 
@@ -1161,6 +1205,32 @@ async activateService(
     const queryString = params ? '?' + new URLSearchParams(params).toString() : ''
     return this.request<PaginatedResponse<RouterEvent>>(`/network/routers/${id}/events/${queryString}`)
   }
+ 
+    // ────────────────────────────────────────────────────────────────
+  // ROUTER REACHABILITY HISTORY (Heatmap / Uptime Chart)
+  // ────────────────────────────────────────────────────────────────
+  async getRouterReachability(id: number, days: number = 90): Promise<{
+    router_id: number
+    days: Array<{
+      date: string
+      uptime_pct: number
+      incident_count: number
+      incidents: Array<{
+        start: string
+        end: string
+        duration_minutes: number
+      }>
+    }>
+    summary: {
+      total_incidents: number
+      total_downtime_minutes: number
+      overall_uptime_pct: number
+      period_days: number
+    }
+  }> {
+    return this.request(`/network/routers/${id}/reachability/?days=${Math.min(days, 365)}`)
+  }
+
 
   async getRouterUsers(id: number): Promise<{ hotspot_users: number; pppoe_users: number; total: number }> {
     return this.request<{ hotspot_users: number; pppoe_users: number; total: number }>(`/network/routers/${id}/users/`)
@@ -2402,6 +2472,7 @@ async activateService(
       payhero_channel_id: item?.payhero_channel_id ?? item?.channel_id,
       mpesa_configuration: item?.mpesa_configuration ?? null,           // ADD
       mpesa_configuration_details: item?.mpesa_configuration_details ?? null, // ADD
+      tuma_configuration: item?.tuma_configuration ?? null,             // ADD
       config,
       is_active: typeof item?.is_active === 'boolean' ? item.is_active : item?.status === 'ACTIVE',
     }
@@ -4104,6 +4175,20 @@ async activateService(
     username: string 
   }> {
     return this.request(`/radius/credentials/${id}/renew/`, { method: 'POST' })
+  }
+
+    /**
+   * Kick a customer off their router right now (no RADIUS disable, no
+   * expiration change). Router auto-reconnects them — acts as a "refresh".
+   */
+  async refreshInternet(credentialId: string): Promise<{
+    status: 'success' | 'not_connected' | 'error'
+    message: string
+    details?: { hotspot?: boolean; pppoe?: boolean }
+  }> {
+    return this.request(`/radius/credentials/${credentialId}/refresh_internet/`, {
+      method: 'POST',
+    })
   }
 
   /**

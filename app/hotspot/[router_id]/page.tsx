@@ -1145,6 +1145,9 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const [reconnectPhoneError, setReconnectPhoneError] = useState<string | null>(null)
   const [reconnectPhoneLoading, setReconnectPhoneLoading] = useState(false)
 
+  // ── Logo error state (FIX #1) ─────────────────────────────────────────────
+  const [logoError, setLogoError] = useState(false)
+
   // Preload video into browser cache as soon as ad data arrives
   useEffect(() => {
     if (!availableAd?.media_url || availableAd.media_type !== 'VIDEO') return
@@ -1214,6 +1217,11 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     return raw.startsWith('http') ? raw : `${apiBaseUrl}${raw}`
   })()
 
+  // Reset logo error when logo URL changes
+  useEffect(() => {
+    setLogoError(false)
+  }, [logoUrl])
+
   // Branding-derived inline style overrides (hex colours from admin panel)
   const brandingHeaderStyle: React.CSSProperties | undefined = branding?.primary_color
     ? { backgroundColor: branding.primary_color }
@@ -1233,11 +1241,17 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     // 1. READ URL PARAMS
     const params = new URLSearchParams(window.location.search)
     
-    // 2. CHECK FOR ROUTER ERRORS (STOP THE LOOP)
+    // 2. CHECK FOR ROUTER ERRORS (STOP THE LOOP) — FIX #2 applied
     const routerError = params.get("error")
     if (routerError) {
         console.error("Router reported error:", routerError)
-        setError(decodeURIComponent(routerError))
+        let decoded = routerError
+        try {
+            decoded = decodeURIComponent(routerError)
+        } catch {
+            // malformed percent-encoding from router firmware — keep raw string
+        }
+        setError(decoded)
         setLoading(false)
         return
     }
@@ -1817,6 +1831,15 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                 <p className="text-sm text-amber-600 mt-1">Time remaining to complete payment</p>
               </div>
 
+              {/* NEW: STK cancel warning */}
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-red-600 text-left">
+                  Do not cancel this M-Pesa prompt more than 3 times. Repeated cancellations
+                  may permanently block you from making further purchases.
+                </p>
+              </div>
+
               <div className={`${theme.planBg} rounded-xl p-4 text-left space-y-2 border ${theme.planBorder}`}>
                 <div className="flex justify-between">
                   <span className={theme.mutedText}>Plan</span>
@@ -1884,7 +1907,8 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           } ${theme.headerStyle === "left-aligned" ? "text-left" : "text-center"}`}
           style={brandingHeaderStyle}
         >
-          {logoUrl ? (
+          {/* FIX #1: Logo with error handling using state */}
+          {logoUrl && !logoError ? (
             <div className={`flex ${theme.headerStyle === "left-aligned" ? "justify-start" : "justify-center"} mb-3`}>
               <img
                 src={logoUrl}
@@ -1894,30 +1918,15 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                   filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.2))",
                   mixBlendMode: "luminosity" as const,
                 }}
-                onError={(e) => {
-                  // Fallback to wifi icon if logo fails to load
-                  const parent = (e.target as HTMLImageElement).parentElement
-                  if (parent) {
-                    // Replace with wifi icon
-                    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
-                    svg.setAttribute("class", `${theme.headerStyle === "large-hero" ? "w-16 h-16" : "w-12 h-12"} ${theme.headerText}`)
-                    svg.setAttribute("fill", "none")
-                    svg.setAttribute("viewBox", "0 0 24 24")
-                    svg.setAttribute("stroke", "currentColor")
-                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
-                    path.setAttribute("stroke-linecap", "round")
-                    path.setAttribute("stroke-linejoin", "round")
-                    path.setAttribute("stroke-width", "2")
-                    path.setAttribute("d", "M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0")
-                    svg.appendChild(path)
-                    parent.innerHTML = ""
-                    parent.appendChild(svg)
-                  }
-                }}
+                onError={() => setLogoError(true)}
               />
             </div>
-          ) : theme.showWifiIcon ? (
-            <Wifi className={`${theme.headerStyle === "large-hero" ? "w-16 h-16" : "w-12 h-12"} ${theme.headerStyle === "left-aligned" ? "" : "mx-auto"} mb-3 ${theme.headerText}`} />
+          ) : theme.showWifiIcon || logoError ? (
+            <Wifi
+              className={`${theme.headerStyle === "large-hero" ? "w-16 h-16" : "w-12 h-12"} ${
+                theme.headerStyle === "left-aligned" ? "" : "mx-auto"
+              } mb-3 ${theme.headerText}`}
+            />
           ) : null}
           <h1 className={`${theme.headerStyle === "large-hero" ? "text-3xl" : theme.headerStyle === "minimal" ? "text-lg" : "text-2xl"} font-bold ${theme.headerText}`}>{displayName}</h1>
           {welcomeTitle && (
