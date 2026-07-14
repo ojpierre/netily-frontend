@@ -421,17 +421,20 @@ export default function AdminDashboard() {
         }}
       />
 
-      {/* ─── Apple-Style Greeting Hero Card ─── */}
+      {/* ─── Apple-Style Greeting Hero Card (Theme-Aware) ─── */}
       <div
         key={greetKey}
-        className="relative overflow-hidden rounded-2xl bg-black dark:bg-black p-10 md:p-14 shadow-sm flex flex-col items-center justify-center text-center min-h-[260px]"
+        className="relative overflow-hidden rounded-2xl p-10 md:p-14 shadow-sm flex flex-col items-center justify-center text-center min-h-[260px] border border-transparent dark:border-border/60"
+        style={{
+          background: "var(--hero-bg, #0a0a0c)",
+        }}
       >
         {/* Subtle Apple-style radial glow, no gradients/blobs */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.06) 0%, transparent 60%)",
+              "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05) 0%, transparent 60%)",
           }}
         />
 
