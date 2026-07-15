@@ -987,3 +987,102 @@ html:not(.dark) .public-site .public-footer {
 html:not(.dark) .public-site .public-footer a:hover {
   color: var(--public-accent-strong) !important;
 }
+
+/* Public rounded aesthetic and sticky header polish */
+.public-site :where(
+  .border:not([class*="rounded-"]),
+  input:not([class*="rounded-"]),
+  select:not([class*="rounded-"]),
+  textarea:not([class*="rounded-"]),
+  button:not([class*="rounded-"]),
+  a.bg-white:not([class*="rounded-"]),
+  a.bg-black:not([class*="rounded-"]),
+  .public-nav,
+  .public-announcement,
+  .public-mobile-menu
+) {
+  border-radius: 1.1rem;
+}
+
+.public-site :where(.overflow-hidden.border:not([class*="rounded-"])) {
+  border-radius: 1.25rem;
+}
+
+.public-site :where(input, select, textarea, button, a.bg-white, a.bg-black) {
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.public-header {
+  pointer-events: none;
+}
+
+.public-header > * {
+  pointer-events: auto;
+}
+
+.public-header[data-scrolled="true"] .public-nav {
+  border-radius: 0 0 1.25rem 1.25rem;
+  background: rgb(2 6 23 / 0.9);
+  box-shadow: 0 22px 70px rgb(2 6 23 / 0.24);
+}
+
+.public-header[data-scrolled="false"] .public-nav {
+  border-radius: 1.35rem;
+}
+
+.public-header .public-mobile-menu {
+  border-radius: 1.15rem;
+}
+
+.public-site .blog-hero {
+  background-color: #020617 !important;
+}
+
+.public-site .blog-hero img {
+  filter: saturate(1.08) contrast(1.04);
+}
+
+html:not(.dark) .public-site .blog-hero,
+html:not(.dark) .public-site .blog-hero.bg-zinc-950 {
+  background-color: #020617 !important;
+}
+
+html:not(.dark) .public-site .blog-hero .text-white,
+html:not(.dark) .public-site .blog-hero .text-white\/80,
+html:not(.dark) .public-site .blog-hero .text-white\/60,
+html:not(.dark) .public-site .blog-hero .text-white\/40 {
+  color: #ffffff !important;
+}
+
+html:not(.dark) .public-site .blog-hero .bg-zinc-950\/65 {
+  background-color: rgb(2 6 23 / 0.68) !important;
+}
+
+html:not(.dark) .public-site .blog-hero .from-zinc-950 {
+  --tw-gradient-from: rgb(2 6 23 / 1) var(--tw-gradient-from-position) !important;
+}
+
+html:not(.dark) .public-site .blog-hero .via-zinc-950\/30 {
+  --tw-gradient-via: rgb(2 6 23 / 0.3) var(--tw-gradient-via-position) !important;
+}
+
+html:not(.dark) .public-site table {
+  background-color: #ffffff;
+  color: var(--public-text);
+}
+
+html:not(.dark) .public-site thead tr,
+html:not(.dark) .public-site tbody tr {
+  background-color: #ffffff !important;
+}
+
+html:not(.dark) .public-site td,
+html:not(.dark) .public-site th {
+  border-color: var(--public-border-light) !important;
+  color: var(--public-text) !important;
+}

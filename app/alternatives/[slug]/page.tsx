@@ -2,7 +2,11 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowRight, Check, CircleDollarSign, LayoutDashboard, ShieldCheck, Users, Wifi } from "lucide-react"
-import { alternativeFeatureRows, alternativePages, getAlternativePage } from "@/lib/alternatives-data"
+import { alternativeFeatureRows, alternativePages, getAlternativePage, publicAlternativePages } from "@/lib/alternatives-data"
+
+const sensitiveAlternativeSlugs = new Set(
+  alternativePages.filter((page) => page.hiddenFromPublicIndex).map((page) => page.slug),
+)
 
 export function generateStaticParams() {
   return alternativePages.map((page) => ({ slug: page.slug }))
@@ -12,6 +16,49 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params
   const page = getAlternativePage(slug)
   if (!page) return {}
+  const isSensitive = sensitiveAlternativeSlugs.has(page.slug)
+
+  if (isSensitive) {
+    return {
+      title: "ISP Billing Evaluation Checklist Kenya | Internetily",
+      description:
+        "A neutral checklist for Kenyan ISPs evaluating billing, M-Pesa workflows, MikroTik automation, hotspot management, invoices, and staff controls.",
+      keywords: [
+        "ISP billing evaluation Kenya",
+        "ISP billing software Kenya",
+        "M-Pesa ISP billing automation",
+        "MikroTik PPPoE billing software",
+        "hotspot billing software Kenya",
+        "Netily ISP billing",
+        "Internetily ISP billing",
+      ],
+      robots: {
+        index: false,
+        follow: true,
+        googleBot: {
+          index: false,
+          follow: true,
+        },
+      },
+      alternates: {
+        canonical: "https://netily.co.ke/alternatives",
+      },
+      openGraph: {
+        title: "ISP Billing Evaluation Checklist Kenya | Internetily",
+        description:
+          "A neutral checklist for Kenyan ISPs evaluating M-Pesa billing, MikroTik workflows, hotspot operations, invoices, and staff controls.",
+        url: `https://netily.co.ke/alternatives/${page.slug}`,
+        images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "Internetily ISP billing evaluation checklist" }],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: "ISP Billing Evaluation Checklist Kenya | Internetily",
+        description:
+          "A neutral checklist for Kenyan ISPs evaluating billing, payments, routers, support, and staff workflows.",
+        images: ["/og-image.svg"],
+      },
+    }
+  }
 
   return {
     title: page.metaTitle,
@@ -41,23 +88,60 @@ export default async function AlternativeDetailPage({ params }: { params: Promis
   if (!page) notFound()
 
   const pageUrl = `https://netily.co.ke/alternatives/${page.slug}`
+  const isSensitive = sensitiveAlternativeSlugs.has(page.slug)
+  const display = isSensitive
+    ? {
+        title: "ISP billing evaluation checklist for Kenyan ISPs",
+        intro:
+          "Use this neutral checklist when reviewing ISP billing systems, payment workflows, customer operations, and network-linked automation. The goal is practical fit: cleaner collections, fewer manual checks, safer team access, and better subscriber control.",
+        sideTitle: "Evaluation signals this page supports",
+        searchNames: [
+          "ISP billing software Kenya",
+          "M-Pesa ISP billing automation",
+          "MikroTik PPPoE billing software",
+          "Hotspot billing software Kenya",
+          "Internetily ISP billing",
+          "Netily ISP billing",
+        ],
+        bestFor:
+          "Operators who want a neutral way to compare billing, payment, router, support, and staff-control workflows without relying on public competitor claims.",
+        angle:
+          "Internetily helps ISPs evaluate operational fit across M-Pesa billing, PPPoE and hotspot workflows, staff permissions, customer self-service, support visibility, and revenue reporting.",
+        breadcrumbName: "Evaluation checklist",
+      }
+    : {
+        title: page.headline,
+        intro: page.intro,
+        sideTitle: "Search terms this page supports",
+        searchNames: page.searchNames,
+        bestFor: page.bestFor,
+        angle: page.netilyAngle,
+        breadcrumbName: page.competitor,
+      }
   const schema = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: page.metaTitle,
-    description: page.metaDescription,
+    name: isSensitive ? "ISP Billing Evaluation Checklist Kenya | Internetily" : page.metaTitle,
+    description: isSensitive
+      ? "Neutral checklist for Kenyan ISPs evaluating ISP billing, M-Pesa workflows, MikroTik automation, hotspot management, invoices, and staff controls."
+      : page.metaDescription,
     url: pageUrl,
-    about: [
-      { "@type": "SoftwareApplication", name: "Netily", applicationCategory: "BusinessApplication" },
-      { "@type": "Thing", name: page.competitor },
-    ],
-    mentions: page.searchNames.map((name) => ({ "@type": "Thing", name })),
+    about: isSensitive
+      ? [
+          { "@type": "SoftwareApplication", name: "Internetily", alternateName: "Netily", applicationCategory: "BusinessApplication" },
+          { "@type": "Thing", name: "ISP billing evaluation" },
+        ]
+      : [
+          { "@type": "SoftwareApplication", name: "Netily", applicationCategory: "BusinessApplication" },
+          { "@type": "Thing", name: page.competitor },
+        ],
+    mentions: display.searchNames.map((name) => ({ "@type": "Thing", name })),
     breadcrumb: {
       "@type": "BreadcrumbList",
       itemListElement: [
         { "@type": "ListItem", position: 1, name: "Home", item: "https://netily.co.ke" },
         { "@type": "ListItem", position: 2, name: "Alternatives", item: "https://netily.co.ke/alternatives" },
-        { "@type": "ListItem", position: 3, name: page.competitor, item: pageUrl },
+        { "@type": "ListItem", position: 3, name: display.breadcrumbName, item: pageUrl },
       ],
     },
   }
@@ -92,10 +176,10 @@ export default async function AlternativeDetailPage({ params }: { params: Promis
           <div className="mt-10 grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-300">
-                Informational comparison
+                Neutral evaluation
               </p>
-              <h1 className="mt-4 text-4xl font-normal tracking-tight md:text-6xl">{page.headline}</h1>
-              <p className="mt-5 text-lg leading-relaxed text-zinc-400">{page.intro}</p>
+              <h1 className="mt-4 text-4xl font-normal tracking-tight md:text-6xl">{display.title}</h1>
+              <p className="mt-5 text-lg leading-relaxed text-zinc-400">{display.intro}</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/#contact" className="inline-flex items-center gap-2 bg-white px-6 py-3 text-sm font-semibold text-zinc-950 hover:bg-zinc-200">
                   Compare your workflow
@@ -108,16 +192,16 @@ export default async function AlternativeDetailPage({ params }: { params: Promis
               </div>
             </div>
             <aside className="border border-zinc-800 bg-zinc-900 p-6">
-              <p className="text-sm font-semibold text-white">Search terms this page supports</p>
+              <p className="text-sm font-semibold text-white">{display.sideTitle}</p>
               <div className="mt-4 flex flex-wrap gap-2">
-                {page.searchNames.map((name) => (
+                {display.searchNames.map((name) => (
                   <span key={name} className="border border-zinc-700 bg-zinc-950 px-3 py-1 text-xs font-semibold text-zinc-300">
                     {name}
                   </span>
                 ))}
               </div>
               <div className="mt-6 border border-zinc-800 bg-zinc-950 p-4 text-sm leading-relaxed text-zinc-400">
-                {page.bestFor}
+                {display.bestFor}
               </div>
             </aside>
           </div>
@@ -150,7 +234,7 @@ export default async function AlternativeDetailPage({ params }: { params: Promis
               More than billing: a growth operating system for ISPs
             </h2>
             <p className="mt-4 text-base leading-relaxed text-zinc-400">
-              {page.netilyAngle}
+              {display.angle}
             </p>
           </div>
 
@@ -189,7 +273,7 @@ export default async function AlternativeDetailPage({ params }: { params: Promis
           </div>
 
           <div className="mt-10 grid gap-3 md:grid-cols-2">
-            {alternativePages
+            {publicAlternativePages
               .filter((item) => item.slug !== page.slug)
               .slice(0, 4)
               .map((item) => (
@@ -199,9 +283,7 @@ export default async function AlternativeDetailPage({ params }: { params: Promis
                   className="flex items-start gap-3 border border-zinc-800 bg-zinc-950 p-4 text-sm transition hover:border-amber-500/50"
                 >
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-                  <span>
-                    Also compare Internetily with <strong>{item.competitor}</strong>
-                  </span>
+                  <span>Review another Internetily evaluation checklist</span>
                 </Link>
               ))}
           </div>

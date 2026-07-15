@@ -1,19 +1,14 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowRight, CheckCircle2, Search } from "lucide-react"
-import { alternativePages } from "@/lib/alternatives-data"
 
 export const metadata: Metadata = {
   title: "ISP Billing Software Alternatives Kenya | Internetily",
   description:
     "Informational comparison hub for Kenyan ISPs evaluating ISP billing software, M-Pesa workflows, MikroTik automation, PPPoE, hotspot billing, and team controls.",
   keywords: [
-    "Centipid Billing alternative",
-    "ISP Man alternative",
-    "Wisp Man alternative",
-    "Jasiyo alternative",
-    "Pawanet alternative",
-    "Lipanet alternative",
+    "local ISP billing tool comparison",
+    "ISP billing evaluation Kenya",
     "ISP billing software alternatives Kenya",
     "M-Pesa ISP billing software",
     "Internetily alternatives",
@@ -32,6 +27,33 @@ export const metadata: Metadata = {
 }
 
 export default function AlternativesPage() {
+  const evaluationAreas = [
+    {
+      title: "Payment-led billing",
+      body: "Check whether renewals, receipts, reminders, invoices, and access changes follow M-Pesa and bank payment events cleanly.",
+    },
+    {
+      title: "Router automation",
+      body: "Review MikroTik PPPoE, hotspot, RADIUS, profiles, queues, and subscriber state workflows before choosing a system.",
+    },
+    {
+      title: "Operator visibility",
+      body: "Look for dashboards that show collections, churn risk, active subscribers, support activity, and staff actions in one surface.",
+    },
+    {
+      title: "Customer self-service",
+      body: "Confirm subscribers can renew, download invoices and receipts, see usage, upgrade plans, and request support without manual admin work.",
+    },
+    {
+      title: "Team controls",
+      body: "Evaluate permissions, audit trails, staff roles, and delegated actions so growth does not create operational risk.",
+    },
+    {
+      title: "Regional fit",
+      body: "Prioritise local payment behaviour, onboarding support, Kenya and East Africa pricing context, and practical ISP workflows.",
+    },
+  ]
+
   const collectionSchema = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
@@ -39,11 +61,10 @@ export default function AlternativesPage() {
     url: "https://netily.co.ke/alternatives",
     description:
       "Informational comparison hub for Kenyan ISPs evaluating ISP billing software alternatives and Internetily, formerly Netily.",
-    mainEntity: alternativePages.map((page) => ({
-      "@type": "WebPage",
-      name: page.metaTitle,
-      url: `https://netily.co.ke/alternatives/${page.slug}`,
-      about: page.competitor,
+    mainEntity: evaluationAreas.map((area) => ({
+      "@type": "Thing",
+      name: area.title,
+      description: area.body,
     })),
   }
 
@@ -106,7 +127,7 @@ export default function AlternativesPage() {
                 ))}
               </div>
               <p className="mt-6 border-t border-zinc-800 pt-5 text-xs leading-6 text-zinc-500">
-                Competitor names are retained for search intent and buyer education, while the visible copy focuses on practical feature fit and implementation quality.
+                Public copy stays focused on practical feature fit, implementation quality, and neutral buyer education.
               </p>
             </div>
           </div>
@@ -118,26 +139,21 @@ export default function AlternativesPage() {
           <div className="flex items-end justify-between gap-6">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-300">Compare options</p>
-              <h2 className="mt-3 text-3xl font-normal tracking-tight md:text-4xl">Alternative pages built for search intent</h2>
+              <h2 className="mt-3 text-3xl font-normal tracking-tight md:text-4xl">Evaluation areas for serious ISP buyers</h2>
             </div>
           </div>
           <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {alternativePages.map((page) => (
-              <Link
-                key={page.slug}
-                href={`/alternatives/${page.slug}`}
+            {evaluationAreas.map((area) => (
+              <article
+                key={area.title}
                 className="group border border-zinc-800 bg-zinc-900 p-6 transition hover:-translate-y-1 hover:border-amber-500/50"
               >
-                <p className="text-sm font-semibold text-amber-300">{page.competitor}</p>
+                <p className="text-sm font-semibold text-amber-300">Evaluation checklist</p>
                 <h3 className="mt-3 text-xl font-medium tracking-tight text-white group-hover:text-amber-200">
-                  {page.headline}
+                  {area.title}
                 </h3>
-                <p className="mt-3 text-sm leading-relaxed text-zinc-400">{page.intro}</p>
-                <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-amber-300">
-                  Read comparison
-                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-                </span>
-              </Link>
+                <p className="mt-3 text-sm leading-relaxed text-zinc-400">{area.body}</p>
+              </article>
             ))}
           </div>
         </div>

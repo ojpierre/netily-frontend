@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next"
 import { blogPosts } from "@/lib/blog-data"
-import { alternativePages } from "@/lib/alternatives-data"
+import { publicAlternativePages } from "@/lib/alternatives-data"
 
 const BASE = "https://netily.co.ke"
 const solutionSlugs = [
@@ -29,7 +29,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }))
 
-  const alternativeEntries: MetadataRoute.Sitemap = alternativePages.map((page) => ({
+  const alternativeEntries: MetadataRoute.Sitemap = publicAlternativePages.map((page) => ({
     url: `${BASE}/alternatives/${page.slug}`,
     lastModified: new Date(),
     changeFrequency: "monthly",

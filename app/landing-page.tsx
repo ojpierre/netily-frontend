@@ -380,6 +380,69 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   )
 }
 
+function ProductVideoSection({
+  videoSrc,
+  eyebrow,
+  headline,
+  body,
+  button,
+  reverse = false,
+  onClick,
+}: {
+  videoSrc: string
+  eyebrow: string
+  headline: string
+  body: string
+  button: string
+  reverse?: boolean
+  onClick: () => void
+}) {
+  return (
+    <section className="relative overflow-hidden border-b border-zinc-800 bg-zinc-950 py-24 md:py-32">
+      <Grain />
+      <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
+        <div className={`grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-center ${reverse ? "lg:[&>*:first-child]:order-2" : ""}`}>
+          <Reveal>
+            <div className="relative overflow-hidden border border-zinc-800 bg-zinc-900 shadow-2xl shadow-black/25">
+              <video
+                className="aspect-video h-full w-full object-cover"
+                src={videoSrc}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+              />
+              <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-zinc-950/55 via-transparent to-transparent" />
+              <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2 border border-white/15 bg-zinc-950/70 px-3 py-1.5 text-xs font-medium text-white/75 backdrop-blur">
+                <span className="h-2 w-2 bg-amber-500" />
+                Live product motion
+              </div>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.08}>
+            <div className="max-w-xl">
+              <SectionLabel>{eyebrow}</SectionLabel>
+              <h2 className="mt-6 text-balance text-4xl font-normal leading-tight tracking-tight text-white md:text-6xl">
+                {headline}
+              </h2>
+              <p className="mt-5 text-base leading-7 text-zinc-400 md:text-lg">{body}</p>
+              <button
+                onClick={onClick}
+                className="mt-8 inline-flex items-center justify-center gap-2 bg-white px-6 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200"
+              >
+                {button}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </Reveal>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [countrySwitcherOpen, setCountrySwitcherOpen] = useState(false)
@@ -395,9 +458,17 @@ export function LandingPage() {
   const [leadFormErrors, setLeadFormErrors] = useState<{ name?: string; email?: string }>({})
   const [leadSubmitting, setLeadSubmitting] = useState(false)
   const [leadSubmitted, setLeadSubmitted] = useState(false)
+  const [isHeaderScrolled, setIsHeaderScrolled] = useState(false)
 
   const { geo, fmt, setCountry, GEO_TABLE } = useGeo()
   const supportedCountries = ["KE", "UG", "TZ", "RW", "ET", "BI", "SS"].filter((code) => !!GEO_TABLE[code])
+
+  useEffect(() => {
+    const onScroll = () => setIsHeaderScrolled(window.scrollY > 220)
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
 
   const scrollTo = (id: string) => {
     setMobileMenuOpen(false)
@@ -436,17 +507,17 @@ export function LandingPage() {
         Skip to main content
       </a>
 
-      <div className="pointer-events-none fixed inset-0 z-50">
-        <div className="mx-auto h-full max-w-7xl">
-          <div className="relative h-full">
-            <div className="absolute left-0 top-0 h-full w-px bg-zinc-700/30" />
-            <div className="absolute right-0 top-0 h-full w-px bg-zinc-700/30" />
-          </div>
-        </div>
-      </div>
-
-      <header className="public-header absolute inset-x-0 top-0 z-40 px-6 py-6">
-        <div className="public-announcement mx-auto mb-4 flex max-w-7xl items-center justify-between gap-4 border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-white backdrop-blur">
+      <header
+        className={`public-header fixed inset-x-0 top-0 z-40 transition-all duration-500 ${
+          isHeaderScrolled ? "px-0 py-0" : "px-6 py-6"
+        }`}
+        data-scrolled={isHeaderScrolled ? "true" : "false"}
+      >
+        <div
+          className={`public-announcement mx-auto flex max-w-7xl items-center justify-between gap-4 border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-white backdrop-blur transition-all duration-500 ${
+            isHeaderScrolled ? "mb-0 max-h-0 -translate-y-3 overflow-hidden border-transparent py-0 opacity-0" : "mb-4 max-h-16 opacity-100"
+          }`}
+        >
           <div className="flex min-w-0 items-center gap-3">
             <Megaphone className="h-4 w-4 shrink-0 text-white" />
             <p className="truncate text-white">
@@ -465,7 +536,11 @@ export function LandingPage() {
             Talk to us
           </a>
         </div>
-        <nav className="public-nav mx-auto flex max-w-7xl items-center justify-between">
+        <nav
+          className={`public-nav mx-auto flex items-center justify-between transition-all duration-500 ${
+            isHeaderScrolled ? "max-w-none rounded-none border-x-0 border-t-0 px-6 md:px-12 lg:px-16" : "max-w-7xl"
+          }`}
+        >
           <Link href="/" className="flex items-center gap-2 text-white" aria-label="Internetily home">
             <BrandMark compact />
           </Link>
@@ -506,7 +581,7 @@ export function LandingPage() {
               {countrySwitcherOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setCountrySwitcherOpen(false)} />
-                  <div className="absolute right-0 top-full z-50 mt-2 w-52 border border-zinc-700 bg-zinc-950 shadow-2xl">
+                  <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden border border-zinc-700 bg-zinc-950 shadow-2xl">
                     {supportedCountries.map((code) => {
                       const item = GEO_TABLE[code]!
                       return (
@@ -693,6 +768,21 @@ export function LandingPage() {
           </div>
         </section>
 
+        <ProductVideoSection
+          videoSrc="/Video 1.mp4"
+          eyebrow="Cloud Control"
+          headline="Centralized Control, Anywhere."
+          body="Manage your entire hotspot network from a single, intuitive cloud dashboard. Deploy updates, monitor status, and control multiple locations without ever touching a router."
+          button="Schedule a Demo"
+          onClick={() => {
+            setLeadForm((prev) => ({
+              ...prev,
+              message: "Hi, I would like to schedule a demo for Internetily hotspot network control.",
+            }))
+            scrollTo("contact")
+          }}
+        />
+
         <SolutionCarousel />
 
         <section id="features" className="border-b border-zinc-800 bg-zinc-950 py-24 md:py-32">
@@ -759,6 +849,22 @@ export function LandingPage() {
             </div>
           </div>
         </section>
+
+        <ProductVideoSection
+          videoSrc="/Video 2.mp4"
+          eyebrow="Captive Portals"
+          headline="Make the First Connection Count."
+          body="Turn a simple Wi-Fi login into a brand touchpoint. Deliver seamless, lightning-fast, and fully customizable captive portals that engage users the moment they connect."
+          button="Talk To Us"
+          reverse
+          onClick={() => {
+            setLeadForm((prev) => ({
+              ...prev,
+              message: "Hi, I would like to talk about branded captive portals for my hotspot network.",
+            }))
+            scrollTo("contact")
+          }}
+        />
 
         <section className="border-b border-zinc-800 bg-zinc-900 py-24 md:py-32">
           <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
@@ -908,6 +1014,17 @@ export function LandingPage() {
           }}
         />
 
+        <ProductVideoSection
+          videoSrc="/Video 3.mp4"
+          eyebrow="Infrastructure"
+          headline="Built for High Performance."
+          body="Engineered with a modern, decoupled backend to ensure your network scales securely. Whether you are handling ten users or ten thousand, experience zero bottlenecks and rock-solid reliability."
+          button="Read the Specs"
+          onClick={() => {
+            window.location.href = "/docs"
+          }}
+        />
+
         <section className="border-b border-zinc-800 bg-zinc-900 py-24 md:py-32">
           <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
             <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-center">
@@ -991,7 +1108,7 @@ export function LandingPage() {
               {blogPosts.slice(0, 3).map((post) => (
                 <article key={post.slug} className="group border border-zinc-800 bg-zinc-950">
                   <div className="relative h-44 overflow-hidden border-b border-zinc-800">
-                    <Image src={post.coverImage} alt={post.coverImageAlt} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover opacity-75 transition group-hover:scale-105" />
+                    <Image src={post.coverImage} alt={post.coverImageAlt} fill unoptimized sizes="(max-width: 768px) 100vw, 33vw" className="object-cover opacity-75 transition group-hover:scale-105" />
                     <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
                   </div>
                   <div className="p-5">
@@ -1026,7 +1143,7 @@ export function LandingPage() {
                   {[
                     ["Sales", "sales@netily.co.ke"],
                     ["Support", "support@netily.co.ke"],
-                    ["WhatsApp", "0799 538 923"],
+                    ["WhatsApp", "0100034307"],
                   ].map(([label, value]) => (
                     <div key={label} className="flex items-center gap-4 border border-zinc-800 bg-zinc-900 p-4">
                       <Banknote className="h-5 w-5 text-amber-400" />
@@ -1210,8 +1327,8 @@ export function LandingPage() {
             PPPoE password reset, and mobile-first subscriber access.
           </p>
           <p>
-            Comparison and alternatives content remains informational for search intent around Centipid Billing,
-            ISP Man, Wisp Man, Jasiyo, Pawanet, Lipanet, Splynx, WHMCS, UCRM, open source ISP management,
+            Comparison and alternatives content remains informational for search intent around regional ISP billing tools,
+            open source ISP management,
             GitHub ISP billing software, free ISP billing software, MikroTik ISP billing software, RADIUS ISP
             management systems, and East African ISP management software.
           </p>
@@ -1271,7 +1388,7 @@ export function LandingPage() {
                 <li><Link href="/login">Sign in</Link></li>
                 <li><Link href="/privacy">Privacy policy</Link></li>
                 <li><Link href="/terms">Terms of service</Link></li>
-                <li><a href="tel:+254111325479">0111 325 479</a></li>
+                <li><a href="tel:+254111325479">0100034307</a></li>
               </ul>
             </div>
           </div>

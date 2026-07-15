@@ -76,6 +76,7 @@ export default function BlogPage() {
                   src={post.coverImage}
                   alt={post.coverImageAlt}
                   fill
+                  unoptimized
                   sizes="(max-width: 768px) 100vw, 33vw"
                   className="object-cover opacity-70 transition duration-500 group-hover:scale-105"
                 />

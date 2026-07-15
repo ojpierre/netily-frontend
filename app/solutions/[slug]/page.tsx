@@ -311,7 +311,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
               <p className="text-sm leading-relaxed text-zinc-400">{solution.summary}</p>
             </div>
             <div className="border border-zinc-800 bg-zinc-900 p-6">
-              <p className="text-sm font-semibold text-white">What this page covers</p>
+              <p className="text-sm font-semibold text-white">What we cover</p>
               <div className="mt-4 space-y-3">
                 {solution.bullets.map((item) => (
                   <div key={item} className="flex items-start gap-3 text-sm text-zinc-400">
