@@ -496,12 +496,15 @@ export default function UsersPage() {
     location: "",
   })
 
+  // ============================================================
+  // FIX: Remove password from newCustomerForm state
+  // ============================================================
   const [newCustomerForm, setNewCustomerForm] = useState({
     first_name: "",
     last_name: "",
     email: "",
     phone: "",
-    password: "",
+    // password: "",   ← REMOVED
     location: "",
     radius_username: "",
     radius_password: "",
@@ -1029,7 +1032,12 @@ export default function UsersPage() {
     setRefreshing(false)
   }
 
+  // ============================================================
+  // FIX: handleCreateCustomer - add plan validation, remove password check,
+  // auto-derive password from phone number
+  // ============================================================
   const handleCreateCustomer = async () => {
+    // Validate required fields
     if (!newCustomerForm.first_name || !newCustomerForm.last_name) {
       toast.error("First name and last name are required")
       return
@@ -1038,19 +1046,26 @@ export default function UsersPage() {
       toast.error("Phone number is required")
       return
     }
-    if (!newCustomerForm.password) {
-      toast.error("Password is required")
+
+    // NEW: block creation if there are no plans to choose from, or none selected
+    if (plans.length === 0) {
+      toast.error("No plans exist for this ISP yet. Create a plan before adding users.")
+      return
+    }
+    if (!newCustomerForm.plan_id) {
+      toast.error("Please select a plan. Users cannot be created without a plan.")
       return
     }
 
     try {
       setCreating(true)
+      // REMOVED: password check - auto-derive from phone number
       const customerData = {
         first_name: newCustomerForm.first_name,
         last_name: newCustomerForm.last_name,
         email: newCustomerForm.email || undefined,
-        phone: newCustomerForm.phone, 
-        password: newCustomerForm.password,
+        phone: newCustomerForm.phone,
+        password: newCustomerForm.phone,   // auto-derive; matches phone-based portal login
         location: newCustomerForm.location || undefined,
         status: 'active' as const,
       }
@@ -1066,7 +1081,8 @@ export default function UsersPage() {
             status: newCustomerForm.activate_now ? 'ACTIVE' : 'PENDING',
             activate_now: newCustomerForm.activate_now,
             activation_delay_minutes: newCustomerForm.activation_delay_minutes || 0,
-            radius_password: newCustomerForm.radius_password || newCustomerForm.password,
+            // FIX: Use phone as RADIUS password fallback (not newCustomerForm.password)
+            radius_password: newCustomerForm.radius_password || newCustomerForm.phone,
           }
 
           if (newCustomerForm.radius_username) {
@@ -1134,12 +1150,13 @@ export default function UsersPage() {
 
       toast.success(`Customer ${newCustomer.full_name} created successfully!`)
       
+      // Reset form (password field removed)
       setNewCustomerForm({
         first_name: "",
         last_name: "",
         email: "",
         phone: "",
-        password: "",
+        // password: "",   ← REMOVED
         location: "",
         radius_username: "",
         radius_password: "",
@@ -2052,356 +2069,371 @@ export default function UsersPage() {
               }
             }}>
               <DialogTrigger asChild>
-                <Button className="w-full sm:w-auto transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
+                <Button 
+                  className="w-full sm:w-auto transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                  disabled={plansLoading}
+                  onClick={() => {
+                    if (!plansLoading && plans.length === 0) {
+                      toast.error("Create a plan first before adding users.")
+                    }
+                  }}
+                >
                   <UserPlus className="w-4 h-4 mr-2" />
                   Add User
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 border-0">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-                className="p-6"
-              >
-                <DialogHeader>
-                  <DialogTitle>Add New Customer</DialogTitle>
-                  <DialogDescription>
-                    Create a new customer. RADIUS credentials are auto-created for PPPoE/Static connections.
-                  </DialogDescription>
-                </DialogHeader>
+              <DialogContent className="max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 border-0">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.96, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="p-6"
+                >
+                  <DialogHeader>
+                    <DialogTitle>Add New Customer</DialogTitle>
+                    <DialogDescription>
+                      Create a new customer. RADIUS credentials are auto-created for PPPoE/Static connections.
+                    </DialogDescription>
+                  </DialogHeader>
 
-                {/* Personal Info */}
-                <div className="space-y-4 mt-2">
-                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Personal Information</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="dark:text-slate-200">First Name <span className="text-red-500">*</span></Label>
-                      <Input
-                        placeholder="John"
-                        value={newCustomerForm.first_name}
-                        onChange={(e) => setNewCustomerForm({...newCustomerForm, first_name: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="dark:text-slate-200">Last Name <span className="text-red-500">*</span></Label>
-                      <Input
-                        placeholder="Doe"
-                        value={newCustomerForm.last_name}
-                        onChange={(e) => setNewCustomerForm({...newCustomerForm, last_name: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="dark:text-slate-200">Phone <span className="text-red-500">*</span></Label>
-                      <Input
-                        placeholder="07XXXXXXXX"
-                        value={newCustomerForm.phone}
-                        onChange={(e) => setNewCustomerForm({...newCustomerForm, phone: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="dark:text-slate-200">Email <span className="text-xs text-slate-400">(optional)</span></Label>
-                      <Input
-                        placeholder="john@example.com"
-                        value={newCustomerForm.email}
-                        onChange={(e) => setNewCustomerForm({...newCustomerForm, email: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="dark:text-slate-200">Location <span className="text-xs text-slate-400">(optional)</span></Label>
-                    <Input
-                      placeholder="e.g. Westlands, Nairobi"
-                      value={newCustomerForm.location}
-                      onChange={(e) => setNewCustomerForm({...newCustomerForm, location: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="dark:text-slate-200">Portal Password <span className="text-red-500">*</span></Label>
-                    <Input
-                      type="password"
-                      placeholder="Enter password for customer portal"
-                      value={newCustomerForm.password}
-                      onChange={(e) => setNewCustomerForm({...newCustomerForm, password: e.target.value})}
-                    />
-                    <p className="text-xs text-muted-foreground">Used for customer portal login. Also used as RADIUS password if not specified below.</p>
-                  </div>
-                </div>
-
-                {/* Connection Details */}
-                <div className="space-y-4 mt-4">
-                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Connection Details</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="dark:text-slate-200">Connection Type</Label>
-                      <Select
-                        value={newCustomerForm.connection_type}
-                        onValueChange={(value: "pppoe" | "static") => setNewCustomerForm({...newCustomerForm, connection_type: value})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pppoe">PPPoE</SelectItem>
-                          <SelectItem value="static">Static IP</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="dark:text-slate-200">Plan <span className="text-red-500 text-xs">*</span></Label>
-                      <Select
-                        value={newCustomerForm.plan_id || "none"}
-                        onValueChange={(value) => setNewCustomerForm({...newCustomerForm, plan_id: value === "none" ? "" : value})}
-                        disabled={plansLoading}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={plansLoading ? "Loading..." : "Select plan"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No Plan</SelectItem>
-                          {plans.map((plan) => (
-                            <SelectItem key={plan.id} value={String(plan.id)}>
-                              {plan.name} - KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {selectedPlanPool && (
-                    <div className="space-y-1">
-                      <Label className="dark:text-slate-200">Assign Static IP <span className="text-xs text-slate-400">(optional)</span></Label>
-                      <div className="flex gap-2">
+                  {/* Personal Info */}
+                  <div className="space-y-4 mt-2">
+                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Personal Information</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="dark:text-slate-200">First Name <span className="text-red-500">*</span></Label>
                         <Input
-                          placeholder="Search IP (e.g. 10.50.3)"
-                          value={ipSearchQuery}
-                          onChange={(e) => {
-                            setIpSearchQuery(e.target.value)
-                            if (selectedPlanPool) {
-                              if (ipSearchDebounceRef.current) clearTimeout(ipSearchDebounceRef.current)
-                              ipSearchDebounceRef.current = setTimeout(() => {
-                                loadAvailableIPs(selectedPlanPool, e.target.value || undefined)
-                              }, 400)
-                            }
-                          }}
-                          className="flex-1"
+                          placeholder="John"
+                          value={newCustomerForm.first_name}
+                          onChange={(e) => setNewCustomerForm({...newCustomerForm, first_name: e.target.value})}
                         />
                       </div>
-                      {availableIPsLoading ? (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                          Loading IPs...
-                        </p>
-                      ) : (
-                        <div className="space-y-1">
-                          <Select
-                            value={newCustomerForm.assigned_ip || "none"}
-                            onValueChange={(value) =>
-                              setNewCustomerForm({ ...newCustomerForm, assigned_ip: value === "none" ? "" : value })
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue
-                                placeholder={
-                                  availableIPs.length === 0
-                                    ? "No IPs found — try searching"
-                                    : `${availableIPs.length} IPs shown — search to filter`
-                                }
-                              />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">No Static IP (auto-assign)</SelectItem>
-                              {availableIPs.map((ip) => (
-                                <SelectItem key={ip.id} value={String(ip.id)}>
-                                  <span className="font-mono">{ip.ip_address}</span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {availableIPs.length > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              Showing {availableIPs.length} of{" "}
-                              {(availableIPs as any).total_available ?? "many"} available —
-                              type above to search
-                            </p>
+                      <div className="space-y-1">
+                        <Label className="dark:text-slate-200">Last Name <span className="text-red-500">*</span></Label>
+                        <Input
+                          placeholder="Doe"
+                          value={newCustomerForm.last_name}
+                          onChange={(e) => setNewCustomerForm({...newCustomerForm, last_name: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="dark:text-slate-200">Phone <span className="text-red-500">*</span></Label>
+                        <Input
+                          placeholder="07XXXXXXXX"
+                          value={newCustomerForm.phone}
+                          onChange={(e) => setNewCustomerForm({...newCustomerForm, phone: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="dark:text-slate-200">Email <span className="text-xs text-slate-400">(optional)</span></Label>
+                        <Input
+                          placeholder="john@example.com"
+                          value={newCustomerForm.email}
+                          onChange={(e) => setNewCustomerForm({...newCustomerForm, email: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="dark:text-slate-200">Location <span className="text-xs text-slate-400">(optional)</span></Label>
+                      <Input
+                        placeholder="e.g. Westlands, Nairobi"
+                        value={newCustomerForm.location}
+                        onChange={(e) => setNewCustomerForm({...newCustomerForm, location: e.target.value})}
+                      />
+                    </div>
+                    {/* ============================================================
+                        FIX: REMOVED Portal Password field entirely
+                        ============================================================ */}
+                  </div>
+
+                  {/* Connection Details */}
+                  <div className="space-y-4 mt-4">
+                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Connection Details</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="dark:text-slate-200">Connection Type</Label>
+                        <Select
+                          value={newCustomerForm.connection_type}
+                          onValueChange={(value: "pppoe" | "static") => setNewCustomerForm({...newCustomerForm, connection_type: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pppoe">PPPoE</SelectItem>
+                            <SelectItem value="static">Static IP</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="dark:text-slate-200">Plan <span className="text-red-500 text-xs">*</span></Label>
+                        {/* ============================================================
+                            FIX: Removed "No Plan" escape hatch from dropdown
+                            ============================================================ */}
+                        <Select
+                          value={newCustomerForm.plan_id || undefined}
+                          onValueChange={(value) => setNewCustomerForm({...newCustomerForm, plan_id: value})}
+                          disabled={plansLoading || plans.length === 0}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={
+                              plansLoading ? "Loading..." 
+                              : plans.length === 0 ? "No plans available — create one first"
+                              : "Select plan (required)"
+                            } />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {plans.map((plan) => (
+                              <SelectItem key={plan.id} value={String(plan.id)}>
+                                {plan.name} - KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {/* ============================================================
+                            FIX: Show warning when no plans exist
+                            ============================================================ */}
+                        {plans.length === 0 && (
+                          <p className="text-xs text-destructive mt-1">
+                            No plans exist yet — go to Plans and create one before adding users.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {selectedPlanPool && (
+                      <div className="space-y-1">
+                        <Label className="dark:text-slate-200">Assign Static IP <span className="text-xs text-slate-400">(optional)</span></Label>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Search IP (e.g. 10.50.3)"
+                            value={ipSearchQuery}
+                            onChange={(e) => {
+                              setIpSearchQuery(e.target.value)
+                              if (selectedPlanPool) {
+                                if (ipSearchDebounceRef.current) clearTimeout(ipSearchDebounceRef.current)
+                                ipSearchDebounceRef.current = setTimeout(() => {
+                                  loadAvailableIPs(selectedPlanPool, e.target.value || undefined)
+                                }, 400)
+                              }
+                            }}
+                            className="flex-1"
+                          />
+                        </div>
+                        {availableIPsLoading ? (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Loading IPs...
+                          </p>
+                        ) : (
+                          <div className="space-y-1">
+                            <Select
+                              value={newCustomerForm.assigned_ip || "none"}
+                              onValueChange={(value) =>
+                                setNewCustomerForm({ ...newCustomerForm, assigned_ip: value === "none" ? "" : value })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue
+                                  placeholder={
+                                    availableIPs.length === 0
+                                      ? "No IPs found — try searching"
+                                      : `${availableIPs.length} IPs shown — search to filter`
+                                  }
+                                />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No Static IP (auto-assign)</SelectItem>
+                                {availableIPs.map((ip) => (
+                                  <SelectItem key={ip.id} value={String(ip.id)}>
+                                    <span className="font-mono">{ip.ip_address}</span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {availableIPs.length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                Showing {availableIPs.length} of{" "}
+                                {(availableIPs as any).total_available ?? "many"} available —
+                                type above to search
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* PPPoE / RADIUS Credentials Section */}
+                  <div className="space-y-4 mt-4">
+                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1 flex items-center gap-2">
+                      <Wifi className="w-4 h-4" />
+                      PPPoE / RADIUS Credentials
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Leave blank to auto-generate from phone number. 
+                      Username defaults to last 9 digits of phone, password defaults to phone number.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="dark:text-slate-200">PPPoE Username <span className="text-xs text-slate-400">(optional)</span></Label>
+                        <div className="flex gap-1">
+                          <Input
+                            placeholder="Auto from phone"
+                            value={newCustomerForm.radius_username}
+                            onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_username: e.target.value})}
+                            className="font-mono text-sm"
+                          />
+                          {newCustomerForm.phone && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              title="Use phone number"
+                              onClick={() => {
+                                const username = generateUsernameFromPhone(newCustomerForm.phone)
+                                setNewCustomerForm({...newCustomerForm, radius_username: username})
+                              }}
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                            </Button>
                           )}
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* PPPoE / RADIUS Credentials Section */}
-                <div className="space-y-4 mt-4">
-                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1 flex items-center gap-2">
-                    <Wifi className="w-4 h-4" />
-                    PPPoE / RADIUS Credentials
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    Leave blank to auto-generate from phone number. 
-                    Username defaults to last 9 digits of phone, password defaults to portal password.
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="dark:text-slate-200">PPPoE Username <span className="text-xs text-slate-400">(optional)</span></Label>
-                      <div className="flex gap-1">
-                        <Input
-                          placeholder="Auto from phone"
-                          value={newCustomerForm.radius_username}
-                          onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_username: e.target.value})}
-                          className="font-mono text-sm"
-                        />
-                        {newCustomerForm.phone && (
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="dark:text-slate-200">PPPoE Password <span className="text-xs text-slate-400">(optional)</span></Label>
+                        <div className="flex gap-1">
+                          <Input
+                            placeholder="Auto from phone number"
+                            type="password"
+                            value={newCustomerForm.radius_password}
+                            onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_password: e.target.value})}
+                            className="font-mono text-sm"
+                          />
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            title="Use phone number"
+                            title="Generate random password"
                             onClick={() => {
-                              const username = generateUsernameFromPhone(newCustomerForm.phone)
-                              setNewCustomerForm({...newCustomerForm, radius_username: username})
+                              const pwd = generateSimplePassword(8)
+                              setNewCustomerForm({...newCustomerForm, radius_password: pwd})
                             }}
                           >
                             <RefreshCw className="w-3 h-3" />
                           </Button>
-                        )}
+                        </div>
                       </div>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="dark:text-slate-200">PPPoE Password <span className="text-xs text-slate-400">(optional)</span></Label>
-                      <div className="flex gap-1">
-                        <Input
-                          placeholder="Auto from portal password"
-                          type="password"
-                          value={newCustomerForm.radius_password}
-                          onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_password: e.target.value})}
-                          className="font-mono text-sm"
-                        />
-                        <Button
+                    <div className="p-2 bg-purple-50 dark:bg-purple-900/20 border dark:border-purple-800 rounded text-xs font-mono space-y-1">
+                      <div className="flex gap-2">
+                        <span className="text-purple-500 dark:text-purple-400 w-20">Username:</span>
+                        <span className="text-purple-900 dark:text-purple-300 font-semibold">
+                          {newCustomerForm.radius_username || 
+                            (newCustomerForm.phone ? `(auto: ${generateUsernameFromPhone(newCustomerForm.phone)})` : '(waiting for phone)')}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-purple-500 dark:text-purple-400 w-20">Password:</span>
+                        <span className="text-purple-900 dark:text-purple-300 font-semibold">
+                          {newCustomerForm.radius_password ? '(custom)' : '(auto: phone number)'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Billing Account Notice */}
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start gap-2">
+                    <CreditCard className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium text-blue-900 dark:text-blue-200">M-Pesa Paybill Account</p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+                        The account number is generated from the customer's phone number. 
+                        You can edit it after creation.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Activation Options */}
+                  <div className="space-y-2 mt-4">
+                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Activation</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: "Activate Now", activate: true, delay: 0, desc: "Starts timer immediately" },
+                        { label: "1hr Testing", activate: true, delay: 60, desc: "Auto-activates after 1 hour" },
+                        { label: "Save Pending", activate: false, delay: 0, desc: "Activate manually later" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.label}
                           type="button"
-                          variant="outline"
-                          size="sm"
-                          title="Generate random password"
-                          onClick={() => {
-                            const pwd = generateSimplePassword(8)
-                            setNewCustomerForm({...newCustomerForm, radius_password: pwd})
-                          }}
+                          onClick={() => setNewCustomerForm({ ...newCustomerForm, activate_now: opt.activate, activation_delay_minutes: opt.delay })}
+                          className={`p-2.5 rounded-lg border text-left transition-all ${
+                            newCustomerForm.activate_now === opt.activate && newCustomerForm.activation_delay_minutes === opt.delay
+                              ? "bg-blue-50 dark:bg-blue-900/30 border-blue-400 dark:border-blue-600 ring-1 ring-blue-400"
+                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                          }`}
                         >
-                          <RefreshCw className="w-3 h-3" />
-                        </Button>
+                          <p className="text-xs font-medium text-foreground">{opt.label}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{opt.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Record Initial Payment */}
+                  {newCustomerForm.activate_now && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="record_payment"
+                          checked={newCustomerForm.record_initial_payment || false}
+                          onCheckedChange={(checked) => setNewCustomerForm({
+                            ...newCustomerForm,
+                            record_initial_payment: checked as boolean,
+                            initial_payment_amount: checked
+                              ? (plans.find(p => p.id === parseInt(newCustomerForm.plan_id || '0'))?.base_price || '')
+                              : ''
+                          })}
+                        />
+                        <Label htmlFor="record_payment" className="cursor-pointer text-sm dark:text-slate-200">Record initial payment</Label>
                       </div>
-                    </div>
-                  </div>
-                  <div className="p-2 bg-purple-50 dark:bg-purple-900/20 border dark:border-purple-800 rounded text-xs font-mono space-y-1">
-                    <div className="flex gap-2">
-                      <span className="text-purple-500 dark:text-purple-400 w-20">Username:</span>
-                      <span className="text-purple-900 dark:text-purple-300 font-semibold">
-                        {newCustomerForm.radius_username || 
-                          (newCustomerForm.phone ? `(auto: ${generateUsernameFromPhone(newCustomerForm.phone)})` : '(waiting for phone)')}
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="text-purple-500 dark:text-purple-400 w-20">Password:</span>
-                      <span className="text-purple-900 dark:text-purple-300 font-semibold">
-                        {newCustomerForm.radius_password ? '(custom)' : '(auto: same as portal password)'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Billing Account Notice */}
-                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start gap-2">
-                  <CreditCard className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-xs font-medium text-blue-900 dark:text-blue-200">M-Pesa Paybill Account</p>
-                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
-                      The account number is generated from the customer's phone number. 
-                      You can edit it after creation.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Activation Options */}
-                <div className="space-y-2 mt-4">
-                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Activation</h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { label: "Activate Now", activate: true, delay: 0, desc: "Starts timer immediately" },
-                      { label: "1hr Testing", activate: true, delay: 60, desc: "Auto-activates after 1 hour" },
-                      { label: "Save Pending", activate: false, delay: 0, desc: "Activate manually later" },
-                    ].map((opt) => (
-                      <button
-                        key={opt.label}
-                        type="button"
-                        onClick={() => setNewCustomerForm({ ...newCustomerForm, activate_now: opt.activate, activation_delay_minutes: opt.delay })}
-                        className={`p-2.5 rounded-lg border text-left transition-all ${
-                          newCustomerForm.activate_now === opt.activate && newCustomerForm.activation_delay_minutes === opt.delay
-                            ? "bg-blue-50 dark:bg-blue-900/30 border-blue-400 dark:border-blue-600 ring-1 ring-blue-400"
-                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-                        }`}
-                      >
-                        <p className="text-xs font-medium text-foreground">{opt.label}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{opt.desc}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Record Initial Payment */}
-                {newCustomerForm.activate_now && (
-                  <div className="mt-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="record_payment"
-                        checked={newCustomerForm.record_initial_payment || false}
-                        onCheckedChange={(checked) => setNewCustomerForm({
-                          ...newCustomerForm,
-                          record_initial_payment: checked as boolean,
-                          initial_payment_amount: checked
-                            ? (plans.find(p => p.id === parseInt(newCustomerForm.plan_id || '0'))?.base_price || '')
-                            : ''
-                        })}
-                      />
-                      <Label htmlFor="record_payment" className="cursor-pointer text-sm dark:text-slate-200">Record initial payment</Label>
-                    </div>
-                    {newCustomerForm.record_initial_payment && (
-                      <div className="grid grid-cols-2 gap-3 pl-6">
-                        <div className="space-y-1">
-                          <Label className="text-xs dark:text-slate-300">Amount (KES) <span className="text-red-500">*</span></Label>
-                          <Input
-                            type="number"
-                            placeholder="0.00"
-                            value={newCustomerForm.initial_payment_amount || ''}
-                            onChange={(e) => setNewCustomerForm({...newCustomerForm, initial_payment_amount: e.target.value})}
-                          />
+                      {newCustomerForm.record_initial_payment && (
+                        <div className="grid grid-cols-2 gap-3 pl-6">
+                          <div className="space-y-1">
+                            <Label className="text-xs dark:text-slate-300">Amount (KES) <span className="text-red-500">*</span></Label>
+                            <Input
+                              type="number"
+                              placeholder="0.00"
+                              value={newCustomerForm.initial_payment_amount || ''}
+                              onChange={(e) => setNewCustomerForm({...newCustomerForm, initial_payment_amount: e.target.value})}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs dark:text-slate-300">Reference <span className="text-xs text-slate-400">(optional)</span></Label>
+                            <Input
+                              placeholder="MPESA receipt / auto"
+                              value={newCustomerForm.initial_payment_reference || ''}
+                              onChange={(e) => setNewCustomerForm({...newCustomerForm, initial_payment_reference: e.target.value})}
+                            />
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs dark:text-slate-300">Reference <span className="text-xs text-slate-400">(optional)</span></Label>
-                          <Input
-                            placeholder="MPESA receipt / auto"
-                            value={newCustomerForm.initial_payment_reference || ''}
-                            onChange={(e) => setNewCustomerForm({...newCustomerForm, initial_payment_reference: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
 
-                <DialogFooter className="mt-4">
-                  <Button variant="outline" onClick={() => setShowAddUserDialog(false)} disabled={creating}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCreateCustomer} disabled={creating}>
-                    {creating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : "Create Customer"}
-                  </Button>
-                </DialogFooter>
-              </motion.div>
-            </DialogContent>
-          </Dialog>
+                  <DialogFooter className="mt-4">
+                    <Button variant="outline" onClick={() => setShowAddUserDialog(false)} disabled={creating}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleCreateCustomer} disabled={creating}>
+                      {creating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : "Create Customer"}
+                    </Button>
+                  </DialogFooter>
+                </motion.div>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       </div>
