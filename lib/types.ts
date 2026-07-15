@@ -2908,6 +2908,7 @@ export type SMSProvider =
   | 'bytewave'
   | 'blessedtexts'
   | 'texin'
+  | 'celcom'
   
 
 export interface SMSGatewayConfig {

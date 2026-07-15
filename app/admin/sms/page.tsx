@@ -70,7 +70,8 @@ const PROVIDER_OPTIONS: { value: SMSProvider; label: string }[] = [
   { value: 'hubtel', label: 'Hubtel' },
   { value: 'bytewave', label: 'Bytewave (Netily)' },
   { value: 'blessedtexts', label: 'BlessedTexts' },
-  { value: 'texin', label: 'Texin' },  // ← ADDED
+  { value: 'texin', label: 'Texin' },
+  { value: 'celcom', label: 'Celcom Africa' },
 ]
 
 const PROVIDER_FIELDS: Record<SMSProvider, { key: string; label: string; type?: string }[]> = {
@@ -89,6 +90,10 @@ const PROVIDER_FIELDS: Record<SMSProvider, { key: string; label: string; type?: 
   texin: [
     { key: 'api_key', label: 'API Key', type: 'password' },
     { key: 'sender_id', label: 'Sender ID' },
+  ],
+  celcom: [
+    { key: 'api_key', label: 'API Key', type: 'password' },
+    { key: 'sender_id', label: 'Short Code' },
   ],
 }
 
@@ -464,6 +469,7 @@ export default function SMSPage() {
   const [isTopupOpen, setIsTopupOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<SMSTemplate | null>(null)
   const [selectedMessages, setSelectedMessages] = useState<number[]>([])
+  const [viewMessage, setViewMessage] = useState<SMSMessage | null>(null)
 
   const [gwEditing, setGwEditing] = useState<number | null>(null)
   const [gwForm, setGwForm] = useState<SMSGatewayConfigWrite>({
@@ -863,7 +869,17 @@ export default function SMSPage() {
                             {m.recipient_name && <div className="text-xs text-slate-400">{m.recipient}</div>}
                           </TableCell>
                           <TableCell className="hidden md:table-cell max-w-xs">
-                            <p className="text-xs text-slate-600 truncate">{m.message}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs text-slate-600 truncate">{m.message}</p>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 shrink-0"
+                                onClick={() => setViewMessage(m)}
+                              >
+                                <Eye className="w-3.5 h-3.5 text-slate-400" />
+                              </Button>
+                            </div>
                           </TableCell>
                           <TableCell><StatusBadge status={m.status} /></TableCell>
                           <TableCell className="hidden sm:table-cell">
@@ -1330,6 +1346,18 @@ export default function SMSPage() {
                           />
                         </div>
                       )}
+                      {gwForm.provider === 'celcom' && (
+                        <div className="space-y-1.5">
+                          <Label>Partner ID</Label>
+                          <Input
+                            placeholder="Celcom Partner ID"
+                            value={gwForm.extra_config?.partner_id ?? ''}
+                            onChange={e => setGwForm(p => ({
+                              ...p, extra_config: { ...p.extra_config, partner_id: e.target.value }
+                            }))}
+                          />
+                        </div>
+                      )}
                       {gwForm.provider === 'infobip' && (
                         <div className="space-y-1.5">
                           <Label>Base URL</Label>
@@ -1661,6 +1689,27 @@ export default function SMSPage() {
           onClose={() => setIsTopupOpen(false)}
           onSuccess={fetchAll}
         />
+
+        {/* -- VIEW MESSAGE DIALOG -------------------------------------------- */}
+        <Dialog open={!!viewMessage} onOpenChange={(open) => !open && setViewMessage(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{viewMessage?.recipient_name || viewMessage?.recipient}</DialogTitle>
+              <DialogDescription>
+                {viewMessage?.sent_at ? new Date(viewMessage.sent_at).toLocaleString() : '—'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-lg border bg-slate-50 p-3 text-sm text-slate-700 whitespace-pre-wrap break-words">
+              {viewMessage?.message}
+            </div>
+            {viewMessage && (
+              <div className="flex items-center gap-2 pt-1">
+                <StatusBadge status={viewMessage.status} />
+                <span className="text-xs text-slate-400 capitalize">{viewMessage.type}</span>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   )

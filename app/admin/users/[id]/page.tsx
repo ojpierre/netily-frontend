@@ -564,7 +564,7 @@ export default function UserDetailPage() {
     if (!user || !smsMessage.trim()) return
     try {
       setSendingSms(true)
-      await adminApi.sendSMS({ recipient: user.phone, message: smsMessage.trim() })
+      await adminApi.sendSMS({ recipient: user.phone, message: smsMessage.trim(), customer: userId })
       toast.success(`SMS sent to ${user.fullName}`)
       setShowSmsDialog(false)
       setSmsMessage("")
