@@ -1916,7 +1916,7 @@ export default function UsersPage() {
     try {
       setSendingUserSms(true)
       const resolved = resolveMessageVariables(userSmsMessage, userSmsTarget)
-      await adminApi.sendSMS({ recipient: userSmsTarget.phone, message: resolved })
+      await adminApi.sendSMS({ recipient: userSmsTarget.phone, message: resolved, customer: userSmsTarget.customerId })
       toast.success(`SMS sent to ${userSmsTarget.name}`)
       setShowUserSmsDialog(false)
       setUserSmsMessage("")
@@ -1987,6 +1987,7 @@ export default function UsersPage() {
           await adminApi.sendSMS({
             recipient: user.phone,
             message: finalMessage,
+            customer: user.customerId,
           })
           await new Promise(resolve => setTimeout(resolve, 500))
         }

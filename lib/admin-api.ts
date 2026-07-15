@@ -3309,13 +3309,14 @@ async activateService(
     return this.request<SMSMessage>(`/messaging/sms/${id}/`)
   }
 
-  async sendSMS(data: { recipient: string; message: string; template?: string }): Promise<SMSMessage> {
+  async sendSMS(data: { recipient: string; message: string; template?: string; customer?: number }): Promise<SMSMessage> {
     return this.request<SMSMessage>('/messaging/sms/', {
       method: 'POST',
       body: JSON.stringify({
         recipient: data.recipient,
         message: data.message,
         ...(data.template ? { template: data.template } : {}),
+        ...(data.customer ? { customer: data.customer } : {}),
       }),
     })
   }
