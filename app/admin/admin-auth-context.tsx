@@ -13,7 +13,7 @@ import type { AdminLoginResponse } from "@/lib/admin-api"
 // Toggle this to switch between mock and real backend
 // Set NEXT_PUBLIC_USE_MOCK=true in .env.local to use mock data
 const USE_MOCK_AUTH = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
-const ADMIN_ALLOWED_ROLES = ["admin", "staff", "accountant", "support", "superadmin", "super_admin"]
+const ADMIN_ALLOWED_ROLES = ["admin", "staff", "technician", "accountant", "support", "superadmin", "super_admin"]
 const debugAdminAuth = (...args: unknown[]) => {
   if (process.env.NODE_ENV !== "production") console.log(...args)
 }

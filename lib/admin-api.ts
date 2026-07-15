@@ -213,7 +213,7 @@ export interface AdminUser extends User {}
 
 export interface AdminStats extends DashboardStats {}
 
-const ADMIN_ALLOWED_ROLES = ['admin', 'staff', 'accountant', 'support', 'superadmin']
+const ADMIN_ALLOWED_ROLES = ['admin', 'staff', 'technician', 'accountant', 'support', 'superadmin', 'super_admin']
 
 const getPlatformAdminEmails = (): string[] =>
   String(process.env.NEXT_PUBLIC_PLATFORM_ADMIN_EMAILS || '')
@@ -465,7 +465,10 @@ class AdminApiService {
         }
 
         console.error('API 400 Error Message:', errorMessage)
-        throw new Error(errorMessage)
+        const validationError = new Error(errorMessage) as Error & { status?: number; data?: unknown }
+        validationError.status = 400
+        validationError.data = error
+        throw validationError
       }
       
       throw new Error(error.detail || error.message || `Request failed with status ${response.status}`)

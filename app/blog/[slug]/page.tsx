@@ -34,13 +34,13 @@ export async function generateMetadata({
       modifiedTime: post.updatedAt,
       authors: [post.author.name],
       tags: post.tags,
-      images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: post.title }],
+      images: [{ url: post.coverImage, width: 1400, height: 933, alt: post.coverImageAlt }],
     },
     twitter: {
       card: "summary_large_image",
       title: post.metaTitle,
       description: post.metaDescription,
-      images: ["/og-image.svg"],
+      images: [post.coverImage],
     },
   }
 }
@@ -49,6 +49,10 @@ export async function generateMetadata({
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })
+}
+
+function getAuthorBio(post: NonNullable<ReturnType<typeof getBlogPost>>) {
+  return `${post.author.name} writes about practical ISP operations, billing automation, MikroTik workflows, and M-Pesa integration for internet service providers in Kenya and East Africa. The focus is helping ISP owners automate daily work, improve subscriber experience, and grow with clearer operating systems.`
 }
 
 const CATEGORY_COLORS: Record<string, { badge: string }> = {
@@ -258,7 +262,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
       url: "https://netily.co.ke",
       logo: { "@type": "ImageObject", url: "https://netily.co.ke/logo.png" },
     },
-    image: { "@type": "ImageObject", url: "https://netily.co.ke/og-image.svg", width: 1200, height: 630 },
+    image: { "@type": "ImageObject", url: post.coverImage, width: 1400, height: 933 },
     keywords: post.keywords.join(", "),
     articleSection: post.category,
     inLanguage: "en-KE",
@@ -275,18 +279,19 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
 
       <div className="public-site min-h-screen bg-zinc-950 text-white">
         {/* ── Article Hero ── */}
-        <header className="relative overflow-hidden border-b border-zinc-800 bg-zinc-950">
+        <header className="blog-hero relative min-h-[520px] overflow-hidden border-b border-zinc-800 bg-zinc-950 md:min-h-[620px]">
           <Image
             src={post.coverImage}
             alt={post.coverImageAlt}
             fill
             priority
+            unoptimized
             sizes="100vw"
-            className="object-cover opacity-55"
+            className="object-cover opacity-70"
           />
           <div className="absolute inset-0 bg-zinc-950/65" />
           <div className="absolute inset-0 bg-linear-to-t from-zinc-950 via-zinc-950/30 to-transparent" />
-          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 text-white">
+          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 text-white">
             {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-white/60 text-sm mb-8" aria-label="Breadcrumb">
               <Link href="/" className="hover:text-amber-300 transition-colors">Home</Link>
@@ -389,11 +394,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
                   <div>
                     <p className="font-medium text-white">{post.author.name}</p>
                     <p className="text-sm text-zinc-500 mb-2">{post.author.role} at Internetily</p>
-                    <p className="text-sm text-zinc-400 leading-relaxed">
-                      Peter Junior specialises in ISP billing software, MikroTik automation, and M-Pesa integration for
-                      internet service providers in Kenya and East Africa. He writes about practical strategies for ISP
-                      owners to automate operations and grow their subscriber base.
-                    </p>
+                    <p className="text-sm text-zinc-400 leading-relaxed">{getAuthorBio(post)}</p>
                   </div>
                 </div>
               </div>
@@ -418,6 +419,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
                           src={rel.coverImage}
                           alt={rel.coverImageAlt}
                           fill
+                          unoptimized
                           sizes="64px"
                           className="object-cover opacity-80"
                         />
