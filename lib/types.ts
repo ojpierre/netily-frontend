@@ -71,10 +71,10 @@ export interface CreateStaffUserRequest {
 
 // Response from creating staff user
 export interface CreateStaffUserResponse {
-  user: User
-  refresh: string
-  access: string
-  message: string
+  user?: User
+  refresh?: string
+  access?: string
+  message?: string
 }
 
 export interface UserProfile {

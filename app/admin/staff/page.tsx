@@ -100,6 +100,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Switch } from "@/components/ui/switch"
 
 // ==========================================
 // CONSTANTS
@@ -133,9 +134,9 @@ const STAFF_ROLES: { value: StaffRole; label: string; description: string; icon:
 ]
 
 const GENDER_OPTIONS: { value: Gender; label: string }[] = [
-  { value: "M" as any, label: "Male" },
-  { value: "F" as any, label: "Female" },
-  { value: "O" as any, label: "Other" },
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "other", label: "Other" },
 ]
 
 // Action icons for the permission editor
@@ -170,6 +171,26 @@ function validatePassword(password: string): { valid: boolean; errors: string[] 
   if (!/[a-z]/.test(password)) errors.push("One lowercase letter")
   if (!/[0-9]/.test(password)) errors.push("One number")
   return { valid: errors.length === 0, errors }
+}
+
+function normalizePhoneNumber(phone: string): string {
+  return phone.replace(/[\s-]/g, "").trim()
+}
+
+function getApiErrorData(error: unknown): Record<string, unknown> {
+  if (error && typeof error === "object") {
+    const maybeError = error as Record<string, unknown>
+    const data = maybeError.data
+    if (data && typeof data === "object") return data as Record<string, unknown>
+    return maybeError
+  }
+  return {}
+}
+
+function toErrorText(value: unknown): string {
+  if (Array.isArray(value)) return value.map(toErrorText).filter(Boolean).join(", ")
+  if (value && typeof value === "object") return JSON.stringify(value)
+  return String(value || "")
 }
 
 // ==========================================
@@ -282,7 +303,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
         is_staff: true,
       }
 
-      if (formData.phone_number?.trim()) payload.phone_number = formData.phone_number.trim()
+      if (formData.phone_number?.trim()) payload.phone_number = normalizePhoneNumber(formData.phone_number)
       if (formData.id_number?.trim()) payload.id_number = formData.id_number.trim()
       if (formData.gender) payload.gender = formData.gender as Gender
       if (formData.date_of_birth) payload.date_of_birth = formData.date_of_birth
@@ -298,7 +319,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
     } catch (error: unknown) {
       console.error("Failed to create staff user:", error)
       if (error && typeof error === "object") {
-        const errorObj = error as Record<string, unknown>
+        const errorObj = getApiErrorData(error)
         const errorMessages: string[] = []
         const fieldMap: Record<string, string> = {
           email: "Email",
@@ -310,15 +331,16 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
         }
         for (const [field, label] of Object.entries(fieldMap)) {
           if (errorObj[field]) {
-            const msg = Array.isArray(errorObj[field]) ? (errorObj[field] as any[])[0] : String(errorObj[field])
+            const msg = toErrorText(errorObj[field])
             setErrors((prev) => ({ ...prev, [field]: msg }))
             errorMessages.push(`${label}: ${msg}`)
           }
         }
         if (errorObj.non_field_errors) {
-          errorMessages.push(Array.isArray(errorObj.non_field_errors) ? String((errorObj.non_field_errors as any[])[0]) : String(errorObj.non_field_errors))
+          errorMessages.push(toErrorText(errorObj.non_field_errors))
         }
-        if (errorObj.detail) errorMessages.push(String(errorObj.detail))
+        if (errorObj.detail) errorMessages.push(toErrorText(errorObj.detail))
+        if (!errorMessages.length && error instanceof Error) errorMessages.push(error.message)
         toast.error("Failed to create staff account", {
           description: errorMessages.length > 0 ? errorMessages.join(". ") : "Please check the form for errors",
         })
@@ -587,6 +609,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
   const [formData, setFormData] = useState({
     email: "",
     role: "" as StaffRole | "",
+    is_active: true,
     new_password: "",
     confirmPassword: "",
   })
@@ -596,6 +619,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
       setFormData({
         email: user.email || "",
         role: (user.role as StaffRole) || "",
+        is_active: user.is_active !== false,
         new_password: "",
         confirmPassword: "",
       })
@@ -603,7 +627,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
     }
   }, [user, open])
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }))
   }
@@ -640,6 +664,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
       const payload: Record<string, any> = {
         email: formData.email.trim(),
         role: formData.role,
+        is_active: formData.is_active,
       }
       if (formData.new_password) {
         payload.new_password = formData.new_password
@@ -650,8 +675,14 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
       onOpenChange(false)
       onSuccess()
     } catch (error: any) {
+      const errorObj = getApiErrorData(error)
+      const description =
+        toErrorText(errorObj.detail) ||
+        toErrorText(errorObj.non_field_errors) ||
+        error?.message ||
+        "Please check the form for errors"
       toast.error("Failed to update staff account", {
-        description: error?.message || "Please check the form for errors",
+        description,
       })
     } finally {
       setIsSubmitting(false)
@@ -703,6 +734,24 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
               })}
             </div>
             {errors.role && <p className="text-sm text-destructive">{errors.role}</p>}
+          </div>
+
+          <div className="rounded-xl border border-border bg-muted/30 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="edit-is-active" className="text-sm font-semibold">
+                  Staff account active
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Inactive staff cannot use this account to access the admin workspace.
+                </p>
+              </div>
+              <Switch
+                id="edit-is-active"
+                checked={formData.is_active}
+                onCheckedChange={(checked) => handleInputChange("is_active", checked)}
+              />
+            </div>
           </div>
 
           <Separator />
@@ -841,13 +890,17 @@ function PermissionPageRow({
     const newActions = new Set(state.actions)
     if (newActions.has(action)) {
       newActions.delete(action)
-      // If no actions remain, disable the page entirely
-      if (newActions.size === 0) {
+      // View is the route gate. Turning it off should disable the page instead
+      // of saving hidden action tokens that cannot be reached.
+      if (action === "view" || newActions.size === 0) {
         onChange({ enabled: false, actions: new Set() })
         return
       }
     } else {
       newActions.add(action)
+      if (action !== "view" && availableActions.includes("view")) {
+        newActions.add("view")
+      }
     }
     onChange({ enabled: state.enabled, actions: newActions })
   }
@@ -988,10 +1041,9 @@ function EditPermissionsModal({ open, onOpenChange, role, onSave }: EditPermissi
     for (const [pathPrefix, state] of pageStates.entries()) {
       if (!state.enabled) continue
       const rule = adminRouteAccessRules.find((item) => item.pathPrefix === pathPrefix)
-      if (rule?.actions?.includes("view") && !state.actions.has("view")) {
-        tokens.push(encodeAction(pathPrefix, "view"))
-      }
+      const availableActions = rule?.actions || (["view"] as PageAction[])
       for (const action of state.actions) {
+        if (!availableActions.includes(action)) continue
         tokens.push(encodeAction(pathPrefix, action))
       }
     }
@@ -1150,7 +1202,7 @@ export default function StaffManagementPage() {
     try {
       setIsLoading(true)
       const data = await adminApi.getStaffUsers({ staff_only: "true" })
-      const rawUsers = (data as any).results || data
+      const rawUsers = Array.isArray(data) ? data : Array.isArray((data as any).results) ? (data as any).results : []
       const hiddenEmails = ["peter@netily.co.ke", "mark@netily.co.ke", "admin@netily.co.ke"]
       setStaffUsers(
         rawUsers.filter((u: any) => {
@@ -1168,6 +1220,7 @@ export default function StaffManagementPage() {
             return acc
           }, {})
         )
+        setRoleAccessPolicies(policies || [])
       } catch (policyError) {
         console.warn("Role access policies endpoint not available yet:", policyError)
       }

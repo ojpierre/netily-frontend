@@ -11,8 +11,14 @@
  */
 "use client"
 
-import { useMemo } from "react"
-import { canDo, ADMIN_ROLES, type PageAction } from "@/lib/rbac"
+import { useMemo, useSyncExternalStore } from "react"
+import {
+  canDo,
+  ADMIN_ROLES,
+  getRoleAccessPolicyVersion,
+  subscribeRoleAccessPolicies,
+  type PageAction,
+} from "@/lib/rbac"
 import { useAdminAuth } from "@/app/admin/admin-auth-context"
 
 export interface PagePermissions {
@@ -47,6 +53,11 @@ const check = (
 
 export function usePagePermissions(pathPrefix: string): PagePermissions {
   const { user } = useAdminAuth()
+  const policyVersion = useSyncExternalStore(
+    subscribeRoleAccessPolicies,
+    getRoleAccessPolicyVersion,
+    getRoleAccessPolicyVersion,
+  )
 
   return useMemo<PagePermissions>(() => {
     if (!user) return { canView: false, canViewDetails: false, canAdd: false, canEdit: false, canDelete: false, isAdmin: false }
@@ -67,5 +78,5 @@ export function usePagePermissions(pathPrefix: string): PagePermissions {
       canEdit: check(user, pathPrefix, "edit"),
       canDelete: check(user, pathPrefix, "delete"),
     }
-  }, [user, pathPrefix])
+  }, [user, pathPrefix, policyVersion])
 }

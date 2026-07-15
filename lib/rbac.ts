@@ -67,6 +67,8 @@ export const getActionsForPath = (allowed: string[], pathPrefix: string): PageAc
 // ─────────────────────────────────────────────────────────────
 const normalize = (value?: string | null) => String(value || "").trim().toLowerCase().replace(/[\s-]+/g, "_")
 let roleAccessPolicies: Record<string, string[]> = {}
+let roleAccessPolicyVersion = 0
+const roleAccessPolicyListeners = new Set<() => void>()
 
 export const ADMIN_ROLES = ["admin", "super_admin", "superadmin"]
 export const USER_MANAGEMENT_ROLES = [...ADMIN_ROLES, "staff", "support", "accountant"]
@@ -81,6 +83,17 @@ export const setRoleAccessPolicies = (policies: Array<{ role: string; allowed_pa
     acc[normalize(policy.role)] = Array.isArray(policy.allowed_paths) ? policy.allowed_paths : []
     return acc
   }, {})
+  roleAccessPolicyVersion += 1
+  roleAccessPolicyListeners.forEach((listener) => listener())
+}
+
+export const getRoleAccessPolicyVersion = () => roleAccessPolicyVersion
+
+export const subscribeRoleAccessPolicies = (listener: () => void) => {
+  roleAccessPolicyListeners.add(listener)
+  return () => {
+    roleAccessPolicyListeners.delete(listener)
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -200,6 +213,20 @@ export const adminRouteAccessRules: RouteAccessRule[] = [
     actions: ["view", "add", "edit", "delete"],
   },
   {
+    pathPrefix: "/admin/hotspot",
+    label: "Hotspot Management",
+    allowedRoles: NETWORK_ROLES,
+    allowedDepartments: ["network", "it", "technical", "engineering", "noc"],
+    actions: ["view", "view_details", "add", "edit", "delete"],
+  },
+  {
+    pathPrefix: "/admin/qos",
+    label: "QoS Management",
+    allowedRoles: NETWORK_ROLES,
+    allowedDepartments: ["network", "it", "technical", "engineering", "noc"],
+    actions: ["view", "view_details", "add", "edit", "delete"],
+  },
+  {
     pathPrefix: "/admin/fup",
     label: "Fair Usage Policy",
     allowedRoles: NETWORK_ROLES,
@@ -263,6 +290,13 @@ export const adminRouteAccessRules: RouteAccessRule[] = [
     actions: ["view", "add", "edit", "delete"],
   },
   {
+    pathPrefix: "/admin/billing-cycles",
+    label: "Billing Cycles",
+    allowedRoles: FINANCE_ROLES,
+    allowedDepartments: ["finance", "accounting", "billing", "accounts"],
+    actions: ["view", "view_details", "add", "edit", "delete"],
+  },
+  {
     pathPrefix: "/admin/analytics",
     label: "Financial Reports",
     allowedRoles: FINANCE_ROLES,
@@ -305,6 +339,12 @@ export const adminRouteAccessRules: RouteAccessRule[] = [
     label: "Loyalty Management",
     allowedRoles: ENGAGEMENT_ROLES,
     actions: ["view", "add", "edit", "delete"],
+  },
+  {
+    pathPrefix: "/admin/promotions",
+    label: "Promotions",
+    allowedRoles: ENGAGEMENT_ROLES,
+    actions: ["view", "view_details", "add", "edit", "delete"],
   },
   {
     pathPrefix: "/admin/sms",
