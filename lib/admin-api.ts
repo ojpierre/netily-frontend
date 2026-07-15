@@ -805,9 +805,14 @@ class AdminApiService {
   }
 
   async updateCustomer(id: number, data: Partial<Customer>): Promise<Customer> {
+    const payload: any = { ...data }
+    if (payload.phone && !payload.phone_number) {
+      payload.phone_number = payload.phone
+      delete payload.phone
+    }
     return this.request<Customer>(`/customers/${id}/`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     })
   }
 
