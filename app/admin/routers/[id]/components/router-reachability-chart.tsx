@@ -1,7 +1,7 @@
 // app/admin/routers/[id]/components/router-reachability-chart.tsx
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Activity, AlertTriangle, Loader2, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -43,6 +43,26 @@ export function RouterReachabilityChart({ routerId, isDemo = false }: RouterReac
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [hovered, setHovered] = useState<RouterReachabilityDay | null>(null)
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null)
+  
+  // ============================================================
+  // FIX: Hide delay ref to prevent tooltip from disappearing instantly
+  // ============================================================
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const clearHideTimeout = useCallback(() => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current)
+      hideTimeoutRef.current = null
+    }
+  }, [])
+
+  const scheduleHide = useCallback(() => {
+    clearHideTimeout()
+    hideTimeoutRef.current = setTimeout(() => {
+      setHovered(null)
+      setHoverPos(null)
+    }, 250) // gives you time to read/move to the tooltip
+  }, [clearHideTimeout])
 
   const fetchData = useCallback(async () => {
     try {
@@ -112,11 +132,11 @@ export function RouterReachabilityChart({ routerId, isDemo = false }: RouterReac
   }, [weeks])
 
   // ============================================================
-  // FIX: Clamp tooltip position to viewport
+  // FIX: Clamp tooltip position to viewport with tighter height
   // ============================================================
   const getClampedPosition = useCallback((x: number, y: number) => {
     const TOOLTIP_WIDTH = 260
-    const TOOLTIP_HEIGHT = 200 // Approximate max height
+    const TOOLTIP_HEIGHT = 140 // was 200 — closer to real height, less over-correction
     const PADDING = 16
 
     // Clamp X: keep tooltip within viewport horizontally
@@ -249,6 +269,7 @@ export function RouterReachabilityChart({ routerId, isDemo = false }: RouterReac
                           key={di}
                           className={`w-[11px] h-[11px] rounded-[2px] cursor-pointer transition-transform hover:scale-125 hover:ring-2 hover:ring-primary/40 active:scale-110 ${cls}`}
                           onMouseEnter={(e) => {
+                            clearHideTimeout()
                             const rect = e.currentTarget.getBoundingClientRect()
                             const x = rect.left + rect.width / 2
                             const y = rect.top
@@ -256,15 +277,17 @@ export function RouterReachabilityChart({ routerId, isDemo = false }: RouterReac
                             setHoverPos(clamped)
                             setHovered(day)
                           }}
-                          onMouseLeave={() => setHovered(null)}
+                          onMouseLeave={scheduleHide}
                           onTouchStart={(e) => {
                             // Prevent default to avoid scroll interference
                             e.preventDefault()
+                            clearHideTimeout()
                             handleCellInteraction(day, e)
                           }}
                           onClick={(e) => {
                             // Toggle tooltip on click/tap
                             e.stopPropagation()
+                            clearHideTimeout()
                             if (hovered?.date === day.date) {
                               setHovered(null)
                               setHoverPos(null)
@@ -294,7 +317,7 @@ export function RouterReachabilityChart({ routerId, isDemo = false }: RouterReac
       </CardContent>
 
       {/* ============================================================
-          FIX: Tooltip with outside tap dismiss + clamped positioning
+          FIX: Tooltip with delayed hide + outside tap dismiss
           ============================================================ */}
       {hovered && hoverPos && (
         <>
@@ -302,10 +325,12 @@ export function RouterReachabilityChart({ routerId, isDemo = false }: RouterReac
           <div 
             className="fixed inset-0 z-40" 
             onClick={() => {
+              clearHideTimeout()
               setHovered(null)
               setHoverPos(null)
             }}
             onTouchStart={() => {
+              clearHideTimeout()
               setHovered(null)
               setHoverPos(null)
             }}
@@ -320,7 +345,11 @@ export function RouterReachabilityChart({ routerId, isDemo = false }: RouterReac
               transform: "translate(-50%, -100%)"
             }}
           >
-            <div className="pointer-events-auto rounded-xl bg-slate-900 dark:bg-slate-950 text-white shadow-2xl px-3.5 py-2.5 min-w-[200px] max-w-[260px] border border-slate-700/50">
+            <div 
+              className="pointer-events-auto rounded-xl bg-slate-900 dark:bg-slate-950 text-white shadow-2xl px-3.5 py-2.5 min-w-[200px] max-w-[260px] border border-slate-700/50"
+              onMouseEnter={clearHideTimeout}
+              onMouseLeave={scheduleHide}
+            >
               <p className="text-xs font-semibold">
                 {new Date(hovered.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
               </p>
