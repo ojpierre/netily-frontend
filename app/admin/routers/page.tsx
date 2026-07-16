@@ -642,10 +642,14 @@ export default function RoutersPage() {
               }[r.status]
 
               const slaTarget = r.sla_target || 99
-              const uptimePct = r.uptime_percentage && r.uptime_percentage > 0
-                ? r.uptime_percentage
-                : r.status === 'online' ? slaTarget : 0
-              const meetsSla = uptimePct >= slaTarget
+              
+              // ============================================================
+              // FIX: Stop faking the number when data isn't ready yet
+              // Check if we have real uptime data (> 0 means it's been calculated)
+              // ============================================================
+              const hasUptimeData = r.uptime_percentage != null && r.uptime_percentage > 0
+              const uptimePct = hasUptimeData ? r.uptime_percentage! : null
+              const meetsSla = uptimePct !== null && uptimePct >= slaTarget
 
               return (
                 <Card
@@ -774,16 +778,19 @@ export default function RoutersPage() {
                           <p className="text-[11px] text-slate-400 font-medium mt-0.5">connected users</p>
                         </div>
                       </div>
-                      {/* SLA pill */}
+                      
+                      {/* ============================================================
+                          FIX: SLA pill — show real data or proper placeholder
+                          ============================================================ */}
                       <div className="text-right">
                         <p className={`text-sm font-bold leading-none ${
-                          r.uptime_percentage && r.uptime_percentage > 0
+                          uptimePct !== null
                             ? meetsSla ? statusConfig.textAccent : "text-destructive"
                             : r.status === 'online' ? statusConfig.textAccent : "text-slate-400"
                         }`}>
-                          {r.uptime_percentage && r.uptime_percentage > 0
-                            ? `${Number(r.uptime_percentage).toFixed(1)}%`
-                            : r.status === 'online' ? 'Online' : '—'
+                          {uptimePct !== null
+                            ? `${Number(uptimePct).toFixed(1)}%`
+                            : r.status === 'online' ? 'New' : '—'
                           }
                         </p>
                         <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-1">
@@ -795,8 +802,8 @@ export default function RoutersPage() {
                     {/* SLA Progress bar */}
                     <div className="space-y-1.5">
                       <Progress
-                        value={r.uptime_percentage && r.uptime_percentage > 0 ? r.uptime_percentage : r.status === 'online' ? 100 : 0}
-                        className={`h-1.5 rounded-full ${!meetsSla && r.status !== 'online' ? "[&>div]:bg-destructive" : `[&>div]:bg-linear-to-r [&>div]:${statusConfig.gradient}`}`}
+                        value={uptimePct !== null ? uptimePct : r.status === 'online' ? 100 : 0}
+                        className={`h-1.5 rounded-full ${uptimePct !== null && !meetsSla && r.status !== 'online' ? "[&>div]:bg-destructive" : `[&>div]:bg-linear-to-r [&>div]:${statusConfig.gradient}`}`}
                       />
                     </div>
 
@@ -913,9 +920,23 @@ export default function RoutersPage() {
                       <TableCell>{r.location || "-"}</TableCell>
                       <TableCell className="font-semibold">{r.active_users}</TableCell>
                       <TableCell>{r.uptime || "-"}</TableCell>
+                      
+                      {/* ============================================================
+                          FIX: Table view — don't fake the number
+                          Show '—' when no data, not a fake SLA target
+                          ============================================================ */}
                       <TableCell>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${(r.uptime_percentage || 0) >= (r.sla_target || 99) ? "bg-success/15 text-success dark:bg-success/20 dark:text-success" : "bg-destructive/15 text-destructive dark:bg-destructive/20 dark:text-destructive"}`}>
-                          {Number(r.uptime_percentage || 0).toFixed(1)}%
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          r.uptime_percentage && r.uptime_percentage > 0
+                            ? (r.uptime_percentage >= (r.sla_target || 99)
+                                ? "bg-success/15 text-success dark:bg-success/20 dark:text-success"
+                                : "bg-destructive/15 text-destructive dark:bg-destructive/20 dark:text-destructive")
+                            : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
+                        }`}>
+                          {r.uptime_percentage && r.uptime_percentage > 0
+                            ? `${Number(r.uptime_percentage).toFixed(1)}%`
+                            : '—'
+                          }
                         </span>
                       </TableCell>
                       <TableCell>
