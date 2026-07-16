@@ -1,7 +1,7 @@
 // app/admin/routers/[id]/components/router-reachability-chart.tsx
 "use client"
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Activity, AlertTriangle, Loader2, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -43,26 +43,6 @@ export function RouterReachabilityChart({ routerId, isDemo = false }: RouterReac
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [hovered, setHovered] = useState<RouterReachabilityDay | null>(null)
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null)
-  
-  // ============================================================
-  // FIX: Hide delay ref to prevent tooltip from disappearing instantly
-  // ============================================================
-  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const clearHideTimeout = useCallback(() => {
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current)
-      hideTimeoutRef.current = null
-    }
-  }, [])
-
-  const scheduleHide = useCallback(() => {
-    clearHideTimeout()
-    hideTimeoutRef.current = setTimeout(() => {
-      setHovered(null)
-      setHoverPos(null)
-    }, 250) // gives you time to read/move to the tooltip
-  }, [clearHideTimeout])
 
   const fetchData = useCallback(async () => {
     try {
@@ -131,63 +111,6 @@ export function RouterReachabilityChart({ routerId, isDemo = false }: RouterReac
     return labels
   }, [weeks])
 
-  // ============================================================
-  // FIX: Clamp tooltip position to viewport with tighter height
-  // ============================================================
-  const getClampedPosition = useCallback((x: number, y: number) => {
-    const TOOLTIP_WIDTH = 260
-    const TOOLTIP_HEIGHT = 140 // was 200 — closer to real height, less over-correction
-    const PADDING = 16
-
-    // Clamp X: keep tooltip within viewport horizontally
-    const clampedX = Math.min(
-      Math.max(x, PADDING + TOOLTIP_WIDTH / 2),
-      window.innerWidth - PADDING - TOOLTIP_WIDTH / 2
-    )
-
-    // Clamp Y: keep tooltip within viewport vertically
-    // Tooltip appears above the cell by default
-    let clampedY = y - 8 // Offset above the cell
-    
-    // If tooltip would go off the top, place it below the cell
-    if (clampedY - TOOLTIP_HEIGHT < PADDING) {
-      clampedY = y + 16 // Place below the cell
-    }
-    
-    // Ensure tooltip doesn't go off the bottom
-    if (clampedY + TOOLTIP_HEIGHT > window.innerHeight - PADDING) {
-      clampedY = window.innerHeight - PADDING - TOOLTIP_HEIGHT
-    }
-
-    return { x: clampedX, y: clampedY }
-  }, [])
-
-  const handleCellInteraction = useCallback((day: RouterReachabilityDay, event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-    let rect: DOMRect
-    
-    if ('touches' in event) {
-      // Touch event
-      const touch = event.touches[0]
-      const target = event.currentTarget as HTMLDivElement
-      rect = target.getBoundingClientRect()
-      // Use touch position for more accurate placement
-      const x = touch.clientX
-      const y = touch.clientY
-      const clamped = getClampedPosition(x, y)
-      setHoverPos(clamped)
-    } else {
-      // Mouse event
-      const target = event.currentTarget as HTMLDivElement
-      rect = target.getBoundingClientRect()
-      const x = rect.left + rect.width / 2
-      const y = rect.top
-      const clamped = getClampedPosition(x, y)
-      setHoverPos(clamped)
-    }
-    
-    setHovered(day)
-  }, [getClampedPosition])
-
   if (isLoading) {
     return (
       <Card className="relative overflow-hidden rounded-2xl border-slate-200/60 dark:border-slate-800">
@@ -219,7 +142,7 @@ export function RouterReachabilityChart({ routerId, isDemo = false }: RouterReac
             </div>
             <div>
               <CardTitle className="text-base">Reachability History</CardTitle>
-              <CardDescription className="text-xs">Last {summary?.period_days ?? 90} days — tap/hover a day for details</CardDescription>
+              <CardDescription className="text-xs">Last {summary?.period_days ?? 90} days — hover a day for details</CardDescription>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -267,39 +190,13 @@ export function RouterReachabilityChart({ routerId, isDemo = false }: RouterReac
                       return (
                         <div
                           key={di}
-                          className={`w-[11px] h-[11px] rounded-[2px] cursor-pointer transition-transform hover:scale-125 hover:ring-2 hover:ring-primary/40 active:scale-110 ${cls}`}
+                          className={`w-[11px] h-[11px] rounded-[2px] cursor-pointer transition-transform hover:scale-125 hover:ring-2 hover:ring-primary/40 ${cls}`}
                           onMouseEnter={(e) => {
-                            clearHideTimeout()
                             const rect = e.currentTarget.getBoundingClientRect()
-                            const x = rect.left + rect.width / 2
-                            const y = rect.top
-                            const clamped = getClampedPosition(x, y)
-                            setHoverPos(clamped)
+                            setHoverPos({ x: rect.left + rect.width / 2, y: rect.top })
                             setHovered(day)
                           }}
-                          onMouseLeave={scheduleHide}
-                          onTouchStart={(e) => {
-                            // Prevent default to avoid scroll interference
-                            e.preventDefault()
-                            clearHideTimeout()
-                            handleCellInteraction(day, e)
-                          }}
-                          onClick={(e) => {
-                            // Toggle tooltip on click/tap
-                            e.stopPropagation()
-                            clearHideTimeout()
-                            if (hovered?.date === day.date) {
-                              setHovered(null)
-                              setHoverPos(null)
-                            } else {
-                              const rect = e.currentTarget.getBoundingClientRect()
-                              const x = rect.left + rect.width / 2
-                              const y = rect.top
-                              const clamped = getClampedPosition(x, y)
-                              setHoverPos(clamped)
-                              setHovered(day)
-                            }
-                          }}
+                          onMouseLeave={() => setHovered(null)}
                         />
                       )
                     })}
@@ -316,62 +213,30 @@ export function RouterReachabilityChart({ routerId, isDemo = false }: RouterReac
         )}
       </CardContent>
 
-      {/* ============================================================
-          FIX: Tooltip with delayed hide + outside tap dismiss
-          ============================================================ */}
       {hovered && hoverPos && (
-        <>
-          {/* Dismiss overlay - catches clicks/taps outside the tooltip */}
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => {
-              clearHideTimeout()
-              setHovered(null)
-              setHoverPos(null)
-            }}
-            onTouchStart={() => {
-              clearHideTimeout()
-              setHovered(null)
-              setHoverPos(null)
-            }}
-          />
-          
-          {/* Tooltip - pointer-events-auto so it can be interacted with */}
-          <div 
-            className="fixed z-50 pointer-events-none"
-            style={{ 
-              left: hoverPos.x, 
-              top: hoverPos.y, 
-              transform: "translate(-50%, -100%)"
-            }}
-          >
-            <div 
-              className="pointer-events-auto rounded-xl bg-slate-900 dark:bg-slate-950 text-white shadow-2xl px-3.5 py-2.5 min-w-[200px] max-w-[260px] border border-slate-700/50"
-              onMouseEnter={clearHideTimeout}
-              onMouseLeave={scheduleHide}
-            >
-              <p className="text-xs font-semibold">
-                {new Date(hovered.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
-              </p>
-              <p className={`text-[11px] mt-0.5 ${hovered.uptime_pct >= 99.9 ? "text-emerald-400" : hovered.uptime_pct >= 90 ? "text-amber-400" : "text-red-400"}`}>
-                {hovered.uptime_pct.toFixed(1)}% reachable
-              </p>
-              {hovered.incidents.length > 0 ? (
-                <div className="mt-1.5 pt-1.5 border-t border-slate-700/50 space-y-1">
-                  {hovered.incidents.slice(0, 4).map((inc, i) => (
-                    <div key={i} className="flex items-center gap-1.5 text-[10px] text-slate-300">
-                      <AlertTriangle className="w-2.5 h-2.5 text-warning shrink-0" />
-                      <span>{new Date(inc.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — down for {formatDuration(inc.duration_minutes)}</span>
-                    </div>
-                  ))}
-                  {hovered.incidents.length > 4 && <p className="text-[10px] text-slate-400">+{hovered.incidents.length - 4} more</p>}
-                </div>
-              ) : (
-                <p className="text-[10px] text-slate-400 mt-1">No outages this day</p>
-              )}
-            </div>
+        <div className="fixed z-50 pointer-events-none" style={{ left: hoverPos.x, top: hoverPos.y - 8, transform: "translate(-50%, -100%)" }}>
+          <div className="rounded-xl bg-slate-900 dark:bg-slate-950 text-white shadow-2xl px-3.5 py-2.5 min-w-[200px] max-w-[260px] border border-slate-700/50">
+            <p className="text-xs font-semibold">
+              {new Date(hovered.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+            </p>
+            <p className={`text-[11px] mt-0.5 ${hovered.uptime_pct >= 99.9 ? "text-emerald-400" : hovered.uptime_pct >= 90 ? "text-amber-400" : "text-red-400"}`}>
+              {hovered.uptime_pct.toFixed(1)}% reachable
+            </p>
+            {hovered.incidents.length > 0 ? (
+              <div className="mt-1.5 pt-1.5 border-t border-slate-700/50 space-y-1">
+                {hovered.incidents.slice(0, 4).map((inc, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-[10px] text-slate-300">
+                    <AlertTriangle className="w-2.5 h-2.5 text-warning shrink-0" />
+                    <span>{new Date(inc.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — down for {formatDuration(inc.duration_minutes)}</span>
+                  </div>
+                ))}
+                {hovered.incidents.length > 4 && <p className="text-[10px] text-slate-400">+{hovered.incidents.length - 4} more</p>}
+              </div>
+            ) : (
+              <p className="text-[10px] text-slate-400 mt-1">No outages this day</p>
+            )}
           </div>
-        </>
+        </div>
       )}
     </Card>
   )
