@@ -504,7 +504,6 @@ export default function UsersPage() {
     last_name: "",
     email: "",
     phone: "",
-    // password: "",   ← REMOVED
     location: "",
     radius_username: "",
     radius_password: "",
@@ -1156,7 +1155,6 @@ export default function UsersPage() {
         last_name: "",
         email: "",
         phone: "",
-        // password: "",   ← REMOVED
         location: "",
         radius_username: "",
         radius_password: "",
@@ -2285,6 +2283,8 @@ export default function UsersPage() {
                             value={newCustomerForm.radius_username}
                             onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_username: e.target.value})}
                             className="font-mono text-sm"
+                            autoComplete="off"
+                            name="pppoe-username-no-autofill"
                           />
                           {newCustomerForm.phone && (
                             <Button
@@ -2311,6 +2311,8 @@ export default function UsersPage() {
                             value={newCustomerForm.radius_password}
                             onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_password: e.target.value})}
                             className="font-mono text-sm"
+                            autoComplete="new-password"
+                            name="pppoe-password-no-autofill"
                           />
                           <Button
                             type="button"
@@ -3700,6 +3702,8 @@ export default function UsersPage() {
                         value={editForm.radius_password}
                         onChange={(e) => setEditForm({ ...editForm, radius_password: e.target.value })}
                         placeholder="Enter new password or generate"
+                        autoComplete="new-password"
+                        name="edit-radius-password-no-autofill"
                       />
                       <Button 
                         type="button" 
