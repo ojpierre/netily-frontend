@@ -1016,7 +1016,19 @@ export default function UsersPage() {
   }, [activeTab, activeSubscriptions.hotspot, hotspotSubFilter])
 
   // ============================================================
-  // FIX 5: handleRefresh - resets pagination state
+  // FIX 5: Ensure online session data is available for Hotspot tab
+  // This fixes the root cause: hotspotOnlineSet derived from onlineSessions,
+  // but onlineSessions is only fetched when you click the "Online Now" tab.
+  // Landing directly on the Hotspot tab never triggers that fetch.
+  // ============================================================
+  useEffect(() => {
+    if (activeTab === "hotspot" && onlineSessions.length === 0 && !onlineSessionsLoading) {
+      loadOnlineSessions(1, false)
+    }
+  }, [activeTab])
+
+  // ============================================================
+  // FIX 6: handleRefresh - resets pagination state
   // ============================================================
   const handleRefresh = async () => {
     setRefreshing(true)
@@ -1173,7 +1185,7 @@ export default function UsersPage() {
       setShowAddUserDialog(false)
 
       // ============================================================
-      // FIX 6: Small delay so the newly created customer/service/RADIUS
+      // FIX 7: Small delay so the newly created customer/service/RADIUS
       // rows are fully committed before we re-query the list
       // (matters on large tenants).
       // ============================================================
@@ -1388,7 +1400,7 @@ export default function UsersPage() {
   }, [onlineSessions])
 
   // ============================================================
-  // FIX 7: Debounced search - resets pagination
+  // FIX 8: Debounced search - resets pagination
   // ============================================================
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
@@ -2501,6 +2513,7 @@ export default function UsersPage() {
                 setStatusFilter("all")
                 setHotspotSubFilter("active")
                 setHotspotPage(1)
+                // The new useEffect will load onlineSessions if needed
               }}
               className={`relative flex flex-col items-center px-4 py-2 rounded-lg transition-all duration-200 shrink-0 ${
                 isActive ? "bg-slate-100 dark:bg-slate-800 ring-1 ring-slate-300 dark:ring-slate-600" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
