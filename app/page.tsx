@@ -51,6 +51,26 @@ export const metadata: Metadata = {
     "wisp billing software 2026",
     "5g isp billing kenya 2026",
     "starlink isp billing kenya 2026",
+    "Starlink ISP setup Kenya",
+    "Starlink billing software Kenya",
+    "Starlink hotspot billing Kenya",
+    "Starlink backhaul ISP Kenya",
+    "Starlink outage recovery ISP",
+    "Starlink failover for ISP",
+    "Starlink WISP billing East Africa",
+    "router NAS billing software Kenya",
+    "NAS router billing software",
+    "Tenda router billing software",
+    "TP-Link router billing software",
+    "Ubiquiti ISP billing software",
+    "Cambium WISP billing software",
+    "Huawei FTTH billing software",
+    "start your own ISP Kenya",
+    "how to start an ISP in Kenya",
+    "ISP setup services Kenya",
+    "ISP hardware and software setup Kenya",
+    "full ISP business setup Kenya",
+    "internet provider startup Kenya",
     // â”€â”€ Branded & geo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     "ISP billing software Kenya",
     "ISP management software Kenya 2026",
@@ -245,6 +265,10 @@ const softwareSchema = {
     "Staff role edits and permissions",
     "Lead capture and sales follow-up",
     "Previous billing cycle breakdowns",
+    "NAS and router billing support",
+    "Starlink backhaul and failover workflows",
+    "ISP startup hardware and software setup",
+    "Full ISP business operations integration",
   ],
   areaServed: [
     { "@type": "Country", name: "Kenya" },
@@ -314,6 +338,17 @@ const orgSchema = {
     "ISP billing software comparison Kenya",
     "ISP management software evaluation Africa",
     "local ISP billing tool comparison",
+    "Starlink ISP setup",
+    "Starlink backhaul billing",
+    "Tenda router billing",
+    "TP-Link router billing",
+    "Ubiquiti ISP operations",
+    "Cambium WISP backhaul",
+    "Huawei FTTH billing",
+    "NAS router billing software",
+    "ISP setup services Kenya",
+    "Starting an ISP in Kenya",
+    "ISP hardware and software integration",
   ],
 }
 
@@ -358,6 +393,68 @@ const financialWorkflowSchema = {
     { "@type": "ServiceChannel", name: "Airtel Money" },
     { "@type": "ServiceChannel", name: "Telkom Kash" },
     { "@type": "ServiceChannel", name: "Bank-aligned billing workflows" },
+  ],
+}
+
+const ispSetupServiceSchema = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: "ISP Setup, Hardware, and Software Integration",
+  serviceType: "Internet service provider setup and operations integration",
+  provider: {
+    "@type": "Organization",
+    name: "Internetily",
+    alternateName: "Netily",
+    url: "https://netily.co.ke",
+  },
+  description:
+    "Internetily, formerly Netily, helps teams set up internet service provider businesses with hardware planning, MikroTik and RADIUS configuration, Starlink or fiber backhaul workflows, M-Pesa billing, hotspot portals, customer management, and staff operations.",
+  areaServed: [
+    { "@type": "Country", name: "Kenya" },
+    { "@type": "Country", name: "Uganda" },
+    { "@type": "Country", name: "Tanzania" },
+    { "@type": "Country", name: "Rwanda" },
+    { "@type": "Country", name: "Burundi" },
+    { "@type": "Country", name: "South Sudan" },
+  ],
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "ISP Setup Services",
+    itemListElement: [
+      {
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: "ISP Hardware Planning",
+          description: "Router, NAS, access point, backhaul, Starlink failover, and customer premises equipment planning for new ISPs and WISPs.",
+        },
+      },
+      {
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: "ISP Billing Software Setup",
+          description: "Internetily billing setup with M-Pesa payments, RADIUS authentication, MikroTik provisioning, hotspot billing, SMS, and customer portal.",
+        },
+      },
+      {
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: "Full ISP Business Integration",
+          description: "Package design, customer onboarding, staff roles, payment workflows, support processes, and reporting for ISP operations.",
+        },
+      },
+    ],
+  },
+  keywords: [
+    "start ISP Kenya",
+    "Starlink ISP setup Kenya",
+    "MikroTik ISP setup",
+    "WISP setup Kenya",
+    "ISP hardware and software integration",
+    "NAS router billing software",
+    "M-Pesa ISP billing setup",
   ],
 }
 
@@ -843,6 +940,10 @@ export default function Page() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(financialWorkflowSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ispSetupServiceSchema) }}
       />
       <script
         type="application/ld+json"

@@ -380,6 +380,113 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   )
 }
 
+function RouterAndIspSetupSection({ onIspSetupLead }: { onIspSetupLead: () => void }) {
+  const vendors = [
+    ["Tenda", "SMB WiFi and access networks"],
+    ["TP-Link", "Routers, APs, and small networks"],
+    ["Ubiquiti", "UISP, UniFi, and WISP estates"],
+    ["MikroTik", "RouterOS, PPPoE, Hotspot, queues"],
+    ["Cambium", "Wireless backhaul and WISP rollouts"],
+    ["Huawei", "FTTH, ONT, and enterprise access"],
+    ["Starlink", "Backhaul, failover, and remote sites"],
+    ["FreeRADIUS", "AAA, accounting, and access control"],
+  ]
+
+  const setupItems = [
+    "Hardware planning for routers, access points, backhaul, Starlink failover, and customer premises equipment",
+    "Software setup for billing, M-Pesa payments, RADIUS, MikroTik provisioning, hotspot portals, SMS, and support",
+    "Business integration covering packages, onboarding, customer records, collections, staff roles, and reporting",
+  ]
+
+  return (
+    <section className="border-b border-zinc-800 bg-zinc-950 py-24 md:py-32">
+      <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
+        <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+          <div>
+            <SectionLabel>Routers, NAS, and backhaul</SectionLabel>
+            <h2 className="mt-6 text-balance text-4xl font-normal leading-tight text-white md:text-6xl">
+              <SplitWords text="Internetily works around the equipment real ISPs already use" />
+            </h2>
+            <p className="mt-6 max-w-2xl text-base leading-7 text-zinc-400">
+              Whether your network runs on MikroTik, Ubiquiti, Cambium, Huawei, TP-Link, Tenda,
+              FreeRADIUS, or Starlink-backed sites, Internetily helps connect billing, subscriber
+              access, payments, and support into one operating workflow.
+            </p>
+          </div>
+          <div className="border border-zinc-700 bg-zinc-900/70 p-6">
+            <p className="text-sm font-medium text-white">Search intent Internetily supports</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {[
+                "MikroTik ISP billing",
+                "Starlink ISP setup Kenya",
+                "FreeRADIUS billing system",
+                "WISP backhaul operations",
+                "Hotspot billing with M-Pesa",
+                "PPPoE subscriber management",
+              ].map((term) => (
+                <span key={term} className="border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300">
+                  {term}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {vendors.map(([name, detail], index) => (
+            <Reveal key={name} delay={index * 0.04}>
+              <article className="h-full border border-zinc-800 bg-zinc-900/65 p-5 transition hover:border-amber-500/50">
+                <div className="flex h-16 items-center justify-center border border-zinc-700 bg-zinc-950">
+                  <span className="text-lg font-medium tracking-tight text-white">{name}</span>
+                </div>
+                <p className="mt-5 text-sm font-medium text-white">{name} support</p>
+                <p className="mt-2 text-xs leading-6 text-zinc-500">{detail}</p>
+              </article>
+            </Reveal>
+          ))}
+        </div>
+
+        <div className="mt-12 border border-amber-500/30 bg-amber-500 p-1 text-black">
+          <div className="border border-black/10 bg-amber-400 p-6 md:p-8">
+            <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-black/55">Looking to set up your own ISP?</p>
+                <h3 className="mt-4 text-3xl font-normal tracking-tight md:text-5xl">
+                  We can help plan the hardware, software, and business workflow
+                </h3>
+                <p className="mt-5 max-w-2xl text-sm leading-7 text-black/70 md:text-base">
+                  Internetily can support a new ISP from idea to launch: network architecture, routers,
+                  Starlink or fiber backhaul planning, M-Pesa billing, customer portal, RADIUS, packages,
+                  staff roles, and daily operations.
+                </p>
+                <button
+                  onClick={onIspSetupLead}
+                  className="mt-7 inline-flex items-center justify-center gap-2 bg-black px-6 py-3 text-sm font-medium text-white transition hover:bg-zinc-900"
+                >
+                  I want to set up an ISP
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                {setupItems.map((item) => (
+                  <div key={item} className="flex gap-3 border border-black/10 bg-black/5 p-4 text-sm leading-6 text-black/75">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-black" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="sr-only">
+          Internetily and Netily support NAS, routers, and ISP network equipment including Tenda, TP-Link, Ubiquiti, MikroTik, Cambium Networks, Huawei, Starlink, and FreeRADIUS. Internetily helps with Starlink ISP setup, Starlink backhaul billing, Starlink outage recovery workflows, MikroTik PPPoE billing, WISP billing, hotspot billing, M-Pesa billing, router provisioning, RADIUS authentication, and full ISP business setup in Kenya and East Africa.
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function ProductVideoSection({
   videoSrc,
   eyebrow,
@@ -473,6 +580,17 @@ export function LandingPage() {
   const scrollTo = (id: string) => {
     setMobileMenuOpen(false)
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  const prefillIspSetupLead = () => {
+    setLeadSubmitted(false)
+    setLeadForm((prev) => ({
+      ...prev,
+      lead_source: prev.lead_source || "Google Search",
+      message:
+        "Hi Internetily, I want to set up my own ISP. Please help me with hardware planning, Starlink/fiber/wireless backhaul, MikroTik routers, billing software, M-Pesa integration, customer portal, RADIUS, packages, staff roles, and full business operations setup.",
+    }))
+    window.setTimeout(() => scrollTo("contact"), 0)
   }
 
   const submitMainLead = async () => {
@@ -738,6 +856,8 @@ export function LandingPage() {
         </section>
 
         <PaymentLogoStrip />
+
+        <RouterAndIspSetupSection onIspSetupLead={prefillIspSetupLead} />
 
         <section id="problem" className="relative border-b border-zinc-800 bg-zinc-900 py-24 md:py-32">
           <Grain />
