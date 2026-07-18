@@ -3205,6 +3205,7 @@ export default function UsersPage() {
                           <TableHead className="dark:text-slate-300">Client</TableHead>
                           <TableHead className="dark:text-slate-300">Plan</TableHead>
                           <TableHead className="dark:text-slate-300">Status</TableHead>
+                          <TableHead className="dark:text-slate-300">Connection</TableHead>
                           <TableHead className="dark:text-slate-300">Expiry</TableHead>
                           <TableHead className="dark:text-slate-300">Router</TableHead>
                           <TableHead className="text-right dark:text-slate-300">Actions</TableHead>
@@ -3269,6 +3270,9 @@ export default function UsersPage() {
                                   ) : (
                                     <Badge className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs">Expired</Badge>
                                   )}
+                                </TableCell>
+                                <TableCell>
+                                  {getConnectionBadge(hotspotOnlineSet.has(hotspotIdentifier) ? "online" : "offline")}
                                 </TableCell>
                                 <TableCell>
                                   <div>
