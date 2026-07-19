@@ -133,6 +133,23 @@ const STAFF_ROLES: { value: StaffRole; label: string; description: string; icon:
   },
 ]
 
+type StaffAccessChoice = StaffRole | "custom"
+
+const STAFF_ACCESS_CHOICES: Array<{
+  value: StaffAccessChoice
+  label: string
+  description: string
+  icon: React.ElementType
+}> = [
+  ...STAFF_ROLES,
+  {
+    value: "custom",
+    label: "Custom Access",
+    description: "Choose the exact pages and actions for this person",
+    icon: Shield,
+  },
+]
+
 const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: "male", label: "Male" },
   { value: "female", label: "Female" },
@@ -214,12 +231,13 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
     confirmPassword: "",
     first_name: "",
     last_name: "",
-    role: "" as StaffRole | "",
+    role: "" as StaffAccessChoice | "",
     phone_number: "",
     id_number: "",
     gender: "" as Gender | "",
     date_of_birth: "",
   })
+  const [customAllowedPaths, setCustomAllowedPaths] = useState<string[]>([])
 
   const passwordValidation = useMemo(
     () => validatePassword(formData.password),
@@ -241,6 +259,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
         date_of_birth: "",
       })
       setErrors({})
+      setCustomAllowedPaths([])
       setShowOptionalFields(false)
     }
   }, [open])
@@ -263,6 +282,9 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
       newErrors.email = "Invalid email format"
     }
     if (!formData.role) newErrors.role = "Role is required"
+    if (formData.role === "custom" && customAllowedPaths.length === 0) {
+      newErrors.custom_allowed_paths = "Select at least one page for custom access"
+    }
     if (!formData.password) {
       newErrors.password = "Password is required"
     } else if (!passwordValidation.valid) {
@@ -299,8 +321,9 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
         password: formData.password,
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
-        role: formData.role as StaffRole,
+        role: formData.role === "custom" ? "staff" : formData.role as StaffRole,
         is_staff: true,
+        custom_allowed_paths: formData.role === "custom" ? customAllowedPaths : null,
       }
 
       if (formData.phone_number?.trim()) payload.phone_number = normalizePhoneNumber(formData.phone_number)
@@ -312,7 +335,11 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
       const createdUser = (response as any).user ?? response
       toast.success(
         `Staff account created for ${createdUser.first_name} ${createdUser.last_name}`,
-        { description: `Role: ${formData.role}. They can now log in with their email and password.` }
+        {
+          description: formData.role === "custom"
+            ? `${getPaths(customAllowedPaths).length} custom pages assigned. They can now log in immediately.`
+            : `Role: ${formData.role}. They can now log in with their email and password.`,
+        }
       )
       onOpenChange(false)
       onSuccess()
@@ -374,7 +401,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
               Select Role <span className="text-destructive">*</span>
             </Label>
             <div className="grid grid-cols-2 gap-3">
-              {STAFF_ROLES.map((role) => {
+              {STAFF_ACCESS_CHOICES.map((role) => {
                 const Icon = role.icon
                 const isSelected = formData.role === role.value
                 return (
@@ -382,7 +409,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
                     key={role.value}
                     type="button"
                     onClick={() => handleInputChange("role", role.value)}
-                    className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all ${
+                    className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all ${role.value === "custom" ? "col-span-2" : ""} ${
                       isSelected
                         ? "border-primary bg-primary/10"
                         : "border-slate-200 hover:border-slate-300"
@@ -407,6 +434,32 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
             </div>
             {errors.role && <p className="text-sm text-destructive">{errors.role}</p>}
           </div>
+
+          {formData.role === "custom" && (
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+              <div className="mb-4">
+                <h4 className="flex items-center gap-2 font-semibold text-foreground">
+                  <Shield className="h-4 w-4 text-primary" />
+                  Assign custom pages
+                </h4>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  View is required to open a page. Add, edit, detail and delete permissions remain separate.
+                </p>
+              </div>
+              <PermissionTokenPicker
+                value={customAllowedPaths}
+                onChange={(tokens) => {
+                  setCustomAllowedPaths(tokens)
+                  if (errors.custom_allowed_paths) {
+                    setErrors((current) => ({ ...current, custom_allowed_paths: "" }))
+                  }
+                }}
+              />
+              {errors.custom_allowed_paths && (
+                <p className="mt-3 text-sm text-destructive">{errors.custom_allowed_paths}</p>
+              )}
+            </div>
+          )}
 
           <Separator />
 
@@ -608,21 +661,25 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
 
   const [formData, setFormData] = useState({
     email: "",
-    role: "" as StaffRole | "",
+    role: "" as StaffAccessChoice | "",
     is_active: true,
     new_password: "",
     confirmPassword: "",
   })
+  const [customAllowedPaths, setCustomAllowedPaths] = useState<string[]>([])
 
   useEffect(() => {
     if (user && open) {
       setFormData({
         email: user.email || "",
-        role: (user.role as StaffRole) || "",
+        role: user.custom_allowed_paths !== null && user.custom_allowed_paths !== undefined
+          ? "custom"
+          : (user.role as StaffRole) || "",
         is_active: user.is_active !== false,
         new_password: "",
         confirmPassword: "",
       })
+      setCustomAllowedPaths(user.custom_allowed_paths || [])
       setErrors({})
     }
   }, [user, open])
@@ -641,6 +698,9 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
       newErrors.email = "Invalid email format"
     }
     if (!formData.role) newErrors.role = "Role is required"
+    if (formData.role === "custom" && customAllowedPaths.length === 0) {
+      newErrors.custom_allowed_paths = "Select at least one page for custom access"
+    }
     if (formData.new_password) {
       const pwCheck = validatePassword(formData.new_password)
       if (!pwCheck.valid) newErrors.new_password = "Password does not meet requirements"
@@ -663,8 +723,9 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
     try {
       const payload: Record<string, any> = {
         email: formData.email.trim(),
-        role: formData.role,
+        role: formData.role === "custom" ? ((user.role as StaffRole) || "staff") : formData.role,
         is_active: formData.is_active,
+        custom_allowed_paths: formData.role === "custom" ? customAllowedPaths : null,
       }
       if (formData.new_password) {
         payload.new_password = formData.new_password
@@ -691,7 +752,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[680px] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="w-5 h-5 text-primary" />
@@ -709,7 +770,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
               Role <span className="text-destructive">*</span>
             </Label>
             <div className="grid grid-cols-2 gap-3">
-              {STAFF_ROLES.map((role) => {
+              {STAFF_ACCESS_CHOICES.map((role) => {
                 const Icon = role.icon
                 const isSelected = formData.role === role.value
                 return (
@@ -717,7 +778,7 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
                     key={role.value}
                     type="button"
                     onClick={() => handleInputChange("role", role.value)}
-                    className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all ${
+                    className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all ${role.value === "custom" ? "col-span-2" : ""} ${
                       isSelected ? "border-primary bg-primary/10" : "border-slate-200 hover:border-slate-300"
                     }`}
                   >
@@ -735,6 +796,32 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
             </div>
             {errors.role && <p className="text-sm text-destructive">{errors.role}</p>}
           </div>
+
+          {formData.role === "custom" && (
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+              <div className="mb-4">
+                <h4 className="flex items-center gap-2 font-semibold text-foreground">
+                  <Shield className="h-4 w-4 text-primary" />
+                  Custom page access
+                </h4>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  This override applies only to {user?.first_name || "this staff member"}.
+                </p>
+              </div>
+              <PermissionTokenPicker
+                value={customAllowedPaths}
+                onChange={(tokens) => {
+                  setCustomAllowedPaths(tokens)
+                  if (errors.custom_allowed_paths) {
+                    setErrors((current) => ({ ...current, custom_allowed_paths: "" }))
+                  }
+                }}
+              />
+              {errors.custom_allowed_paths && (
+                <p className="mt-3 text-sm text-destructive">{errors.custom_allowed_paths}</p>
+              )}
+            </div>
+          )}
 
           <div className="rounded-xl border border-border bg-muted/30 p-4">
             <div className="flex items-center justify-between gap-4">
@@ -972,6 +1059,85 @@ function PermissionPageRow({
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+function PermissionTokenPicker({
+  value,
+  onChange,
+}: {
+  value: string[]
+  onChange: (tokens: string[]) => void
+}) {
+  const [search, setSearch] = useState("")
+  const eligibleRules = useMemo(
+    () => adminRouteAccessRules.filter(
+      (rule) => !NON_DELEGABLE_PATHS.includes(rule.pathPrefix),
+    ),
+    [],
+  )
+  const visibleRules = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    if (!query) return eligibleRules
+    return eligibleRules.filter(
+      (rule) => rule.label.toLowerCase().includes(query) || rule.pathPrefix.toLowerCase().includes(query),
+    )
+  }, [eligibleRules, search])
+
+  const stateFor = (rule: RouteAccessRule): PagePermState => {
+    const availableActions = rule.actions || (["view"] as PageAction[])
+    const actionTokens = getActionsForPath(value, rule.pathPrefix)
+    const hasLegacyPath = value.some((token) => token === rule.pathPrefix)
+    const actions = actionTokens.length > 0
+      ? actionTokens
+      : hasLegacyPath
+        ? availableActions
+        : []
+    return { enabled: actions.length > 0, actions: new Set(actions) }
+  }
+
+  const updateRule = (rule: RouteAccessRule, state: PagePermState) => {
+    const next = value.filter((token) => token.split("::", 1)[0] !== rule.pathPrefix)
+    if (state.enabled) {
+      const availableActions = rule.actions || (["view"] as PageAction[])
+      for (const action of state.actions) {
+        if (availableActions.includes(action)) next.push(encodeAction(rule.pathPrefix, action))
+      }
+    }
+    onChange(next)
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search available pages..."
+          className="bg-background pl-9"
+        />
+      </div>
+      <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
+        {visibleRules.map((rule) => (
+          <PermissionPageRow
+            key={rule.pathPrefix}
+            rule={rule}
+            state={stateFor(rule)}
+            onChange={(state) => updateRule(rule, state)}
+          />
+        ))}
+        {visibleRules.length === 0 && (
+          <div className="rounded-xl border border-dashed border-border bg-background p-6 text-center text-sm text-muted-foreground">
+            No matching dashboard pages.
+          </div>
+        )}
+      </div>
+      <div className="flex items-center justify-between rounded-lg bg-background px-3 py-2 text-xs text-muted-foreground">
+        <span><strong className="text-foreground">{getPaths(value).length}</strong> pages selected</span>
+        <span><strong className="text-foreground">{value.length}</strong> actions granted</span>
+      </div>
     </div>
   )
 }
@@ -1418,9 +1584,16 @@ export default function StaffManagementPage() {
                           </div>
                         </TableCell>
                         <TableCell className="py-4">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 capitalize">
-                            {staff.role}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 capitalize">
+                              {staff.role}
+                            </span>
+                            {staff.custom_allowed_paths !== null && staff.custom_allowed_paths !== undefined && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-bold text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-300">
+                                <Shield className="h-3 w-3" /> Custom · {getPaths(staff.custom_allowed_paths).length} pages
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="py-4">
                           {staff.is_active !== false ? (
@@ -1453,13 +1626,20 @@ export default function StaffManagementPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => {
-                                  // Open permissions for this user's role
-                                  const roleCard = roleCards.find((r) => r.id === staff.role)
+                                  if (staff.custom_allowed_paths !== null && staff.custom_allowed_paths !== undefined) {
+                                    setSelectedUser(staff)
+                                    setEditDialogOpen(true)
+                                    return
+                                  }
+                                  const roleCard = roleCards.find((role) => role.id === staff.role)
                                   if (roleCard) setEditingRole(roleCard)
                                 }}
                                 className="gap-2 text-sm font-medium cursor-pointer"
                               >
-                                <Shield className="h-4 w-4" /> Edit Permissions
+                                <Shield className="h-4 w-4" />
+                                {staff.custom_allowed_paths !== null && staff.custom_allowed_paths !== undefined
+                                  ? "Edit Custom Access"
+                                  : "Edit Role Permissions"}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem

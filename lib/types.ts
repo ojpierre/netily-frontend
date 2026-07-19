@@ -32,6 +32,8 @@ export interface User {
   date_joined?: string
   last_login?: string
   company?: Company
+  /** Null inherits the shared role policy; an array is this user's override. */
+  custom_allowed_paths?: string[] | null
 }
 
 export interface Company {
@@ -67,6 +69,7 @@ export interface CreateStaffUserRequest {
   is_active?: boolean
   is_verified?: boolean
   is_staff?: boolean
+  custom_allowed_paths?: string[] | null
 }
 
 // Response from creating staff user

@@ -68,6 +68,8 @@ import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
 import { useColorTheme } from "@/components/theme-provider"
 import { HotspotPruneSettingsCard } from "@/components/settings/hotspot-prune-settings"
+import { useAdminAuth } from "@/app/admin/admin-auth-context"
+import { canDo } from "@/lib/rbac"
 
 // Account Settings Tab Component
 // -- Coming Soon placeholder --
@@ -811,6 +813,8 @@ const getAdminSettingsApiBase = (): string => {
 }
 
 export default function SettingsPage() {
+  const { user } = useAdminAuth()
+  const canViewSmsSettings = canDo(user, "/admin/sms", "view")
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -1017,34 +1021,36 @@ export default function SettingsPage() {
 
         const apiBase = getAdminSettingsApiBase()
         
-        // Check if SMS gateway is configured
-        try {
-          const gwRes = await fetch(`${apiBase}/messaging/gateway/`, {
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-          })
-          if (gwRes.ok) {
-            const gwData = await gwRes.json()
-            const gateways = Array.isArray(gwData) ? gwData : (gwData.results ?? [])
-            setSmsGatewayConfigured(gateways.some((g: any) => g.is_active))
-          }
-        } catch { /* non-critical */ }
+        if (canViewSmsSettings) {
+          // These resources are governed by /admin/sms, independently from
+          // the general settings page permission.
+          try {
+            const gwRes = await fetch(`${apiBase}/messaging/gateway/`, {
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+            })
+            if (gwRes.ok) {
+              const gwData = await gwRes.json()
+              const gateways = Array.isArray(gwData) ? gwData : (gwData.results ?? [])
+              setSmsGatewayConfigured(gateways.some((g: any) => g.is_active))
+            }
+          } catch { /* non-critical */ }
 
-        // Load router alert settings from notification settings endpoint
-        try {
-          const nsRes = await fetch(`${apiBase}/messaging/notification-settings/`, {
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-          })
-          if (nsRes.ok) {
-            const ns = await nsRes.json()
-            setRouterAlertEnabled(!!ns.system_router_offline)
-            const phones = Array.isArray(ns.router_offline_numbers) && ns.router_offline_numbers.length > 0
-              ? ns.router_offline_numbers
-              : ns.system_alert_phone
-                ? ns.system_alert_phone.split(',').map((s: string) => s.trim()).filter(Boolean)
-                : []
-            setRouterPhoneList(phones)
-          }
-        } catch { /* non-critical */ }
+          try {
+            const nsRes = await fetch(`${apiBase}/messaging/notification-settings/`, {
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+            })
+            if (nsRes.ok) {
+              const ns = await nsRes.json()
+              setRouterAlertEnabled(!!ns.system_router_offline)
+              const phones = Array.isArray(ns.router_offline_numbers) && ns.router_offline_numbers.length > 0
+                ? ns.router_offline_numbers
+                : ns.system_alert_phone
+                  ? ns.system_alert_phone.split(',').map((s: string) => s.trim()).filter(Boolean)
+                  : []
+              setRouterPhoneList(phones)
+            }
+          } catch { /* non-critical */ }
+        }
 
         const res = await fetch(`${apiBase}/core/settings/`, {
           headers: {

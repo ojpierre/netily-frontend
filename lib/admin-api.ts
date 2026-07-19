@@ -774,6 +774,10 @@ class AdminApiService {
     return response.results || response
   }
 
+  async getMyRoleAccessPolicy(): Promise<{ role: string; allowed_paths: string[]; is_unrestricted: boolean; source: 'admin' | 'role' | 'user' }> {
+    return this.request<{ role: string; allowed_paths: string[]; is_unrestricted: boolean; source: 'admin' | 'role' | 'user' }>('/core/role-access/me/')
+  }
+
   async updateRoleAccessPolicy(role: string, allowedPaths: string[]): Promise<{ id: number; role: string; allowed_paths: string[] }> {
     return this.request<{ id: number; role: string; allowed_paths: string[] }>(`/core/role-access/${role}/`, {
       method: 'PATCH',

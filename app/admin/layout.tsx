@@ -183,7 +183,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [unreadNotifCount, setUnreadNotifCount] = useState(0)
   const [companyLogo, setCompanyLogo] = useState<string>("")
   const [companyName, setCompanyName] = useState<string>("Netily Admin")
-  const [, setAccessPolicyVersion] = useState(0)
+  const [accessPolicyVersion, setAccessPolicyVersion] = useState(0)
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
@@ -233,6 +233,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   // Fetch unread notification count
   useEffect(() => {
     if (!mounted || !user) return
+    const notificationsRule = getAccessRuleForPath("/admin/notifications")
+    if (notificationsRule && !canAccess(user, notificationsRule)) {
+      setUnreadNotifCount(0)
+      return
+    }
     const fetchCount = async () => {
       try {
         const { adminApi } = await import("@/lib/admin-api")
@@ -245,15 +250,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     fetchCount()
     const interval = setInterval(fetchCount, 60_000)
     return () => clearInterval(interval)
-  }, [mounted, user])
+  }, [mounted, user, accessPolicyVersion])
 
   useEffect(() => {
     if (!mounted || !user || isPublicPage) return
     const loadRoleAccess = async () => {
       try {
         const { adminApi } = await import("@/lib/admin-api")
-        const policies = await adminApi.getRoleAccessPolicies()
-        setRoleAccessPolicies(policies)
+        const policy = await adminApi.getMyRoleAccessPolicy()
+        setRoleAccessPolicies(policy.is_unrestricted ? [] : [policy])
         setAccessPolicyVersion((value) => value + 1)
       } catch {
         // Fall back to built-in RBAC map if the policy endpoint is unavailable.
