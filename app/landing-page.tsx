@@ -1246,6 +1246,40 @@ export function LandingPage() {
           </div>
         </section>
 
+        {/* Affiliate CTA Section */}
+        <section className="relative overflow-hidden border-b border-zinc-800 bg-zinc-900 py-24 md:py-32">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(185,28,28,0.1),transparent_50%)]" />
+          <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
+            <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+              <div>
+                <SectionLabel>Partner with Us</SectionLabel>
+                <h2 className="mt-6 text-balance text-4xl font-normal leading-tight md:text-5xl">
+                  Earn recurring revenue by referring ISPs to Netily.
+                </h2>
+                <p className="mt-5 text-base leading-7 text-zinc-400">
+                  Join our affiliate network and get paid every time a WISP, ISP, or Hotspot operator you refer pays for their first month. No limits, no caps — just cash directly to your M-Pesa or bank account.
+                </p>
+                <div className="mt-8">
+                  <Link
+                    href="/affiliate"
+                    className="inline-flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition hover:bg-red-500 hover:scale-105"
+                  >
+                    View Affiliate Program <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+              <div className="relative aspect-video overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl">
+                <video
+                  src="/internetily-affiliate-intro.mp4"
+                  poster="/internetily_logo_2k.jpeg"
+                  controls
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section id="contact" className="relative overflow-hidden bg-zinc-950 py-24 md:py-32">
           <Grain />
           <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
@@ -1506,6 +1540,7 @@ export function LandingPage() {
               <h4 className="text-sm font-medium">Company</h4>
               <ul className="mt-4 space-y-2 text-sm text-zinc-500">
                 <li><Link href="/login">Sign in</Link></li>
+                <li><Link href="/affiliate">Affiliate Program</Link></li>
                 <li><Link href="/privacy">Privacy policy</Link></li>
                 <li><Link href="/terms">Terms of service</Link></li>
                 <li><a href="tel:+254111325479">0100034307</a></li>
