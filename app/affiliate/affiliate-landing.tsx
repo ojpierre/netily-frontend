@@ -64,7 +64,7 @@ function RotatingHeroText() {
   }, [])
 
   return (
-    <span className="relative inline-flex min-w-[12ch] overflow-hidden align-bottom text-red-500">
+    <span className="relative inline-flex min-w-[12ch] align-bottom text-red-500">
       <AnimatePresence mode="wait">
         <motion.span
           key={heroPhrases[index]}
@@ -72,7 +72,7 @@ function RotatingHeroText() {
           animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
           exit={{ y: -18, opacity: 0, filter: "blur(8px)" }}
           transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-          className="inline-block whitespace-nowrap"
+          className="inline-block whitespace-normal break-words"
         >
           {heroPhrases[index]}
         </motion.span>
@@ -185,7 +185,7 @@ export function AffiliateLandingClient() {
             <div className="grid gap-16 lg:gap-24 lg:grid-cols-2 lg:items-center">
               <div className="max-w-2xl">
                 <SectionLabel>Partner Network</SectionLabel>
-                <h1 className="mt-8 text-balance text-5xl font-normal leading-tight tracking-tight text-white md:text-7xl">
+                <h1 className="mt-8 text-balance text-5xl font-normal leading-tight tracking-tight text-white lg:text-6xl">
                   <SplitWords text="Refer" /> <br />
                   <RotatingHeroText /> <br />
                   <SplitWords text="and earn revenue." />
@@ -343,10 +343,12 @@ export function AffiliateLandingClient() {
               </div>
 
               {/* Silver */}
-              <div className="relative flex flex-col border border-red-500/30 bg-zinc-900 p-8 shadow-[0_0_40px_rgba(220,38,38,0.1)] md:-translate-y-4 rounded-2xl overflow-hidden">
-                <Grain />
-                <div className="absolute top-0 left-0 w-full h-1 bg-red-600" />
-                <span className="absolute -top-3 right-8 bg-red-600 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white rounded-full">
+              <div className="relative flex flex-col border border-red-500/30 bg-zinc-900 p-8 shadow-[0_0_40px_rgba(220,38,38,0.1)] md:-translate-y-4 rounded-2xl">
+                <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+                  <Grain />
+                  <div className="absolute top-0 left-0 w-full h-1 bg-red-600" />
+                </div>
+                <span className="absolute -top-3 right-8 bg-red-600 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white rounded-full z-10">
                   Most Popular
                 </span>
                 
