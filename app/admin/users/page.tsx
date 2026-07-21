@@ -542,6 +542,11 @@ export default function UsersPage() {
   const [activeStatFilter, setActiveStatFilter] = useState<string>("all")
   const [hotspotSubFilter, setHotspotSubFilter] = useState<"active" | "expired">("active")
 
+  // ============================================================
+  // NEW: Export state
+  // ============================================================
+  const [exporting, setExporting] = useState(false)
+
   const loadServerStats = async () => {
     try {
       const expiredCount = await adminApi.getExpiredRADIUSCount()
@@ -1041,6 +1046,113 @@ export default function UsersPage() {
       loadStatusCounts(),
     ])
     setRefreshing(false)
+  }
+
+  // ============================================================
+  // NEW: handleExportUsers - fetch-all export
+  // ============================================================
+  const handleExportUsers = async () => {
+    try {
+      setExporting(true)
+
+      const statusMap: Record<string, string> = {
+        active: 'ACTIVE',
+        pending: 'PENDING',
+        suspended: 'SUSPENDED',
+        inactive: 'INACTIVE',
+        terminated: 'TERMINATED',
+      }
+
+      const rows: { name: string; phone: string; pppoe_username: string; pppoe_password: string }[] = []
+
+      // Special case: "expired" status is sourced from RADIUS credentials, not /customers/
+      if (statusFilter === "expired") {
+        let page = 1
+        const pageSize = 200
+        let total = Infinity
+
+        while (rows.length < total) {
+          const res = await adminApi.getRADIUSCredentials({
+            page_size: String(pageSize),
+            page: String(page),
+            expired_only: "true",
+          })
+          total = res.count ?? 0
+          for (const cred of res.results || []) {
+            rows.push({
+              name: (cred as any).customer_name || "",
+              phone: (cred as any).customer_phone || "",
+              pppoe_username: cred.username || "",
+              pppoe_password: cred.password || "",
+            })
+          }
+          if (!res.results || res.results.length === 0) break
+          page += 1
+        }
+      } else {
+        // Normal customers list — page through everything matching current filters
+        let page = 1
+        const pageSize = 200
+        let total = Infinity
+
+        while ((page - 1) * pageSize < total) {
+          const params: Record<string, string> = {
+            page_size: String(pageSize),
+            page: String(page),
+          }
+          if (searchQuery.trim()) params.search = searchQuery.trim()
+          if (statusFilter !== "all") {
+            params.status = statusMap[statusFilter] || statusFilter.toUpperCase()
+          }
+
+          const res = await adminApi.getCustomers(params)
+          total = res.count ?? 0
+
+          for (const customer of res.results || []) {
+            const u = mapCustomerToUser(customer)
+            rows.push({
+              name: u.name,
+              phone: u.phone,
+              pppoe_username: u.radiusCredentials?.username || "",
+              pppoe_password: u.radiusCredentials?.password || "",
+            })
+          }
+
+          if (!res.results || res.results.length === 0) break
+          page += 1
+        }
+      }
+
+      if (rows.length === 0) {
+        toast.error("No users to export")
+        return
+      }
+
+      const headers = ["Name", "Phone", "PPPoE Username", "PPPoE Password"]
+      const escapeCsv = (val: string) => `"${String(val ?? "").replace(/"/g, '""')}"`
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((r) =>
+          [r.name, r.phone, r.pppoe_username, r.pppoe_password].map(escapeCsv).join(",")
+        ),
+      ].join("\n")
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `users_export_${new Date().toISOString().split("T")[0]}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+
+      toast.success(`Exported ${rows.length} user(s)`)
+    } catch (err: any) {
+      console.error("Export failed:", err)
+      toast.error(err.message || "Failed to export users")
+    } finally {
+      setExporting(false)
+    }
   }
 
   // ============================================================
@@ -2680,9 +2792,18 @@ export default function UsersPage() {
               autoComplete="off"
             />
           </div>
-          <Button variant="outline" className="shrink-0 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
-            <Download className="w-4 h-4 mr-2" />
-            Export
+          <Button
+            variant="outline"
+            className="shrink-0 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+            onClick={handleExportUsers}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            {exporting ? "Exporting..." : "Export"}
           </Button>
         </motion.div>
       )}
