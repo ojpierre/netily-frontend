@@ -1272,7 +1272,10 @@ export function LandingPage() {
                 <video
                   src="/internetily-affiliate-intro.mp4"
                   poster="/internetily_logo_2k.jpeg"
-                  controls
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
                   className="w-full h-full object-cover"
                 />
               </div>

@@ -182,7 +182,7 @@ export function AffiliateLandingClient() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.08),transparent_50%)]" />
           
           <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-16 w-full pb-20 pt-10">
-            <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
+            <div className="grid gap-16 lg:gap-24 lg:grid-cols-2 lg:items-center">
               <div className="max-w-2xl">
                 <SectionLabel>Partner Network</SectionLabel>
                 <h1 className="mt-8 text-balance text-5xl font-normal leading-tight tracking-tight text-white md:text-7xl">
@@ -212,30 +212,24 @@ export function AffiliateLandingClient() {
               </div>
 
               {/* Decorative side element */}
-              <div className="relative hidden lg:block h-[500px] w-full rounded-2xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-sm p-8 overflow-hidden shadow-2xl">
-                <Grain />
-                <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 to-transparent" />
-                <div className="relative h-full flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center gap-3 border-b border-zinc-800 pb-4">
-                      <div className="h-3 w-3 rounded-full bg-red-500" />
-                      <div className="h-3 w-3 rounded-full bg-amber-500" />
-                      <div className="h-3 w-3 rounded-full bg-green-500" />
-                    </div>
-                    <div className="mt-8 space-y-4">
-                      <div className="h-4 w-3/4 rounded bg-zinc-800 animate-pulse" />
-                      <div className="h-4 w-1/2 rounded bg-zinc-800 animate-pulse delay-75" />
-                      <div className="h-4 w-5/6 rounded bg-zinc-800 animate-pulse delay-150" />
-                    </div>
-                  </div>
-                  
-                  <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-6 backdrop-blur-md">
+              <div className="relative hidden lg:block h-[550px] w-full rounded-2xl overflow-hidden shadow-2xl">
+                <Image 
+                  src="/happy_affiliate_partner.png"
+                  alt="Happy Affiliate Partner"
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+                
+                {/* Floating commission badge */}
+                <div className="absolute bottom-8 left-8 right-8">
+                  <div className="rounded-xl border border-red-500/20 bg-black/60 p-6 backdrop-blur-md shadow-2xl">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-red-400 uppercase tracking-widest">Commission Earned</p>
-                      <Gift className="h-5 w-5 text-red-500" />
+                      <p className="text-sm font-medium text-red-400 uppercase tracking-widest">Commission Received</p>
+                      <Gift className="h-5 w-5 text-red-500 animate-pulse" />
                     </div>
                     <p className="mt-2 text-4xl font-black text-white">KES 45,000</p>
-                    <p className="mt-1 text-xs text-zinc-500">Last 30 days payout</p>
+                    <p className="mt-1 text-xs text-zinc-400">Paid today via M-Pesa</p>
                   </div>
                 </div>
               </div>
@@ -261,7 +255,10 @@ export function AffiliateLandingClient() {
                 <video
                   src="/internetily-affiliate-intro.mp4"
                   poster="/internetily_logo_2k.jpeg"
-                  controls
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
                   className="w-full h-full object-cover"
                 />
               </div>
