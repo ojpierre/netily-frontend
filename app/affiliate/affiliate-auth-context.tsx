@@ -31,7 +31,7 @@ export function AffiliateAuthProvider({ children }: { children: React.ReactNode 
     } catch {
       setUser(null)
       affiliateApi.logout()
-      if (!PUBLIC_PATHS.some((p) => pathname?.startsWith(p))) {
+      if (pathname !== "/affiliate" && !PUBLIC_PATHS.some((p) => pathname?.startsWith(p))) {
         router.replace(`/affiliate/login?from=${encodeURIComponent(pathname || "/affiliate/dashboard")}`)
       }
     } finally {
@@ -40,7 +40,7 @@ export function AffiliateAuthProvider({ children }: { children: React.ReactNode 
   }, [pathname, router])
 
   useEffect(() => {
-    if (PUBLIC_PATHS.some((p) => pathname?.startsWith(p))) {
+    if (pathname === "/affiliate" || PUBLIC_PATHS.some((p) => pathname?.startsWith(p))) {
       setLoading(false)
       return
     }
