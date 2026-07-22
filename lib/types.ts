@@ -2912,7 +2912,7 @@ export type SMSProvider =
   | 'blessedtexts'
   | 'texin'
   | 'celcom'
-  || 'talksasa'
+  | 'talksasa'
   
 
 export interface SMSGatewayConfig {
