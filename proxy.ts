@@ -98,6 +98,7 @@ const TENANT_PASSTHROUGH_PREFIXES = [
   '/favicon',
   '/robots',
   '/sitemap',
+  '/manifest',
   '/og-image',
   '/logo',
   '/api/',

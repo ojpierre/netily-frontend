@@ -699,8 +699,8 @@ export default function UsersPage() {
       const parts = host.split(".")
       setTenantSubdomain(parts.length >= 3 ? parts[0] : host.replace(".localhost", ""))
     }
-    adminApi.getMpesaConfigurations({ is_active: "true", page_size: "1" }).then(res => {
-      if (res.results?.[0]) setMpesaConfig(res.results[0])
+    adminApi.getActiveMpesaSummary().then(summary => {
+      if (summary.is_active && summary.business_shortcode) setMpesaConfig(summary)
     }).catch(() => {})
   }, [])
 

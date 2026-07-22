@@ -2612,6 +2612,10 @@ async activateService(
     return this.request<PaginatedResponse<MpesaConfiguration>>(`/billing/mpesa-config/${queryString}`)
   }
 
+  async getActiveMpesaSummary(): Promise<{ id?: number; business_shortcode: string | null; shortcode_type?: string; is_active: boolean }> {
+    return this.request('/billing/mpesa-config/active-summary/')
+  }
+
   async getMpesaConfiguration(id: number): Promise<MpesaConfiguration> {
     return this.request<MpesaConfiguration>(`/billing/mpesa-config/${id}/`)
   }
