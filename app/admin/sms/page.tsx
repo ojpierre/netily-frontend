@@ -72,6 +72,7 @@ const PROVIDER_OPTIONS: { value: SMSProvider; label: string }[] = [
   { value: 'blessedtexts', label: 'BlessedTexts' },
   { value: 'texin', label: 'Texin' },
   { value: 'celcom', label: 'Celcom Africa' },
+  { value: 'talksasa', label: 'Talksasa' },
 ]
 
 const PROVIDER_FIELDS: Record<SMSProvider, { key: string; label: string; type?: string }[]> = {
@@ -94,6 +95,10 @@ const PROVIDER_FIELDS: Record<SMSProvider, { key: string; label: string; type?: 
   celcom: [
     { key: 'api_key', label: 'API Key', type: 'password' },
     { key: 'sender_id', label: 'Short Code' },
+  ],
+  talksasa: [
+    { key: 'api_key', label: 'API Token', type: 'password' },
+    { key: 'sender_id', label: 'Sender ID' },
   ],
 }
 
