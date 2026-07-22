@@ -82,6 +82,15 @@ const GEO_TABLE: Record<string, GeoInfo> = {
     paymentCopy: "M-Pesa & Airtel Money",
     flag: "🇸🇸",
   },
+  NG: {
+    countryCode: "NG",
+    countryName: "Nigeria",
+    currency: "NGN",
+    currencySymbol: "₦",
+    rateFromKES: 11.6,
+    paymentCopy: "Paystack & Flutterwave",
+    flag: "🇳🇬",
+  },
 }
 
 const FALLBACK: GeoInfo = GEO_TABLE["KE"]

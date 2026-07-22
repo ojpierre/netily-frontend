@@ -1,4 +1,4 @@
-﻿import { LandingPage } from "./landing-page"
+import { LandingPage } from "./landing-page"
 import type { Metadata } from "next"
 import { blogPosts } from "@/lib/blog-data"
 
@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   keywords: [
     // â”€â”€ Exact-match Ahrefs targets (high intent) â”€â”€â”€â”€â”€â”€
     "isp billing software",
+    "isp billing software nigeria",
+    "mikrotik billing lagos",
+    "paystack isp integration",
     "isp billing software kenya",
     "best isp billing software",
     "best isp billing software in kenya",

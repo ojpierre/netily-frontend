@@ -8,8 +8,11 @@ export const metadata: Metadata = {
     "Join the Netily Affiliate Program. Refer ISPs, WISPs, and hotspot operators in Kenya and Africa to our billing software and earn recurring commissions via M-Pesa.",
   keywords: [
     "isp affiliate program kenya",
+    "isp affiliate program nigeria",
+    "earn money referring isps nigeria",
     "earn money referring isps",
     "isp billing software affiliate",
+    "mikrotik affiliate program lagos",
     "mikrotik affiliate program",
     "wisp referral program africa",
     "m-pesa hotspot affiliate",

@@ -568,7 +568,7 @@ export function LandingPage() {
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false)
 
   const { geo, fmt, setCountry, GEO_TABLE } = useGeo()
-  const supportedCountries = ["KE", "UG", "TZ", "RW", "ET", "BI", "SS"].filter((code) => !!GEO_TABLE[code])
+  const supportedCountries = ["KE", "UG", "TZ", "RW", "ET", "BI", "SS", "NG"].filter((code) => !!GEO_TABLE[code])
 
   useEffect(() => {
     const onScroll = () => setIsHeaderScrolled(window.scrollY > 220)
