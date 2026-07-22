@@ -72,6 +72,36 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...alternativeEntries,
     ...solutionEntries,
     {
+      url: `${BASE}/affiliate`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE}/affiliate/register`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/compare/splynx`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.85,
+    },
+    {
+      url: `${BASE}/compare/platypus`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.85,
+    },
+    {
+      url: `${BASE}/blog/isp-billing-software-nigeria`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.85,
+    },
+    {
       url: `${BASE}/login`,
       lastModified: new Date(),
       changeFrequency: "monthly",
