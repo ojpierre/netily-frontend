@@ -33,6 +33,198 @@ const formatDuration = (totalSeconds: number): string => {
   return `${mins}:${String(secs).padStart(2, "0")}`
 }
 
+function ParticleBackground() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    let width = 0
+    let height = 0
+    let dpr = typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 2) : 1
+    let animationFrame = 0
+    let prefersReducedMotion = false
+
+    try {
+      prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    } catch {
+      prefersReducedMotion = false
+    }
+
+    const pointer = { x: -9999, y: -9999, active: false }
+
+    type Particle = {
+      x: number
+      y: number
+      vx: number
+      vy: number
+      radius: number
+      depth: number
+      hue: "white" | "cyan"
+      pulseSpeed: number
+      pulsePhase: number
+      spark: boolean
+    }
+
+    let particles: Particle[] = []
+
+    const countForSize = (w: number, h: number) => {
+      const area = w * h
+      const target = Math.round(area / 9000)
+      return Math.max(60, Math.min(220, target))
+    }
+
+    const makeParticle = (w: number, h: number): Particle => {
+      const depth = 0.4 + Math.random() * 0.6
+      return {
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.12 * depth,
+        vy: (Math.random() - 0.5) * 0.12 * depth,
+        radius: (0.6 + Math.random() * 1.6) * depth,
+        depth,
+        hue: Math.random() < 0.78 ? "white" : "cyan",
+        pulseSpeed: 0.4 + Math.random() * 0.6,
+        pulsePhase: Math.random() * Math.PI * 2,
+        spark: Math.random() < 0.06,
+      }
+    }
+
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect()
+      width = rect.width
+      height = rect.height
+      canvas.width = width * dpr
+      canvas.height = height * dpr
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+      const desired = countForSize(width, height)
+      if (particles.length === 0) {
+        particles = Array.from({ length: desired }, () => makeParticle(width, height))
+      } else if (particles.length < desired) {
+        particles = particles.concat(
+          Array.from({ length: desired - particles.length }, () => makeParticle(width, height))
+        )
+      } else if (particles.length > desired) {
+        particles = particles.slice(0, desired)
+      }
+    }
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect()
+      pointer.x = e.clientX - rect.left
+      pointer.y = e.clientY - rect.top
+      pointer.active = true
+    }
+    const handlePointerLeave = () => {
+      pointer.active = false
+    }
+
+    resize()
+    window.addEventListener("resize", resize)
+    window.addEventListener("pointermove", handlePointerMove)
+    window.addEventListener("pointerleave", handlePointerLeave)
+
+    let t = 0
+    const connectDist = 120
+
+    const render = () => {
+      t += 0.016
+      ctx.clearRect(0, 0, width, height)
+
+      for (const p of particles) {
+        p.x += p.vx
+        p.y += p.vy
+
+        if (pointer.active) {
+          const dx = p.x - pointer.x
+          const dy = p.y - pointer.y
+          const distSq = dx * dx + dy * dy
+          const radius = 90
+          if (distSq < radius * radius) {
+            const dist = Math.sqrt(distSq) || 1
+            const force = ((radius - dist) / radius) * 0.6 * p.depth
+            p.vx += (dx / dist) * force * 0.05
+            p.vy += (dy / dist) * force * 0.05
+          }
+        }
+
+        p.vx *= 0.985
+        p.vy *= 0.985
+        const maxSpeed = 0.35
+        const speed = Math.hypot(p.vx, p.vy)
+        if (speed > maxSpeed) {
+          p.vx = (p.vx / speed) * maxSpeed
+          p.vy = (p.vy / speed) * maxSpeed
+        }
+
+        if (p.x < -20) p.x = width + 20
+        if (p.x > width + 20) p.x = -20
+        if (p.y < -20) p.y = height + 20
+        if (p.y > height + 20) p.y = -20
+      }
+
+      if (!prefersReducedMotion) {
+        for (let i = 0; i < particles.length; i++) {
+          const a = particles[i]
+          for (let j = i + 1; j < particles.length; j++) {
+            const b = particles[j]
+            const dx = a.x - b.x
+            const dy = a.y - b.y
+            const dist = Math.hypot(dx, dy)
+            if (dist < connectDist) {
+              const alpha = (1 - dist / connectDist) * 0.12 * Math.min(a.depth, b.depth)
+              ctx.strokeStyle = `rgba(180, 220, 255, ${alpha})`
+              ctx.lineWidth = 0.6
+              ctx.beginPath()
+              ctx.moveTo(a.x, a.y)
+              ctx.lineTo(b.x, b.y)
+              ctx.stroke()
+            }
+          }
+        }
+      }
+
+      for (const p of particles) {
+        const pulse = 0.5 + 0.5 * Math.sin(t * p.pulseSpeed + p.pulsePhase)
+        const baseAlpha = (p.spark ? 0.55 : 0.28) * p.depth
+        const alpha = baseAlpha + pulse * 0.25 * p.depth
+        const color = p.hue === "cyan" ? "150, 230, 255" : "255, 255, 255"
+
+        ctx.beginPath()
+        ctx.fillStyle = `rgba(${color}, ${Math.min(alpha, 1)})`
+        ctx.shadowColor = `rgba(${color}, ${Math.min(alpha * 0.8, 1)})`
+        ctx.shadowBlur = p.spark ? 8 : 3
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      ctx.shadowBlur = 0
+
+      animationFrame = requestAnimationFrame(render)
+    }
+
+    animationFrame = requestAnimationFrame(render)
+
+    return () => {
+      cancelAnimationFrame(animationFrame)
+      window.removeEventListener("resize", resize)
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerleave", handlePointerLeave)
+    }
+  }, [])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      aria-hidden="true"
+    />
+  )
+}
+
 export default function AdminLoginPage() {
   const router = useRouter()
   const { establishSession, user, loading: authLoading } = useAdminAuth()
@@ -271,31 +463,15 @@ export default function AdminLoginPage() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950">
-      {/* Animated background orbs */}
+      {/* Ambient depth glow (subtle, kept quiet behind the particle field) */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-250px] left-[-150px] w-[600px] h-[600px] rounded-full bg-blue-500/20 blur-[140px] animate-pulse" />
-        <div className="absolute bottom-[-250px] right-[-100px] w-[500px] h-[500px] rounded-full bg-violet-500/20 blur-[150px] animate-pulse [animation-duration:8s]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-indigo-500/10 blur-[120px] animate-pulse [animation-duration:10s]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,.06),transparent_60%)]" />
+        <div className="absolute top-[-250px] left-[-150px] w-[600px] h-[600px] rounded-full bg-blue-500/10 blur-[140px]" />
+        <div className="absolute bottom-[-250px] right-[-100px] w-[500px] h-[500px] rounded-full bg-violet-500/10 blur-[150px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,.05),transparent_60%)]" />
       </div>
 
-      {/* Floating particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 24 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full bg-white/10"
-            style={{
-              width: `${2 + Math.random() * 4}px`,
-              height: `${2 + Math.random() * 4}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `float ${6 + Math.random() * 8}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`,
-            }}
-          />
-        ))}
-      </div>
+      {/* Animated particle field: drifting glowing nodes with connecting lines and mouse interaction */}
+      <ParticleBackground />
 
       <Card
         ref={cardRef}
@@ -493,14 +669,6 @@ export default function AdminLoginPage() {
           </>
         )}
       </Card>
-
-      <style jsx>{`
-        @keyframes float {
-          0% { transform: translateY(0px); opacity: 0.3; }
-          50% { transform: translateY(-18px); opacity: 0.7; }
-          100% { transform: translateY(0px); opacity: 0.3; }
-        }
-      `}</style>
     </div>
   )
 }
