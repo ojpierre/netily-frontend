@@ -3338,7 +3338,7 @@ async activateService(
   }
 
   async sendBulkSMS(data: SendBulkSMSRequest): Promise<SMSCampaign> {
-    return this.request<SMSCampaign>('/messaging/sms/send_bulk/', {
+    return this.request<SMSCampaign>('/messaging/sms/bulk/', {
       method: 'POST',
       body: JSON.stringify(data),
     })
