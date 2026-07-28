@@ -21,6 +21,8 @@ export default function AffiliateLoginPage() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const [expiresIn, setExpiresIn] = useState(0)
   const [resending, setResending] = useState(false)
+  const [verificationResending, setVerificationResending] = useState(false)
+  const [verificationNotice, setVerificationNotice] = useState("")
 
   useEffect(() => {
     if (step !== "otp") return
@@ -71,6 +73,21 @@ export default function AffiliateLoginPage() {
     }
   }
 
+  const resendVerification = async () => {
+    if (!email || verificationResending) return
+    setError("")
+    setVerificationNotice("")
+    setVerificationResending(true)
+    try {
+      await affiliateApi.resendVerification(email)
+      setVerificationNotice("A new verification link has been sent. Check your inbox and spam folder.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not resend the verification email.")
+    } finally {
+      setVerificationResending(false)
+    }
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-white">
       {/* Decorative background */}
@@ -107,6 +124,17 @@ export default function AffiliateLoginPage() {
             {error && (
               <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
+              </div>
+            )}
+            {step === "credentials" && error.toLowerCase().includes("verify your email") && (
+              <Button type="button" variant="outline" onClick={resendVerification} disabled={verificationResending} className="w-full rounded-xl">
+                {verificationResending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                Resend verification email
+              </Button>
+            )}
+            {verificationNotice && (
+              <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {verificationNotice}
               </div>
             )}
 

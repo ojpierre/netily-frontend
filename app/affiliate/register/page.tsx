@@ -80,6 +80,7 @@ export default function AffiliateRegisterPage() {
   const [resending, setResending] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
   const [notice, setNotice] = useState("")
+  const [verificationEmailSent, setVerificationEmailSent] = useState(true)
 
   const selectedCountry = COUNTRIES.find((c) => c.code === country) || COUNTRIES[0]
   const strength = getStrength(password)
@@ -122,13 +123,14 @@ export default function AffiliateRegisterPage() {
     }
     setLoading(true)
     try {
-      await affiliateApi.register({
+      const result = await affiliateApi.register({
         full_name: fullName,
         email,
         phone: phone.replace(/\s/g, ""),
         country: selectedCountry.name,
         password,
       })
+      setVerificationEmailSent(result.verification_email_sent)
       setStep(4)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed.")
@@ -144,6 +146,7 @@ export default function AffiliateRegisterPage() {
     setResending(true)
     try {
       await affiliateApi.resendVerification(email)
+      setVerificationEmailSent(true)
       setNotice("A new verification link has been sent.")
       setResendCooldown(60)
     } catch (err) {
@@ -495,8 +498,15 @@ export default function AffiliateRegisterPage() {
                 </div>
 
                 <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-                  Verification email sent to <span className="font-semibold text-gray-900">{email}</span>
+                  {verificationEmailSent ? "Verification email sent to " : "Your account was created for "}
+                  <span className="font-semibold text-gray-900">{email}</span>
                 </div>
+
+                {!verificationEmailSent && (
+                  <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    We could not confirm email delivery. Use the resend button below; if delivery is still unavailable, try again shortly.
+                  </div>
+                )}
 
                 {notice && (
                   <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">

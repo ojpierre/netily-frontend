@@ -213,7 +213,11 @@ class AffiliateApiService {
   }
 
   async register(data: { full_name: string; email: string; phone: string; country: string; password: string }) {
-    return this.request<{ user: AffiliateUser }>("/affiliate/register/", { method: "POST", body: JSON.stringify(data) }, "public")
+    return this.request<{ user: AffiliateUser; verification_email_sent: boolean; message: string }>(
+      "/affiliate/register/",
+      { method: "POST", body: JSON.stringify(data) },
+      "public",
+    )
   }
 
   async login(email: string, password: string, otp?: { challenge_id: string; otp_code: string }) {
