@@ -2,12 +2,12 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { affiliateApi, type AffiliateUser } from "@/lib/affiliate-api"
+import { affiliateApi, type AffiliateLoginChallenge, type AffiliateUser } from "@/lib/affiliate-api"
 
 interface AffiliateAuthContextValue {
   user: AffiliateUser | null
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string, otp?: { challenge_id: string; otp_code: string }) => Promise<AffiliateLoginChallenge | null>
   logout: () => void
   refresh: () => Promise<void>
   setUser: (u: AffiliateUser | null) => void
@@ -15,7 +15,7 @@ interface AffiliateAuthContextValue {
 
 const AffiliateAuthContext = createContext<AffiliateAuthContextValue | undefined>(undefined)
 
-const PUBLIC_PATHS = ["/affiliate/login", "/affiliate/register"]
+const PUBLIC_PATHS = ["/affiliate/login", "/affiliate/register", "/affiliate/verify"]
 
 export function AffiliateAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AffiliateUser | null>(null)
@@ -47,12 +47,14 @@ export function AffiliateAuthProvider({ children }: { children: React.ReactNode 
     refresh()
   }, [pathname, refresh])
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, otp?: { challenge_id: string; otp_code: string }) => {
     setLoading(true)
     try {
-      const { user: affiliateUser } = await affiliateApi.login(email, password)
-      setUser(affiliateUser)
+      const result = await affiliateApi.login(email, password, otp)
+      if ("requires_otp" in result) return result
+      setUser(result.user)
       router.replace("/affiliate/dashboard")
+      return null
     } finally {
       setLoading(false)
     }

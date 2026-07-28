@@ -11,7 +11,6 @@ export default function AffiliatePaymentSettingsPage() {
   const [method, setMethod] = useState<PaymentMethod | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [verifying, setVerifying] = useState(false)
   const [saved, setSaved] = useState(false)
 
   // Form state
@@ -38,18 +37,6 @@ export default function AffiliatePaymentSettingsPage() {
       })
       .finally(() => setLoading(false))
   }, [])
-
-  const handleVerify = async () => {
-    if (!mpesaPhone.trim()) return
-    setVerifying(true)
-    try {
-      const result = await affiliateApi.verifyMpesaNumber(mpesaPhone)
-      setMpesaName(result.name)
-      setMpesaVerified(result.verified)
-    } finally {
-      setVerifying(false)
-    }
-  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -151,16 +138,8 @@ export default function AffiliatePaymentSettingsPage() {
                       className="border-gray-200 bg-gray-50/50 pl-10 focus:border-red-300 focus:ring-red-200"
                     />
                   </div>
-                  <Button
-                    onClick={handleVerify}
-                    disabled={verifying || !mpesaPhone.trim()}
-                    variant="outline"
-                    className="rounded-xl border-gray-200 text-gray-600 hover:bg-red-50 hover:text-red-700 hover:border-red-200"
-                  >
-                    {verifying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Verify
-                  </Button>
                 </div>
+                <p className="text-xs text-gray-400">Netily will review and verify these payout details manually.</p>
               </div>
 
               {mpesaVerified && mpesaName && (

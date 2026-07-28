@@ -35,14 +35,14 @@ const TOPICS = [
 
 **The basics:**
 - When a prospect clicks your link today, a cookie is stored in their browser
-- If they come back and sign up anytime within the next 30 days, you get credit
-- Even if they close the tab, browse other sites, and return later — you still get the commission
+- If they come back and sign up anytime within the next 30 days, the signup is attributed to you
+- Even if they close the tab, browse other sites, and return later — the attribution remains available for review
 
 **Example scenario:**
 1. Monday: You share your link in a WhatsApp group
 2. Wednesday: An ISP operator clicks it, browses the Netily site, but doesn't sign up yet
 3. Next week: They come back directly to netily.co.ke and register
-4. ✅ You still earn the referral commission because the cookie hasn't expired
+4. ✅ The signup is still attributed to your account because the cookie hasn't expired
 
 **Important details:**
 - The cookie lasts exactly 30 days from the first click
@@ -55,29 +55,20 @@ const TOPICS = [
   {
     icon: Lightbulb,
     title: "When do I get paid?",
-    content: `Netily processes affiliate payouts on a monthly billing cycle. Here's the complete timeline:
+    content: `Affiliate commissions and payouts are reviewed manually. Tracking a signup does not automatically create a commission or send money.
 
 **The payout process:**
 1. **Referral signs up**: The ISP creates their Netily account through your link
-2. **Referral pays**: They complete their first monthly subscription payment
-3. **Commission credited**: Your reward is credited to your affiliate balance within 48 hours
-4. **Payout processed**: We batch payouts on the **15th of each month**
-5. **Funds received**: M-Pesa payouts arrive instantly; bank transfers take 1–3 business days
+2. **Netily reviews the referral**: The team checks attribution, eligibility, and account quality
+3. **Commission is agreed**: A superadmin records the approved amount manually
+4. **Payout is completed externally**: Netily sends payment through the agreed channel
+5. **Payment is recorded**: The reference and final status appear in your dashboard
 
 **Payout methods:**
-- **M-Pesa** (recommended): Instant delivery, no fees. Make sure your registered M-Pesa name matches your affiliate account.
-- **Bank Transfer**: 1–3 business days. Available for Kenya, Uganda, Tanzania, and Nigeria.
+- **M-Pesa**: Save the number and account name you want Netily to review.
+- **Bank Transfer**: Save your bank and account details for manual review.
 
-**Minimum payout:**
-- KES 500 (or equivalent in your local currency)
-- If your balance is below the minimum, it rolls over to the next month
-
-**Payout rates by tier:**
-| Tier | Referrals | Reward per ISP |
-|------|-----------|---------------|
-| Bronze | 0–5 | KES 500 |
-| Silver | 6–15 | KES 750 |
-| Gold | 16+ | KES 1,000 |
+There is no automatic rate, minimum, payment date, or tier upgrade. Commission and payout timing are confirmed manually for each case.
 
 **What doesn't count:**
 - ISPs that sign up but never make a payment

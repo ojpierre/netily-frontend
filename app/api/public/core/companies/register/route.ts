@@ -7,7 +7,12 @@ const REMOTE_API_BASE =
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.text()
+    const submitted = await request.json()
+    const body = JSON.stringify({
+      ...submitted,
+      referral_code: submitted.referral_code || request.cookies.get("netily_referral_code")?.value || "",
+      attribution_token: submitted.attribution_token || request.cookies.get("netily_attribution_token")?.value || null,
+    })
     const upstream = await fetch(`${REMOTE_API_BASE}/core/companies/register/`, {
       method: "POST",
       headers: {

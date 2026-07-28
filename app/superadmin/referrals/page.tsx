@@ -15,7 +15,6 @@ import {
 import { affiliateApi, type AdminAffiliate } from "@/lib/affiliate-api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 
 const STATUS_FILTERS = [
   { key: "all", label: "All" },
@@ -30,14 +29,99 @@ export default function SuperAdminReferralsPage() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [error, setError] = useState("")
+  const [savingId, setSavingId] = useState<number | null>(null)
+  const [rewardDrafts, setRewardDrafts] = useState<Record<number, string>>({})
+  const [payoutAmount, setPayoutAmount] = useState("")
+  const [payoutMethod, setPayoutMethod] = useState<"mpesa" | "bank">("mpesa")
+  const [payoutReference, setPayoutReference] = useState("")
 
   const fetchAffiliates = async () => {
     setLoading(true)
     try {
       const data = await affiliateApi.adminGetAffiliates({ search, status: statusFilter })
       setAffiliates(data)
+      setError("")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load affiliates.")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const updateAffiliateStatus = async (affiliate: AdminAffiliate, status: AdminAffiliate["status"]) => {
+    setSavingId(affiliate.id)
+    try {
+      const updated = await affiliateApi.adminUpdateAffiliate(affiliate.id, { status })
+      setAffiliates((current) => current.map((item) => item.id === affiliate.id ? updated : item))
+      setError("")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update affiliate.")
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const updateAffiliateTier = async (affiliate: AdminAffiliate, tier: AdminAffiliate["tier"]) => {
+    setSavingId(affiliate.id)
+    try {
+      const updated = await affiliateApi.adminUpdateAffiliate(affiliate.id, { tier })
+      setAffiliates((current) => current.map((item) => item.id === affiliate.id ? updated : item))
+      setError("")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update affiliate tier.")
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const updateReferral = async (affiliateId: number, referralId: number, status?: "pending" | "paid" | "churned") => {
+    const affiliate = affiliates.find((item) => item.id === affiliateId)
+    const referral = affiliate?.referrals.find((item) => item.id === referralId)
+    if (!referral) return
+    setSavingId(referralId)
+    try {
+      const reward = Number(rewardDrafts[referralId] ?? referral.reward_amount)
+      if (!Number.isFinite(reward) || reward < 0) throw new Error("Commission must be zero or greater.")
+      const updated = await affiliateApi.adminUpdateReferral(referralId, {
+        reward_amount: reward,
+        status: status || referral.status,
+      })
+      setAffiliates((current) => current.map((item) => {
+        if (item.id !== affiliateId) return item
+        const referrals = item.referrals.map((entry) => entry.id === referralId ? updated : entry)
+        return { ...item, referrals, total_earned: referrals.reduce((sum, entry) => sum + entry.reward_amount, 0) }
+      }))
+      setError("")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update referral.")
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const createPayout = async (affiliate: AdminAffiliate) => {
+    const amount = Number(payoutAmount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Enter a payout amount greater than zero.")
+      return
+    }
+    setSavingId(affiliate.id)
+    try {
+      await affiliateApi.adminCreatePayout(affiliate.id, {
+        amount,
+        currency: affiliate.currency,
+        method: payoutMethod,
+        status: "completed",
+        reference: payoutReference.trim(),
+      })
+      setPayoutAmount("")
+      setPayoutReference("")
+      await fetchAffiliates()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to record payout.")
+    } finally {
+      setSavingId(null)
     }
   }
 
@@ -59,7 +143,10 @@ export default function SuperAdminReferralsPage() {
   const totalAffiliates = affiliates.length
   const activeAffiliates = affiliates.filter((a) => a.status === "active").length
   const totalReferrals = affiliates.reduce((sum, a) => sum + a.referrals_count, 0)
-  const totalEarned = affiliates.reduce((sum, a) => sum + a.total_earned, 0)
+  const completedPayouts = affiliates.reduce(
+    (sum, affiliate) => sum + (affiliate.payouts || []).filter((payout) => payout.status === "completed").length,
+    0,
+  )
   const avgConversion = totalAffiliates > 0 ? Math.round((totalReferrals / Math.max(totalAffiliates, 1)) * 10) / 10 : 0
 
   return (
@@ -82,12 +169,18 @@ export default function SuperAdminReferralsPage() {
         </Button>
       </div>
 
+      {error && (
+        <div role="alert" className="rounded-lg border border-red-700/50 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+          {error}
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard icon={Users} label="Total Affiliates" value={totalAffiliates} />
         <StatCard icon={UserCheck} label="Active" value={activeAffiliates} />
         <StatCard icon={TrendingUp} label="Total Referrals" value={totalReferrals} />
-        <StatCard icon={Wallet} label="Total Payouts" value={`KES ${totalEarned.toLocaleString()}`} highlight />
+        <StatCard icon={Wallet} label="Completed Payouts" value={completedPayouts} highlight />
         <StatCard icon={TrendingUp} label="Avg Referrals/Affiliate" value={avgConversion} />
       </div>
 
@@ -162,32 +255,32 @@ export default function SuperAdminReferralsPage() {
                         {a.currency} {a.total_earned.toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] ${
-                            a.status === "active"
-                              ? "border-emerald-600/50 text-emerald-400"
-                              : a.status === "suspended"
-                              ? "border-red-600/50 text-red-400"
-                              : "border-slate-600 text-slate-400"
-                          }`}
+                        <select
+                          value={a.status}
+                          disabled={savingId === a.id}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) => updateAffiliateStatus(a, event.target.value as AdminAffiliate["status"])}
+                          className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200"
+                          aria-label={`Status for ${a.full_name}`}
                         >
-                          {a.status}
-                        </Badge>
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                          <option value="suspended">Suspended</option>
+                        </select>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] capitalize ${
-                            a.tier === "gold"
-                              ? "border-yellow-600/50 text-yellow-400"
-                              : a.tier === "silver"
-                              ? "border-gray-400/50 text-gray-300"
-                              : "border-amber-600/50 text-amber-400"
-                          }`}
+                        <select
+                          value={a.tier}
+                          disabled={savingId === a.id}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) => updateAffiliateTier(a, event.target.value as AdminAffiliate["tier"])}
+                          className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs capitalize text-slate-200"
+                          aria-label={`Tier for ${a.full_name}`}
                         >
-                          {a.tier}
-                        </Badge>
+                          <option value="bronze">Bronze</option>
+                          <option value="silver">Silver</option>
+                          <option value="gold">Gold</option>
+                        </select>
                       </td>
                       <td className="px-4 py-3 text-center text-xs text-slate-400">{a.payment_method}</td>
                       <td className="px-4 py-3 text-xs text-slate-500">
@@ -219,19 +312,36 @@ export default function SuperAdminReferralsPage() {
                                       <p className="text-xs text-slate-500">{r.company} · {new Date(r.signup_date).toLocaleDateString()}</p>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                      <Badge
-                                        variant="outline"
-                                        className={`text-[10px] ${
-                                          r.status === "paid"
-                                            ? "border-emerald-600/50 text-emerald-400"
-                                            : "border-amber-600/50 text-amber-400"
-                                        }`}
+                                      <select
+                                        value={r.status}
+                                        onChange={(event) => updateReferral(a.id, r.id, event.target.value as typeof r.status)}
+                                        className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200"
+                                        aria-label={`Referral status for ${r.isp_name}`}
                                       >
-                                        {r.status}
-                                      </Badge>
-                                      <span className="text-sm font-bold text-white">
-                                        {r.currency} {r.reward_amount.toLocaleString()}
-                                      </span>
+                                        <option value="pending">Pending</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="churned">Rejected/churned</option>
+                                      </select>
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-xs text-slate-500">{r.currency}</span>
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          step="0.01"
+                                          value={rewardDrafts[r.id] ?? String(r.reward_amount)}
+                                          onChange={(event) => setRewardDrafts((current) => ({ ...current, [r.id]: event.target.value }))}
+                                          className="h-8 w-28 border-slate-700 bg-slate-950 text-right text-sm text-white"
+                                          aria-label={`Manual commission for ${r.isp_name}`}
+                                        />
+                                        <Button
+                                          size="sm"
+                                          disabled={savingId === r.id}
+                                          onClick={() => updateReferral(a.id, r.id)}
+                                          className="h-8 bg-violet-600 hover:bg-violet-500"
+                                        >
+                                          Save
+                                        </Button>
+                                      </div>
                                     </div>
                                   </div>
                                 ))}
@@ -239,6 +349,30 @@ export default function SuperAdminReferralsPage() {
                             ) : (
                               <p className="text-sm text-slate-500">No referrals yet.</p>
                             )}
+                            <div className="mt-5 border-t border-slate-700/70 pt-4">
+                              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-violet-400">Record manual payout</p>
+                              <div className="flex flex-wrap items-end gap-2">
+                                <label className="text-xs text-slate-400">
+                                  Amount ({a.currency})
+                                  <Input type="number" min="0.01" step="0.01" value={payoutAmount} onChange={(event) => setPayoutAmount(event.target.value)} className="mt-1 h-9 w-36 border-slate-700 bg-slate-950 text-white" />
+                                </label>
+                                <label className="text-xs text-slate-400">
+                                  Method
+                                  <select value={payoutMethod} onChange={(event) => setPayoutMethod(event.target.value as "mpesa" | "bank")} className="mt-1 block h-9 rounded border border-slate-700 bg-slate-950 px-3 text-sm text-white">
+                                    <option value="mpesa">M-Pesa</option>
+                                    <option value="bank">Bank</option>
+                                  </select>
+                                </label>
+                                <label className="text-xs text-slate-400">
+                                  Reference
+                                  <Input value={payoutReference} onChange={(event) => setPayoutReference(event.target.value)} className="mt-1 h-9 w-48 border-slate-700 bg-slate-950 text-white" />
+                                </label>
+                                <Button disabled={savingId === a.id} onClick={() => createPayout(a)} className="h-9 bg-emerald-700 hover:bg-emerald-600">
+                                  Record completed payout
+                                </Button>
+                              </div>
+                              <p className="mt-2 text-xs text-slate-500">This records an externally completed payout; it does not send money automatically.</p>
+                            </div>
                           </div>
                         </td>
                       </tr>

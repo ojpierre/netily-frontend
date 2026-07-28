@@ -54,7 +54,12 @@ export async function POST(request: NextRequest) {
   }
 
   const requestId = crypto.randomUUID()
-  const payloadText = JSON.stringify(payload)
+  const submitted = typeof payload === "object" && payload !== null ? payload as Record<string, unknown> : {}
+  const payloadText = JSON.stringify({
+    ...submitted,
+    referral_code: submitted.referral_code || request.cookies.get("netily_referral_code")?.value || "",
+    attribution_token: submitted.attribution_token || request.cookies.get("netily_attribution_token")?.value || null,
+  })
   const registrationUrl = getRegistrationUrl()
 
   try {

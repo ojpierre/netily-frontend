@@ -137,7 +137,7 @@ export default function AffiliateRegisterPage() {
   const handleResend = async () => {
     setResending(true)
     try {
-      await affiliateApi.resendVerification()
+      await affiliateApi.resendVerification(email)
     } finally {
       setResending(false)
     }

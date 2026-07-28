@@ -191,7 +191,7 @@ export function AffiliateLandingClient() {
                   <SplitWords text="and earn revenue." />
                 </h1>
                 <p className="mt-6 text-lg leading-8 text-zinc-400 max-w-xl">
-                  Join the Netily Partner Network. Refer ISPs, WISPs, and hotspot operators in Africa to the fastest-growing billing platform and get paid recurring commissions straight to M-Pesa.
+                  Join the Netily Partner Network. Refer ISPs, WISPs, and hotspot operators in Africa, track signups transparently, and agree commissions with Netily after manual review.
                 </p>
                 <div className="mt-10 flex flex-wrap items-center gap-4">
                   <Link
@@ -299,7 +299,7 @@ export function AffiliateLandingClient() {
                 <Wallet className="mb-6 h-8 w-8 text-zinc-400" />
                 <h3 className="text-xl font-medium text-white">Get Paid</h3>
                 <p className="mt-3 text-base text-zinc-400 leading-relaxed">
-                  When an ISP pays for their first month, you earn a commission. We process payouts directly to M-Pesa or Bank on the 15th of every month.
+                  Netily reviews attributed signups manually. Approved commissions and payouts are recorded by the platform team; no money is sent automatically.
                 </p>
               </div>
             </div>
@@ -318,7 +318,7 @@ export function AffiliateLandingClient() {
                 <SplitWords text="The more you refer, the more you earn." />
               </h2>
               <p className="mt-4 md:mt-0 text-base text-zinc-400 max-w-md">
-                Our tiered gamification system rewards top performers. Unlock higher commission rates simply by bringing in more operators.
+                Partner tiers help classify affiliate relationships. Netily assigns tiers and commission terms manually after reviewing performance and referral quality.
               </p>
             </div>
 
@@ -334,7 +334,7 @@ export function AffiliateLandingClient() {
                 </div>
                 <ul className="mt-auto space-y-4">
                   <li className="flex items-center gap-3 text-sm text-zinc-300">
-                    <CheckCircle2 className="h-5 w-5 text-zinc-600" /> Standard payout rate
+                    <CheckCircle2 className="h-5 w-5 text-zinc-600" /> Manually reviewed terms
                   </li>
                   <li className="flex items-center gap-3 text-sm text-zinc-300">
                     <CheckCircle2 className="h-5 w-5 text-zinc-600" /> 30-day cookie window
@@ -363,7 +363,7 @@ export function AffiliateLandingClient() {
                     <CheckCircle2 className="h-5 w-5 text-red-500" /> 50% bonus per sale
                   </li>
                   <li className="flex items-center gap-3 text-sm text-zinc-300">
-                    <CheckCircle2 className="h-5 w-5 text-red-500" /> Priority M-Pesa payouts
+                    <CheckCircle2 className="h-5 w-5 text-red-500" /> Partner support review
                   </li>
                   <li className="flex items-center gap-3 text-sm text-zinc-300">
                     <CheckCircle2 className="h-5 w-5 text-red-500" /> Dedicated swipe file
@@ -382,7 +382,7 @@ export function AffiliateLandingClient() {
                 </div>
                 <ul className="mt-auto space-y-4">
                   <li className="flex items-center gap-3 text-sm text-zinc-300">
-                    <CheckCircle2 className="h-5 w-5 text-yellow-600" /> Double payout rate
+                    <CheckCircle2 className="h-5 w-5 text-yellow-600" /> Custom agreed terms
                   </li>
                   <li className="flex items-center gap-3 text-sm text-zinc-300">
                     <CheckCircle2 className="h-5 w-5 text-yellow-600" /> Direct line to founders
@@ -438,7 +438,7 @@ export function AffiliateLandingClient() {
                     <ChevronDown className="h-5 w-5 text-zinc-500 group-open:-rotate-180 transition-transform" />
                   </summary>
                   <div className="mt-4 border-t border-zinc-800 pt-4 leading-relaxed text-zinc-400 text-sm">
-                    Payouts are processed on the 15th of every month for the previous month&apos;s successful conversions. You can choose to be paid directly via M-Pesa or Bank Transfer.
+                    Netily reviews each referral and agrees the commission and payout timing manually. Completed M-Pesa or bank payments are then recorded in your dashboard.
                   </div>
                 </details>
               </div>
