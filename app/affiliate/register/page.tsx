@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
   ArrowRight,
@@ -10,7 +9,6 @@ import {
   Eye,
   EyeOff,
   ExternalLink,
-  Flame,
   Globe,
   Loader2,
   Lock,
@@ -48,18 +46,17 @@ function getStrength(pw: string): { score: number; label: string; color: string 
 
 // ─── Country data ───
 const COUNTRIES = [
-  { code: "KE", name: "Kenya", currency: "KES", rate: 500 },
-  { code: "UG", name: "Uganda", currency: "UGX", rate: 18000 },
-  { code: "TZ", name: "Tanzania", currency: "TZS", rate: 12000 },
-  { code: "NG", name: "Nigeria", currency: "NGN", rate: 8000 },
-  { code: "GH", name: "Ghana", currency: "GHS", rate: 60 },
-  { code: "ZA", name: "South Africa", currency: "ZAR", rate: 90 },
-  { code: "RW", name: "Rwanda", currency: "RWF", rate: 6000 },
-  { code: "ET", name: "Ethiopia", currency: "ETB", rate: 2800 },
+  { code: "KE", name: "Kenya", currency: "KES" },
+  { code: "UG", name: "Uganda", currency: "UGX" },
+  { code: "TZ", name: "Tanzania", currency: "TZS" },
+  { code: "NG", name: "Nigeria", currency: "NGN" },
+  { code: "GH", name: "Ghana", currency: "GHS" },
+  { code: "ZA", name: "South Africa", currency: "ZAR" },
+  { code: "RW", name: "Rwanda", currency: "RWF" },
+  { code: "ET", name: "Ethiopia", currency: "ETB" },
 ]
 
 export default function AffiliateRegisterPage() {
-  const router = useRouter()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -79,8 +76,10 @@ export default function AffiliateRegisterPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [agreedTerms, setAgreedTerms] = useState(false)
 
-  // Step 4 — verification polling
+  // Step 4 — email verification
   const [resending, setResending] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [notice, setNotice] = useState("")
 
   const selectedCountry = COUNTRIES.find((c) => c.code === country) || COUNTRIES[0]
   const strength = getStrength(password)
@@ -95,6 +94,10 @@ export default function AffiliateRegisterPage() {
     if (step === 1) {
       if (!fullName.trim() || !email.trim() || phone.replace(/\D/g, "").length < 10) {
         setError("Please fill in all required fields.")
+        return
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+        setError("Enter a valid email address.")
         return
       }
     }
@@ -135,22 +138,28 @@ export default function AffiliateRegisterPage() {
   }
 
   const handleResend = async () => {
+    if (resending || resendCooldown > 0) return
+    setError("")
+    setNotice("")
     setResending(true)
     try {
       await affiliateApi.resendVerification(email)
+      setNotice("A new verification link has been sent.")
+      setResendCooldown(60)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not resend the verification email.")
     } finally {
       setResending(false)
     }
   }
 
-  // Auto-transition after "verification" (mock: 5s)
   useEffect(() => {
-    if (step !== 4) return
-    const timer = setTimeout(() => {
-      router.replace("/affiliate/login")
-    }, 5000)
-    return () => clearTimeout(timer)
-  }, [step, router])
+    if (resendCooldown <= 0) return
+    const timer = window.setTimeout(() => {
+      setResendCooldown((seconds) => Math.max(0, seconds - 1))
+    }, 1000)
+    return () => window.clearTimeout(timer)
+  }, [resendCooldown])
 
   const steps = [
     { num: 1, label: "Details" },
@@ -179,31 +188,46 @@ export default function AffiliateRegisterPage() {
           </div>
 
           {/* Stepper */}
-          <div className="mb-8 flex items-center justify-center gap-2">
-            {steps.map((s, i) => (
-              <React.Fragment key={s.num}>
-                <div className="flex flex-col items-center">
-                  <div
-                    className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold transition-all duration-300 ${
-                      step > s.num
-                        ? "bg-emerald-500 text-white shadow-md shadow-emerald-200"
-                        : step === s.num
-                        ? "bg-gradient-to-br from-red-600 to-red-700 text-white shadow-lg shadow-red-200 scale-110"
-                        : "bg-gray-100 text-gray-400"
-                    }`}
-                  >
-                    {step > s.num ? <Check className="h-4 w-4" /> : s.num}
-                  </div>
-                  <span className={`mt-1.5 text-[10px] font-semibold ${step >= s.num ? "text-red-700" : "text-gray-300"}`}>
-                    {s.label}
-                  </span>
-                </div>
-                {i < steps.length - 1 && (
-                  <div className={`mt-[-16px] h-0.5 w-10 rounded-full transition-all duration-500 ${step > s.num ? "bg-emerald-400" : "bg-gray-200"}`} />
-                )}
-              </React.Fragment>
-            ))}
-          </div>
+          <nav aria-label="Registration progress" className="mb-8">
+            <div className="relative mx-auto max-w-md">
+              <div className="absolute left-[12.5%] right-[12.5%] top-5 h-1 rounded-full bg-gray-100" />
+              <div
+                className="absolute left-[12.5%] top-5 h-1 rounded-full bg-gradient-to-r from-emerald-500 to-red-600 transition-all duration-500"
+                style={{ width: `${((step - 1) / (steps.length - 1)) * 75}%` }}
+              />
+              <ol className="relative grid grid-cols-4">
+                {steps.map((item) => (
+                  <li key={item.num} className="flex flex-col items-center">
+                    <button
+                      type="button"
+                      aria-current={step === item.num ? "step" : undefined}
+                      aria-label={`${item.label}: ${step > item.num ? "completed" : step === item.num ? "current step" : "not started"}`}
+                      disabled={item.num >= step || step === 4}
+                      onClick={() => {
+                        setError("")
+                        setStep(item.num)
+                      }}
+                      className={`flex h-10 w-10 items-center justify-center rounded-full border-4 border-white text-sm font-bold shadow-sm transition-all ${
+                        step > item.num
+                          ? "bg-emerald-500 text-white"
+                          : step === item.num
+                            ? "scale-110 bg-gradient-to-br from-red-600 to-red-700 text-white shadow-lg shadow-red-200"
+                            : "bg-gray-100 text-gray-400"
+                      } disabled:cursor-default`}
+                    >
+                      {step > item.num ? <Check className="h-4 w-4" /> : item.num}
+                    </button>
+                    <span className={`mt-2 text-[11px] font-semibold sm:text-xs ${step >= item.num ? "text-gray-800" : "text-gray-400"}`}>
+                      {item.label}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <p className="mt-4 text-center text-xs font-medium text-gray-400">
+              Step {step} of {steps.length} · {steps[step - 1].label}
+            </p>
+          </nav>
 
           {/* Card */}
           <div className="rounded-3xl border border-gray-200/80 bg-white/90 p-6 shadow-xl shadow-gray-100/50 backdrop-blur-xl md:p-8">
@@ -218,10 +242,10 @@ export default function AffiliateRegisterPage() {
               <div className="space-y-6">
                 <div>
                   <h1 className="text-2xl font-black tracking-tight text-gray-900 md:text-3xl">
-                    Let&apos;s get you earning.
+                    Build your affiliate profile.
                   </h1>
                   <p className="mt-2 text-sm leading-relaxed text-gray-500">
-                    Refer fellow ISPs to Netily and earn a recurring cut for every successful activation. Drop your details below to grab your unique link.
+                    Get a unique referral link and track visits and signups. Netily reviews each successful referral and sets commissions manually.
                   </p>
                 </div>
 
@@ -322,15 +346,12 @@ export default function AffiliateRegisterPage() {
 
                 <div className="rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 to-orange-50 p-4">
                   <div className="flex items-start gap-3">
-                    <Flame className="mt-0.5 h-5 w-5 text-red-500" />
+                    <Shield className="mt-0.5 h-5 w-5 text-red-500" />
                     <div>
-                      <p className="text-sm font-bold text-gray-900">Your payout rate</p>
+                      <p className="text-sm font-bold text-gray-900">Transparent, reviewed rewards</p>
                       <p className="mt-1 text-sm text-gray-600">
-                        You&apos;ll earn{" "}
-                        <span className="font-black text-red-700">
-                          {selectedCountry.currency} {selectedCountry.rate.toLocaleString()}
-                        </span>{" "}
-                        for each ISP that signs up and pays — paid in {selectedCountry.currency}.
+                        Referral clicks and signups are tracked automatically. Commission amounts and payouts are reviewed and recorded manually by Netily in{" "}
+                        <span className="font-bold text-red-700">{selectedCountry.currency}</span>.
                       </p>
                     </div>
                   </div>
@@ -473,33 +494,29 @@ export default function AffiliateRegisterPage() {
                   </p>
                 </div>
 
-                {/* Pulse animation */}
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
-                  <div className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
-                  Waiting for verification…
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                  Verification email sent to <span className="font-semibold text-gray-900">{email}</span>
                 </div>
+
+                {notice && (
+                  <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                    {notice}
+                  </div>
+                )}
 
                 <Button
                   onClick={handleResend}
-                  disabled={resending}
+                  disabled={resending || resendCooldown > 0}
                   variant="outline"
                   className="rounded-2xl border-gray-200 text-gray-600 hover:bg-red-50 hover:text-red-700 hover:border-red-200"
                 >
                   {resending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                  Resend verification email
+                  {resendCooldown > 0 ? `Resend available in ${resendCooldown}s` : "Resend verification email"}
                 </Button>
 
-                <p className="text-sm text-gray-400">
-                  <button
-                    onClick={() => {
-                      affiliateApi.logout()
-                      window.location.href = "/affiliate/login"
-                    }}
-                    className="font-semibold text-red-600 hover:underline"
-                  >
-                    Log out
-                  </button>
-                </p>
+                <Button asChild className="h-11 rounded-2xl bg-red-700 font-bold text-white hover:bg-red-800">
+                  <Link href="/affiliate/login">I verified my email — continue to login</Link>
+                </Button>
               </div>
             )}
           </div>

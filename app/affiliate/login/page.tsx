@@ -182,7 +182,7 @@ export default function AffiliateLoginPage() {
             )}
 
             <Button
-              disabled={loading}
+              disabled={loading || (step === "otp" && (otp.length !== 6 || expiresIn <= 0))}
               className="h-12 w-full rounded-2xl bg-gradient-to-r from-red-600 to-red-700 font-bold text-white shadow-lg shadow-red-200 hover:from-red-700 hover:to-red-800 transition-all"
             >
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
