@@ -63,7 +63,7 @@ export function NetilyLoader({ className, size = 48, text }: NetilyLoaderProps) 
       </div>
       {text && (
         <motion.p 
-          className="text-sm font-medium text-slate-500 animate-pulse"
+          className="text-sm font-medium text-muted-foreground animate-pulse"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >

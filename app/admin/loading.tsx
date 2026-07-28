@@ -1,5 +1,6 @@
-import { LightningLoader } from "@/components/lightning-loader"
+// app/admin/loading.tsx
+import { PageLoading } from "@/components/ui/page-loading"
 
 export default function AdminDashboardLoading() {
-  return <LightningLoader label="Loading admin dashboard" />
+  return <PageLoading label="Loading admin dashboard..." />
 }

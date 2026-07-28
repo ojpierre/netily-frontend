@@ -1,25 +1,6 @@
-import {
-  PageLoadingSkeleton,
-  PageHeaderSkeleton,
-  StatsGridSkeleton,
-  SearchFilterSkeleton,
-  TableSkeleton,
-} from "@/components/ui/page-loader"
+// app/admin/alerts/loading.tsx
+import { PageLoading } from "@/components/ui/page-loading"
 
 export default function AlertsLoading() {
-  return (
-    <PageLoadingSkeleton>
-      {/* Header */}
-      <PageHeaderSkeleton />
-
-      {/* Stats Cards */}
-      <StatsGridSkeleton count={4} />
-
-      {/* Search & Filters */}
-      <SearchFilterSkeleton />
-
-      {/* Table */}
-      <TableSkeleton rows={8} columns={5} />
-    </PageLoadingSkeleton>
-  )
+  return <PageLoading label="Loading alerts..." />
 }

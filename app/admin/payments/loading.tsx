@@ -1,25 +1,6 @@
-import {
-  PageLoadingSkeleton,
-  PageHeaderSkeleton,
-  StatsGridSkeleton,
-  SearchFilterSkeleton,
-  TableSkeleton,
-} from "@/components/ui/page-loader"
+// app/admin/payments/loading.tsx
+import { PageLoading } from "@/components/ui/page-loading"
 
 export default function PaymentsLoading() {
-  return (
-    <PageLoadingSkeleton>
-      {/* Header */}
-      <PageHeaderSkeleton />
-
-      {/* Stats Cards */}
-      <StatsGridSkeleton count={4} />
-
-      {/* Search & Filters */}
-      <SearchFilterSkeleton />
-
-      {/* Table */}
-      <TableSkeleton rows={8} columns={7} />
-    </PageLoadingSkeleton>
-  )
+  return <PageLoading label="Loading payments..." />
 }

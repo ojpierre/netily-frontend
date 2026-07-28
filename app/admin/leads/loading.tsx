@@ -1,25 +1,6 @@
-import {
-  PageLoadingSkeleton,
-  PageHeaderSkeleton,
-  StatsGridSkeleton,
-  SearchFilterSkeleton,
-  TableSkeleton,
-} from "@/components/ui/page-loader"
+// app/admin/leads/loading.tsx
+import { PageLoading } from "@/components/ui/page-loading"
 
 export default function LeadsLoading() {
-  return (
-    <PageLoadingSkeleton>
-      {/* Header */}
-      <PageHeaderSkeleton />
-
-      {/* Stats Cards */}
-      <StatsGridSkeleton count={4} />
-
-      {/* Search & Filters */}
-      <SearchFilterSkeleton />
-
-      {/* Table */}
-      <TableSkeleton rows={8} columns={6} />
-    </PageLoadingSkeleton>
-  )
+  return <PageLoading label="Loading leads..." />
 }

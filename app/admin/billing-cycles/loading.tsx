@@ -1,21 +1,6 @@
-import {
-  PageLoadingSkeleton,
-  PageHeaderSkeleton,
-  StatsGridSkeleton,
-  TableSkeleton,
-} from "@/components/ui/page-loader"
+// app/admin/billing-cycles/loading.tsx
+import { PageLoading } from "@/components/ui/page-loading"
 
 export default function BillingCyclesLoading() {
-  return (
-    <PageLoadingSkeleton>
-      {/* Header */}
-      <PageHeaderSkeleton />
-
-      {/* Stats Cards */}
-      <StatsGridSkeleton count={3} />
-
-      {/* Table */}
-      <TableSkeleton rows={6} columns={5} />
-    </PageLoadingSkeleton>
-  )
+  return <PageLoading label="Loading billing cycles..." />
 }

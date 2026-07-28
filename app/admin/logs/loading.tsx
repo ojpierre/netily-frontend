@@ -1,21 +1,6 @@
-import {
-  PageLoadingSkeleton,
-  PageHeaderSkeleton,
-  SearchFilterSkeleton,
-  TableSkeleton,
-} from "@/components/ui/page-loader"
+// app/admin/logs/loading.tsx
+import { PageLoading } from "@/components/ui/page-loading"
 
 export default function LogsLoading() {
-  return (
-    <PageLoadingSkeleton>
-      {/* Header */}
-      <PageHeaderSkeleton />
-
-      {/* Search & Filters */}
-      <SearchFilterSkeleton />
-
-      {/* Table */}
-      <TableSkeleton rows={12} columns={5} />
-    </PageLoadingSkeleton>
-  )
+  return <PageLoading label="Loading logs..." />
 }
