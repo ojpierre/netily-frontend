@@ -65,6 +65,7 @@ import {
   RouterHotspotIPConfigTab,
   RouterPortManagerTab,
   RouterPortalSettingsTab,
+  RouterDiagnoseTab,
 } from "./components"
 import { RouterReachabilityChart } from "./components/router-reachability-chart"
 import { Button } from "@/components/ui/button"
@@ -1115,6 +1116,10 @@ export default function RouterDetailPage() {
             <Edit3 className="w-4 h-4" />
             <span className="hidden sm:inline">Configuration</span>
           </TabsTrigger>
+          <TabsTrigger value="diagnose" className="gap-2">
+            <ShieldCheck className="w-4 h-4" />
+            <span className="hidden sm:inline">Diagnose</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Live Status Tab - UPDATED with Reachability Chart */}
@@ -1995,6 +2000,11 @@ export default function RouterDetailPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Diagnose Tab */}
+        <TabsContent value="diagnose" className="mt-6">
+          <RouterDiagnoseTab routerId={parseInt(routerId)} />
         </TabsContent>
       </Tabs>
 

@@ -1243,7 +1243,51 @@ async activateService(
     return this.request(`/network/routers/${id}/reachability/?days=${Math.min(days, 365)}`)
   }
 
+  // ------------------------------------------
+  // ROUTER DIAGNOSTICS
+  // ------------------------------------------
 
+  async diagnoseRouter(id: number): Promise<{
+    router_id: number
+    error?: string
+    message?: string
+    results: Array<{
+      id: string
+      label: string
+      category: string
+      severity: 'critical' | 'warning'
+      status: 'pass' | 'fail'
+      fixable: boolean
+    }>
+    summary: { total: number; passed: number; issues: number }
+  }> {
+    return this.request(`/network/routers/${id}/diagnose/`)
+  }
+
+  async fixRouterDiagnostic(id: number, checkId: string): Promise<{
+    success: boolean
+    check_id?: string
+    label?: string
+    message?: string
+    error?: string
+  }> {
+    return this.request(`/network/routers/${id}/diagnose/fix/`, {
+      method: 'POST',
+      body: JSON.stringify({ check_id: checkId }),
+    })
+  }
+
+  async fixAllRouterDiagnostics(id: number): Promise<{
+    success: boolean
+    applied: string[]
+    failed: Array<{ id: string; error: string }>
+    error?: string
+  }> {
+    return this.request(`/network/routers/${id}/diagnose/fix/`, {
+      method: 'POST',
+      body: JSON.stringify({ fix_all: true }),
+    })
+  }
   async getRouterUsers(id: number): Promise<{ hotspot_users: number; pppoe_users: number; total: number }> {
     return this.request<{ hotspot_users: number; pppoe_users: number; total: number }>(`/network/routers/${id}/users/`)
   }
