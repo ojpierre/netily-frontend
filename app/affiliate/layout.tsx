@@ -183,10 +183,8 @@ function AffiliateShell({ children }: { children: React.ReactNode }) {
 
 export default function AffiliateLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="affiliate-theme min-h-screen bg-white text-red-950">
-      <AffiliateAuthProvider>
-        <AffiliateShell>{children}</AffiliateShell>
-      </AffiliateAuthProvider>
-    </div>
+    <AffiliateAuthProvider>
+      <AffiliateShell>{children}</AffiliateShell>
+    </AffiliateAuthProvider>
   )
 }

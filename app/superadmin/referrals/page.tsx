@@ -301,7 +301,7 @@ export default function SuperAdminReferralsPage() {
   const avgConversion = totalAffiliates > 0 ? Math.round((totalReferrals / Math.max(totalAffiliates, 1)) * 10) / 10 : 0
 
   return (
-    <div className="affiliate-theme space-y-8">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
@@ -318,20 +318,20 @@ export default function SuperAdminReferralsPage() {
           <Download className="mr-2 h-4 w-4" />
           Export CSV
         </Button>
-        <Button onClick={() => setShowCreate((value) => !value)} className="bg-red-700 text-white hover:bg-red-800">
+        <Button onClick={() => setShowCreate((value) => !value)} className="bg-violet-600 text-white hover:bg-violet-500">
           <Plus className="mr-2 h-4 w-4" />
           Add affiliate
         </Button>
       </div>
 
-      <section className="rounded-2xl border border-red-200 bg-white p-5">
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="flex items-center gap-2 font-bold text-red-950">
+            <h2 className="flex items-center gap-2 font-bold text-white">
               <ShieldCheck className="h-4 w-4" />
               Affiliate login OTP
             </h2>
-            <p className="mt-1 text-sm text-red-800">
+            <p className="mt-1 text-sm text-slate-400">
               Optional platform-wide email OTP after password login. It is disabled by default.
             </p>
           </div>
@@ -341,29 +341,29 @@ export default function SuperAdminReferralsPage() {
             aria-checked={affiliateOtpEnabled}
             disabled={settingsLoading}
             onClick={toggleAffiliateOtp}
-            className={`relative h-7 w-12 rounded-full border transition ${affiliateOtpEnabled ? "border-red-700 bg-red-700" : "border-red-300 bg-white"}`}
+            className={`relative h-7 w-12 rounded-full border transition ${affiliateOtpEnabled ? "border-violet-500 bg-violet-600" : "border-slate-600 bg-slate-800"}`}
           >
-            <span className={`absolute top-0.5 h-5 w-5 rounded-full border border-red-300 bg-white transition ${affiliateOtpEnabled ? "left-6" : "left-0.5"}`} />
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full border border-slate-300 bg-white transition ${affiliateOtpEnabled ? "left-6" : "left-0.5"}`} />
           </button>
         </div>
       </section>
 
       {showCreate && (
-        <section className="rounded-2xl border border-red-200 bg-white p-5">
-          <h2 className="text-lg font-bold text-red-950">Create affiliate account</h2>
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
+          <h2 className="text-lg font-bold text-white">Create affiliate account</h2>
           <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            <Input placeholder="Full name" value={createDraft.full_name} onChange={(event) => setCreateDraft((draft) => ({ ...draft, full_name: event.target.value }))} />
-            <Input type="email" placeholder="Email" value={createDraft.email} onChange={(event) => setCreateDraft((draft) => ({ ...draft, email: event.target.value }))} />
-            <Input placeholder="Phone" value={createDraft.phone} onChange={(event) => setCreateDraft((draft) => ({ ...draft, phone: event.target.value }))} />
-            <Input placeholder="Country" value={createDraft.country} onChange={(event) => setCreateDraft((draft) => ({ ...draft, country: event.target.value }))} />
-            <Input type="password" placeholder="Temporary password" value={createDraft.password} onChange={(event) => setCreateDraft((draft) => ({ ...draft, password: event.target.value }))} />
-            <label className="flex items-center gap-2 text-sm text-red-900">
+            <Input className="border-slate-700 bg-slate-800/50 text-white placeholder:text-slate-500" placeholder="Full name" value={createDraft.full_name} onChange={(event) => setCreateDraft((draft) => ({ ...draft, full_name: event.target.value }))} />
+            <Input className="border-slate-700 bg-slate-800/50 text-white placeholder:text-slate-500" type="email" placeholder="Email" value={createDraft.email} onChange={(event) => setCreateDraft((draft) => ({ ...draft, email: event.target.value }))} />
+            <Input className="border-slate-700 bg-slate-800/50 text-white placeholder:text-slate-500" placeholder="Phone" value={createDraft.phone} onChange={(event) => setCreateDraft((draft) => ({ ...draft, phone: event.target.value }))} />
+            <Input className="border-slate-700 bg-slate-800/50 text-white placeholder:text-slate-500" placeholder="Country" value={createDraft.country} onChange={(event) => setCreateDraft((draft) => ({ ...draft, country: event.target.value }))} />
+            <Input className="border-slate-700 bg-slate-800/50 text-white placeholder:text-slate-500" type="password" placeholder="Temporary password" value={createDraft.password} onChange={(event) => setCreateDraft((draft) => ({ ...draft, password: event.target.value }))} />
+            <label className="flex items-center gap-2 text-sm text-slate-300">
               <input type="checkbox" checked={createDraft.is_verified} onChange={(event) => setCreateDraft((draft) => ({ ...draft, is_verified: event.target.checked }))} />
               Mark email as verified
             </label>
           </div>
           <div className="mt-4 flex gap-2">
-            <Button onClick={createAffiliate} disabled={savingId === -1} className="bg-red-700 text-white hover:bg-red-800">Create account</Button>
+            <Button onClick={createAffiliate} disabled={savingId === -1} className="bg-violet-600 text-white hover:bg-violet-500">Create account</Button>
             <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
           </div>
         </section>
@@ -570,12 +570,12 @@ export default function SuperAdminReferralsPage() {
                                 Add manual referral
                               </p>
                               <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-                                <Input type="email" placeholder="Signup email" value={manualReferral.signup_email} onChange={(event) => setManualReferral((draft) => ({ ...draft, signup_email: event.target.value }))} />
-                                <Input placeholder="Company name" value={manualReferral.company_name} onChange={(event) => setManualReferral((draft) => ({ ...draft, company_name: event.target.value }))} />
-                                <Input type="number" min="0" step="0.01" placeholder="Commission" value={manualReferral.reward_amount} onChange={(event) => setManualReferral((draft) => ({ ...draft, reward_amount: event.target.value }))} />
-                                <Input placeholder="Review note" value={manualReferral.admin_notes} onChange={(event) => setManualReferral((draft) => ({ ...draft, admin_notes: event.target.value }))} />
+                                <Input className="border-slate-700 bg-slate-950 text-white placeholder:text-slate-500" type="email" placeholder="Signup email" value={manualReferral.signup_email} onChange={(event) => setManualReferral((draft) => ({ ...draft, signup_email: event.target.value }))} />
+                                <Input className="border-slate-700 bg-slate-950 text-white placeholder:text-slate-500" placeholder="Company name" value={manualReferral.company_name} onChange={(event) => setManualReferral((draft) => ({ ...draft, company_name: event.target.value }))} />
+                                <Input className="border-slate-700 bg-slate-950 text-white placeholder:text-slate-500" type="number" min="0" step="0.01" placeholder="Commission" value={manualReferral.reward_amount} onChange={(event) => setManualReferral((draft) => ({ ...draft, reward_amount: event.target.value }))} />
+                                <Input className="border-slate-700 bg-slate-950 text-white placeholder:text-slate-500" placeholder="Review note" value={manualReferral.admin_notes} onChange={(event) => setManualReferral((draft) => ({ ...draft, admin_notes: event.target.value }))} />
                               </div>
-                              <Button size="sm" onClick={() => createManualReferral(a)} className="mt-2 bg-red-700 text-white hover:bg-red-800">
+                              <Button size="sm" onClick={() => createManualReferral(a)} className="mt-2 bg-violet-600 text-white hover:bg-violet-500">
                                 <Plus className="mr-1.5 h-3.5 w-3.5" />
                                 Add for review
                               </Button>
@@ -610,7 +610,7 @@ export default function SuperAdminReferralsPage() {
                               {(a.payouts || []).length ? (
                                 <div className="space-y-2">
                                   {(a.payouts || []).map((payout) => (
-                                    <div key={payout.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-100 bg-white p-3">
+                                    <div key={payout.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-900/60 p-3">
                                       <div>
                                         <p className="text-sm font-bold">{payout.currency} {payout.amount.toLocaleString()}</p>
                                         <p className="text-xs">{payout.reference || "No reference"} · {new Date(payout.date).toLocaleDateString()}</p>
@@ -619,7 +619,7 @@ export default function SuperAdminReferralsPage() {
                                         value={payout.status}
                                         disabled={savingId === payout.id}
                                         onChange={(event) => updatePayoutStatus(a.id, payout.id, event.target.value as typeof payout.status)}
-                                        className="rounded border border-red-300 bg-white px-2 py-1 text-sm text-red-950"
+                                        className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-sm text-slate-200"
                                       >
                                         <option value="pending">Pending</option>
                                         <option value="completed">Completed</option>
