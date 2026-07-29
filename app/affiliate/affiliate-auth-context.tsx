@@ -15,7 +15,11 @@ interface AffiliateAuthContextValue {
 
 const AffiliateAuthContext = createContext<AffiliateAuthContextValue | undefined>(undefined)
 
-const PUBLIC_PATHS = ["/affiliate/login", "/affiliate/register", "/affiliate/verify"]
+const AFFILIATE_PUBLIC_PATHS = ["/affiliate/login", "/affiliate/register", "/affiliate/verify"]
+
+export function isAffiliatePublicPath(pathname: string | null): boolean {
+  return pathname === "/affiliate" || AFFILIATE_PUBLIC_PATHS.some((path) => pathname?.startsWith(path))
+}
 
 export function AffiliateAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AffiliateUser | null>(null)
@@ -31,7 +35,7 @@ export function AffiliateAuthProvider({ children }: { children: React.ReactNode 
     } catch {
       setUser(null)
       affiliateApi.logout()
-      if (pathname !== "/affiliate" && !PUBLIC_PATHS.some((p) => pathname?.startsWith(p))) {
+      if (!isAffiliatePublicPath(pathname)) {
         router.replace(`/affiliate/login?from=${encodeURIComponent(pathname || "/affiliate/dashboard")}`)
       }
     } finally {
@@ -40,7 +44,7 @@ export function AffiliateAuthProvider({ children }: { children: React.ReactNode 
   }, [pathname, router])
 
   useEffect(() => {
-    if (pathname === "/affiliate" || PUBLIC_PATHS.some((p) => pathname?.startsWith(p))) {
+    if (isAffiliatePublicPath(pathname)) {
       setLoading(false)
       return
     }

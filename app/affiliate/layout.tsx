@@ -17,7 +17,7 @@ import {
   Wallet,
   X,
 } from "lucide-react"
-import { AffiliateAuthProvider, useAffiliateAuth } from "./affiliate-auth-context"
+import { AffiliateAuthProvider, isAffiliatePublicPath, useAffiliateAuth } from "./affiliate-auth-context"
 import { Button } from "@/components/ui/button"
 
 const navItems = [
@@ -40,7 +40,7 @@ function AffiliateShell({ children }: { children: React.ReactNode }) {
   useEffect(() => setMounted(true), [])
 
   // Public pages — no shell
-  if (pathname === "/affiliate" || pathname === "/affiliate/login" || pathname?.startsWith("/affiliate/register")) {
+  if (isAffiliatePublicPath(pathname)) {
     return <>{children}</>
   }
 
