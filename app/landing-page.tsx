@@ -565,6 +565,7 @@ export function LandingPage() {
   const [leadFormErrors, setLeadFormErrors] = useState<{ name?: string; email?: string }>({})
   const [leadSubmitting, setLeadSubmitting] = useState(false)
   const [leadSubmitted, setLeadSubmitted] = useState(false)
+  const [affiliateReferralCode, setAffiliateReferralCode] = useState("")
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false)
 
   const { geo, fmt, setCountry, GEO_TABLE } = useGeo()
@@ -575,6 +576,13 @@ export function LandingPage() {
     onScroll()
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase() || ""
+    if (!/^[A-Z0-9_-]{4,64}$/.test(code)) return
+    setAffiliateReferralCode(code)
+    setLeadForm((current) => ({ ...current, lead_source: "Affiliate referral" }))
   }, [])
 
   const scrollTo = (id: string) => {
@@ -609,7 +617,13 @@ export function LandingPage() {
     const ctrl = new AbortController()
     const timeout = window.setTimeout(() => ctrl.abort(), 15000)
     try {
-      await submitLead(leadForm, ctrl.signal)
+      await submitLead(
+        {
+          ...leadForm,
+          ...(affiliateReferralCode ? { referral_code: affiliateReferralCode } : {}),
+        },
+        ctrl.signal,
+      )
       setLeadSubmitted(true)
     } catch {
       setLeadSubmitted(true)
@@ -1331,6 +1345,14 @@ export function LandingPage() {
                 </div>
               ) : (
                 <div className="border border-zinc-800 bg-zinc-900 p-6 md:p-8">
+                  {affiliateReferralCode && (
+                    <div className="mb-5 border border-amber-400/30 bg-amber-400/10 p-4">
+                      <p className="text-sm font-medium text-amber-200">Affiliate referral applied</p>
+                      <p className="mt-1 text-xs text-zinc-400">
+                        Code {affiliateReferralCode} is securely attached to this enquiry for manual review.
+                      </p>
+                    </div>
+                  )}
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <label className="mb-1.5 block text-sm text-zinc-300">Full name *</label>
@@ -1389,6 +1411,7 @@ export function LandingPage() {
                       <select
                         value={leadForm.lead_source}
                         onChange={(event) => setLeadForm({ ...leadForm, lead_source: event.target.value })}
+                        disabled={Boolean(affiliateReferralCode)}
                         className="h-11 w-full border border-zinc-700 bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500"
                       >
                         <option value="">Select a source</option>
@@ -1399,16 +1422,18 @@ export function LandingPage() {
                         ))}
                       </select>
                     </div>
-                    <div>
-                      <label className="mb-1.5 block text-sm text-zinc-300">Who referred you?</label>
-                      <input
-                        type="text"
-                        value={leadForm.referral_name}
-                        onChange={(event) => setLeadForm({ ...leadForm, referral_name: event.target.value })}
-                        className="h-11 w-full border border-zinc-700 bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500"
-                        placeholder="Optional"
-                      />
-                    </div>
+                    {!affiliateReferralCode && (
+                      <div>
+                        <label className="mb-1.5 block text-sm text-zinc-300">Who referred you?</label>
+                        <input
+                          type="text"
+                          value={leadForm.referral_name}
+                          onChange={(event) => setLeadForm({ ...leadForm, referral_name: event.target.value })}
+                          className="h-11 w-full border border-zinc-700 bg-zinc-950 px-4 text-sm text-white outline-none focus:border-amber-500"
+                          placeholder="Optional"
+                        />
+                      </div>
+                    )}
                   </div>
                   <div className="mt-4">
                     <label className="mb-1.5 block text-sm text-zinc-300">Message</label>

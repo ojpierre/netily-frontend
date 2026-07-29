@@ -698,10 +698,20 @@ export interface LeadItem {
   company_name: string;
   lead_source: string;
   referral_name: string;
+  affiliate_referral: AffiliateLeadAttribution | null;
   message: string;
   is_contacted: boolean;
   contacted_at: string | null;
   created_at: string;
+}
+
+export interface AffiliateLeadAttribution {
+  referral_id: number;
+  referral_status: 'pending' | 'approved' | 'paid' | 'rejected' | 'churned';
+  affiliate_id: number;
+  affiliate_name: string;
+  affiliate_email: string;
+  referral_code: string;
 }
 
 export interface LeadStats {
@@ -711,6 +721,7 @@ export interface LeadStats {
   last_7_days: number;
   contacted: number;
   not_contacted: number;
+  affiliate_referrals: number;
   source_breakdown: { lead_source: string; count: number }[];
   trend: { month: string; count: number }[];
 }

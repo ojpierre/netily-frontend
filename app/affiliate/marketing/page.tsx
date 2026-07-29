@@ -26,7 +26,7 @@ export default function AffiliateMarketingPage() {
   const filtered = assets.filter((a) => a.category === tab)
 
   const injectLink = (content: string) => {
-    return content.replace(/\{\{REFERRAL_LINK\}\}/g, user?.referral_link || "https://affiliate.netily.co.ke/r/YOUR_CODE")
+    return content.replace(/\{\{REFERRAL_LINK\}\}/g, user?.referral_link || "https://netily.co.ke/affiliate/YOUR_CODE")
   }
 
   const copyContent = (asset: MarketingAsset) => {

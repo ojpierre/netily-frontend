@@ -18,7 +18,10 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         ...submitted,
-        referral_code: request.cookies.get("netily_referral_code")?.value || "",
+        referral_code:
+          request.cookies.get("netily_referral_code")?.value ||
+          submitted.referral_code ||
+          "",
         attribution_token: request.cookies.get("netily_attribution_token")?.value || null,
       }),
       cache: "no-store",

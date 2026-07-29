@@ -54,6 +54,14 @@ export interface SupportLead {
   company_name: string
   lead_source: string
   referral_name: string
+  affiliate_referral: {
+    referral_id: number
+    referral_status: "pending" | "approved" | "paid" | "rejected" | "churned"
+    affiliate_id: number
+    affiliate_name: string
+    affiliate_email: string
+    referral_code: string
+  } | null
   message: string
   is_contacted: boolean
   contacted_at: string | null

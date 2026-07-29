@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { CheckCircle2, Loader2, Plus, Search } from "lucide-react"
+import { CheckCircle2, Link2, Loader2, Plus, Search } from "lucide-react"
 import { supportApi, type SupportLead } from "@/lib/support-api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -127,6 +127,12 @@ export default function SupportLeadsPage() {
                   <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
                     <div className="min-w-0">
                       <p className="font-bold">{lead.company_name || lead.name}</p>
+                      {lead.affiliate_referral && (
+                        <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-amber-300/30 bg-amber-300/10 px-2 py-1 text-xs font-semibold text-amber-200">
+                          <Link2 className="h-3 w-3" />
+                          Affiliate: {lead.affiliate_referral.affiliate_name} · {lead.affiliate_referral.referral_code}
+                        </span>
+                      )}
                       <p className="mt-1 text-sm text-white/50">{lead.name} · {lead.email} · {lead.phone || "No phone"}</p>
                       {lead.referral_name && <p className="mt-1 text-xs text-white/42">Referred by {lead.referral_name}</p>}
                       {lead.message && <p className="mt-2 line-clamp-2 text-sm text-white/58">{lead.message}</p>}

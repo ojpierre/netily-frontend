@@ -62,10 +62,7 @@ function AffiliateShell({ children }: { children: React.ReactNode }) {
     .slice(0, 2)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-red-50/30 to-white text-gray-900">
-      {/* Decorative background */}
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_right,rgba(185,28,28,0.04),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(185,28,28,0.03),transparent_35%)]" />
-
+    <div className="min-h-screen bg-white text-gray-900">
       {/* Mobile overlay */}
       {open && (
         <button
@@ -175,7 +172,7 @@ function AffiliateShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="min-h-[calc(100vh-4rem)] p-4 md:p-8">{children}</main>
+        <main className="min-h-[calc(100vh-4rem)] bg-white p-4 md:p-8">{children}</main>
       </div>
     </div>
   )

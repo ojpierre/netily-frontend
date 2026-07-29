@@ -16,6 +16,7 @@ import {
   Eye,
   Download,
   CheckCircle2,
+  Link2,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -44,6 +45,7 @@ export default function LeadsPage() {
   const [selectedLead, setSelectedLead] = useState<LeadItem | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [contactedFilter, setContactedFilter] = useState<string>("all")
+  const [referralFilter, setReferralFilter] = useState<string>("all")
   const [updatingLeadId, setUpdatingLeadId] = useState<number | null>(null)
 
   // Toggle contacted status with optimistic update
@@ -84,6 +86,7 @@ export default function LeadsPage() {
       }
       if (search) params.search = search
       if (contactedFilter !== "all") params.contacted = contactedFilter
+      if (referralFilter !== "all") params.affiliate_referral = referralFilter
       const res = await superadminApi.getLeads(params)
       setLeads(res.results)
       setTotal(res.count)
@@ -92,7 +95,7 @@ export default function LeadsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, search, contactedFilter])
+  }, [page, search, contactedFilter, referralFilter])
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true)
@@ -116,13 +119,16 @@ export default function LeadsPage() {
 
   const exportCsv = () => {
     if (leads.length === 0) return
-    const headers = ["Name", "Email", "Phone", "Company", "Source", "Message", "Contacted", "Date"]
+    const headers = ["Name", "Email", "Phone", "Company", "Source", "Affiliate", "Affiliate Code", "Referral Status", "Message", "Contacted", "Date"]
     const rows = leads.map((l) => [
       l.name,
       l.email,
       l.phone || "",
       l.company_name || "",
       l.lead_source || "",
+      l.affiliate_referral?.affiliate_name || "",
+      l.affiliate_referral?.referral_code || "",
+      l.affiliate_referral?.referral_status || "",
       (l.message || "").replace(/\n/g, " "),
       l.is_contacted ? "Yes" : "No",
       new Date(l.created_at).toLocaleDateString(),
@@ -163,13 +169,14 @@ export default function LeadsPage() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
         <StatCard label="All Time" value={stats?.total ?? 0} icon={Users} color="text-blue-400" bg="bg-blue-500/10" loading={statsLoading} />
         <StatCard label="This Month" value={stats?.this_month ?? 0} icon={Calendar} color="text-violet-400" bg="bg-violet-500/10" loading={statsLoading} />
         <StatCard label="Last 30 Days" value={stats?.last_30_days ?? 0} icon={TrendingUp} color="text-emerald-400" bg="bg-emerald-500/10" loading={statsLoading} />
         <StatCard label="Last 7 Days" value={stats?.last_7_days ?? 0} icon={UserPlus} color="text-amber-400" bg="bg-amber-500/10" loading={statsLoading} />
         <StatCard label="Contacted" value={stats?.contacted ?? 0} icon={CheckCircle2} color="text-green-400" bg="bg-green-500/10" loading={statsLoading} />
         <StatCard label="Not Contacted" value={stats?.not_contacted ?? 0} icon={UserPlus} color="text-red-400" bg="bg-red-500/10" loading={statsLoading} />
+        <StatCard label="Affiliate Leads" value={stats?.affiliate_referrals ?? 0} icon={Link2} color="text-amber-300" bg="bg-amber-500/10" loading={statsLoading} />
       </div>
 
       {/* Trend mini chart */}
@@ -239,7 +246,7 @@ export default function LeadsPage() {
             />
           </div>
           {/* Contacted filter tabs */}
-          <div className="flex gap-2 mt-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             {(["all", "true", "false"] as const).map((val) => (
               <Button
                 key={val}
@@ -252,6 +259,20 @@ export default function LeadsPage() {
                 }
               >
                 {val === "all" ? "All Leads" : val === "true" ? "✓ Contacted" : "✗ Not Contacted"}
+              </Button>
+            ))}
+            {(["all", "true", "false"] as const).map((val) => (
+              <Button
+                key={`referral-${val}`}
+                variant={referralFilter === val ? "default" : "outline"}
+                size="sm"
+                onClick={() => { setReferralFilter(val); setPage(1) }}
+                className={referralFilter === val
+                  ? "border-amber-500 bg-amber-500 text-slate-950 hover:bg-amber-400"
+                  : "border-slate-700 text-slate-300 hover:border-slate-500 hover:text-white"
+                }
+              >
+                {val === "all" ? "Any channel" : val === "true" ? "Affiliate only" : "Non-affiliate"}
               </Button>
             ))}
           </div>
@@ -283,6 +304,12 @@ export default function LeadsPage() {
                     <tr key={l.id} className="hover:bg-slate-800/50 transition-colors">
                       <td className="px-4 py-3">
                         <p className="font-medium text-white">{l.name}</p>
+                        {l.affiliate_referral && (
+                          <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-200">
+                            <Link2 className="h-3 w-3" />
+                            Affiliate · {l.affiliate_referral.referral_code}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center">
@@ -403,6 +430,12 @@ export default function LeadsPage() {
                 <DetailField label="Company" value={selectedLead.company_name || "—"} />
                 <DetailField label="Source" value={selectedLead.lead_source || "—"} />
                 <DetailField label="Referred By" value={selectedLead.referral_name || "â€”"} />
+                <DetailField
+                  label="Affiliate attribution"
+                  value={selectedLead.affiliate_referral
+                    ? `${selectedLead.affiliate_referral.affiliate_name} · ${selectedLead.affiliate_referral.referral_code} · ${selectedLead.affiliate_referral.referral_status}`
+                    : "—"}
+                />
                 <DetailField label="Submitted" value={new Date(selectedLead.created_at).toLocaleString("en-KE")} />
               </div>
 
