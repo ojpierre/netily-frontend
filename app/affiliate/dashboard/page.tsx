@@ -76,7 +76,7 @@ export default function AffiliateDashboardPage() {
                 {data?.referral_link}
               </p>
               <p className="mt-1 text-xs text-gray-400">
-                Tracked link — clicks are counted. Share with ISPs and earn when they pay their first month.
+                Tracked link — clicks and signups are recorded for manual review. Rewards are approved and paid by Netily.
               </p>
             </div>
             <Button

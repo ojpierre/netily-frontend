@@ -15,7 +15,12 @@ interface AffiliateAuthContextValue {
 
 const AffiliateAuthContext = createContext<AffiliateAuthContextValue | undefined>(undefined)
 
-const AFFILIATE_PUBLIC_PATHS = ["/affiliate/login", "/affiliate/register", "/affiliate/verify"]
+const AFFILIATE_PUBLIC_PATHS = [
+  "/affiliate/login",
+  "/affiliate/register",
+  "/affiliate/verify",
+  "/affiliate/admin-access",
+]
 
 export function isAffiliatePublicPath(pathname: string | null): boolean {
   return pathname === "/affiliate" || AFFILIATE_PUBLIC_PATHS.some((path) => pathname?.startsWith(path))

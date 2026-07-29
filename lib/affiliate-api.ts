@@ -40,10 +40,14 @@ export interface Referral {
   isp_name: string
   company: string
   signup_date: string
-  status: "pending" | "paid" | "churned"
+  status: "pending" | "approved" | "paid" | "rejected" | "churned"
   reward_amount: number
   currency: string
   admin_notes?: string
+  attribution_type?: "tracked_click" | "manual"
+  click_id?: number | null
+  clicked_at?: string | null
+  source?: string
 }
 
 export interface Payout {
@@ -129,6 +133,8 @@ export interface AdminAffiliate {
   email: string
   phone: string
   referral_code: string
+  referral_link: string
+  is_verified: boolean
   referrals_count: number
   total_earned: number
   currency: string
@@ -299,8 +305,44 @@ class AffiliateApiService {
     return this.request<AdminAffiliate[]>(`/affiliate/admin/affiliates/?${query}`, {}, "superadmin")
   }
 
+  adminCreateAffiliate(data: {
+    full_name: string
+    email: string
+    phone: string
+    country: string
+    password: string
+    status?: AdminAffiliate["status"]
+    tier?: AdminAffiliate["tier"]
+    is_verified?: boolean
+  }) {
+    return this.request<AdminAffiliate>(
+      "/affiliate/admin/affiliates/",
+      { method: "POST", body: JSON.stringify(data) },
+      "superadmin",
+    )
+  }
+
   adminUpdateAffiliate(id: number, data: Partial<AdminAffiliate>) {
     return this.request<AdminAffiliate>(`/affiliate/admin/affiliates/${id}/`, { method: "PATCH", body: JSON.stringify(data) }, "superadmin")
+  }
+
+  adminDeactivateAffiliate(id: number) {
+    return this.request<void>(`/affiliate/admin/affiliates/${id}/`, { method: "DELETE" }, "superadmin")
+  }
+
+  adminCreateReferral(affiliateId: number, data: {
+    signup_email: string
+    company_name?: string
+    status?: Referral["status"]
+    reward_amount?: number
+    currency: string
+    admin_notes?: string
+  }) {
+    return this.request<Referral>(
+      `/affiliate/admin/affiliates/${affiliateId}/referrals/`,
+      { method: "POST", body: JSON.stringify(data) },
+      "superadmin",
+    )
   }
 
   adminUpdateReferral(id: number, data: Partial<Referral>) {
@@ -309,6 +351,47 @@ class AffiliateApiService {
 
   adminCreatePayout(affiliateId: number, data: { amount: number; currency: string; method: "mpesa" | "bank"; status: Payout["status"]; reference?: string; notes?: string }) {
     return this.request<Payout>(`/affiliate/admin/affiliates/${affiliateId}/payouts/`, { method: "POST", body: JSON.stringify(data) }, "superadmin")
+  }
+
+  adminUpdatePayout(id: number, data: Partial<Payout>) {
+    return this.request<Payout>(
+      `/affiliate/admin/payouts/${id}/`,
+      { method: "PATCH", body: JSON.stringify(data) },
+      "superadmin",
+    )
+  }
+
+  adminGetSettings() {
+    return this.request<{ affiliate_email_otp_enabled: boolean }>("/affiliate/admin/settings/", {}, "superadmin")
+  }
+
+  adminUpdateSettings(affiliateEmailOtpEnabled: boolean) {
+    return this.request<{ affiliate_email_otp_enabled: boolean }>(
+      "/affiliate/admin/settings/",
+      { method: "PATCH", body: JSON.stringify({ affiliate_email_otp_enabled: affiliateEmailOtpEnabled }) },
+      "superadmin",
+    )
+  }
+
+  adminRequestAffiliateAccess(id: number) {
+    return this.request<{ access_url: string; expires_in: number }>(
+      `/affiliate/admin/affiliates/${id}/access/`,
+      { method: "POST" },
+      "superadmin",
+    )
+  }
+
+  async exchangeAdminAccess(token: string) {
+    const result = await this.request<{ access: string; user: AffiliateUser; expires_in: number }>(
+      "/affiliate/admin-access/exchange/",
+      { method: "POST", body: JSON.stringify({ token }) },
+      "public",
+    )
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(REFRESH_KEY)
+    sessionStorage.setItem(TOKEN_KEY, result.access)
+    sessionStorage.removeItem(REFRESH_KEY)
+    return result
   }
 
   async adminExportCsv(): Promise<Blob> {

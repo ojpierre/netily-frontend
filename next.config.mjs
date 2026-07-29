@@ -73,6 +73,12 @@ const nextConfig = {
         ],
       },
       {
+        source: '/affiliate/admin-access',
+        headers: [
+          { key: 'Cache-Control', value: 'private, no-store, no-cache, max-age=0, must-revalidate' },
+        ],
+      },
+      {
         source: '/(.*)',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -94,7 +100,9 @@ const withPWA = withPWAInit({
   workboxOptions: {
     runtimeCaching: [
       {
-        urlPattern: ({ url }) => url.pathname === "/affiliate/verify",
+        urlPattern: ({ url }) =>
+          url.pathname === "/affiliate/verify" ||
+          url.pathname === "/affiliate/admin-access",
         handler: "NetworkOnly",
         method: "GET",
       },

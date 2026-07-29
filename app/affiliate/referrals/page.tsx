@@ -6,6 +6,14 @@ import { affiliateApi, type Referral } from "@/lib/affiliate-api"
 import { useAffiliateAuth } from "../affiliate-auth-context"
 import { Button } from "@/components/ui/button"
 
+const REFERRAL_STATUS_LABELS = {
+  pending: "Pending review",
+  approved: "Approved",
+  paid: "Paid",
+  rejected: "Rejected",
+  churned: "Rejected / churned",
+} as const
+
 export default function AffiliateReferralsPage() {
   const { user } = useAffiliateAuth()
   const [referrals, setReferrals] = useState<Referral[]>([])
@@ -69,14 +77,12 @@ export default function AffiliateReferralsPage() {
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${
-                          r.status === "paid"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : r.status === "pending"
-                            ? "bg-amber-50 text-amber-700 border border-amber-200"
-                            : "bg-gray-100 text-gray-500 border border-gray-200"
+                          r.status === "paid" || r.status === "approved"
+                            ? "bg-red-50 text-red-800 border border-red-200"
+                            : "bg-white text-red-700 border border-red-200"
                         }`}
                       >
-                        {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                        {REFERRAL_STATUS_LABELS[r.status]}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right font-black text-gray-900">

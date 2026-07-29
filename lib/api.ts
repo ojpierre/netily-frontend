@@ -762,20 +762,10 @@ export async function purchaseHotspotAccess({ routerId, planId, phoneNumber }: {
  * Submit a lead from the landing page (public, no auth required)
  */
 export async function submitLead(data: { name: string; email: string; phone: string; company: string; lead_source?: string; referral_name?: string; message?: string }, signal?: AbortSignal): Promise<{ message: string }> {
-  const baseUrl = getBaseUrl()
-  const cookieValue = (name: string) =>
-    typeof document === "undefined"
-      ? ""
-      : decodeURIComponent(document.cookie.split("; ").find((row) => row.startsWith(`${name}=`))?.split("=")[1] || "")
-  const response = await fetch(`${baseUrl}/core/leads/submit/`, {
+  const response = await fetch("/api/public/core/leads/submit/", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...data,
-      referral_code: cookieValue("netily_referral_code"),
-      attribution_token: cookieValue("netily_attribution_token") || null,
-    }),
-    mode: 'cors',
+    body: JSON.stringify(data),
     signal,
   })
   if (!response.ok) {

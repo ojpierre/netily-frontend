@@ -5,8 +5,11 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  ExternalLink,
   Loader2,
+  Plus,
   Search,
+  ShieldCheck,
   TrendingUp,
   UserCheck,
   Users,
@@ -35,6 +38,23 @@ export default function SuperAdminReferralsPage() {
   const [payoutAmount, setPayoutAmount] = useState("")
   const [payoutMethod, setPayoutMethod] = useState<"mpesa" | "bank">("mpesa")
   const [payoutReference, setPayoutReference] = useState("")
+  const [affiliateOtpEnabled, setAffiliateOtpEnabled] = useState(false)
+  const [settingsLoading, setSettingsLoading] = useState(true)
+  const [showCreate, setShowCreate] = useState(false)
+  const [createDraft, setCreateDraft] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    country: "Kenya",
+    password: "",
+    is_verified: false,
+  })
+  const [manualReferral, setManualReferral] = useState({
+    signup_email: "",
+    company_name: "",
+    reward_amount: "0",
+    admin_notes: "",
+  })
 
   const fetchAffiliates = async () => {
     setLoading(true)
@@ -75,7 +95,11 @@ export default function SuperAdminReferralsPage() {
     }
   }
 
-  const updateReferral = async (affiliateId: number, referralId: number, status?: "pending" | "paid" | "churned") => {
+  const updateReferral = async (
+    affiliateId: number,
+    referralId: number,
+    status?: AdminAffiliate["referrals"][number]["status"],
+  ) => {
     const affiliate = affiliates.find((item) => item.id === affiliateId)
     const referral = affiliate?.referrals.find((item) => item.id === referralId)
     if (!referral) return
@@ -90,7 +114,10 @@ export default function SuperAdminReferralsPage() {
       setAffiliates((current) => current.map((item) => {
         if (item.id !== affiliateId) return item
         const referrals = item.referrals.map((entry) => entry.id === referralId ? updated : entry)
-        return { ...item, referrals, total_earned: referrals.reduce((sum, entry) => sum + entry.reward_amount, 0) }
+        const totalEarned = referrals
+          .filter((entry) => entry.status === "approved" || entry.status === "paid")
+          .reduce((sum, entry) => sum + entry.reward_amount, 0)
+        return { ...item, referrals, total_earned: totalEarned }
       }))
       setError("")
     } catch (err) {
@@ -125,10 +152,134 @@ export default function SuperAdminReferralsPage() {
     }
   }
 
+  const createAffiliate = async () => {
+    setSavingId(-1)
+    setError("")
+    try {
+      await affiliateApi.adminCreateAffiliate(createDraft)
+      setCreateDraft({ full_name: "", email: "", phone: "", country: "Kenya", password: "", is_verified: false })
+      setShowCreate(false)
+      await fetchAffiliates()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create affiliate.")
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const createManualReferral = async (affiliate: AdminAffiliate) => {
+    const reward = Number(manualReferral.reward_amount)
+    if (!manualReferral.signup_email.trim() || !Number.isFinite(reward) || reward < 0) {
+      setError("Enter a valid signup email and commission amount.")
+      return
+    }
+    setSavingId(affiliate.id)
+    try {
+      await affiliateApi.adminCreateReferral(affiliate.id, {
+        signup_email: manualReferral.signup_email.trim(),
+        company_name: manualReferral.company_name.trim(),
+        reward_amount: reward,
+        currency: affiliate.currency,
+        status: "pending",
+        admin_notes: manualReferral.admin_notes.trim(),
+      })
+      setManualReferral({ signup_email: "", company_name: "", reward_amount: "0", admin_notes: "" })
+      await fetchAffiliates()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create manual referral.")
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const updatePayoutStatus = async (affiliateId: number, payoutId: number, status: "pending" | "completed" | "failed") => {
+    const payout = affiliates
+      .find((affiliate) => affiliate.id === affiliateId)
+      ?.payouts?.find((entry) => entry.id === payoutId)
+    let reference = payout?.reference || ""
+    if (status === "completed" && !reference) {
+      reference = window.prompt("Enter the external transaction reference before marking this payout completed:")?.trim() || ""
+      if (!reference) {
+        setError("A transaction reference is required for a completed payout.")
+        return
+      }
+    }
+    setSavingId(payoutId)
+    try {
+      const updated = await affiliateApi.adminUpdatePayout(payoutId, { status, ...(reference ? { reference } : {}) })
+      setAffiliates((current) => current.map((affiliate) => affiliate.id === affiliateId
+        ? { ...affiliate, payouts: (affiliate.payouts || []).map((payout) => payout.id === payoutId ? updated : payout) }
+        : affiliate))
+      setError("")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update payout.")
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const openAffiliateAccount = async (affiliate: AdminAffiliate) => {
+    const accessWindow = window.open("", "_blank")
+    if (accessWindow) {
+      accessWindow.opener = null
+      accessWindow.document.title = "Opening affiliate account…"
+      accessWindow.document.body.textContent = "Preparing secure affiliate access…"
+    }
+    setSavingId(affiliate.id)
+    try {
+      const grant = await affiliateApi.adminRequestAffiliateAccess(affiliate.id)
+      if (accessWindow) {
+        accessWindow.location.replace(grant.access_url)
+      } else {
+        window.location.assign(grant.access_url)
+      }
+      setError("")
+    } catch (err) {
+      accessWindow?.close()
+      setError(err instanceof Error ? err.message : "Unable to open affiliate account.")
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const deactivateAffiliate = async (affiliate: AdminAffiliate) => {
+    if (!window.confirm(`Deactivate ${affiliate.full_name}? Their history and audit records will be retained.`)) return
+    setSavingId(affiliate.id)
+    try {
+      await affiliateApi.adminDeactivateAffiliate(affiliate.id)
+      await fetchAffiliates()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to deactivate affiliate.")
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const toggleAffiliateOtp = async () => {
+    const next = !affiliateOtpEnabled
+    setSettingsLoading(true)
+    try {
+      const result = await affiliateApi.adminUpdateSettings(next)
+      setAffiliateOtpEnabled(result.affiliate_email_otp_enabled)
+      setError("")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update affiliate OTP.")
+    } finally {
+      setSettingsLoading(false)
+    }
+  }
+
   useEffect(() => {
     const timer = setTimeout(fetchAffiliates, 300)
     return () => clearTimeout(timer)
   }, [search, statusFilter])
+
+  useEffect(() => {
+    affiliateApi.adminGetSettings()
+      .then((settings) => setAffiliateOtpEnabled(settings.affiliate_email_otp_enabled))
+      .catch((err) => setError(err instanceof Error ? err.message : "Unable to load affiliate settings."))
+      .finally(() => setSettingsLoading(false))
+  }, [])
 
   const exportCsv = async () => {
     const blob = await affiliateApi.adminExportCsv()
@@ -150,7 +301,7 @@ export default function SuperAdminReferralsPage() {
   const avgConversion = totalAffiliates > 0 ? Math.round((totalReferrals / Math.max(totalAffiliates, 1)) * 10) / 10 : 0
 
   return (
-    <div className="space-y-8">
+    <div className="affiliate-theme space-y-8">
       {/* Header */}
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
@@ -167,7 +318,56 @@ export default function SuperAdminReferralsPage() {
           <Download className="mr-2 h-4 w-4" />
           Export CSV
         </Button>
+        <Button onClick={() => setShowCreate((value) => !value)} className="bg-red-700 text-white hover:bg-red-800">
+          <Plus className="mr-2 h-4 w-4" />
+          Add affiliate
+        </Button>
       </div>
+
+      <section className="rounded-2xl border border-red-200 bg-white p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 font-bold text-red-950">
+              <ShieldCheck className="h-4 w-4" />
+              Affiliate login OTP
+            </h2>
+            <p className="mt-1 text-sm text-red-800">
+              Optional platform-wide email OTP after password login. It is disabled by default.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={affiliateOtpEnabled}
+            disabled={settingsLoading}
+            onClick={toggleAffiliateOtp}
+            className={`relative h-7 w-12 rounded-full border transition ${affiliateOtpEnabled ? "border-red-700 bg-red-700" : "border-red-300 bg-white"}`}
+          >
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full border border-red-300 bg-white transition ${affiliateOtpEnabled ? "left-6" : "left-0.5"}`} />
+          </button>
+        </div>
+      </section>
+
+      {showCreate && (
+        <section className="rounded-2xl border border-red-200 bg-white p-5">
+          <h2 className="text-lg font-bold text-red-950">Create affiliate account</h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <Input placeholder="Full name" value={createDraft.full_name} onChange={(event) => setCreateDraft((draft) => ({ ...draft, full_name: event.target.value }))} />
+            <Input type="email" placeholder="Email" value={createDraft.email} onChange={(event) => setCreateDraft((draft) => ({ ...draft, email: event.target.value }))} />
+            <Input placeholder="Phone" value={createDraft.phone} onChange={(event) => setCreateDraft((draft) => ({ ...draft, phone: event.target.value }))} />
+            <Input placeholder="Country" value={createDraft.country} onChange={(event) => setCreateDraft((draft) => ({ ...draft, country: event.target.value }))} />
+            <Input type="password" placeholder="Temporary password" value={createDraft.password} onChange={(event) => setCreateDraft((draft) => ({ ...draft, password: event.target.value }))} />
+            <label className="flex items-center gap-2 text-sm text-red-900">
+              <input type="checkbox" checked={createDraft.is_verified} onChange={(event) => setCreateDraft((draft) => ({ ...draft, is_verified: event.target.checked }))} />
+              Mark email as verified
+            </label>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <Button onClick={createAffiliate} disabled={savingId === -1} className="bg-red-700 text-white hover:bg-red-800">Create account</Button>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+          </div>
+        </section>
+      )}
 
       {error && (
         <div role="alert" className="rounded-lg border border-red-700/50 bg-red-950/40 px-4 py-3 text-sm text-red-300">
@@ -300,9 +500,23 @@ export default function SuperAdminReferralsPage() {
                       <tr>
                         <td colSpan={9} className="bg-slate-800/30 px-4 py-4">
                           <div className="ml-6 border-l-2 border-violet-600/30 pl-4">
-                            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-violet-400">
-                              Referrals by {a.full_name}
-                            </p>
+                            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-xs font-semibold uppercase tracking-wider text-violet-400">
+                                Referrals by {a.full_name}
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                <Button size="sm" variant="outline" onClick={() => openAffiliateAccount(a)}>
+                                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                                  Open account
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(a.referral_link)}>
+                                  Copy referral link
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => deactivateAffiliate(a)} disabled={a.status === "inactive"}>
+                                  Deactivate
+                                </Button>
+                              </div>
+                            </div>
                             {a.referrals.length > 0 ? (
                               <div className="space-y-2">
                                 {a.referrals.map((r) => (
@@ -319,7 +533,9 @@ export default function SuperAdminReferralsPage() {
                                         aria-label={`Referral status for ${r.isp_name}`}
                                       >
                                         <option value="pending">Pending</option>
+                                        <option value="approved">Approved</option>
                                         <option value="paid">Paid</option>
+                                        <option value="rejected">Rejected</option>
                                         <option value="churned">Rejected/churned</option>
                                       </select>
                                       <div className="flex items-center gap-1">
@@ -350,6 +566,22 @@ export default function SuperAdminReferralsPage() {
                               <p className="text-sm text-slate-500">No referrals yet.</p>
                             )}
                             <div className="mt-5 border-t border-slate-700/70 pt-4">
+                              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-violet-400">
+                                Add manual referral
+                              </p>
+                              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                                <Input type="email" placeholder="Signup email" value={manualReferral.signup_email} onChange={(event) => setManualReferral((draft) => ({ ...draft, signup_email: event.target.value }))} />
+                                <Input placeholder="Company name" value={manualReferral.company_name} onChange={(event) => setManualReferral((draft) => ({ ...draft, company_name: event.target.value }))} />
+                                <Input type="number" min="0" step="0.01" placeholder="Commission" value={manualReferral.reward_amount} onChange={(event) => setManualReferral((draft) => ({ ...draft, reward_amount: event.target.value }))} />
+                                <Input placeholder="Review note" value={manualReferral.admin_notes} onChange={(event) => setManualReferral((draft) => ({ ...draft, admin_notes: event.target.value }))} />
+                              </div>
+                              <Button size="sm" onClick={() => createManualReferral(a)} className="mt-2 bg-red-700 text-white hover:bg-red-800">
+                                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                                Add for review
+                              </Button>
+                              <p className="mt-2 text-xs text-slate-500">Manual entries are audit logged and never generate an automatic commission or payout.</p>
+                            </div>
+                            <div className="mt-5 border-t border-slate-700/70 pt-4">
                               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-violet-400">Record manual payout</p>
                               <div className="flex flex-wrap items-end gap-2">
                                 <label className="text-xs text-slate-400">
@@ -372,6 +604,33 @@ export default function SuperAdminReferralsPage() {
                                 </Button>
                               </div>
                               <p className="mt-2 text-xs text-slate-500">This records an externally completed payout; it does not send money automatically.</p>
+                            </div>
+                            <div className="mt-5 border-t border-slate-700/70 pt-4">
+                              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-violet-400">Payout history</p>
+                              {(a.payouts || []).length ? (
+                                <div className="space-y-2">
+                                  {(a.payouts || []).map((payout) => (
+                                    <div key={payout.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-100 bg-white p-3">
+                                      <div>
+                                        <p className="text-sm font-bold">{payout.currency} {payout.amount.toLocaleString()}</p>
+                                        <p className="text-xs">{payout.reference || "No reference"} · {new Date(payout.date).toLocaleDateString()}</p>
+                                      </div>
+                                      <select
+                                        value={payout.status}
+                                        disabled={savingId === payout.id}
+                                        onChange={(event) => updatePayoutStatus(a.id, payout.id, event.target.value as typeof payout.status)}
+                                        className="rounded border border-red-300 bg-white px-2 py-1 text-sm text-red-950"
+                                      >
+                                        <option value="pending">Pending</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="failed">Failed</option>
+                                      </select>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm">No payouts recorded.</p>
+                              )}
                             </div>
                           </div>
                         </td>
