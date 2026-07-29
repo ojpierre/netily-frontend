@@ -1,5 +1,8 @@
 import AffiliateVerificationClient from "./verification-client"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 type AffiliateVerifyPageProps = {
   searchParams: Promise<{ token?: string | string[] }>
 }

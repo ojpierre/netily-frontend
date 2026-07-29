@@ -67,6 +67,12 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/affiliate/verify',
+        headers: [
+          { key: 'Cache-Control', value: 'private, no-store, no-cache, max-age=0, must-revalidate' },
+        ],
+      },
+      {
         source: '/(.*)',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -84,6 +90,16 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development",
   register: true,
   skipWaiting: true,
+  extendDefaultRuntimeCaching: true,
+  workboxOptions: {
+    runtimeCaching: [
+      {
+        urlPattern: ({ url }) => url.pathname === "/affiliate/verify",
+        handler: "NetworkOnly",
+        method: "GET",
+      },
+    ],
+  },
 })
 
 export default withPWA(nextConfig)
