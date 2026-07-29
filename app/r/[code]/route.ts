@@ -14,7 +14,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ cod
   const { code } = await context.params
   // Never derive a public redirect from the container's internal host
   // (for example 0.0.0.0:3000 behind nginx).
-  const destination = new URL("/", PUBLIC_SITE_URL)
+  const destination = new URL("/admin/selfie", PUBLIC_SITE_URL)
+  destination.searchParams.set("ref", code.toUpperCase())
   try {
     const visitorIp =
       request.headers.get("cf-connecting-ip") ||
