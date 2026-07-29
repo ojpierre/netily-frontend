@@ -55,12 +55,12 @@ export default function AffiliateDashboardPage() {
   return (
     <div className="space-y-8">
       {/* Hero card */}
-      <div className="rounded-3xl border border-gray-200/80 bg-gradient-to-br from-white via-red-50/30 to-white p-6 shadow-sm md:p-8">
+      <div className="rounded-3xl border border-gray-200/80 bg-white p-6 shadow-sm md:p-8">
         <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
           <span>Netily Affiliates</span>
-          <span className="h-1 w-1 rounded-full bg-gray-300" />
+          <span className="h-1 w-1 rounded-full bg-red-200" />
           <span>{timeStr}</span>
-          <span className="h-1 w-1 rounded-full bg-gray-300" />
+          <span className="h-1 w-1 rounded-full bg-red-200" />
           <span className="text-red-600">Code {data?.referral_code}</span>
         </div>
 
@@ -69,7 +69,7 @@ export default function AffiliateDashboardPage() {
         </h1>
 
         {/* Referral link */}
-        <div className="mt-5 rounded-2xl border border-red-200/60 bg-gradient-to-r from-red-50/80 to-orange-50/60 p-4">
+        <div className="mt-5 rounded-2xl border border-red-200/60 bg-white p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-mono font-semibold text-gray-800">
@@ -84,7 +84,7 @@ export default function AffiliateDashboardPage() {
               className={`shrink-0 rounded-xl transition-all ${
                 copied
                   ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                  : "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md shadow-red-200 hover:from-red-700 hover:to-red-800"
+                  : "bg-red-600 text-white shadow-md shadow-red-200 hover:bg-red-700"
               }`}
             >
               {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
@@ -132,7 +132,7 @@ export default function AffiliateDashboardPage() {
           <div className="mt-6 space-y-3">
             {data?.recent_activity?.length ? (
               data.recent_activity.map((a, i) => (
-                <div key={i} className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+                <div key={i} className="rounded-xl border border-gray-100 bg-white p-3">
                   <p className="text-sm font-semibold text-gray-800">{a.event}</p>
                   <p className="mt-1 text-xs text-gray-400">{a.date}</p>
                 </div>
@@ -165,7 +165,7 @@ function StatCard({
     <div
       className={`rounded-2xl border p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
         accent
-          ? "border-red-200/60 bg-gradient-to-br from-red-50 to-orange-50"
+          ? "border-red-200/60 bg-white"
           : "border-gray-200/80 bg-white"
       }`}
     >
@@ -184,9 +184,9 @@ function FunnelBar({ label, value, max }: { label: string; value: number; max: n
         <span className="font-semibold text-gray-700">{label}</span>
         <span className="font-black text-gray-900">{value.toLocaleString()}</span>
       </div>
-      <div className="h-3 w-full rounded-full bg-gray-100 overflow-hidden">
+      <div className="h-3 w-full overflow-hidden rounded-full border border-gray-100 bg-white">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-700 ease-out"
+          className="h-full rounded-full bg-red-600 transition-all duration-700 ease-out"
           style={{ width: `${pct}%` }}
         />
       </div>
