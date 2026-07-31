@@ -236,7 +236,7 @@ export default function PaymentMethodsPage() {
               configured={!!bankMethod}
               active={!!bankMethod?.is_active}
               busy={busyId === bankMethod?.id}
-              footNote={bankMethod ? "Settlement: 1–2 business days" : "Not configured"}
+              footNote={bankMethod ? "Instant" : "Not configured"}
               onConfigure={() => setChannelDialog("bank")}
               onActivate={bankMethod ? () => handleActivate(bankMethod) : undefined}
               iconColor="text-primary"
