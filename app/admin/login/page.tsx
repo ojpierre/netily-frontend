@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Shield, AlertCircle, Mail, Wifi, Fingerprint } from "lucide-react"
+import { Loader2, AlertCircle, Mail, Fingerprint } from "lucide-react"
 import {
   Card,
   CardContent,
@@ -64,7 +64,7 @@ function ParticleBackground() {
       vy: number
       radius: number
       depth: number
-      hue: "white" | "cyan"
+      hue: "slate" | "blue"
       pulseSpeed: number
       pulsePhase: number
       spark: boolean
@@ -85,9 +85,9 @@ function ParticleBackground() {
         y: Math.random() * h,
         vx: (Math.random() - 0.5) * 0.12 * depth,
         vy: (Math.random() - 0.5) * 0.12 * depth,
-        radius: (0.6 + Math.random() * 1.6) * depth,
+        radius: (1.4 + Math.random() * 2.6) * depth,
         depth,
-        hue: Math.random() < 0.78 ? "white" : "cyan",
+        hue: Math.random() < 0.7 ? "slate" : "blue",
         pulseSpeed: 0.4 + Math.random() * 0.6,
         pulsePhase: Math.random() * Math.PI * 2,
         spark: Math.random() < 0.06,
@@ -177,9 +177,9 @@ function ParticleBackground() {
             const dy = a.y - b.y
             const dist = Math.hypot(dx, dy)
             if (dist < connectDist) {
-              const alpha = (1 - dist / connectDist) * 0.12 * Math.min(a.depth, b.depth)
-              ctx.strokeStyle = `rgba(180, 220, 255, ${alpha})`
-              ctx.lineWidth = 0.6
+              const alpha = (1 - dist / connectDist) * 0.18 * Math.min(a.depth, b.depth)
+              ctx.strokeStyle = `rgba(30, 64, 175, ${alpha})`
+              ctx.lineWidth = 0.7
               ctx.beginPath()
               ctx.moveTo(a.x, a.y)
               ctx.lineTo(b.x, b.y)
@@ -191,14 +191,14 @@ function ParticleBackground() {
 
       for (const p of particles) {
         const pulse = 0.5 + 0.5 * Math.sin(t * p.pulseSpeed + p.pulsePhase)
-        const baseAlpha = (p.spark ? 0.55 : 0.28) * p.depth
+        const baseAlpha = (p.spark ? 0.75 : 0.5) * p.depth
         const alpha = baseAlpha + pulse * 0.25 * p.depth
-        const color = p.hue === "cyan" ? "150, 230, 255" : "255, 255, 255"
+        const color = p.hue === "blue" ? "37, 99, 235" : "51, 65, 85" // blue-600 / slate-700
 
         ctx.beginPath()
         ctx.fillStyle = `rgba(${color}, ${Math.min(alpha, 1)})`
-        ctx.shadowColor = `rgba(${color}, ${Math.min(alpha * 0.8, 1)})`
-        ctx.shadowBlur = p.spark ? 8 : 3
+        ctx.shadowColor = `rgba(${color}, ${Math.min(alpha * 0.6, 1)})`
+        ctx.shadowBlur = p.spark ? 6 : 2
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
         ctx.fill()
       }
@@ -481,92 +481,88 @@ export default function AdminLoginPage() {
   // Show loading state while checking auth
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
       </div>
     )
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950">
-      {/* Ambient depth glow (subtle, kept quiet behind the particle field) */}
+    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-white">
+      {/* Ambient depth — soft color washes instead of dark glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-250px] left-[-150px] w-[600px] h-[600px] rounded-full bg-blue-500/10 blur-[140px]" />
-        <div className="absolute bottom-[-250px] right-[-100px] w-[500px] h-[500px] rounded-full bg-violet-500/10 blur-[150px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,.05),transparent_60%)]" />
+        <div className="absolute top-[-250px] left-[-150px] w-[600px] h-[600px] rounded-full bg-blue-500/[0.06] blur-[140px]" />
+        <div className="absolute bottom-[-250px] right-[-100px] w-[500px] h-[500px] rounded-full bg-violet-500/[0.06] blur-[150px]" />
       </div>
 
-      {/* Animated particle field: drifting glowing nodes with connecting lines and mouse interaction */}
       <ParticleBackground />
 
       <Card
         ref={cardRef}
-        className="relative w-full max-w-md backdrop-blur-2xl bg-white/5 dark:bg-slate-900/50 border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,.4)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_45px_100px_rgba(0,0,0,.5)] animate-in fade-in zoom-in-95 duration-700 overflow-hidden"
+        className="relative w-full max-w-md bg-white border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_60px_-10px_rgba(15,23,42,0.12)] transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 duration-500 overflow-hidden"
       >
-        {/* Mouse gradient lighting */}
         <div
-          className="absolute inset-0 pointer-events-none transition-opacity duration-300 opacity-30"
+          className="absolute inset-0 pointer-events-none transition-opacity duration-300 opacity-[0.04]"
           style={{
-            background: `radial-gradient(400px circle at ${mouse.x}px ${mouse.y}px, rgba(255,255,255,.12), transparent 50%)`,
+            background: `radial-gradient(400px circle at ${mouse.x}px ${mouse.y}px, rgba(37,99,235,1), transparent 60%)`,
           }}
         />
 
         {step === "credentials" ? (
           <>
-            <CardHeader className="text-center space-y-4 relative z-10">
-              <div className="relative mx-auto w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center shadow-xl before:absolute before:inset-0 before:rounded-3xl before:border before:border-white/20 before:animate-pulse">
-                <Shield className="w-10 h-10 text-white drop-shadow-lg" />
+            <CardHeader className="space-y-1 pt-8 pb-2 relative z-10">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="h-6 w-1 rounded-full bg-blue-600" />
+                <span className="text-xs font-semibold tracking-[0.18em] text-slate-400 uppercase">
+                  Netily
+                </span>
               </div>
-              <CardTitle className="text-2xl font-bold text-white tracking-tight">
-                Network Operations
+              <CardTitle className="text-2xl font-semibold text-slate-900 tracking-tight">
+                Sign in
               </CardTitle>
-              <CardDescription className="text-slate-400 text-sm">
-                Secure access to your management console
+              <CardDescription className="text-slate-500 text-sm">
+                Enter your credentials to access your workspace.
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="relative z-10">
+            <CardContent className="relative z-10 pt-4">
               <form onSubmit={handleSubmit} className="space-y-5">
                 {error && (
-                  <Alert variant="destructive" className="bg-red-950/40 border-red-800/50 text-red-300">
+                  <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-700">
                     <AlertCircle className="w-4 h-4" />
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-slate-300 text-sm font-medium">Email</Label>
-                  <div className="relative">
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="admin@example.com"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      autoComplete="email"
-                      required
-                      className="h-12 rounded-xl bg-white/5 border-slate-700/50 text-white placeholder:text-slate-500 transition-all duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-500 focus:scale-[1.01]"
-                    />
-                  </div>
+                  <Label htmlFor="email" className="text-slate-700 text-sm font-medium">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="admin@example.com"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    disabled={loading}
+                    autoComplete="email"
+                    required
+                    className="h-11 rounded-lg bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="password" className="text-slate-300 text-sm font-medium">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      required
-                      className="h-12 rounded-xl bg-white/5 border-slate-700/50 text-white placeholder:text-slate-500 transition-all duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-500 focus:scale-[1.01]"
-                    />
-                  </div>
+                  <Label htmlFor="password" className="text-slate-700 text-sm font-medium">Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    disabled={loading}
+                    required
+                    className="h-11 rounded-lg bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                  />
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -575,36 +571,34 @@ export default function AdminLoginPage() {
                     checked={formData.rememberMe}
                     onCheckedChange={handleCheckboxChange}
                     disabled={loading}
-                    className="border-slate-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                    className="border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                   />
-                  <Label htmlFor="rememberMe" className="text-sm text-slate-400 cursor-pointer hover:text-slate-300 transition-colors">
+                  <Label htmlFor="rememberMe" className="text-sm text-slate-500 cursor-pointer hover:text-slate-700 transition-colors">
                     Remember me
                   </Label>
                 </div>
 
                 <Button
                   type="submit"
-                  className="relative overflow-hidden w-full h-12 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-violet-600 hover:scale-[1.02] active:scale-[.98] transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 text-white group"
+                  className="w-full h-11 rounded-lg font-medium bg-slate-900 hover:bg-slate-800 transition-colors duration-200 text-white"
                   disabled={loading}
                 >
-                  <span className="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000" />
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Signing in...
                     </>
                   ) : (
-                    "Sign In"
+                    "Sign in"
                   )}
                 </Button>
 
-                {/* ── Passkey divider and button ── */}
-                <div className="relative py-2">
+                <div className="relative py-1">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-slate-700/50" />
+                    <div className="w-full border-t border-slate-200" />
                   </div>
                   <div className="relative flex justify-center">
-                    <span className="bg-white/5 px-3 text-xs text-slate-400">or</span>
+                    <span className="bg-white px-3 text-xs text-slate-400">or</span>
                   </div>
                 </div>
 
@@ -613,7 +607,7 @@ export default function AdminLoginPage() {
                   variant="outline"
                   onClick={handlePasskeyLogin}
                   disabled={passkeyLoading}
-                  className="w-full h-12 rounded-xl border-slate-700/50 text-slate-300 font-medium hover:bg-white/5 hover:text-white gap-2 transition-all duration-300"
+                  className="w-full h-11 rounded-lg border-slate-200 text-slate-700 font-medium hover:bg-slate-50 gap-2 transition-colors duration-200"
                 >
                   {passkeyLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -627,21 +621,24 @@ export default function AdminLoginPage() {
           </>
         ) : (
           <>
-            <CardHeader className="text-center space-y-4 relative z-10">
-              <div className="relative mx-auto w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center shadow-xl before:absolute before:inset-0 before:rounded-3xl before:border before:border-white/20 before:animate-pulse">
-                <Mail className="w-10 h-10 text-white drop-shadow-lg" />
+            <CardHeader className="space-y-1 pt-8 pb-2 relative z-10">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="h-6 w-1 rounded-full bg-blue-600" />
+                <span className="text-xs font-semibold tracking-[0.18em] text-slate-400 uppercase">
+                  Netily
+                </span>
               </div>
-              <CardTitle className="text-2xl font-bold text-white tracking-tight">
-                Verify Your Identity
+              <CardTitle className="text-2xl font-semibold text-slate-900 tracking-tight">
+                Verify it&apos;s you
               </CardTitle>
-              <CardDescription className="text-slate-400 text-sm">
-                We sent a 6-digit code to <span className="font-medium text-slate-300">{otpMaskedEmail}</span>
+              <CardDescription className="text-slate-500 text-sm">
+                Enter the 6-digit code sent to <span className="font-medium text-slate-700">{otpMaskedEmail}</span>
               </CardDescription>
             </CardHeader>
 
             <CardContent className="relative z-10 space-y-6">
               {error && (
-                <Alert variant="destructive" className="bg-red-950/40 border-red-800/50 text-red-300">
+                <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-700">
                   <AlertCircle className="w-4 h-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
@@ -658,7 +655,7 @@ export default function AdminLoginPage() {
                     value={val}
                     onChange={(e) => handleOtpChange(i, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                    className="w-14 h-16 rounded-2xl text-2xl font-bold text-center bg-white/5 border-slate-700/50 text-white transition-all duration-300 focus:scale-110 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 hover:border-slate-500"
+                    className="w-12 h-14 rounded-lg text-xl font-semibold text-center bg-slate-50 border-slate-200 text-slate-900 transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                     disabled={loading}
                   />
                 ))}
@@ -666,39 +663,38 @@ export default function AdminLoginPage() {
 
               <Button
                 onClick={handleVerifyOtp}
-                className="relative overflow-hidden w-full h-12 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-violet-600 hover:scale-[1.02] active:scale-[.98] transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 text-white group"
+                className="w-full h-11 rounded-lg font-medium bg-slate-900 hover:bg-slate-800 transition-colors duration-200 text-white"
                 disabled={loading || otpValues.join("").length !== 6}
               >
-                <span className="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000" />
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Verifying...
                   </>
                 ) : (
-                  "Verify & Continue"
+                  "Verify & continue"
                 )}
               </Button>
 
               <div className="text-center text-sm">
                 {otpResendCooldown > 0 ? (
-                  <span className="text-slate-500">Resend in {formatDuration(otpResendCooldown)}</span>
+                  <span className="text-slate-400">Resend in {formatDuration(otpResendCooldown)}</span>
                 ) : (
                   <button
                     onClick={handleResendOtp}
                     disabled={otpResendCount >= otpMaxResends}
-                    className="text-blue-400 hover:text-blue-300 hover:underline font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Resend OTP
                   </button>
                 )}
               </div>
 
-              <div className="text-center text-xs text-slate-500">
+              <div className="text-center text-xs text-slate-400">
                 {otpExpiresIn > 0 ? `Code expires in ${formatDuration(otpExpiresIn)}` : "Code expired. Resend to continue."}
               </div>
 
-              <div className="text-center text-xs text-slate-500">
+              <div className="text-center text-xs text-slate-400">
                 Resends used: {otpResendCount}/{otpMaxResends}
               </div>
 
@@ -712,7 +708,7 @@ export default function AdminLoginPage() {
                   setOtpExpiresIn(0)
                   setOtpResendCount(0)
                 }}
-                className="w-full text-sm text-slate-400 hover:text-slate-300 transition-colors"
+                className="w-full text-sm text-slate-400 hover:text-slate-600 transition-colors"
               >
                 Back to login
               </button>

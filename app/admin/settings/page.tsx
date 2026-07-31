@@ -36,6 +36,7 @@ import {
   Sun,
   Moon,
   Monitor,
+  Fingerprint,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -70,6 +71,108 @@ import { useColorTheme } from "@/components/theme-provider"
 import { HotspotPruneSettingsCard } from "@/components/settings/hotspot-prune-settings"
 import { useAdminAuth } from "@/app/admin/admin-auth-context"
 import { canDo } from "@/lib/rbac"
+
+// ── Passkey Management Card ────────────────────────────────────────────
+
+function PasskeyManagementCard() {
+  const [passkeys, setPasskeys] = useState<Array<{ id: number; device_label: string; created_at: string; last_used_at: string | null }>>([])
+  const [loading, setLoading] = useState(true)
+  const [adding, setAdding] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+
+  const loadPasskeys = async () => {
+    setLoading(true)
+    try {
+      setPasskeys(await adminApi.getMyPasskeys())
+    } catch {
+      toast.error("Failed to load passkeys")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { loadPasskeys() }, [])
+
+  const handleAddPasskey = async () => {
+    setAdding(true)
+    try {
+      await adminApi.registerPasskey()
+      toast.success("Passkey added successfully!")
+      await loadPasskeys()
+    } catch (err: any) {
+      if (err?.name !== "NotAllowedError") {
+        toast.error(err.message || "Failed to register passkey")
+      }
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  const handleDeletePasskey = async (id: number) => {
+    setDeletingId(id)
+    try {
+      await adminApi.deletePasskey(id)
+      setPasskeys((prev) => prev.filter((p) => p.id !== id))
+      toast.success("Passkey removed")
+    } catch {
+      toast.error("Failed to remove passkey")
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Fingerprint className="w-5 h-5" />
+          Passkeys
+        </CardTitle>
+        <CardDescription>
+          Sign in without a password using Face ID, Touch ID, Windows Hello, or a security key.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? (
+          <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+        ) : passkeys.length === 0 ? (
+          <div className="text-sm text-slate-500 text-center py-6 border-2 border-dashed rounded-lg">
+            No passkeys registered yet
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {passkeys.map((pk) => (
+              <div key={pk.id} className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="font-medium text-sm">{pk.device_label}</p>
+                  <p className="text-xs text-slate-500">
+                    Added {new Date(pk.created_at).toLocaleDateString()}
+                    {pk.last_used_at && ` · Last used ${new Date(pk.last_used_at).toLocaleDateString()}`}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-red-700"
+                  disabled={deletingId === pk.id}
+                  onClick={() => handleDeletePasskey(pk.id)}
+                >
+                  {deletingId === pk.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+      <CardFooter>
+        <Button onClick={handleAddPasskey} disabled={adding}>
+          {adding ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Fingerprint className="w-4 h-4 mr-2" />}
+          Add a Passkey
+        </Button>
+      </CardFooter>
+    </Card>
+  )
+}
 
 // Account Settings Tab Component
 // -- Coming Soon placeholder --
@@ -1334,7 +1437,7 @@ export default function SettingsPage() {
           <AccountSettingsTab />
         </TabsContent>
 
-        {/* Security Tab - Admin Login Security ONLY */}
+        {/* Security Tab - Admin Login Security + Passkey Management */}
         <TabsContent value="security" className="space-y-6">
           {/* Admin Login Security Card */}
           <Card>
@@ -1404,6 +1507,9 @@ export default function SettingsPage() {
               </Button>
             </CardFooter>
           </Card>
+
+          {/* ── Passkey Management Card ── */}
+          <PasskeyManagementCard />
         </TabsContent>
 
         {/* System Tab - Customer Portal Plans + Hotspot Prune Settings */}

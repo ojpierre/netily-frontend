@@ -4729,6 +4729,28 @@ async activateService(
     return data
   }
 
+
+    // ── Passkey Management (list, delete, register) ──
+
+  async getMyPasskeys(): Promise<Array<{ id: number; device_label: string; created_at: string; last_used_at: string | null }>> {
+    return this.request('/core/auth/passkey/list/')
+  }
+
+  async deletePasskey(id: number): Promise<void> {
+    await this.request(`/core/auth/passkey/delete/${id}/`, { method: 'DELETE' })
+  }
+
+  async registerPasskey(deviceLabel?: string): Promise<{ status: string; message: string }> {
+    const options = await this.getPasskeyRegisterOptions()
+    const { startRegistration } = await import('@simplewebauthn/browser')
+    const credential = await startRegistration(options)
+    return this.verifyPasskeyRegistration({ 
+      credential, 
+      device_label: deviceLabel || navigator.userAgent.slice(0, 60) 
+    })
+  }
+
+
   // ------------------------------------------
   // SYSTEM NOTIFICATIONS - /notifications/
   // ------------------------------------------
