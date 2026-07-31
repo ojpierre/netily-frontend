@@ -4690,6 +4690,44 @@ async activateService(
     })
   }
 
+  // ── PASSKEYS (WebAuthn) ──────────────────────────────────────────
+
+  async getPasskeyRegisterOptions(): Promise<any> {
+    return this.request('/core/auth/passkey/register/options/', { method: 'POST' })
+  }
+
+  async verifyPasskeyRegistration(payload: { credential: any; device_label?: string }): Promise<{ status: string; message: string }> {
+    return this.request('/core/auth/passkey/register/verify/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  }
+
+  async getPasskeyLoginOptions(email?: string): Promise<any> {
+    const sessionKey = (typeof crypto !== 'undefined' && 'randomUUID' in crypto) ? crypto.randomUUID() : `pk_${Date.now()}`
+    const url = `${this.baseUrl}/core/auth/passkey/login/options/`
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, session_key: sessionKey }),
+    })
+    return this.handleResponse<any>(res, { isAuthEndpoint: true })
+  }
+
+  async verifyPasskeyLogin(payload: { session_key: string; credential: any }): Promise<AdminLoginResponse> {
+    const url = `${this.baseUrl}/core/auth/passkey/login/verify/`
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = await this.handleResponse<AdminLoginResponse>(res, { isAuthEndpoint: true })
+    const user = (data as any)?.user
+    if (!this.isAdminLikeUser(user)) {
+      throw new Error('Access denied. Admin privileges required.')
+    }
+    return data
+  }
 
   // ------------------------------------------
   // SYSTEM NOTIFICATIONS - /notifications/
