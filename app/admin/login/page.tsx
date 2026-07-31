@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Shield, AlertCircle, Mail, Wifi } from "lucide-react"
+import { Loader2, AlertCircle, Wifi, Fingerprint } from "lucide-react"
 import {
   Card,
   CardContent,
@@ -63,7 +63,7 @@ function ParticleBackground() {
       vy: number
       radius: number
       depth: number
-      hue: "white" | "cyan"
+      hue: "blue" | "cyan"
       pulseSpeed: number
       pulsePhase: number
       spark: boolean
@@ -86,7 +86,7 @@ function ParticleBackground() {
         vy: (Math.random() - 0.5) * 0.12 * depth,
         radius: (0.6 + Math.random() * 1.6) * depth,
         depth,
-        hue: Math.random() < 0.78 ? "white" : "cyan",
+        hue: Math.random() < 0.78 ? "blue" : "cyan",
         pulseSpeed: 0.4 + Math.random() * 0.6,
         pulsePhase: Math.random() * Math.PI * 2,
         spark: Math.random() < 0.06,
@@ -177,7 +177,7 @@ function ParticleBackground() {
             const dist = Math.hypot(dx, dy)
             if (dist < connectDist) {
               const alpha = (1 - dist / connectDist) * 0.12 * Math.min(a.depth, b.depth)
-              ctx.strokeStyle = `rgba(180, 220, 255, ${alpha})`
+              ctx.strokeStyle = `rgba(37, 99, 235, ${alpha})`
               ctx.lineWidth = 0.6
               ctx.beginPath()
               ctx.moveTo(a.x, a.y)
@@ -192,7 +192,7 @@ function ParticleBackground() {
         const pulse = 0.5 + 0.5 * Math.sin(t * p.pulseSpeed + p.pulsePhase)
         const baseAlpha = (p.spark ? 0.55 : 0.28) * p.depth
         const alpha = baseAlpha + pulse * 0.25 * p.depth
-        const color = p.hue === "cyan" ? "150, 230, 255" : "255, 255, 255"
+        const color = p.hue === "cyan" ? "56, 189, 248" : "37, 99, 235"
 
         ctx.beginPath()
         ctx.fillStyle = `rgba(${color}, ${Math.min(alpha, 1)})`
@@ -452,147 +452,172 @@ export default function AdminLoginPage() {
     }
   }
 
+  const handlePasskeyLogin = async () => {
+    // Passkey login implementation - placeholder for now
+    setError("Passkey login not yet implemented")
+  }
+
   // Show loading state while checking auth
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
       </div>
     )
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950">
-      {/* Ambient depth glow (subtle, kept quiet behind the particle field) */}
+    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-white">
+      {/* Faint blue wash background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-250px] left-[-150px] w-[600px] h-[600px] rounded-full bg-blue-500/10 blur-[140px]" />
-        <div className="absolute bottom-[-250px] right-[-100px] w-[500px] h-[500px] rounded-full bg-violet-500/10 blur-[150px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,.05),transparent_60%)]" />
+        <div className="absolute top-[-250px] left-[-150px] w-[600px] h-[600px] rounded-full bg-blue-500/[0.06] blur-[140px]" />
+        <div className="absolute bottom-[-250px] right-[-100px] w-[500px] h-[500px] rounded-full bg-sky-400/[0.06] blur-[150px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(37,99,235,.04),transparent_60%)]" />
       </div>
 
-      {/* Animated particle field: drifting glowing nodes with connecting lines and mouse interaction */}
+      {/* Animated particle field: blue nodes on white background */}
       <ParticleBackground />
 
       <Card
         ref={cardRef}
-        className="relative w-full max-w-md backdrop-blur-2xl bg-white/5 dark:bg-slate-900/50 border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,.4)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_45px_100px_rgba(0,0,0,.5)] animate-in fade-in zoom-in-95 duration-700 overflow-hidden"
+        className="relative w-full max-w-[420px] bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-[0_1px_2px_rgba(15,23,42,.04),0_24px_60px_-12px_rgba(15,23,42,.12)] rounded-[28px] transition-all duration-500 hover:shadow-[0_1px_2px_rgba(15,23,42,.04),0_32px_80px_-12px_rgba(15,23,42,.16)] animate-in fade-in zoom-in-95 duration-700 overflow-hidden"
       >
         {/* Mouse gradient lighting */}
         <div
-          className="absolute inset-0 pointer-events-none transition-opacity duration-300 opacity-30"
+          className="absolute inset-0 pointer-events-none opacity-40 transition-opacity duration-300"
           style={{
-            background: `radial-gradient(400px circle at ${mouse.x}px ${mouse.y}px, rgba(255,255,255,.12), transparent 50%)`,
+            background: `radial-gradient(360px circle at ${mouse.x}px ${mouse.y}px, rgba(37,99,235,.06), transparent 55%)`,
           }}
         />
 
+        {/* Hairline top accent - signature detail */}
+        <div className="h-[3px] w-full bg-gradient-to-r from-blue-600 via-sky-400 to-blue-600" />
+
         {step === "credentials" ? (
           <>
-            <CardHeader className="text-center space-y-4 relative z-10">
-              <div className="relative mx-auto w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center shadow-xl before:absolute before:inset-0 before:rounded-3xl before:border before:border-white/20 before:animate-pulse">
-                <Shield className="w-10 h-10 text-white drop-shadow-lg" />
+            <CardHeader className="text-center space-y-3 pt-10 pb-2 relative z-10">
+              <div className="relative mx-auto w-16 h-16 rounded-2xl bg-slate-950 flex items-center justify-center shadow-[0_8px_24px_-4px_rgba(15,23,42,.35)]">
+                <div className="absolute inset-0 rounded-2xl ring-1 ring-white/10" />
+                <Wifi className="w-7 h-7 text-white" strokeWidth={1.75} />
               </div>
-              <CardTitle className="text-2xl font-bold text-white tracking-tight">
-                Network Operations
-              </CardTitle>
-              <CardDescription className="text-slate-400 text-sm">
-                Secure access to your management console
-              </CardDescription>
+              <div className="space-y-1">
+                <CardTitle className="text-[22px] font-semibold text-slate-900 tracking-tight">
+                  Welcome back
+                </CardTitle>
+                <CardDescription className="text-slate-500 text-sm">
+                  Sign in to your Netily control center
+                </CardDescription>
+              </div>
             </CardHeader>
 
-            <CardContent className="relative z-10">
-              <form onSubmit={handleSubmit} className="space-y-5">
+            <CardContent className="relative z-10 px-8 pb-8 pt-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
-                  <Alert variant="destructive" className="bg-red-950/40 border-red-800/50 text-red-300">
+                  <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-700 rounded-xl">
                     <AlertCircle className="w-4 h-4" />
-                    <AlertDescription>{error}</AlertDescription>
+                    <AlertDescription className="text-sm">{error}</AlertDescription>
                   </Alert>
                 )}
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-slate-300 text-sm font-medium">Email</Label>
-                  <div className="relative">
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="admin@example.com"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      autoComplete="email"
-                      required
-                      className="h-12 rounded-xl bg-white/5 border-slate-700/50 text-white placeholder:text-slate-500 transition-all duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-500 focus:scale-[1.01]"
-                    />
-                  </div>
+                  <Label htmlFor="email" className="text-slate-700 text-xs font-medium uppercase tracking-wide">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="you@company.com"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    disabled={loading}
+                    autoComplete="email"
+                    required
+                    className="h-11 rounded-xl border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="password" className="text-slate-300 text-sm font-medium">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      disabled={loading}
-                      required
-                      className="h-12 rounded-xl bg-white/5 border-slate-700/50 text-white placeholder:text-slate-500 transition-all duration-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-500 focus:scale-[1.01]"
-                    />
-                  </div>
+                  <Label htmlFor="password" className="text-slate-700 text-xs font-medium uppercase tracking-wide">
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    disabled={loading}
+                    required
+                    className="h-11 rounded-xl border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                  />
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="rememberMe"
-                    checked={formData.rememberMe}
-                    onCheckedChange={handleCheckboxChange}
-                    disabled={loading}
-                    className="border-slate-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                  />
-                  <Label htmlFor="rememberMe" className="text-sm text-slate-400 cursor-pointer hover:text-slate-300 transition-colors">
-                    Remember me
-                  </Label>
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="rememberMe"
+                      checked={formData.rememberMe}
+                      onCheckedChange={handleCheckboxChange}
+                      disabled={loading}
+                      className="border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                    />
+                    <Label htmlFor="rememberMe" className="text-sm text-slate-500 cursor-pointer">
+                      Remember me
+                    </Label>
+                  </div>
                 </div>
 
                 <Button
                   type="submit"
-                  className="relative overflow-hidden w-full h-12 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-violet-600 hover:scale-[1.02] active:scale-[.98] transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 text-white group"
+                  className="w-full h-11 rounded-xl font-semibold bg-slate-950 hover:bg-slate-800 text-white transition-all duration-200 shadow-sm hover:shadow-md"
                   disabled={loading}
                 >
-                  <span className="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000" />
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    "Sign In"
-                  )}
+                  {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in...</> : "Sign in"}
+                </Button>
+
+                {/* Passkey divider + button */}
+                <div className="relative py-2">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200" /></div>
+                  <div className="relative flex justify-center"><span className="bg-white/80 px-3 text-xs text-slate-400">or</span></div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePasskeyLogin}
+                  disabled={loading}
+                  className="w-full h-11 rounded-xl border-slate-200 text-slate-700 font-medium hover:bg-slate-50 gap-2"
+                >
+                  <Fingerprint className="h-4 w-4" />
+                  Sign in with a passkey
                 </Button>
               </form>
             </CardContent>
           </>
         ) : (
           <>
-            <CardHeader className="text-center space-y-4 relative z-10">
-              <div className="relative mx-auto w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center shadow-xl before:absolute before:inset-0 before:rounded-3xl before:border before:border-white/20 before:animate-pulse">
-                <Mail className="w-10 h-10 text-white drop-shadow-lg" />
+            <CardHeader className="text-center space-y-3 pt-10 pb-2 relative z-10">
+              <div className="relative mx-auto w-16 h-16 rounded-2xl bg-slate-950 flex items-center justify-center shadow-[0_8px_24px_-4px_rgba(15,23,42,.35)]">
+                <div className="absolute inset-0 rounded-2xl ring-1 ring-white/10" />
+                <Wifi className="w-7 h-7 text-white" strokeWidth={1.75} />
               </div>
-              <CardTitle className="text-2xl font-bold text-white tracking-tight">
-                Verify Your Identity
-              </CardTitle>
-              <CardDescription className="text-slate-400 text-sm">
-                We sent a 6-digit code to <span className="font-medium text-slate-300">{otpMaskedEmail}</span>
-              </CardDescription>
+              <div className="space-y-1">
+                <CardTitle className="text-[22px] font-semibold text-slate-900 tracking-tight">
+                  Verify Your Identity
+                </CardTitle>
+                <CardDescription className="text-slate-500 text-sm">
+                  We sent a 6-digit code to <span className="font-medium text-slate-700">{otpMaskedEmail}</span>
+                </CardDescription>
+              </div>
             </CardHeader>
 
-            <CardContent className="relative z-10 space-y-6">
+            <CardContent className="relative z-10 px-8 pb-8 pt-4 space-y-6">
               {error && (
-                <Alert variant="destructive" className="bg-red-950/40 border-red-800/50 text-red-300">
+                <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-700 rounded-xl">
                   <AlertCircle className="w-4 h-4" />
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription className="text-sm">{error}</AlertDescription>
                 </Alert>
               )}
 
@@ -607,7 +632,7 @@ export default function AdminLoginPage() {
                     value={val}
                     onChange={(e) => handleOtpChange(i, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                    className="w-14 h-16 rounded-2xl text-2xl font-bold text-center bg-white/5 border-slate-700/50 text-white transition-all duration-300 focus:scale-110 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 hover:border-slate-500"
+                    className="w-14 h-16 rounded-2xl text-2xl font-bold text-center bg-white border-slate-200 text-slate-900 transition-all duration-200 focus:scale-105 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                     disabled={loading}
                   />
                 ))}
@@ -615,10 +640,9 @@ export default function AdminLoginPage() {
 
               <Button
                 onClick={handleVerifyOtp}
-                className="relative overflow-hidden w-full h-12 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-violet-600 hover:scale-[1.02] active:scale-[.98] transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 text-white group"
+                className="w-full h-11 rounded-xl font-semibold bg-slate-950 hover:bg-slate-800 text-white transition-all duration-200 shadow-sm hover:shadow-md"
                 disabled={loading || otpValues.join("").length !== 6}
               >
-                <span className="absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-[200%] transition-transform duration-1000" />
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -636,7 +660,7 @@ export default function AdminLoginPage() {
                   <button
                     onClick={handleResendOtp}
                     disabled={otpResendCount >= otpMaxResends}
-                    className="text-blue-400 hover:text-blue-300 hover:underline font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Resend OTP
                   </button>
@@ -661,7 +685,7 @@ export default function AdminLoginPage() {
                   setOtpExpiresIn(0)
                   setOtpResendCount(0)
                 }}
-                className="w-full text-sm text-slate-400 hover:text-slate-300 transition-colors"
+                className="w-full text-sm text-slate-400 hover:text-slate-600 transition-colors"
               >
                 Back to login
               </button>
