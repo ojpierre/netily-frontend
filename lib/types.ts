@@ -180,13 +180,6 @@ export interface DashboardStats {
   new_customers_this_month: number
 }
 
-export interface RecentTransaction {
-  id: number
-  name: string
-  amount: number
-  time: string
-}
-
 // ==========================================
 // PLATFORM CHANGELOG TYPES
 // ==========================================
