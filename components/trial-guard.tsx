@@ -443,11 +443,11 @@ function PaymentDialog({
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
-        className="sm:max-w-2xl max-h-[90vh] p-0 gap-0 overflow-hidden"
+        className="flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:max-h-[90dvh] sm:w-full"
       >
         {/* ── Header ── */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-3">
-          <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-start justify-between gap-2 px-4 pb-3 pt-4 sm:items-center sm:px-6 sm:pt-5">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-destructive/15 dark:bg-red-950 flex items-center justify-center">
               <ShieldAlert className="w-5 h-5 text-destructive" />
             </div>
@@ -465,18 +465,18 @@ function PaymentDialog({
           <Button
             variant="ghost" size="sm"
             onClick={() => logout()}
-            className="text-slate-400 hover:text-destructive h-8 px-2"
+            className="h-8 shrink-0 px-2 text-slate-400 hover:text-destructive"
           >
             <LogOut className="w-4 h-4 mr-1" />
             <span className="text-xs">Logout</span>
           </Button>
         </div>
 
-        <Separator />
+        <Separator className="shrink-0" />
 
         {/* ── Body (scrollable) ── */}
-        <ScrollArea className="max-h-[calc(90vh-80px)]">
-          <div className="px-6 py-5">
+        <ScrollArea className="min-h-0 flex-1 overscroll-contain">
+          <div className="px-4 py-4 sm:px-6 sm:py-5">
 
             {/* ── UNIFIED PLAN + PAYMENT CHECKOUT ── */}
             {step === "checkout" && (

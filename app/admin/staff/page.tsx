@@ -732,7 +732,11 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
       }
 
       await adminApi.updateStaffUser(user.id, payload)
-      toast.success(`Staff account for ${user.first_name} ${user.last_name} updated`)
+      toast.success(`Staff account for ${user.first_name} ${user.last_name} updated`, {
+        description: formData.new_password
+          ? "Password changed. Existing sessions on all devices have been revoked."
+          : undefined,
+      })
       onOpenChange(false)
       onSuccess()
     } catch (error: any) {
