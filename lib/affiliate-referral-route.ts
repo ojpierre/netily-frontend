@@ -2,10 +2,9 @@ import "server-only"
 
 import { NextRequest, NextResponse } from "next/server"
 
-const API_BASE =
-  process.env.API_INTERNAL_URL?.replace(/\/+$/, "") ||
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") ||
-  "https://api.netily.co.ke/api/v1"
+// Referral tracking and lead capture must use the same canonical public API.
+// A stale internal URL should never silently discard affiliate click analytics.
+const API_BASE = "https://api.netily.co.ke/api/v1"
 
 const PUBLIC_SITE_URL = (
   process.env.PUBLIC_SITE_URL ||

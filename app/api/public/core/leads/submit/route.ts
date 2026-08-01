@@ -2,13 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"
 
-const configuredApiBase =
-  process.env.API_INTERNAL_URL?.replace(/\/+$/, "") ||
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") ||
-  "https://api.netily.co.ke/api/v1"
-const REMOTE_API_BASE = configuredApiBase.endsWith("/api/v1")
-  ? configuredApiBase
-  : `${configuredApiBase}/api/v1`
+// Public leads always go to the canonical Netily API. Using a runtime internal
+// URL here made the form dependent on deployment-specific Docker settings and
+// caused production 502s when that setting was stale.
+const LEAD_SUBMISSION_URL = "https://api.netily.co.ke/api/v1/core/leads/submit/"
 
 export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID()
@@ -19,7 +16,7 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-real-ip") ||
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       ""
-    const upstream = await fetch(`${REMOTE_API_BASE}/core/leads/submit/`, {
+    const upstream = await fetch(LEAD_SUBMISSION_URL, {
       method: "POST",
       headers: {
         Accept: "application/json",
