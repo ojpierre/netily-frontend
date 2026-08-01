@@ -565,6 +565,7 @@ export function LandingPage() {
   const [leadFormErrors, setLeadFormErrors] = useState<{ name?: string; email?: string }>({})
   const [leadSubmitting, setLeadSubmitting] = useState(false)
   const [leadSubmitted, setLeadSubmitted] = useState(false)
+  const [leadSubmitError, setLeadSubmitError] = useState("")
   const [affiliateReferralCode, setAffiliateReferralCode] = useState("")
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false)
 
@@ -614,6 +615,7 @@ export function LandingPage() {
     }
 
     setLeadSubmitting(true)
+    setLeadSubmitError("")
     const ctrl = new AbortController()
     const timeout = window.setTimeout(() => ctrl.abort(), 15000)
     try {
@@ -625,8 +627,13 @@ export function LandingPage() {
         ctrl.signal,
       )
       setLeadSubmitted(true)
-    } catch {
-      setLeadSubmitted(true)
+    } catch (error) {
+      const message = error instanceof Error && error.name === "AbortError"
+        ? "The request took too long. Please check your connection and try again."
+        : error instanceof Error
+          ? error.message
+          : "We could not submit your enquiry. Please try again."
+      setLeadSubmitError(message)
     } finally {
       window.clearTimeout(timeout)
       setLeadSubmitting(false)
@@ -1453,6 +1460,11 @@ export function LandingPage() {
                     {leadSubmitting ? "Sending..." : "Send message"}
                     {!leadSubmitting && <Send className="h-4 w-4" />}
                   </button>
+                  {leadSubmitError && (
+                    <p className="mt-3 border border-red-500/30 bg-red-500/10 px-3 py-2 text-center text-xs text-red-300" role="alert">
+                      {leadSubmitError}
+                    </p>
+                  )}
                   <p className="mt-3 text-center text-xs text-zinc-500">We typically respond within 24 hours. No spam.</p>
                 </div>
               )}

@@ -761,8 +761,8 @@ export async function purchaseHotspotAccess({ routerId, planId, phoneNumber }: {
 /**
  * Submit a lead from the landing page (public, no auth required)
  */
-export async function submitLead(data: { name: string; email: string; phone: string; company: string; lead_source?: string; referral_name?: string; referral_code?: string; message?: string }, signal?: AbortSignal): Promise<{ message: string }> {
-  const response = await fetch("/api/public/core/leads/submit/", {
+export async function submitLead(data: { name: string; email: string; phone: string; company: string; lead_source?: string; referral_name?: string; referral_code?: string; message?: string }, signal?: AbortSignal): Promise<{ message: string; lead_id: number; affiliate_attributed: boolean }> {
+  const response = await fetch("/lead-submit", {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -770,7 +770,7 @@ export async function submitLead(data: { name: string; email: string; phone: str
   })
   if (!response.ok) {
     const err = await response.json().catch(() => ({ error: 'Failed to submit' }))
-    throw new Error(err.error || 'Failed to submit lead')
+    throw new Error(err.error || err.detail || 'Failed to submit lead')
   }
   return response.json()
 }
