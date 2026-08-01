@@ -151,7 +151,7 @@ import type {
   UpdateRADIUSUserRequest,
   CreateRADIUSProfileRequest,
   CreateRADIUSNASRequest,
-  // NEW: RADIUS Multi-Tenant types
+  // NEW: RADIUS Multi-tenant types
   RADIUSTenantConfig,
   CustomerRADIUSCredentials,
   // Online session type
@@ -179,6 +179,8 @@ import type {
   HotspotClientDetailResponse,
   // Network Map types
   NetworkMapElement,
+  // RecentTransaction type
+  RecentTransaction,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -728,14 +730,18 @@ class AdminApiService {
 
   // FAST PATH: single parallelized endpoint for top dashboard cards
   // Uses ThreadPoolExecutor internally to run all 4 queries concurrently
+  // WIDENED RETURN TYPE: now includes recent_activity and recent_transactions
   async getUnifiedDashboard(): Promise<{
     total_customers: number
     active_subscriptions: { pppoe: number; hotspot: number; total: number }
     expired_customers: number
     online_count: number
+    recent_activity: Array<{ id: string; user__email: string | null; action: string; model_name: string; object_repr: string; timestamp: string }>
+    recent_transactions: RecentTransaction[]
   }> {
     return this.request<any>('/core/dashboard/unified/')
   }
+
   // ------------------------------------------
   // USERS/STAFF - /core/users/
   // ------------------------------------------

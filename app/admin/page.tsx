@@ -176,6 +176,25 @@ function getAttentionItems(
   return items
 }
 
+// ─── ROTATING DISPLAY HOOK ───
+function useRotatingDisplay<T>(items: T[], intervalMs = 4000) {
+  const [index, setIndex] = useState(0)
+  const [showDate, setShowDate] = useState(true)
+
+  useEffect(() => {
+    if (!items.length) return
+    const id = setInterval(() => {
+      setShowDate((prev) => {
+        if (prev) setIndex((i) => (i + 1) % items.length)
+        return !prev
+      })
+    }, intervalMs)
+    return () => clearInterval(id)
+  }, [items.length, intervalMs])
+
+  return { showDate, current: items[index] }
+}
+
 // ──────────────────────────────────────
 // COMPONENT
 // ──────────────────────────────────────
@@ -212,6 +231,7 @@ export default function AdminDashboard() {
     revenue: { today: number; today_change: number; week: number; month: number; month_change: number; transactions_today: number }
     tickets: { total: number; open: number; in_progress: number; resolved: number; avg_response_time: string }
     recent_activity: ActivityItem[]
+    recent_transactions: any[]
     overview: {
       today_revenue: number
       today_change: number
@@ -234,6 +254,12 @@ export default function AdminDashboard() {
     lowBalance: false,
     balance: null,
   })
+  
+  // ─── ROTATING GREETING CARD ───
+  const { showDate, current: tx } = useRotatingDisplay(
+    quickStats?.recent_transactions || [],
+    4000
+  )
   
   // Derived: active subscriptions count (only active/non-expired)
   const activeSubscriptionsCount = React.useMemo(() => {
@@ -374,6 +400,15 @@ export default function AdminDashboard() {
     )
   }
 
+  // ─── ACTION LABELS FOR RECENT ACTIVITY ───
+  const actionLabel: Record<string, string> = {
+    login: "signed in",
+    create: "created",
+    update: "updated",
+    delete: "deleted",
+    view: "viewed",
+  }
+
   return (
     <div className="space-y-6 relative">
       {/* Apple-style keyframes */}
@@ -476,13 +511,27 @@ export default function AdminDashboard() {
             )
           })()}
 
-          <p className="apple-hello-sub mt-2 text-xs text-muted-foreground/60 tracking-wide">
-            {new Date().toLocaleDateString("en-KE", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
-          </p>
+          {/* ─── ROTATING GREETING CARD ─── */}
+          <div className="apple-hello-sub mt-3 relative h-5 overflow-hidden">
+            <div
+              key={showDate ? "date" : tx?.id}
+              className="animate-in fade-in slide-in-from-bottom-2 duration-500"
+            >
+              {showDate || !tx ? (
+                <span className="text-xs text-muted-foreground/60 tracking-wide">
+                  {new Date().toLocaleDateString("en-KE", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  })}
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground/70">
+                  💰 {tx.name} paid KES {tx.amount?.toLocaleString?.() || tx.amount} · {tx.time}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Refresh button - positioned top-right */}
@@ -1191,7 +1240,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
+        {/* Recent Activity - UPDATED with login action support */}
         <Card className={dashboardCardClass}>
           <CardHeader>
             <CardTitle className="text-base">Recent Activity</CardTitle>
@@ -1220,24 +1269,32 @@ export default function AdminDashboard() {
                 {(quickStats?.recent_activity ?? []).map((activity) => (
                   <div
                     key={activity.id}
-                    className="flex items-start gap-3 rounded-lg p-2.5 transition-colors hover:bg-muted/30"
+                    className="flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-muted/30"
                   >
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <span className="text-xs font-bold text-primary">
-                        {(activity.user__email || "?").charAt(0).toUpperCase()}
-                      </span>
-                    </div>
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        activity.action === 'login' ? 'bg-emerald-500' : 'bg-slate-300'
+                      }`}
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
-                        {activity.user__email || "System"}
+                        {activity.user__email || 'Unknown user'}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {activity.action} — {activity.object_repr || activity.model_name}
+                        <strong>{activity.user__email || 'Unknown user'}</strong>{' '}
+                        {actionLabel[activity.action] || activity.action}{' '}
+                        {activity.action !== 'login' ? activity.model_name : ''}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {timeAgo(activity.timestamp)}
                       </p>
                     </div>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {new Date(activity.timestamp).toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </span>
                   </div>
                 ))}
               </div>
