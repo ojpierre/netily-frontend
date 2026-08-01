@@ -12,7 +12,6 @@ import {
   XCircle,
   AlertTriangle,
   ArrowLeft,
-  FileText,
   Smartphone,
   ShieldAlert,
   RefreshCw,
@@ -76,7 +75,7 @@ function formatCountdown(seconds: number): string {
 // ==========================================
 
 type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "timeout"
-type DialogStep = "plans" | "payment" | "success" | "failed" | "timeout"
+type DialogStep = "checkout" | "success" | "failed" | "timeout"
 
 const POLL_INTERVAL_MS = 3000   // 3 s between polls (same as hotspot captive portal)
 const TIMEOUT_SECONDS  = 120    // 2 min before declaring timeout
@@ -84,7 +83,6 @@ const TIMEOUT_SECONDS  = 120    // 2 min before declaring timeout
 interface PaymentDialogProps {
   open: boolean
   isPaidSubscription: boolean
-  planName?: string
   plans: NetilyPlan[]
   plansLoading: boolean
   amountDue?: number | null
@@ -116,7 +114,6 @@ type SubscriptionPaymentStatusResponse = Awaited<ReturnType<typeof adminApi.chec
 function PaymentDialog({
   open,
   isPaidSubscription,
-  planName,
   plans,
   plansLoading,
   amountDue,
@@ -126,7 +123,7 @@ function PaymentDialog({
   const { logout } = useAdminAuth()
 
   // Step / flow state
-  const [step, setStep] = useState<DialogStep>("plans")
+  const [step, setStep] = useState<DialogStep>("checkout")
   const [selectedPlan, setSelectedPlan] = useState<NetilyPlan | null>(null)
 
   // Phone input
@@ -222,9 +219,24 @@ function PaymentDialog({
     return getPlanAmount(plan)
   }
 
-  const canPay = !isPaidSubscription || getPaymentAmount(selectedPlan) > 0
+  const isEnterprisePlan = (plan: NetilyPlan | null | undefined): boolean =>
+    plan?.code === "enterprise" || plan?.name?.toLowerCase().includes("enterprise") === true
 
-  const BillingBreakdownPanel = ({ compact = false }: { compact?: boolean }) => {
+  const canPay = Boolean(
+    selectedPlan &&
+    !isEnterprisePlan(selectedPlan) &&
+    (!isPaidSubscription || getPaymentAmount(selectedPlan) > 0)
+  )
+
+  useEffect(() => {
+    if (!open || plansLoading || plans.length === 0) return
+    const starter = plans.find((plan) => plan.code === "starter") ||
+      plans.find((plan) => plan.code !== "enterprise") ||
+      plans[0]
+    setSelectedPlan(starter)
+  }, [open, plans, plansLoading])
+
+  const BillingBreakdownPanel = () => {
     if (!isPaidSubscription) return null
 
     if (!billingBreakdown) {
@@ -284,7 +296,7 @@ function PaymentDialog({
           </Badge>
         </div>
 
-        <div className={`grid gap-2 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
+        <div className="grid gap-2 sm:grid-cols-2">
           {rows.map((row) => (
             <div key={row.label} className="rounded-lg border border-white bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-start justify-between gap-2">
@@ -345,15 +357,14 @@ function PaymentDialog({
 
   // ─── Actions ───
   const handleSelectPlan = (plan: NetilyPlan) => {
+    if (paymentStatus !== "idle") return
     setSelectedPlan(plan)
     setPaymentError(null)
     setPhoneError(null)
-    setStep("payment")
-    setPaymentStatus("idle")
   }
 
   const handlePay = async () => {
-    if (!selectedPlan) return
+    if (!selectedPlan || isEnterprisePlan(selectedPlan)) return
     if (!isValidKenyanPhone(phoneNumber)) {
       setPhoneError("Enter a valid Safaricom number (e.g. 0712345678)")
       return
@@ -388,7 +399,7 @@ function PaymentDialog({
     setPhoneError(null)
     setCountdown(TIMEOUT_SECONDS)
     setPaymentStatus("idle")
-    setStep("payment")
+    setStep("checkout")
   }
 
   const handleCheckAndRefresh = async () => {
@@ -467,13 +478,13 @@ function PaymentDialog({
         <ScrollArea className="max-h-[calc(90vh-80px)]">
           <div className="px-6 py-5">
 
-            {/* ── STEP: PLANS ── */}
-            {step === "plans" && (
+            {/* ── UNIFIED PLAN + PAYMENT CHECKOUT ── */}
+            {step === "checkout" && (
               <div className="space-y-4">
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
                   {isPaidSubscription
-                    ? "Settle the accumulated bill for this billing cycle to restore access. Your usage data is safe and fully restored once payment is confirmed."
-                    : "Select a plan below to continue managing your ISP. Your data is safe and fully restored once payment is confirmed."}
+                    ? "Review your cycle summary, confirm Starter, and pay to restore access."
+                    : "Choose a plan to continue. Starter is selected for the fastest activation."}
                 </p>
 
                 <BillingBreakdownPanel />
@@ -487,244 +498,112 @@ function PaymentDialog({
                     <p className="text-slate-500 text-sm">No plans available. Please contact support.</p>
                   </div>
                 ) : (
-                  <div className="grid gap-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     {plans.map((plan) => {
-                      const isPopular = plan.is_popular || plan.name === "Professional"
+                      const selected = selectedPlan?.id === plan.id
+                      const enterprise = isEnterprisePlan(plan)
                       const amount = getPaymentAmount(plan)
                       const features = getFeatures(plan)
                       return (
                         <button
                           key={plan.id}
+                          type="button"
+                          aria-pressed={selected}
+                          disabled={paymentStatus !== "idle"}
                           onClick={() => handleSelectPlan(plan)}
-                          className={`w-full text-left p-4 rounded-lg border transition-all hover:shadow-md ${
-                            isPopular
-                              ? "border-primary bg-primary/10/50 dark:bg-blue-950/30 hover:border-primary"
-                              : "border-slate-200 dark:border-slate-700 hover:border-slate-400"
+                          className={`relative w-full rounded-xl border p-4 text-left transition-all ${
+                            selected
+                              ? "border-primary bg-primary/5 ring-2 ring-primary/15"
+                              : "border-slate-200 hover:border-slate-400 dark:border-slate-700"
                           }`}
                         >
-                          <div className="flex items-center justify-between mb-2">
+                          <div className="mb-3 flex items-start justify-between gap-3">
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold">{plan.name}</span>
-                              {isPopular && (
-                                <Badge className="bg-primary text-white text-[10px] px-1.5 py-0">
-                                  Recommended
-                                </Badge>
-                              )}
+                              <span className={`mt-0.5 flex h-4 w-4 items-center justify-center rounded-full border ${selected ? "border-primary bg-primary" : "border-slate-300"}`}>
+                                {selected && <Check className="h-3 w-3 text-white" />}
+                              </span>
+                              <div>
+                                <span className="font-semibold">{plan.name}</span>
+                                {plan.code === "starter" && <p className="text-[10px] font-medium text-primary">Default</p>}
+                              </div>
                             </div>
                             <div className="text-right">
-                              <span className="text-lg font-bold">
-                                {amount > 0 ? kes(amount) : "Verify bill"}
-                              </span>
-                              <span className="text-slate-500 text-xs">
-                                {isPaidSubscription ? " due" : "/mo"}
-                              </span>
+                              <span className="text-base font-bold">{enterprise ? "Contact us" : amount > 0 ? kes(amount) : "Verify bill"}</span>
+                              {!enterprise && <span className="text-xs text-slate-500">{isPaidSubscription ? " due" : "/mo"}</span>}
                             </div>
                           </div>
-                          <div className="flex flex-wrap gap-x-4 gap-y-1">
-                            {features.slice(0, 4).map((f, i) => (
-                              <span key={i} className="text-xs text-slate-500 flex items-center gap-1">
-                                <Check className="w-3 h-3 text-success" />
-                                {f}
+                          <div className="space-y-1.5">
+                            {features.slice(0, 3).map((feature) => (
+                              <span key={feature} className="flex items-center gap-1.5 text-xs text-slate-500">
+                                <Check className="h-3 w-3 shrink-0 text-success" />
+                                {feature}
                               </span>
                             ))}
                           </div>
-                          {plan.is_metered && (
-                            <p className="text-[10px] text-primary font-medium mt-1">
-                              {isPaidSubscription
-                                ? "Includes PPPoE footprint, hotspot revenue share, and monthly minimum rules"
-                                : "+ Usage-based fees"}
-                            </p>
-                          )}
-                          {isPaidSubscription && invoiceNumber && (
-                            <p className="text-[10px] text-slate-500 mt-1">Invoice: {invoiceNumber}</p>
-                          )}
                         </button>
                       )
                     })}
-                    <div className="w-full rounded-lg border border-dashed border-slate-300 p-4 text-left dark:border-slate-700">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="font-semibold">Need a different arrangement?</p>
-                          <p className="mt-1 text-xs text-slate-500">
-                            For custom billing, referral credits, enterprise terms, or payment help, contact Netily Support.
-                          </p>
-                        </div>
-                        <Badge variant="outline" className="shrink-0 text-[10px]">Support only</Badge>
+                  </div>
+                )}
+
+                {selectedPlan && isEnterprisePlan(selectedPlan) && paymentStatus === "idle" && (
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                    <p className="text-sm font-semibold">Enterprise is tailored to your operation</p>
+                    <p className="mt-1 text-xs text-slate-500">Talk to Netily for custom limits, pricing, onboarding, and support terms.</p>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <a href="https://wa.me/254799538923?text=Hello%20Netily%20Support%2C%20I%20want%20to%20discuss%20the%20Enterprise%20plan." target="_blank" rel="noreferrer" className="inline-flex h-10 flex-1 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-white hover:bg-primary/90">Contact on WhatsApp</a>
+                      <a href="mailto:support@netily.co.ke?subject=Enterprise%20Plan%20Enquiry" className="inline-flex h-10 flex-1 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900">Email support</a>
+                    </div>
+                  </div>
+                )}
+
+                {selectedPlan && !isEnterprisePlan(selectedPlan) && paymentStatus === "idle" && (
+                  <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold">Pay with M-Pesa</p>
+                        <p className="text-xs text-slate-500">An STK prompt will be sent to your phone.</p>
                       </div>
-                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                        <a
-                          href="https://wa.me/254799538923?text=Hello%20Netily%20Support%2C%20I%20need%20help%20with%20my%20subscription."
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-500"
-                        >
-                          WhatsApp Support
-                        </a>
-                        <a
-                          href="mailto:support@netily.co.ke?subject=Subscription%20Support"
-                          className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 px-3 text-xs font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
-                        >
-                          Email Support
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── STEP: PAYMENT ── */}
-            {step === "payment" && selectedPlan && (
-              <div className="space-y-5">
-                {/* Back button — only if not mid-payment */}
-                {paymentStatus === "idle" && (
-                  <Button
-                    variant="ghost" size="sm"
-                    className="-ml-2 h-7 text-xs"
-                    onClick={() => setStep("plans")}
-                  >
-                    <ArrowLeft className="w-3 h-3 mr-1" />
-                    Back to plans
-                  </Button>
-                )}
-
-                {/* Invoice card */}
-                <div className="rounded-lg border p-4 space-y-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <FileText className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm font-semibold">Invoice</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-y-2.5 text-sm">
-                    <div>
-                      <p className="text-slate-400 text-xs">Plan</p>
-                      <p className="font-medium">{selectedPlan.name}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-slate-400 text-xs">Amount</p>
-                      <p className="font-bold text-base">
-                        {getPaymentAmount(selectedPlan) > 0 ? kes(getPaymentAmount(selectedPlan)) : "Needs review"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400 text-xs">Billing</p>
-                      <p className="font-medium">Monthly</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-slate-400 text-xs">Due Date</p>
-                      <p className="font-medium">
-                        {new Date(Date.now() + 7 * 86400000).toLocaleDateString("en-KE", {
-                          day: "2-digit", month: "short", year: "numeric",
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  <Separator />
-                  <div className="text-xs">
-                    <span className="text-slate-400">Description: </span>
-                    <span className="font-medium">
-                      {isPaidSubscription
-                        ? `Billing cycle settlement — ${selectedPlan.name} Plan${invoiceNumber ? ` (${invoiceNumber})` : ""}`
-                        : `Activation — ${selectedPlan.name} Plan`}
-                    </span>
-                  </div>
-                </div>
-
-                <BillingBreakdownPanel compact />
-
-                {/* ── Waiting / Countdown overlay ── */}
-                {paymentStatus === "waiting" && (
-                  <div className="rounded-xl border border-success/20 dark:border-success/20 bg-success/10 dark:bg-green-950/40 p-5 text-center space-y-4">
-                    <div className="w-14 h-14 mx-auto rounded-full bg-success/15 dark:bg-success/15 flex items-center justify-center">
-                      <Smartphone className="w-7 h-7 text-success animate-pulse" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-green-800 dark:text-green-200">
-                        Waiting for M-Pesa confirmation
-                      </p>
-                      <p className="text-xs text-success dark:text-success mt-0.5">
-                        Check your phone and enter your PIN
-                      </p>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div className="w-full bg-green-200 dark:bg-success/15 rounded-full h-2 overflow-hidden">
-                      <div
-                        className="bg-success h-2 rounded-full transition-all duration-1000"
-                        style={{ width: `${progressPct}%` }}
-                      />
-                    </div>
-
-                    {/* Countdown */}
-                    <div className="flex items-center justify-center gap-1.5 text-sm text-success dark:text-success/80">
-                      <Clock className="w-4 h-4" />
-                      <span className="font-mono font-bold">{formatCountdown(countdown)}</span>
-                      <span className="text-xs text-success dark:text-success">remaining</span>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-success/30 text-success hover:bg-success/15"
-                      onClick={handleRetry}
-                    >
-                      Cancel &amp; Try Again
-                    </Button>
-                  </div>
-                )}
-
-                {/* ── Idle / input form ── */}
-                {paymentStatus === "idle" && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Smartphone className="w-4 h-4 text-success" />
-                      <span className="text-sm font-semibold">Pay via M-Pesa STK Push</span>
+                      <p className="text-base font-bold">{getPaymentAmount(selectedPlan) > 0 ? kes(getPaymentAmount(selectedPlan)) : "Needs review"}</p>
                     </div>
 
                     {paymentError && (
-                      <div className="flex items-start gap-2 p-3 bg-destructive/10 dark:bg-red-950 border border-destructive/20 dark:border-destructive/20 rounded-lg">
-                        <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
-                        <p className="text-xs text-destructive dark:text-destructive">{paymentError}</p>
+                      <div className="mb-3 flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                        <p className="text-xs text-destructive">{paymentError}</p>
                       </div>
                     )}
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="mpesa-phone" className="text-xs">Safaricom Phone Number</Label>
-                      <Input
-                        id="mpesa-phone"
-                        type="tel"
-                        placeholder="0712345678"
-                        value={phoneNumber}
-                        onChange={(e) => {
-                          setPhoneNumber(e.target.value)
-                          setPhoneError(null)
-                          setPaymentError(null)
-                        }}
-                      />
-                      {phoneError ? (
-                        <p className="text-[10px] text-destructive">{phoneError}</p>
-                      ) : (
-                        <p className="text-[10px] text-slate-400">
-                          You will receive an STK push prompt on this number
-                        </p>
-                      )}
+                    <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="mpesa-phone" className="text-xs">Safaricom phone number</Label>
+                        <Input id="mpesa-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="0712345678" value={phoneNumber} onChange={(event) => { setPhoneNumber(event.target.value); setPhoneError(null); setPaymentError(null) }} aria-invalid={Boolean(phoneError)} />
+                        <p className={`text-[10px] ${phoneError ? "text-destructive" : "text-slate-400"}`}>{phoneError || "Use the number that should receive the STK prompt."}</p>
+                      </div>
+                      <Button className="h-10 bg-success px-6 text-white hover:bg-green-700" onClick={handlePay} disabled={!phoneNumber.trim() || !canPay}>
+                        <Phone className="mr-2 h-4 w-4" />
+                        {canPay ? "Pay now" : "Bill needs review"}
+                      </Button>
                     </div>
-
-                    <Button
-                      className="w-full bg-success hover:bg-green-700 text-white"
-                      onClick={handlePay}
-                      disabled={!phoneNumber.trim() || !canPay}
-                    >
-                      <Phone className="w-4 h-4 mr-2" />
-                      {canPay ? `Pay Now — ${kes(getPaymentAmount(selectedPlan))}` : "Contact support to verify bill"}
-                    </Button>
                   </div>
                 )}
 
-                {/* Sending state */}
                 {paymentStatus === "sending" && (
-                  <div className="flex items-center justify-center gap-2 py-4 text-slate-500">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span className="text-sm">Sending STK Push...</span>
+                  <div className="flex items-center justify-center gap-2 rounded-xl border p-5 text-slate-500">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="text-sm">Sending STK prompt…</span>
+                  </div>
+                )}
+
+                {paymentStatus === "waiting" && (
+                  <div className="space-y-3 rounded-xl border border-success/20 bg-success/10 p-5 text-center">
+                    <Smartphone className="mx-auto h-8 w-8 animate-pulse text-success" />
+                    <div>
+                      <p className="font-semibold text-green-800 dark:text-green-200">Approve the payment on your phone</p>
+                      <p className="text-xs text-success">Enter your M-Pesa PIN. This page checks confirmation automatically.</p>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-green-200 dark:bg-success/15"><div className="h-2 rounded-full bg-success transition-all duration-1000" style={{ width: `${progressPct}%` }} /></div>
+                    <p className="font-mono text-sm font-bold text-success">{formatCountdown(countdown)} remaining</p>
                   </div>
                 )}
               </div>
@@ -803,7 +682,7 @@ function PaymentDialog({
                     <Phone className="w-4 h-4 mr-2" />
                     Try Again
                   </Button>
-                  <Button variant="outline" onClick={() => setStep("plans")}>
+                  <Button variant="outline" onClick={() => setStep("checkout")}>
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Change Plan
                   </Button>
@@ -826,7 +705,6 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
   const [isExpired, setIsExpired] = useState(false)
   const [isChecking, setIsChecking] = useState(true)
   const [subscriptionType, setSubscriptionType] = useState<"trial" | "active" | null>(null)
-  const [planName, setPlanName] = useState<string | null>(null)
   const [realPlans, setRealPlans] = useState<NetilyPlan[]>([])
   const [plansLoading, setPlansLoading] = useState(true)
   const [cycleAmountDue, setCycleAmountDue] = useState<number | null>(null)
@@ -879,18 +757,11 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
           localStorage.setItem("trialStartDate", subscription.current_period_start)
         }
 
-        setPlanName(
-          (subscription as any).plan_name ||
-          (subscription.plan as any)?.name ||
-          "Netily Plan"
-        )
-        const currentPlanCode = (subscription.plan as any)?.code
-        const currentPlanId = (subscription.plan as any)?.id
-        const currentPlanOnly = plansArray.filter((plan: NetilyPlan) =>
-          (currentPlanCode && plan.code === currentPlanCode) ||
-          (currentPlanId && String(plan.id) === String(currentPlanId))
-        )
-        setRealPlans(currentPlanOnly.length ? currentPlanOnly : plansArray.slice(0, 1))
+        const checkoutPlans = plansArray
+          .filter((plan: NetilyPlan) => plan.is_active !== false)
+          .filter((plan: NetilyPlan) => plan.code === "starter" || plan.code === "enterprise")
+          .sort((a: NetilyPlan, b: NetilyPlan) => (a.code === "starter" ? -1 : b.code === "starter" ? 1 : 0))
+        setRealPlans(checkoutPlans.length ? checkoutPlans : plansArray)
 
         const buildBillingBreakdown = (usageData: any): BillingBreakdown | null => {
           if (!usageData) return null
@@ -1197,7 +1068,6 @@ export function TrialGuard({ children, trialDays = 14 }: { children: React.React
         <PaymentDialog
           open={true}
           isPaidSubscription={subscriptionType === "active"}
-          planName={planName || undefined}
           plans={realPlans}
           plansLoading={plansLoading}
           amountDue={cycleAmountDue}
