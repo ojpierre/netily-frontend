@@ -449,8 +449,13 @@ export default function PlansPage() {
     limitation_type: 'UNLIMITED' as 'UNLIMITED' | 'DATA',
     data_limit_value: '',
     data_limit_unit: 'MB' as 'MB' | 'GB',
-    // NEW: Free trial field (removed trial_duration_minutes - uses validity instead)
+    // NEW: Free trial field
     is_free_trial: false,
+    // NEW: Valid days (default true = every day, matches backend default)
+    valid_days: {
+      monday: true, tuesday: true, wednesday: true, thursday: true,
+      friday: true, saturday: true, sunday: true,
+    } as Record<string, boolean>,
   })
 
   // Loading states
@@ -639,6 +644,14 @@ export default function PlansPage() {
           data_limit_unit: hp.data_limit_unit || 'MB',
           // NEW FREE TRIAL FIELDS
           is_free_trial: hp.is_free_trial || false,
+          // NEW VALID DAYS
+          valid_monday: hp.valid_monday ?? true,
+          valid_tuesday: hp.valid_tuesday ?? true,
+          valid_wednesday: hp.valid_wednesday ?? true,
+          valid_thursday: hp.valid_thursday ?? true,
+          valid_friday: hp.valid_friday ?? true,
+          valid_saturday: hp.valid_saturday ?? true,
+          valid_sunday: hp.valid_sunday ?? true,
         })) as any[]
         allPlans.push(...mapped)
       }
@@ -686,6 +699,14 @@ export default function PlansPage() {
         data_limit_unit: hp.data_limit_unit || 'MB',
         // NEW FREE TRIAL FIELDS
         is_free_trial: hp.is_free_trial || false,
+        // NEW VALID DAYS
+        valid_monday: hp.valid_monday ?? true,
+        valid_tuesday: hp.valid_tuesday ?? true,
+        valid_wednesday: hp.valid_wednesday ?? true,
+        valid_thursday: hp.valid_thursday ?? true,
+        valid_friday: hp.valid_friday ?? true,
+        valid_saturday: hp.valid_saturday ?? true,
+        valid_sunday: hp.valid_sunday ?? true,
       })) as any[]
       setHotspotPlans(mapped)
     } catch (error) {
@@ -855,8 +876,13 @@ export default function PlansPage() {
       limitation_type: 'UNLIMITED',
       data_limit_value: '',
       data_limit_unit: 'MB',
-      // NEW FREE TRIAL FIELD (removed trial_duration_minutes)
+      // NEW FREE TRIAL FIELD
       is_free_trial: false,
+      // NEW VALID DAYS
+      valid_days: {
+        monday: true, tuesday: true, wednesday: true, thursday: true,
+        friday: true, saturday: true, sunday: true,
+      },
     })
     setIsEditingHotspot(false)
     setEditingHotspotPlan(null)
@@ -965,8 +991,18 @@ export default function PlansPage() {
         limitation_type: (hp.limitation_type as 'UNLIMITED' | 'DATA') || 'UNLIMITED',
         data_limit_value: hp.data_limit_value?.toString() || '',
         data_limit_unit: (hp.data_limit_unit as 'MB' | 'GB') || 'MB',
-        // NEW FREE TRIAL FIELD (removed trial_duration_minutes)
+        // NEW FREE TRIAL FIELD
         is_free_trial: hp.is_free_trial || false,
+        // NEW: restore valid days from the plan (fallback to true if missing)
+        valid_days: {
+          monday: hp.valid_monday ?? true,
+          tuesday: hp.valid_tuesday ?? true,
+          wednesday: hp.valid_wednesday ?? true,
+          thursday: hp.valid_thursday ?? true,
+          friday: hp.valid_friday ?? true,
+          saturday: hp.valid_saturday ?? true,
+          sunday: hp.valid_sunday ?? true,
+        },
       })
       setEditingHotspotPlan(plan)
       setIsEditingHotspot(true)
@@ -1178,6 +1214,11 @@ export default function PlansPage() {
           data_limit_unit: 'MB',
           // NEW: Free trial is false for presets
           is_free_trial: false,
+          // NEW: valid_days default all true
+          valid_days: {
+            monday: true, tuesday: true, wednesday: true, thursday: true,
+            friday: true, saturday: true, sunday: true,
+          },
         } as any)
       }
       
@@ -1195,7 +1236,7 @@ export default function PlansPage() {
     }
   }
 
-  // Hotspot custom create/edit handler — UPDATED with proper error handling
+  // Hotspot custom create/edit handler — UPDATED with valid_days
   const handleHotspotCustomCreate = async () => {
     if (!hotspotForm.name || !hotspotForm.price) {
       toast.error('Name and price are required')
@@ -1225,8 +1266,10 @@ export default function PlansPage() {
           ? parseInt(hotspotForm.data_limit_value) 
           : null,
         data_limit_unit: hotspotForm.data_limit_unit,
-        // NEW FREE TRIAL FIELD (removed trial_duration_minutes - uses validity instead)
+        // NEW FREE TRIAL FIELD
         is_free_trial: hotspotForm.is_free_trial || false,
+        // NEW VALID DAYS
+        valid_days: hotspotForm.valid_days,
       } as any
 
       if (isEditingHotspot && editingHotspotPlan) {
@@ -2479,7 +2522,7 @@ export default function PlansPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Hotspot Create / Edit Dialog — UPDATED with disabled toggle when editing */}
+      {/* Hotspot Create / Edit Dialog — UPDATED with Valid Days UI */}
       <Dialog open={isHotspotCreateOpen} onOpenChange={(open) => { if (!open) { setIsHotspotCreateOpen(false); resetHotspotForm() } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -2555,7 +2598,8 @@ export default function PlansPage() {
                 />
                 {hotspotForm.is_free_trial && (
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 font-semibold">
-                    FREE                  </span>
+                    FREE
+                  </span>
                 )}
               </div>
               {hotspotForm.is_free_trial && (
@@ -2655,6 +2699,41 @@ export default function PlansPage() {
                   No data cap — users can use as much data as they want within the time period.
                 </p>
               )}
+            </div>
+
+            {/* ─── VALID DAYS — NEW SECTION ─── */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Valid Days</Label>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  ['monday', 'Mon'], ['tuesday', 'Tue'], ['wednesday', 'Wed'],
+                  ['thursday', 'Thu'], ['friday', 'Fri'], ['saturday', 'Sat'], ['sunday', 'Sun'],
+                ] as const).map(([key, label]) => {
+                  const active = hotspotForm.valid_days[key]
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() =>
+                        setHotspotForm({
+                          ...hotspotForm,
+                          valid_days: { ...hotspotForm.valid_days, [key]: !active },
+                        })
+                      }
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                        active
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-card text-muted-foreground border-muted hover:bg-muted'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                This plan will only appear on the WiFi portal on the selected days.
+              </p>
             </div>
 
             {/* ─── FREE TRIAL TOGGLE WITH DISABLED STATE FOR EDITING ─── */}

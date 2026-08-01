@@ -47,7 +47,8 @@ import {
   Megaphone,
   MessageSquareText,
   Sparkles,
-  Map as MapIcon,   // ← ADDED THIS LINE
+  Map as MapIcon,
+  Download,   // ← ADDED
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { PageTransition, AnimatedNavItem } from "@/components/page-transition"
@@ -69,6 +70,8 @@ import { TrialGuard } from "@/components/trial-guard"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { RoleGuard } from "@/components/role-guard"
 import { NetilySupportChat } from "@/components/netily-support-chat"
+import { usePwaInstall } from "@/hooks/use-pwa-install"   // ← ADDED
+import { toast } from "sonner"                            // ← ADDED
 import {
   ADMIN_ROLES,
   ENGAGEMENT_ROLES,
@@ -117,7 +120,7 @@ const navigationSections: NavigationSection[] = [
       { name: "RADIUS", href: "/admin/radius", icon: Key },
       { name: "FUP", href: "/admin/fup", icon: Gauge },
       { name: "Usage", href: "/admin/usage", icon: BarChart3 },
-      { name: "Fiber Map", href: "/admin/network-map", icon: MapIcon },   // ← ADDED THIS LINE
+      { name: "Fiber Map", href: "/admin/network-map", icon: MapIcon },
     ],
   },
   {
@@ -187,6 +190,29 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
+
+  // ── PWA Install hook ──
+  const { canInstall, promptInstall } = usePwaInstall()
+
+  // ── Register manifest + service worker ──
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    // Inject manifest link
+    if (!document.querySelector('link[rel="manifest"]')) {
+      const link = document.createElement("link")
+      link.rel = "manifest"
+      link.href = "/api/manifest"
+      document.head.appendChild(link)
+    }
+
+    // Register service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {
+        // Silently fail – PWA is still functional without SW registration
+      })
+    }
+  }, [])
 
   // Check if we're on a public/special page handled outside tenant admin auth.
   const isPublicPage = pathname?.startsWith('/admin/login') || pathname?.startsWith('/admin/selfie')
@@ -336,6 +362,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     })
     .filter((section) => section.items.length > 0)
   const routeAccessRule = getAccessRuleForPath(pathname)
+
+  // ── Install App handler ──
+  const handleInstallApp = async () => {
+    const accepted = await promptInstall()
+    if (accepted) {
+      toast.success("App installed! You can now launch it from your desktop or start menu.")
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background" suppressHydrationWarning>
@@ -557,6 +591,18 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+
+                {/* ── Install App (conditional) ── */}
+                {canInstall && (
+                  <>
+                    <DropdownMenuItem onClick={handleInstallApp}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Install App
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+
                 <DropdownMenuItem onClick={() => router.push("/admin/settings")}>
                   <User className="w-4 h-4 mr-2" />
                   Profile
