@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { usePathname } from "next/navigation"
 import {
   Check,
@@ -76,8 +76,8 @@ function formatCountdown(seconds: number): string {
 type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "timeout"
 type DialogStep = "checkout" | "success" | "failed" | "timeout"
 
-const POLL_INTERVAL_MS = 3000   // 3 s between polls (same as hotspot captive portal)
-const TIMEOUT_SECONDS  = 120    // 2 min before declaring timeout
+const POLL_INTERVAL_MS = 3000
+const TIMEOUT_SECONDS  = 30
 
 interface PaymentDialogProps {
   open: boolean
@@ -135,57 +135,111 @@ function PaymentDialog({
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("idle")
   const [pendingPaymentId, setPendingPaymentId] = useState<string | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [paymentFeedback, setPaymentFeedback] = useState<string | null>(null)
 
   // Countdown (for the waiting state)
   const [countdown, setCountdown] = useState(TIMEOUT_SECONDS)
 
-  const refreshBillingCycleAfterPayment = async (res?: SubscriptionPaymentStatusResponse) => {
+  const refreshBillingCycleAfterPayment = useCallback(async (res?: SubscriptionPaymentStatusResponse) => {
     adminApi.invalidateSubscriptionCache()
     await Promise.allSettled([
       adminApi.getCurrentSubscription(),
       adminApi.getUsageStats(),
       res?.billing_cycle_id ? adminApi.getInvoices({ search: String(res.billing_cycle_id) }) : Promise.resolve(null),
     ])
-  }
+  }, [])
 
-  // ─── setInterval-based polling (same pattern as hotspot captive portal) ───
+  const completeSuccessfulPayment = useCallback(async (res: SubscriptionPaymentStatusResponse) => {
+    await refreshBillingCycleAfterPayment(res)
+    if (res.subscription_activated === false) {
+      setPaymentStatus("failed")
+      setPaymentError(res.message || "Payment received, but a balance remains.")
+      setPaymentFeedback(null)
+      setStep("failed")
+      return
+    }
+    localStorage.setItem("mpesaPayPhone", phoneNumber)
+    setPaymentStatus("success")
+    setPaymentFeedback("Payment confirmed. Opening your dashboard.")
+    setStep("success")
+    setTimeout(() => window.location.reload(), 2500)
+  }, [phoneNumber, refreshBillingCycleAfterPayment])
+
+  const failPayment = useCallback((message?: string | null) => {
+    setPaymentStatus("failed")
+    setPaymentError(message || "Payment was not completed. Please try again.")
+    setPaymentFeedback(null)
+    setStep("failed")
+  }, [])
+
+  const timeoutPayment = useCallback((message?: string | null) => {
+    setPaymentStatus("timeout")
+    setPaymentError(message || "We could not confirm the payment within 30 seconds.")
+    setPaymentFeedback(null)
+    setStep("timeout")
+  }, [])
+
+  // ─── Short polling window for both billing-cycle payments and trial activation ───
   useEffect(() => {
     if (paymentStatus !== "waiting" || !pendingPaymentId) return
 
-    const pollInterval = setInterval(async () => {
+    let settled = false
+
+    const pollPayment = async () => {
       try {
         const res = await adminApi.checkSubscriptionPaymentStatus(pendingPaymentId)
+        if (settled) return
 
         if (res.status === "completed") {
-          clearInterval(pollInterval)
-          await refreshBillingCycleAfterPayment(res)
-          if (res.subscription_activated === false) {
-            setPaymentStatus("failed")
-            setPaymentError(res.message || "Payment received, but a balance remains on this invoice.")
-            setStep("failed")
-            return
-          }
-          localStorage.setItem("mpesaPayPhone", phoneNumber)
-          setPaymentStatus("success")
-          setStep("success")
-          // Auto-reload after a fresh subscription + billing-cycle read.
-          setTimeout(() => window.location.reload(), 2500)
+          settled = true
+          await completeSuccessfulPayment(res)
           return
         }
 
         if (res.status === "failed" || res.status === "cancelled") {
-          clearInterval(pollInterval)
-          setPaymentStatus("failed")
-          setPaymentError(res.message || "Payment was declined or cancelled.")
-          setStep("failed")
+          settled = true
+          failPayment(res.message)
         }
       } catch {
-        /* network glitch — will retry on next tick */
+        if (!settled) {
+          setPaymentFeedback("Still checking payment status...")
+        }
       }
-    }, POLL_INTERVAL_MS)
+    }
 
-    return () => clearInterval(pollInterval)
-  }, [paymentStatus, pendingPaymentId, phoneNumber])
+    pollPayment()
+    const pollInterval = setInterval(pollPayment, POLL_INTERVAL_MS)
+    const timeout = setTimeout(async () => {
+      if (settled) return
+      setPaymentFeedback("Doing one final payment check...")
+      try {
+        const res = await adminApi.checkSubscriptionPaymentStatus(pendingPaymentId)
+        if (settled) return
+        if (res.status === "completed") {
+          settled = true
+          await completeSuccessfulPayment(res)
+          return
+        }
+        if (res.status === "failed" || res.status === "cancelled") {
+          settled = true
+          failPayment(res.message)
+          return
+        }
+      } catch {
+        /* timeout below gives the user a clear next step */
+      }
+      if (!settled) {
+        settled = true
+        timeoutPayment()
+      }
+    }, TIMEOUT_SECONDS * 1000)
+
+    return () => {
+      settled = true
+      clearInterval(pollInterval)
+      clearTimeout(timeout)
+    }
+  }, [paymentStatus, pendingPaymentId, completeSuccessfulPayment, failPayment, timeoutPayment])
 
   // ─── Countdown timer ───
   useEffect(() => {
@@ -194,8 +248,6 @@ function PaymentDialog({
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          setPaymentStatus("timeout")
-          setStep("timeout")
           return 0
         }
         return prev - 1
@@ -370,6 +422,7 @@ function PaymentDialog({
     }
     setPhoneError(null)
     setPaymentError(null)
+    setPaymentFeedback(null)
     setPaymentStatus("sending")
 
     try {
@@ -382,12 +435,14 @@ function PaymentDialog({
           ? { amount: getPaymentAmount(selectedPlan) }
           : {}),
       })
-      toast.success("STK Push sent! Check your phone and enter your M-Pesa PIN.")
+      toast.success("STK push sent. Check your phone.")
       setPendingPaymentId(res.payment_id)
       setCountdown(TIMEOUT_SECONDS)
+      setPaymentFeedback("STK sent. Enter your M-Pesa PIN to complete payment.")
       setPaymentStatus("waiting")
     } catch (err: any) {
-      setPaymentError(err.message || "Failed to initiate payment. Please try again.")
+      setPaymentError(err.message || "We could not send the STK push. Please try again.")
+      setPaymentFeedback(null)
       setPaymentStatus("idle")
     }
   }
@@ -395,6 +450,7 @@ function PaymentDialog({
   const handleRetry = () => {
     setPendingPaymentId(null)
     setPaymentError(null)
+    setPaymentFeedback(null)
     setPhoneError(null)
     setCountdown(TIMEOUT_SECONDS)
     setPaymentStatus("idle")
@@ -403,7 +459,20 @@ function PaymentDialog({
 
   const handleCheckAndRefresh = async () => {
     setPaymentStatus("sending")
+    setPaymentFeedback("Checking payment status...")
     try {
+      if (pendingPaymentId) {
+        const res = await adminApi.checkSubscriptionPaymentStatus(pendingPaymentId)
+        if (res.status === "completed") {
+          await completeSuccessfulPayment(res)
+          return
+        }
+        if (res.status === "failed" || res.status === "cancelled") {
+          failPayment(res.message)
+          return
+        }
+      }
+
       await refreshBillingCycleAfterPayment()
       const subscription = await adminApi.getCurrentSubscription()
 
@@ -425,7 +494,7 @@ function PaymentDialog({
         toast.info(
           "Payment not confirmed yet. If you entered your PIN, please wait a moment and try again."
         )
-        setPaymentStatus("timeout")
+        timeoutPayment("Payment is still pending. Please wait a moment or send a new STK push.")
       }
     } catch {
       // On network error, attempt reload anyway
@@ -442,7 +511,7 @@ function PaymentDialog({
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
-        className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:h-auto sm:max-h-[92dvh] sm:w-[min(calc(100vw-2rem),48rem)] lg:w-[min(calc(100vw-4rem),56rem)]"
+        className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:h-[92dvh] sm:max-h-[92dvh] sm:w-[min(calc(100vw-2rem),48rem)] lg:w-[min(calc(100vw-4rem),56rem)]"
       >
         {/* ── Header ── */}
         <div className="flex shrink-0 flex-col gap-3 border-b bg-background/95 px-4 pb-3 pt-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pt-5">
@@ -588,7 +657,7 @@ function PaymentDialog({
                 {paymentStatus === "sending" && (
                   <div className="flex items-center justify-center gap-2 rounded-xl border p-5 text-slate-500">
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    <span className="text-sm">Sending STK prompt…</span>
+                    <span className="text-sm">Sending STK push...</span>
                   </div>
                 )}
 
@@ -596,8 +665,8 @@ function PaymentDialog({
                   <div className="space-y-3 rounded-xl border border-success/20 bg-success/10 p-5 text-center">
                     <Smartphone className="mx-auto h-8 w-8 animate-pulse text-success" />
                     <div>
-                      <p className="font-semibold text-green-800 dark:text-green-200">Approve the payment on your phone</p>
-                      <p className="text-xs text-success">Enter your M-Pesa PIN. This page checks confirmation automatically.</p>
+                      <p className="font-semibold text-green-800 dark:text-green-200">Approve on your phone</p>
+                      <p className="text-xs text-success">{paymentFeedback || "Waiting for M-Pesa confirmation."}</p>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-green-200 dark:bg-success/15"><div className="h-2 rounded-full bg-success transition-all duration-1000" style={{ width: `${progressPct}%` }} /></div>
                     <p className="font-mono text-sm font-bold text-success">{formatCountdown(countdown)} remaining</p>
@@ -613,9 +682,9 @@ function PaymentDialog({
                   <CheckCircle2 className="w-10 h-10 text-success" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold">Payment Confirmed!</h3>
+                  <h3 className="text-lg font-bold">Payment confirmed</h3>
                   <p className="text-sm text-slate-500 mt-1">
-                    Your account is active. All your data is restored.
+                    Your subscription is active. Redirecting now.
                   </p>
                   {selectedPlan && (
                     <p className="text-xs text-slate-400 mt-1">
@@ -626,7 +695,7 @@ function PaymentDialog({
                 </div>
                 <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  Redirecting to dashboard...
+                  Opening dashboard...
                 </div>
                 <Button className="bg-primary hover:bg-primary" onClick={() => window.location.reload()}>
                   Continue to Dashboard
@@ -642,21 +711,20 @@ function PaymentDialog({
                   <Clock className="w-10 h-10 text-warning" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold">Request Timed Out</h3>
+                  <h3 className="text-lg font-bold">Still waiting for confirmation</h3>
                   <p className="text-sm text-slate-500 mt-1">
-                    We stopped polling but the payment may still be processing.
-                    If you entered your PIN, tap <strong>Check Status</strong> — your account
-                    will unlock automatically if the payment went through.
+                    {paymentError || "We could not confirm the payment within 30 seconds."}
+                    {" "}If you entered your PIN, check the status before sending a new STK push.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 max-w-xs mx-auto">
                   <Button className="bg-primary hover:bg-primary" onClick={handleCheckAndRefresh}>
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    Check Status &amp; Refresh
+                    Check Status
                   </Button>
                   <Button variant="outline" onClick={handleRetry}>
                     <Phone className="w-4 h-4 mr-2" />
-                    Send New STK Push
+                    Send New STK
                   </Button>
                 </div>
               </div>
@@ -669,7 +737,7 @@ function PaymentDialog({
                   <XCircle className="w-10 h-10 text-destructive" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold">Payment Failed</h3>
+                  <h3 className="text-lg font-bold">Payment failed</h3>
                   <p className="text-sm text-slate-500 mt-1">
                     {paymentError || "Could not process payment. Please try again."}
                   </p>
