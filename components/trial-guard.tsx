@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Dialog,
@@ -286,25 +285,25 @@ function PaymentDialog({
 
     return (
       <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/60">
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div>
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+          <div className="min-w-0">
             <p className="text-sm font-bold text-slate-900 dark:text-slate-100">How this bill was calculated</p>
             <p className="text-xs text-slate-500">{cycleLabel}</p>
           </div>
-          <Badge variant="outline" className="shrink-0 text-[10px]">
+          <Badge variant="outline" className="w-fit max-w-full shrink-0 truncate text-[10px]">
             {invoiceNumber || billingBreakdown.invoiceNumber || "Estimate"}
           </Badge>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 md:grid-cols-2">
           {rows.map((row) => (
-            <div key={row.label} className="rounded-lg border border-white bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-start justify-between gap-2">
-                <div>
+            <div key={row.label} className="min-w-0 rounded-lg border border-white bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{row.label}</p>
-                  <p className="mt-1 text-xs text-slate-500">{row.detail}</p>
+                  <p className="mt-1 break-words text-xs text-slate-500">{row.detail}</p>
                 </div>
-                <p className="text-sm font-black text-slate-900 dark:text-white">{row.value}</p>
+                <p className="shrink-0 text-sm font-black text-slate-900 dark:text-white sm:text-right">{row.value}</p>
               </div>
             </div>
           ))}
@@ -321,9 +320,9 @@ function PaymentDialog({
           </div>
         )}
 
-        <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-900 px-3 py-2 text-white dark:bg-white dark:text-slate-950">
+        <div className="mt-3 flex flex-col gap-1 rounded-lg bg-slate-900 px-3 py-2 text-white dark:bg-white dark:text-slate-950 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-xs font-semibold uppercase tracking-wide">Total due</span>
-          <span className="text-base font-black">{kes(amountDue || billingBreakdown.totalEstimate)}</span>
+          <span className="text-base font-black sm:text-right">{kes(amountDue || billingBreakdown.totalEstimate)}</span>
         </div>
       </div>
     )
@@ -443,19 +442,19 @@ function PaymentDialog({
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
-        className="flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:max-h-[90dvh] sm:w-full"
+        className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:h-auto sm:max-h-[92dvh] sm:w-[min(calc(100vw-2rem),48rem)] lg:w-[min(calc(100vw-4rem),56rem)]"
       >
         {/* ── Header ── */}
-        <div className="flex shrink-0 items-start justify-between gap-2 px-4 pb-3 pt-4 sm:items-center sm:px-6 sm:pt-5">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-destructive/15 dark:bg-red-950 flex items-center justify-center">
+        <div className="flex shrink-0 flex-col gap-3 border-b bg-background/95 px-4 pb-3 pt-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:pt-5">
+          <div className="flex min-w-0 items-start gap-3 sm:items-center">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-destructive/15 dark:bg-red-950">
               <ShieldAlert className="w-5 h-5 text-destructive" />
             </div>
-            <div>
-              <DialogTitle className="text-lg">
+            <div className="min-w-0">
+              <DialogTitle className="text-base leading-tight sm:text-lg">
                 {isPaidSubscription ? "Payment Required" : "Trial Expired"}
               </DialogTitle>
-              <DialogDescription className="text-xs mt-0.5">
+              <DialogDescription className="mt-1 text-xs leading-relaxed">
                 {isPaidSubscription
                   ? "Your subscription has expired. Pay to restore access."
                   : "Your free trial has ended. Subscribe to continue."}
@@ -465,18 +464,16 @@ function PaymentDialog({
           <Button
             variant="ghost" size="sm"
             onClick={() => logout()}
-            className="h-8 shrink-0 px-2 text-slate-400 hover:text-destructive"
+            className="h-8 w-fit shrink-0 px-2 text-slate-400 hover:text-destructive sm:self-center"
           >
             <LogOut className="w-4 h-4 mr-1" />
             <span className="text-xs">Logout</span>
           </Button>
         </div>
 
-        <Separator className="shrink-0" />
-
         {/* ── Body (scrollable) ── */}
-        <ScrollArea className="min-h-0 flex-1 overscroll-contain">
-          <div className="px-4 py-4 sm:px-6 sm:py-5">
+        <ScrollArea className="min-h-0 flex-1 overflow-hidden overscroll-contain">
+          <div className="px-4 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-5 lg:px-7">
 
             {/* ── UNIFIED PLAN + PAYMENT CHECKOUT ── */}
             {step === "checkout" && (
@@ -498,7 +495,7 @@ function PaymentDialog({
                     <p className="text-slate-500 text-sm">No plans available. Please contact support.</p>
                   </div>
                 ) : (
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3 md:grid-cols-2">
                     {plans.map((plan) => {
                       const selected = selectedPlan?.id === plan.id
                       const enterprise = isEnterprisePlan(plan)
@@ -511,32 +508,32 @@ function PaymentDialog({
                           aria-pressed={selected}
                           disabled={paymentStatus !== "idle"}
                           onClick={() => handleSelectPlan(plan)}
-                          className={`relative w-full rounded-xl border p-4 text-left transition-all ${
+                          className={`relative min-w-0 w-full rounded-xl border p-4 text-left transition-all ${
                             selected
                               ? "border-primary bg-primary/5 ring-2 ring-primary/15"
                               : "border-slate-200 hover:border-slate-400 dark:border-slate-700"
                           }`}
                         >
-                          <div className="mb-3 flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-2">
+                          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex min-w-0 items-start gap-2">
                               <span className={`mt-0.5 flex h-4 w-4 items-center justify-center rounded-full border ${selected ? "border-primary bg-primary" : "border-slate-300"}`}>
                                 {selected && <Check className="h-3 w-3 text-white" />}
                               </span>
-                              <div>
-                                <span className="font-semibold">{plan.name}</span>
+                              <div className="min-w-0">
+                                <span className="break-words font-semibold">{plan.name}</span>
                                 {plan.code === "starter" && <p className="text-[10px] font-medium text-primary">Default</p>}
                               </div>
                             </div>
-                            <div className="text-right">
-                              <span className="text-base font-bold">{enterprise ? "Contact us" : amount > 0 ? kes(amount) : "Verify bill"}</span>
+                            <div className="shrink-0 text-left sm:text-right">
+                              <span className="block text-base font-bold leading-tight">{enterprise ? "Contact us" : amount > 0 ? kes(amount) : "Verify bill"}</span>
                               {!enterprise && <span className="text-xs text-slate-500">{isPaidSubscription ? " due" : "/mo"}</span>}
                             </div>
                           </div>
                           <div className="space-y-1.5">
                             {features.slice(0, 3).map((feature) => (
-                              <span key={feature} className="flex items-center gap-1.5 text-xs text-slate-500">
+                              <span key={feature} className="flex items-start gap-1.5 text-xs text-slate-500">
                                 <Check className="h-3 w-3 shrink-0 text-success" />
-                                {feature}
+                                <span className="min-w-0 break-words">{feature}</span>
                               </span>
                             ))}
                           </div>
@@ -559,12 +556,12 @@ function PaymentDialog({
 
                 {selectedPlan && !isEnterprisePlan(selectedPlan) && paymentStatus === "idle" && (
                   <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <div>
+                    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                      <div className="min-w-0">
                         <p className="text-sm font-semibold">Pay with M-Pesa</p>
                         <p className="text-xs text-slate-500">An STK prompt will be sent to your phone.</p>
                       </div>
-                      <p className="text-base font-bold">{getPaymentAmount(selectedPlan) > 0 ? kes(getPaymentAmount(selectedPlan)) : "Needs review"}</p>
+                      <p className="shrink-0 text-base font-bold sm:text-right">{getPaymentAmount(selectedPlan) > 0 ? kes(getPaymentAmount(selectedPlan)) : "Needs review"}</p>
                     </div>
 
                     {paymentError && (
@@ -574,13 +571,13 @@ function PaymentDialog({
                       </div>
                     )}
 
-                    <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
                       <div className="space-y-1.5">
                         <Label htmlFor="mpesa-phone" className="text-xs">Safaricom phone number</Label>
                         <Input id="mpesa-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="0712345678" value={phoneNumber} onChange={(event) => { setPhoneNumber(event.target.value); setPhoneError(null); setPaymentError(null) }} aria-invalid={Boolean(phoneError)} />
                         <p className={`text-[10px] ${phoneError ? "text-destructive" : "text-slate-400"}`}>{phoneError || "Use the number that should receive the STK prompt."}</p>
                       </div>
-                      <Button className="h-10 bg-success px-6 text-white hover:bg-green-700" onClick={handlePay} disabled={!phoneNumber.trim() || !canPay}>
+                      <Button className="h-10 w-full bg-success px-6 text-white hover:bg-green-700 sm:w-auto" onClick={handlePay} disabled={!phoneNumber.trim() || !canPay}>
                         <Phone className="mr-2 h-4 w-4" />
                         {canPay ? "Pay now" : "Bill needs review"}
                       </Button>
