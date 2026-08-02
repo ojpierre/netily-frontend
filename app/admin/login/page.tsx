@@ -18,7 +18,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useAdminAuth } from "@/app/admin/admin-auth-context"
 import { adminApi, type AdminLoginChallengeResponse, type AdminLoginResponse } from "@/lib/admin-api"
 import { startAuthentication } from "@simplewebauthn/browser"
-import { ParticleBackground } from "@/components/auth/particle-background" // ✅ NEW IMPORT
+import { ParticleBackground } from "@/components/auth/particle-background"
+import { LogoStrandBadge } from "@/components/auth/logo-strand-badge" // ✅ ADDED IMPORT
 
 // Check if using mock mode
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
@@ -34,8 +35,6 @@ const formatDuration = (totalSeconds: number): string => {
   const secs = totalSeconds % 60
   return `${mins}:${String(secs).padStart(2, "0")}`
 }
-
-// ❌ DELETED: ParticleBackground function (now imported)
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -306,7 +305,7 @@ export default function AdminLoginPage() {
         <div className="absolute bottom-[-250px] right-[-100px] w-[500px] h-[500px] rounded-full bg-violet-500/[0.06] blur-[150px]" />
       </div>
 
-      <ParticleBackground /> {/* ✅ USING IMPORTED COMPONENT */}
+      <ParticleBackground />
 
       <Card
         ref={cardRef}
@@ -322,10 +321,11 @@ export default function AdminLoginPage() {
         {step === "credentials" ? (
           <>
             <CardHeader className="space-y-1 pt-8 pb-2 relative z-10">
+              <LogoStrandBadge /> {/* ✅ ADDED */}
               <div className="flex items-center gap-2 mb-5">
                 <div className="h-6 w-1 rounded-full bg-blue-600" />
                 <span className="text-xs font-semibold tracking-[0.18em] text-slate-400 uppercase">
-                  Netily Admin {/* ✅ UPDATED: Added "Admin" */}
+                  Netily Admin
                 </span>
               </div>
               <CardTitle className="text-2xl font-semibold text-slate-900 tracking-tight">
@@ -433,10 +433,11 @@ export default function AdminLoginPage() {
         ) : (
           <>
             <CardHeader className="space-y-1 pt-8 pb-2 relative z-10">
+              <LogoStrandBadge /> {/* ✅ ADDED */}
               <div className="flex items-center gap-2 mb-5">
                 <div className="h-6 w-1 rounded-full bg-blue-600" />
                 <span className="text-xs font-semibold tracking-[0.18em] text-slate-400 uppercase">
-                  Netily Admin {/* ✅ UPDATED: Added "Admin" */}
+                  Netily Admin
                 </span>
               </div>
               <CardTitle className="text-2xl font-semibold text-slate-900 tracking-tight">
