@@ -1,7 +1,7 @@
 import { Renderer, Program, Mesh, Color, Triangle, RenderTarget } from 'ogl';
 import { useEffect, useRef } from 'react';
 
-import './Strands.css';
+import './strands.css'; // ✅ CHANGED: lowercase 's'
 
 const MAX_STRANDS = 12;
 const MAX_COLORS = 8;
