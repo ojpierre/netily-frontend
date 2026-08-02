@@ -4,7 +4,7 @@ import dynamic from "next/dynamic"
 import { Wifi } from "lucide-react"
 
 // ogl touches the DOM canvas directly — load client-only, no SSR
-const Strands = dynamic(() => import("@/components/effects/Strands"), { ssr: false })
+const Strands = dynamic(() => import("@/components/effects/strands"), { ssr: false })
 
 export function LogoStrandBadge() {
   return (
