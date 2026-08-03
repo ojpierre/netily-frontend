@@ -14,6 +14,12 @@ const REFERRAL_STATUS_LABELS = {
   churned: "Rejected / churned",
 } as const
 
+const ATTRIBUTION_LABELS = {
+  tracked_click: "Tracked link",
+  lead_form: "Lead form",
+  manual: "Manual review",
+} as const
+
 export default function AffiliateReferralsPage() {
   const { user } = useAffiliateAuth()
   const [referrals, setReferrals] = useState<Referral[]>([])
@@ -60,6 +66,7 @@ export default function AffiliateReferralsPage() {
                 <tr className="border-b border-gray-100 bg-gray-50/60">
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-400">ISP / Company</th>
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-400">Signup Date</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-400">Attribution</th>
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-400">Status</th>
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-gray-400">Reward</th>
                 </tr>
@@ -69,10 +76,18 @@ export default function AffiliateReferralsPage() {
                   <tr key={r.id} className="transition hover:bg-red-50/30">
                     <td className="px-6 py-4">
                       <p className="font-bold text-gray-900">{r.isp_name}</p>
-                      <p className="text-xs text-gray-400">{r.company}</p>
+                      <p className="text-xs text-gray-400">{r.signup_email || r.company || "Lead submitted"}</p>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {new Date(r.signup_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <span className="inline-flex rounded-full border border-red-100 bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700">
+                          {ATTRIBUTION_LABELS[r.attribution_type || "manual"]}
+                        </span>
+                        {r.source && <p className="text-[11px] text-gray-400">{r.source}</p>}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <span

@@ -39,14 +39,16 @@ export interface Referral {
   id: number
   isp_name: string
   company: string
+  signup_email?: string
   signup_date: string
   status: "pending" | "approved" | "paid" | "rejected" | "churned"
   reward_amount: number
   currency: string
   admin_notes?: string
-  attribution_type?: "tracked_click" | "manual"
+  attribution_type?: "tracked_click" | "lead_form" | "manual"
   click_id?: number | null
   clicked_at?: string | null
+  lead_id?: number | null
   source?: string
 }
 

@@ -26,6 +26,12 @@ const STATUS_FILTERS = [
   { key: "suspended", label: "Suspended" },
 ]
 
+const ATTRIBUTION_LABELS = {
+  tracked_click: "Tracked click",
+  lead_form: "Lead form",
+  manual: "Manual",
+} as const
+
 export default function SuperAdminReferralsPage() {
   const [affiliates, setAffiliates] = useState<AdminAffiliate[]>([])
   const [loading, setLoading] = useState(true)
@@ -518,18 +524,27 @@ export default function SuperAdminReferralsPage() {
                               </div>
                             </div>
                             {a.referrals.length > 0 ? (
-                              <div className="space-y-2">
+                              <div className="grid gap-3 xl:grid-cols-2">
                                 {a.referrals.map((r) => (
-                                  <div key={r.id} className="flex items-center justify-between rounded-lg bg-slate-900/60 p-3">
-                                    <div>
-                                      <p className="text-sm font-medium text-white">{r.isp_name}</p>
-                                      <p className="text-xs text-slate-500">{r.company} · {new Date(r.signup_date).toLocaleDateString()}</p>
+                                  <div key={r.id} className="rounded-xl border border-slate-700/70 bg-slate-900/70 p-3">
+                                    <div className="min-w-0">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <p className="break-words text-sm font-semibold text-white">{r.isp_name}</p>
+                                        <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-200">
+                                          {ATTRIBUTION_LABELS[r.attribution_type || "manual"]}
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 break-words text-xs text-slate-400">{r.signup_email || r.company || "No email captured"}</p>
+                                      <p className="mt-1 text-[11px] text-slate-500">
+                                        {new Date(r.signup_date).toLocaleDateString()} - {r.source || "Referral"}
+                                        {r.lead_id ? ` - Lead #${r.lead_id}` : ""}
+                                      </p>
                                     </div>
-                                    <div className="flex items-center gap-3">
+                                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                       <select
                                         value={r.status}
                                         onChange={(event) => updateReferral(a.id, r.id, event.target.value as typeof r.status)}
-                                        className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200"
+                                        className="h-8 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200"
                                         aria-label={`Referral status for ${r.isp_name}`}
                                       >
                                         <option value="pending">Pending</option>
@@ -538,15 +553,15 @@ export default function SuperAdminReferralsPage() {
                                         <option value="rejected">Rejected</option>
                                         <option value="churned">Rejected/churned</option>
                                       </select>
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-xs text-slate-500">{r.currency}</span>
+                                      <div className="grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
+                                        <span className="text-xs font-semibold text-slate-500">{r.currency}</span>
                                         <Input
                                           type="number"
                                           min="0"
                                           step="0.01"
                                           value={rewardDrafts[r.id] ?? String(r.reward_amount)}
                                           onChange={(event) => setRewardDrafts((current) => ({ ...current, [r.id]: event.target.value }))}
-                                          className="h-8 w-28 border-slate-700 bg-slate-950 text-right text-sm text-white"
+                                          className="h-8 border-slate-700 bg-slate-950 text-right text-sm text-white"
                                           aria-label={`Manual commission for ${r.isp_name}`}
                                         />
                                         <Button
