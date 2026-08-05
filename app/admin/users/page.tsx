@@ -514,6 +514,13 @@ export default function UsersPage() {
   const [hotspotPlansForBinding, setHotspotPlansForBinding] = useState<HotspotPlan[]>([])
 
   // ============================================================
+  // IP BINDING LOADING GUARD STATE
+  // ============================================================
+  const [creatingBinding, setCreatingBinding] = useState(false)
+  const [deletingBindingId, setDeletingBindingId] = useState<string | null>(null)
+  const [extendingBindingId, setExtendingBindingId] = useState<string | null>(null)
+
+  // ============================================================
   // FIX: Remove password from newCustomerForm state
   // ============================================================
   const [newCustomerForm, setNewCustomerForm] = useState({
@@ -603,11 +610,13 @@ export default function UsersPage() {
   }
 
   const handleCreateIPBinding = async () => {
+    if (creatingBinding) return // guard against double-click
     if (!ipBindingForm.router_id || !ipBindingForm.plan_id || !ipBindingForm.mac_address) {
       toast.error("Router, plan, and MAC address are required")
       return
     }
     try {
+      setCreatingBinding(true)
       await adminApi.createIPBinding({
         router: parseInt(ipBindingForm.router_id),
         plan: ipBindingForm.plan_id,
@@ -622,26 +631,36 @@ export default function UsersPage() {
       await loadIPBindings()
     } catch (err: any) {
       toast.error(err.message || "Failed to create IP binding")
+    } finally {
+      setCreatingBinding(false)
     }
   }
 
   const handleExtendIPBinding = async (id: string) => {
+    if (extendingBindingId === id) return
     try {
+      setExtendingBindingId(id)
       await adminApi.extendIPBinding(id, 60)
       toast.success("IP binding extended by 1 hour")
       await loadIPBindings()
     } catch (err: any) {
       toast.error(err.message || "Failed to extend IP binding")
+    } finally {
+      setExtendingBindingId(null)
     }
   }
 
   const handleDeleteIPBinding = async (id: string) => {
+    if (deletingBindingId === id) return
     try {
+      setDeletingBindingId(id)
       await adminApi.deleteIPBinding(id)
       toast.success("IP binding deleted")
       await loadIPBindings()
     } catch (err: any) {
       toast.error(err.message || "Failed to delete IP binding")
+    } finally {
+      setDeletingBindingId(null)
     }
   }
 
@@ -2668,6 +2687,7 @@ export default function UsersPage() {
                     setShowAddIPBindingDialog(true)
                     loadRouters()
                   }}
+                  disabled={creatingBinding}
                   className="w-full sm:w-auto transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
@@ -3700,17 +3720,19 @@ export default function UsersPage() {
                               size="sm" 
                               variant="outline" 
                               onClick={() => handleExtendIPBinding(b.id)}
+                              disabled={extendingBindingId === b.id}
                               className="transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                             >
-                              +1h
+                              {extendingBindingId === b.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "+1h"}
                             </Button>
                             <Button 
                               size="sm" 
                               variant="ghost" 
                               className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" 
                               onClick={() => handleDeleteIPBinding(b.id)}
+                              disabled={deletingBindingId === b.id}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {deletingBindingId === b.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -5174,7 +5196,16 @@ export default function UsersPage() {
             </div>
             <DialogFooter className="mt-4">
               <Button variant="outline" onClick={() => setShowAddIPBindingDialog(false)}>Cancel</Button>
-              <Button onClick={handleCreateIPBinding}>Create Binding</Button>
+              <Button 
+                onClick={handleCreateIPBinding} 
+                disabled={creatingBinding}
+              >
+                {creatingBinding ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</>
+                ) : (
+                  "Create Binding"
+                )}
+              </Button>
             </DialogFooter>
           </motion.div>
         </DialogContent>
