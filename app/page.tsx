@@ -1,6 +1,7 @@
 import { LandingPage } from "./landing-page"
 import type { Metadata } from "next"
 import { blogPosts } from "@/lib/blog-data"
+import { HomepagePreloader } from "@/components/homepage-preloader"
 
 // Static page â€” no per-request rendering needed; maximises caching and Core Web Vitals
 export const metadata: Metadata = {
@@ -964,6 +965,7 @@ export default function Page() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
+      <HomepagePreloader />
       <LandingPage />
     </>
   )

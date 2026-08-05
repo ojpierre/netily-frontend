@@ -25,7 +25,12 @@ const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" })
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", display: "swap" })
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", display: "swap" })
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" })
-const roboto = Roboto({ subsets: ["latin"], variable: "--font-roboto", display: "swap" })
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["400", "500", "700", "900"],
+  variable: "--font-roboto",
+  display: "swap",
+})
 const lato = Lato({ subsets: ["latin"], weight: ["400", "700", "900"], variable: "--font-lato", display: "swap" })
 const openSans = Open_Sans({ subsets: ["latin"], variable: "--font-open-sans", display: "swap" })
 const sourceSans3 = Source_Sans_3({ subsets: ["latin"], variable: "--font-source-sans-3", display: "swap" })
@@ -368,7 +373,7 @@ export default function RootLayout({
     process.env.NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS === "true" || process.env.VERCEL === "1"
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={fontVariables} suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#0f172a" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -391,7 +396,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={fontVariables} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         {/* â”€â”€ Google Analytics â”€â”€ */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-55Q1Q3H14M"

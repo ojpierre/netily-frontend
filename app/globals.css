@@ -462,6 +462,19 @@
     @apply bg-background text-foreground;
     font-family: var(--app-font-family);
   }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+  }
+}
+
+@layer utilities {
+  .font-sans {
+    font-family: var(--app-font-family) !important;
+  }
 }
 
 /* ── Modern sidebar scrollbar ────────────────────────────────────────────── */
