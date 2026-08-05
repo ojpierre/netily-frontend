@@ -542,6 +542,32 @@ export interface Router {
   updated_at?: string
 }
 
+export interface IPBinding {
+  id: string
+  router: number
+  router_name: string
+  plan: string | null
+  plan_name: string | null
+  name: string
+  mac_address: string
+  ip_address: string | null
+  status: 'active' | 'expired' | 'disabled'
+  activated_at: string
+  expires_at: string | null
+  is_active: boolean
+  time_remaining_minutes: number
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export interface KnownHost {
+  mac: string
+  ip: string
+  hostname: string
+  source: 'dhcp' | 'arp'
+}
+
 export type VPNTunnelStatus = 'connected' | 'disconnected' | 'unknown'
 
 export interface RouterVPNStatus {

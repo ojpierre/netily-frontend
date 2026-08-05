@@ -179,6 +179,9 @@ import type {
   HotspotClientDetailResponse,
   // Network Map types
   NetworkMapElement,
+  // IP Binding types
+  IPBinding,
+  KnownHost,
 } from './types'
 
 import { getApiBaseUrl } from './subdomain'
@@ -1704,6 +1707,48 @@ async activateService(
       method: 'POST',
       body: JSON.stringify({ base_ip, subnet_cidr }),
     })
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // IP BINDING MANAGEMENT - /network/ip-bindings/
+  // ────────────────────────────────────────────────────────────────
+
+  async getIPBindings(params?: Record<string, string>): Promise<PaginatedResponse<IPBinding>> {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PaginatedResponse<IPBinding>>(`/network/ip-bindings/${qs}`)
+  }
+
+  async createIPBinding(data: {
+    router: number
+    plan: string
+    name: string
+    mac_address: string
+    ip_address?: string
+    notes?: string
+  }): Promise<IPBinding> {
+    return this.request<IPBinding>('/network/ip-bindings/', { 
+      method: 'POST', 
+      body: JSON.stringify(data) 
+    })
+  }
+
+  async deleteIPBinding(id: string): Promise<void> {
+    await this.request(`/network/ip-bindings/${id}/`, { method: 'DELETE' })
+  }
+
+  async extendIPBinding(id: string, minutes: number): Promise<IPBinding> {
+    return this.request<IPBinding>(`/network/ip-bindings/${id}/extend/`, {
+      method: 'POST',
+      body: JSON.stringify({ minutes }),
+    })
+  }
+
+  async disableIPBinding(id: string): Promise<IPBinding> {
+    return this.request<IPBinding>(`/network/ip-bindings/${id}/disable/`, { method: 'POST' })
+  }
+
+  async getRouterKnownHosts(routerId: number): Promise<{ hosts: KnownHost[] }> {
+    return this.request(`/network/routers/${routerId}/known-hosts/`)
   }
 
   // ------------------------------------------

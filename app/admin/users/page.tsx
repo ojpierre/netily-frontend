@@ -42,6 +42,7 @@ import {
   Settings,
   Wallet,
   WifiOff,
+  Router as RouterIcon,
 } from "lucide-react"
 import { adminApi } from "@/lib/admin-api"
 import { usePagePermissions } from "@/hooks/use-page-permissions"
@@ -59,6 +60,9 @@ import type {
   CustomerAvailablePlansResponse,
   CustomerRADIUSCredentials,
   ActiveSubscription,
+  IPBinding,
+  KnownHost,
+  HotspotPlan,
 } from "@/lib/types"
 
 // PaymentEntry type - not exported from types.ts
@@ -497,6 +501,19 @@ export default function UsersPage() {
   })
 
   // ============================================================
+  // IP BINDING STATE
+  // ============================================================
+  const [ipBindings, setIpBindings] = useState<IPBinding[]>([])
+  const [ipBindingLoading, setIpBindingLoading] = useState(false)
+  const [showAddIPBindingDialog, setShowAddIPBindingDialog] = useState(false)
+  const [ipBindingForm, setIpBindingForm] = useState({
+    router_id: "", plan_id: "", name: "", mac_address: "", ip_address: "", notes: "",
+  })
+  const [knownHosts, setKnownHosts] = useState<KnownHost[]>([])
+  const [knownHostsLoading, setKnownHostsLoading] = useState(false)
+  const [hotspotPlansForBinding, setHotspotPlansForBinding] = useState<HotspotPlan[]>([])
+
+  // ============================================================
   // FIX: Remove password from newCustomerForm state
   // ============================================================
   const [newCustomerForm, setNewCustomerForm] = useState({
@@ -546,6 +563,97 @@ export default function UsersPage() {
   // NEW: Export state
   // ============================================================
   const [exporting, setExporting] = useState(false)
+
+  // ============================================================
+  // IP BINDING FUNCTIONS
+  // ============================================================
+  const loadIPBindings = async () => {
+    try {
+      setIpBindingLoading(true)
+      const res = await adminApi.getIPBindings({ page_size: "100" })
+      setIpBindings(res.results || [])
+    } catch (err) {
+      toast.error("Failed to load IP bindings")
+    } finally {
+      setIpBindingLoading(false)
+    }
+  }
+
+  const loadKnownHosts = async (routerId: string) => {
+    if (!routerId) { setKnownHosts([]); return }
+    try {
+      setKnownHostsLoading(true)
+      const res = await adminApi.getRouterKnownHosts(parseInt(routerId))
+      setKnownHosts(res.hosts || [])
+    } catch {
+      setKnownHosts([])
+    } finally {
+      setKnownHostsLoading(false)
+    }
+  }
+
+  const loadHotspotPlansForRouter = async (routerId: string) => {
+    if (!routerId) { setHotspotPlansForBinding([]); return }
+    try {
+      const plans = await adminApi.getHotspotPlans(parseInt(routerId))
+      setHotspotPlansForBinding(plans.filter(p => p.is_active))
+    } catch {
+      setHotspotPlansForBinding([])
+    }
+  }
+
+  const handleCreateIPBinding = async () => {
+    if (!ipBindingForm.router_id || !ipBindingForm.plan_id || !ipBindingForm.mac_address) {
+      toast.error("Router, plan, and MAC address are required")
+      return
+    }
+    try {
+      await adminApi.createIPBinding({
+        router: parseInt(ipBindingForm.router_id),
+        plan: ipBindingForm.plan_id,
+        name: ipBindingForm.name || ipBindingForm.mac_address,
+        mac_address: ipBindingForm.mac_address,
+        ip_address: ipBindingForm.ip_address || undefined,
+        notes: ipBindingForm.notes || undefined,
+      })
+      toast.success("IP binding created")
+      setShowAddIPBindingDialog(false)
+      setIpBindingForm({ router_id: "", plan_id: "", name: "", mac_address: "", ip_address: "", notes: "" })
+      await loadIPBindings()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create IP binding")
+    }
+  }
+
+  const handleExtendIPBinding = async (id: string) => {
+    try {
+      await adminApi.extendIPBinding(id, 60)
+      toast.success("IP binding extended by 1 hour")
+      await loadIPBindings()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to extend IP binding")
+    }
+  }
+
+  const handleDeleteIPBinding = async (id: string) => {
+    try {
+      await adminApi.deleteIPBinding(id)
+      toast.success("IP binding deleted")
+      await loadIPBindings()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete IP binding")
+    }
+  }
+
+  const handleDisableIPBinding = async (id: string) => {
+    try {
+      await adminApi.disableIPBinding(id)
+      toast.success("IP binding disabled")
+      await loadIPBindings()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to disable IP binding")
+    }
+  }
 
   const loadServerStats = async () => {
     try {
@@ -2183,383 +2291,390 @@ export default function UsersPage() {
             Bulk Import
           </Button>
           {perms.canAdd && (
-            <Dialog open={showAddUserDialog} onOpenChange={(open) => {
-              setShowAddUserDialog(open)
-              if (open) {
-                loadPlans()
-                loadRouters()
-              }
-            }}>
-              <DialogTrigger asChild>
-                <Button 
-                  className="w-full sm:w-auto transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                  disabled={plansLoading}
-                  onClick={() => {
-                    if (!plansLoading && plans.length === 0) {
-                      toast.error("Create a plan first before adding users.")
-                    }
-                  }}
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Add User
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 border-0">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.96, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="p-6"
-                >
-                  <DialogHeader>
-                    <DialogTitle>Add New Customer</DialogTitle>
-                    <DialogDescription>
-                      Create a new customer. RADIUS credentials are auto-created for PPPoE/Static connections.
-                    </DialogDescription>
-                  </DialogHeader>
+            <>
+              <Dialog open={showAddUserDialog} onOpenChange={(open) => {
+                setShowAddUserDialog(open)
+                if (open) {
+                  loadPlans()
+                  loadRouters()
+                }
+              }}>
+                <DialogTrigger asChild>
+                  <Button 
+                    className="w-full sm:w-auto transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                    disabled={plansLoading}
+                    onClick={() => {
+                      if (!plansLoading && plans.length === 0) {
+                        toast.error("Create a plan first before adding users.")
+                      }
+                    }}
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Add User
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 border-0">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.96, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="p-6"
+                  >
+                    <DialogHeader>
+                      <DialogTitle>Add New Customer</DialogTitle>
+                      <DialogDescription>
+                        Create a new customer. RADIUS credentials are auto-created for PPPoE/Static connections.
+                      </DialogDescription>
+                    </DialogHeader>
 
-                  {/* Personal Info */}
-                  <div className="space-y-4 mt-2">
-                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Personal Information</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="dark:text-slate-200">First Name <span className="text-red-500">*</span></Label>
-                        <Input
-                          placeholder="John"
-                          value={newCustomerForm.first_name}
-                          onChange={(e) => setNewCustomerForm({...newCustomerForm, first_name: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="dark:text-slate-200">Last Name <span className="text-red-500">*</span></Label>
-                        <Input
-                          placeholder="Doe"
-                          value={newCustomerForm.last_name}
-                          onChange={(e) => setNewCustomerForm({...newCustomerForm, last_name: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="dark:text-slate-200">Phone <span className="text-red-500">*</span></Label>
-                        <Input
-                          placeholder="07XXXXXXXX"
-                          value={newCustomerForm.phone}
-                          onChange={(e) => setNewCustomerForm({...newCustomerForm, phone: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="dark:text-slate-200">Email <span className="text-xs text-slate-400">(optional)</span></Label>
-                        <Input
-                          placeholder="john@example.com"
-                          value={newCustomerForm.email}
-                          onChange={(e) => setNewCustomerForm({...newCustomerForm, email: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="dark:text-slate-200">Location <span className="text-xs text-slate-400">(optional)</span></Label>
-                      <Input
-                        placeholder="e.g. Westlands, Nairobi"
-                        value={newCustomerForm.location}
-                        onChange={(e) => setNewCustomerForm({...newCustomerForm, location: e.target.value})}
-                      />
-                    </div>
-                    {/* ============================================================
-                        FIX: REMOVED Portal Password field entirely
-                        ============================================================ */}
-                  </div>
-
-                  {/* Connection Details */}
-                  <div className="space-y-4 mt-4">
-                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Connection Details</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="dark:text-slate-200">Connection Type</Label>
-                        <Select
-                          value={newCustomerForm.connection_type}
-                          onValueChange={(value: "pppoe" | "static") => setNewCustomerForm({...newCustomerForm, connection_type: value})}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pppoe">PPPoE</SelectItem>
-                            <SelectItem value="static">Static IP</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="dark:text-slate-200">Plan <span className="text-red-500 text-xs">*</span></Label>
-                        {/* ============================================================
-                            FIX: Removed "No Plan" escape hatch from dropdown
-                            ============================================================ */}
-                        <Select
-                          value={newCustomerForm.plan_id || undefined}
-                          onValueChange={(value) => setNewCustomerForm({...newCustomerForm, plan_id: value})}
-                          disabled={plansLoading || plans.length === 0}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={
-                              plansLoading ? "Loading..." 
-                              : plans.length === 0 ? "No plans available — create one first"
-                              : "Select plan (required)"
-                            } />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {plans.map((plan) => (
-                              <SelectItem key={plan.id} value={String(plan.id)}>
-                                {plan.name} - KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {/* ============================================================
-                            FIX: Show warning when no plans exist
-                            ============================================================ */}
-                        {plans.length === 0 && (
-                          <p className="text-xs text-destructive mt-1">
-                            No plans exist yet — go to Plans and create one before adding users.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {selectedPlanPool && (
-                      <div className="space-y-1">
-                        <Label className="dark:text-slate-200">Assign Static IP <span className="text-xs text-slate-400">(optional)</span></Label>
-                        <div className="flex gap-2">
+                    {/* Personal Info */}
+                    <div className="space-y-4 mt-2">
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Personal Information</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="dark:text-slate-200">First Name <span className="text-red-500">*</span></Label>
                           <Input
-                            placeholder="Search IP (e.g. 10.50.3)"
-                            value={ipSearchQuery}
-                            onChange={(e) => {
-                              setIpSearchQuery(e.target.value)
-                              if (selectedPlanPool) {
-                                if (ipSearchDebounceRef.current) clearTimeout(ipSearchDebounceRef.current)
-                                ipSearchDebounceRef.current = setTimeout(() => {
-                                  loadAvailableIPs(selectedPlanPool, e.target.value || undefined)
-                                }, 400)
-                              }
-                            }}
-                            className="flex-1"
+                            placeholder="John"
+                            value={newCustomerForm.first_name}
+                            onChange={(e) => setNewCustomerForm({...newCustomerForm, first_name: e.target.value})}
                           />
                         </div>
-                        {availableIPsLoading ? (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            Loading IPs...
-                          </p>
-                        ) : (
-                          <div className="space-y-1">
-                            <Select
-                              value={newCustomerForm.assigned_ip || "none"}
-                              onValueChange={(value) =>
-                                setNewCustomerForm({ ...newCustomerForm, assigned_ip: value === "none" ? "" : value })
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue
-                                  placeholder={
-                                    availableIPs.length === 0
-                                      ? "No IPs found — try searching"
-                                      : `${availableIPs.length} IPs shown — search to filter`
-                                  }
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">No Static IP (auto-assign)</SelectItem>
-                                {availableIPs.map((ip) => (
-                                  <SelectItem key={ip.id} value={String(ip.id)}>
-                                    <span className="font-mono">{ip.ip_address}</span>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {availableIPs.length > 0 && (
-                              <p className="text-xs text-muted-foreground">
-                                Showing {availableIPs.length} of{" "}
-                                {(availableIPs as any).total_available ?? "many"} available —
-                                type above to search
-                              </p>
+                        <div className="space-y-1">
+                          <Label className="dark:text-slate-200">Last Name <span className="text-red-500">*</span></Label>
+                          <Input
+                            placeholder="Doe"
+                            value={newCustomerForm.last_name}
+                            onChange={(e) => setNewCustomerForm({...newCustomerForm, last_name: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="dark:text-slate-200">Phone <span className="text-red-500">*</span></Label>
+                          <Input
+                            placeholder="07XXXXXXXX"
+                            value={newCustomerForm.phone}
+                            onChange={(e) => setNewCustomerForm({...newCustomerForm, phone: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="dark:text-slate-200">Email <span className="text-xs text-slate-400">(optional)</span></Label>
+                          <Input
+                            placeholder="john@example.com"
+                            value={newCustomerForm.email}
+                            onChange={(e) => setNewCustomerForm({...newCustomerForm, email: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="dark:text-slate-200">Location <span className="text-xs text-slate-400">(optional)</span></Label>
+                        <Input
+                          placeholder="e.g. Westlands, Nairobi"
+                          value={newCustomerForm.location}
+                          onChange={(e) => setNewCustomerForm({...newCustomerForm, location: e.target.value})}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Connection Details */}
+                    <div className="space-y-4 mt-4">
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Connection Details</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="dark:text-slate-200">Connection Type</Label>
+                          <Select
+                            value={newCustomerForm.connection_type}
+                            onValueChange={(value: "pppoe" | "static") => setNewCustomerForm({...newCustomerForm, connection_type: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pppoe">PPPoE</SelectItem>
+                              <SelectItem value="static">Static IP</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="dark:text-slate-200">Plan <span className="text-red-500 text-xs">*</span></Label>
+                          <Select
+                            value={newCustomerForm.plan_id || undefined}
+                            onValueChange={(value) => setNewCustomerForm({...newCustomerForm, plan_id: value})}
+                            disabled={plansLoading || plans.length === 0}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={
+                                plansLoading ? "Loading..." 
+                                : plans.length === 0 ? "No plans available — create one first"
+                                : "Select plan (required)"
+                              } />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {plans.map((plan) => (
+                                <SelectItem key={plan.id} value={String(plan.id)}>
+                                  {plan.name} - KES {parseFloat(plan.base_price || plan.price || "0").toLocaleString()}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {plans.length === 0 && (
+                            <p className="text-xs text-destructive mt-1">
+                              No plans exist yet — go to Plans and create one before adding users.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {selectedPlanPool && (
+                        <div className="space-y-1">
+                          <Label className="dark:text-slate-200">Assign Static IP <span className="text-xs text-slate-400">(optional)</span></Label>
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Search IP (e.g. 10.50.3)"
+                              value={ipSearchQuery}
+                              onChange={(e) => {
+                                setIpSearchQuery(e.target.value)
+                                if (selectedPlanPool) {
+                                  if (ipSearchDebounceRef.current) clearTimeout(ipSearchDebounceRef.current)
+                                  ipSearchDebounceRef.current = setTimeout(() => {
+                                    loadAvailableIPs(selectedPlanPool, e.target.value || undefined)
+                                  }, 400)
+                                }
+                              }}
+                              className="flex-1"
+                            />
+                          </div>
+                          {availableIPsLoading ? (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              Loading IPs...
+                            </p>
+                          ) : (
+                            <div className="space-y-1">
+                              <Select
+                                value={newCustomerForm.assigned_ip || "none"}
+                                onValueChange={(value) =>
+                                  setNewCustomerForm({ ...newCustomerForm, assigned_ip: value === "none" ? "" : value })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue
+                                    placeholder={
+                                      availableIPs.length === 0
+                                        ? "No IPs found — try searching"
+                                        : `${availableIPs.length} IPs shown — search to filter`
+                                    }
+                                  />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">No Static IP (auto-assign)</SelectItem>
+                                  {availableIPs.map((ip) => (
+                                    <SelectItem key={ip.id} value={String(ip.id)}>
+                                      <span className="font-mono">{ip.ip_address}</span>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {availableIPs.length > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                  Showing {availableIPs.length} of{" "}
+                                  {(availableIPs as any).total_available ?? "many"} available —
+                                  type above to search
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* PPPoE / RADIUS Credentials Section */}
+                    <div className="space-y-4 mt-4">
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1 flex items-center gap-2">
+                        <Wifi className="w-4 h-4" />
+                        PPPoE / RADIUS Credentials
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        Leave blank to auto-generate from phone number. 
+                        Username defaults to last 9 digits of phone, password defaults to phone number.
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="dark:text-slate-200">PPPoE Username <span className="text-xs text-slate-400">(optional)</span></Label>
+                          <div className="flex gap-1">
+                            <Input
+                              placeholder="Auto from phone"
+                              value={newCustomerForm.radius_username}
+                              onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_username: e.target.value})}
+                              className="font-mono text-sm"
+                              autoComplete="off"
+                              name="pppoe-username-no-autofill"
+                            />
+                            {newCustomerForm.phone && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                title="Use phone number"
+                                onClick={() => {
+                                  const username = generateUsernameFromPhone(newCustomerForm.phone)
+                                  setNewCustomerForm({...newCustomerForm, radius_username: username})
+                                }}
+                              >
+                                <RefreshCw className="w-3 h-3" />
+                              </Button>
                             )}
                           </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* PPPoE / RADIUS Credentials Section */}
-                  <div className="space-y-4 mt-4">
-                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1 flex items-center gap-2">
-                      <Wifi className="w-4 h-4" />
-                      PPPoE / RADIUS Credentials
-                    </h4>
-                    <p className="text-xs text-muted-foreground">
-                      Leave blank to auto-generate from phone number. 
-                      Username defaults to last 9 digits of phone, password defaults to phone number.
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="dark:text-slate-200">PPPoE Username <span className="text-xs text-slate-400">(optional)</span></Label>
-                        <div className="flex gap-1">
-                          <Input
-                            placeholder="Auto from phone"
-                            value={newCustomerForm.radius_username}
-                            onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_username: e.target.value})}
-                            className="font-mono text-sm"
-                            autoComplete="off"
-                            name="pppoe-username-no-autofill"
-                          />
-                          {newCustomerForm.phone && (
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="dark:text-slate-200">PPPoE Password <span className="text-xs text-slate-400">(optional)</span></Label>
+                          <div className="flex gap-1">
+                            <Input
+                              placeholder="Auto from phone number"
+                              type="password"
+                              value={newCustomerForm.radius_password}
+                              onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_password: e.target.value})}
+                              className="font-mono text-sm"
+                              autoComplete="new-password"
+                              name="pppoe-password-no-autofill"
+                            />
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              title="Use phone number"
+                              title="Generate random password"
                               onClick={() => {
-                                const username = generateUsernameFromPhone(newCustomerForm.phone)
-                                setNewCustomerForm({...newCustomerForm, radius_username: username})
+                                const pwd = generateSimplePassword(8)
+                                setNewCustomerForm({...newCustomerForm, radius_password: pwd})
                               }}
                             >
                               <RefreshCw className="w-3 h-3" />
                             </Button>
-                          )}
+                          </div>
                         </div>
                       </div>
-                      <div className="space-y-1">
-                        <Label className="dark:text-slate-200">PPPoE Password <span className="text-xs text-slate-400">(optional)</span></Label>
-                        <div className="flex gap-1">
-                          <Input
-                            placeholder="Auto from phone number"
-                            type="password"
-                            value={newCustomerForm.radius_password}
-                            onChange={(e) => setNewCustomerForm({...newCustomerForm, radius_password: e.target.value})}
-                            className="font-mono text-sm"
-                            autoComplete="new-password"
-                            name="pppoe-password-no-autofill"
-                          />
-                          <Button
+                      <div className="p-2 bg-purple-50 dark:bg-purple-900/20 border dark:border-purple-800 rounded text-xs font-mono space-y-1">
+                        <div className="flex gap-2">
+                          <span className="text-purple-500 dark:text-purple-400 w-20">Username:</span>
+                          <span className="text-purple-900 dark:text-purple-300 font-semibold">
+                            {newCustomerForm.radius_username || 
+                              (newCustomerForm.phone ? `(auto: ${generateUsernameFromPhone(newCustomerForm.phone)})` : '(waiting for phone)')}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="text-purple-500 dark:text-purple-400 w-20">Password:</span>
+                          <span className="text-purple-900 dark:text-purple-300 font-semibold">
+                            {newCustomerForm.radius_password ? '(custom)' : '(auto: phone number)'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Billing Account Notice */}
+                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start gap-2">
+                      <CreditCard className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs font-medium text-blue-900 dark:text-blue-200">M-Pesa Paybill Account</p>
+                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+                          The account number is generated from the customer's phone number. 
+                          You can edit it after creation.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Activation Options */}
+                    <div className="space-y-2 mt-4">
+                      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Activation</h4>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { label: "Activate Now", activate: true, delay: 0, desc: "Starts timer immediately" },
+                          { label: "1hr Testing", activate: true, delay: 60, desc: "Auto-activates after 1 hour" },
+                          { label: "Save Pending", activate: false, delay: 0, desc: "Activate manually later" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.label}
                             type="button"
-                            variant="outline"
-                            size="sm"
-                            title="Generate random password"
-                            onClick={() => {
-                              const pwd = generateSimplePassword(8)
-                              setNewCustomerForm({...newCustomerForm, radius_password: pwd})
-                            }}
+                            onClick={() => setNewCustomerForm({ ...newCustomerForm, activate_now: opt.activate, activation_delay_minutes: opt.delay })}
+                            className={`p-2.5 rounded-lg border text-left transition-all ${
+                              newCustomerForm.activate_now === opt.activate && newCustomerForm.activation_delay_minutes === opt.delay
+                                ? "bg-blue-50 dark:bg-blue-900/30 border-blue-400 dark:border-blue-600 ring-1 ring-blue-400"
+                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                            }`}
                           >
-                            <RefreshCw className="w-3 h-3" />
-                          </Button>
+                            <p className="text-xs font-medium text-foreground">{opt.label}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{opt.desc}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Record Initial Payment */}
+                    {newCustomerForm.activate_now && (
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="record_payment"
+                            checked={newCustomerForm.record_initial_payment || false}
+                            onCheckedChange={(checked) => setNewCustomerForm({
+                              ...newCustomerForm,
+                              record_initial_payment: checked as boolean,
+                              initial_payment_amount: checked
+                                ? (plans.find(p => p.id === parseInt(newCustomerForm.plan_id || '0'))?.base_price || '')
+                                : ''
+                            })}
+                          />
+                          <Label htmlFor="record_payment" className="cursor-pointer text-sm dark:text-slate-200">Record initial payment</Label>
                         </div>
-                      </div>
-                    </div>
-                    <div className="p-2 bg-purple-50 dark:bg-purple-900/20 border dark:border-purple-800 rounded text-xs font-mono space-y-1">
-                      <div className="flex gap-2">
-                        <span className="text-purple-500 dark:text-purple-400 w-20">Username:</span>
-                        <span className="text-purple-900 dark:text-purple-300 font-semibold">
-                          {newCustomerForm.radius_username || 
-                            (newCustomerForm.phone ? `(auto: ${generateUsernameFromPhone(newCustomerForm.phone)})` : '(waiting for phone)')}
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        <span className="text-purple-500 dark:text-purple-400 w-20">Password:</span>
-                        <span className="text-purple-900 dark:text-purple-300 font-semibold">
-                          {newCustomerForm.radius_password ? '(custom)' : '(auto: phone number)'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Billing Account Notice */}
-                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start gap-2">
-                    <CreditCard className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-medium text-blue-900 dark:text-blue-200">M-Pesa Paybill Account</p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
-                        The account number is generated from the customer's phone number. 
-                        You can edit it after creation.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Activation Options */}
-                  <div className="space-y-2 mt-4">
-                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">Activation</h4>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { label: "Activate Now", activate: true, delay: 0, desc: "Starts timer immediately" },
-                        { label: "1hr Testing", activate: true, delay: 60, desc: "Auto-activates after 1 hour" },
-                        { label: "Save Pending", activate: false, delay: 0, desc: "Activate manually later" },
-                      ].map((opt) => (
-                        <button
-                          key={opt.label}
-                          type="button"
-                          onClick={() => setNewCustomerForm({ ...newCustomerForm, activate_now: opt.activate, activation_delay_minutes: opt.delay })}
-                          className={`p-2.5 rounded-lg border text-left transition-all ${
-                            newCustomerForm.activate_now === opt.activate && newCustomerForm.activation_delay_minutes === opt.delay
-                              ? "bg-blue-50 dark:bg-blue-900/30 border-blue-400 dark:border-blue-600 ring-1 ring-blue-400"
-                              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-                          }`}
-                        >
-                          <p className="text-xs font-medium text-foreground">{opt.label}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{opt.desc}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Record Initial Payment */}
-                  {newCustomerForm.activate_now && (
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="record_payment"
-                          checked={newCustomerForm.record_initial_payment || false}
-                          onCheckedChange={(checked) => setNewCustomerForm({
-                            ...newCustomerForm,
-                            record_initial_payment: checked as boolean,
-                            initial_payment_amount: checked
-                              ? (plans.find(p => p.id === parseInt(newCustomerForm.plan_id || '0'))?.base_price || '')
-                              : ''
-                          })}
-                        />
-                        <Label htmlFor="record_payment" className="cursor-pointer text-sm dark:text-slate-200">Record initial payment</Label>
-                      </div>
-                      {newCustomerForm.record_initial_payment && (
-                        <div className="grid grid-cols-2 gap-3 pl-6">
-                          <div className="space-y-1">
-                            <Label className="text-xs dark:text-slate-300">Amount (KES) <span className="text-red-500">*</span></Label>
-                            <Input
-                              type="number"
-                              placeholder="0.00"
-                              value={newCustomerForm.initial_payment_amount || ''}
-                              onChange={(e) => setNewCustomerForm({...newCustomerForm, initial_payment_amount: e.target.value})}
-                            />
+                        {newCustomerForm.record_initial_payment && (
+                          <div className="grid grid-cols-2 gap-3 pl-6">
+                            <div className="space-y-1">
+                              <Label className="text-xs dark:text-slate-300">Amount (KES) <span className="text-red-500">*</span></Label>
+                              <Input
+                                type="number"
+                                placeholder="0.00"
+                                value={newCustomerForm.initial_payment_amount || ''}
+                                onChange={(e) => setNewCustomerForm({...newCustomerForm, initial_payment_amount: e.target.value})}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs dark:text-slate-300">Reference <span className="text-xs text-slate-400">(optional)</span></Label>
+                              <Input
+                                placeholder="MPESA receipt / auto"
+                                value={newCustomerForm.initial_payment_reference || ''}
+                                onChange={(e) => setNewCustomerForm({...newCustomerForm, initial_payment_reference: e.target.value})}
+                              />
+                            </div>
                           </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs dark:text-slate-300">Reference <span className="text-xs text-slate-400">(optional)</span></Label>
-                            <Input
-                              placeholder="MPESA receipt / auto"
-                              value={newCustomerForm.initial_payment_reference || ''}
-                              onChange={(e) => setNewCustomerForm({...newCustomerForm, initial_payment_reference: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )}
 
-                  <DialogFooter className="mt-4">
-                    <Button variant="outline" onClick={() => setShowAddUserDialog(false)} disabled={creating}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleCreateCustomer} disabled={creating}>
-                      {creating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : "Create Customer"}
-                    </Button>
-                  </DialogFooter>
-                </motion.div>
-              </DialogContent>
-            </Dialog>
+                    <DialogFooter className="mt-4">
+                      <Button variant="outline" onClick={() => setShowAddUserDialog(false)} disabled={creating}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleCreateCustomer} disabled={creating}>
+                        {creating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : "Create Customer"}
+                      </Button>
+                    </DialogFooter>
+                  </motion.div>
+                </DialogContent>
+              </Dialog>
+
+              {/* IP Binding Add Button - appears when IP Binding tab is active */}
+              {activeTab === "ip-binding" && (
+                <Button 
+                  onClick={() => {
+                    setShowAddIPBindingDialog(true)
+                    loadRouters()
+                  }}
+                  className="w-full sm:w-auto transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add IP Binding
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -2588,6 +2703,7 @@ export default function UsersPage() {
                   setOnlineHasMore(true)
                   loadOnlineSessions(1, false)
                 }
+                // Load IP bindings when clicking IP Binding stat (if we had one)
               }}
               className={`relative flex flex-col items-center px-4 py-2 rounded-lg transition-all duration-200 shrink-0 ${
                 isActive ? "bg-slate-100 dark:bg-slate-800 ring-1 ring-slate-300 dark:ring-slate-600" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
@@ -2656,6 +2772,7 @@ export default function UsersPage() {
             { value: "online-sessions", label: "Online Now", icon: Wifi },
             { value: "active-subs", label: "Active Subs", icon: CheckCircle2 },
             { value: "hotspot", label: "Hotspot", icon: Smartphone },
+            { value: "ip-binding", label: "IP Binding", icon: RouterIcon },
           ].map(({ value, label, icon: Icon }) => (
             <motion.button
               key={value}
@@ -2676,6 +2793,9 @@ export default function UsersPage() {
                 if (value === "hotspot") {
                   setHotspotSubFilter("active")
                   setHotspotPage(1)
+                }
+                if (value === "ip-binding" && ipBindings.length === 0) {
+                  loadIPBindings()
                 }
               }}
               className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap z-10 ${
@@ -2701,7 +2821,7 @@ export default function UsersPage() {
         </div>
 
         {/* Status filter for PPPoE/Static */}
-        {!["online-sessions", "active-subs", "hotspot"].includes(activeTab) && (
+        {!["online-sessions", "active-subs", "hotspot", "ip-binding"].includes(activeTab) && (
           <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-1 overflow-x-auto">
             {[
               { value: "all", label: "All" },
@@ -2774,8 +2894,8 @@ export default function UsersPage() {
         )}
       </motion.div>
 
-      {/* Search */}
-      {!["online-sessions", "active-subs", "hotspot"].includes(activeTab) && (
+      {/* Search - hide for IP Binding tab */}
+      {!["online-sessions", "active-subs", "hotspot", "ip-binding"].includes(activeTab) && (
         <motion.div 
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
@@ -3476,8 +3596,136 @@ export default function UsersPage() {
         </motion.div>
       )}
 
+      {/* -- IP Binding Tab -- */}
+      {activeTab === "ip-binding" && (
+        <motion.div
+          key="ip-binding"
+          initial={{ opacity: 0, x: 15 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -15 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Card className="border-0 bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl transition-all duration-300">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <RouterIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    IP Bindings ({ipBindings.length})
+                  </CardTitle>
+                  <CardDescription className="dark:text-slate-400">
+                    Devices that bypass the captive portal (Smart TVs, consoles, IP cameras)
+                  </CardDescription>
+                </div>
+                <Button variant="outline" size="icon" onClick={loadIPBindings} disabled={ipBindingLoading}>
+                  <RefreshCw className={`w-4 h-4 ${ipBindingLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {ipBindingLoading ? (
+                <div className="space-y-px">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 px-1 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0" style={{ opacity: 1 - i * 0.12 }}>
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-5 w-28" />
+                      <Skeleton className="h-5 w-20" />
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                      <Skeleton className="h-5 w-24" />
+                      <Skeleton className="h-8 w-20" />
+                    </div>
+                  ))}
+                </div>
+              ) : ipBindings.length === 0 ? (
+                <div className="text-center py-12">
+                  <RouterIcon className="w-12 h-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
+                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">No IP bindings yet</h3>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Devices with IP bindings bypass the hotspot login page.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => {
+                      setShowAddIPBindingDialog(true)
+                      loadRouters()
+                    }}
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Add IP Binding
+                  </Button>
+                </div>
+              ) : (
+                <div className="rounded-lg border dark:border-slate-700 overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="dark:border-slate-700">
+                        <TableHead className="dark:text-slate-300">Name</TableHead>
+                        <TableHead className="dark:text-slate-300">MAC / IP</TableHead>
+                        <TableHead className="dark:text-slate-300">Plan</TableHead>
+                        <TableHead className="dark:text-slate-300">Status</TableHead>
+                        <TableHead className="dark:text-slate-300">Expires</TableHead>
+                        <TableHead className="text-right dark:text-slate-300">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {ipBindings.map((b) => (
+                        <TableRow key={b.id} className="dark:border-slate-700">
+                          <TableCell className="font-medium text-foreground">{b.name}</TableCell>
+                          <TableCell className="font-mono text-xs dark:text-slate-300">
+                            {b.mac_address}
+                            <br />
+                            {b.ip_address || '—'}
+                          </TableCell>
+                          <TableCell>{b.plan_name || '—'}</TableCell>
+                          <TableCell>
+                            <Badge className={
+                              b.is_active ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400"
+                              : b.status === 'expired' ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                            }>
+                              {b.is_active ? 'Active' : b.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs dark:text-slate-300">
+                            {b.expires_at ? new Date(b.expires_at).toLocaleString() : '—'}
+                            {b.is_active && b.time_remaining_minutes > 0 && (
+                              <div className="text-slate-400 dark:text-slate-500">
+                                {b.time_remaining_minutes}m left
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right space-x-1">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleExtendIPBinding(b.id)}
+                              className="transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                              +1h
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" 
+                              onClick={() => handleDeleteIPBinding(b.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Users Table (for All/PPPoE/Static tabs) */}
-      {!["online-sessions", "active-subs", "hotspot"].includes(activeTab) && (
+      {!["online-sessions", "active-subs", "hotspot", "ip-binding"].includes(activeTab) && (
         <motion.div
           key="users-table"
           initial={{ opacity: 0, y: 10 }}
@@ -4803,6 +5051,131 @@ export default function UsersPage() {
                 Cancel
               </button>
             </div>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add IP Binding Dialog */}
+      <Dialog open={showAddIPBindingDialog} onOpenChange={(open) => {
+        setShowAddIPBindingDialog(open)
+        if (!open) {
+          setIpBindingForm({ router_id: "", plan_id: "", name: "", mac_address: "", ip_address: "", notes: "" })
+          setKnownHosts([])
+          setHotspotPlansForBinding([])
+        }
+      }}>
+        <DialogContent className="max-w-lg p-0 border-0">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="p-6"
+          >
+            <DialogHeader>
+              <DialogTitle>Add IP Binding</DialogTitle>
+              <DialogDescription>
+                For devices that can't use the captive portal (Smart TVs, consoles). Bypasses login entirely.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div className="space-y-1">
+                <Label className="dark:text-slate-200">Router <span className="text-red-500">*</span></Label>
+                <Select
+                  value={ipBindingForm.router_id}
+                  onValueChange={(v) => {
+                    setIpBindingForm(f => ({ ...f, router_id: v, mac_address: "", ip_address: "" }))
+                    loadKnownHosts(v)
+                    loadHotspotPlansForRouter(v)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select router" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {routersList.map(r => (
+                      <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="dark:text-slate-200">Plan <span className="text-red-500">*</span> (sets speed & duration)</Label>
+                <Select
+                  value={ipBindingForm.plan_id}
+                  onValueChange={(v) => setIpBindingForm(f => ({ ...f, plan_id: v }))}
+                  disabled={!ipBindingForm.router_id}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={!ipBindingForm.router_id ? "Select router first" : "Select plan"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hotspotPlansForBinding.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name} — {p.duration_display || `${p.validity_value} ${p.validity_type?.toLowerCase()}`} @ {p.speed_display || `${p.download_speed} Mbps`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="dark:text-slate-200">Name <span className="text-xs text-slate-400">(for identification)</span></Label>
+                <Input
+                  placeholder="e.g. Living Room TV"
+                  value={ipBindingForm.name}
+                  onChange={(e) => setIpBindingForm(f => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="dark:text-slate-200">Device (pick detected host, or type manually)</Label>
+                <Select
+                  value=""
+                  onValueChange={(v) => {
+                    const host = knownHosts.find(h => h.mac === v)
+                    if (host) setIpBindingForm(f => ({ ...f, mac_address: host.mac, ip_address: host.ip }))
+                  }}
+                  disabled={!ipBindingForm.router_id || knownHostsLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={knownHostsLoading ? "Scanning network..." : "Select detected device (optional)"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {knownHosts.map(h => (
+                      <SelectItem key={h.mac} value={h.mac}>
+                        {h.ip} — {h.mac} {h.hostname ? `(${h.hostname})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="dark:text-slate-200">MAC Address <span className="text-red-500">*</span></Label>
+                  <Input
+                    placeholder="AA:BB:CC:DD:EE:FF"
+                    value={ipBindingForm.mac_address}
+                    onChange={(e) => setIpBindingForm(f => ({ ...f, mac_address: e.target.value.toUpperCase() }))}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="dark:text-slate-200">IP Address <span className="text-xs text-slate-400">(optional)</span></Label>
+                  <Input
+                    placeholder="192.168.x.x"
+                    value={ipBindingForm.ip_address}
+                    onChange={(e) => setIpBindingForm(f => ({ ...f, ip_address: e.target.value }))}
+                    className="font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={() => setShowAddIPBindingDialog(false)}>Cancel</Button>
+              <Button onClick={handleCreateIPBinding}>Create Binding</Button>
+            </DialogFooter>
           </motion.div>
         </DialogContent>
       </Dialog>
