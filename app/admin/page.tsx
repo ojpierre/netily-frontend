@@ -509,10 +509,10 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             {quickStatsLoading ? (
-              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-12 w-28" />
             ) : (
               <>
-                <div className="text-[28px] font-bold leading-none tracking-[-0.04em] text-foreground tabular-nums">
+                <div className="text-[clamp(2.25rem,4vw,3rem)] font-bold leading-none tracking-normal text-foreground tabular-nums">
                   {(quickStats?.total_customers ?? 0).toLocaleString()}
                 </div>
                 <p className="mt-2 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">All PPPoE/Static users</p>
@@ -529,10 +529,10 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             {quickStatsLoading ? (
-              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-12 w-28" />
             ) : (
               <>
-                <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-green-600 dark:text-green-400 leading-none">
+                <div className="text-[clamp(2.25rem,4vw,3rem)] font-bold tabular-nums tracking-normal text-green-600 dark:text-green-400 leading-none">
                   {(quickStats?.active_subscriptions.total ?? activeSubscriptionsCount).toLocaleString()}
                 </div>
                 <p className="mt-2 flex items-center gap-1 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
@@ -555,10 +555,10 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             {quickStatsLoading ? (
-              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-12 w-28" />
             ) : (
               <>
-                <div className="text-[28px] font-bold tabular-nums tracking-[-0.04em] text-red-600 dark:text-red-400 leading-none">
+                <div className="text-[clamp(2.25rem,4vw,3rem)] font-bold tabular-nums tracking-normal text-red-600 dark:text-red-400 leading-none">
                   {(quickStats?.expired_customers ?? 0).toLocaleString()}
                 </div>
                 <p className="mt-2 flex items-center gap-1 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">

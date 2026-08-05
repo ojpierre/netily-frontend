@@ -17,6 +17,8 @@
 
 /* ── Base structural tokens (shared across all themes) ─────────── */
 :root {
+  --app-font-family: var(--font-outfit), "Outfit", system-ui, sans-serif;
+
   /* Structural */
   --background: oklch(1 0 0);
   --foreground: oklch(0.15 0 270);
@@ -68,6 +70,46 @@
 }
 
 /* ── Dark mode structural tokens ───────────────────────────────── */
+[data-font="outfit"] {
+  --app-font-family: var(--font-outfit), "Outfit", system-ui, sans-serif;
+}
+
+[data-font="montserrat"] {
+  --app-font-family: var(--font-montserrat), "Montserrat", system-ui, sans-serif;
+}
+
+[data-font="space-grotesk"] {
+  --app-font-family: var(--font-space-grotesk), "Space Grotesk", system-ui, sans-serif;
+}
+
+[data-font="calibri"] {
+  --app-font-family: Calibri, "Segoe UI", Arial, system-ui, sans-serif;
+}
+
+[data-font="inter"] {
+  --app-font-family: var(--font-inter), "Inter", system-ui, sans-serif;
+}
+
+[data-font="roboto"] {
+  --app-font-family: var(--font-roboto), "Roboto", system-ui, sans-serif;
+}
+
+[data-font="lato"] {
+  --app-font-family: var(--font-lato), "Lato", system-ui, sans-serif;
+}
+
+[data-font="open-sans"] {
+  --app-font-family: var(--font-open-sans), "Open Sans", system-ui, sans-serif;
+}
+
+[data-font="source-sans-3"] {
+  --app-font-family: var(--font-source-sans-3), "Source Sans 3", system-ui, sans-serif;
+}
+
+[data-font="ibm-plex-sans"] {
+  --app-font-family: var(--font-ibm-plex-sans), "IBM Plex Sans", system-ui, sans-serif;
+}
+
 .dark {
   --background: oklch(0.12 0 270);
   --foreground: oklch(0.95 0 0);
@@ -359,7 +401,7 @@
    TAILWIND 4 THEME REGISTRATION
    ════════════════════════════════════════════════════════════════ */
 @theme inline {
-  --font-sans: "Outfit", sans-serif;
+  --font-sans: var(--app-font-family);
   --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -418,6 +460,7 @@
   
   body {
     @apply bg-background text-foreground;
+    font-family: var(--app-font-family);
   }
 }
 

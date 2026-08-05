@@ -5,17 +5,28 @@ import {
   ThemeProvider as NextThemesProvider,
   type ThemeProviderProps,
 } from 'next-themes'
+import {
+  APPEARANCE_FONT_STORAGE_KEY,
+  DEFAULT_APPEARANCE_FONT,
+  applyAppearanceFont,
+  isAppearanceFont,
+  type AppearanceFont,
+} from '@/lib/appearance-fonts'
 
 type ColorTheme = 'blue' | 'green' | 'pink' | 'purple' | 'black-white' | 'pink-purple'
 
 interface NetilyThemeContextValue {
   colorTheme: ColorTheme
   setColorTheme: (theme: ColorTheme) => void
+  appearanceFont: AppearanceFont
+  setAppearanceFont: (font: AppearanceFont) => void
 }
 
 const NetilyThemeContext = React.createContext<NetilyThemeContextValue>({
   colorTheme: 'blue',
   setColorTheme: () => {},
+  appearanceFont: DEFAULT_APPEARANCE_FONT,
+  setAppearanceFont: () => {},
 })
 
 export function useColorTheme() {
@@ -33,6 +44,7 @@ export const COLOR_THEMES: { value: ColorTheme; label: string; preview: string }
 
 function ColorThemeProvider({ children }: { children: React.ReactNode }) {
   const [colorTheme, setColorThemeState] = React.useState<ColorTheme>('blue')
+  const [appearanceFont, setAppearanceFontState] = React.useState<AppearanceFont>(DEFAULT_APPEARANCE_FONT)
   const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
@@ -45,6 +57,41 @@ function ColorThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       document.documentElement.setAttribute('data-theme', 'blue')
     }
+
+    const savedFont = localStorage.getItem(APPEARANCE_FONT_STORAGE_KEY)
+    setAppearanceFontState(applyAppearanceFont(savedFont))
+
+    const token =
+      localStorage.getItem(`adminToken:${window.location.hostname}`) ||
+      sessionStorage.getItem(`adminToken:${window.location.hostname}`) ||
+      localStorage.getItem('adminToken') ||
+      sessionStorage.getItem('adminToken')
+
+    if (token) {
+      const knownDomains = ['netily.co.ke']
+      const isTenantSubdomain = knownDomains.some(
+        (domain) =>
+          window.location.hostname.endsWith(`.${domain}`) &&
+          window.location.hostname !== `www.${domain}` &&
+          window.location.hostname !== `api.${domain}`,
+      )
+      const apiBase = isTenantSubdomain
+        ? `${window.location.protocol}//${window.location.hostname}/api/v1`
+        : process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+      fetch(`${apiBase}/core/settings/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((settings) => {
+          if (settings && isAppearanceFont(settings.appearance_font)) {
+            setAppearanceFontState(applyAppearanceFont(settings.appearance_font))
+          }
+        })
+        .catch(() => {})
+    }
   }, [])
 
   const setColorTheme = React.useCallback((theme: ColorTheme) => {
@@ -53,13 +100,17 @@ function ColorThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.setAttribute('data-theme', theme)
   }, [])
 
+  const setAppearanceFont = React.useCallback((font: AppearanceFont) => {
+    setAppearanceFontState(applyAppearanceFont(font))
+  }, [])
+
   // Avoid flash of wrong theme
   if (!mounted) {
     return <>{children}</>
   }
 
   return (
-    <NetilyThemeContext.Provider value={{ colorTheme, setColorTheme }}>
+    <NetilyThemeContext.Provider value={{ colorTheme, setColorTheme, appearanceFont, setAppearanceFont }}>
       {children}
     </NetilyThemeContext.Provider>
   )

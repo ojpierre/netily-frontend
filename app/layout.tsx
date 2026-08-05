@@ -1,6 +1,16 @@
 ﻿import type React from "react"
 import type { Metadata } from "next"
-import { Outfit } from "next/font/google"
+import {
+  IBM_Plex_Sans,
+  Inter,
+  Lato,
+  Montserrat,
+  Open_Sans,
+  Outfit,
+  Roboto,
+  Source_Sans_3,
+  Space_Grotesk,
+} from "next/font/google"
 import Script from "next/script"
 import { AuthProvider } from "./auth-context"
 import { AuthGuard } from "@/components/auth-guard"
@@ -8,9 +18,35 @@ import { NavigationProgress } from "@/components/navigation-progress"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
+import { APPEARANCE_FONT_STORAGE_KEY, DEFAULT_APPEARANCE_FONT } from "@/lib/appearance-fonts"
 import "./globals.css"
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" })
+const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", display: "swap" })
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", display: "swap" })
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" })
+const roboto = Roboto({ subsets: ["latin"], variable: "--font-roboto", display: "swap" })
+const lato = Lato({ subsets: ["latin"], weight: ["400", "700", "900"], variable: "--font-lato", display: "swap" })
+const openSans = Open_Sans({ subsets: ["latin"], variable: "--font-open-sans", display: "swap" })
+const sourceSans3 = Source_Sans_3({ subsets: ["latin"], variable: "--font-source-sans-3", display: "swap" })
+const ibmPlexSans = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-ibm-plex-sans",
+  display: "swap",
+})
+
+const fontVariables = [
+  outfit.variable,
+  montserrat.variable,
+  spaceGrotesk.variable,
+  inter.variable,
+  roboto.variable,
+  lato.variable,
+  openSans.variable,
+  sourceSans3.variable,
+  ibmPlexSans.variable,
+].join(" ")
 
 export const metadata: Metadata = {
   title: {
@@ -348,12 +384,14 @@ export default function RootLayout({
                 if (colorTheme) {
                   document.documentElement.setAttribute('data-theme', colorTheme);
                 }
+                const font = localStorage.getItem('${APPEARANCE_FONT_STORAGE_KEY}') || '${DEFAULT_APPEARANCE_FONT}';
+                document.documentElement.setAttribute('data-font', font);
               } catch (_) {}
             `,
           }}
         />
       </head>
-      <body className={outfit.className} suppressHydrationWarning>
+      <body className={fontVariables} suppressHydrationWarning>
         {/* â”€â”€ Google Analytics â”€â”€ */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-55Q1Q3H14M"

@@ -37,6 +37,7 @@ import {
   Moon,
   Monitor,
   Fingerprint,
+  Type,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -71,6 +72,13 @@ import { useColorTheme } from "@/components/theme-provider"
 import { HotspotPruneSettingsCard } from "@/components/settings/hotspot-prune-settings"
 import { useAdminAuth } from "@/app/admin/admin-auth-context"
 import { canDo } from "@/lib/rbac"
+import {
+  APPEARANCE_FONTS,
+  DEFAULT_APPEARANCE_FONT,
+  applyAppearanceFont,
+  isAppearanceFont,
+  type AppearanceFont,
+} from "@/lib/appearance-fonts"
 
 // ── Passkey Management Card ────────────────────────────────────────────
 
@@ -189,7 +197,79 @@ function ComingSoonTab({ label }: { label: string }) {
 }
 function AppearanceTab() {
   const { theme, setTheme } = useTheme()
-  const { colorTheme, setColorTheme } = useColorTheme()
+  const { colorTheme, setColorTheme, appearanceFont, setAppearanceFont } = useColorTheme()
+  const [fontSaving, setFontSaving] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadSavedFont = async () => {
+      const token = getAdminToken()
+      if (!token) return
+
+      try {
+        const res = await fetch(`${getAdminSettingsApiBase()}/core/settings/`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+
+        if (!res.ok) return
+
+        const settings = await res.json()
+        if (isMounted && isAppearanceFont(settings.appearance_font)) {
+          setAppearanceFont(settings.appearance_font)
+        }
+      } catch {
+        // Theme controls should remain usable even when settings sync is temporarily unavailable.
+      }
+    }
+
+    loadSavedFont()
+
+    return () => {
+      isMounted = false
+    }
+  }, [setAppearanceFont])
+
+  const handleFontChange = async (font: AppearanceFont) => {
+    const previousFont = appearanceFont || DEFAULT_APPEARANCE_FONT
+    setAppearanceFont(font)
+    setFontSaving(true)
+
+    const token = getAdminToken()
+    if (!token) {
+      setAppearanceFont(previousFont)
+      setFontSaving(false)
+      toast.error("Please sign in again to save appearance settings.")
+      return
+    }
+
+    try {
+      const res = await fetch(`${getAdminSettingsApiBase()}/core/settings/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ appearance_font: font }),
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.detail || errorData.appearance_font?.[0] || "Failed to save font")
+      }
+
+      applyAppearanceFont(font)
+      toast.success("Font updated")
+    } catch (error: any) {
+      setAppearanceFont(previousFont)
+      toast.error(error?.message || "Failed to save font")
+    } finally {
+      setFontSaving(false)
+    }
+  }
 
   const modes = [
     {
@@ -354,6 +434,69 @@ function AppearanceTab() {
                     </span>
                   </div>
                   <p className="mt-0.5 text-xs text-slate-500 ml-6">{desc}</p>
+                </button>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Global Font */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <Type className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div className="min-w-0">
+              <CardTitle className="text-base">Global Font</CardTitle>
+              <CardDescription>Choose the typeface used across the admin system</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <Label htmlFor="appearance-font">Typeface</Label>
+              <p className="text-xs text-muted-foreground">Changes apply instantly and are saved for every signed-in admin.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value={appearanceFont} onValueChange={(value) => handleFontChange(value as AppearanceFont)}>
+                <SelectTrigger id="appearance-font" className="w-full sm:w-[260px]">
+                  <SelectValue placeholder="Select font" />
+                </SelectTrigger>
+                <SelectContent>
+                  {APPEARANCE_FONTS.map((font) => (
+                    <SelectItem key={font.value} value={font.value}>
+                      {font.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {fontSaving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+            {APPEARANCE_FONTS.map((font) => {
+              const isActive = appearanceFont === font.value
+              return (
+                <button
+                  key={font.value}
+                  type="button"
+                  data-font={font.value}
+                  onClick={() => handleFontChange(font.value)}
+                  className={`relative rounded-xl border p-3 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    isActive
+                      ? "border-primary bg-primary/10 shadow-sm"
+                      : "border-border bg-card hover:border-muted-foreground/40"
+                  }`}
+                  style={{ fontFamily: "var(--app-font-family)" }}
+                >
+                  {isActive && <CheckCircle className="absolute right-2.5 top-2.5 h-4 w-4 text-primary" />}
+                  <div className="pr-6 text-2xl font-bold leading-none tracking-normal text-foreground">{font.sample}</div>
+                  <p className="mt-3 text-sm font-semibold text-foreground">{font.label}</p>
+                  <p className="mt-1 min-h-8 text-xs leading-4 text-muted-foreground">{font.description}</p>
                 </button>
               )
             })}
