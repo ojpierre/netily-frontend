@@ -94,6 +94,8 @@ function BillingContent() {
           hotspot_revenue_accrued: raw.hotspot_revenue_accrued ?? 0,
           hotspot_revenue_share_pct: raw.hotspot_revenue_share_pct ?? raw.hotspot_share_pct ?? 0,
           hotspot_revenue_share_amount: raw.hotspot_revenue_share_amount ?? raw.hotspot_share_amount ?? 0,
+          hotspot_revenue_count: raw.hotspot_revenue_count ?? 0,
+          hotspot_revenue_source: raw.hotspot_revenue_source ?? "",
           hotspot_minimum_charge: raw.hotspot_minimum_charge ?? 0,
           hotspot_billable_charge: raw.hotspot_billable_charge ?? raw.hotspot_revenue_share_amount ?? raw.hotspot_share_amount ?? 0,
           usage_subtotal: raw.usage_subtotal ?? 0,
@@ -924,6 +926,13 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                 const pppoeUnitPrice = Number((usage as any).pppoe_unit_price ?? (plan as any).pppoe_unit_price) || 25
                 const hotspotSharePct = Number(usage.hotspot_revenue_share_pct ?? (plan as any).hotspot_revenue_share_pct) || 0
                 const hotspotRevenueAccrued = Number(usage.hotspot_revenue_accrued || 0)
+                const hotspotRevenueCount = Number(usage.hotspot_revenue_count || 0)
+                const hotspotRevenueSource = String(usage.hotspot_revenue_source || "")
+                const hotspotRevenueSourceLabel = hotspotRevenueSource === "completed_hotspot_payments"
+                  ? "completed payments"
+                  : hotspotRevenueSource === "legacy_paid_hotspot_sessions"
+                    ? "legacy paid sessions"
+                    : "reconciled records"
                 const hotspotShareAmount = Number(usage.hotspot_revenue_share_amount || 0)
                 const billablePppoe = Number((usage as any).billable_pppoe ?? pppoeCount)
                 const pppoeCharge = Number((usage as any).pppoe_charge ?? (billablePppoe * pppoeUnitPrice))
@@ -972,8 +981,12 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                         </CardHeader>
                         <CardContent>
                           <p className="text-2xl font-extrabold text-foreground">{kes(hotspotRevenueAccrued)}</p>
-                          <p className="text-xs text-slate-500 mt-1">Collected this billing cycle</p>
-                          <p className="text-xs text-emerald-600 mt-0.5">Reconciled every 8 hrs</p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {hotspotRevenueCount > 0
+                              ? `${hotspotRevenueCount} ${hotspotRevenueSourceLabel}`
+                              : "No completed hotspot payments yet"}
+                          </p>
+                          <p className="text-xs text-emerald-600 mt-0.5">{usage.hotspot_revenue_note || "Reconciled every 8 hrs"}</p>
                         </CardContent>
                       </Card>
 

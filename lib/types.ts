@@ -2546,6 +2546,8 @@ export interface UsageStats {
   hotspot_revenue_accrued?: string | number
   hotspot_revenue_share_pct?: string | number
   hotspot_revenue_share_amount?: string | number
+  hotspot_revenue_count?: number
+  hotspot_revenue_source?: string
   hotspot_minimum_charge?: string | number
   hotspot_billable_charge?: string | number
   usage_subtotal?: string | number
