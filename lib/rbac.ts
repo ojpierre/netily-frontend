@@ -174,6 +174,12 @@ export const canDo = (
 // ─────────────────────────────────────────────────────────────
 export const adminRouteAccessRules: RouteAccessRule[] = [
   {
+    pathPrefix: "/admin",
+    label: "Dashboard",
+    allowedRoles: [...OPERATIONS_ROLES, ...NETWORK_ROLES, ...FINANCE_ROLES],
+    actions: ["view"],
+  },
+  {
     pathPrefix: "/admin/users",
     label: "User Management",
     allowedRoles: USER_MANAGEMENT_ROLES,

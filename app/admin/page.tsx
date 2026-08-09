@@ -45,7 +45,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { useAdminAuth } from "./admin-auth-context"
 import { adminApi } from "@/lib/admin-api"
-import { canAccess, getAccessRuleForPath } from "@/lib/rbac"
+import {
+  canAccess,
+  canDo,
+  getAccessRuleForPath,
+  getRoleAccessPolicyVersion,
+  subscribeRoleAccessPolicies,
+} from "@/lib/rbac"
 import { RevenueStatCard } from "@/components/ui/revenue-stat-card"
 import type {
   DashboardStats,
@@ -227,6 +233,7 @@ export default function AdminDashboard() {
     }
   } | null>(null)
   const quickStatsLoading = quickStats === null
+  const [accessPolicyVersion, setAccessPolicyVersion] = useState(getRoleAccessPolicyVersion)
 
   // ─── NEW: SMS attention state ───
   const [smsAttention, setSmsAttention] = useState<{ configured: boolean; lowBalance: boolean; balance: number | null }>({
@@ -252,7 +259,23 @@ export default function AdminDashboard() {
     return onlineTotal || onlineSessions.length
   }, [onlineTotal, onlineSessions])
   
+  const normalizedRole = String(user?.role || user?.access_level || "").trim().toLowerCase().replace(/[\s-]+/g, "_")
+  const isAdminLike = !!user?.is_superuser || ["admin", "super_admin", "superadmin"].includes(normalizedRole)
+  const isFinanceRole = normalizedRole === "accountant"
   const canOpenRoute = (href: string) => canAccess(user, getAccessRuleForPath(href))
+  const canViewRevenueDashboard =
+    isAdminLike ||
+    isFinanceRole ||
+    (
+      accessPolicyVersion > 0 &&
+      (
+        canDo(user, "/admin/payments", "view") ||
+        canDo(user, "/admin/invoices", "view") ||
+        canDo(user, "/admin/receipts", "view") ||
+        canDo(user, "/admin/analytics", "view") ||
+        canDo(user, "/admin/settings/billing", "view")
+      )
+    )
   const quickActions = [
     { href: "/admin/users", label: "Manage Users", icon: Users, className: "text-blue-600" },
     { href: "/admin/routers", label: "Manage Routers", icon: Wifi, className: "text-green-600" },
@@ -343,6 +366,13 @@ export default function AdminDashboard() {
   }
 
   // ─── INITIAL FETCH ──────────────────────────────────────────
+  useEffect(() => {
+    setAccessPolicyVersion(getRoleAccessPolicyVersion())
+    return subscribeRoleAccessPolicies(() => {
+      setAccessPolicyVersion(getRoleAccessPolicyVersion())
+    })
+  }, [])
+
   useEffect(() => {
     // Fetch quick stats first (fast path)
     fetchQuickStats()
@@ -643,7 +673,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ─── Row 2: Network & Revenue ─── */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 relative">
+      <div className={`grid gap-4 md:grid-cols-2 ${canViewRevenueDashboard ? "lg:grid-cols-3" : "lg:grid-cols-2"} relative`}>
         {/* Router Status - UPDATED with refined CardContent */}
         <Card className={dashboardCardClass}>
           <CardHeader className="pb-3">
@@ -750,80 +780,79 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Revenue Card - UPDATED with RevenueStatCard component with staggered delays */}
-        <Card className={dashboardCardClass}>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-green-600" />
-                Revenue
-              </CardTitle>
-              {canOpenRoute("/admin/payments") && (
-                <Link href="/admin/payments">
-                  <Button variant="ghost" size="sm" className="px-2 text-xs text-muted-foreground hover:text-foreground">
-                    View all →
-                  </Button>
-                </Link>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {quickStatsLoading ? (
-              <div className="grid grid-cols-1 gap-3">
-                <Skeleton className="h-24 w-full rounded-2xl" />
-                <Skeleton className="h-24 w-full rounded-2xl" />
-                <Skeleton className="h-24 w-full rounded-2xl" />
+        {canViewRevenueDashboard && (
+          <Card className={dashboardCardClass}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-green-600" />
+                  Revenue
+                </CardTitle>
+                {canOpenRoute("/admin/payments") && (
+                  <Link href="/admin/payments">
+                    <Button variant="ghost" size="sm" className="px-2 text-xs text-muted-foreground hover:text-foreground">
+                      View all →
+                    </Button>
+                  </Link>
+                )}
               </div>
-            ) : (() => {
-              const ov = quickStats?.overview
-              const todayRev = parseFloat(String(ov?.today_revenue ?? 0))
-              const weekRev = parseFloat(String(ov?.week_revenue ?? 0))
-              const monthRev = parseFloat(String(ov?.month_revenue ?? 0))
-
-              // Sparkline sources: reuse chart data already fetched — no extra calls
-              const weeklySpark = (ov?.weekly_income ?? []).map(d => ({ amount: d.amount }))
-              const monthlySpark = (ov?.monthly_earnings ?? []).map(d => ({ amount: d.amount }))
-              // "Today" spark: last 2 points of the week series (yesterday → today) padded for shape
-              const todaySpark = weeklySpark.length >= 2 ? weeklySpark.slice(-2) : weeklySpark
-
-              return (
+            </CardHeader>
+            <CardContent>
+              {quickStatsLoading ? (
                 <div className="grid grid-cols-1 gap-3">
-                  <RevenueStatCard
-                    label="Today"
-                    value={todayRev}
-                    deltaPct={ov?.today_change}
-                    color="#d97234"
-                    sparklineData={todaySpark.length ? todaySpark : [{ amount: 0 }, { amount: todayRev }]}
-                    animationDelay={0}
-                  />
-                  <RevenueStatCard
-                    label="This Week"
-                    value={weekRev}
-                    deltaPct={ov?.week_change}
-                    color="#3d7a5f"
-                    sparklineData={weeklySpark.length ? weeklySpark : [{ amount: 0 }, { amount: weekRev }]}
-                    animationDelay={0.1}
-                  />
-                  <RevenueStatCard
-                    label="This Month"
-                    value={monthRev}
-                    deltaPct={ov?.month_change}
-                    color="currentColor"
-                    sparklineData={monthlySpark.length ? monthlySpark : [{ amount: 0 }, { amount: monthRev }]}
-                    animationDelay={0.2}
-                  />
-
-                  <div className="flex items-center justify-between border-t border-border/60 pt-2 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
-                    <span>Transactions today</span>
-                    <span className="font-medium text-foreground">
-                      {ov?.total_transactions_today ?? 0}
-                    </span>
-                  </div>
+                  <Skeleton className="h-24 w-full rounded-2xl" />
+                  <Skeleton className="h-24 w-full rounded-2xl" />
+                  <Skeleton className="h-24 w-full rounded-2xl" />
                 </div>
-              )
-            })()}
-          </CardContent>
-        </Card>
+              ) : (() => {
+                const ov = quickStats?.overview
+                const todayRev = parseFloat(String(ov?.today_revenue ?? 0))
+                const weekRev = parseFloat(String(ov?.week_revenue ?? 0))
+                const monthRev = parseFloat(String(ov?.month_revenue ?? 0))
+
+                const weeklySpark = (ov?.weekly_income ?? []).map(d => ({ amount: d.amount }))
+                const monthlySpark = (ov?.monthly_earnings ?? []).map(d => ({ amount: d.amount }))
+                const todaySpark = weeklySpark.length >= 2 ? weeklySpark.slice(-2) : weeklySpark
+
+                return (
+                  <div className="grid grid-cols-1 gap-3">
+                    <RevenueStatCard
+                      label="Today"
+                      value={todayRev}
+                      deltaPct={ov?.today_change}
+                      color="#d97234"
+                      sparklineData={todaySpark.length ? todaySpark : [{ amount: 0 }, { amount: todayRev }]}
+                      animationDelay={0}
+                    />
+                    <RevenueStatCard
+                      label="This Week"
+                      value={weekRev}
+                      deltaPct={ov?.week_change}
+                      color="#3d7a5f"
+                      sparklineData={weeklySpark.length ? weeklySpark : [{ amount: 0 }, { amount: weekRev }]}
+                      animationDelay={0.1}
+                    />
+                    <RevenueStatCard
+                      label="This Month"
+                      value={monthRev}
+                      deltaPct={ov?.month_change}
+                      color="currentColor"
+                      sparklineData={monthlySpark.length ? monthlySpark : [{ amount: 0 }, { amount: monthRev }]}
+                      animationDelay={0.2}
+                    />
+
+                    <div className="flex items-center justify-between border-t border-border/60 pt-2 text-[11px] font-medium tracking-[0.02em] text-muted-foreground">
+                      <span>Transactions today</span>
+                      <span className="font-medium text-foreground">
+                        {ov?.total_transactions_today ?? 0}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })()}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Support Tickets - UPDATED with refined CardContent */}
         <Card className={dashboardCardClass}>

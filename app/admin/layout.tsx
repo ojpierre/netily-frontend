@@ -102,7 +102,7 @@ const navigationSections: NavigationSection[] = [
   {
     title: "Main",
     items: [
-      { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+      { name: "Dashboard", href: "/admin", icon: LayoutDashboard, pathPrefix: "/admin", allowedRoles: [...OPERATIONS_ROLES, ...NETWORK_ROLES, ...FINANCE_ROLES] },
       { name: "Users", href: "/admin/users", icon: Users, allowedRoles: USER_MANAGEMENT_ROLES },
       { name: "Staff", href: "/admin/staff", icon: UserCog, allowedRoles: ADMIN_ROLES },
       { name: "Plans", href: "/admin/plans", icon: Package, allowedRoles: ADMIN_ROLES },
