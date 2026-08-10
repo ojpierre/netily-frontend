@@ -53,7 +53,7 @@ import {
   subscribeRoleAccessPolicies,
 } from "@/lib/rbac"
 import { RevenueStatCard } from "@/components/ui/revenue-stat-card"
-import { DiaTextReveal } from "@/components/ui/dia-text-reveal"
+import { PaymentTicker } from "@/components/ui/payment-ticker"
 import type {
   DashboardStats,
   RouterDashboardStats,
@@ -524,33 +524,25 @@ export default function AdminDashboard() {
               quickStats?.tickets?.open ?? 0,
               quickStats?.expired_customers ?? 0
             )
-
-            // Ticker takes priority when we have real payment activity to show
-            if (tickerItems.length > 0) {
-              return (
-                <DiaTextReveal
-                  text={tickerItems}
-                  colors={["#3d7a5f", "#0358f7", "#ffb005"]}
-                  repeat
-                  repeatDelay={2}
-                  duration={1.1}
-                  className="apple-hello-sub mt-4 text-sm md:text-base max-w-md mx-auto inline-block"
-                />
-              )
-            }
-
-            if (attentionItems.length > 0) {
-              return (
-                <p className="apple-hello-sub mt-4 text-sm md:text-base text-muted-foreground max-w-md mx-auto">
-                  {attentionItems.join(" · ")} — a few things need a minute.
-                </p>
-              )
-            }
+            const hasAttention = attentionItems.length > 0
 
             return (
-              <p className="apple-hello-sub mt-4 text-sm md:text-base text-muted-foreground max-w-md mx-auto">
-                Everything looks clean today.
-              </p>
+              <>
+                <p className="apple-hello-sub mt-4 text-sm md:text-base text-muted-foreground max-w-md mx-auto">
+                  {hasAttention
+                    ? `${attentionItems.join(" · ")} — a few things need a minute.`
+                    : "Everything looks clean today."}
+                </p>
+
+                {tickerItems.length > 0 && (
+                  <PaymentTicker
+                    items={tickerItems}
+                    holdMs={3400}
+                    transitionMs={600}
+                    className="apple-hello-sub mt-2 text-xs md:text-sm text-muted-foreground/70 max-w-sm mx-auto"
+                  />
+                )}
+              </>
             )
           })()}
 
