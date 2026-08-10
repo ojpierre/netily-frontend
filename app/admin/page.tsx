@@ -53,6 +53,7 @@ import {
   subscribeRoleAccessPolicies,
 } from "@/lib/rbac"
 import { RevenueStatCard } from "@/components/ui/revenue-stat-card"
+import { DiaTextReveal } from "@magicui/dia-text-reveal"
 import type {
   DashboardStats,
   RouterDashboardStats,
@@ -196,6 +197,9 @@ export default function AdminDashboard() {
   // FIX: Default to "this" (current year) instead of "last"
   const [yearView, setYearView] = useState<"this" | "last">("this")
   
+  // ─── TICKER STATE ───
+  const [tickerItems, setTickerItems] = useState<string[]>([])
+  
   // ─── ANIMATION RETRIGGER KEY ───
   const [greetKey, setGreetKey] = useState(0)
   
@@ -285,6 +289,20 @@ export default function AdminDashboard() {
     { href: "/admin/invoices", label: "Invoices", icon: DollarSign, className: "text-green-600" },
   ].filter((item) => canOpenRoute(item.href))
 
+  // ─── FETCH TICKER DATA ───
+  const fetchTickerData = useCallback(async () => {
+    try {
+      const rows = await adminApi.getRecentPaymentsTicker()
+      const formatted = rows.map(
+        (r) => `${r.label} KES ${r.amount.toLocaleString()} at ${r.time}`
+      )
+      setTickerItems(formatted)
+    } catch (err) {
+      // Silently fail - ticker is a nice-to-have
+      setTickerItems([])
+    }
+  }, [])
+
   // ─── FAST PATH: fetch quick stats independently ───
   const fetchQuickStats = useCallback(async () => {
     try {
@@ -363,6 +381,7 @@ export default function AdminDashboard() {
     setGreetKey((k) => k + 1) // Retrigger the hello animation
     fetchQuickStats()
     fetchDashboardData()
+    fetchTickerData()
   }
 
   // ─── INITIAL FETCH ──────────────────────────────────────────
@@ -378,6 +397,8 @@ export default function AdminDashboard() {
     fetchQuickStats()
     // Then fetch the rest of the dashboard
     fetchDashboardData()
+    // Fetch ticker data
+    fetchTickerData()
     // Play animation on mount
     setGreetKey((k) => k + 1)
     
@@ -385,9 +406,10 @@ export default function AdminDashboard() {
     const interval = setInterval(() => {
       fetchQuickStats()
       fetchDashboardData()
+      fetchTickerData()
     }, 60000)
     return () => clearInterval(interval)
-  }, [fetchQuickStats, fetchDashboardData])
+  }, [fetchQuickStats, fetchDashboardData, fetchTickerData])
 
   if (error && !quickStats) {
     return (
@@ -427,6 +449,11 @@ export default function AdminDashboard() {
 
         @keyframes appleFadeUp {
           0% { opacity: 0; transform: translateY(10px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes tickerSlide {
+          0% { opacity: 0; transform: translateY(8px); }
           100% { opacity: 1; transform: translateY(0); }
         }
 
@@ -489,7 +516,7 @@ export default function AdminDashboard() {
           </h1>
 
           {(() => {
-            const items = getAttentionItems(
+            const attentionItems = getAttentionItems(
               quickStats?.routers?.offline_routers ?? 0,
               smsAttention.balance,
               smsAttention.configured,
@@ -497,11 +524,33 @@ export default function AdminDashboard() {
               quickStats?.tickets?.open ?? 0,
               quickStats?.expired_customers ?? 0
             )
+            
+            // Priority: Show attention items first
+            if (attentionItems.length > 0) {
+              return (
+                <p className="apple-hello-sub mt-4 text-sm md:text-base text-muted-foreground max-w-md mx-auto">
+                  {attentionItems.join(" · ")} — a few things need a minute.
+                </p>
+              )
+            }
+            
+            // Then show ticker if available
+            if (tickerItems.length > 0) {
+              return (
+                <DiaTextReveal
+                  text={tickerItems}
+                  repeat
+                  repeatDelay={2}
+                  duration={1.1}
+                  className="apple-hello-sub mt-4 text-sm md:text-base text-muted-foreground max-w-md mx-auto inline-block"
+                />
+              )
+            }
+            
+            // Fallback: everything looks clean
             return (
               <p className="apple-hello-sub mt-4 text-sm md:text-base text-muted-foreground max-w-md mx-auto">
-                {items.length > 0
-                  ? `${items.join(" · ")} — a few things need a minute.`
-                  : `Everything looks clean today.`}
+                Everything looks clean today.
               </p>
             )
           })()}

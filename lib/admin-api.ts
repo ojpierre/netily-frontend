@@ -739,6 +739,19 @@ class AdminApiService {
   }> {
     return this.request<any>('/core/dashboard/unified/')
   }
+
+  // ============================================================
+  // NEW: Recent Payments Ticker for Dashboard Greeting Card
+  // ============================================================
+  
+  /**
+   * Get the 5 most recent completed payments for the dashboard ticker
+   * @returns Array of payment items with label, amount, and time
+   */
+  async getRecentPaymentsTicker(): Promise<{ label: string; amount: number; time: string }[]> {
+    return this.request<{ label: string; amount: number; time: string }[]>('/analytics/payments-ticker/')
+  }
+
   // ------------------------------------------
   // USERS/STAFF - /core/users/
   // ------------------------------------------
