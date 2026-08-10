@@ -524,8 +524,21 @@ export default function AdminDashboard() {
               quickStats?.tickets?.open ?? 0,
               quickStats?.expired_customers ?? 0
             )
-            
-            // Priority: Show attention items first
+
+            // Ticker takes priority when we have real payment activity to show
+            if (tickerItems.length > 0) {
+              return (
+                <DiaTextReveal
+                  text={tickerItems}
+                  colors={["#3d7a5f", "#0358f7", "#ffb005"]}
+                  repeat
+                  repeatDelay={2}
+                  duration={1.1}
+                  className="apple-hello-sub mt-4 text-sm md:text-base max-w-md mx-auto inline-block"
+                />
+              )
+            }
+
             if (attentionItems.length > 0) {
               return (
                 <p className="apple-hello-sub mt-4 text-sm md:text-base text-muted-foreground max-w-md mx-auto">
@@ -533,21 +546,7 @@ export default function AdminDashboard() {
                 </p>
               )
             }
-            
-            // Then show ticker if available
-            if (tickerItems.length > 0) {
-              return (
-                <DiaTextReveal
-                  text={tickerItems}
-                  repeat
-                  repeatDelay={2}
-                  duration={1.1}
-                  className="apple-hello-sub mt-4 text-sm md:text-base text-muted-foreground max-w-md mx-auto inline-block"
-                />
-              )
-            }
-            
-            // Fallback: everything looks clean
+
             return (
               <p className="apple-hello-sub mt-4 text-sm md:text-base text-muted-foreground max-w-md mx-auto">
                 Everything looks clean today.

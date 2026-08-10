@@ -1,56 +1,136 @@
+// components/ui/dia-text-reveal.tsx
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 
 interface DiaTextRevealProps {
-  text: string[]
+  text: string | string[]
+  colors?: string[]
+  textColor?: string
+  duration?: number
+  delay?: number
   repeat?: boolean
   repeatDelay?: number
-  duration?: number
+  startOnView?: boolean
+  once?: boolean
   className?: string
+  fixedWidth?: boolean
 }
+
+const DEFAULT_COLORS = ["#c679c4", "#fa3d1d", "#ffb005", "#e1e1fe", "#0358f7"]
 
 export function DiaTextReveal({
   text,
-  repeat = true,
-  repeatDelay = 2,
-  duration = 1.1,
+  colors = DEFAULT_COLORS,
+  textColor = "var(--foreground)",
+  duration = 1.5,
+  delay = 0,
+  repeat = false,
+  repeatDelay = 0.5,
+  startOnView = true,
+  once = true,
   className,
+  fixedWidth = false,
 }: DiaTextRevealProps) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isAnimating, setIsAnimating] = useState(false)
+  const items = Array.isArray(text) ? text : [text]
+  const [index, setIndex] = useState(0)
+  const [inView, setInView] = useState(!startOnView)
+  const [playKey, setPlayKey] = useState(0)
+  const hasPlayedRef = useRef(false)
+  const rootRef = useRef<HTMLSpanElement>(null)
 
+  // Trigger on viewport entry (IntersectionObserver — cheap, no scroll listeners)
   useEffect(() => {
-    if (text.length <= 1) return
+    if (!startOnView) return
+    const el = rootRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (once && hasPlayedRef.current) return
+          hasPlayedRef.current = true
+          setInView(true)
+          if (once) observer.disconnect()
+        } else if (!once) {
+          setInView(false)
+        }
+      },
+      { threshold: 0.3 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [startOnView, once])
 
-    const interval = setInterval(() => {
-      setIsAnimating(true)
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % text.length)
-        setIsAnimating(false)
-      }, duration * 1000)
-    }, (duration + repeatDelay) * 1000)
+  // Rotate through array items after each sweep completes
+  useEffect(() => {
+    if (!inView || !repeat || items.length <= 1) return
+    const cycleMs = (duration + repeatDelay) * 1000
+    const t = setInterval(() => {
+      setIndex((i) => (i + 1) % items.length)
+      setPlayKey((k) => k + 1)
+    }, cycleMs)
+    return () => clearInterval(t)
+  }, [inView, repeat, items.length, duration, repeatDelay])
 
-    return () => clearInterval(interval)
-  }, [text, repeatDelay, duration, text.length])
-
-  if (text.length === 0) return null
+  const gradient = `linear-gradient(90deg, ${colors.join(", ")})`
+  const widest = fixedWidth
+    ? items.reduce((a, b) => (b.length > a.length ? b : a), "")
+    : null
 
   return (
     <span
-      className={cn(
-        "inline-block transition-all",
-        isAnimating ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0",
-        className
-      )}
-      style={{
-        transitionDuration: `${duration}s`,
-        transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
-      }}
-      key={currentIndex}
+      ref={rootRef}
+      className={cn("relative inline-grid", className)}
+      style={fixedWidth ? { minWidth: `${widest?.length ?? 0}ch` } : undefined}
     >
-      {text[currentIndex]}
+      {/* Base solid text — always visible underneath */}
+      <span className="col-start-1 row-start-1" style={{ color: textColor }}>
+        {items[index]}
+      </span>
+
+      {/* Sweeping gradient overlay — fades out to reveal base text */}
+      {inView && (
+        <span
+          key={playKey}
+          aria-hidden="true"
+          className="col-start-1 row-start-1 dia-sweep-overlay"
+          style={{
+            backgroundImage: gradient,
+            backgroundSize: "300% 100%",
+            WebkitBackgroundClip: "text",
+            backgroundClip: "text",
+            color: "transparent",
+            animationDuration: `${duration}s`,
+            animationDelay: `${delay}s`,
+          }}
+        >
+          {items[index]}
+        </span>
+      )}
+
+      <style jsx>{`
+        .dia-sweep-overlay {
+          background-position: 200% 0;
+          animation-name: dia-sweep;
+          animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+          animation-fill-mode: forwards;
+        }
+        @keyframes dia-sweep {
+          0% {
+            background-position: 200% 0;
+            opacity: 1;
+          }
+          65% {
+            background-position: -20% 0;
+            opacity: 1;
+          }
+          100% {
+            background-position: -60% 0;
+            opacity: 0;
+          }
+        }
+      `}</style>
     </span>
   )
 }
