@@ -53,7 +53,7 @@ import {
   subscribeRoleAccessPolicies,
 } from "@/lib/rbac"
 import { RevenueStatCard } from "@/components/ui/revenue-stat-card"
-import { DiaTextReveal } from "@magicui/dia-text-reveal"
+import { DiaTextReveal } from "@/components/ui/dia-text-reveal"
 import type {
   DashboardStats,
   RouterDashboardStats,
