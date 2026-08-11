@@ -440,6 +440,7 @@ export interface ManualSubscriptionPaymentPayload {
 
 export interface ManualSubscriptionPaymentResponse {
   detail: string
+  replaced_existing?: boolean
   subscription_activated: boolean
   invoice_fully_paid: boolean
   invoice_number?: string | null
@@ -1169,6 +1170,13 @@ class SuperadminApiService {
   async createSubscriptionPayment(data: ManualSubscriptionPaymentPayload): Promise<ManualSubscriptionPaymentResponse> {
     return this.request("/superadmin/subscription-payments/", {
       method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateSubscriptionPayment(id: string, data: Partial<ManualSubscriptionPaymentPayload>): Promise<{ detail: string; payment: SubscriptionPayment }> {
+    return this.request(`/superadmin/subscription-payments/${id}/`, {
+      method: "PATCH",
       body: JSON.stringify(data),
     })
   }

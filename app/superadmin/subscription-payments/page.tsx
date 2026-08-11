@@ -9,6 +9,7 @@ import {
   Clock,
   CreditCard,
   Loader2,
+  Pencil,
   Plus,
   ReceiptText,
   RefreshCw,
@@ -132,6 +133,14 @@ function tenantLabel(tenant: Tenant) {
   return `${tenant.company_name || tenant.subdomain} (${tenant.subdomain})`
 }
 
+function toDatetimeLocal(value?: string | null) {
+  if (!value) return ""
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 export default function SubscriptionPaymentsPage() {
   const [payments, setPayments] = useState<SubscriptionPaymentRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -143,6 +152,7 @@ export default function SubscriptionPaymentsPage() {
   const [manualOpen, setManualOpen] = useState(false)
   const [lookupLoading, setLookupLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [editingPayment, setEditingPayment] = useState<SubscriptionPaymentRow | null>(null)
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [plans, setPlans] = useState<NetilyPlan[]>([])
   const [form, setForm] = useState<ManualPaymentForm>(() => emptyManualPaymentForm())
@@ -193,10 +203,10 @@ export default function SubscriptionPaymentsPage() {
   }, [fetchPayments, search])
 
   useEffect(() => {
-    if (manualOpen && (tenants.length === 0 || plans.length === 0)) {
+    if (manualOpen && !editingPayment && (tenants.length === 0 || plans.length === 0)) {
       loadLookups()
     }
-  }, [loadLookups, manualOpen, plans.length, tenants.length])
+  }, [editingPayment, loadLookups, manualOpen, plans.length, tenants.length])
 
   const handleSearch = (v: string) => {
     setSearch(v)
@@ -249,8 +259,29 @@ export default function SubscriptionPaymentsPage() {
     }))
   }
 
+  const openManualPayment = () => {
+    setEditingPayment(null)
+    setForm(emptyManualPaymentForm())
+    setManualOpen(true)
+  }
+
+  const openEditPayment = (payment: SubscriptionPaymentRow) => {
+    setEditingPayment(payment)
+    setForm({
+      ...emptyManualPaymentForm(),
+      amount: String(Number(payment.amount || 0) || ""),
+      payment_method: (payment.payment_method as ManualPaymentForm["payment_method"]) || "mpesa_paybill",
+      reference: payment.reference || payment.mpesa_receipt || payment.bank_reference || "",
+      phone_number: payment.phone_number || "",
+      completed_at: toDatetimeLocal(payment.completed_at || payment.created_at),
+      apply_to_subscription: false,
+      notify_tenant: false,
+    })
+    setManualOpen(true)
+  }
+
   const submitManualPayment = async () => {
-    if (!form.tenant_id) {
+    if (!editingPayment && !form.tenant_id) {
       toast.error("Choose a tenant first")
       return
     }
@@ -279,9 +310,20 @@ export default function SubscriptionPaymentsPage() {
       }
       if (form.plan_id !== "current") payload.plan_id = form.plan_id
 
-      const result = await superadminApi.createSubscriptionPayment(payload)
-      toast.success(result.detail || "Manual payment recorded")
+      const result = editingPayment
+        ? await superadminApi.updateSubscriptionPayment(editingPayment.id, {
+            amount: payload.amount,
+            payment_method: payload.payment_method,
+            reference: payload.reference,
+            billing_period: payload.billing_period,
+            phone_number: payload.phone_number,
+            completed_at: payload.completed_at,
+            notes: payload.notes,
+          })
+        : await superadminApi.createSubscriptionPayment(payload)
+      toast.success(result.detail || (editingPayment ? "Payment updated" : "Manual payment recorded"))
       setManualOpen(false)
+      setEditingPayment(null)
       setForm(emptyManualPaymentForm())
       setPage(1)
       await fetchPayments()
@@ -307,7 +349,7 @@ export default function SubscriptionPaymentsPage() {
           </div>
         </div>
         <Button
-          onClick={() => setManualOpen(true)}
+          onClick={openManualPayment}
           className="bg-violet-600 text-white hover:bg-violet-500"
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -366,18 +408,19 @@ export default function SubscriptionPaymentsPage() {
                 <th className="hidden px-4 py-3 text-left font-medium text-slate-400 lg:table-cell">Phone</th>
                 <th className="hidden px-4 py-3 text-left font-medium text-slate-400 xl:table-cell">Cycle Period</th>
                 <th className="px-4 py-3 text-left font-medium text-slate-400">Date</th>
+                <th className="px-4 py-3 text-right font-medium text-slate-400">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center">
+                  <td colSpan={10} className="py-16 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-violet-400" />
                   </td>
                 </tr>
               ) : payments.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center text-slate-500">
+                  <td colSpan={10} className="py-16 text-center text-slate-500">
                     No payments found
                   </td>
                 </tr>
@@ -406,6 +449,17 @@ export default function SubscriptionPaymentsPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-400">
                       {fmt(p.completed_at || p.created_at)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openEditPayment(p)}
+                        className="h-8 border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
+                      >
+                        <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                        Edit
+                      </Button>
                     </td>
                   </tr>
                 ))
@@ -443,24 +497,33 @@ export default function SubscriptionPaymentsPage() {
         </div>
       )}
 
-      <Dialog open={manualOpen} onOpenChange={setManualOpen}>
+      <Dialog
+        open={manualOpen}
+        onOpenChange={(open) => {
+          setManualOpen(open)
+          if (!open) setEditingPayment(null)
+        }}
+      >
         <DialogContent className="max-h-[92vh] overflow-y-auto border-slate-800 bg-slate-950 text-white sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ReceiptText className="h-5 w-5 text-violet-400" />
-              Record Manual Subscription Payment
+              {editingPayment ? "Edit Subscription Payment" : "Record Manual Subscription Payment"}
             </DialogTitle>
             <DialogDescription className="text-slate-400">
-              Add a confirmed offline payment and optionally update the tenant subscription immediately.
+              {editingPayment
+                ? "Correct this payment record. This does not re-apply money to invoices or extend the subscription again."
+                : "Add a confirmed offline payment. If the reference already exists, that transaction record is replaced."}
             </DialogDescription>
           </DialogHeader>
 
-          {lookupLoading ? (
+          {lookupLoading && !editingPayment ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-violet-400" />
             </div>
           ) : (
             <div className="grid gap-4 py-2">
+              {!editingPayment && (
               <div className="grid gap-2">
                 <Label className="text-slate-200">Tenant</Label>
                 <Select value={form.tenant_id} onValueChange={handleTenantChange}>
@@ -476,7 +539,9 @@ export default function SubscriptionPaymentsPage() {
                   </SelectContent>
                 </Select>
               </div>
+              )}
 
+              {!editingPayment && (
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
                   <Label className="text-slate-200">Plan</Label>
@@ -508,6 +573,7 @@ export default function SubscriptionPaymentsPage() {
                   </Select>
                 </div>
               </div>
+              )}
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
@@ -583,6 +649,7 @@ export default function SubscriptionPaymentsPage() {
                 />
               </div>
 
+              {!editingPayment && (
               <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900/70 p-4">
                 <label className="flex items-start gap-3 text-sm">
                   <Checkbox
@@ -607,6 +674,7 @@ export default function SubscriptionPaymentsPage() {
                   </span>
                 </label>
               </div>
+              )}
             </div>
           )}
 
@@ -625,7 +693,7 @@ export default function SubscriptionPaymentsPage() {
               className="bg-violet-600 text-white hover:bg-violet-500"
             >
               {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-              Record Payment
+              {editingPayment ? "Save Changes" : "Record Payment"}
             </Button>
           </DialogFooter>
         </DialogContent>
