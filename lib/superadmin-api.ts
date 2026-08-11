@@ -424,6 +424,28 @@ export interface SubscriptionPayment {
   invoice_number?: string
 }
 
+export interface ManualSubscriptionPaymentPayload {
+  tenant_id: string
+  amount: string
+  payment_method: "mpesa_paybill" | "bank_transfer" | "card"
+  reference: string
+  billing_period: "monthly" | "yearly"
+  plan_id?: string
+  phone_number?: string
+  completed_at?: string
+  notes?: string
+  apply_to_subscription?: boolean
+  notify_tenant?: boolean
+}
+
+export interface ManualSubscriptionPaymentResponse {
+  detail: string
+  subscription_activated: boolean
+  invoice_fully_paid: boolean
+  invoice_number?: string | null
+  payment: SubscriptionPayment
+}
+
 export interface PaymentSummary {
   total_revenue: number
   this_month: number
@@ -1142,6 +1164,13 @@ class SuperadminApiService {
   async getSubscriptionPayments(params?: Record<string, string>): Promise<PaginatedResponse<any>> {
     const qs = params ? "?" + new URLSearchParams(params).toString() : ""
     return this.request(`/superadmin/subscription-payments/${qs}`)
+  }
+
+  async createSubscriptionPayment(data: ManualSubscriptionPaymentPayload): Promise<ManualSubscriptionPaymentResponse> {
+    return this.request("/superadmin/subscription-payments/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
   }
 
   async getSubscriptionInvoices(params?: Record<string, string>): Promise<SubscriptionInvoiceListResponse> {
