@@ -9,7 +9,6 @@ import {
   Clock,
   CreditCard,
   Loader2,
-  Pencil,
   Plus,
   ReceiptText,
   RefreshCw,
@@ -408,19 +407,18 @@ export default function SubscriptionPaymentsPage() {
                 <th className="hidden px-4 py-3 text-left font-medium text-slate-400 lg:table-cell">Phone</th>
                 <th className="hidden px-4 py-3 text-left font-medium text-slate-400 xl:table-cell">Cycle Period</th>
                 <th className="px-4 py-3 text-left font-medium text-slate-400">Date</th>
-                <th className="px-4 py-3 text-right font-medium text-slate-400">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="py-16 text-center">
+                  <td colSpan={9} className="py-16 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-violet-400" />
                   </td>
                 </tr>
               ) : payments.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-16 text-center text-slate-500">
+                  <td colSpan={9} className="py-16 text-center text-slate-500">
                     No payments found
                   </td>
                 </tr>
@@ -449,17 +447,6 @@ export default function SubscriptionPaymentsPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-400">
                       {fmt(p.completed_at || p.created_at)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openEditPayment(p)}
-                        className="h-8 border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
-                      >
-                        <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                        Edit
-                      </Button>
                     </td>
                   </tr>
                 ))
