@@ -48,6 +48,7 @@ import {
   MessageSquareText,
   Sparkles,
   Map as MapIcon,
+  ShieldAlert,
   Download,   // ← ADDED
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
@@ -187,6 +188,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [companyLogo, setCompanyLogo] = useState<string>("")
   const [companyName, setCompanyName] = useState<string>("Netily Admin")
   const [accessPolicyVersion, setAccessPolicyVersion] = useState(0)
+  const [isDemoMode, setIsDemoMode] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
@@ -220,6 +222,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   // Handle hydration
   useEffect(() => {
     setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const host = window.location.hostname.toLowerCase()
+    setIsDemoMode(host === "demo.netily.co.ke" || host.startsWith("demo."))
   }, [])
 
   // Load tenant branding for the sidebar header and keep localStorage in sync.
@@ -623,6 +631,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Page content */}
         <main className="p-4 lg:p-6">
+          {isDemoMode && (
+            <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+              <div className="min-w-0">
+                <p className="font-semibold">Demo mode is active</p>
+                <p className="mt-0.5 text-amber-800 dark:text-amber-200">
+                  You can browse every page, but changes are disabled in this workspace.
+                </p>
+              </div>
+            </div>
+          )}
           <PageTransition>
             <TrialGuard>
               {routeAccessRule ? (
