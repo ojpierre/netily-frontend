@@ -430,10 +430,14 @@ async function redeemHotspotLoyaltyPoints(data: {
 }
 
 /**
- * "Return Trip" — submits RADIUS credentials back to MikroTik's login URL.
- * MikroTik -> Cloud Portal -> Payment -> RADIUS created -> Return Trip -> Internet
+ * The ONLY way we hand credentials back to MikroTik.
+ * POST form submit matches exactly what MikroTik's own hotspot login
+ * page does — GET query-string redirects to link-login-only are
+ * unreliable and can silently fail to authenticate (frontend shows
+ * "connected" while the router never actually logs the user in).
  */
-function returnTripToMikrotik(loginUrl: string, username: string, password: string) {
+function submitRouterLogin(loginUrl: string, username: string, password: string) {
+  if (!loginUrl) return false
   const form = document.createElement("form")
   form.method = "POST"
   form.action = loginUrl
@@ -451,6 +455,7 @@ function returnTripToMikrotik(loginUrl: string, username: string, password: stri
   addField("popup", "true")
   document.body.appendChild(form)
   form.submit()
+  return true
 }
 
 // ==========================================
@@ -1274,7 +1279,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           setCanonicalUsername(result.credentials.username)
           if (loginUrl) {
             setReturningToRouter(true)
-            returnTripToMikrotik(loginUrl, result.credentials.username, result.credentials.password)
+            submitRouterLogin(loginUrl, result.credentials.username, result.credentials.password)
           }
         }
         setAutoLoginChecked(true)
@@ -1336,15 +1341,13 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           if (result.access_code) setCanonicalUsername(result.access_code)
           clearInterval(pollInterval)
           
-          // ONLY auto-login if we are paying for THIS device (not for TV)
+          // ✅ FIXED: Capture access_code in local const for setTimeout
           if (loginUrl && result.access_code && targetDevice !== "tv") {
-             setReturningToRouter(true)
-             const username = encodeURIComponent(result.access_code)
-             const password = encodeURIComponent(result.access_code)
-             const targetUrl = `${loginUrl}?username=${username}&password=${password}`
-             setTimeout(() => {
-                 window.location.href = targetUrl
-             }, 1500)
+            const accessCode = result.access_code
+            setReturningToRouter(true)
+            setTimeout(() => {
+              submitRouterLogin(loginUrl, accessCode, accessCode)
+            }, 1500)
           }
 
         } else if (result.status === "failed") {
@@ -1451,12 +1454,12 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       setSelectedPlan(plan)
       setPaymentStatus('success')
       
-      // Auto-login for THIS device (not TV)
+      // ✅ FIXED: Capture access_code in local const for setTimeout
       if (loginUrl && result.access_code && targetDevice !== "tv") {
+        const accessCode = result.access_code
         setReturningToRouter(true)
-        const u = encodeURIComponent(result.access_code)
         setTimeout(() => {
-          window.location.href = `${loginUrl}?username=${u}&password=${u}`
+          submitRouterLogin(loginUrl, accessCode, accessCode)
         }, 1500)
       }
     } catch (err: any) {
@@ -1573,14 +1576,12 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       setExpiresAt(result.expires_at)
       setPaymentStatus("success")
 
-      // ONLY auto-login if we are paying for THIS device (not for TV)
+      // ✅ FIXED: Capture access_code in local const for setTimeout
       if (loginUrl && result.access_code && targetDevice !== "tv") {
+        const accessCode = result.access_code
         setReturningToRouter(true)
-        const username = encodeURIComponent(result.access_code)
-        const password = encodeURIComponent(result.access_code)
-        const targetUrl = `${loginUrl}?username=${username}&password=${password}`
         setTimeout(() => {
-          window.location.href = targetUrl
+          submitRouterLogin(loginUrl, accessCode, accessCode)
         }, 1500)
       }
     } catch (err: unknown) {
@@ -1628,12 +1629,12 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       })
       setShowPhoneModal(false)
       setPaymentStatus('success')
+      // ✅ FIXED: Capture credentials in local const for setTimeout
       if (loginUrl && result.credentials) {
+        const { username, password } = result.credentials
         setReturningToRouter(true)
-        const u = encodeURIComponent(result.credentials.username)
-        const p = encodeURIComponent(result.credentials.password)
         setTimeout(() => {
-          window.location.href = `${loginUrl}?username=${u}&password=${p}`
+          submitRouterLogin(loginUrl, username, password)
         }, 1500)
       }
     } catch (err: any) {
@@ -1689,11 +1690,13 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       })
       setShowAdModal(false)
       setPaymentStatus('success')
-      // Auto-login via MikroTik if we have a login URL
+      // ✅ FIXED: Capture access_code in local const for setTimeout
       if (loginUrl && result.access_code) {
+        const accessCode = result.access_code
         setReturningToRouter(true)
-        const u = encodeURIComponent(result.access_code)
-        setTimeout(() => { window.location.href = `${loginUrl}?username=${u}&password=${u}` }, 1500)
+        setTimeout(() => {
+          submitRouterLogin(loginUrl, accessCode, accessCode)
+        }, 1500)
       }
     } catch (err: any) {
       setAdError(err.message || 'Could not grant access. Please try again.')
@@ -2693,12 +2696,12 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                                 r => r.points_cost <= result.points_remaining
                               ),
                             } : null)
-                            // Auto-login if we have a login URL
+                            // ✅ FIXED: Capture access_code in local const for setTimeout
                             if (loginUrl && result.access_code) {
+                              const accessCode = result.access_code
                               setReturningToRouter(true)
-                              const u = encodeURIComponent(result.access_code)
                               setTimeout(() => {
-                                window.location.href = `${loginUrl}?username=${u}&password=${u}`
+                                submitRouterLogin(loginUrl, accessCode, accessCode)
                               }, 1500)
                             }
                           } catch (err: any) {
