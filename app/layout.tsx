@@ -18,6 +18,7 @@ import { NavigationProgress } from "@/components/navigation-progress"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
+import { PublicEngagementWidgets } from "@/components/public-engagement-widgets"
 import { APPEARANCE_FONT_STORAGE_KEY, DEFAULT_APPEARANCE_FONT } from "@/lib/appearance-fonts"
 import "./globals.css"
 
@@ -406,6 +407,23 @@ export default function RootLayout({
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
+            gtag('consent', 'default', {
+              analytics_storage: 'denied',
+              ad_storage: 'denied',
+              ad_user_data: 'denied',
+              ad_personalization: 'denied'
+            });
+            try {
+              const savedConsent = JSON.parse(localStorage.getItem('netily-cookie-preferences') || 'null');
+              if (savedConsent) {
+                gtag('consent', 'update', {
+                  analytics_storage: savedConsent.analytics ? 'granted' : 'denied',
+                  ad_storage: savedConsent.marketing ? 'granted' : 'denied',
+                  ad_user_data: savedConsent.marketing ? 'granted' : 'denied',
+                  ad_personalization: savedConsent.marketing ? 'granted' : 'denied'
+                });
+              }
+            } catch (_) {}
             gtag('js', new Date());
             gtag('config', 'G-55Q1Q3H14M');
           `}
@@ -415,6 +433,7 @@ export default function RootLayout({
           <AuthProvider>
             <AuthGuard>
               {children}
+              <PublicEngagementWidgets />
               <Toaster />
             </AuthGuard>
           </AuthProvider>

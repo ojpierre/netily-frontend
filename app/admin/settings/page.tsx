@@ -68,7 +68,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
-import { useColorTheme } from "@/components/theme-provider"
+import { useColorTheme, type ColorTheme } from "@/components/theme-provider"
 import { HotspotPruneSettingsCard } from "@/components/settings/hotspot-prune-settings"
 import { useAdminAuth } from "@/app/admin/admin-auth-context"
 import { canDo } from "@/lib/rbac"
@@ -334,7 +334,7 @@ function AppearanceTab() {
     },
   ]
 
-  const colorOptions: { value: "blue" | "green" | "pink" | "purple" | "black-white" | "pink-purple"; label: string; accent: string; ring: string; bg: string; dark: string; swatch: string }[] = [
+  const colorOptions: { value: ColorTheme; label: string; accent: string; ring: string; bg: string; dark: string; swatch: string; activeText: string }[] = [
     {
       value: "blue",
       label: "Ocean Blue",
@@ -343,6 +343,7 @@ function AppearanceTab() {
       bg: "bg-blue-50",
       dark: "dark:bg-blue-950/30",
       swatch: "bg-blue-500",
+      activeText: "text-blue-600 dark:text-blue-300",
     },
     {
       value: "green",
@@ -352,6 +353,7 @@ function AppearanceTab() {
       bg: "bg-emerald-50",
       dark: "dark:bg-emerald-950/30",
       swatch: "bg-emerald-500",
+      activeText: "text-emerald-600 dark:text-emerald-300",
     },
     {
       value: "pink",
@@ -361,6 +363,7 @@ function AppearanceTab() {
       bg: "bg-pink-50",
       dark: "dark:bg-pink-950/30",
       swatch: "bg-pink-500",
+      activeText: "text-pink-600 dark:text-pink-300",
     },
     {
       value: "purple",
@@ -370,6 +373,7 @@ function AppearanceTab() {
       bg: "bg-purple-50",
       dark: "dark:bg-purple-950/30",
       swatch: "bg-purple-500",
+      activeText: "text-purple-600 dark:text-purple-300",
     },
     {
       value: "black-white",
@@ -379,6 +383,7 @@ function AppearanceTab() {
       bg: "bg-slate-50",
       dark: "dark:bg-slate-900",
       swatch: "bg-slate-950",
+      activeText: "text-slate-950 dark:text-white",
     },
     {
       value: "pink-purple",
@@ -388,6 +393,37 @@ function AppearanceTab() {
       bg: "bg-fuchsia-50",
       dark: "dark:bg-fuchsia-950/30",
       swatch: "bg-linear-to-br from-pink-500 to-purple-600",
+      activeText: "text-fuchsia-600 dark:text-fuchsia-300",
+    },
+    {
+      value: "amber-slate",
+      label: "Amber Slate",
+      accent: "text-amber-600 dark:text-amber-300",
+      ring: "ring-amber-500",
+      bg: "bg-amber-50",
+      dark: "dark:bg-slate-900",
+      swatch: "bg-linear-to-br from-amber-400 to-slate-950",
+      activeText: "text-amber-700 dark:text-amber-300",
+    },
+    {
+      value: "cyan-graphite",
+      label: "Cyan Graphite",
+      accent: "text-cyan-600 dark:text-cyan-300",
+      ring: "ring-cyan-500",
+      bg: "bg-cyan-50",
+      dark: "dark:bg-zinc-900",
+      swatch: "bg-linear-to-br from-cyan-400 to-zinc-800",
+      activeText: "text-cyan-700 dark:text-cyan-300",
+    },
+    {
+      value: "crimson-ivory",
+      label: "Crimson Ivory",
+      accent: "text-red-600 dark:text-red-300",
+      ring: "ring-red-500",
+      bg: "bg-red-50",
+      dark: "dark:bg-stone-900",
+      swatch: "bg-linear-to-br from-red-600 to-stone-100",
+      activeText: "text-red-700 dark:text-red-300",
     },
   ]
 
@@ -518,8 +554,8 @@ function AppearanceTab() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {colorOptions.map(({ value, label, ring, bg, dark, swatch }) => {
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
+            {colorOptions.map(({ value, label, ring, bg, dark, swatch, activeText }) => {
               const isActive = colorTheme === value
               return (
                 <button
@@ -533,14 +569,14 @@ function AppearanceTab() {
                 >
                   {isActive && (
                     <span className="absolute top-2 right-2">
-                      <CheckCircle className={`w-4 h-4 ${swatch.replace("bg-", "text-")}`} />
+                      <CheckCircle className={`w-4 h-4 ${activeText}`} />
                     </span>
                   )}
                   {/* Colour swatch */}
                   <div className={`w-12 h-12 rounded-full ${swatch} shadow-md flex items-center justify-center`}>
                     {isActive && <CheckCircle className="w-5 h-5 text-white drop-shadow" />}
                   </div>
-                  <span className={`text-xs font-semibold ${isActive ? swatch.replace("bg-", "text-") : "text-muted-foreground"}`}>
+                  <span className={`text-xs font-semibold ${isActive ? activeText : "text-muted-foreground"}`}>
                     {label}
                   </span>
                 </button>

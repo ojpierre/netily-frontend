@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 
-const LOAD_DURATION_MS = 5000
+const LOAD_DURATION_MS = 2600
 
 export function HomepagePreloader() {
   const [progress, setProgress] = useState(0)
@@ -31,6 +31,7 @@ export function HomepagePreloader() {
       closeTimer = window.setTimeout(() => {
         document.body.style.overflow = previousOverflow
         setVisible(false)
+        window.dispatchEvent(new CustomEvent("netily-homepage-preloader-complete"))
       }, 180)
     }
 

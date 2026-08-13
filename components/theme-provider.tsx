@@ -13,7 +13,16 @@ import {
   type AppearanceFont,
 } from '@/lib/appearance-fonts'
 
-type ColorTheme = 'blue' | 'green' | 'pink' | 'purple' | 'black-white' | 'pink-purple'
+export type ColorTheme =
+  | 'blue'
+  | 'green'
+  | 'pink'
+  | 'purple'
+  | 'black-white'
+  | 'pink-purple'
+  | 'amber-slate'
+  | 'cyan-graphite'
+  | 'crimson-ivory'
 
 interface NetilyThemeContextValue {
   colorTheme: ColorTheme
@@ -40,7 +49,12 @@ export const COLOR_THEMES: { value: ColorTheme; label: string; preview: string }
   { value: 'purple', label: 'Purple', preview: 'oklch(0.48 0.2 300)' },
   { value: 'black-white', label: 'Black & White', preview: 'oklch(0.15 0 0)' },
   { value: 'pink-purple', label: 'Pink Purple', preview: 'linear-gradient(135deg,#ec4899,#8b5cf6)' },
+  { value: 'amber-slate', label: 'Amber Slate', preview: 'linear-gradient(135deg,#f59e0b,#111827)' },
+  { value: 'cyan-graphite', label: 'Cyan Graphite', preview: 'linear-gradient(135deg,#06b6d4,#27272a)' },
+  { value: 'crimson-ivory', label: 'Crimson Ivory', preview: 'linear-gradient(135deg,#dc2626,#fafaf9)' },
 ]
+
+const COLOR_THEME_VALUES = COLOR_THEMES.map((theme) => theme.value)
 
 function ColorThemeProvider({ children }: { children: React.ReactNode }) {
   const [colorTheme, setColorThemeState] = React.useState<ColorTheme>('blue')
@@ -51,7 +65,7 @@ function ColorThemeProvider({ children }: { children: React.ReactNode }) {
     setMounted(true)
     // Read from localStorage on mount
     const saved = localStorage.getItem('netily-color-theme') as ColorTheme | null
-    if (saved && ['blue', 'green', 'pink', 'purple', 'black-white', 'pink-purple'].includes(saved)) {
+    if (saved && COLOR_THEME_VALUES.includes(saved)) {
       setColorThemeState(saved)
       document.documentElement.setAttribute('data-theme', saved)
     } else {
