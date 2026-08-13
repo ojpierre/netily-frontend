@@ -321,6 +321,18 @@
    THEME: BLACK & WHITE
    ════════════════════════════════════════════════════════════════ */
 [data-theme="black-white"] {
+  --background: oklch(0.965 0.004 260);
+  --foreground: oklch(0.12 0 0);
+  --card: oklch(0.995 0 0);
+  --card-foreground: oklch(0.12 0 0);
+  --popover: oklch(0.995 0 0);
+  --popover-foreground: oklch(0.12 0 0);
+  --secondary: oklch(0.9 0.004 260);
+  --secondary-foreground: oklch(0.16 0 0);
+  --muted: oklch(0.88 0.004 260);
+  --muted-foreground: oklch(0.45 0 0);
+  --border: oklch(0.78 0.004 260);
+  --input: oklch(0.93 0.004 260);
   --primary: oklch(0.15 0 0);
   --primary-foreground: oklch(0.98 0 0);
   --accent: oklch(0.2 0 0);
@@ -331,15 +343,30 @@
   --chart-3: oklch(0.6 0 0);
   --chart-4: oklch(0.3 0 0);
   --chart-5: oklch(0.5 0 0);
-  --sidebar-primary: oklch(0.15 0 0);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.96 0 0);
-  --sidebar-accent-foreground: oklch(0.2 0 0);
+  --sidebar: oklch(0.16 0 0);
+  --sidebar-foreground: oklch(0.96 0 0);
+  --sidebar-primary: oklch(0.98 0 0);
+  --sidebar-primary-foreground: oklch(0.12 0 0);
+  --sidebar-accent: oklch(0.25 0 0);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.29 0 0);
   --sidebar-ring: oklch(0.3 0 0);
 }
 
 [data-theme="black-white"].dark,
 .dark[data-theme="black-white"] {
+  --background: oklch(0.105 0 0);
+  --foreground: oklch(0.96 0 0);
+  --card: oklch(0.17 0 0);
+  --card-foreground: oklch(0.96 0 0);
+  --popover: oklch(0.17 0 0);
+  --popover-foreground: oklch(0.96 0 0);
+  --secondary: oklch(0.24 0 0);
+  --secondary-foreground: oklch(0.96 0 0);
+  --muted: oklch(0.28 0 0);
+  --muted-foreground: oklch(0.72 0 0);
+  --border: oklch(0.34 0 0);
+  --input: oklch(0.23 0 0);
   --primary: oklch(0.98 0 0);
   --primary-foreground: oklch(0.15 0 0);
   --accent: oklch(0.9 0 0);
@@ -350,10 +377,13 @@
   --chart-3: oklch(0.5 0 0);
   --chart-4: oklch(0.8 0 0);
   --chart-5: oklch(0.6 0 0);
+  --sidebar: oklch(0.075 0 0);
+  --sidebar-foreground: oklch(0.96 0 0);
   --sidebar-primary: oklch(0.98 0 0);
   --sidebar-primary-foreground: oklch(0.15 0 0);
   --sidebar-accent: oklch(0.3 0 0);
   --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.25 0 0);
   --sidebar-ring: oklch(0.8 0 0);
 }
 
@@ -361,6 +391,18 @@
    THEME: PINK PURPLE (Gradient-inspired Base)
    ════════════════════════════════════════════════════════════════ */
 [data-theme="pink-purple"] {
+  --background: oklch(0.965 0.024 325);
+  --foreground: oklch(0.2 0.045 310);
+  --card: oklch(0.995 0.012 325);
+  --card-foreground: oklch(0.2 0.045 310);
+  --popover: oklch(0.995 0.012 325);
+  --popover-foreground: oklch(0.2 0.045 310);
+  --secondary: oklch(0.91 0.04 320);
+  --secondary-foreground: oklch(0.22 0.06 310);
+  --muted: oklch(0.9 0.035 320);
+  --muted-foreground: oklch(0.48 0.04 310);
+  --border: oklch(0.84 0.045 320);
+  --input: oklch(0.93 0.03 320);
   --primary: oklch(0.5 0.22 330);
   --primary-foreground: oklch(1 0 0);
   --accent: oklch(0.45 0.22 300);
@@ -371,15 +413,30 @@
   --chart-3: oklch(0.6 0.18 315);
   --chart-4: oklch(0.4 0.22 340);
   --chart-5: oklch(0.55 0.18 290);
-  --sidebar-primary: oklch(0.5 0.22 330);
+  --sidebar: oklch(0.25 0.075 310);
+  --sidebar-foreground: oklch(0.97 0.018 325);
+  --sidebar-primary: oklch(0.62 0.22 330);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.96 0.02 330);
-  --sidebar-accent-foreground: oklch(0.2 0.05 330);
+  --sidebar-accent: oklch(0.34 0.085 310);
+  --sidebar-accent-foreground: oklch(0.97 0.018 325);
+  --sidebar-border: oklch(0.38 0.075 310);
   --sidebar-ring: oklch(0.5 0.22 330);
 }
 
 [data-theme="pink-purple"].dark,
 .dark[data-theme="pink-purple"] {
+  --background: oklch(0.145 0.045 310);
+  --foreground: oklch(0.96 0.018 325);
+  --card: oklch(0.205 0.055 310);
+  --card-foreground: oklch(0.96 0.018 325);
+  --popover: oklch(0.205 0.055 310);
+  --popover-foreground: oklch(0.96 0.018 325);
+  --secondary: oklch(0.285 0.07 310);
+  --secondary-foreground: oklch(0.96 0.018 325);
+  --muted: oklch(0.31 0.06 310);
+  --muted-foreground: oklch(0.76 0.025 325);
+  --border: oklch(0.34 0.065 310);
+  --input: oklch(0.255 0.06 310);
   --primary: oklch(0.6 0.2 330);
   --primary-foreground: oklch(0.12 0 330);
   --accent: oklch(0.55 0.2 300);
@@ -390,10 +447,13 @@
   --chart-3: oklch(0.7 0.16 315);
   --chart-4: oklch(0.5 0.2 340);
   --chart-5: oklch(0.65 0.16 290);
-  --sidebar-primary: oklch(0.6 0.2 330);
+  --sidebar: oklch(0.105 0.04 310);
+  --sidebar-foreground: oklch(0.96 0.018 325);
+  --sidebar-primary: oklch(0.68 0.2 330);
   --sidebar-primary-foreground: oklch(0.95 0 0);
   --sidebar-accent: oklch(0.3 0.05 330);
   --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.27 0.055 310);
   --sidebar-ring: oklch(0.6 0.2 330);
 }
 
@@ -726,6 +786,36 @@
     radial-gradient(circle at 10% 0%, oklch(0.62 0.16 25 / 0.18), transparent 28rem),
     radial-gradient(circle at 90% 8%, oklch(0.72 0.08 80 / 0.12), transparent 28rem),
     linear-gradient(135deg, oklch(0.12 0.03 28), oklch(0.19 0.04 26));
+}
+
+[data-theme="black-white"] .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 10% 8%, oklch(1 0 0 / 0.85), transparent 28rem),
+    radial-gradient(circle at 88% 10%, oklch(0.72 0 0 / 0.2), transparent 24rem),
+    linear-gradient(135deg, oklch(0.965 0.004 260), oklch(0.9 0.004 260));
+}
+
+.dark[data-theme="black-white"] .netily-admin-shell,
+[data-theme="black-white"].dark .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 12% 0%, oklch(0.42 0 0 / 0.24), transparent 28rem),
+    radial-gradient(circle at 90% 8%, oklch(0.24 0 0 / 0.38), transparent 30rem),
+    linear-gradient(135deg, oklch(0.075 0 0), oklch(0.14 0 0));
+}
+
+[data-theme="pink-purple"] .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 12% 8%, oklch(0.78 0.16 340 / 0.22), transparent 28rem),
+    radial-gradient(circle at 88% 10%, oklch(0.7 0.15 292 / 0.18), transparent 26rem),
+    linear-gradient(135deg, oklch(0.965 0.024 325), oklch(0.93 0.032 300));
+}
+
+.dark[data-theme="pink-purple"] .netily-admin-shell,
+[data-theme="pink-purple"].dark .netily-admin-shell {
+  background-image:
+    radial-gradient(circle at 10% 0%, oklch(0.62 0.2 330 / 0.16), transparent 28rem),
+    radial-gradient(circle at 90% 8%, oklch(0.5 0.2 292 / 0.2), transparent 30rem),
+    linear-gradient(135deg, oklch(0.105 0.04 310), oklch(0.18 0.055 300));
 }
 
 .sidebar-nav {
