@@ -34,13 +34,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         // Client-side route protection
         const isAdminRoute = pathname.startsWith("/admin")
         const isDashboardRoute = pathname.startsWith("/dashboard")
-        const isPublicRoute = pathname === "/" || pathname === "/login" || pathname === "/register" || pathname === "/admin/login"
+        const isPublicRoute = pathname === "/" || pathname === "/admin/login" || pathname === "/customer/login"
 
         if (isAdminRoute && pathname !== "/admin/login" && !adminToken) {
           router.push("/admin/login")
         } else if (isDashboardRoute && !accessToken) {
-          router.push("/login")
-        } else if ((pathname === "/login" || pathname === "/register") && accessToken) {
+          router.push("/customer/login")
+        } else if (pathname === "/customer/login" && accessToken) {
           router.push("/dashboard")
         } else if (pathname === "/admin/login" && adminToken) {
           router.push("/admin")

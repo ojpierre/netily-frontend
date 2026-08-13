@@ -154,7 +154,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               Logout
             </Button>
           ) : (
-            <Link href="/login">
+            <Link href="/customer/login">
               <Button className="w-full">
                 Login to Account
               </Button>

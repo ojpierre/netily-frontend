@@ -230,6 +230,19 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     setIsDemoMode(host === "demo.netily.co.ke" || host.startsWith("demo."))
   }, [])
 
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const handleDemoBlocked = (event: Event) => {
+      const message = event instanceof CustomEvent ? event.detail?.message : undefined
+      toast.warning("Demo mode is active", {
+        id: "netily-demo-mode-blocked",
+        description: message || "Changes are disabled in this workspace.",
+      })
+    }
+    window.addEventListener("netily-demo-mode-blocked", handleDemoBlocked)
+    return () => window.removeEventListener("netily-demo-mode-blocked", handleDemoBlocked)
+  }, [])
+
   // Load tenant branding for the sidebar header and keep localStorage in sync.
   useEffect(() => {
     const saved = localStorage.getItem("netily_company_logo")

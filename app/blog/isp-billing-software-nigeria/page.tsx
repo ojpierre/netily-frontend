@@ -49,7 +49,7 @@ export default function BlogPostNigeriaISP() {
           </Link>
           <div className="flex items-center gap-4">
             <Link
-              href="/register"
+              href="/#contact"
               className="rounded-full bg-red-600 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition hover:scale-105 hover:bg-red-500"
             >
               Start Free Trial
@@ -131,7 +131,7 @@ export default function BlogPostNigeriaISP() {
               <h3 className="text-2xl font-bold text-white mb-4">Ready to upgrade your billing?</h3>
               <p className="text-slate-400 mb-8">Sign up for a free trial and see how easy it is to automate your ISP with Netily.</p>
               <Link
-                href="/register"
+                href="/#contact"
                 className="inline-flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 font-bold text-white hover:bg-red-500 transition shadow-lg shadow-red-500/20"
               >
                 Get Started Free <ArrowRight className="h-4 w-4" />

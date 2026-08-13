@@ -714,7 +714,7 @@ const localBusinessSchema = {
         unitText: "per PPPoE subscriber per month",
       },
       availability: "https://schema.org/InStock",
-      url: "https://netily.co.ke/register",
+      url: "https://netily.co.ke/#contact",
       eligibleRegion: ["KE", "TZ", "UG", "RW"],
       itemOffered: {
         "@type": "SoftwareApplication",
@@ -731,7 +731,7 @@ const localBusinessSchema = {
       price: "0",
       priceCurrency: "KES",
       availability: "https://schema.org/InStock",
-      url: "https://netily.co.ke/register",
+      url: "https://netily.co.ke/#contact",
       eligibleRegion: ["KE", "TZ", "UG", "RW"],
       itemOffered: {
         "@type": "SoftwareApplication",

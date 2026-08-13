@@ -1579,7 +1579,7 @@ export function LandingPage() {
             <div>
               <h4 className="text-sm font-medium">Company</h4>
               <ul className="mt-4 space-y-2 text-sm text-zinc-500">
-                <li><Link href="/login">Sign in</Link></li>
+                <li><Link href="/admin/login">Sign in</Link></li>
                 <li><Link href="/affiliate">Affiliate Program</Link></li>
                 <li><Link href="/privacy">Privacy policy</Link></li>
                 <li><Link href="/terms">Terms of service</Link></li>

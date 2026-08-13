@@ -72,7 +72,7 @@ export default function PlatypusComparisonPage() {
             
             <div className="mt-10 flex items-center justify-center gap-4">
               <Link
-                href="/register"
+                href="/#contact"
                 className="flex items-center gap-2 rounded-full bg-red-600 px-8 py-3.5 text-base font-bold text-white shadow-xl shadow-red-600/20 transition hover:bg-red-500 hover:scale-105"
               >
                 Try Netily Free <ArrowRight className="h-4 w-4" />
@@ -162,7 +162,7 @@ export default function PlatypusComparisonPage() {
             <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400">Join the fastest-growing ISPs across Africa who have migrated to Netily.</p>
             <div className="mt-10">
               <Link
-                href="/register"
+                href="/#contact"
                 className="inline-flex items-center gap-2 rounded-full bg-red-600 px-8 py-4 text-sm font-bold text-white shadow-xl shadow-red-600/20 transition hover:bg-red-500 hover:scale-105"
               >
                 Create your free account <ArrowRight className="h-4 w-4" />

@@ -399,6 +399,20 @@ class AdminApiService {
         detail: `Server error: ${response.status}` 
       }))
 
+      if (response.status === 403 && (error.demo_mode || error.code === 'DEMO_MODE_READ_ONLY')) {
+        const message = error.detail || error.message || 'You are in demo mode. Changes are disabled for this workspace.'
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('netily-demo-mode-blocked', {
+            detail: { message },
+          }))
+        }
+        const demoError = new Error(message) as Error & { status?: number; code?: string; data?: unknown }
+        demoError.status = 403
+        demoError.code = error.code || 'DEMO_MODE_READ_ONLY'
+        demoError.data = error
+        throw demoError
+      }
+
       // Auth endpoint 401 — surface the backend's actual message
       if (response.status === 401) {
         throw new Error(error.detail || error.message || 'Invalid email or password.')

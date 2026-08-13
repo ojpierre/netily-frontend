@@ -44,8 +44,9 @@ export default function DemoPage() {
               Experience Netily
             </h1>
             <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              Explore the full ISP management platform. Choose a demo below to see the
-              admin dashboard or the customer self-service portal.
+              Explore the full ISP management platform in a protected read-only
+              workspace. Choose a demo below to see the admin dashboard or the
+              customer self-service portal.
             </p>
           </div>
 
@@ -142,7 +143,8 @@ export default function DemoPage() {
 
           {/* Footer Note */}
           <p className="text-center text-sm text-muted-foreground">
-            This is a live demo environment with sample data. Changes will be reset periodically.
+            This is a live demo environment with sample data. You can view every page,
+            but actions that change data are disabled.
           </p>
         </div>
       </main>
