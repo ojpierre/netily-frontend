@@ -393,7 +393,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background" suppressHydrationWarning>
+    <div className="netily-admin-shell min-h-screen bg-background" suppressHydrationWarning>
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
