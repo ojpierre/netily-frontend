@@ -314,6 +314,19 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("netily-demo-mode-blocked", handleDemoBlocked)
   }, [])
 
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const handleStaffAccessBlocked = (event: Event) => {
+      const message = event instanceof CustomEvent ? event.detail?.message : undefined
+      toast.warning("Action not allowed", {
+        id: "netily-staff-access-blocked",
+        description: message || "Your staff access does not include this action.",
+      })
+    }
+    window.addEventListener("netily-staff-access-blocked", handleStaffAccessBlocked)
+    return () => window.removeEventListener("netily-staff-access-blocked", handleStaffAccessBlocked)
+  }, [])
+
   // Load tenant branding for the sidebar header and keep localStorage in sync.
   useEffect(() => {
     const saved = localStorage.getItem("netily_company_logo")

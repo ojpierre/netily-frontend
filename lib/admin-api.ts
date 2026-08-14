@@ -413,6 +413,20 @@ class AdminApiService {
         throw demoError
       }
 
+      if (response.status === 403) {
+        const message = error.detail || error.message || 'Your staff role is not allowed to perform this action.'
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('netily-staff-access-blocked', {
+            detail: { message },
+          }))
+        }
+        const accessError = new Error(message) as Error & { status?: number; code?: string; data?: unknown }
+        accessError.status = 403
+        accessError.code = error.code || 'RBAC_ACCESS_DENIED'
+        accessError.data = error
+        throw accessError
+      }
+
       // Auth endpoint 401 — surface the backend's actual message
       if (response.status === 401) {
         throw new Error(error.detail || error.message || 'Invalid email or password.')

@@ -127,6 +127,14 @@ export const canAccess = (user: RbacUser | null | undefined, rule?: AccessRule):
     })
   }
 
+  if (targetPath && ["staff", "technician", "accountant", "support"].includes(role)) {
+    return defaultTokensForRole(role).some((token) => {
+      const [path, action] = token.split("::")
+      if (action) return path === targetPath && action === "view"
+      return targetPath === path || targetPath.startsWith(`${path}/`)
+    })
+  }
+
   const allowedRoles = rule.allowedRoles?.map(normalize) || []
   const roleAllowed = allowedRoles.includes(role) || allowedRoles.includes(accessLevel)
   const departmentAllowed = !!rule.allowedDepartments?.map(normalize).includes(department)
@@ -152,18 +160,18 @@ export const canDo = (
 
   const hasPolicy = Object.prototype.hasOwnProperty.call(roleAccessPolicies, role)
   const policies = roleAccessPolicies[role]
-  if (!hasPolicy) return true
-  if (!policies || policies.length === 0) return false
+  const effectivePolicies = hasPolicy ? policies : defaultTokensForRole(role)
+  if (!effectivePolicies || effectivePolicies.length === 0) return false
 
   // Check encoded action token
   const actionToken = encodeAction(pathPrefix, action)
-  if (policies.includes(actionToken)) return true
+  if (effectivePolicies.includes(actionToken)) return true
 
   // Legacy support: if only plain paths are stored (no "::" tokens), treat "view" as granted
-  const hasSomeActionForPath = policies.some((p) => p.startsWith(`${pathPrefix}::`))
+  const hasSomeActionForPath = effectivePolicies.some((p) => p.startsWith(`${pathPrefix}::`))
   if (!hasSomeActionForPath) {
     // Old-style entry: plain path allowed means the page is accessible (all actions)
-    return policies.some((p) => pathPrefix === p || pathPrefix.startsWith(`${p}/`))
+    return effectivePolicies.some((p) => pathPrefix === p || pathPrefix.startsWith(`${p}/`))
   }
 
   return false

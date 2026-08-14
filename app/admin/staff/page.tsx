@@ -167,6 +167,7 @@ const ACTION_ICONS: Record<PageAction, React.ElementType> = {
 
 // Routes that manage this permission editor itself should remain owner/admin-only.
 const NON_DELEGABLE_PATHS = ["/admin/staff"]
+const ACTION_DEPENDENCY_COPY = "View is added automatically when you enable another action."
 
 // ==========================================
 // HELPER FUNCTIONS
@@ -208,6 +209,39 @@ function toErrorText(value: unknown): string {
   if (Array.isArray(value)) return value.map(toErrorText).filter(Boolean).join(", ")
   if (value && typeof value === "object") return JSON.stringify(value)
   return String(value || "")
+}
+
+function normalizePermissionTokens(tokens: string[]): string[] {
+  const normalized = new Set<string>()
+
+  for (const rule of adminRouteAccessRules) {
+    if (NON_DELEGABLE_PATHS.includes(rule.pathPrefix)) continue
+
+    const availableActions = rule.actions || (["view"] as PageAction[])
+    const legacyPageSelected = tokens.includes(rule.pathPrefix)
+    const requestedActions = new Set<PageAction>(
+      tokens
+        .filter((token) => token.startsWith(`${rule.pathPrefix}::`))
+        .map((token) => token.split("::")[1] as PageAction)
+        .filter((action) => availableActions.includes(action))
+    )
+
+    if (legacyPageSelected) {
+      availableActions.forEach((action) => requestedActions.add(action))
+    }
+
+    if (requestedActions.size > 0 && availableActions.includes("view")) {
+      requestedActions.add("view")
+    }
+
+    for (const action of availableActions) {
+      if (requestedActions.has(action)) {
+        normalized.add(encodeAction(rule.pathPrefix, action))
+      }
+    }
+  }
+
+  return [...normalized]
 }
 
 // ==========================================
@@ -316,6 +350,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
     setIsSubmitting(true)
 
     try {
+      const normalizedCustomAllowedPaths = normalizePermissionTokens(customAllowedPaths)
       const payload: CreateStaffUserRequest = {
         email: formData.email.trim(),
         password: formData.password,
@@ -323,7 +358,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
         last_name: formData.last_name.trim(),
         role: formData.role === "custom" ? "staff" : formData.role as StaffRole,
         is_staff: true,
-        custom_allowed_paths: formData.role === "custom" ? customAllowedPaths : null,
+        custom_allowed_paths: formData.role === "custom" ? normalizedCustomAllowedPaths : null,
       }
 
       if (formData.phone_number?.trim()) payload.phone_number = normalizePhoneNumber(formData.phone_number)
@@ -337,7 +372,7 @@ function CreateStaffDialog({ open, onOpenChange, onSuccess }: CreateStaffDialogP
         `Staff account created for ${createdUser.first_name} ${createdUser.last_name}`,
         {
           description: formData.role === "custom"
-            ? `${getPaths(customAllowedPaths).length} custom pages assigned. They can now log in immediately.`
+            ? `${getPaths(normalizedCustomAllowedPaths).length} custom pages assigned. They can now log in immediately.`
             : `Role: ${formData.role}. They can now log in with their email and password.`,
         }
       )
@@ -721,11 +756,12 @@ function EditStaffDialog({ open, onOpenChange, onSuccess, user }: EditStaffDialo
 
     setIsSubmitting(true)
     try {
+      const normalizedCustomAllowedPaths = normalizePermissionTokens(customAllowedPaths)
       const payload: Record<string, any> = {
         email: formData.email.trim(),
         role: formData.role === "custom" ? ((user.role as StaffRole) || "staff") : formData.role,
         is_active: formData.is_active,
-        custom_allowed_paths: formData.role === "custom" ? customAllowedPaths : null,
+        custom_allowed_paths: formData.role === "custom" ? normalizedCustomAllowedPaths : null,
       }
       if (formData.new_password) {
         payload.new_password = formData.new_password
@@ -1035,9 +1071,28 @@ function PermissionPageRow({
         )}
       </div>
 
+      {state.enabled && !expanded && availableActions.length > 1 && (
+        <div className="flex flex-wrap gap-1.5 px-3 pb-3">
+          {availableActions.map((action) => {
+            const enabled = state.actions.has(action)
+            return (
+              <Badge
+                key={action}
+                variant={enabled ? "default" : "secondary"}
+                className={enabled ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-muted text-muted-foreground"}
+              >
+                {PAGE_ACTION_LABELS[action].replace(" / ", " ")} {enabled ? "enabled" : "disabled"}
+              </Badge>
+            )
+          })}
+        </div>
+      )}
+
       {/* Expanded CRUD actions */}
       {state.enabled && expanded && (
-        <div className="px-3 pb-3 grid grid-cols-2 gap-2 border-t border-primary/10 pt-3">
+        <div className="px-3 pb-3 border-t border-primary/10 pt-3">
+          <p className="mb-2 text-[11px] text-muted-foreground">{ACTION_DEPENDENCY_COPY}</p>
+          <div className="grid grid-cols-2 gap-2">
           {availableActions.map((action) => {
             const Icon = ACTION_ICONS[action]
             const isChecked = state.actions.has(action)
@@ -1061,6 +1116,7 @@ function PermissionPageRow({
               </label>
             )
           })}
+          </div>
         </div>
       )}
     </div>
@@ -1109,7 +1165,7 @@ function PermissionTokenPicker({
         if (availableActions.includes(action)) next.push(encodeAction(rule.pathPrefix, action))
       }
     }
-    onChange(next)
+    onChange(normalizePermissionTokens(next))
   }
 
   return (
@@ -1217,7 +1273,7 @@ function EditPermissionsModal({ open, onOpenChange, role, onSave }: EditPermissi
         tokens.push(encodeAction(pathPrefix, action))
       }
     }
-    return tokens
+    return normalizePermissionTokens(tokens)
   }
 
   const enabledCount = [...pageStates.values()].filter((s) => s.enabled).length
@@ -1450,7 +1506,8 @@ export default function StaffManagementPage() {
 
   const saveRoleAccess = async (role: StaffRole, allowedTokens: string[]) => {
     try {
-      const updated = await adminApi.updateRoleAccessPolicy(role, allowedTokens)
+      const normalizedTokens = normalizePermissionTokens(allowedTokens)
+      const updated = await adminApi.updateRoleAccessPolicy(role, normalizedTokens)
       const nextPolicies = { ...rolePolicies, [role]: updated.allowed_paths || [] }
       setRolePolicies(nextPolicies)
       setRoleAccessPolicies(
