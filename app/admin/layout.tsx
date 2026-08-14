@@ -49,12 +49,23 @@ import {
   Sparkles,
   Map as MapIcon,
   ShieldAlert,
+  ArrowUpRight,
+  Loader2,
   Download,   // ← ADDED
 } from "lucide-react"
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { PageTransition, AnimatedNavItem } from "@/components/page-transition"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@/components/ui/command"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,6 +97,7 @@ import {
   setRoleAccessPolicies,
   type AccessRule,
 } from "@/lib/rbac"
+import type { Customer, Invoice, Lead, Payment, Router, SupportTicket } from "@/lib/types"
 
 type NavigationItem = {
   name: string
@@ -97,6 +109,50 @@ type NavigationSection = {
   title: string
   items: NavigationItem[]
 } & AccessRule
+
+type AdminSearchCategory = "Pages" | "Customers" | "Network" | "Finance" | "Support" | "Leads"
+
+type AdminSearchResult = {
+  id: string
+  title: string
+  subtitle: string
+  href: string
+  category: AdminSearchCategory
+  icon: React.ComponentType<{ className?: string }>
+  keywords?: string[]
+}
+
+const SEARCH_MIN_CHARS = 2
+const SEARCH_RESULT_LIMIT = 5
+
+const searchText = (value: unknown) => String(value || "").toLowerCase()
+
+const compactSearchParts = (...values: unknown[]) =>
+  values
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+
+const resultList = <T,>(response: T[] | { results?: T[] } | null | undefined): T[] => {
+  if (!response) return []
+  if (Array.isArray(response)) return response
+  return Array.isArray(response.results) ? response.results : []
+}
+
+const matchesSearch = (result: AdminSearchResult, query: string) => {
+  const haystack = [
+    result.title,
+    result.subtitle,
+    result.category,
+    ...(result.keywords || []),
+  ].map(searchText).join(" ")
+  return haystack.includes(searchText(query))
+}
+
+const detailSearchUrl = (href: string, query: string) => {
+  const trimmed = query.trim()
+  if (!trimmed) return href
+  return `${href}?search=${encodeURIComponent(trimmed)}`
+}
 
 // Navigation organized by sections
 const navigationSections: NavigationSection[] = [
@@ -189,6 +245,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [companyName, setCompanyName] = useState<string>("Netily Admin")
   const [accessPolicyVersion, setAccessPolicyVersion] = useState(0)
   const [isDemoMode, setIsDemoMode] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [recordResults, setRecordResults] = useState<AdminSearchResult[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
@@ -214,6 +274,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         // Silently fail – PWA is still functional without SW registration
       })
     }
+  }, [])
+
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault()
+        setSearchOpen((open) => !open)
+      }
+    }
+    window.addEventListener("keydown", handleShortcut)
+    return () => window.removeEventListener("keydown", handleShortcut)
   }, [])
 
   // Check if we're on a public/special page handled outside tenant admin auth.
@@ -316,6 +387,149 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("netily-role-access-updated", loadRoleAccess)
   }, [mounted, user, isPublicPage])
 
+  useEffect(() => {
+    if (!mounted || !user || isPublicPage || !searchOpen) {
+      setRecordResults([])
+      setSearchLoading(false)
+      return
+    }
+
+    const query = searchQuery.trim()
+    if (query.length < SEARCH_MIN_CHARS) {
+      setRecordResults([])
+      setSearchLoading(false)
+      return
+    }
+
+    let cancelled = false
+    const timer = window.setTimeout(async () => {
+      setSearchLoading(true)
+      try {
+        const { adminApi } = await import("@/lib/admin-api")
+        const searchParams = { search: query, page_size: String(SEARCH_RESULT_LIMIT) }
+        const financeRule: AccessRule = {
+          allowedRoles: FINANCE_ROLES,
+          allowedDepartments: ["finance", "accounting", "billing", "accounts"],
+        }
+        const networkRule: AccessRule = {
+          allowedRoles: NETWORK_ROLES,
+          allowedDepartments: ["network", "it", "technical", "engineering", "noc"],
+        }
+
+        const [
+          customersResponse,
+          routersResponse,
+          invoicesResponse,
+          paymentsResponse,
+          ticketsResponse,
+          leadsResponse,
+        ] = await Promise.allSettled([
+          canAccess(user, { allowedRoles: USER_MANAGEMENT_ROLES })
+            ? adminApi.getCustomers(searchParams)
+            : Promise.resolve({ results: [] }),
+          canAccess(user, networkRule)
+            ? adminApi.getRouters(searchParams)
+            : Promise.resolve({ results: [] }),
+          canAccess(user, financeRule)
+            ? adminApi.getInvoices(searchParams)
+            : Promise.resolve({ results: [] }),
+          canAccess(user, financeRule)
+            ? adminApi.getPayments(searchParams)
+            : Promise.resolve({ results: [] }),
+          canAccess(user, { allowedRoles: [...SUPPORT_ROLES, "technician"] })
+            ? adminApi.getTickets(searchParams)
+            : Promise.resolve({ results: [] }),
+          canAccess(user, { allowedRoles: ENGAGEMENT_ROLES })
+            ? adminApi.getLeads(searchParams)
+            : Promise.resolve({ results: [] }),
+        ])
+
+        if (cancelled) return
+
+        const fulfilled = <T,>(response: PromiseSettledResult<T>) =>
+          response.status === "fulfilled" ? response.value : null
+
+        const customers = resultList<Customer>(fulfilled(customersResponse)).map((customer) => ({
+          id: `customer-${customer.id}`,
+          title: customer.full_name || `${customer.first_name || ""} ${customer.last_name || ""}`.trim() || customer.customer_number,
+          subtitle: compactSearchParts(customer.customer_number, customer.phone, customer.email, customer.status).join(" - "),
+          href: `/admin/users/${customer.id}`,
+          category: "Customers" as const,
+          icon: Users,
+          keywords: compactSearchParts(customer.first_name, customer.last_name, customer.billing_account_number, customer.id_number),
+        }))
+
+        const routers = resultList<Router>(fulfilled(routersResponse)).map((routerItem) => ({
+          id: `router-${routerItem.id}`,
+          title: routerItem.name || routerItem.ip_address,
+          subtitle: compactSearchParts(routerItem.ip_address, routerItem.location, routerItem.status).join(" - "),
+          href: `/admin/routers/${routerItem.id}`,
+          category: "Network" as const,
+          icon: Wifi,
+          keywords: compactSearchParts(routerItem.mac_address, routerItem.model, routerItem.dns_name, routerItem.hotspot_name),
+        }))
+
+        const invoices = resultList<Invoice>(fulfilled(invoicesResponse)).map((invoice) => ({
+          id: `invoice-${invoice.id}`,
+          title: invoice.invoice_number,
+          subtitle: compactSearchParts(invoice.customer_name, `KES ${invoice.total_amount || invoice.amount}`, invoice.status).join(" - "),
+          href: detailSearchUrl("/admin/invoices", invoice.invoice_number || query),
+          category: "Finance" as const,
+          icon: Receipt,
+          keywords: compactSearchParts(invoice.customer_name, invoice.status, invoice.category),
+        }))
+
+        const payments = resultList<Payment>(fulfilled(paymentsResponse)).map((payment) => {
+          const reference = payment.reference_number || payment.reference || payment.transaction_id || payment.mpesa_receipt || payment.payment_number
+          return {
+            id: `payment-${payment.id}`,
+            title: reference || payment.payment_number,
+            subtitle: compactSearchParts(payment.customer_name, `KES ${payment.amount}`, payment.payment_method_name || payment.payment_method).join(" - "),
+            href: detailSearchUrl("/admin/payments", reference || query),
+            category: "Finance" as const,
+            icon: CreditCard,
+            keywords: compactSearchParts(payment.payment_number, payment.invoice_number, payment.payer_name, payment.payer_phone, payment.service_type),
+          }
+        })
+
+        const tickets = resultList<SupportTicket>(fulfilled(ticketsResponse)).map((ticket) => ({
+          id: `ticket-${ticket.id}`,
+          title: ticket.subject || ticket.ticket_number,
+          subtitle: compactSearchParts(ticket.ticket_number, ticket.customer_name, ticket.priority, ticket.status).join(" - "),
+          href: `/admin/tickets/${ticket.id}`,
+          category: "Support" as const,
+          icon: Ticket,
+          keywords: compactSearchParts(ticket.description, ticket.customer_email, ticket.customer_phone, ticket.category),
+        }))
+
+        const leads = resultList<Lead>(fulfilled(leadsResponse)).map((lead) => ({
+          id: `lead-${lead.id}`,
+          title: lead.full_name,
+          subtitle: compactSearchParts(lead.company, lead.phone, lead.email, lead.status).join(" - "),
+          href: `/admin/leads/${lead.id}`,
+          category: "Leads" as const,
+          icon: UserPlus,
+          keywords: compactSearchParts(lead.source, lead.notes),
+        }))
+
+        setRecordResults([...customers, ...routers, ...invoices, ...payments, ...tickets, ...leads])
+      } catch {
+        if (!cancelled) {
+          setRecordResults([])
+        }
+      } finally {
+        if (!cancelled) {
+          setSearchLoading(false)
+        }
+      }
+    }, 250)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [mounted, user, isPublicPage, searchOpen, searchQuery, accessPolicyVersion])
+
   // Debug logging
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") {
@@ -383,6 +597,47 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     })
     .filter((section) => section.items.length > 0)
   const routeAccessRule = getAccessRuleForPath(pathname)
+  const trimmedSearchQuery = searchQuery.trim()
+  const allPageResults: AdminSearchResult[] = [
+    ...filteredSections.flatMap((section) =>
+      section.items.map((item) => ({
+        id: `page-${item.href}`,
+        title: item.name,
+        subtitle: `${section.title} page`,
+        href: item.href,
+        category: "Pages" as const,
+        icon: item.icon,
+        keywords: [section.title, item.href],
+      }))
+    ),
+    ...bottomNavItems.map((item) => ({
+      id: `page-${item.href}`,
+      title: item.name,
+      subtitle: "Netily Community page",
+      href: item.href,
+      category: "Pages" as const,
+      icon: item.icon,
+      keywords: ["community", item.href],
+    })),
+  ]
+  const pageResults = trimmedSearchQuery
+    ? allPageResults.filter((result) => matchesSearch(result, trimmedSearchQuery)).slice(0, 8)
+    : allPageResults.slice(0, 8)
+  const groupedRecordResults = recordResults.reduce<Record<AdminSearchCategory, AdminSearchResult[]>>(
+    (groups, result) => {
+      groups[result.category] = [...(groups[result.category] || []), result]
+      return groups
+    },
+    { Pages: [], Customers: [], Network: [], Finance: [], Support: [], Leads: [] }
+  )
+  const hasSearchResults = pageResults.length > 0 || recordResults.length > 0
+
+  const handleSearchNavigate = (href: string) => {
+    setSearchOpen(false)
+    setSearchQuery("")
+    setRecordResults([])
+    router.push(href)
+  }
 
   // ── Install App handler ──
   const handleInstallApp = async () => {
@@ -560,14 +815,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
           {/* Search */}
           <div className="flex-1 max-w-md">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search users, routers, logs..."
-                className="pl-9 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"
-              />
-            </div>
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="relative flex h-10 w-full items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-left text-sm text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:border-slate-700 dark:bg-slate-900"
+            >
+              <Search className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 flex-1 truncate">Search pages, customers, routers...</span>
+              <kbd className="hidden shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-flex">
+                Ctrl K
+              </kbd>
+            </button>
           </div>
 
           {/* Right side controls */}
@@ -673,6 +931,115 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             <MjengoFooter />
           </PageTransition>
         </main>
+        <CommandDialog
+          open={searchOpen}
+          onOpenChange={setSearchOpen}
+          title="Search admin workspace"
+          description="Search pages and tenant records"
+          className="max-w-2xl"
+        >
+          <CommandInput
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+            placeholder="Search customer name, phone, router, invoice, ticket..."
+          />
+          <CommandList className="max-h-[70vh]">
+            <CommandEmpty>
+              <div className="px-4 py-6 text-center">
+                <p className="font-medium text-foreground">
+                  {trimmedSearchQuery.length < SEARCH_MIN_CHARS
+                    ? "Start with a page name or type at least 2 characters."
+                    : "No matching results found."}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Try a customer phone, router IP, payment reference, invoice number, or ticket subject.
+                </p>
+              </div>
+            </CommandEmpty>
+
+            {pageResults.length > 0 && (
+              <CommandGroup heading={trimmedSearchQuery ? "Pages" : "Quick navigation"}>
+                {pageResults.map((result) => {
+                  const Icon = result.icon
+                  return (
+                    <CommandItem
+                      key={result.id}
+                      value={[result.title, result.subtitle, ...(result.keywords || [])].join(" ")}
+                      onSelect={() => handleSearchNavigate(result.href)}
+                      className="cursor-pointer"
+                    >
+                      <Icon className="h-4 w-4" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{result.title}</p>
+                        <p className="truncate text-xs text-muted-foreground">{result.subtitle}</p>
+                      </div>
+                      <CommandShortcut>
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      </CommandShortcut>
+                    </CommandItem>
+                  )
+                })}
+              </CommandGroup>
+            )}
+
+            {searchLoading && (
+              <>
+                {pageResults.length > 0 && <CommandSeparator />}
+                <CommandGroup heading="Searching records">
+                  <CommandItem disabled value="Searching records">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-muted-foreground">Checking customers, routers, finance, support, and leads...</span>
+                  </CommandItem>
+                </CommandGroup>
+              </>
+            )}
+
+            {(["Customers", "Network", "Finance", "Support", "Leads"] as AdminSearchCategory[]).map((category) => {
+              const results = groupedRecordResults[category]
+              if (!results?.length) return null
+              return (
+                <React.Fragment key={category}>
+                  {(pageResults.length > 0 || category !== "Customers") && <CommandSeparator />}
+                  <CommandGroup heading={category}>
+                    {results.map((result) => {
+                      const Icon = result.icon
+                      return (
+                        <CommandItem
+                          key={result.id}
+                          value={[result.title, result.subtitle, ...(result.keywords || [])].join(" ")}
+                          onSelect={() => handleSearchNavigate(result.href)}
+                          className="cursor-pointer"
+                        >
+                          <Icon className="h-4 w-4" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium">{result.title}</p>
+                            <p className="truncate text-xs text-muted-foreground">{result.subtitle}</p>
+                          </div>
+                          <CommandShortcut>
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                          </CommandShortcut>
+                        </CommandItem>
+                      )
+                    })}
+                  </CommandGroup>
+                </React.Fragment>
+              )
+            })}
+
+            {!searchLoading && !hasSearchResults && trimmedSearchQuery.length >= SEARCH_MIN_CHARS && (
+              <CommandGroup heading="Search tips">
+                <CommandItem disabled value="Search tips">
+                  <Search className="h-4 w-4" />
+                  <span className="text-muted-foreground">Search works best with exact phone numbers, account codes, references, or names.</span>
+                </CommandItem>
+              </CommandGroup>
+            )}
+          </CommandList>
+          <div className="flex items-center justify-between border-t bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            <span>Use arrows to move, Enter to open, Esc to close.</span>
+            <span className="hidden sm:inline">Ctrl K</span>
+          </div>
+        </CommandDialog>
         <NetilySupportChat />
       </div>
     </div>
