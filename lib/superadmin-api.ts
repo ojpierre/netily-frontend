@@ -447,6 +447,52 @@ export interface ManualSubscriptionPaymentResponse {
   payment: SubscriptionPayment
 }
 
+export type PlatformExpenditureCategory =
+  | "infrastructure"
+  | "sms"
+  | "payroll"
+  | "marketing"
+  | "software"
+  | "operations"
+  | "tax"
+  | "other"
+
+export interface PlatformExpenditure {
+  id: string
+  category: PlatformExpenditureCategory
+  title: string
+  amount: string
+  currency: string
+  incurred_on: string
+  notes: string
+  created_by: number | null
+  created_by_email: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PlatformExpenditurePayload {
+  category: PlatformExpenditureCategory
+  title: string
+  amount: string
+  currency?: string
+  incurred_on: string
+  notes?: string
+}
+
+export interface PlatformExpenditureSummary {
+  currency: string
+  subscription_payments_total: string
+  sms_topups_total: string
+  accrued_total: string
+  manual_expenditure_total: string
+  net_profit: string
+}
+
+export interface PlatformExpenditureResponse extends PaginatedResponse<PlatformExpenditure> {
+  summary: PlatformExpenditureSummary
+}
+
 export interface PaymentSummary {
   total_revenue: number
   this_month: number
@@ -1179,6 +1225,29 @@ class SuperadminApiService {
       method: "PATCH",
       body: JSON.stringify(data),
     })
+  }
+
+  async getExpenditure(params?: Record<string, string>): Promise<PlatformExpenditureResponse> {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
+    return this.request(`/superadmin/expenditure/${qs}`)
+  }
+
+  async createExpenditure(data: PlatformExpenditurePayload): Promise<PlatformExpenditure> {
+    return this.request("/superadmin/expenditure/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateExpenditure(id: string, data: Partial<PlatformExpenditurePayload>): Promise<PlatformExpenditure> {
+    return this.request(`/superadmin/expenditure/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteExpenditure(id: string): Promise<void> {
+    await this.request(`/superadmin/expenditure/${id}/`, { method: "DELETE" })
   }
 
   async getSubscriptionInvoices(params?: Record<string, string>): Promise<SubscriptionInvoiceListResponse> {

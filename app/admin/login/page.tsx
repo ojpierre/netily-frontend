@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, AlertCircle, Mail, Fingerprint } from "lucide-react"
+import { Loader2, AlertCircle, Fingerprint } from "lucide-react"
 import {
   Card,
   CardContent,
@@ -47,6 +47,8 @@ export default function AdminLoginPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [companyLogo, setCompanyLogo] = useState("")
+  const [companyName, setCompanyName] = useState("Netily Admin")
 
   // Mouse position for gradient lighting effect
   const [mouse, setMouse] = useState({ x: 0, y: 0 })
@@ -108,6 +110,32 @@ export default function AdminLoginPage() {
     }
     window.addEventListener("mousemove", handleMouseMove)
     return () => window.removeEventListener("mousemove", handleMouseMove)
+  }, [])
+
+  useEffect(() => {
+    const savedLogo = localStorage.getItem("netily_company_logo")
+    const savedName = localStorage.getItem("netily_company_name")
+    if (savedLogo) setCompanyLogo(savedLogo)
+    if (savedName) setCompanyName(savedName)
+
+    const fetchBranding = async () => {
+      try {
+        const branding = await adminApi.getTenantBranding()
+        const logoUrl = branding.logo_url || branding.logo || ""
+        if (logoUrl) {
+          setCompanyLogo(logoUrl)
+          localStorage.setItem("netily_company_logo", logoUrl)
+        }
+        if (branding.name) {
+          setCompanyName(branding.name)
+          localStorage.setItem("netily_company_name", branding.name)
+        }
+      } catch {
+        // Login remains available even when branding is unavailable.
+      }
+    }
+
+    fetchBranding()
   }, [])
 
   // Redirect if already logged in
@@ -292,46 +320,53 @@ export default function AdminLoginPage() {
   // Show loading state while checking auth
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-white">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background p-4 text-foreground">
       {/* Ambient depth — soft color washes instead of dark glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-250px] left-[-150px] w-[600px] h-[600px] rounded-full bg-blue-500/[0.06] blur-[140px]" />
-        <div className="absolute bottom-[-250px] right-[-100px] w-[500px] h-[500px] rounded-full bg-violet-500/[0.06] blur-[150px]" />
+        <div className="absolute top-[-250px] left-[-150px] w-[600px] h-[600px] rounded-full bg-primary/[0.08] blur-[140px]" />
+        <div className="absolute bottom-[-250px] right-[-100px] w-[500px] h-[500px] rounded-full bg-accent/[0.18] blur-[150px]" />
       </div>
 
       <ParticleBackground /> {/* ✅ USING IMPORTED COMPONENT */}
 
       <Card
         ref={cardRef}
-        className="relative w-full max-w-md bg-white border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_60px_-10px_rgba(15,23,42,0.12)] transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 duration-500 overflow-hidden"
+        className="relative w-full max-w-md bg-card border border-border shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_60px_-10px_rgba(15,23,42,0.18)] transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 overflow-hidden"
       >
         <div
           className="absolute inset-0 pointer-events-none transition-opacity duration-300 opacity-[0.04]"
           style={{
-            background: `radial-gradient(400px circle at ${mouse.x}px ${mouse.y}px, rgba(37,99,235,1), transparent 60%)`,
+            background: `radial-gradient(400px circle at ${mouse.x}px ${mouse.y}px, hsl(var(--primary)), transparent 60%)`,
           }}
         />
 
         {step === "credentials" ? (
           <>
             <CardHeader className="space-y-1 pt-8 pb-2 relative z-10">
-              <div className="flex items-center gap-2 mb-5">
-                <div className="h-6 w-1 rounded-full bg-blue-600" />
-                <span className="text-xs font-semibold tracking-[0.18em] text-slate-400 uppercase">
-                  Netily Admin {/* ✅ UPDATED: Added "Admin" */}
-                </span>
+              <div className="flex items-center gap-3 mb-5">
+                {companyLogo ? (
+                  <img src={companyLogo} alt={companyName} className="h-10 w-10 shrink-0 rounded-lg border border-border bg-white object-contain p-1" />
+                ) : (
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+                    {(companyName || "N").charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground">{companyName}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Admin workspace</p>
+                </div>
               </div>
-              <CardTitle className="text-2xl font-semibold text-slate-900 tracking-tight">
+              <CardTitle className="text-2xl font-semibold text-foreground tracking-tight">
                 Sign in
               </CardTitle>
-              <CardDescription className="text-slate-500 text-sm">
+              <CardDescription className="text-muted-foreground text-sm">
                 Enter your credentials to access your workspace.
               </CardDescription>
             </CardHeader>
@@ -339,14 +374,14 @@ export default function AdminLoginPage() {
             <CardContent className="relative z-10 pt-4">
               <form onSubmit={handleSubmit} className="space-y-5">
                 {error && (
-                  <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-700">
+                  <Alert variant="destructive">
                     <AlertCircle className="w-4 h-4" />
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-slate-700 text-sm font-medium">Email</Label>
+                  <Label htmlFor="email" className="text-foreground text-sm font-medium">Email</Label>
                   <Input
                     id="email"
                     name="email"
@@ -357,12 +392,12 @@ export default function AdminLoginPage() {
                     disabled={loading}
                     autoComplete="email"
                     required
-                    className="h-11 rounded-lg bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                    className="h-11 rounded-lg bg-background border-border text-foreground placeholder:text-muted-foreground transition-all duration-200 focus:border-primary focus:ring-4 focus:ring-primary/10"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="password" className="text-slate-700 text-sm font-medium">Password</Label>
+                  <Label htmlFor="password" className="text-foreground text-sm font-medium">Password</Label>
                   <Input
                     id="password"
                     name="password"
@@ -372,7 +407,7 @@ export default function AdminLoginPage() {
                     onChange={handleInputChange}
                     disabled={loading}
                     required
-                    className="h-11 rounded-lg bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                    className="h-11 rounded-lg bg-background border-border text-foreground placeholder:text-muted-foreground transition-all duration-200 focus:border-primary focus:ring-4 focus:ring-primary/10"
                   />
                 </div>
 
@@ -382,16 +417,16 @@ export default function AdminLoginPage() {
                     checked={formData.rememberMe}
                     onCheckedChange={handleCheckboxChange}
                     disabled={loading}
-                    className="border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                    className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                   />
-                  <Label htmlFor="rememberMe" className="text-sm text-slate-500 cursor-pointer hover:text-slate-700 transition-colors">
+                  <Label htmlFor="rememberMe" className="text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
                     Remember me
                   </Label>
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full h-11 rounded-lg font-medium bg-slate-900 hover:bg-slate-800 transition-colors duration-200 text-white"
+                  className="w-full h-11 rounded-lg font-medium"
                   disabled={loading}
                 >
                   {loading ? (
@@ -406,10 +441,10 @@ export default function AdminLoginPage() {
 
                 <div className="relative py-1">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-slate-200" />
+                    <div className="w-full border-t border-border" />
                   </div>
                   <div className="relative flex justify-center">
-                    <span className="bg-white px-3 text-xs text-slate-400">or</span>
+                    <span className="bg-card px-3 text-xs text-muted-foreground">or</span>
                   </div>
                 </div>
 
@@ -418,7 +453,7 @@ export default function AdminLoginPage() {
                   variant="outline"
                   onClick={handlePasskeyLogin}
                   disabled={passkeyLoading}
-                  className="w-full h-11 rounded-lg border-slate-200 text-slate-700 font-medium hover:bg-slate-50 gap-2 transition-colors duration-200"
+                  className="w-full h-11 rounded-lg border-border font-medium gap-2 transition-colors duration-200"
                 >
                   {passkeyLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -433,23 +468,30 @@ export default function AdminLoginPage() {
         ) : (
           <>
             <CardHeader className="space-y-1 pt-8 pb-2 relative z-10">
-              <div className="flex items-center gap-2 mb-5">
-                <div className="h-6 w-1 rounded-full bg-blue-600" />
-                <span className="text-xs font-semibold tracking-[0.18em] text-slate-400 uppercase">
-                  Netily Admin {/* ✅ UPDATED: Added "Admin" */}
-                </span>
+              <div className="flex items-center gap-3 mb-5">
+                {companyLogo ? (
+                  <img src={companyLogo} alt={companyName} className="h-10 w-10 shrink-0 rounded-lg border border-border bg-white object-contain p-1" />
+                ) : (
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+                    {(companyName || "N").charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground">{companyName}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Secure verification</p>
+                </div>
               </div>
-              <CardTitle className="text-2xl font-semibold text-slate-900 tracking-tight">
+              <CardTitle className="text-2xl font-semibold text-foreground tracking-tight">
                 Verify it&apos;s you
               </CardTitle>
-              <CardDescription className="text-slate-500 text-sm">
-                Enter the 6-digit code sent to <span className="font-medium text-slate-700">{otpMaskedEmail}</span>
+              <CardDescription className="text-muted-foreground text-sm">
+                Enter the 6-digit code sent to <span className="font-medium text-foreground">{otpMaskedEmail}</span>
               </CardDescription>
             </CardHeader>
 
             <CardContent className="relative z-10 space-y-6">
               {error && (
-                <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-700">
+                <Alert variant="destructive">
                   <AlertCircle className="w-4 h-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
@@ -466,7 +508,7 @@ export default function AdminLoginPage() {
                     value={val}
                     onChange={(e) => handleOtpChange(i, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                    className="w-12 h-14 rounded-lg text-xl font-semibold text-center bg-slate-50 border-slate-200 text-slate-900 transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                    className="w-12 h-14 rounded-lg text-xl font-semibold text-center bg-background border-border text-foreground transition-all duration-200 focus:border-primary focus:ring-4 focus:ring-primary/10"
                     disabled={loading}
                   />
                 ))}
@@ -474,7 +516,7 @@ export default function AdminLoginPage() {
 
               <Button
                 onClick={handleVerifyOtp}
-                className="w-full h-11 rounded-lg font-medium bg-slate-900 hover:bg-slate-800 transition-colors duration-200 text-white"
+                className="w-full h-11 rounded-lg font-medium"
                 disabled={loading || otpValues.join("").length !== 6}
               >
                 {loading ? (
@@ -489,23 +531,23 @@ export default function AdminLoginPage() {
 
               <div className="text-center text-sm">
                 {otpResendCooldown > 0 ? (
-                  <span className="text-slate-400">Resend in {formatDuration(otpResendCooldown)}</span>
+                  <span className="text-muted-foreground">Resend in {formatDuration(otpResendCooldown)}</span>
                 ) : (
                   <button
                     onClick={handleResendOtp}
                     disabled={otpResendCount >= otpMaxResends}
-                    className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="text-primary hover:underline font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Resend OTP
                   </button>
                 )}
               </div>
 
-              <div className="text-center text-xs text-slate-400">
+              <div className="text-center text-xs text-muted-foreground">
                 {otpExpiresIn > 0 ? `Code expires in ${formatDuration(otpExpiresIn)}` : "Code expired. Resend to continue."}
               </div>
 
-              <div className="text-center text-xs text-slate-400">
+              <div className="text-center text-xs text-muted-foreground">
                 Resends used: {otpResendCount}/{otpMaxResends}
               </div>
 
@@ -519,7 +561,7 @@ export default function AdminLoginPage() {
                   setOtpExpiresIn(0)
                   setOtpResendCount(0)
                 }}
-                className="w-full text-sm text-slate-400 hover:text-slate-600 transition-colors"
+                className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Back to login
               </button>
