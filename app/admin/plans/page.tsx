@@ -39,6 +39,7 @@ import {
   Gauge,
   Info,
   Database,
+  Monitor,
 } from "lucide-react"
 import {
   Table,
@@ -451,6 +452,8 @@ export default function PlansPage() {
     data_limit_unit: 'MB' as 'MB' | 'GB',
     // NEW: Free trial field
     is_free_trial: false,
+    // NEW: TV plan field
+    is_tv_plan: false,   // <-- ADD THIS
     // NEW: Valid days (default true = every day, matches backend default)
     valid_days: {
       monday: true, tuesday: true, wednesday: true, thursday: true,
@@ -644,6 +647,8 @@ export default function PlansPage() {
           data_limit_unit: hp.data_limit_unit || 'MB',
           // NEW FREE TRIAL FIELDS
           is_free_trial: hp.is_free_trial || false,
+          // NEW TV PLAN FIELD
+          is_tv_plan: hp.is_tv_plan || false,
           // NEW VALID DAYS
           valid_monday: hp.valid_monday ?? true,
           valid_tuesday: hp.valid_tuesday ?? true,
@@ -699,6 +704,8 @@ export default function PlansPage() {
         data_limit_unit: hp.data_limit_unit || 'MB',
         // NEW FREE TRIAL FIELDS
         is_free_trial: hp.is_free_trial || false,
+        // NEW TV PLAN FIELD
+        is_tv_plan: hp.is_tv_plan || false,
         // NEW VALID DAYS
         valid_monday: hp.valid_monday ?? true,
         valid_tuesday: hp.valid_tuesday ?? true,
@@ -867,7 +874,7 @@ export default function PlansPage() {
     })
   }
 
-  // Reset hotspot form
+  // Reset hotspot form - UPDATED with is_tv_plan
   const resetHotspotForm = () => {
     setHotspotForm({ 
       name: '', price: '', download_speed: '', upload_speed: '', 
@@ -878,6 +885,8 @@ export default function PlansPage() {
       data_limit_unit: 'MB',
       // NEW FREE TRIAL FIELD
       is_free_trial: false,
+      // NEW TV PLAN FIELD
+      is_tv_plan: false,   // <-- ADD THIS
       // NEW VALID DAYS
       valid_days: {
         monday: true, tuesday: true, wednesday: true, thursday: true,
@@ -967,7 +976,7 @@ export default function PlansPage() {
     }
   }
 
-  // Edit plan
+  // Edit plan - UPDATED with is_tv_plan
   const openEditDialog = (plan: Plan) => {
     const hp = plan as any
     if (hp._isHotspotPlan) {
@@ -993,6 +1002,8 @@ export default function PlansPage() {
         data_limit_unit: (hp.data_limit_unit as 'MB' | 'GB') || 'MB',
         // NEW FREE TRIAL FIELD
         is_free_trial: hp.is_free_trial || false,
+        // NEW TV PLAN FIELD
+        is_tv_plan: hp.is_tv_plan || false,   // <-- ADD THIS
         // NEW: restore valid days from the plan (fallback to true if missing)
         valid_days: {
           monday: hp.valid_monday ?? true,
@@ -1214,6 +1225,8 @@ export default function PlansPage() {
           data_limit_unit: 'MB',
           // NEW: Free trial is false for presets
           is_free_trial: false,
+          // NEW: TV plan is false for presets
+          is_tv_plan: false,
           // NEW: valid_days default all true
           valid_days: {
             monday: true, tuesday: true, wednesday: true, thursday: true,
@@ -1236,7 +1249,7 @@ export default function PlansPage() {
     }
   }
 
-  // Hotspot custom create/edit handler — UPDATED with valid_days
+  // Hotspot custom create/edit handler — UPDATED with is_tv_plan
   const handleHotspotCustomCreate = async () => {
     if (!hotspotForm.name || !hotspotForm.price) {
       toast.error('Name and price are required')
@@ -1268,6 +1281,8 @@ export default function PlansPage() {
         data_limit_unit: hotspotForm.data_limit_unit,
         // NEW FREE TRIAL FIELD
         is_free_trial: hotspotForm.is_free_trial || false,
+        // NEW TV PLAN FIELD
+        is_tv_plan: hotspotForm.is_tv_plan || false,   // <-- ADD THIS
         // NEW VALID DAYS
         valid_days: hotspotForm.valid_days,
       } as any
@@ -2522,7 +2537,7 @@ export default function PlansPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Hotspot Create / Edit Dialog — UPDATED with Valid Days UI */}
+      {/* Hotspot Create / Edit Dialog — UPDATED with TV Plan Toggle */}
       <Dialog open={isHotspotCreateOpen} onOpenChange={(open) => { if (!open) { setIsHotspotCreateOpen(false); resetHotspotForm() } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -2699,6 +2714,19 @@ export default function PlansPage() {
                   No data cap — users can use as much data as they want within the time period.
                 </p>
               )}
+            </div>
+
+            {/* ─── TV PLAN TOGGLE ─── */}
+            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <Switch
+                checked={hotspotForm.is_tv_plan}
+                onCheckedChange={(c) => setHotspotForm({ ...hotspotForm, is_tv_plan: c })}
+              />
+              <Label className="text-sm flex items-center gap-1">
+                <Monitor className="w-3 h-3 inline text-blue-500" />
+                TV Plan
+                <span className="text-xs text-muted-foreground ml-1">(only shows under &quot;Pay for TV&quot;)</span>
+              </Label>
             </div>
 
             {/* ─── VALID DAYS — NEW SECTION ─── */}

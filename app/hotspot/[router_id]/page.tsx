@@ -35,6 +35,8 @@ interface HotspotPlan {
   // NEW FREE TRIAL FIELDS
   is_free_trial?: boolean
   trial_duration_minutes?: number
+  // NEW TV PLAN FIELD
+  is_tv_plan?: boolean
 }
 
 interface PortalConfig {
@@ -1896,7 +1898,13 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
 
   // Get free trial plans separately for display
   const freeTrialPlans = plans.filter(p => p.is_free_trial)
-  const paidPlans = plans.filter(p => !p.is_free_trial)
+  const nonTrialPlans = plans.filter(p => !p.is_free_trial)
+
+  // Split by device target: TV mode only shows TV-marked plans,
+  // normal mode hides TV-only plans from the regular list.
+  const paidPlans = targetDevice === 'tv'
+    ? nonTrialPlans.filter(p => p.is_tv_plan)
+    : nonTrialPlans.filter(p => !p.is_tv_plan)
 
   return (
     <div className={`${theme.pageBg} flex items-center justify-center p-4`}>
@@ -2250,6 +2258,15 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           </p>
 
           {/* Plan Cards - Layout varies by theme */}
+          {targetDevice === 'tv' && paidPlans.length === 0 ? (
+            <div className={`mb-6 rounded-xl border-2 border-dashed p-6 text-center ${theme.planBorder} ${theme.planBg}`}>
+              <Monitor className={`w-8 h-8 mx-auto mb-2 ${theme.mutedText}`} />
+              <p className={`text-sm font-medium ${theme.planTitle}`}>No TV plans available</p>
+              <p className={`text-xs mt-1 ${theme.mutedText}`}>
+                Ask the ISP to add a TV plan, or switch to &quot;This Device&quot; to buy a regular plan.
+              </p>
+            </div>
+          ) : (
           <div className={`mb-6 ${
             theme.layoutType === "grid" 
               ? "grid grid-cols-2 gap-3" 
@@ -2436,6 +2453,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
               </button>
             ))}
           </div>
+          )}
 
           {/* Support footer */}
           {supportPhone && (
