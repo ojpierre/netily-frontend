@@ -810,31 +810,32 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <div
-        className={`transition-all duration-300 ${
+        className={`min-w-0 transition-all duration-300 ${
           sidebarCollapsed ? "lg:pl-16" : "lg:pl-64"
         }`}
       >
         {/* Top navigation bar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-card/95 px-4 backdrop-blur lg:px-6">
+        <header className="sticky top-0 z-30 flex h-14 min-w-0 items-center gap-2 border-b border-border bg-card/95 px-2 backdrop-blur sm:h-16 sm:px-4 lg:px-6">
           {/* Mobile menu button */}
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="h-9 w-9 shrink-0 lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="w-5 h-5" />
           </Button>
 
           {/* Search */}
-          <div className="flex-1 max-w-md">
+          <div className="min-w-0 flex-1 sm:max-w-md">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="relative flex h-10 w-full items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-left text-sm text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:border-slate-700 dark:bg-slate-900"
+              className="relative flex h-9 w-full min-w-0 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 text-left text-sm text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:border-slate-700 dark:bg-slate-900 sm:h-10 sm:px-3"
             >
               <Search className="h-4 w-4 shrink-0" />
-              <span className="min-w-0 flex-1 truncate">Search pages, customers, routers...</span>
+              <span className="min-w-0 flex-1 truncate sm:hidden">Search...</span>
+              <span className="hidden min-w-0 flex-1 truncate sm:block">Search pages, customers, routers...</span>
               <kbd className="hidden shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-flex">
                 Ctrl K
               </kbd>
@@ -842,18 +843,20 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Right side controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             {/* Trial Countdown */}
             <div className="hidden md:block">
               <TrialCountdown />
             </div>
 
             {/* Theme Toggle */}
-            <ThemeToggle />
+            <div className="hidden min-[380px]:block">
+              <ThemeToggle />
+            </div>
 
             {/* Notifications */}
             <Link href="/admin/notifications">
-              <Button variant="ghost" size="icon" className="relative">
+              <Button variant="ghost" size="icon" className="relative h-9 w-9">
                 <Bell className="w-5 h-5" />
                 {unreadNotifCount > 0 && (
                   <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-destructive text-white text-xs">
@@ -866,8 +869,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             {/* User menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2">
-                  <Avatar className="w-8 h-8">
+                <Button variant="ghost" className="flex h-9 shrink-0 items-center gap-1 px-1 sm:gap-2 sm:px-2">
+                  <Avatar className="h-8 w-8 shrink-0">
                     <AvatarImage src="" alt="Admin" />
                     <AvatarFallback className="bg-primary text-white">
                       {user?.username?.charAt(0).toUpperCase() || "A"}
@@ -877,7 +880,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                     <span className="text-sm font-medium">{user?.username || "Admin"}</span>
                     <span className="text-xs text-muted-foreground">{user?.email || "admin@netily.com"}</span>
                   </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
