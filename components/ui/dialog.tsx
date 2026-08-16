@@ -60,7 +60,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom-2 data-[state=open]:slide-in-from-bottom-2 fixed inset-x-2 bottom-2 z-50 grid max-h-[calc(100dvh-1rem)] w-auto gap-4 overflow-y-auto overscroll-contain rounded-t-2xl rounded-b-xl border p-4 shadow-2xl duration-200 sm:top-[50%] sm:left-[50%] sm:bottom-auto sm:inset-x-auto sm:max-h-[calc(100dvh-2rem)] sm:w-full sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:p-6 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95',
+          'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom-2 data-[state=open]:slide-in-from-bottom-2 fixed inset-x-2 bottom-2 z-50 grid max-h-[calc(100dvh-1rem)] w-auto gap-4 overflow-y-auto overscroll-contain rounded-t-2xl rounded-b-xl border p-4 shadow-2xl duration-200 sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:max-h-[calc(100dvh-2rem)] sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:p-6 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95',
           className,
         )}
         {...props}
