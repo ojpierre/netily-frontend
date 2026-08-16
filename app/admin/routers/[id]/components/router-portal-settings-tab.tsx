@@ -204,6 +204,18 @@ const TEMPLATES: TemplateOption[] = [
       text: "text-pink-500",
     },
   },
+  {
+    id: 13,
+    name: "Neumorphic",
+    description: "Soft, embossed clock-app style — light grey with pillowy shadows",
+    icon: <Gauge className="w-5 h-5" />,
+    preview: {
+      bg: "bg-[#e6e9f0]",
+      card: "bg-[#e6e9f0] shadow-[inset_2px_2px_4px_#c2c8d6,inset_-2px_-2px_4px_#ffffff]",
+      accent: "bg-slate-700",
+      text: "text-slate-700",
+    },
+  },
 ]
 
 // ==========================================
@@ -1172,6 +1184,26 @@ function getTemplateStyles(id: number): TemplateStyles {
         inputStyles: "border-gray-200 bg-white text-gray-700",
         ctaStyles: "bg-pink-400 text-white hover:bg-pink-500",
         footer: "text-gray-400",
+      }
+    case 13: // Neumorphic
+      return {
+        containerBg: "bg-[#e6e9f0]",
+        cardBg: "bg-[#e6e9f0] shadow-[8px_8px_16px_#c2c8d6,-8px_-8px_16px_#ffffff]",
+        headerBg: "bg-[#e6e9f0]",
+        headerIcon: "text-slate-600",
+        headerText: "text-slate-800",
+        headerSubtext: "text-slate-500",
+        announcementBg: "bg-[#e6e9f0] shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff]",
+        announcementIcon: "text-slate-500",
+        announcementText: "text-slate-600",
+        planSelected: "border-transparent bg-[#e6e9f0] shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff] text-slate-800",
+        planNormal: "border-transparent bg-[#e6e9f0] shadow-[5px_5px_10px_#c2c8d6,-5px_-5px_10px_#ffffff]",
+        planTitle: "text-slate-800",
+        planSub: "text-slate-500",
+        planPrice: "text-slate-700",
+        inputStyles: "border-transparent bg-[#e6e9f0] text-slate-700 shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff]",
+        ctaStyles: "bg-[#e6e9f0] text-slate-700 font-bold shadow-[5px_5px_10px_#c2c8d6,-5px_-5px_10px_#ffffff] hover:shadow-[3px_3px_6px_#c2c8d6,-3px_-3px_6px_#ffffff]",
+        footer: "text-slate-400",
       }
     default: // Classic (1)
       return {

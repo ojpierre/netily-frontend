@@ -517,7 +517,7 @@ function AutoCompleteImage({ onComplete }: { onComplete: () => void }) {
 }
 
 // ==========================================
-// TEMPLATE STYLE ENGINE (12 themes)
+// TEMPLATE STYLE ENGINE (13 themes)
 // ==========================================
 
 interface ThemeStyles {
@@ -1003,6 +1003,46 @@ function getTheme(id: number): ThemeStyles {
         errorText: "text-red-700",
         successBg: "bg-pink-50",
         successPageBg: "min-h-screen bg-gradient-to-br from-rose-50 to-pink-100",
+      }
+    case 13: // Neumorphic - Soft, embossed clock-app style
+      return {
+        layoutType: "list",
+        headerStyle: "minimal",
+        cardShape: "rounded-3xl",
+        ctaStyle: "full-width",
+        showPhoneBeforePlans: false,
+        showWifiIcon: true,
+        pageBg: "min-h-screen bg-[#e6e9f0]",
+        cardClass: "bg-[#e6e9f0] rounded-3xl shadow-[10px_10px_20px_#c2c8d6,-10px_-10px_20px_#ffffff]",
+        headerBg: "bg-[#e6e9f0]",
+        headerText: "text-slate-800",
+        headerSub: "text-slate-500",
+        annBg: "bg-[#e6e9f0] shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff]",
+        annText: "text-slate-600",
+        annIcon: "text-slate-500",
+        planSelectedBorder: "border-transparent",
+        planSelectedBg: "bg-[#e6e9f0] shadow-[inset_4px_4px_8px_#c2c8d6,inset_-4px_-4px_8px_#ffffff]",
+        planBorder: "border-transparent",
+        planBg: "bg-[#e6e9f0] shadow-[6px_6px_12px_#c2c8d6,-6px_-6px_12px_#ffffff]",
+        planTitle: "text-slate-800",
+        planSub: "text-slate-500",
+        planPrice: "text-slate-700",
+        planPopularBg: "bg-[#e6e9f0] shadow-[inset_2px_2px_4px_#c2c8d6,inset_-2px_-2px_4px_#ffffff]",
+        planPopularText: "text-slate-600",
+        inputBorder: "border-transparent",
+        inputBg: "bg-[#e6e9f0] shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff]",
+        inputText: "text-slate-700",
+        inputPlaceholder: "placeholder:text-slate-400",
+        ctaBg: "bg-[#e6e9f0] shadow-[6px_6px_12px_#c2c8d6,-6px_-6px_12px_#ffffff] hover:shadow-[3px_3px_6px_#c2c8d6,-3px_-3px_6px_#ffffff] active:shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff]",
+        ctaText: "text-slate-700 font-bold",
+        ctaHover: "",
+        bodyText: "text-slate-600",
+        mutedText: "text-slate-400",
+        footerText: "text-slate-400",
+        errorBg: "bg-[#e6e9f0] shadow-[inset_3px_3px_6px_#e0b8b8,inset_-3px_-3px_6px_#ffffff]",
+        errorText: "text-red-500",
+        successBg: "bg-[#e6e9f0] shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff]",
+        successPageBg: "min-h-screen bg-[#e6e9f0]",
       }
     default: // Classic (1) - Grid Layout (Professional, ISP standard)
       return {
