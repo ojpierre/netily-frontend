@@ -23,6 +23,7 @@ import {
   Upload,
   X,
   Gauge,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -202,6 +203,18 @@ const TEMPLATES: TemplateOption[] = [
       card: "bg-white",
       accent: "bg-pink-400",
       text: "text-pink-500",
+    },
+  },
+  {
+    id: 13,
+    name: "Neumorphic",
+    description: "Soft, embossed clock-app style — light grey with pillowy shadows",
+    icon: <Gauge className="w-5 h-5" />,
+    preview: {
+      bg: "bg-[#e6e9f0]",
+      card: "bg-[#e6e9f0] shadow-[inset_2px_2px_4px_#c2c8d6,inset_-2px_-2px_4px_#ffffff]",
+      accent: "bg-slate-700",
+      text: "text-slate-700",
     },
   },
 ]
@@ -406,8 +419,8 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      {/* Header - Sticky */}
+      <div className="sticky top-0 z-20 -mx-6 px-6 py-3 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-xl font-semibold">Captive Portal Settings</h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -477,7 +490,8 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {/* Template grid with scrollable container */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[420px] overflow-y-auto pr-1 -mr-1 scroll-smooth">
                 {TEMPLATES.map((tpl) => (
                   <button
                     key={tpl.id}
@@ -510,6 +524,13 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                   </button>
                 ))}
               </div>
+              {/* Scroll hint - shows when there are more templates than visible */}
+              {TEMPLATES.length > 6 && (
+                <p className="text-[11px] text-muted-foreground text-center mt-2 flex items-center justify-center gap-1">
+                  <ChevronDown className="w-3 h-3" />
+                  Scroll for more themes ({TEMPLATES.length} total)
+                </p>
+              )}
               <p className="text-xs text-muted-foreground mt-3">
                 {selectedTemplate.description}
               </p>
@@ -1172,6 +1193,26 @@ function getTemplateStyles(id: number): TemplateStyles {
         inputStyles: "border-gray-200 bg-white text-gray-700",
         ctaStyles: "bg-pink-400 text-white hover:bg-pink-500",
         footer: "text-gray-400",
+      }
+    case 13: // Neumorphic
+      return {
+        containerBg: "bg-[#e6e9f0]",
+        cardBg: "bg-[#e6e9f0] shadow-[8px_8px_16px_#c2c8d6,-8px_-8px_16px_#ffffff]",
+        headerBg: "bg-[#e6e9f0]",
+        headerIcon: "text-slate-600",
+        headerText: "text-slate-800",
+        headerSubtext: "text-slate-500",
+        announcementBg: "bg-[#e6e9f0] shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff]",
+        announcementIcon: "text-slate-500",
+        announcementText: "text-slate-600",
+        planSelected: "border-transparent bg-[#e6e9f0] shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff] text-slate-800",
+        planNormal: "border-transparent bg-[#e6e9f0] shadow-[5px_5px_10px_#c2c8d6,-5px_-5px_10px_#ffffff]",
+        planTitle: "text-slate-800",
+        planSub: "text-slate-500",
+        planPrice: "text-slate-700",
+        inputStyles: "border-transparent bg-[#e6e9f0] text-slate-700 shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff]",
+        ctaStyles: "bg-[#e6e9f0] text-slate-700 font-bold shadow-[5px_5px_10px_#c2c8d6,-5px_-5px_10px_#ffffff] hover:shadow-[3px_3px_6px_#c2c8d6,-3px_-3px_6px_#ffffff]",
+        footer: "text-slate-400",
       }
     default: // Classic (1)
       return {
