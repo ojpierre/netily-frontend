@@ -1332,42 +1332,64 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       })
   }, [routerId, loginUrl, autoLoginChecked])
 
-  // ── Load hotspot plans + portal config ──
+  // ── FIX 5: Load hotspot plans + portal config with sessionStorage cache ──
   useEffect(() => {
-    // No TV device check — always load plans
+    const cacheKey = `portal_cache:${routerId}`
+    const cached = sessionStorage.getItem(cacheKey)
+    let hasCachedData = false
+    
+    if (cached) {
+      try {
+        const data = JSON.parse(cached)
+        setPlans(data.plans || [])
+        setPortalConfig(data.portal_config || null)
+        setBranding(data.branding || null)
+        setLoading(false) // paint immediately, no spinner
+        hasCachedData = true
+      } catch {
+        // Invalid cache, ignore
+      }
+    }
+
     fetchCaptivePortal(routerId)
       .then((data) => {
         setPlans(data.plans)
         setPortalConfig(data.portal_config || null)
         setBranding(data.branding || null)
         setLoading(false)
+        // Store in sessionStorage for next visit
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify(data))
+        } catch {
+          // Storage full or unavailable — ignore
+        }
       })
       .catch((err) => {
-        setError(err.message || "Failed to load plans")
-        setLoading(false)
+        // Only show error if we have no cached data
+        if (!hasCachedData) {
+          setError(err.message || "Failed to load plans")
+          setLoading(false)
+        }
       })
   }, [routerId])
 
-  // ── Fetch available ad ──
+  // ── FIX 4: Fetch ad and loyalty in parallel, NOT gated behind loading ──
+  // These fire immediately on mount and don't wait for plans to load
   useEffect(() => {
-    if (loading) return
     const tenant = getTenant()
     if (!tenant) return
+
+    // Fetch ad immediately
     fetchServableAd(routerId, tenant).then(({ ad }) => setAvailableAd(ad))
-  }, [routerId, loading])
 
-  // ── Fetch loyalty info after plans load ───────────────────────────────────
-  useEffect(() => {
-    if (loading) return
+    // Fetch loyalty immediately
     const mac = getMacAddress()
-    if (mac === '00:00:00:00:00:00') return
-    const tenant = getTenant()
-    if (!tenant) return
-
-    fetchHotspotLoyalty(mac, tenant, canonicalUsername || undefined).then(data => {
-      if (data?.program_active) setLoyaltyData(data)
-    })
-  }, [loading, canonicalUsername])
+    if (mac !== '00:00:00:00:00:00') {
+      fetchHotspotLoyalty(mac, tenant, canonicalUsername || undefined).then(data => {
+        if (data?.program_active) setLoyaltyData(data)
+      })
+    }
+  }, [routerId, canonicalUsername]) // No `loading` dependency — fires in parallel with plans fetch
 
   // ── Poll payment status ──
   useEffect(() => {
