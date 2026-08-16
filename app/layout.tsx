@@ -62,7 +62,7 @@ export const metadata: Metadata = {
   description:
     "Internetily, formerly Netily, is Kenya's ISP management platform. Automate billing, M-Pesa STK Push payments, MikroTik router provisioning, hotspot management, and customer self-service. Built for Kenyan & East African ISPs.",
   keywords: [
-    // â”€â”€ Core product â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — Core product —
     "ISP management software Kenya 2026",
     "ISP Billing Software Kenya",
     "ISP billing system Kenya",
@@ -76,7 +76,7 @@ export const metadata: Metadata = {
     "ISP operations software East Africa",
     "cloud-based ISP billing Kenya",
     "ISP management dashboard Kenya",
-    // â”€â”€ Exact-match Ahrefs targets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — Exact-match Ahrefs targets —
     "isp billing software",
     "isp billing software kenya",
     "isp billing software free",
@@ -102,7 +102,7 @@ export const metadata: Metadata = {
     "isp management system with mikrotik api",
     "mikrotik isp management software",
     "isp management",
-    // â”€â”€ M-Pesa & Payments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — M-Pesa & Payments —
     "M-Pesa ISP billing automation",
     "M-Pesa STK push integration",
     "automated ISP billing M-Pesa",
@@ -115,7 +115,7 @@ export const metadata: Metadata = {
     "PayHero ISP integration",
     "ISP payment automation Kenya",
     "online payment ISP Kenya",
-    // â”€â”€ MikroTik & Network â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — MikroTik & Network —
     "MikroTik automation Kenya",
     "MikroTik PPPoE billing software",
     "MikroTik RouterOS API integration",
@@ -127,7 +127,7 @@ export const metadata: Metadata = {
     "PPPoE billing Kenya",
     "PPPoE auto-suspend Kenya",
     "MikroTik hotspot billing Kenya",
-    // â”€â”€ Hotspot & Captive Portal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — Hotspot & Captive Portal —
     "hotspot management system Kenya",
     "captive portal billing Kenya",
     "WiFi hotspot billing software",
@@ -139,29 +139,29 @@ export const metadata: Metadata = {
     "public WiFi billing Kenya",
     "hotel WiFi billing system Kenya",
     "school WiFi management Kenya",
-    // â”€â”€ RADIUS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — RADIUS —
     "RADIUS authentication platform",
     "FreeRADIUS management Kenya",
     "RADIUS server Kenya ISP",
     "RADIUS billing software",
     "cloud RADIUS Kenya",
-    // â”€â”€ Fiber ISPs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — Fiber ISPs —
     "fiber ISP billing software Kenya",
     "fiber internet billing automation",
     "fiber broadband subscriber management",
     "fiber ISP management platform Kenya",
-    // â”€â”€ WISPs & Rural â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — WISPs & Rural —
     "WISP billing software Kenya",
     "rural ISP management Kenya",
     "wireless ISP billing system Kenya",
     "affordable WISP billing Africa",
-    // â”€â”€ Customer Portal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — Customer Portal —
     "ISP customer self-service portal",
     "subscriber self-service portal Kenya",
     "ISP customer portal Kenya",
     "ISP subscriber portal M-Pesa",
     "PPPoE client portal Kenya",
-    // â”€â”€ Automation & Operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — Automation & Operations —
     "automated fiber ISP billing",
     "ISP bandwidth management software",
     "ISP auto-provisioning Kenya",
@@ -177,7 +177,7 @@ export const metadata: Metadata = {
     "AI-powered ISP billing Kenya",
     "cloud ISP management platform",
     "ISP analytics dashboard Kenya",
-    // â”€â”€ Location-specific â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — Location-specific —
     "Nairobi ISP software",
     "Nairobi enterprise ISP billing",
     "Nairobi co-working WiFi billing",
@@ -218,18 +218,18 @@ export const metadata: Metadata = {
     "hotspot billing software Tanzania",
     "East Africa ISP SaaS",
     "affordable ISP billing software Africa",
-    // â”€â”€ Messaging & Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — Messaging & Notifications —
     "ISP SMS notifications Kenya",
     "ISP payment reminder SMS",
     "bulk SMS internet provider Kenya",
     "automated SMS expiry reminder ISP",
-    // â”€â”€ Buyer evaluation terms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — Buyer evaluation terms —
     "ISP billing software comparison Kenya",
     "ISP management software evaluation Kenya",
     "local ISP billing tool comparison Kenya",
     "affordable ISP billing software Africa",
     "ISP billing platform evaluation 2026",
-    // â”€â”€ 2026-specific emerging tech â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — 2026-specific emerging tech —
     "isp billing software 2026",
     "isp management platform 2026",
     "ai-powered isp billing kenya 2026",
@@ -255,7 +255,7 @@ export const metadata: Metadata = {
     "fiber 2026 isp billing kenya",
     "isp billing trends 2026",
     "best isp software 2026 kenya",
-    // â”€â”€ Vertical / use-case â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — Vertical / use-case —
     "school WiFi billing software Kenya",
     "hotel WiFi billing system",
     "matatu WiFi billing Kenya",
@@ -264,7 +264,7 @@ export const metadata: Metadata = {
     "fiber to the home billing Kenya",
     "FTTH billing software Kenya",
     "fixed wireless access billing Kenya",
-    // â”€â”€ Long-tail operational â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — Long-tail operational —
     "how to automate ISP billing Kenya",
     "ISP billing software with M-Pesa integration",
     "PPPoE subscriber management software",
@@ -273,14 +273,14 @@ export const metadata: Metadata = {
     "mikrotik hotspot billing with mpesa",
     "automated internet billing system Kenya",
     "ISP reconciliation software M-Pesa",
-    // â”€â”€ More cities/regions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — More cities/regions —
     "Thika ISP billing software",
     "Machakos ISP management",
     "Nyeri ISP billing system",
     "Kampala ISP billing software",
     "Dar es Salaam ISP billing",
     "Kigali ISP management software",
-    // â”€â”€ Brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // — Brand —
     "Internetily",
     "Internetily ISP platform",
     "Internetily billing software",
@@ -303,7 +303,7 @@ export const metadata: Metadata = {
   creator: "Internetily",
   publisher: "Internetily",
   metadataBase: new URL("https://netily.co.ke"),
-  // NOTE: Do NOT set alternates.canonical here â€” each page sets its own canonical.
+  // NOTE: Do NOT set alternates.canonical here — each page sets its own canonical.
   // A layout-level canonical would apply the same URL to every route.
   openGraph: {
     type: "website",
@@ -360,7 +360,7 @@ export const metadata: Metadata = {
     "geo.placename": "Nairobi",
     "geo.position": "-1.286389;36.817223",
     "ICBM": "-1.286389, 36.817223",
-    // LLM / AI crawler discovery â€” points to llms.txt
+    // LLM / AI crawler discovery — points to llms.txt
     "llms": "https://netily.co.ke/llms.txt",
   },
 }
@@ -373,6 +373,14 @@ export default function RootLayout({
   const enableVercelAnalytics =
     process.env.NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS === "true" || process.env.VERCEL === "1"
 
+  // Resolve the API origin server-side for preconnect
+  // In production, this will be the actual API domain
+  const apiOrigin = process.env.NEXT_PUBLIC_API_URL 
+    ? new URL(process.env.NEXT_PUBLIC_API_URL).origin 
+    : process.env.VERCEL 
+      ? "https://api.netily.co.ke"
+      : "http://localhost:8000"
+
   return (
     <html lang="en" className={fontVariables} suppressHydrationWarning>
       <head>
@@ -382,6 +390,12 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Internetily" />
         <link rel="apple-touch-icon" href="/internetily-icon-192.png" />
+        
+        {/* ── FIX 6: Preconnect to API domain ── */}
+        {/* Cuts DNS + TLS handshake off the critical path for hotspot devices */}
+        <link rel="preconnect" href={apiOrigin} crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href={apiOrigin} />
+        
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -398,7 +412,7 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning>
-        {/* â”€â”€ Google Analytics â”€â”€ */}
+        {/* — Google Analytics — */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-55Q1Q3H14M"
           strategy="afterInteractive"
