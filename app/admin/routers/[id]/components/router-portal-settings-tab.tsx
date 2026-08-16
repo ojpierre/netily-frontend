@@ -23,6 +23,7 @@ import {
   Upload,
   X,
   Gauge,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -418,8 +419,8 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      {/* Header - Sticky */}
+      <div className="sticky top-0 z-20 -mx-6 px-6 py-3 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-xl font-semibold">Captive Portal Settings</h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -489,7 +490,8 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {/* Template grid with scrollable container */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[420px] overflow-y-auto pr-1 -mr-1 scroll-smooth">
                 {TEMPLATES.map((tpl) => (
                   <button
                     key={tpl.id}
@@ -522,6 +524,13 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                   </button>
                 ))}
               </div>
+              {/* Scroll hint - shows when there are more templates than visible */}
+              {TEMPLATES.length > 6 && (
+                <p className="text-[11px] text-muted-foreground text-center mt-2 flex items-center justify-center gap-1">
+                  <ChevronDown className="w-3 h-3" />
+                  Scroll for more themes ({TEMPLATES.length} total)
+                </p>
+              )}
               <p className="text-xs text-muted-foreground mt-3">
                 {selectedTemplate.description}
               </p>
