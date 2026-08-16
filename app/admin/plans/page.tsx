@@ -1482,14 +1482,14 @@ export default function PlansPage() {
 
       {/* ── Plan Type Picker Dialog (shown from "All Plans" tab) ── */}
       <Dialog open={isPlanTypePickerOpen} onOpenChange={setIsPlanTypePickerOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>What type of plan do you want to create?</DialogTitle>
+        <DialogContent className="max-w-md gap-3">
+          <DialogHeader className="pr-8 text-left">
+            <DialogTitle className="text-lg leading-snug">What type of plan do you want to create?</DialogTitle>
             <DialogDescription>
               Choose a plan type to get started
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-3 py-4">
+          <div className="grid grid-cols-1 gap-3 py-1 sm:py-4">
             {[
               { type: "hotspot" as const, label: "Hotspot Plan", description: "Time-based WiFi access for captive portals", icon: Wifi, color: "bg-primary" },
               { type: "pppoe" as const, label: "PPPoE Plan", description: "Point-to-point subscriber connections", icon: Globe, color: "bg-purple-500" },
@@ -1514,14 +1514,14 @@ export default function PlansPage() {
                       setIsCreateOpen(true)
                     }
                   }}
-                  className="flex items-center gap-4 p-4 rounded-xl border-2 border-muted hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
+                  className="flex w-full min-w-0 items-start gap-3 rounded-xl border-2 border-muted p-3 text-left transition-all hover:border-primary/40 hover:bg-primary/5 sm:items-center sm:gap-4 sm:p-4"
                 >
-                  <div className={`p-3 rounded-lg ${opt.color} flex items-center justify-center`}>
-                    <Icon className="w-5 h-5 text-white" />
+                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${opt.color}`}>
+                    <Icon className="h-5 w-5 text-white" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-semibold">{opt.label}</p>
-                    <p className="text-sm text-muted-foreground">{opt.description}</p>
+                    <p className="text-sm leading-5 text-muted-foreground">{opt.description}</p>
                   </div>
                 </button>
               )

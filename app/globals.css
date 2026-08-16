@@ -716,12 +716,19 @@
   }
   
   html {
+    max-width: 100%;
+    overflow-x: clip;
     scroll-behavior: smooth;
   }
   
   body {
     @apply bg-background text-foreground;
     font-family: var(--app-font-family);
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
 
   button,
