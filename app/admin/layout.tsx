@@ -914,7 +914,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="p-4 lg:p-6">
+        <main className="min-w-0 overflow-x-hidden p-3 sm:p-4 lg:p-6">
           {isDemoMode && (
             <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />

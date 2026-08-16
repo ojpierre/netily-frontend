@@ -356,7 +356,7 @@ function PlanCard({ plan, onView, onEdit, onToggle, onDelete, togglingId, deleti
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-1 gap-3 text-sm min-[360px]:grid-cols-2">
           {plan.download_speed && (
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-success" />
@@ -1322,7 +1322,7 @@ export default function PlansPage() {
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-4 sm:p-6">
+      <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Skeleton className="h-9 w-64" />
           <Skeleton className="h-10 w-24" />
@@ -1346,18 +1346,18 @@ export default function PlansPage() {
   }
 
   return (
-      <div className="flex flex-col gap-6 p-4 sm:p-6">
+    <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Plans Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Plans Management</h1>
           <p className="text-muted-foreground">
             Manage internet plans, pricing, and features
           </p>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           
-          <div className="flex items-center gap-1 bg-card p-1 rounded-full border border-border mr-2 shadow-sm">
+          <div className="flex w-fit items-center gap-1 rounded-full border border-border bg-card p-1 shadow-sm sm:mr-2">
             <button
               onClick={() => setViewMode("grid")}
               className={`p-1.5 rounded-full transition-all ${viewMode === "grid" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
@@ -1382,7 +1382,7 @@ export default function PlansPage() {
 
       {/* ── Tabs: Full-width, prominent, with counts ── */}
       <div className="w-full">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {([
             { value: "all", label: "All Plans", icon: Package, count: stats.total, activeBorder: "border-border", activeBg: "bg-muted", activeIconBg: "bg-muted", activeIconColor: "text-foreground", activeCountColor: "text-foreground", inactiveIconBg: "bg-muted", bottomBar: "bg-muted0" },
             { value: "hotspot", label: "Hotspot", icon: Wifi, count: stats.hotspot, activeBorder: "border-primary", activeBg: "bg-primary/10", activeIconBg: "bg-primary/15", activeIconColor: "text-primary", activeCountColor: "text-primary", inactiveIconBg: "bg-muted", bottomBar: "bg-primary" },
@@ -1421,8 +1421,8 @@ export default function PlansPage() {
       </div>
 
       {/* ── Search + Create Button Row ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <div className="relative w-full flex-1 md:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search plans..."
@@ -1434,6 +1434,7 @@ export default function PlansPage() {
         {perms.canAdd && (
           <Button
             size="lg"
+            className="w-full sm:w-auto"
             onClick={() => {
               if (activeTab === "all") {
                 // Show plan type picker
@@ -1550,7 +1551,7 @@ export default function PlansPage() {
                     }
                   }}
                 >
-                  <SelectTrigger className="max-w-sm bg-card">
+                  <SelectTrigger className="w-full bg-card sm:max-w-sm">
                     <SelectValue placeholder="Choose a router..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -1592,7 +1593,7 @@ export default function PlansPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
                 {HOTSPOT_PRESETS.map((preset) => {
                   const Icon = preset.icon
                   return (
@@ -1644,7 +1645,7 @@ export default function PlansPage() {
               </CardContent>
             </Card>
           ) : viewMode === "grid" ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:gap-6">
               {filteredPlans.map(plan => (
                 <PlanCard key={plan.id} plan={plan} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} canEdit={perms.canEdit} canDelete={perms.canDelete} />
               ))}
@@ -1652,7 +1653,8 @@ export default function PlansPage() {
           ) : (
             <Card>
               <CardContent className="p-0">
-                <Table>
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[720px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
@@ -1734,7 +1736,8 @@ export default function PlansPage() {
                       )
                     })}
                   </TableBody>
-                </Table>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -1753,7 +1756,7 @@ export default function PlansPage() {
               </CardContent>
             </Card>
           ) : viewMode === "grid" ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:gap-6">
               {filteredPlans.map(plan => (
                 <PlanCard key={plan.id} plan={plan} onView={handleViewDetails} onEdit={openEditDialog} onToggle={handleToggleActive} onDelete={handleDeleteRequest} togglingId={togglingId} deletingId={deletingId} canEdit={perms.canEdit} canDelete={perms.canDelete} />
               ))}
@@ -1761,7 +1764,8 @@ export default function PlansPage() {
           ) : (
             <Card>
               <CardContent className="p-0">
-                <Table>
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[720px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
@@ -1850,7 +1854,8 @@ export default function PlansPage() {
                       )
                     })}
                   </TableBody>
-                </Table>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -1859,7 +1864,7 @@ export default function PlansPage() {
 
       {/* Create Plan Dialog - PPPoE */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Globe className="w-5 h-5 text-purple-500" />
@@ -1881,12 +1886,12 @@ export default function PlansPage() {
             {/* IP Pool Range - Inline Subnet Builder */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">IP Pool Range</Label>
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <Select
                   value={planForm.subnet_prefix}
                   onValueChange={(v) => setPlanForm({ ...planForm, subnet_prefix: v })}
                 >
-                  <SelectTrigger className="w-[120px]">
+                  <SelectTrigger className="w-[112px]">
                     <SelectValue placeholder="Prefix" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1900,7 +1905,7 @@ export default function PlansPage() {
                 <span className="text-muted-foreground font-mono">.</span>
                 <Input
                   type="number"
-                  className="w-[70px] text-center font-mono"
+                  className="w-[68px] text-center font-mono"
                   min={0}
                   max={255}
                   value={planForm.subnet_octet}
@@ -1913,7 +1918,7 @@ export default function PlansPage() {
                   value={planForm.cidr_prefix}
                   onValueChange={(v) => setPlanForm({ ...planForm, cidr_prefix: v })}
                 >
-                  <SelectTrigger className="w-[130px]">
+                  <SelectTrigger className="w-[122px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1927,7 +1932,7 @@ export default function PlansPage() {
               </div>
               {/* Subnet Preview */}
               {planForm.subnet_prefix && planForm.subnet_octet && subnetPreview && (
-                <div className="flex items-center gap-3 text-xs mt-1.5">
+                <div className="flex flex-wrap items-center gap-2 text-xs mt-1.5">
                   <span className="text-muted-foreground">
                     Generated Range: <span className="font-mono font-medium text-foreground">{subnetPreview.gateway}/{planForm.cidr_prefix}</span>
                   </span>
@@ -1945,7 +1950,7 @@ export default function PlansPage() {
             <Separator />
 
             {/* Validity + Unit */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Validity</Label>
                 {planForm.validity_type !== 'UNLIMITED' && (
@@ -2004,7 +2009,7 @@ export default function PlansPage() {
             </div>
 
             {/* Download / Upload Speed */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Download Speed (Mbps)</Label>
                 <Input
@@ -2074,7 +2079,7 @@ export default function PlansPage() {
 
             {/* Enable Burst */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <Label className="text-sm font-medium">Enable Burst</Label>
                 <Switch
                   checked={planForm.burst_enabled}
@@ -2082,7 +2087,7 @@ export default function PlansPage() {
                 />
               </div>
               {planForm.burst_enabled && (
-                <div className="grid grid-cols-2 gap-3 p-3 bg-muted/30 rounded-lg">
+                <div className="grid grid-cols-1 gap-3 rounded-lg bg-muted/30 p-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Burst Download (Mbps)</Label>
                     <Input
@@ -2128,11 +2133,11 @@ export default function PlansPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+          <DialogFooter className="sticky -bottom-4 z-10 border-t bg-background/95 pt-3 backdrop-blur sm:-bottom-6">
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={isSubmitting || !planForm.name || !planForm.price}>
+            <Button onClick={handleCreate} disabled={isSubmitting || !planForm.name || !planForm.price} className="w-full sm:w-auto">
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Plan
             </Button>
@@ -2142,7 +2147,7 @@ export default function PlansPage() {
 
       {/* Edit Plan Dialog - Enhanced with IP Pool & QoS */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="w-5 h-5 text-primary" />
@@ -2161,16 +2166,16 @@ export default function PlansPage() {
           <div className="space-y-6 py-4">
             {/* IP Pool Info (read-only, for context) */}
             {selectedPlan?.ip_pool && (
-              <div className="flex items-center gap-3 p-3 bg-purple-50 border border-primary/20 rounded-lg">
+              <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-purple-50 p-3 sm:flex-row sm:items-center">
                 <Network className="w-5 h-5 text-primary" />
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-foreground">Linked IP Pool</p>
                   <p className="text-xs text-primary/80">
                     {selectedPlan.ip_pool_name || `Pool #${selectedPlan.ip_pool}`}
                     {selectedPlan.ip_pool_range && ` — ${selectedPlan.ip_pool_range}`}
                   </p>
                 </div>
-                <Badge variant="outline" className="text-primary border-primary/30 text-xs">
+                <Badge variant="outline" className="w-fit text-primary border-primary/30 text-xs">
                   Pool #{selectedPlan.ip_pool}
                 </Badge>
               </div>
@@ -2360,7 +2365,7 @@ export default function PlansPage() {
 
             {/* Burst Settings */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Burst Speed</h3>
                 <div className="flex items-center gap-2">
                   <Switch checked={planForm.burst_enabled}
@@ -2369,7 +2374,7 @@ export default function PlansPage() {
                 </div>
               </div>
               {planForm.burst_enabled && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="space-y-2">
                     <Label className="text-xs">Burst Download (Mbps)</Label>
                     <Input type="number" value={planForm.burst_download}
@@ -2402,7 +2407,7 @@ export default function PlansPage() {
 
             {/* Data Limit */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Data Limit</h3>
                 <div className="flex items-center gap-2">
                   <Switch checked={planForm.unlimited_data}
@@ -2453,7 +2458,7 @@ export default function PlansPage() {
 
             {/* FUP Settings */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Fair Usage Policy (FUP)</h3>
                 <div className="flex items-center gap-2">
                   <Switch checked={planForm.fup_enabled}
@@ -2510,11 +2515,11 @@ export default function PlansPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+          <DialogFooter className="sticky -bottom-4 z-10 border-t bg-background/95 pt-3 backdrop-blur sm:-bottom-6">
+            <Button variant="outline" onClick={() => setIsEditOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleUpdate} disabled={isSubmitting}>
+            <Button onClick={handleUpdate} disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Update Plan
             </Button>
@@ -2524,7 +2529,7 @@ export default function PlansPage() {
 
       {/* Hotspot Create / Edit Dialog — UPDATED with Valid Days UI */}
       <Dialog open={isHotspotCreateOpen} onOpenChange={(open) => { if (!open) { setIsHotspotCreateOpen(false); resetHotspotForm() } }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Wifi className="w-5 h-5 text-primary" />
@@ -2547,7 +2552,7 @@ export default function PlansPage() {
             </div>
 
             {/* Validity */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Validity</Label>
                 {hotspotForm.validity_type !== 'UNLIMITED' && (
@@ -2610,7 +2615,7 @@ export default function PlansPage() {
             </div>
 
             {/* Speed */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Download (Mbps)</Label>
                 <Input type="number" value={hotspotForm.download_speed}
@@ -2635,9 +2640,9 @@ export default function PlansPage() {
 
             {/* Data Limit — NEW SECTION */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <Label className="text-sm font-medium">Data Limit</Label>
-                <div className="flex rounded-lg border overflow-hidden text-sm">
+                <div className="grid grid-cols-2 overflow-hidden rounded-lg border text-sm">
                   <button
                     type="button"
                     onClick={() => setHotspotForm({ ...hotspotForm, limitation_type: 'UNLIMITED' })}
@@ -2664,7 +2669,7 @@ export default function PlansPage() {
               </div>
 
               {hotspotForm.limitation_type === 'DATA' && (
-                <div className="flex gap-2 items-center p-3 bg-warning/10 border border-warning/20 rounded-lg">
+                <div className="grid gap-2 rounded-lg border border-warning/20 bg-warning/10 p-3 sm:grid-cols-[1fr_auto] sm:items-center">
                   <div className="flex-1 space-y-1">
                     <Label className="text-xs text-warning">Data Cap</Label>
                     <Input
@@ -2748,8 +2753,8 @@ export default function PlansPage() {
               const isFreeTrial = hotspotForm.is_free_trial || false
 
               return (
-                <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center gap-3 flex-1">
+                <div className="flex flex-col gap-3 rounded-lg border border-green-200 bg-green-50 p-3 sm:flex-row sm:items-center">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     <Switch
                       checked={isFreeTrial}
                       onCheckedChange={(c) => {
@@ -2762,14 +2767,14 @@ export default function PlansPage() {
                       disabled={hasFreeTrial}
                       className={hasFreeTrial ? 'opacity-50 cursor-not-allowed' : ''}
                     />
-                    <Label className="text-sm flex items-center gap-1">
+                    <Label className="flex min-w-0 flex-wrap items-center gap-1 text-sm">
                       <Zap className="w-3 h-3 inline text-green-500" />
                       Free Trial
                       <span className="text-xs text-muted-foreground ml-1">(1 per device ever)</span>
                     </Label>
                   </div>
                   {hasFreeTrial && (
-                    <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                    <span className="w-fit text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
                       ⚠️ Router already has a free trial
                     </span>
                   )}
@@ -2811,9 +2816,9 @@ export default function PlansPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setIsHotspotCreateOpen(false); resetHotspotForm() }}>Cancel</Button>
-            <Button onClick={handleHotspotCustomCreate} disabled={hotspotCreating || !hotspotForm.name || !hotspotForm.price}>
+          <DialogFooter className="sticky -bottom-4 z-10 border-t bg-background/95 pt-3 backdrop-blur sm:-bottom-6">
+            <Button variant="outline" onClick={() => { setIsHotspotCreateOpen(false); resetHotspotForm() }} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={handleHotspotCustomCreate} disabled={hotspotCreating || !hotspotForm.name || !hotspotForm.price} className="w-full sm:w-auto">
               {hotspotCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isEditingHotspot ? 'Update Hotspot Plan' : 'Create Hotspot Plan'}
             </Button>
@@ -2869,7 +2874,7 @@ export default function PlansPage() {
 
               <Separator />
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
                 {selectedPlan.download_speed && (
                   <div>
                     <p className="text-muted-foreground">Download Speed</p>
