@@ -1332,20 +1332,26 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       })
   }, [routerId, loginUrl, autoLoginChecked])
 
-  // ── FIX 5: Load hotspot plans + portal config with sessionStorage cache ──
+  // ── 🔥 OPTIMIZATION: Load hotspot plans + portal config with sessionStorage cache + timestamp TTL ──
+  // Cache carries a timestamp; skip the network call entirely if it's under 20s old
+  // (matches backend cache_version TTL window)
   useEffect(() => {
     const cacheKey = `portal_cache:${routerId}`
     const cached = sessionStorage.getItem(cacheKey)
     let hasCachedData = false
-    
+
     if (cached) {
       try {
         const data = JSON.parse(cached)
         setPlans(data.plans || [])
         setPortalConfig(data.portal_config || null)
         setBranding(data.branding || null)
-        setLoading(false) // paint immediately, no spinner
+        setLoading(false)
         hasCachedData = true
+        // 🔥 If cache is less than 20 seconds old, skip the network round trip entirely
+        if (Date.now() - (data._cachedAt || 0) < 20000) {
+          return // fresh enough — no network call
+        }
       } catch {
         // Invalid cache, ignore
       }
@@ -1357,9 +1363,9 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
         setPortalConfig(data.portal_config || null)
         setBranding(data.branding || null)
         setLoading(false)
-        // Store in sessionStorage for next visit
+        // Store in sessionStorage with timestamp for TTL check
         try {
-          sessionStorage.setItem(cacheKey, JSON.stringify(data))
+          sessionStorage.setItem(cacheKey, JSON.stringify({ ...data, _cachedAt: Date.now() }))
         } catch {
           // Storage full or unavailable — ignore
         }
