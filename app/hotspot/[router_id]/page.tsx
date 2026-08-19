@@ -1391,10 +1391,14 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     }
   }, [routerId, canonicalUsername]) // No `loading` dependency — fires in parallel with plans fetch
 
-  // ── Poll payment status ──
+  // ── Poll payment status — ADAPTIVE POLLING (1.2s first 10 attempts, then 3s) ──
   useEffect(() => {
     if (paymentStatus !== "waiting" || !sessionId) return
-    const pollInterval = setInterval(async () => {
+
+    let attempt = 0
+    let timer: ReturnType<typeof setTimeout>
+
+    const tick = async () => {
       try {
         const result = await pollPurchaseStatus(sessionId, loginUrl, getTenant())
         
@@ -1403,27 +1407,33 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
           setAccessCode(result.access_code || null)
           setExpiresAt(result.expires_at || null)
           if (result.access_code) setCanonicalUsername(result.access_code)
-          clearInterval(pollInterval)
           
-          // ✅ FIXED: Capture access_code in local const for setTimeout
+          // RADIUS creds are already committed server-side by the time this response lands,
+          // there is nothing left to wait for — submit immediately
           if (loginUrl && result.access_code && targetDevice !== "tv") {
-            const accessCode = result.access_code
             setReturningToRouter(true)
-            setTimeout(() => {
-              submitRouterLogin(loginUrl, accessCode, accessCode)
-            }, 1500)
+            submitRouterLogin(loginUrl, result.access_code, result.access_code)
           }
+          return
+        }
 
-        } else if (result.status === "failed") {
+        if (result.status === "failed") {
           setPaymentStatus("failed")
           setError(result.message || "Payment failed")
-          clearInterval(pollInterval)
+          return
         }
       } catch {
-        /* polling error — will retry on next tick */
+        /* retry on next tick */
       }
-    }, 3000)
-    return () => clearInterval(pollInterval)
+
+      attempt++
+      // Tight polling for the first ~15s (M-Pesa confirmations usually land
+      // within a couple seconds of PIN entry), then back off to save requests.
+      timer = setTimeout(tick, attempt < 10 ? 1200 : 3000)
+    }
+
+    timer = setTimeout(tick, 1200)
+    return () => clearTimeout(timer)
   }, [paymentStatus, sessionId, loginUrl, targetDevice])
 
   // ── Countdown for phone payment ──
@@ -1518,13 +1528,10 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       setSelectedPlan(plan)
       setPaymentStatus('success')
       
-      // ✅ FIXED: Capture access_code in local const for setTimeout
+      // RADIUS creds are already committed server-side, submit immediately
       if (loginUrl && result.access_code && targetDevice !== "tv") {
-        const accessCode = result.access_code
         setReturningToRouter(true)
-        setTimeout(() => {
-          submitRouterLogin(loginUrl, accessCode, accessCode)
-        }, 1500)
+        submitRouterLogin(loginUrl, result.access_code, result.access_code)
       }
     } catch (err: any) {
       if (err.message?.includes('already used') || err.message?.includes('already claimed')) {
@@ -1640,13 +1647,10 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       setExpiresAt(result.expires_at)
       setPaymentStatus("success")
 
-      // ✅ FIXED: Capture access_code in local const for setTimeout
+      // RADIUS creds are already committed server-side, submit immediately
       if (loginUrl && result.access_code && targetDevice !== "tv") {
-        const accessCode = result.access_code
         setReturningToRouter(true)
-        setTimeout(() => {
-          submitRouterLogin(loginUrl, accessCode, accessCode)
-        }, 1500)
+        submitRouterLogin(loginUrl, result.access_code, result.access_code)
       }
     } catch (err: unknown) {
       setVoucherError(err instanceof Error ? err.message : "Voucher redemption failed")
@@ -1693,13 +1697,11 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       })
       setShowPhoneModal(false)
       setPaymentStatus('success')
-      // ✅ FIXED: Capture credentials in local const for setTimeout
+      // RADIUS creds are already committed server-side, submit immediately
       if (loginUrl && result.credentials) {
         const { username, password } = result.credentials
         setReturningToRouter(true)
-        setTimeout(() => {
-          submitRouterLogin(loginUrl, username, password)
-        }, 1500)
+        submitRouterLogin(loginUrl, username, password)
       }
     } catch (err: any) {
       // Surface specific backend messages (slots full, expired, etc.)
@@ -1754,13 +1756,10 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       })
       setShowAdModal(false)
       setPaymentStatus('success')
-      // ✅ FIXED: Capture access_code in local const for setTimeout
+      // RADIUS creds are already committed server-side, submit immediately
       if (loginUrl && result.access_code) {
-        const accessCode = result.access_code
         setReturningToRouter(true)
-        setTimeout(() => {
-          submitRouterLogin(loginUrl, accessCode, accessCode)
-        }, 1500)
+        submitRouterLogin(loginUrl, result.access_code, result.access_code)
       }
     } catch (err: any) {
       setAdError(err.message || 'Could not grant access. Please try again.')
@@ -2776,13 +2775,10 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
                                 r => r.points_cost <= result.points_remaining
                               ),
                             } : null)
-                            // ✅ FIXED: Capture access_code in local const for setTimeout
+                            // RADIUS creds are already committed server-side, submit immediately
                             if (loginUrl && result.access_code) {
-                              const accessCode = result.access_code
                               setReturningToRouter(true)
-                              setTimeout(() => {
-                                submitRouterLogin(loginUrl, accessCode, accessCode)
-                              }, 1500)
+                              submitRouterLogin(loginUrl, result.access_code, result.access_code)
                             }
                           } catch (err: any) {
                             setRedeemError(err.message || 'Redemption failed. Try again.')
