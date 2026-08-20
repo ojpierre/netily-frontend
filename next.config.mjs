@@ -7,6 +7,12 @@ const nextConfig = {
   },
   // Remove X-Powered-By header (security hygiene)
   poweredByHeader: false,
+  // --- NEW: Production bundle optimizations ---
+  productionBrowserSourceMaps: false,   // stop shipping sourcemaps to the client
+  compress: true,
+  experimental: {
+    optimizePackageImports: ['lucide-react'],  // tree-shakes icon imports automatically
+  },
   images: {
     unoptimized: true,
     remotePatterns: [
