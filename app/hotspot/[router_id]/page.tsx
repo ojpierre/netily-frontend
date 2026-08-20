@@ -3,12 +3,20 @@
 import { use, useEffect, useState, useMemo, useRef } from "react"
 import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users, Ticket, Monitor, Smartphone } from "lucide-react"
 import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
+import dynamic from "next/dynamic"
+import { getTheme, type ThemeStyles } from "./theme-engine"
+
+// Lazy-load modals with ssr: false
+const PaymentModal = dynamic(() => import("./PaymentModal"), { ssr: false })
+const AdVideoModal = dynamic(() => import("./AdVideoModal"), { ssr: false })
+const LoyaltyRedeemModal = dynamic(() => import("./LoyaltyRedeemModal"), { ssr: false })
+const PhoneReconnectModal = dynamic(() => import("./PhoneReconnectModal"), { ssr: false })
 
 // ==========================================
-// TYPES
+// TYPES - EXPORTED for use in modal components
 // ==========================================
 
-interface HotspotPlan {
+export interface HotspotPlan {
   id: string
   name: string
   description?: string
@@ -39,7 +47,7 @@ interface HotspotPlan {
   is_tv_plan?: boolean
 }
 
-interface PortalConfig {
+export interface PortalConfig {
   template_id: number
   hotspot_name: string
   support_phone: string
@@ -49,7 +57,7 @@ interface PortalConfig {
   hide_plan_speed?: boolean
 }
 
-interface BrandingConfig {
+export interface BrandingConfig {
   company_name?: string
   logo_url?: string | null
   background_image_url?: string | null
@@ -96,7 +104,7 @@ interface AutoLoginResponse {
   }
 }
 
-interface HotspotAd {
+export interface HotspotAd {
   id: number
   name: string
   media_url: string
@@ -119,7 +127,7 @@ type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "ti
 
 // ─── Loyalty types ───────────────────────────────────────────────────────────
 
-interface LoyaltyRewardItem {
+export interface LoyaltyRewardItem {
   id: number
   name: string
   description: string
@@ -128,7 +136,7 @@ interface LoyaltyRewardItem {
   reward_speed_mbps: string
 }
 
-interface HotspotLoyaltyData {
+export interface HotspotLoyaltyData {
   program_active: boolean
   has_loyalty: boolean
   member_id?: number
@@ -506,592 +514,10 @@ function getLoginUrl(): string {
 }
 
 // ==========================================
-// AUTO-COMPLETE IMAGE AD COMPONENT
-// ==========================================
-function AutoCompleteImage({ onComplete }: { onComplete: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onComplete, 5000)
-    return () => clearTimeout(t)
-  }, [onComplete])
-  return null
-}
-
-// ==========================================
-// TEMPLATE STYLE ENGINE (13 themes)
+// PHONE INPUT COMPONENT (DRY helper) - EXPORTED
 // ==========================================
 
-interface ThemeStyles {
-  pageBg: string
-  cardClass: string
-  headerBg: string
-  headerText: string
-  headerSub: string
-  annBg: string
-  annText: string
-  annIcon: string
-  planSelectedBorder: string
-  planSelectedBg: string
-  planBorder: string
-  planBg: string
-  planTitle: string
-  planSub: string
-  planPrice: string
-  planPopularBg: string
-  planPopularText: string
-  inputBorder: string
-  inputBg: string
-  inputText: string
-  inputPlaceholder: string
-  ctaBg: string
-  ctaText: string
-  ctaHover: string
-  bodyText: string
-  mutedText: string
-  footerText: string
-  errorBg: string
-  errorText: string
-  successBg: string
-  successPageBg: string
-  // Layout variations
-  layoutType: "grid" | "list" | "featured" | "compact"
-  // Structural variations
-  headerStyle: "centered" | "left-aligned" | "large-hero" | "minimal"
-  cardShape: "rounded-2xl" | "rounded-3xl" | "rounded-none" | "rounded-lg"
-  ctaStyle: "full-width" | "centered" | "pill"
-  showPhoneBeforePlans: boolean
-  showWifiIcon: boolean
-}
-
-function getTheme(id: number): ThemeStyles {
-  switch (id) {
-    case 2: // Dark Mode - Featured Layout (Cyberpunk style)
-      return {
-        layoutType: "featured",
-        headerStyle: "large-hero",
-        cardShape: "rounded-2xl",
-        ctaStyle: "full-width",
-        showPhoneBeforePlans: false,
-        showWifiIcon: true,
-        pageBg: "min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800",
-        cardClass: "bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl",
-        headerBg: "bg-gradient-to-r from-cyan-600 to-blue-600",
-        headerText: "text-white",
-        headerSub: "text-cyan-100/80",
-        annBg: "bg-cyan-950/40 border border-cyan-700/30",
-        annText: "text-cyan-200",
-        annIcon: "text-cyan-400",
-        planSelectedBorder: "border-cyan-500",
-        planSelectedBg: "bg-cyan-950/40",
-        planBorder: "border-gray-700/50",
-        planBg: "bg-gray-800/50",
-        planTitle: "text-white",
-        planSub: "text-gray-400",
-        planPrice: "text-cyan-400",
-        planPopularBg: "bg-cyan-500",
-        planPopularText: "text-white",
-        inputBorder: "border-gray-600",
-        inputBg: "bg-gray-800",
-        inputText: "text-white",
-        inputPlaceholder: "placeholder:text-gray-500",
-        ctaBg: "bg-cyan-500 hover:bg-cyan-400",
-        ctaText: "text-white",
-        ctaHover: "hover:shadow-cyan-500/25",
-        bodyText: "text-gray-200",
-        mutedText: "text-gray-400",
-        footerText: "text-gray-600",
-        errorBg: "bg-red-950/40 border-red-700/30",
-        errorText: "text-red-400",
-        successBg: "bg-emerald-950/40",
-        successPageBg: "min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800",
-      }
-    case 3: // Gradient - List Layout (Vibrant gradient style)
-      return {
-        layoutType: "list",
-        headerStyle: "centered",
-        cardShape: "rounded-3xl",
-        ctaStyle: "pill",
-        showPhoneBeforePlans: true,
-        showWifiIcon: true,
-        pageBg: "min-h-screen bg-gradient-to-br from-purple-700 via-fuchsia-600 to-pink-500",
-        cardClass: "bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl",
-        headerBg: "bg-gradient-to-r from-purple-600 to-pink-500",
-        headerText: "text-white",
-        headerSub: "text-purple-100/80",
-        annBg: "bg-purple-50 border border-purple-200",
-        annText: "text-purple-700",
-        annIcon: "text-purple-500",
-        planSelectedBorder: "border-purple-500",
-        planSelectedBg: "bg-purple-50",
-        planBorder: "border-gray-200",
-        planBg: "bg-white",
-        planTitle: "text-gray-900",
-        planSub: "text-gray-500",
-        planPrice: "text-purple-600",
-        planPopularBg: "bg-purple-500",
-        planPopularText: "text-white",
-        inputBorder: "border-gray-300",
-        inputBg: "bg-white",
-        inputText: "text-gray-900",
-        inputPlaceholder: "placeholder:text-gray-400",
-        ctaBg: "bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600",
-        ctaText: "text-white",
-        ctaHover: "hover:shadow-purple-500/25",
-        bodyText: "text-gray-700",
-        mutedText: "text-gray-500",
-        footerText: "text-gray-400",
-        errorBg: "bg-red-50 border-red-200",
-        errorText: "text-red-700",
-        successBg: "bg-green-50",
-        successPageBg: "min-h-screen bg-gradient-to-br from-emerald-600 to-teal-500",
-      }
-    case 4: // Minimal - Compact Layout (Clean, Apple-like)
-      return {
-        layoutType: "compact",
-        headerStyle: "minimal",
-        cardShape: "rounded-lg",
-        ctaStyle: "full-width",
-        showPhoneBeforePlans: false,
-        showWifiIcon: false,
-        pageBg: "min-h-screen bg-white",
-        cardClass: "bg-white rounded-2xl shadow-sm border border-gray-100",
-        headerBg: "bg-white border-b border-gray-100",
-        headerText: "text-gray-900",
-        headerSub: "text-gray-500",
-        annBg: "bg-gray-50 border border-gray-200",
-        annText: "text-gray-700",
-        annIcon: "text-gray-500",
-        planSelectedBorder: "border-gray-900",
-        planSelectedBg: "bg-gray-50",
-        planBorder: "border-gray-200",
-        planBg: "bg-white",
-        planTitle: "text-gray-900",
-        planSub: "text-gray-500",
-        planPrice: "text-gray-900",
-        planPopularBg: "bg-gray-900",
-        planPopularText: "text-white",
-        inputBorder: "border-gray-300",
-        inputBg: "bg-white",
-        inputText: "text-gray-900",
-        inputPlaceholder: "placeholder:text-gray-400",
-        ctaBg: "bg-gray-900 hover:bg-gray-800",
-        ctaText: "text-white",
-        ctaHover: "",
-        bodyText: "text-gray-700",
-        mutedText: "text-gray-400",
-        footerText: "text-gray-300",
-        errorBg: "bg-red-50 border-red-200",
-        errorText: "text-red-700",
-        successBg: "bg-green-50",
-        successPageBg: "min-h-screen bg-white",
-      }
-    case 5: // Vibrant - Grid Layout (Energetic, event-poster style)
-      return {
-        layoutType: "grid",
-        headerStyle: "large-hero",
-        cardShape: "rounded-2xl",
-        ctaStyle: "pill",
-        showPhoneBeforePlans: false,
-        showWifiIcon: true,
-        pageBg: "min-h-screen bg-gradient-to-br from-amber-400 via-orange-500 to-red-500",
-        cardClass: "bg-white rounded-2xl shadow-2xl",
-        headerBg: "bg-gradient-to-r from-amber-500 to-orange-500",
-        headerText: "text-white",
-        headerSub: "text-amber-100/80",
-        annBg: "bg-amber-50 border border-amber-200",
-        annText: "text-amber-800",
-        annIcon: "text-amber-600",
-        planSelectedBorder: "border-orange-500",
-        planSelectedBg: "bg-orange-50",
-        planBorder: "border-gray-200",
-        planBg: "bg-white",
-        planTitle: "text-gray-900",
-        planSub: "text-gray-500",
-        planPrice: "text-orange-600",
-        planPopularBg: "bg-orange-500",
-        planPopularText: "text-white",
-        inputBorder: "border-gray-300",
-        inputBg: "bg-white",
-        inputText: "text-gray-900",
-        inputPlaceholder: "placeholder:text-gray-400",
-        ctaBg: "bg-orange-500 hover:bg-orange-600",
-        ctaText: "text-white",
-        ctaHover: "hover:shadow-orange-500/25",
-        bodyText: "text-gray-700",
-        mutedText: "text-gray-500",
-        footerText: "text-gray-400",
-        errorBg: "bg-red-50 border-red-200",
-        errorText: "text-red-700",
-        successBg: "bg-green-50",
-        successPageBg: "min-h-screen bg-gradient-to-br from-emerald-400 to-green-500",
-      }
-    case 6: // Corporate - Featured Layout (Enterprise, boardroom style)
-      return {
-        layoutType: "featured",
-        headerStyle: "left-aligned",
-        cardShape: "rounded-lg",
-        ctaStyle: "full-width",
-        showPhoneBeforePlans: true,
-        showWifiIcon: false,
-        pageBg: "min-h-screen bg-gradient-to-b from-slate-50 to-slate-200",
-        cardClass: "bg-white rounded-2xl shadow-lg border border-slate-200",
-        headerBg: "bg-slate-800",
-        headerText: "text-white",
-        headerSub: "text-slate-300",
-        annBg: "bg-slate-50 border border-slate-200",
-        annText: "text-slate-700",
-        annIcon: "text-slate-500",
-        planSelectedBorder: "border-slate-700",
-        planSelectedBg: "bg-slate-50",
-        planBorder: "border-slate-200",
-        planBg: "bg-white",
-        planTitle: "text-slate-900",
-        planSub: "text-slate-500",
-        planPrice: "text-slate-800",
-        planPopularBg: "bg-slate-700",
-        planPopularText: "text-white",
-        inputBorder: "border-slate-300",
-        inputBg: "bg-white",
-        inputText: "text-slate-900",
-        inputPlaceholder: "placeholder:text-slate-400",
-        ctaBg: "bg-slate-800 hover:bg-slate-700",
-        ctaText: "text-white",
-        ctaHover: "",
-        bodyText: "text-slate-700",
-        mutedText: "text-slate-400",
-        footerText: "text-slate-400",
-        errorBg: "bg-red-50 border-red-200",
-        errorText: "text-red-700",
-        successBg: "bg-green-50",
-        successPageBg: "min-h-screen bg-gradient-to-b from-emerald-50 to-emerald-100",
-      }
-    case 7: // Glass - List Layout (Glassmorphism, futuristic)
-      return {
-        layoutType: "list",
-        headerStyle: "centered",
-        cardShape: "rounded-3xl",
-        ctaStyle: "centered",
-        showPhoneBeforePlans: false,
-        showWifiIcon: true,
-        pageBg: "min-h-screen bg-gradient-to-br from-teal-500 via-cyan-500 to-blue-600",
-        cardClass: "bg-white/15 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl",
-        headerBg: "bg-white/10",
-        headerText: "text-white",
-        headerSub: "text-white/70",
-        annBg: "bg-white/10 border border-white/15",
-        annText: "text-white/90",
-        annIcon: "text-white/70",
-        planSelectedBorder: "border-white/60",
-        planSelectedBg: "bg-white/15",
-        planBorder: "border-white/15",
-        planBg: "bg-white/5",
-        planTitle: "text-white",
-        planSub: "text-white/60",
-        planPrice: "text-white",
-        planPopularBg: "bg-white/25",
-        planPopularText: "text-white",
-        inputBorder: "border-white/20",
-        inputBg: "bg-white/10",
-        inputText: "text-white",
-        inputPlaceholder: "placeholder:text-white/40",
-        ctaBg: "bg-white hover:bg-white/90",
-        ctaText: "text-teal-700 font-bold",
-        ctaHover: "hover:shadow-white/20",
-        bodyText: "text-white/80",
-        mutedText: "text-white/50",
-        footerText: "text-white/30",
-        errorBg: "bg-red-500/20 border-red-400/30",
-        errorText: "text-red-200",
-        successBg: "bg-emerald-500/20",
-        successPageBg: "min-h-screen bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600",
-      }
-    case 8: // Neon Noir
-      return {
-        layoutType: "grid",
-        headerStyle: "centered",
-        cardShape: "rounded-2xl",
-        ctaStyle: "full-width",
-        showPhoneBeforePlans: false,
-        showWifiIcon: true,
-        pageBg: "min-h-screen bg-gray-950",
-        cardClass: "bg-gray-900 border border-violet-500/20 rounded-2xl shadow-2xl shadow-violet-900/20",
-        headerBg: "bg-gradient-to-r from-violet-900 to-purple-900",
-        headerText: "text-white",
-        headerSub: "text-violet-300/70",
-        annBg: "bg-violet-950/50 border border-violet-700/30",
-        annText: "text-violet-200",
-        annIcon: "text-violet-400",
-        planSelectedBorder: "border-violet-500",
-        planSelectedBg: "bg-violet-950/40",
-        planBorder: "border-gray-700/50",
-        planBg: "bg-gray-800/60",
-        planTitle: "text-white",
-        planSub: "text-gray-400",
-        planPrice: "text-violet-400",
-        planPopularBg: "bg-violet-500",
-        planPopularText: "text-white",
-        inputBorder: "border-gray-700",
-        inputBg: "bg-gray-800",
-        inputText: "text-white",
-        inputPlaceholder: "placeholder:text-gray-600",
-        ctaBg: "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500",
-        ctaText: "text-white",
-        ctaHover: "hover:shadow-violet-500/30",
-        bodyText: "text-gray-300",
-        mutedText: "text-gray-500",
-        footerText: "text-gray-700",
-        errorBg: "bg-red-950/40 border-red-700/30",
-        errorText: "text-red-400",
-        successBg: "bg-violet-950/40",
-        successPageBg: "min-h-screen bg-gray-950",
-      }
-    case 9: // Safari Warmth
-      return {
-        layoutType: "list",
-        headerStyle: "left-aligned",
-        cardShape: "rounded-2xl",
-        ctaStyle: "full-width",
-        showPhoneBeforePlans: false,
-        showWifiIcon: false,
-        pageBg: "min-h-screen bg-amber-50",
-        cardClass: "bg-white rounded-2xl shadow-lg border border-amber-100",
-        headerBg: "bg-amber-800",
-        headerText: "text-amber-50",
-        headerSub: "text-amber-200",
-        annBg: "bg-amber-100 border border-amber-300",
-        annText: "text-amber-900",
-        annIcon: "text-amber-700",
-        planSelectedBorder: "border-amber-700",
-        planSelectedBg: "bg-amber-50",
-        planBorder: "border-amber-100",
-        planBg: "bg-white",
-        planTitle: "text-gray-900",
-        planSub: "text-amber-700",
-        planPrice: "text-amber-800",
-        planPopularBg: "bg-amber-700",
-        planPopularText: "text-white",
-        inputBorder: "border-amber-200",
-        inputBg: "bg-white",
-        inputText: "text-gray-900",
-        inputPlaceholder: "placeholder:text-amber-300",
-        ctaBg: "bg-amber-700 hover:bg-amber-800",
-        ctaText: "text-white",
-        ctaHover: "",
-        bodyText: "text-gray-700",
-        mutedText: "text-amber-600",
-        footerText: "text-amber-300",
-        errorBg: "bg-red-50 border-red-200",
-        errorText: "text-red-700",
-        successBg: "bg-green-50",
-        successPageBg: "min-h-screen bg-amber-50",
-      }
-    case 10: // Ocean Breeze
-      return {
-        layoutType: "grid",
-        headerStyle: "large-hero",
-        cardShape: "rounded-2xl",
-        ctaStyle: "pill",
-        showPhoneBeforePlans: false,
-        showWifiIcon: true,
-        pageBg: "min-h-screen bg-gradient-to-b from-sky-400 to-teal-500",
-        cardClass: "bg-white/95 rounded-2xl shadow-2xl",
-        headerBg: "bg-gradient-to-r from-sky-500 to-teal-500",
-        headerText: "text-white",
-        headerSub: "text-sky-100",
-        annBg: "bg-sky-50 border border-sky-200",
-        annText: "text-sky-800",
-        annIcon: "text-sky-500",
-        planSelectedBorder: "border-teal-500",
-        planSelectedBg: "bg-teal-50",
-        planBorder: "border-gray-200",
-        planBg: "bg-white",
-        planTitle: "text-gray-900",
-        planSub: "text-gray-500",
-        planPrice: "text-teal-600",
-        planPopularBg: "bg-teal-500",
-        planPopularText: "text-white",
-        inputBorder: "border-gray-200",
-        inputBg: "bg-white",
-        inputText: "text-gray-900",
-        inputPlaceholder: "placeholder:text-gray-400",
-        ctaBg: "bg-teal-500 hover:bg-teal-600",
-        ctaText: "text-white",
-        ctaHover: "hover:shadow-teal-500/25",
-        bodyText: "text-gray-700",
-        mutedText: "text-gray-500",
-        footerText: "text-gray-400",
-        errorBg: "bg-red-50 border-red-200",
-        errorText: "text-red-700",
-        successBg: "bg-teal-50",
-        successPageBg: "min-h-screen bg-gradient-to-b from-sky-400 to-teal-500",
-      }
-    case 11: // Midnight Luxury
-      return {
-        layoutType: "featured",
-        headerStyle: "centered",
-        cardShape: "rounded-2xl",
-        ctaStyle: "full-width",
-        showPhoneBeforePlans: true,
-        showWifiIcon: false,
-        pageBg: "min-h-screen bg-slate-900",
-        cardClass: "bg-slate-800 border border-yellow-500/10 rounded-2xl shadow-2xl",
-        headerBg: "bg-gradient-to-r from-slate-900 to-slate-800 border-b border-yellow-500/20",
-        headerText: "text-yellow-400",
-        headerSub: "text-slate-400",
-        annBg: "bg-yellow-950/30 border border-yellow-700/30",
-        annText: "text-yellow-200",
-        annIcon: "text-yellow-500",
-        planSelectedBorder: "border-yellow-500",
-        planSelectedBg: "bg-yellow-950/20",
-        planBorder: "border-slate-700",
-        planBg: "bg-slate-700/50",
-        planTitle: "text-white",
-        planSub: "text-slate-400",
-        planPrice: "text-yellow-400",
-        planPopularBg: "bg-yellow-500",
-        planPopularText: "text-slate-900",
-        inputBorder: "border-slate-600",
-        inputBg: "bg-slate-700",
-        inputText: "text-white",
-        inputPlaceholder: "placeholder:text-slate-500",
-        ctaBg: "bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400",
-        ctaText: "text-slate-900 font-bold",
-        ctaHover: "hover:shadow-yellow-500/20",
-        bodyText: "text-slate-300",
-        mutedText: "text-slate-500",
-        footerText: "text-slate-700",
-        errorBg: "bg-red-950/40 border-red-700/30",
-        errorText: "text-red-400",
-        successBg: "bg-yellow-950/30",
-        successPageBg: "min-h-screen bg-slate-900",
-      }
-    case 12: // Blossom
-      return {
-        layoutType: "list",
-        headerStyle: "centered",
-        cardShape: "rounded-3xl",
-        ctaStyle: "pill",
-        showPhoneBeforePlans: false,
-        showWifiIcon: true,
-        pageBg: "min-h-screen bg-gradient-to-br from-rose-50 to-pink-100",
-        cardClass: "bg-white rounded-3xl shadow-xl border border-pink-100",
-        headerBg: "bg-gradient-to-r from-pink-400 to-rose-400",
-        headerText: "text-white",
-        headerSub: "text-pink-100",
-        annBg: "bg-pink-50 border border-pink-200",
-        annText: "text-pink-700",
-        annIcon: "text-pink-400",
-        planSelectedBorder: "border-pink-400",
-        planSelectedBg: "bg-pink-50",
-        planBorder: "border-pink-100",
-        planBg: "bg-white",
-        planTitle: "text-gray-900",
-        planSub: "text-gray-400",
-        planPrice: "text-pink-500",
-        planPopularBg: "bg-pink-400",
-        planPopularText: "text-white",
-        inputBorder: "border-pink-200",
-        inputBg: "bg-white",
-        inputText: "text-gray-900",
-        inputPlaceholder: "placeholder:text-pink-300",
-        ctaBg: "bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500",
-        ctaText: "text-white",
-        ctaHover: "hover:shadow-pink-400/25",
-        bodyText: "text-gray-700",
-        mutedText: "text-gray-400",
-        footerText: "text-pink-200",
-        errorBg: "bg-red-50 border-red-200",
-        errorText: "text-red-700",
-        successBg: "bg-pink-50",
-        successPageBg: "min-h-screen bg-gradient-to-br from-rose-50 to-pink-100",
-      }
-    case 13: // Neumorphic - Soft, embossed clock-app style
-      return {
-        layoutType: "list",
-        headerStyle: "minimal",
-        cardShape: "rounded-3xl",
-        ctaStyle: "full-width",
-        showPhoneBeforePlans: false,
-        showWifiIcon: true,
-        pageBg: "min-h-screen bg-[#e6e9f0]",
-        cardClass: "bg-[#e6e9f0] rounded-3xl shadow-[10px_10px_20px_#c2c8d6,-10px_-10px_20px_#ffffff]",
-        headerBg: "bg-[#e6e9f0]",
-        headerText: "text-slate-800",
-        headerSub: "text-slate-500",
-        annBg: "bg-[#e6e9f0] shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff]",
-        annText: "text-slate-600",
-        annIcon: "text-slate-500",
-        planSelectedBorder: "border-transparent",
-        planSelectedBg: "bg-[#e6e9f0] shadow-[inset_4px_4px_8px_#c2c8d6,inset_-4px_-4px_8px_#ffffff]",
-        planBorder: "border-transparent",
-        planBg: "bg-[#e6e9f0] shadow-[6px_6px_12px_#c2c8d6,-6px_-6px_12px_#ffffff]",
-        planTitle: "text-slate-800",
-        planSub: "text-slate-500",
-        planPrice: "text-slate-700",
-        planPopularBg: "bg-[#e6e9f0] shadow-[inset_2px_2px_4px_#c2c8d6,inset_-2px_-2px_4px_#ffffff]",
-        planPopularText: "text-slate-600",
-        inputBorder: "border-transparent",
-        inputBg: "bg-[#e6e9f0] shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff]",
-        inputText: "text-slate-700",
-        inputPlaceholder: "placeholder:text-slate-400",
-        ctaBg: "bg-[#e6e9f0] shadow-[6px_6px_12px_#c2c8d6,-6px_-6px_12px_#ffffff] hover:shadow-[3px_3px_6px_#c2c8d6,-3px_-3px_6px_#ffffff] active:shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff]",
-        ctaText: "text-slate-700 font-bold",
-        ctaHover: "",
-        bodyText: "text-slate-600",
-        mutedText: "text-slate-400",
-        footerText: "text-slate-400",
-        errorBg: "bg-[#e6e9f0] shadow-[inset_3px_3px_6px_#e0b8b8,inset_-3px_-3px_6px_#ffffff]",
-        errorText: "text-red-500",
-        successBg: "bg-[#e6e9f0] shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff]",
-        successPageBg: "min-h-screen bg-[#e6e9f0]",
-      }
-    default: // Classic (1) - Grid Layout (Professional, ISP standard)
-      return {
-        layoutType: "grid",
-        headerStyle: "centered",
-        cardShape: "rounded-2xl",
-        ctaStyle: "full-width",
-        showPhoneBeforePlans: false,
-        showWifiIcon: true,
-        pageBg: "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100",
-        cardClass: "bg-white rounded-2xl shadow-xl",
-        headerBg: "bg-blue-600",
-        headerText: "text-white",
-        headerSub: "text-white/80",
-        annBg: "bg-blue-50 border border-blue-200",
-        annText: "text-blue-700",
-        annIcon: "text-blue-500",
-        planSelectedBorder: "border-blue-500",
-        planSelectedBg: "bg-blue-50",
-        planBorder: "border-gray-200",
-        planBg: "bg-white",
-        planTitle: "text-gray-900",
-        planSub: "text-gray-500",
-        planPrice: "text-blue-600",
-        planPopularBg: "bg-blue-500",
-        planPopularText: "text-white",
-        inputBorder: "border-gray-300",
-        inputBg: "bg-white",
-        inputText: "text-gray-900",
-        inputPlaceholder: "placeholder:text-gray-400",
-        ctaBg: "bg-blue-600 hover:bg-blue-700",
-        ctaText: "text-white",
-        ctaHover: "",
-        bodyText: "text-gray-700",
-        mutedText: "text-gray-500",
-        footerText: "text-gray-400",
-        errorBg: "bg-red-50 border-red-200",
-        errorText: "text-red-700",
-        successBg: "bg-green-50",
-        successPageBg: "min-h-screen bg-gradient-to-br from-green-50 to-emerald-100",
-      }
-  }
-}
-
-// ==========================================
-// PHONE INPUT COMPONENT (DRY helper)
-// ==========================================
-
-function PhoneInput({
+export function PhoneInput({
   phoneNumber,
   phoneError,
   onPhoneChange,
@@ -1497,8 +923,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     }
     if (!lastFour.endsWith(inputNorm) && !lastFour.includes(inputNorm)) {
       setTvMacError("MAC digits don't match. Check your TV's Settings → About → MAC Address")
-      return
-    }
+      return    }
     setTvMacVerified(true)
     setTvMacError(null)
   }
@@ -1771,6 +1196,61 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       setAdError(err.message || 'Could not grant access. Please try again.')
       setAdGranting(false)
       setAdCompleted(false)
+    }
+  }
+
+  // ── Loyalty redeem handler ──
+  const handleLoyaltyRedeem = async (reward: LoyaltyRewardItem) => {
+    setRedeemLoading(true)
+    setRedeemError(null)
+    try {
+      const mac = getMacAddress()
+      const username = canonicalUsername || ''
+      const result = await redeemHotspotLoyaltyPoints({
+        canonical_username: username,
+        reward_id: reward.id,
+        router_id: routerId,
+        mac_address: mac,
+        tenant: getTenant(),
+      })
+      setShowRedeemModal(false)
+      setAccessCode(result.access_code)
+      setExpiresAt(result.expires_at)
+      setSelectedPlan({
+        id: 'loyalty-reward',
+        name: reward.name,
+        duration_display: `${reward.reward_minutes} minutes (reward)`,
+        speed_display: `${reward.reward_speed_mbps} Mbps`,
+        price: 0,
+        currency: 'KES',
+        validity_type: 'MINUTES',
+        validity_value: reward.reward_minutes,
+        download_speed: Number(reward.reward_speed_mbps),
+        upload_speed: Number(reward.reward_speed_mbps),
+        speed_unit: 'MBPS',
+        limitation_type: 'UNLIMITED',
+        data_limit_value: null,
+        data_limit_unit: 'MB',
+        data_limit_display: 'Unlimited',
+      })
+      setPaymentStatus('success')
+      // Update local points display
+      setLoyaltyData(prev => prev ? {
+        ...prev,
+        current_points: result.points_remaining,
+        available_rewards: prev.available_rewards.filter(
+          r => r.points_cost <= result.points_remaining
+        ),
+      } : null)
+      // RADIUS creds are already committed server-side, submit immediately
+      if (loginUrl && result.access_code) {
+        setReturningToRouter(true)
+        submitRouterLogin(loginUrl, result.access_code, result.access_code)
+      }
+    } catch (err: any) {
+      setRedeemError(err.message || 'Redemption failed. Try again.')
+    } finally {
+      setRedeemLoading(false)
     }
   }
 
@@ -2536,350 +2016,66 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
 
       {/* ━━━ PAYMENT MODAL (M-Pesa only) ━━━ */}
       {showPaymentModal && selectedPlan && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowPaymentModal(false)}
-          />
-          {/* Modal */}
-          <div className={`relative w-full sm:max-w-md mx-auto ${theme.cardClass} rounded-t-2xl sm:rounded-2xl p-6 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300`}>
-            {/* Close button */}
-            <button
-              onClick={() => setShowPaymentModal(false)}
-              className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center ${theme.planBg} ${theme.mutedText} hover:opacity-70`}
-            >
-              ✕
-            </button>
-
-            {/* Plan Summary */}
-            <div className={`mb-5 pb-4 border-b ${theme.planBorder}`}>
-              <h3 className={`text-lg font-bold mb-2 ${theme.planTitle}`}>{selectedPlan.name}</h3>
-              <div className={`flex flex-wrap gap-x-4 gap-y-1 text-sm ${theme.mutedText}`}>
-                <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{selectedPlan.duration_display}</span>
-                {!portalConfig?.hide_plan_speed && (
-                  <span className="flex items-center gap-1"><Zap className="w-4 h-4" />{selectedPlan.speed_display}</span>
-                )}
-                {selectedPlan.limitation_type !== "UNLIMITED" && selectedPlan.data_limit_value && (
-                  <span className="flex items-center gap-1"><Database className="w-4 h-4" />{selectedPlan.data_limit_display}</span>
-                )}
-              </div>
-              <div className={`text-2xl font-bold mt-2 ${theme.planPrice}`} style={brandingPriceStyle}>
-                {selectedPlan.currency || "KES"} {selectedPlan.price}
-              </div>
-            </div>
-
-            {/* Phone Number Input */}
-            <PhoneInput
-              phoneNumber={phoneNumber}
-              phoneError={phoneError}
-              onPhoneChange={handlePhoneChange}
-              theme={theme}
-            />
-
-            {/* Inline Error */}
-            {error && (
-              <div className={`mb-4 p-3 rounded-lg border flex items-center gap-2 ${theme.errorBg}`}>
-                <AlertCircle className={`w-5 h-5 flex-shrink-0 ${theme.errorText}`} />
-                <span className={`text-sm ${theme.errorText}`}>{error}</span>
-              </div>
-            )}
-
-            {/* CTA Button */}
-            <button
-              onClick={handlePay}
-              disabled={!phoneNumber || !!phoneError || (targetDevice === "tv" && !tvMacVerified)}
-              className={`w-full py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg rounded-xl ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover}`}
-              style={brandingCtaStyle}
-            >
-              Pay {selectedPlan.currency || "KES"} {selectedPlan.price} with M-Pesa
-            </button>
-
-            <p className={`text-center text-xs mt-3 ${theme.footerText}`}>
-              By connecting, you agree to the terms of service
-            </p>
-          </div>
-        </div>
+        <PaymentModal
+          selectedPlan={selectedPlan}
+          phoneNumber={phoneNumber}
+          phoneError={phoneError}
+          error={error}
+          theme={theme}
+          branding={branding}
+          portalConfig={portalConfig}
+          targetDevice={targetDevice}
+          tvMacVerified={tvMacVerified}
+          onPhoneChange={handlePhoneChange}
+          onPay={handlePay}
+          onClose={() => setShowPaymentModal(false)}
+        />
       )}
 
       {/* ━━━ AD VIDEO MODAL ━━━ */}
       {showAdModal && availableAd && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black">
-          {/* Full-screen unskippable player */}
-          <div className="relative w-full h-full flex flex-col items-center justify-center">
-
-            {/* Video */}
-            {availableAd.media_type === 'VIDEO' ? (
-              <video
-                ref={videoRef}
-                src={availableAd.media_url}
-                preload="auto"
-                className="w-full h-full object-contain max-h-[80vh]"
-                autoPlay
-                playsInline
-                muted={false}
-                disablePictureInPicture
-                controlsList="nodownload nofullscreen noremoteplayback"
-                onLoadedMetadata={handleAdVideoLoaded}
-                onTimeUpdate={handleAdVideoTimeUpdate}
-                onEnded={handleAdComplete}
-              />
-            ) : (
-              // Image ad with auto-complete after 5 seconds
-              <div className="relative w-full max-w-lg">
-                <img src={availableAd.media_url} alt={availableAd.name} className="w-full rounded-xl" />
-                <AutoCompleteImage onComplete={handleAdComplete} />
-              </div>
-            )}
-
-            {/* Countdown overlay — top-right */}
-            {!adCompleted && (
-              <div className="absolute top-4 right-4 bg-black/70 text-white text-sm font-semibold px-3 py-1.5 rounded-full flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                {adVideoCountdown > 0 ? `${adVideoCountdown}s` : 'Almost done...'}
-              </div>
-            )}
-
-            {/* Granting overlay */}
-            {adGranting && (
-              <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-4">
-                <Loader2 className="w-12 h-12 animate-spin text-green-400" />
-                <p className="text-white text-lg font-semibold">Unlocking your free access...</p>
-              </div>
-            )}
-
-            {/* Error */}
-            {adError && (
-              <div className="absolute bottom-8 left-4 right-4 bg-red-900/90 border border-red-500 text-white rounded-xl p-4 flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-sm">{adError}</p>
-                  <button onClick={handleAdComplete} className="text-xs underline mt-1">Try again</button>
-                </div>
-              </div>
-            )}
-
-            {/* Skip button only after video ends (before granting) */}
-            {adCompleted && !adGranting && !adError && (
-              <div className="absolute bottom-8 left-4 right-4 text-center">
-                <p className="text-white text-sm opacity-70">Activating your free internet...</p>
-              </div>
-            )}
-
-            {/* "No thanks" — only before video starts */}
-            {adVideoCountdown === 0 && !adCompleted && (
-              <button
-                onClick={() => setShowAdModal(false)}
-                className="absolute top-4 left-4 text-white/50 hover:text-white text-xs px-2 py-1 rounded"
-              >
-                ✕ No thanks
-              </button>
-            )}
-          </div>
-        </div>
+        <AdVideoModal
+          availableAd={availableAd}
+          adVideoCountdown={adVideoCountdown}
+          adCompleted={adCompleted}
+          adGranting={adGranting}
+          adError={adError}
+          videoRef={videoRef}
+          onVideoLoaded={handleAdVideoLoaded}
+          onVideoTimeUpdate={handleAdVideoTimeUpdate}
+          onComplete={handleAdComplete}
+          onClose={() => setShowAdModal(false)}
+        />
       )}
 
       {/* ━━━ LOYALTY REDEEM MODAL ━━━ */}
       {showRedeemModal && loyaltyData && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowRedeemModal(false)}
-          />
-          <div className="relative w-full sm:max-w-md mx-auto bg-white rounded-t-2xl sm:rounded-2xl p-6 max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
-            <button
-              onClick={() => setShowRedeemModal(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:opacity-70"
-            >
-              ✕
-            </button>
-
-            <div className="mb-5">
-              <h3 className="text-lg font-bold text-gray-900 mb-1">🎁 Loyalty Rewards</h3>
-              <p className="text-sm text-gray-500">
-                You have <span className="font-bold text-violet-600">{loyaltyData.current_points.toLocaleString()} points</span>
-              </p>
-            </div>
-
-            {redeemError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" /> {redeemError}
-              </div>
-            )}
-
-            <div className="space-y-3">
-              {(loyaltyData.all_hotspot_rewards.length > 0
-                ? loyaltyData.all_hotspot_rewards
-                : []
-              ).map(reward => {
-                const canAfford = loyaltyData.current_points >= reward.points_cost
-                return (
-                  <div
-                    key={reward.id}
-                    className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
-                      canAfford
-                        ? 'border-violet-200 bg-violet-50'
-                        : 'border-gray-100 bg-gray-50 opacity-60'
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0 text-xl">
-                      🌐
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm">{reward.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {reward.reward_minutes} min · {reward.reward_speed_mbps} Mbps
-                        {reward.description ? ` · ${reward.description}` : ''}
-                      </p>
-                      <p className={`text-xs font-bold mt-0.5 ${canAfford ? 'text-violet-600' : 'text-gray-400'}`}>
-                        {reward.points_cost.toLocaleString()} points
-                        {!canAfford && ` (need ${(reward.points_cost - loyaltyData.current_points).toLocaleString()} more)`}
-                      </p>
-                    </div>
-                    {canAfford && (
-                      <button
-                        disabled={redeemLoading}
-                        onClick={async () => {
-                          setRedeemLoading(true)
-                          setRedeemError(null)
-                          try {
-                            const mac = getMacAddress()
-                            const username = canonicalUsername || ''
-                            const result = await redeemHotspotLoyaltyPoints({
-                              canonical_username: username,
-                              reward_id: reward.id,
-                              router_id: routerId,
-                              mac_address: mac,
-                              tenant: getTenant(),
-                            })
-                            setShowRedeemModal(false)
-                            setAccessCode(result.access_code)
-                            setExpiresAt(result.expires_at)
-                            setSelectedPlan({
-                              id: 'loyalty-reward',
-                              name: reward.name,
-                              duration_display: `${reward.reward_minutes} minutes (reward)`,
-                              speed_display: `${reward.reward_speed_mbps} Mbps`,
-                              price: 0,
-                              currency: 'KES',
-                              validity_type: 'MINUTES',
-                              validity_value: reward.reward_minutes,
-                              download_speed: Number(reward.reward_speed_mbps),
-                              upload_speed: Number(reward.reward_speed_mbps),
-                              speed_unit: 'MBPS',
-                              limitation_type: 'UNLIMITED',
-                              data_limit_value: null,
-                              data_limit_unit: 'MB',
-                              data_limit_display: 'Unlimited',
-                            })
-                            setPaymentStatus('success')
-                            // Update local points display
-                            setLoyaltyData(prev => prev ? {
-                              ...prev,
-                              current_points: result.points_remaining,
-                              available_rewards: prev.available_rewards.filter(
-                                r => r.points_cost <= result.points_remaining
-                              ),
-                            } : null)
-                            // RADIUS creds are already committed server-side, submit immediately
-                            if (loginUrl && result.access_code) {
-                              setReturningToRouter(true)
-                              submitRouterLogin(loginUrl, result.access_code, result.access_code)
-                            }
-                          } catch (err: any) {
-                            setRedeemError(err.message || 'Redemption failed. Try again.')
-                          } finally {
-                            setRedeemLoading(false)
-                          }
-                        }}
-                        className="px-3 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1"
-                      >
-                        {redeemLoading ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : 'Redeem'}
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-
-              {loyaltyData.all_hotspot_rewards.length === 0 && (
-                <div className="py-8 text-center text-gray-400">
-                  <p className="text-sm">No hotspot rewards configured yet.</p>
-                  <p className="text-xs mt-1">Keep purchasing to earn points!</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <LoyaltyRedeemModal
+          loyaltyData={loyaltyData}
+          redeemLoading={redeemLoading}
+          redeemError={redeemError}
+          canonicalUsername={canonicalUsername}
+          routerId={routerId}
+          loginUrl={loginUrl}
+          onRedeem={handleLoyaltyRedeem}
+          onClose={() => setShowRedeemModal(false)}
+        />
       )}
 
       {/* ━━━ PHONE RECONNECT / MULTI-DEVICE MODAL ━━━ */}
       {showPhoneModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowPhoneModal(false)}
-          />
-          <div className={`relative w-full sm:max-w-md mx-auto ${theme.cardClass} rounded-t-2xl sm:rounded-2xl p-6 animate-in slide-in-from-bottom duration-300`}>
-            <button
-              onClick={() => setShowPhoneModal(false)}
-              className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center ${theme.planBg} ${theme.mutedText} hover:opacity-70`}
-            >
-              ✕
-            </button>
-
-            <h3 className={`text-lg font-bold mb-1 ${theme.planTitle}`}>
-              Connect This Device
-            </h3>
-            <p className={`text-sm mb-5 ${theme.mutedText}`}>
-              Enter the M-Pesa number used to pay. If your plan supports multiple devices,
-              this device will be connected automatically.
-            </p>
-
-            <div className="mb-4">
-              <div className="relative">
-                <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.mutedText}`} />
-                <input
-                  type="tel"
-                  placeholder="07XX or 01XX"
-                  value={reconnectPhone}
-                  onChange={(e) => {
-                    // Only digits, max 10
-                    const v = e.target.value.replace(/\D/g, '').slice(0, 10)
-                    setReconnectPhone(v)
-                    setReconnectPhoneError(null)
-                  }}
-                  inputMode="numeric"
-                  maxLength={10}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} ${reconnectPhoneError ? '!border-red-400' : ''}`}
-                />
-              </div>
-              {reconnectPhoneError && (
-                <p className="mt-2 text-sm text-red-500 flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  {reconnectPhoneError}
-                </p>
-              )}
-            </div>
-
-            <button
-              onClick={handlePhoneReconnect}
-              disabled={reconnectPhone.length < 10 || reconnectPhoneLoading}
-              className={`w-full py-3 font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed ${theme.ctaBg} ${theme.ctaText}`}
-            >
-              {reconnectPhoneLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin" /> Checking...
-                </span>
-              ) : 'Connect Device'}
-            </button>
-
-            <p className={`text-center text-xs mt-3 ${theme.footerText}`}>
-              Only the number used to pay will work · Device limits apply
-            </p>
-          </div>
-        </div>
+        <PhoneReconnectModal
+          reconnectPhone={reconnectPhone}
+          reconnectPhoneError={reconnectPhoneError}
+          reconnectPhoneLoading={reconnectPhoneLoading}
+          theme={theme}
+          onPhoneChange={(value) => {
+            setReconnectPhone(value)
+            setReconnectPhoneError(null)
+          }}
+          onReconnect={handlePhoneReconnect}
+          onClose={() => setShowPhoneModal(false)}
+        />
       )}
     </div>
   )
