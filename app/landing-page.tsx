@@ -1275,7 +1275,7 @@ export function LandingPage() {
               <div>
                 <SectionLabel>Partner with Us</SectionLabel>
                 <h2 className="mt-6 text-balance text-4xl font-normal leading-tight md:text-5xl">
-                  Earn recurring revenue by referring ISPs to Netily.
+                  Join the Internetily / Netily affiliate program for ISP referrals worldwide.
                 </h2>
                 <p className="mt-5 text-base leading-7 text-zinc-400">
                   Join our affiliate network and get paid every time a WISP, ISP, or Hotspot operator you refer pays for their first month. No limits, no caps — just cash directly to your M-Pesa or bank account.
@@ -1285,7 +1285,7 @@ export function LandingPage() {
                     href="/affiliate"
                     className="inline-flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition hover:bg-red-500 hover:scale-105"
                   >
-                    View Affiliate Program <ArrowRight className="h-4 w-4" />
+                    View 2026 Affiliate Program <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
               </div>
@@ -1525,6 +1525,14 @@ export function LandingPage() {
             open source ISP management,
             GitHub ISP billing software, free ISP billing software, MikroTik ISP billing software, RADIUS ISP
             management systems, and East African ISP management software.
+          </p>
+          <p>
+            The Internetily and Netily affiliate program is built for ISP consultants, MikroTik engineers, WISP
+            communities, hotspot resellers, telecom creators, and B2B SaaS partners who refer internet providers
+            worldwide. Affiliate leads are tracked through referral links and reviewed manually for commission
+            eligibility, making the program relevant for best ISP affiliate program 2026, ISP billing software
+            affiliate program, WISP referral program, MikroTik consultant referral program, and global telecom
+            SaaS affiliate program searches.
           </p>
         </section>
       </main>

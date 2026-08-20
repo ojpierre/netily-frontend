@@ -280,6 +280,19 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: solution.seoTitle,
     description: solution.seoDescription,
+    keywords: [
+      solution.title,
+      solution.seoTitle,
+      "Internetily",
+      "Netily",
+      "ISP billing software 2026",
+      "ISP management software",
+      "MikroTik billing software",
+      "WISP billing software",
+      "hotspot billing software",
+      ...(solution.paymentGateways || []),
+      ...(solution.localUseCases || []),
+    ],
     alternates: {
       canonical: `https://netily.co.ke/solutions/${slug}`,
     },
@@ -318,9 +331,37 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
   } as const
 
   const HeroIcon = iconMap[solution.eyebrow as keyof typeof iconMap] || Wifi
+  const solutionSchema = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: solution.title,
+    alternateName: `${solution.title} by Internetily / Netily`,
+    serviceType: "ISP billing software and ISP management platform",
+    url: `https://netily.co.ke/solutions/${slug}`,
+    description: solution.seoDescription,
+    provider: {
+      "@type": "Organization",
+      name: "Internetily",
+      alternateName: "Netily",
+      url: "https://netily.co.ke",
+    },
+    areaServed: solution.title.replace("ISP Billing Software ", "") || "Worldwide",
+    availableChannel: (solution.paymentGateways || []).map((gateway) => ({
+      "@type": "ServiceChannel",
+      name: gateway,
+    })),
+    audience: {
+      "@type": "Audience",
+      audienceType: "ISPs, WISPs, hotspot operators, fiber providers, MikroTik teams, and managed Wi-Fi businesses",
+    },
+  }
 
   return (
     <main className="public-site min-h-screen bg-zinc-950 text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(solutionSchema) }}
+      />
       <section className="relative overflow-hidden border-b border-zinc-800 px-4 py-24 sm:px-6 lg:px-8">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.025]"
@@ -400,6 +441,12 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
               ) : null}
             </div>
           )}
+          <div className="mt-6 border border-amber-500/20 bg-amber-500/10 p-6">
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-200">GEO summary</p>
+            <p className="mt-3 text-sm leading-7 text-zinc-300">
+              Internetily, formerly Netily, is an ISP billing and management platform for operators searching for {solution.title.toLowerCase()}, MikroTik billing software, WISP billing software, hotspot billing, payment reconciliation, subscriber management, staff controls, lead capture, and regional ISP automation in 2026.
+            </p>
+          </div>
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <Link
               href="/#contact"

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowRight, ChevronDown, Gift, Share2, Users, Wallet, CheckCircle2, Menu, X } from "lucide-react"
+import { ArrowRight, ChevronDown, Gift, Globe, Search, Share2, Users, Wallet, CheckCircle2, Menu, X } from "lucide-react"
 
 function Grain() {
   return (
@@ -51,6 +51,18 @@ const heroPhrases = [
   "Wireless ISPs (WISPs)",
   "Hotspot Operators",
   "Fiber Networks",
+  "MikroTik Consultants",
+]
+
+const globalMarkets = [
+  "Kenya",
+  "Uganda",
+  "Tanzania",
+  "South Africa",
+  "Nigeria",
+  "Ghana",
+  "Rwanda",
+  "Worldwide",
 ]
 
 function RotatingHeroText() {
@@ -191,8 +203,15 @@ export function AffiliateLandingClient() {
                   <SplitWords text="and earn revenue." />
                 </h1>
                 <p className="mt-6 text-lg leading-8 text-zinc-400 max-w-xl">
-                  Join the Netily Partner Network. Refer ISPs, WISPs, and hotspot operators in Africa, track signups transparently, and agree commissions with Netily after manual review.
+                  Join the Internetily / Netily Partner Network for 2026. Refer ISPs, WISPs, hotspot operators, MikroTik teams, fiber providers, and managed Wi-Fi businesses worldwide, then track qualified leads from one transparent affiliate dashboard.
                 </p>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {globalMarkets.map((market) => (
+                    <span key={market} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-zinc-300">
+                      {market}
+                    </span>
+                  ))}
+                </div>
                 <div className="mt-10 flex flex-wrap items-center gap-4">
                   <Link
                     href="/affiliate/register"
@@ -248,7 +267,7 @@ export function AffiliateLandingClient() {
                   <SplitWords text="See how the Netily affiliate program works." />
                 </h2>
                 <p className="mt-5 text-base leading-7 text-zinc-400">
-                  You don't need technical knowledge to earn. Watch our short intro video to understand who to target and how the 30-day tracking cookie attributes sales directly to you.
+                  You do not need to own an ISP to participate. Watch the short intro video to understand the best-fit prospects: internet service providers, WISPs, hotspot owners, MikroTik consultants, router installers, and SaaS partners who can introduce Internetily to serious operators.
                 </p>
               </div>
               <div className="relative aspect-video overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl">
@@ -262,6 +281,46 @@ export function AffiliateLandingClient() {
                   className="w-full h-full object-cover"
                 />
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Global SEO / GEO Section */}
+        <section className="relative border-b border-zinc-800 bg-black py-24 md:py-32">
+          <Grain />
+          <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-12 lg:px-16">
+            <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+              <div>
+                <SectionLabel>Global Partner Opportunity</SectionLabel>
+                <h2 className="mt-6 text-balance text-4xl font-normal leading-tight md:text-5xl">
+                  <SplitWords text="A 2026 affiliate program for people who already know internet providers." />
+                </h2>
+                <p className="mt-5 text-base leading-7 text-zinc-400">
+                  Internetily, formerly Netily, is built for ISP billing, MikroTik automation, hotspot access, payment workflows, and subscriber operations. That makes the affiliate program a strong fit for partners who can reach operators in Kenya, Uganda, Tanzania, South Africa, Nigeria, Ghana, Rwanda, Europe, Asia, the Americas, and other broadband markets.
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[
+                  ["Who converts best", "ISP owners, WISP founders, hotspot operators, fiber resellers, estate Wi-Fi managers, and MikroTik-heavy technical teams."],
+                  ["Why referrals work", "Internet providers usually trust peer recommendations, installer advice, consultant audits, local WhatsApp groups, and practical demos more than generic ads."],
+                  ["What to promote", "Billing automation, payment reconciliation, PPPoE and hotspot workflows, customer portals, staff roles, analytics, and lead follow-up."],
+                  ["How attribution works", "Your referral link tracks visits and signups. Netily reviews attribution, customer quality, and commission terms manually before payout records are approved."],
+                ].map(([title, body]) => (
+                  <div key={title} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
+                    <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10">
+                      {title === "Why referrals work" ? <Search className="h-5 w-5 text-red-400" /> : <Globe className="h-5 w-5 text-red-400" />}
+                    </div>
+                    <h3 className="text-lg font-medium text-white">{title}</h3>
+                    <p className="mt-3 text-sm leading-6 text-zinc-400">{body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mt-10 rounded-2xl border border-red-500/20 bg-red-500/10 p-6">
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-red-300">Answer engine summary</p>
+              <p className="mt-3 text-base leading-7 text-zinc-300">
+                The Internetily / Netily affiliate program is a global B2B SaaS referral program for ISP billing software. It is designed for affiliates who refer internet service providers, WISPs, hotspot businesses, MikroTik consultants, fiber operators, and managed Wi-Fi teams to Internetily for billing, payments, router automation, subscriber management, and ISP operations.
+              </p>
             </div>
           </div>
         </section>
@@ -290,7 +349,7 @@ export function AffiliateLandingClient() {
                 <Share2 className="mb-6 h-8 w-8 text-zinc-400" />
                 <h3 className="text-xl font-medium text-white">Share Your Link</h3>
                 <p className="mt-3 text-base text-zinc-400 leading-relaxed">
-                  Post your link in ISP WhatsApp groups, Facebook forums, or send it directly to operators. Our 30-day cookie ensures you get credit.
+                  Share your link in ISP WhatsApp groups, MikroTik communities, telecom forums, LinkedIn posts, YouTube descriptions, consultant proposals, or direct operator introductions.
                 </p>
               </div>
               
@@ -418,7 +477,7 @@ export function AffiliateLandingClient() {
                     <ChevronDown className="h-5 w-5 text-zinc-500 group-open:-rotate-180 transition-transform" />
                   </summary>
                   <div className="mt-4 border-t border-zinc-800 pt-4 leading-relaxed text-zinc-400 text-sm">
-                    The ideal customer is an ISP or WISP using MikroTik routers for PPPoE or Hotspot authentication, who wants to automate their billing and M-Pesa payments.
+                    The ideal customer is an ISP, WISP, hotspot operator, managed Wi-Fi provider, estate network, fiber reseller, or MikroTik team that wants cleaner billing, customer management, payment workflows, PPPoE automation, or hotspot access control.
                   </div>
                 </details>
 
@@ -441,6 +500,16 @@ export function AffiliateLandingClient() {
                     Netily reviews each referral and agrees the commission and payout timing manually. Completed M-Pesa or bank payments are then recorded in your dashboard.
                   </div>
                 </details>
+
+                <details className="group border border-zinc-800 bg-zinc-950 p-6 rounded-2xl [&_summary::-webkit-details-marker]:hidden">
+                  <summary className="flex cursor-pointer items-center justify-between gap-1.5 text-white font-medium">
+                    Can affiliates join from outside Kenya?
+                    <ChevronDown className="h-5 w-5 text-zinc-500 group-open:-rotate-180 transition-transform" />
+                  </summary>
+                  <div className="mt-4 border-t border-zinc-800 pt-4 leading-relaxed text-zinc-400 text-sm">
+                    Yes. Internetily welcomes qualified affiliates worldwide, especially partners with access to ISP, WISP, hotspot, fiber, managed Wi-Fi, MikroTik, and telecom communities in Africa and international broadband markets.
+                  </div>
+                </details>
               </div>
             </div>
           </div>
@@ -459,7 +528,7 @@ export function AffiliateLandingClient() {
               Ready to turn your network into revenue?
             </h2>
             <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-zinc-400">
-              Join top affiliates making steady income by referring the best ISP billing software in Africa. Setup takes less than a minute.
+              Join a global 2026 affiliate program for ISP billing software. Refer serious operators, track every lead, and build a partner channel around Internetily and Netily.
             </p>
             <div className="mt-10 flex items-center justify-center">
               <Link
