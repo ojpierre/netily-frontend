@@ -1475,8 +1475,8 @@ export function LandingPage() {
         <section className="sr-only" aria-label="SEO content for ISP billing software">
           <h2>Internetily and Netily ISP billing software Kenya and East Africa</h2>
           <p>
-            Internetily, formerly Netily, is ISP billing software for Kenya, Uganda, Tanzania, Rwanda, Burundi, South Sudan,
-            and East Africa. It supports M-Pesa STK Push, MikroTik PPPoE billing, hotspot billing,
+            Internetily, formerly Netily, is ISP billing software for Kenya, Uganda, Tanzania, South Africa, Rwanda, Burundi, South Sudan,
+            and East Africa. It supports M-Pesa STK Push, MTN MoMo, Airtel Money, Tigo Pesa, Payfast, Ozow, MikroTik PPPoE billing, hotspot billing,
             RADIUS authentication, subscriber management, automated invoicing, SMS payment reminders,
             customer self-service portals, payment reconciliation, bandwidth management, voucher billing,
             and internet service provider management.
@@ -1574,6 +1574,9 @@ export function LandingPage() {
                 <li><Link href="/solutions/isp-billing-software-kenya-counties">Kenya county billing</Link></li>
                 <li><Link href="/solutions/isp-billing-software-nairobi">Nairobi ISP billing</Link></li>
                 <li><Link href="/solutions/isp-billing-software-mombasa">Mombasa WiFi billing</Link></li>
+                <li><Link href="/solutions/isp-billing-software-tanzania">Tanzania ISP billing</Link></li>
+                <li><Link href="/solutions/isp-billing-software-uganda">Uganda ISP billing</Link></li>
+                <li><Link href="/solutions/isp-billing-software-south-africa">South Africa ISP billing</Link></li>
               </ul>
             </div>
             <div>

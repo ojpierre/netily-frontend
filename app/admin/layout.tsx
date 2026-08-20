@@ -672,12 +672,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card shadow-sm transition-all duration-300 ${
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card/95 shadow-xl shadow-black/10 backdrop-blur-xl transition-all duration-300 dark:shadow-black/35 lg:inset-y-4 lg:left-4 lg:rounded-2xl lg:border ${
           sidebarCollapsed ? "w-16" : "w-64"
         } ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
         {/* Sidebar header */}
-        <div className="flex h-16 items-center justify-between px-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4 dark:border-slate-800 lg:h-[4.25rem]">
           {!sidebarCollapsed && (
             <Link href="/admin" className="flex min-w-0 items-center gap-2">
               {companyLogo ? (
@@ -789,7 +789,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Sidebar footer */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+        <div className="space-y-3 border-t border-slate-100 p-4 dark:border-slate-800">
           {/* Trial countdown for sidebar (compact) */}
           {!sidebarCollapsed && (
             <div className="lg:hidden">
@@ -811,11 +811,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div
         className={`min-w-0 transition-all duration-300 ${
-          sidebarCollapsed ? "lg:pl-16" : "lg:pl-64"
+          sidebarCollapsed ? "lg:pl-24" : "lg:pl-72"
         }`}
       >
         {/* Top navigation bar */}
-        <header className="sticky top-0 z-30 flex h-14 min-w-0 items-center gap-2 border-b border-border bg-card/95 px-2 backdrop-blur sm:h-16 sm:px-4 lg:px-6">
+        <header className="sticky top-0 z-30 flex h-14 min-w-0 items-center gap-2 border-b border-border bg-card/95 px-2 shadow-sm backdrop-blur-xl sm:h-16 sm:px-4 lg:top-4 lg:mx-6 lg:rounded-2xl lg:border lg:px-6 lg:shadow-xl lg:shadow-black/5 dark:lg:shadow-black/25">
           {/* Mobile menu button */}
           <Button
             variant="ghost"
@@ -917,7 +917,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="min-w-0 overflow-x-hidden p-3 sm:p-4 lg:p-6">
+        <main className="min-w-0 overflow-x-hidden p-3 sm:p-4 lg:p-6 lg:pt-10">
           {isDemoMode && (
             <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />

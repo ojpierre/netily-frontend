@@ -9,6 +9,9 @@ type SolutionConfig = {
   hero: string
   summary: string
   bullets: string[]
+  paymentGateways?: string[]
+  marketNotes?: string[]
+  localUseCases?: string[]
   seoTitle: string
   seoDescription: string
 }
@@ -72,31 +75,66 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
   },
   "isp-billing-software-uganda": {
     title: "ISP Billing Software Uganda",
-    description: "ISP billing and management workflows for Ugandan fiber, wireless, and hotspot operators expanding subscriber operations.",
+    description: "ISP billing and management workflows for Ugandan fiber, wireless, and hotspot operators using MTN MoMo, Airtel Money, card, and mobile-money collection flows.",
     eyebrow: "Uganda ISP growth",
-    hero: "Run billing, subscribers, staff roles, reminders, and network-linked operations from one ISP platform built for East African growth.",
-    summary: "Netily helps Ugandan ISPs organize subscriber billing, payment follow-up, MikroTik operations, support tickets, staff permissions, and lead conversion without stitching together spreadsheets and disconnected tools.",
+    hero: "Run billing, subscribers, staff roles, reminders, and network-linked operations from one ISP platform shaped for Ugandan operators.",
+    summary: "Netily helps Ugandan ISPs organize subscriber billing, payment follow-up, MikroTik operations, support tickets, staff permissions, and lead conversion without stitching together spreadsheets and disconnected tools. It is a practical fit for Kampala, Wakiso, Entebbe, Jinja, Mbarara, Gulu, and regional WISPs that need cleaner collection visibility.",
     bullets: [
       "Manage PPPoE, hotspot, and subscriber lifecycle workflows",
       "Track leads, support, reminders, and billing activity in one place",
-      "Support regional growth with local East African operating context",
+      "Support MTN MoMo, Airtel Money, cards, and gateway-led mobile-money reconciliation planning",
     ],
-    seoTitle: "ISP Billing Software Uganda | Netily",
-    seoDescription: "Netily helps Ugandan ISPs manage billing, subscribers, MikroTik workflows, hotspot operations, staff roles, support, and organic growth leads.",
+    paymentGateways: ["MTN MoMo", "Airtel Money Uganda", "Flutterwave Uganda Mobile Money", "Pesapal", "Card and bank transfer workflows"],
+    marketNotes: [
+      "Use mobile-money-first payment prompts for residential broadband customers who already pay utilities from a phone.",
+      "Keep payment status, reconnection work, and support follow-up close together so field teams do not depend on manual chat screenshots.",
+      "Plan gateways around settlement needs, webhook availability, reversal handling, and how quickly paid customers should regain access.",
+    ],
+    localUseCases: ["Kampala apartment ISPs", "Wakiso WISPs", "Campus Wi-Fi", "Estate broadband", "Public hotspot operators"],
+    seoTitle: "ISP Billing Software Uganda | MTN MoMo, Airtel Money & MikroTik | Netily",
+    seoDescription: "Netily helps Ugandan ISPs manage billing, MTN MoMo and Airtel Money workflows, MikroTik, hotspot operations, staff roles, support, and growth leads.",
   },
   "isp-billing-software-tanzania": {
     title: "ISP Billing Software Tanzania",
-    description: "ISP management software for Tanzanian WISPs, fiber operators, hotspot providers, and growing internet businesses.",
+    description: "ISP management software for Tanzanian WISPs, fiber operators, hotspot providers, and growing internet businesses using M-Pesa, Tigo Pesa, Airtel Money, cards, and mobile money gateways.",
     eyebrow: "Tanzania ISP operations",
     hero: "Bring billing, customers, routers, hotspot access, and team workflows into one platform for Tanzanian ISP growth.",
-    summary: "Netily supports Tanzanian ISPs with a practical operating layer for recurring billing, MikroTik-aware subscriber workflows, customer support, staff permissions, dashboard visibility, and sales lead handling.",
+    summary: "Netily supports Tanzanian ISPs with a practical operating layer for recurring billing, MikroTik-aware subscriber workflows, customer support, staff permissions, dashboard visibility, and sales lead handling. It works well for Dar es Salaam, Arusha, Mwanza, Dodoma, Zanzibar, Moshi, and regional broadband teams comparing mobile-money-friendly ISP software.",
     bullets: [
       "Unify customers, payments, support, and router-linked operations",
       "Use staff roles and dashboards to keep teams accountable",
-      "Build an organic lead funnel from search to demo to onboarding",
+      "Plan collections around M-Pesa, Airtel Money, Tigo Pesa, cards, and regional gateway options",
     ],
-    seoTitle: "ISP Billing Software Tanzania | Netily",
-    seoDescription: "Netily is ISP billing software for Tanzania with subscriber management, MikroTik workflows, hotspot operations, staff roles, support, and lead capture.",
+    paymentGateways: ["Vodacom M-Pesa Tanzania", "Airtel Money Tanzania", "Tigo Pesa", "Flutterwave Tanzania Mobile Money", "Pesapal", "Visa and Mastercard cards"],
+    marketNotes: [
+      "Match payment prompts to local wallet habits so customers can pay from the channel they already trust.",
+      "Keep hotspot revenue, PPPoE subscriptions, invoices, and customer state changes visible from one operating dashboard.",
+      "Use gateway webhooks and transaction references to reduce manual reconciliation after busy evening and weekend payment periods.",
+    ],
+    localUseCases: ["Dar es Salaam fiber ISPs", "Arusha WISPs", "Zanzibar hospitality Wi-Fi", "Mwanza estates", "Campus and hostel hotspot billing"],
+    seoTitle: "ISP Billing Software Tanzania | M-Pesa, Tigo Pesa, Airtel Money & MikroTik | Netily",
+    seoDescription: "Netily is ISP billing software for Tanzania with M-Pesa, Tigo Pesa, Airtel Money planning, subscriber management, MikroTik, hotspot billing, support, and lead capture.",
+  },
+  "isp-billing-software-south-africa": {
+    title: "ISP Billing Software South Africa",
+    description: "ISP billing and subscriber management software for South African fiber, WISP, hotspot, estate, and managed Wi-Fi operators using EFT, cards, QR, and gateway payment flows.",
+    eyebrow: "South Africa ISP operations",
+    hero: "Give South African ISPs a cleaner operating layer for billing, subscribers, routers, support, payments, and recurring service visibility.",
+    summary: "Netily helps South African ISPs and managed Wi-Fi teams organize customer records, billing cycles, MikroTik-linked operations, hotspot access, staff roles, and support follow-up. It is positioned for operators serving Johannesburg, Pretoria, Cape Town, Durban, Gqeberha, Bloemfontein, estates, student accommodation, and regional WISPs.",
+    bullets: [
+      "Manage PPPoE, hotspot, invoices, payments, support, and staff access from one dashboard",
+      "Plan payment workflows around Instant EFT, PayShap, cards, QR payments, and bank transfer reconciliation",
+      "Keep enterprise, estate, campus, and public Wi-Fi operations visible as subscriber counts grow",
+    ],
+    paymentGateways: ["Payfast by Network", "Ozow Pay by Bank", "Peach Payments", "PayShap Request", "Cards, Instant EFT, QR, and bank transfer workflows"],
+    marketNotes: [
+      "South African customers often expect card, EFT, QR, and bank-backed options, so gateway choice should match both online checkout and reconciliation needs.",
+      "Estate and campus operators benefit from separating subscriber status, invoice state, support requests, and router actions without creating more spreadsheets.",
+      "For larger ISPs, gateway reporting, settlement exports, refunds, and audit trails matter as much as the checkout screen.",
+    ],
+    localUseCases: ["Johannesburg WISPs", "Cape Town managed Wi-Fi", "Durban apartment internet", "Estate broadband", "Student accommodation networks"],
+    seoTitle: "ISP Billing Software South Africa | Payfast, Ozow, EFT & MikroTik | Netily",
+    seoDescription: "Netily helps South African ISPs manage billing, subscribers, MikroTik, hotspot access, support, staff roles, and payment workflows for Payfast, Ozow, EFT, cards, and QR.",
   },
   "isp-billing-software-rwanda": {
     title: "ISP Billing Software Rwanda",
@@ -322,6 +360,46 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
               </div>
             </div>
           </div>
+          {(solution.paymentGateways?.length || solution.marketNotes?.length || solution.localUseCases?.length) && (
+            <div className="mt-6 grid gap-4 lg:grid-cols-3">
+              {solution.paymentGateways?.length ? (
+                <div className="border border-zinc-800 bg-zinc-900/80 p-6">
+                  <p className="text-sm font-semibold text-white">Common payment rails</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {solution.paymentGateways.map((gateway) => (
+                      <span key={gateway} className="border border-amber-500/25 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-100">
+                        {gateway}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {solution.marketNotes?.length ? (
+                <div className="border border-zinc-800 bg-zinc-900/80 p-6 lg:col-span-2">
+                  <p className="text-sm font-semibold text-white">Local billing details to plan for</p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    {solution.marketNotes.map((note) => (
+                      <p key={note} className="text-sm leading-6 text-zinc-400">
+                        {note}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {solution.localUseCases?.length ? (
+                <div className="border border-zinc-800 bg-zinc-900/80 p-6 lg:col-span-3">
+                  <p className="text-sm font-semibold text-white">Built for local ISP scenarios</p>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                    {solution.localUseCases.map((useCase) => (
+                      <div key={useCase} className="border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-300">
+                        {useCase}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <Link
               href="/#contact"

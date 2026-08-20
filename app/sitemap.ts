@@ -10,6 +10,7 @@ const solutionSlugs = [
   "mpesa-isp-billing",
   "isp-billing-software-uganda",
   "isp-billing-software-tanzania",
+  "isp-billing-software-south-africa",
   "isp-billing-software-rwanda",
   "isp-billing-software-burundi",
   "isp-billing-software-south-sudan",

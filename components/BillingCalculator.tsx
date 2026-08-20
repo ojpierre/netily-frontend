@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Check, Shield, Users, Wifi, Zap } from "lucide-react"
+import { Check, Gauge, Shield, TrendingUp, Users, Wifi, Zap } from "lucide-react"
 import type { GeoInfo } from "@/hooks/use-geo"
 
 interface PlanEstimate {
@@ -97,6 +97,7 @@ function Slider({
   onChange,
   formatValue,
   icon: Icon,
+  hint,
 }: {
   label: string
   value: number
@@ -106,30 +107,47 @@ function Slider({
   onChange: (v: number) => void
   formatValue: (v: number) => string
   icon: React.ElementType
+  hint?: string
 }) {
   const pct = ((value - min) / (max - min)) * 100
+  const commitValue = (nextValue: number) => {
+    const safeValue = Number.isFinite(nextValue) ? nextValue : min
+    onChange(Math.min(max, Math.max(min, Math.round(safeValue))))
+  }
 
   return (
-    <div>
-      <div className="mb-3 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-zinc-300">
-          <Icon className="h-4 w-4 text-amber-400" />
-          {label}
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3 text-sm font-medium text-zinc-200">
+          <span className="rounded-lg border border-amber-500/25 bg-amber-500/10 p-2">
+            <Icon className="h-4 w-4 text-amber-300" />
+          </span>
+          <span>
+            <span className="block">{label}</span>
+            {hint && <span className="mt-1 block text-xs font-normal leading-5 text-zinc-500">{hint}</span>}
+          </span>
         </div>
-        <span className="border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-sm font-medium tabular-nums text-amber-200">
-          {formatValue(value)}
-        </span>
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => commitValue(Number(e.target.value))}
+          className="h-10 w-full rounded-lg border border-amber-500/25 bg-zinc-950 px-3 text-right text-sm font-semibold tabular-nums text-amber-100 outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 sm:w-40"
+          aria-label={`${label} exact value`}
+        />
       </div>
       <div className="relative flex h-2 items-center">
-        <div className="absolute inset-0 bg-zinc-800" />
-        <div className="absolute inset-y-0 left-0 bg-amber-500 transition-all" style={{ width: `${pct}%` }} />
+        <div className="absolute inset-0 rounded-full bg-zinc-800" />
+        <div className="absolute inset-y-0 left-0 rounded-full bg-amber-500 transition-all" style={{ width: `${pct}%` }} />
         <input
           type="range"
           min={min}
           max={max}
           step={step}
           value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
+          onChange={(e) => commitValue(Number(e.target.value))}
           className="relative h-2 w-full cursor-pointer appearance-none bg-transparent
             [&::-webkit-slider-thumb]:h-5
             [&::-webkit-slider-thumb]:w-5
@@ -145,7 +163,7 @@ function Slider({
             [&::-moz-range-thumb]:bg-zinc-950"
         />
       </div>
-      <div className="mt-2 flex justify-between text-[10px] text-zinc-600">
+      <div className="mt-3 flex justify-between text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-600">
         <span>{formatValue(min)}</span>
         <span>{formatValue(max)}</span>
       </div>
@@ -239,7 +257,7 @@ export function BillingCalculator({
   geo?: GeoInfo
 }) {
   const geo = geoProp ?? KES_FALLBACK
-  const [pppoeClients, setPppoeClients] = useState(30)
+  const [pppoeClients, setPppoeClients] = useState(500)
   const [hotspotRevenue, setHotspotRevenue] = useState(5000)
   const pppoeCharge = pppoeClients * METERED_PLAN.pppoe_unit_price
   const hotspotShare = Math.round(hotspotRevenue * (METERED_PLAN.hotspot_share_pct / 100))
@@ -259,20 +277,21 @@ export function BillingCalculator({
   }
 
   return (
-    <section id="calculator" className="border-b border-zinc-800 bg-zinc-950 px-6 py-24 text-white md:px-12 md:py-32 lg:px-16">
+    <section id="calculator" className="relative overflow-hidden border-b border-zinc-800 bg-zinc-950 px-6 py-24 text-white md:px-12 md:py-32 lg:px-16">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(245,158,11,0.16),transparent_28rem),radial-gradient(circle_at_85%_18%,rgba(255,255,255,0.07),transparent_24rem)]" />
       <div className="mx-auto max-w-7xl">
         <motion.div
           initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-12 max-w-3xl"
+          className="relative mb-12 max-w-4xl"
         >
           <CalculatorLabel>Billing Calculator</CalculatorLabel>
           <h2 className="mt-6 text-balance text-4xl font-normal tracking-tight md:text-6xl">
-            Model your Internetily bill before the first call.
+            Model your Internetily bill from first customers to large-scale ISP growth.
           </h2>
           <p className="mt-5 text-base leading-7 text-zinc-400">
-            Drag the controls to match your network. The same metered pricing logic updates instantly, with estimates shown in your selected regional currency.
+            Drag the controls or type exact values for larger PPPoE footprints and serious hotspot revenue. The same metered pricing logic updates instantly, with estimates shown in your selected regional currency.
           </p>
         </motion.div>
 
@@ -280,38 +299,64 @@ export function BillingCalculator({
           initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-6 border border-zinc-800 bg-zinc-900 p-6 md:p-8"
+          className="relative mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/90 p-5 shadow-2xl shadow-black/30 backdrop-blur md:p-8"
         >
-          <div className="grid gap-8 md:grid-cols-2">
+          <div className="mb-7 grid gap-3 sm:grid-cols-3">
+            {[
+              { label: "PPPoE footprint", value: fmt(pppoeClients), icon: Users },
+              { label: "Hotspot turnover", value: fmtCurrency(hotspotRevenue, geo), icon: Wifi },
+              { label: "Monthly estimate", value: `${fmtCurrency(estimatedMonthly, geo)}/mo`, icon: TrendingUp },
+            ].map((metric) => {
+              const Icon = metric.icon
+              return (
+                <div key={metric.label} className="rounded-xl border border-zinc-800 bg-zinc-950/75 p-4">
+                  <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    <Icon className="h-3.5 w-3.5 text-amber-400" />
+                    {metric.label}
+                  </div>
+                  <p className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">{metric.value}</p>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-2">
             <Slider
               label="PPPoE Users"
               value={pppoeClients}
               min={0}
-              max={500}
-              step={5}
+              max={25000}
+              step={25}
               onChange={setPppoeClients}
               formatValue={(v) => `${v} users`}
               icon={Users}
+              hint="Supports micro ISPs, WISPs, and operators past 5,000 active clients."
             />
             <Slider
               label="Monthly Hotspot Revenue"
               value={hotspotRevenue}
               min={0}
-              max={100000}
-              step={500}
+              max={50000000}
+              step={5000}
               onChange={setHotspotRevenue}
               formatValue={(v) => fmtCurrency(v, geo)}
               icon={Wifi}
+              hint="Model estates, malls, campuses, hotels, public Wi-Fi, and multi-site hotspots."
             />
           </div>
 
-          <div className="mt-7 flex flex-wrap gap-2">
-            <p className="w-full text-xs font-medium uppercase tracking-[0.22em] text-zinc-600">Quick presets</p>
+          <div className="mt-7">
+            <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.22em] text-zinc-600">
+              <Gauge className="h-4 w-4 text-amber-500/80" />
+              Quick presets
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
             {[
-              { label: "Starter", pppoe: 15, hotspot: 0 },
-              { label: "Growing", pppoe: 50, hotspot: 10000 },
-              { label: "Large", pppoe: 150, hotspot: 30000 },
-              { label: "Busy hotspot", pppoe: 30, hotspot: 60000 },
+              { label: "Starter", pppoe: 50, hotspot: 0 },
+              { label: "Growing", pppoe: 500, hotspot: 50000 },
+              { label: "Regional ISP", pppoe: 2500, hotspot: 300000 },
+              { label: "Large operator", pppoe: 7500, hotspot: 1500000 },
+              { label: "Busy hotspot", pppoe: 1200, hotspot: 5000000 },
             ].map((preset) => (
               <button
                 key={preset.label}
@@ -319,15 +364,19 @@ export function BillingCalculator({
                   setPppoeClients(preset.pppoe)
                   setHotspotRevenue(preset.hotspot)
                 }}
-                className={`border px-3 py-1.5 text-xs font-medium transition ${
+                className={`rounded-lg border px-3 py-2.5 text-left text-xs font-medium transition ${
                   pppoeClients === preset.pppoe && hotspotRevenue === preset.hotspot
                     ? "border-amber-500 bg-amber-500 text-black"
                     : "border-zinc-700 bg-zinc-950 text-zinc-400 hover:border-amber-500/60 hover:text-amber-200"
                 }`}
               >
-                {preset.label}
+                <span className="block text-sm">{preset.label}</span>
+                <span className="mt-1 block text-[10px] font-normal text-current opacity-70">
+                  {fmt(preset.pppoe)} PPPoE / {fmtCurrency(preset.hotspot, geo)}
+                </span>
               </button>
             ))}
+            </div>
           </div>
         </motion.div>
 
