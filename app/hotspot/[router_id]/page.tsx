@@ -3,6 +3,24 @@
 import { use, useEffect, useState, useMemo, useRef } from "react"
 import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Megaphone, Database, ArrowDown, ArrowUp, Users, Ticket, Monitor, Smartphone } from "lucide-react"
 import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
+import dynamic from "next/dynamic"
+
+// ==========================================
+// DYNAMIC IMPORTS — code-split heavy modal components
+// ==========================================
+
+const AdVideoModal = dynamic(() => import("./components/AdVideoModal"), {
+  ssr: false,
+})
+const LoyaltyRedeemModal = dynamic(() => import("./components/LoyaltyRedeemModal"), {
+  ssr: false,
+})
+const TvPairingPanel = dynamic(() => import("./components/TvPairingPanel"), {
+  ssr: false,
+})
+const PhoneReconnectModal = dynamic(() => import("./components/PhoneReconnectModal"), {
+  ssr: false,
+})
 
 // ==========================================
 // TYPES
@@ -1195,26 +1213,32 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   // ── Logo error state (FIX #1) ─────────────────────────────────────────────
   const [logoError, setLogoError] = useState(false)
 
-  // Preload video into browser cache as soon as ad data arrives
+  // 🔥 OPTIMIZATION: Defer video preload to idle time AFTER plans have painted
   useEffect(() => {
     if (!availableAd?.media_url || availableAd.media_type !== 'VIDEO') return
+    if (loading || plans.length === 0) return
 
-    // Create a hidden video element to force browser to buffer the file
-    const video = document.createElement('video')
-    video.preload = 'auto'
-    video.muted = true
-    video.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none'
-    video.src = availableAd.media_url
-    video.load()
-    document.body.appendChild(video)
-    preloadVideoRef.current = video
-
-    return () => {
-      video.src = ''
-      video.remove()
-      preloadVideoRef.current = null
+    const schedule = (window as any).requestIdleCallback || ((fn: () => void) => setTimeout(fn, 300))
+    const cancel = (window as any).cancelIdleCallback || clearTimeout
+    const id = schedule(() => {
+      const video = document.createElement('video')
+      video.preload = 'auto'
+      video.muted = true
+      video.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none'
+      video.src = availableAd.media_url
+      video.load()
+      document.body.appendChild(video)
+      preloadVideoRef.current = video
+    })
+    return () => { 
+      cancel(id)
+      if (preloadVideoRef.current) {
+        preloadVideoRef.current.src = ''
+        preloadVideoRef.current.remove()
+        preloadVideoRef.current = null
+      }
     }
-  }, [availableAd?.media_url])
+  }, [availableAd?.media_url, loading, plans.length])
 
   // === TV MODE STATES (MAC-based system - phone only) ===
   // MAC-based TV payment (no TV-side detection or polling needed)
@@ -1454,7 +1478,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
         return prev - 1
       })
     }, 1000)
-    return () => clearInterval(timer)
+    return () => clearTimeout(timer)
   }, [paymentStatus])
 
   // Phone validation
@@ -2534,352 +2558,135 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
         </div>
       </div>
 
-      {/* ━━━ PAYMENT MODAL (M-Pesa only) ━━━ */}
-      {showPaymentModal && selectedPlan && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowPaymentModal(false)}
-          />
-          {/* Modal */}
-          <div className={`relative w-full sm:max-w-md mx-auto ${theme.cardClass} rounded-t-2xl sm:rounded-2xl p-6 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300`}>
-            {/* Close button */}
-            <button
-              onClick={() => setShowPaymentModal(false)}
-              className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center ${theme.planBg} ${theme.mutedText} hover:opacity-70`}
-            >
-              ✕
-            </button>
-
-            {/* Plan Summary */}
-            <div className={`mb-5 pb-4 border-b ${theme.planBorder}`}>
-              <h3 className={`text-lg font-bold mb-2 ${theme.planTitle}`}>{selectedPlan.name}</h3>
-              <div className={`flex flex-wrap gap-x-4 gap-y-1 text-sm ${theme.mutedText}`}>
-                <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{selectedPlan.duration_display}</span>
-                {!portalConfig?.hide_plan_speed && (
-                  <span className="flex items-center gap-1"><Zap className="w-4 h-4" />{selectedPlan.speed_display}</span>
-                )}
-                {selectedPlan.limitation_type !== "UNLIMITED" && selectedPlan.data_limit_value && (
-                  <span className="flex items-center gap-1"><Database className="w-4 h-4" />{selectedPlan.data_limit_display}</span>
-                )}
-              </div>
-              <div className={`text-2xl font-bold mt-2 ${theme.planPrice}`} style={brandingPriceStyle}>
-                {selectedPlan.currency || "KES"} {selectedPlan.price}
-              </div>
-            </div>
-
-            {/* Phone Number Input */}
-            <PhoneInput
-              phoneNumber={phoneNumber}
-              phoneError={phoneError}
-              onPhoneChange={handlePhoneChange}
-              theme={theme}
-            />
-
-            {/* Inline Error */}
-            {error && (
-              <div className={`mb-4 p-3 rounded-lg border flex items-center gap-2 ${theme.errorBg}`}>
-                <AlertCircle className={`w-5 h-5 flex-shrink-0 ${theme.errorText}`} />
-                <span className={`text-sm ${theme.errorText}`}>{error}</span>
-              </div>
-            )}
-
-            {/* CTA Button */}
-            <button
-              onClick={handlePay}
-              disabled={!phoneNumber || !!phoneError || (targetDevice === "tv" && !tvMacVerified)}
-              className={`w-full py-4 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg rounded-xl ${theme.ctaBg} ${theme.ctaText} ${theme.ctaHover}`}
-              style={brandingCtaStyle}
-            >
-              Pay {selectedPlan.currency || "KES"} {selectedPlan.price} with M-Pesa
-            </button>
-
-            <p className={`text-center text-xs mt-3 ${theme.footerText}`}>
-              By connecting, you agree to the terms of service
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ━━━ AD VIDEO MODAL ━━━ */}
+      {/* ━━━ AD VIDEO MODAL (DYNAMIC IMPORT) ━━━ */}
       {showAdModal && availableAd && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black">
-          {/* Full-screen unskippable player */}
-          <div className="relative w-full h-full flex flex-col items-center justify-center">
-
-            {/* Video */}
-            {availableAd.media_type === 'VIDEO' ? (
-              <video
-                ref={videoRef}
-                src={availableAd.media_url}
-                preload="auto"
-                className="w-full h-full object-contain max-h-[80vh]"
-                autoPlay
-                playsInline
-                muted={false}
-                disablePictureInPicture
-                controlsList="nodownload nofullscreen noremoteplayback"
-                onLoadedMetadata={handleAdVideoLoaded}
-                onTimeUpdate={handleAdVideoTimeUpdate}
-                onEnded={handleAdComplete}
-              />
-            ) : (
-              // Image ad with auto-complete after 5 seconds
-              <div className="relative w-full max-w-lg">
-                <img src={availableAd.media_url} alt={availableAd.name} className="w-full rounded-xl" />
-                <AutoCompleteImage onComplete={handleAdComplete} />
-              </div>
-            )}
-
-            {/* Countdown overlay — top-right */}
-            {!adCompleted && (
-              <div className="absolute top-4 right-4 bg-black/70 text-white text-sm font-semibold px-3 py-1.5 rounded-full flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                {adVideoCountdown > 0 ? `${adVideoCountdown}s` : 'Almost done...'}
-              </div>
-            )}
-
-            {/* Granting overlay */}
-            {adGranting && (
-              <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-4">
-                <Loader2 className="w-12 h-12 animate-spin text-green-400" />
-                <p className="text-white text-lg font-semibold">Unlocking your free access...</p>
-              </div>
-            )}
-
-            {/* Error */}
-            {adError && (
-              <div className="absolute bottom-8 left-4 right-4 bg-red-900/90 border border-red-500 text-white rounded-xl p-4 flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-sm">{adError}</p>
-                  <button onClick={handleAdComplete} className="text-xs underline mt-1">Try again</button>
-                </div>
-              </div>
-            )}
-
-            {/* Skip button only after video ends (before granting) */}
-            {adCompleted && !adGranting && !adError && (
-              <div className="absolute bottom-8 left-4 right-4 text-center">
-                <p className="text-white text-sm opacity-70">Activating your free internet...</p>
-              </div>
-            )}
-
-            {/* "No thanks" — only before video starts */}
-            {adVideoCountdown === 0 && !adCompleted && (
-              <button
-                onClick={() => setShowAdModal(false)}
-                className="absolute top-4 left-4 text-white/50 hover:text-white text-xs px-2 py-1 rounded"
-              >
-                ✕ No thanks
-              </button>
-            )}
-          </div>
-        </div>
+        <AdVideoModal
+          ad={availableAd}
+          onComplete={handleAdComplete}
+          onClose={() => setShowAdModal(false)}
+          onError={setAdError}
+          adGranting={adGranting}
+          adCompleted={adCompleted}
+          adError={adError}
+          adVideoCountdown={adVideoCountdown}
+          videoRef={videoRef}
+          onTimeUpdate={handleAdVideoTimeUpdate}
+          onLoadedMetadata={handleAdVideoLoaded}
+        />
       )}
 
-      {/* ━━━ LOYALTY REDEEM MODAL ━━━ */}
+      {/* ━━━ LOYALTY REDEEM MODAL (DYNAMIC IMPORT) ━━━ */}
       {showRedeemModal && loyaltyData && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowRedeemModal(false)}
-          />
-          <div className="relative w-full sm:max-w-md mx-auto bg-white rounded-t-2xl sm:rounded-2xl p-6 max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
-            <button
-              onClick={() => setShowRedeemModal(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:opacity-70"
-            >
-              ✕
-            </button>
-
-            <div className="mb-5">
-              <h3 className="text-lg font-bold text-gray-900 mb-1">🎁 Loyalty Rewards</h3>
-              <p className="text-sm text-gray-500">
-                You have <span className="font-bold text-violet-600">{loyaltyData.current_points.toLocaleString()} points</span>
-              </p>
-            </div>
-
-            {redeemError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" /> {redeemError}
-              </div>
-            )}
-
-            <div className="space-y-3">
-              {(loyaltyData.all_hotspot_rewards.length > 0
-                ? loyaltyData.all_hotspot_rewards
-                : []
-              ).map(reward => {
-                const canAfford = loyaltyData.current_points >= reward.points_cost
-                return (
-                  <div
-                    key={reward.id}
-                    className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
-                      canAfford
-                        ? 'border-violet-200 bg-violet-50'
-                        : 'border-gray-100 bg-gray-50 opacity-60'
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0 text-xl">
-                      🌐
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm">{reward.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {reward.reward_minutes} min · {reward.reward_speed_mbps} Mbps
-                        {reward.description ? ` · ${reward.description}` : ''}
-                      </p>
-                      <p className={`text-xs font-bold mt-0.5 ${canAfford ? 'text-violet-600' : 'text-gray-400'}`}>
-                        {reward.points_cost.toLocaleString()} points
-                        {!canAfford && ` (need ${(reward.points_cost - loyaltyData.current_points).toLocaleString()} more)`}
-                      </p>
-                    </div>
-                    {canAfford && (
-                      <button
-                        disabled={redeemLoading}
-                        onClick={async () => {
-                          setRedeemLoading(true)
-                          setRedeemError(null)
-                          try {
-                            const mac = getMacAddress()
-                            const username = canonicalUsername || ''
-                            const result = await redeemHotspotLoyaltyPoints({
-                              canonical_username: username,
-                              reward_id: reward.id,
-                              router_id: routerId,
-                              mac_address: mac,
-                              tenant: getTenant(),
-                            })
-                            setShowRedeemModal(false)
-                            setAccessCode(result.access_code)
-                            setExpiresAt(result.expires_at)
-                            setSelectedPlan({
-                              id: 'loyalty-reward',
-                              name: reward.name,
-                              duration_display: `${reward.reward_minutes} minutes (reward)`,
-                              speed_display: `${reward.reward_speed_mbps} Mbps`,
-                              price: 0,
-                              currency: 'KES',
-                              validity_type: 'MINUTES',
-                              validity_value: reward.reward_minutes,
-                              download_speed: Number(reward.reward_speed_mbps),
-                              upload_speed: Number(reward.reward_speed_mbps),
-                              speed_unit: 'MBPS',
-                              limitation_type: 'UNLIMITED',
-                              data_limit_value: null,
-                              data_limit_unit: 'MB',
-                              data_limit_display: 'Unlimited',
-                            })
-                            setPaymentStatus('success')
-                            // Update local points display
-                            setLoyaltyData(prev => prev ? {
-                              ...prev,
-                              current_points: result.points_remaining,
-                              available_rewards: prev.available_rewards.filter(
-                                r => r.points_cost <= result.points_remaining
-                              ),
-                            } : null)
-                            // RADIUS creds are already committed server-side, submit immediately
-                            if (loginUrl && result.access_code) {
-                              setReturningToRouter(true)
-                              submitRouterLogin(loginUrl, result.access_code, result.access_code)
-                            }
-                          } catch (err: any) {
-                            setRedeemError(err.message || 'Redemption failed. Try again.')
-                          } finally {
-                            setRedeemLoading(false)
-                          }
-                        }}
-                        className="px-3 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1"
-                      >
-                        {redeemLoading ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : 'Redeem'}
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-
-              {loyaltyData.all_hotspot_rewards.length === 0 && (
-                <div className="py-8 text-center text-gray-400">
-                  <p className="text-sm">No hotspot rewards configured yet.</p>
-                  <p className="text-xs mt-1">Keep purchasing to earn points!</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <LoyaltyRedeemModal
+          loyaltyData={loyaltyData}
+          onClose={() => setShowRedeemModal(false)}
+          onRedeem={async (rewardId: number) => {
+            setRedeemLoading(true)
+            setRedeemError(null)
+            try {
+              const mac = getMacAddress()
+              const username = canonicalUsername || ''
+              const result = await redeemHotspotLoyaltyPoints({
+                canonical_username: username,
+                reward_id: rewardId,
+                router_id: routerId,
+                mac_address: mac,
+                tenant: getTenant(),
+              })
+              setShowRedeemModal(false)
+              setAccessCode(result.access_code)
+              setExpiresAt(result.expires_at)
+              setSelectedPlan({
+                id: 'loyalty-reward',
+                name: 'Loyalty Reward',
+                duration_display: `${result.reward_minutes} minutes (reward)`,
+                speed_display: `5 Mbps`,
+                price: 0,
+                currency: 'KES',
+                validity_type: 'MINUTES',
+                validity_value: result.reward_minutes,
+                download_speed: 5,
+                upload_speed: 5,
+                speed_unit: 'MBPS',
+                limitation_type: 'UNLIMITED',
+                data_limit_value: null,
+                data_limit_unit: 'MB',
+                data_limit_display: 'Unlimited',
+              })
+              setPaymentStatus('success')
+              setLoyaltyData(prev => prev ? {
+                ...prev,
+                current_points: result.points_remaining,
+                available_rewards: prev.available_rewards.filter(
+                  r => r.points_cost <= result.points_remaining
+                ),
+              } : null)
+              if (loginUrl && result.access_code) {
+                setReturningToRouter(true)
+                submitRouterLogin(loginUrl, result.access_code, result.access_code)
+              }
+            } catch (err: any) {
+              setRedeemError(err.message || 'Redemption failed. Try again.')
+            } finally {
+              setRedeemLoading(false)
+            }
+          }}
+          redeemLoading={redeemLoading}
+          redeemError={redeemError}
+          theme={theme}
+        />
       )}
 
-      {/* ━━━ PHONE RECONNECT / MULTI-DEVICE MODAL ━━━ */}
+      {/* ━━━ TV PAIRING PANEL (DYNAMIC IMPORT) ━━━ */}
+      {targetDevice === 'tv' && (
+        <TvPairingPanel
+          tvMacInput={tvMacInput}
+          tvMacLastDigits={tvMacLastDigits}
+          tvMacVerified={tvMacVerified}
+          tvMacError={tvMacError}
+          tvPayMode={tvPayMode}
+          tvScannedDevices={tvScannedDevices}
+          tvScanLoading={tvScanLoading}
+          tvSelectedDevice={tvSelectedDevice}
+          onMacInputChange={(v) => { setTvMacInput(v); setTvMacError(null) }}
+          onMacDigitsChange={(v) => { setTvMacLastDigits(v); setTvMacError(null) }}
+          onScanDevices={handleScanDevices}
+          onSelectDevice={handleSelectScannedDevice}
+          onVerifyDigits={handleVerifyMacDigits}
+          onPayModeChange={(mode) => {
+            setTvPayMode(mode)
+            setTvSelectedDevice(null)
+            setTvMacVerified(false)
+            setTvMacError(null)
+          }}
+          onClose={() => {
+            setTargetDevice('this')
+            setTvMacVerified(false)
+            setTvMacError(null)
+            setTvScannedDevices([])
+            setTvSelectedDevice(null)
+            setTvMacInput('')
+            setTvMacLastDigits('')
+          }}
+          theme={theme}
+        />
+      )}
+
+      {/* ━━━ PHONE RECONNECT MODAL (DYNAMIC IMPORT) ━━━ */}
       {showPhoneModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowPhoneModal(false)}
-          />
-          <div className={`relative w-full sm:max-w-md mx-auto ${theme.cardClass} rounded-t-2xl sm:rounded-2xl p-6 animate-in slide-in-from-bottom duration-300`}>
-            <button
-              onClick={() => setShowPhoneModal(false)}
-              className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center ${theme.planBg} ${theme.mutedText} hover:opacity-70`}
-            >
-              ✕
-            </button>
-
-            <h3 className={`text-lg font-bold mb-1 ${theme.planTitle}`}>
-              Connect This Device
-            </h3>
-            <p className={`text-sm mb-5 ${theme.mutedText}`}>
-              Enter the M-Pesa number used to pay. If your plan supports multiple devices,
-              this device will be connected automatically.
-            </p>
-
-            <div className="mb-4">
-              <div className="relative">
-                <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.mutedText}`} />
-                <input
-                  type="tel"
-                  placeholder="07XX or 01XX"
-                  value={reconnectPhone}
-                  onChange={(e) => {
-                    // Only digits, max 10
-                    const v = e.target.value.replace(/\D/g, '').slice(0, 10)
-                    setReconnectPhone(v)
-                    setReconnectPhoneError(null)
-                  }}
-                  inputMode="numeric"
-                  maxLength={10}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme.inputBorder} ${theme.inputBg} ${theme.inputText} ${theme.inputPlaceholder} ${reconnectPhoneError ? '!border-red-400' : ''}`}
-                />
-              </div>
-              {reconnectPhoneError && (
-                <p className="mt-2 text-sm text-red-500 flex items-center gap-1">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  {reconnectPhoneError}
-                </p>
-              )}
-            </div>
-
-            <button
-              onClick={handlePhoneReconnect}
-              disabled={reconnectPhone.length < 10 || reconnectPhoneLoading}
-              className={`w-full py-3 font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed ${theme.ctaBg} ${theme.ctaText}`}
-            >
-              {reconnectPhoneLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin" /> Checking...
-                </span>
-              ) : 'Connect Device'}
-            </button>
-
-            <p className={`text-center text-xs mt-3 ${theme.footerText}`}>
-              Only the number used to pay will work · Device limits apply
-            </p>
-          </div>
-        </div>
+        <PhoneReconnectModal
+          reconnectPhone={reconnectPhone}
+          reconnectPhoneError={reconnectPhoneError}
+          reconnectPhoneLoading={reconnectPhoneLoading}
+          onPhoneChange={(v) => {
+            const digits = v.replace(/\D/g, '').slice(0, 10)
+            setReconnectPhone(digits)
+            setReconnectPhoneError(null)
+          }}
+          onReconnect={handlePhoneReconnect}
+          onClose={() => setShowPhoneModal(false)}
+          theme={theme}
+        />
       )}
     </div>
   )
