@@ -180,17 +180,35 @@ function getApiBase(): string {
   return `${window.location.origin}/api/v1`
 }
 
+// 🔥 FIX 2: fetchWithTimeout — bounded fetch that self-heals in ~4s instead of hanging 15s
+async function fetchWithTimeout(url: string, timeoutMs = 4000): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { cache: "no-store", signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+// 🔥 FIX 2: fetchCaptivePortal — bounded, retrying version (3 attempts, 4s timeout each)
 async function fetchCaptivePortal(routerId: string): Promise<CaptivePortalResponse> {
   const tenant = getTenant()
-  const response = await fetch(
-    `${getApiBase()}/hotspot/captive-portal/?router=${routerId}&tenant=${tenant}`,
-    { cache: "no-store" },
-  )
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.message || err.error || "Failed to load hotspot plans")
+  const url = `${getApiBase()}/hotspot/captive-portal/?router=${routerId}&tenant=${tenant}`
+  let lastError: unknown
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetchWithTimeout(url, 4000)
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.message || err.error || "Failed to load hotspot plans")
+      }
+      return response.json()
+    } catch (err) {
+      lastError = err
+    }
   }
-  return response.json()
+  throw lastError instanceof Error ? lastError : new Error("Failed to load hotspot plans")
 }
 
 /** Resolve the current tenant from subdomain / query-string */
@@ -621,6 +639,20 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   // ── Logo error state (FIX #1) ─────────────────────────────────────────────
   const [logoError, setLogoError] = useState(false)
 
+  // 🔥 FIX 2: preconnect on mount — place as the FIRST effect in the component
+  useEffect(() => {
+    const origin = window.location.origin
+    const addHint = (rel: string) => {
+      if (document.querySelector(`link[rel="${rel}"][href="${origin}"]`)) return
+      const link = document.createElement("link")
+      link.rel = rel
+      link.href = origin
+      document.head.appendChild(link)
+    }
+    addHint("dns-prefetch")
+    addHint("preconnect")
+  }, [])
+
   // Preload video into browser cache as soon as ad data arrives
   useEffect(() => {
     if (!availableAd?.media_url || availableAd.media_type !== 'VIDEO') return
@@ -822,6 +854,23 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       })
     }
   }, [routerId, canonicalUsername]) // No `loading` dependency — fires in parallel with plans fetch
+
+  // 🔥 FIX 3: Warm modal chunks in the background right after plans render
+  // This eliminates cold-start chunk latency when user taps a plan
+  useEffect(() => {
+    if (loading) return
+    const warm = () => {
+      import("./PaymentModal")
+      import("./AdVideoModal")
+      import("./LoyaltyRedeemModal")
+      import("./PhoneReconnectModal")
+    }
+    if ("requestIdleCallback" in window) {
+      ;(window as any).requestIdleCallback(warm, { timeout: 2000 })
+    } else {
+      setTimeout(warm, 300)
+    }
+  }, [loading])
 
   // ── Poll payment status — ADAPTIVE POLLING (1.2s first 10 attempts, then 3s) ──
   useEffect(() => {
