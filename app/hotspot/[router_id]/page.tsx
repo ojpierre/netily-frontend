@@ -5,6 +5,7 @@ import { Wifi, Clock, Zap, Phone, Loader2, CheckCircle2, XCircle, RefreshCw, Ale
 import { getApiBaseUrl, getSubdomainInfo } from "@/lib/subdomain"
 import dynamic from "next/dynamic"
 import { getTheme, type ThemeStyles } from "./theme-engine"
+import { fetchWithRetry } from "./fetchWithRetry"
 
 // Lazy-load modals with ssr: false
 const PaymentModal = dynamic(() => import("./PaymentModal"), { ssr: false })
@@ -180,35 +181,19 @@ function getApiBase(): string {
   return `${window.location.origin}/api/v1`
 }
 
-// 🔥 FIX 2: fetchWithTimeout — bounded fetch that self-heals in ~4s instead of hanging 15s
-async function fetchWithTimeout(url: string, timeoutMs = 4000): Promise<Response> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    return await fetch(url, { cache: "no-store", signal: controller.signal })
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
-// 🔥 FIX 2: fetchCaptivePortal — bounded, retrying version (3 attempts, 4s timeout each)
+// 🔥 FIX 2: Updated fetchCaptivePortal with fetchWithRetry
 async function fetchCaptivePortal(routerId: string): Promise<CaptivePortalResponse> {
   const tenant = getTenant()
-  const url = `${getApiBase()}/hotspot/captive-portal/?router=${routerId}&tenant=${tenant}`
-  let lastError: unknown
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const response = await fetchWithTimeout(url, 4000)
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}))
-        throw new Error(err.message || err.error || "Failed to load hotspot plans")
-      }
-      return response.json()
-    } catch (err) {
-      lastError = err
-    }
+  const response = await fetchWithRetry(
+    `${getApiBase()}/hotspot/captive-portal/?router=${routerId}&tenant=${tenant}`,
+    { cache: "no-store" },
+    { timeoutMs: 4000, retries: 3, retryDelayMs: 300 }
+  )
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.message || err.error || "Failed to load hotspot plans")
   }
-  throw lastError instanceof Error ? lastError : new Error("Failed to load hotspot plans")
+  return response.json()
 }
 
 /** Resolve the current tenant from subdomain / query-string */
@@ -241,12 +226,16 @@ async function initiatePurchase(data: {
   tenant: string
   tv_code?: string
 }): Promise<PurchaseResponse> {
-  const response = await fetch(`${getApiBase()}/hotspot/purchase/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-    cache: "no-store",
-  })
+  const response = await fetchWithRetry(
+    `${getApiBase()}/hotspot/purchase/`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+      cache: "no-store",
+    },
+    { timeoutMs: 5000, retries: 1, retryDelayMs: 300 }
+  )
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: "Payment initiation failed" }))
     throw new Error(error.message || error.error || "Payment initiation failed")
@@ -258,19 +247,27 @@ async function pollPurchaseStatus(sessionId: string, loginUrl?: string, tenant?:
   const qp = new URLSearchParams()
   if (loginUrl) qp.append("login_url", loginUrl)
   qp.append("tenant", tenant || getTenant())
-  const response = await fetch(`${getApiBase()}/hotspot/purchase/${sessionId}/status/?${qp.toString()}`, { cache: "no-store" })
+  const response = await fetchWithRetry(
+    `${getApiBase()}/hotspot/purchase/${sessionId}/status/?${qp.toString()}`,
+    { cache: "no-store" },
+    { timeoutMs: 3500, retries: 1, retryDelayMs: 250 }
+  )
   if (!response.ok) throw new Error("Failed to check payment status")
   return response.json()
 }
 
 async function checkAutoLogin(routerId: string, macAddress: string): Promise<AutoLoginResponse> {
   const tenant = getTenant()
-  const response = await fetch(`${getApiBase()}/hotspot/auto-login/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ router_id: routerId, mac_address: macAddress, tenant }),
-    cache: "no-store",
-  })
+  const response = await fetchWithRetry(
+    `${getApiBase()}/hotspot/auto-login/`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ router_id: routerId, mac_address: macAddress, tenant }),
+      cache: "no-store",
+    },
+    { timeoutMs: 3000, retries: 1, retryDelayMs: 300 }
+  )
   if (!response.ok) throw new Error("Auto-login check failed")
   return response.json()
 }
@@ -292,12 +289,16 @@ async function redeemVoucher(data: {
   mac_address: string
   tenant: string
 }): Promise<VoucherRedeemResponse> {
-  const response = await fetch(`${getApiBase()}/hotspot/voucher-redeem/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-    cache: "no-store",
-  })
+  const response = await fetchWithRetry(
+    `${getApiBase()}/hotspot/voucher-redeem/`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+      cache: "no-store",
+    },
+    { timeoutMs: 5000, retries: 1, retryDelayMs: 300 }
+  )
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: "Voucher redemption failed" }))
     throw new Error(error.message || error.error || "Voucher redemption failed")
@@ -321,12 +322,16 @@ async function claimFreeTrial(data: {
   plan_name: string
   message: string
 }> {
-  const response = await fetch(`${getApiBase()}/hotspot/free-trial/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-    cache: 'no-store',
-  })
+  const response = await fetchWithRetry(
+    `${getApiBase()}/hotspot/free-trial/`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      cache: 'no-store',
+    },
+    { timeoutMs: 5000, retries: 1, retryDelayMs: 300 }
+  )
   const json = await response.json()
   if (!response.ok) throw new Error(json.error || 'Failed to claim free trial')
   return json
@@ -351,12 +356,16 @@ async function phoneReconnect(data: {
   device_limit?: number
   credentials: { username: string; password: string }
 }> {
-  const response = await fetch(`${getApiBase()}/hotspot/phone-reconnect/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-    cache: 'no-store',
-  })
+  const response = await fetchWithRetry(
+    `${getApiBase()}/hotspot/phone-reconnect/`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      cache: 'no-store',
+    },
+    { timeoutMs: 5000, retries: 1, retryDelayMs: 300 }
+  )
   const json = await response.json()
   if (!response.ok) throw new Error(json.error || 'Could not connect')
   return json
@@ -367,9 +376,10 @@ async function phoneReconnect(data: {
 // Updated to include mac_masked field
 async function scanNetworkDevices(routerId: string, tenant: string): Promise<{ip: string; mac: string; mac_masked: string; label: string}[]> {
   try {
-    const res = await fetch(
+    const res = await fetchWithRetry(
       `${getApiBase()}/hotspot/scan-devices/?router_id=${encodeURIComponent(routerId)}&tenant=${encodeURIComponent(tenant)}`,
-      { cache: 'no-store' }
+      { cache: 'no-store' },
+      { timeoutMs: 4000, retries: 1, retryDelayMs: 300 }
     )
     if (!res.ok) return []
     const data = await res.json()
@@ -382,9 +392,10 @@ async function scanNetworkDevices(routerId: string, tenant: string): Promise<{ip
 // === AD API FUNCTIONS ===
 async function fetchServableAd(routerId: string, tenant: string): Promise<{ ad: HotspotAd | null }> {
   try {
-    const res = await fetch(
+    const res = await fetchWithRetry(
       `${getApiBase()}/hotspot/ads/serve/?router_id=${routerId}&tenant=${encodeURIComponent(tenant)}`,
-      { cache: 'no-store' }
+      { cache: 'no-store' },
+      { timeoutMs: 4000, retries: 1, retryDelayMs: 300 }
     )
     if (!res.ok) return { ad: null }
     return res.json()
@@ -399,12 +410,16 @@ async function grantAdAccess(data: {
   router_id: string
   tenant: string
 }): Promise<AdGrantResponse> {
-  const res = await fetch(`${getApiBase()}/hotspot/ads/grant-access/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-    cache: 'no-store',
-  })
+  const res = await fetchWithRetry(
+    `${getApiBase()}/hotspot/ads/grant-access/`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      cache: 'no-store',
+    },
+    { timeoutMs: 5000, retries: 1, retryDelayMs: 300 }
+  )
   const json = await res.json()
   if (!res.ok && res.status !== 409) throw new Error(json.error || 'Failed to grant access')
   return json
@@ -420,9 +435,11 @@ async function fetchHotspotLoyalty(
   try {
     const params = new URLSearchParams({ mac, tenant })
     if (canonicalUsername) params.append('canonical_username', canonicalUsername)
-    const res = await fetch(`${getApiBase()}/hotspot/loyalty-info/?${params.toString()}`, {
-      cache: 'no-store',
-    })
+    const res = await fetchWithRetry(
+      `${getApiBase()}/hotspot/loyalty-info/?${params.toString()}`,
+      { cache: 'no-store' },
+      { timeoutMs: 4000, retries: 1, retryDelayMs: 300 }
+    )
     if (!res.ok) return null
     return res.json()
   } catch {
@@ -446,12 +463,16 @@ async function redeemHotspotLoyaltyPoints(data: {
   message: string
   error?: string
 }> {
-  const res = await fetch(`${getApiBase()}/hotspot/loyalty-redeem/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-    cache: 'no-store',
-  })
+  const res = await fetchWithRetry(
+    `${getApiBase()}/hotspot/loyalty-redeem/`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      cache: 'no-store',
+    },
+    { timeoutMs: 5000, retries: 1, retryDelayMs: 300 }
+  )
   const json = await res.json()
   if (!res.ok) throw new Error(json.error || 'Redemption failed')
   return json
