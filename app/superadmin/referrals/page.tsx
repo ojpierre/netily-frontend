@@ -6,7 +6,9 @@ import {
   ChevronUp,
   Download,
   ExternalLink,
+  KeyRound,
   Loader2,
+  Mail,
   Plus,
   Search,
   ShieldCheck,
@@ -61,6 +63,8 @@ export default function SuperAdminReferralsPage() {
     reward_amount: "0",
     admin_notes: "",
   })
+  const [passwordDrafts, setPasswordDrafts] = useState<Record<number, { password: string; confirm: string; notify: boolean }>>({})
+  const [securityNotice, setSecurityNotice] = useState<Record<number, string>>({})
 
   const fetchAffiliates = async () => {
     setLoading(true)
@@ -256,6 +260,60 @@ export default function SuperAdminReferralsPage() {
       await fetchAffiliates()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to deactivate affiliate.")
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const updatePasswordDraft = (affiliateId: number, patch: Partial<{ password: string; confirm: string; notify: boolean }>) => {
+    setPasswordDrafts((current) => ({
+      ...current,
+      [affiliateId]: {
+        password: "",
+        confirm: "",
+        notify: true,
+        ...(current[affiliateId] || {}),
+        ...patch,
+      },
+    }))
+  }
+
+  const changeAffiliatePassword = async (affiliate: AdminAffiliate) => {
+    const draft = passwordDrafts[affiliate.id] || { password: "", confirm: "", notify: true }
+    if (!draft.password || draft.password.length < 8) {
+      setError("Enter a password with at least 8 characters.")
+      return
+    }
+    if (draft.password !== draft.confirm) {
+      setError("Passwords do not match.")
+      return
+    }
+    setSavingId(affiliate.id)
+    try {
+      const result = await affiliateApi.adminChangeAffiliatePassword(affiliate.id, {
+        new_password: draft.password,
+        confirm_password: draft.confirm,
+        send_email: draft.notify,
+      })
+      setPasswordDrafts((current) => ({ ...current, [affiliate.id]: { password: "", confirm: "", notify: true } }))
+      setSecurityNotice((current) => ({ ...current, [affiliate.id]: result.detail || "Affiliate password changed." }))
+      setError("")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to change affiliate password.")
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const sendTemporaryPassword = async (affiliate: AdminAffiliate) => {
+    if (!window.confirm(`Send a temporary password to ${affiliate.email}? They will be asked to set a new password from affiliate login.`)) return
+    setSavingId(affiliate.id)
+    try {
+      const result = await affiliateApi.adminSendAffiliateTemporaryPassword(affiliate.id)
+      setSecurityNotice((current) => ({ ...current, [affiliate.id]: result.detail || "Temporary password sent." }))
+      setError("")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to send temporary password.")
     } finally {
       setSavingId(null)
     }
@@ -522,6 +580,71 @@ export default function SuperAdminReferralsPage() {
                                   Deactivate
                                 </Button>
                               </div>
+                            </div>
+                            <div className="mb-5 rounded-xl border border-slate-700/70 bg-slate-950/70 p-4">
+                              <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                  <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-violet-400">
+                                    <KeyRound className="h-3.5 w-3.5" />
+                                    Affiliate security
+                                  </p>
+                                  <p className="mt-1 text-xs text-slate-500">
+                                    Change the affiliate password manually or send a temporary password to their email.
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => sendTemporaryPassword(a)}
+                                  disabled={savingId === a.id}
+                                  className="border-amber-500/30 text-amber-200 hover:bg-amber-500/10"
+                                >
+                                  <Mail className="mr-1.5 h-3.5 w-3.5" />
+                                  Send temporary password
+                                </Button>
+                              </div>
+                              {securityNotice[a.id] && (
+                                <div className="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+                                  {securityNotice[a.id]}
+                                </div>
+                              )}
+                              <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+                                <label className="text-xs text-slate-400">
+                                  New password
+                                  <Input
+                                    type="password"
+                                    value={passwordDrafts[a.id]?.password || ""}
+                                    onChange={(event) => updatePasswordDraft(a.id, { password: event.target.value })}
+                                    className="mt-1 h-9 border-slate-700 bg-slate-900 text-white"
+                                  />
+                                </label>
+                                <label className="text-xs text-slate-400">
+                                  Confirm password
+                                  <Input
+                                    type="password"
+                                    value={passwordDrafts[a.id]?.confirm || ""}
+                                    onChange={(event) => updatePasswordDraft(a.id, { confirm: event.target.value })}
+                                    className="mt-1 h-9 border-slate-700 bg-slate-900 text-white"
+                                  />
+                                </label>
+                                <Button
+                                  disabled={savingId === a.id}
+                                  onClick={() => changeAffiliatePassword(a)}
+                                  className="h-9 bg-violet-600 text-white hover:bg-violet-500"
+                                >
+                                  {savingId === a.id ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+                                  Change password
+                                </Button>
+                              </div>
+                              <label className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+                                <input
+                                  type="checkbox"
+                                  checked={passwordDrafts[a.id]?.notify ?? true}
+                                  onChange={(event) => updatePasswordDraft(a.id, { notify: event.target.checked })}
+                                  className="h-4 w-4 rounded border-slate-700 bg-slate-900"
+                                />
+                                Email the affiliate that their password was changed.
+                              </label>
                             </div>
                             {a.referrals.length > 0 ? (
                               <div className="grid gap-3 xl:grid-cols-2">

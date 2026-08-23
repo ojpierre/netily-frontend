@@ -257,6 +257,30 @@ class AffiliateApiService {
     )
   }
 
+  requestPasswordResetOtp(email: string) {
+    return this.request<{ detail: string; otp_id?: string; email?: string; expires_in?: number; resend_available_in?: number }>(
+      "/affiliate/password-reset/otp/request/",
+      { method: "POST", body: JSON.stringify({ email }) },
+      "public",
+    )
+  }
+
+  confirmPasswordResetOtp(data: { email: string; otp_id: string; otp_code: string; new_password: string; confirm_password: string }) {
+    return this.request<{ detail: string }>(
+      "/affiliate/password-reset/otp/confirm/",
+      { method: "POST", body: JSON.stringify(data) },
+      "public",
+    )
+  }
+
+  confirmTemporaryPasswordReset(data: { email: string; temporary_password: string; new_password: string; confirm_password: string }) {
+    return this.request<{ detail: string }>(
+      "/affiliate/password-reset/temp/confirm/",
+      { method: "POST", body: JSON.stringify(data) },
+      "public",
+    )
+  }
+
   getMe = () => this.request<AffiliateUser>("/affiliate/me/")
 
   async resendVerification(email: string): Promise<void> {
@@ -379,6 +403,22 @@ class AffiliateApiService {
     return this.request<{ access_url: string; expires_in: number }>(
       `/affiliate/admin/affiliates/${id}/access/`,
       { method: "POST" },
+      "superadmin",
+    )
+  }
+
+  adminChangeAffiliatePassword(id: number, data: { new_password: string; confirm_password: string; send_email?: boolean }) {
+    return this.request<{ detail: string }>(
+      `/affiliate/admin/affiliates/${id}/password/`,
+      { method: "POST", body: JSON.stringify({ mode: "manual", ...data }) },
+      "superadmin",
+    )
+  }
+
+  adminSendAffiliateTemporaryPassword(id: number) {
+    return this.request<{ detail: string }>(
+      `/affiliate/admin/affiliates/${id}/password/`,
+      { method: "POST", body: JSON.stringify({ mode: "temporary" }) },
       "superadmin",
     )
   }
