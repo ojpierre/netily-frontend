@@ -412,7 +412,7 @@ export default function RoutersPage() {
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="admin-theme-route admin-routers-route space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <Skeleton className="h-9 w-64" />
@@ -446,7 +446,7 @@ export default function RoutersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="admin-theme-route admin-routers-route space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -1035,7 +1035,7 @@ export default function RoutersPage() {
 
       {/* Add Router Dialog - Glassmorphism */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-md rounded-2xl backdrop-blur-sm bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-800">
+        <DialogContent className="admin-theme-dialog max-w-md rounded-2xl backdrop-blur-sm bg-card/95 border-border">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Add New Router</DialogTitle>
             <DialogDescription>
@@ -1112,7 +1112,7 @@ export default function RoutersPage() {
 
       {/* Edit Router Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-lg rounded-2xl backdrop-blur-sm bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-800">
+        <DialogContent className="admin-theme-dialog max-w-lg rounded-2xl backdrop-blur-sm bg-card/95 border-border">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Details Overview</DialogTitle>
             <DialogDescription>Router configuration details (read-only)</DialogDescription>
@@ -1236,7 +1236,7 @@ export default function RoutersPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="rounded-2xl backdrop-blur-sm bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-800">
+        <DialogContent className="admin-theme-dialog rounded-2xl backdrop-blur-sm bg-card/95 border-border">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Delete Router</DialogTitle>
             <DialogDescription>

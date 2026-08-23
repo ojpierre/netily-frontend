@@ -231,7 +231,7 @@ const itemVariants = {
 
 // FIX: PageWrapper defined OUTSIDE the component for stable reference
 function PageWrapper({ children }: { children: React.ReactNode }) {
-  return <div className="space-y-6">{children}</div>
+  return <div className="admin-theme-route admin-users-route space-y-6">{children}</div>
 }
 
 // Helper: Map backend Customer to frontend User display type
@@ -2332,7 +2332,7 @@ export default function UsersPage() {
                     Add User
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 border-0">
+                <DialogContent className="admin-theme-dialog max-w-xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 border-0">
                   <motion.div
                     initial={{ opacity: 0, scale: 0.96, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -4016,7 +4016,7 @@ export default function UsersPage() {
 
       {/* Edit User Dialog */}
       <Dialog open={showEditUserDialog} onOpenChange={setShowEditUserDialog}>
-        <DialogContent className="sm:max-w-md p-0 border-0">
+        <DialogContent className="admin-theme-dialog sm:max-w-md p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -4142,7 +4142,7 @@ export default function UsersPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
-        <DialogContent className="sm:max-w-md p-0 border-0">
+        <DialogContent className="admin-theme-dialog sm:max-w-md p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -4187,7 +4187,7 @@ export default function UsersPage() {
 
       {/* Extend Subscription Dialog */}
       <Dialog open={showExtendDialog} onOpenChange={setShowExtendDialog}>
-        <DialogContent className="sm:max-w-md p-0 border-0">
+        <DialogContent className="admin-theme-dialog sm:max-w-md p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -4458,7 +4458,7 @@ export default function UsersPage() {
 
       {/* Extend Hotspot Session Dialog */}
       <Dialog open={showExtendHotspotDialog} onOpenChange={setShowExtendHotspotDialog}>
-        <DialogContent className="sm:max-w-md p-0 border-0">
+        <DialogContent className="admin-theme-dialog sm:max-w-md p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -4604,7 +4604,7 @@ export default function UsersPage() {
           }
         }}
       >
-        <DialogContent className="max-w-lg p-0 border-0">
+        <DialogContent className="admin-theme-dialog max-w-lg p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -4712,7 +4712,7 @@ export default function UsersPage() {
           if (editIPSearchDebounceRef.current) clearTimeout(editIPSearchDebounceRef.current)
         }
       }}>
-        <DialogContent className="sm:max-w-md p-0 border-0">
+        <DialogContent className="admin-theme-dialog sm:max-w-md p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -4828,7 +4828,7 @@ export default function UsersPage() {
           setSmsMessage("")
         }
       }}>
-        <DialogContent className="p-0 border-0">
+        <DialogContent className="admin-theme-dialog p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -4923,7 +4923,7 @@ export default function UsersPage() {
 
       {/* Per-user SMS Dialog */}
       <Dialog open={showUserSmsDialog} onOpenChange={setShowUserSmsDialog}>
-        <DialogContent className="sm:max-w-lg p-0 border-0">
+        <DialogContent className="admin-theme-dialog sm:max-w-lg p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -5041,7 +5041,7 @@ export default function UsersPage() {
       <Dialog open={showHotspotDeleteDialog} onOpenChange={(open) => {
         if (!open) { setShowHotspotDeleteDialog(false); setHotspotDeleteTarget(null) }
       }}>
-        <DialogContent className="max-w-sm w-[90vw] rounded-2xl p-0 overflow-hidden border-0 shadow-2xl">
+        <DialogContent className="admin-theme-dialog max-w-sm w-[90vw] rounded-2xl p-0 overflow-hidden border-0 shadow-2xl">
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -5086,7 +5086,7 @@ export default function UsersPage() {
           setHotspotPlansForBinding([])
         }
       }}>
-        <DialogContent className="max-w-lg p-0 border-0">
+        <DialogContent className="admin-theme-dialog max-w-lg p-0 border-0">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

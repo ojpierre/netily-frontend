@@ -769,7 +769,7 @@ export default function RouterDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="admin-theme-route admin-router-detail-route space-y-6">
         <div className="flex items-center gap-4">
           <Skeleton className="h-10 w-20" />
           <Skeleton className="h-12 w-12" />
@@ -790,7 +790,7 @@ export default function RouterDetailPage() {
 
   if (!routerData) {
     return (
-      <div className="space-y-6">
+      <div className="admin-theme-route admin-router-detail-route space-y-6">
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
@@ -805,7 +805,7 @@ export default function RouterDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="admin-theme-route admin-router-detail-route space-y-6">
       {/* Header */}
       <Card>
         <CardContent className="pt-6">
@@ -829,7 +829,7 @@ export default function RouterDetailPage() {
       {isAuthScriptDialogOpen && (
         // Fix 2d: Updated DialogContent with max-w-lg and w-full
         <Dialog open={isAuthScriptDialogOpen} onOpenChange={setIsAuthScriptDialogOpen}>
-          <DialogContent className="max-w-lg w-full">
+          <DialogContent className="admin-theme-dialog max-w-lg w-full">
             <DialogHeader>
               <DialogTitle>Router Authentication Script</DialogTitle>
               <DialogDescription>
@@ -2010,7 +2010,7 @@ export default function RouterDetailPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="admin-theme-dialog">
           <DialogHeader>
             <DialogTitle>Delete Router</DialogTitle>
             <DialogDescription>
@@ -2035,7 +2035,7 @@ export default function RouterDetailPage() {
 
       {/* Maintenance Mode Dialog */}
       <Dialog open={isMaintenanceDialogOpen} onOpenChange={setIsMaintenanceDialogOpen}>
-        <DialogContent>
+        <DialogContent className="admin-theme-dialog">
           <DialogHeader>
             <DialogTitle>
               {routerData.status === "maintenance" ? "Exit Maintenance Mode" : "Enter Maintenance Mode"}
@@ -2081,7 +2081,7 @@ export default function RouterDetailPage() {
 
       {/* Script Dialog */}
       <Dialog open={isScriptDialogOpen} onOpenChange={setIsScriptDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="admin-theme-dialog max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {editingScript ? "Edit Script" : "New Script"}

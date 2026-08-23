@@ -698,7 +698,7 @@ export default function UserDetailPage() {
 
   if (loading || !user) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="admin-theme-route admin-user-detail-route p-6 space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => router.back()}>
             <ArrowLeft className="w-5 h-5" />
@@ -746,7 +746,7 @@ export default function UserDetailPage() {
 
   return (
     <motion.div
-      className="p-6 space-y-6"
+      className="admin-theme-route admin-user-detail-route p-6 space-y-6"
       variants={containerVariants}
       initial="hidden"
       animate="show"
@@ -1577,7 +1577,7 @@ export default function UserDetailPage() {
 
       {/* Delete Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent className="admin-theme-dialog rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-red-600">Delete User</DialogTitle>
             <DialogDescription>
@@ -1609,7 +1609,7 @@ export default function UserDetailPage() {
 
       {/* Send SMS Dialog */}
       <Dialog open={showSmsDialog} onOpenChange={setShowSmsDialog}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent className="admin-theme-dialog rounded-2xl">
           <DialogHeader>
             <DialogTitle>Send SMS</DialogTitle>
             <DialogDescription>
@@ -1640,7 +1640,7 @@ export default function UserDetailPage() {
 
       {/* ══════════════ NEW: View Full SMS Dialog ══════════════ */}
       <Dialog open={showSmsViewDialog} onOpenChange={setShowSmsViewDialog}>
-        <DialogContent className="rounded-2xl max-w-lg p-0 border-0 overflow-hidden">
+        <DialogContent className="admin-theme-dialog rounded-2xl max-w-lg p-0 border-0 overflow-hidden">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

@@ -23,6 +23,9 @@ export type ColorTheme =
   | 'amber-slate'
   | 'cyan-graphite'
   | 'crimson-ivory'
+  | 'sage-noir'
+  | 'copper-graphite'
+  | 'indigo-mist'
 
 interface NetilyThemeContextValue {
   colorTheme: ColorTheme
@@ -52,6 +55,9 @@ export const COLOR_THEMES: { value: ColorTheme; label: string; preview: string }
   { value: 'amber-slate', label: 'Amber Slate', preview: 'linear-gradient(135deg,#f59e0b,#111827)' },
   { value: 'cyan-graphite', label: 'Cyan Graphite', preview: 'linear-gradient(135deg,#06b6d4,#27272a)' },
   { value: 'crimson-ivory', label: 'Crimson Ivory', preview: 'linear-gradient(135deg,#dc2626,#fafaf9)' },
+  { value: 'sage-noir', label: 'Sage Noir', preview: 'linear-gradient(135deg,#6b8f71,#111814)' },
+  { value: 'copper-graphite', label: 'Copper Graphite', preview: 'linear-gradient(135deg,#b45309,#1f2937)' },
+  { value: 'indigo-mist', label: 'Indigo Mist', preview: 'linear-gradient(135deg,#4f46e5,#eef2ff)' },
 ]
 
 const COLOR_THEME_VALUES = COLOR_THEMES.map((theme) => theme.value)

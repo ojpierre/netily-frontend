@@ -425,6 +425,36 @@ function AppearanceTab() {
       swatch: "bg-linear-to-br from-red-600 to-stone-100",
       activeText: "text-red-700 dark:text-red-300",
     },
+    {
+      value: "sage-noir",
+      label: "Sage Noir",
+      accent: "text-emerald-700 dark:text-emerald-300",
+      ring: "ring-emerald-600",
+      bg: "bg-emerald-50",
+      dark: "dark:bg-neutral-950",
+      swatch: "bg-linear-to-br from-emerald-700 to-neutral-950",
+      activeText: "text-emerald-700 dark:text-emerald-300",
+    },
+    {
+      value: "copper-graphite",
+      label: "Copper Graphite",
+      accent: "text-orange-700 dark:text-orange-300",
+      ring: "ring-orange-600",
+      bg: "bg-orange-50",
+      dark: "dark:bg-zinc-950",
+      swatch: "bg-linear-to-br from-orange-700 to-zinc-800",
+      activeText: "text-orange-700 dark:text-orange-300",
+    },
+    {
+      value: "indigo-mist",
+      label: "Indigo Mist",
+      accent: "text-indigo-700 dark:text-indigo-300",
+      ring: "ring-indigo-600",
+      bg: "bg-indigo-50",
+      dark: "dark:bg-indigo-950",
+      swatch: "bg-linear-to-br from-indigo-600 to-indigo-100",
+      activeText: "text-indigo-700 dark:text-indigo-300",
+    },
   ]
 
   return (
