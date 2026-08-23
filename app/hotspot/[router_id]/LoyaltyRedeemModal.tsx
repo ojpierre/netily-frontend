@@ -1,7 +1,7 @@
 "use client"
 
 import { AlertCircle, Loader2 } from "lucide-react"
-import type { HotspotLoyaltyData, LoyaltyRewardItem } from "./HotspotPortalClient"  // ← changed from "./page"
+import type { HotspotLoyaltyData, LoyaltyRewardItem } from "./page"
 
 interface LoyaltyRedeemModalProps {
   loyaltyData: HotspotLoyaltyData | null
