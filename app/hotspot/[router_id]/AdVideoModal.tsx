@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { AlertCircle, Clock, Loader2 } from "lucide-react"
-import type { HotspotAd } from "./page"
+import type { HotspotAd } from "./HotspotPortalClient"  // ← changed from "./page"
 
 function AutoCompleteImage({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
