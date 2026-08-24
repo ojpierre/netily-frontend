@@ -5,9 +5,9 @@ import { HomepagePreloader } from "@/components/homepage-preloader"
 
 // Static page â€” no per-request rendering needed; maximises caching and Core Web Vitals
 export const metadata: Metadata = {
-  title: "Internetily | ISP Billing Software Kenya | M-Pesa & MikroTik",
+  title: "Internetily | ISP Billing Software for Kenya, Africa & Global WISPs",
   description:
-    "Internetily, formerly Netily, is Kenya's ISP billing software for M-Pesa STK Push, MikroTik PPPoE, hotspot billing, and ISP operations.",
+    "Internetily, formerly Netily, is ISP billing software for Kenya, Africa, UK, USA, Australia, New Zealand, and global WISPs using MikroTik, PPPoE, hotspot, and regional payments.",
   keywords: [
     // â”€â”€ Exact-match Ahrefs targets (high intent) â”€â”€â”€â”€â”€â”€
     "isp billing software",
@@ -189,8 +189,24 @@ export const metadata: Metadata = {
     "ISP billing software South Africa",
     "WISP billing software South Africa",
     "MikroTik billing software South Africa",
+    "ISP billing software UK",
+    "ISP billing software United Kingdom",
+    "UK altnet billing software",
+    "WISP billing software UK",
+    "ISP billing software USA",
+    "WISP billing software USA",
+    "fiber ISP billing software USA",
+    "ISP billing software Australia",
+    "WISP billing software Australia",
+    "ISP billing software New Zealand",
+    "WISP billing software New Zealand",
     "Payfast ISP billing",
     "Ozow ISP payments",
+    "GoCardless ISP billing",
+    "Stripe ISP billing software",
+    "ACH ISP billing software",
+    "BECS ISP billing software",
+    "Windcave ISP payments",
     "MTN MoMo ISP billing Uganda",
     "Airtel Money ISP billing Uganda",
     "Tigo Pesa ISP billing Tanzania",
@@ -231,9 +247,9 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Internetily | ISP Billing Software Kenya | M-Pesa & MikroTik",
+    title: "Internetily | ISP Billing Software for Kenya, Africa & Global WISPs",
     description:
-      "Internetily, formerly Netily, automates M-Pesa STK Push, MikroTik PPPoE, RADIUS and hotspot billing for Kenyan and East African ISPs.",
+      "Internetily, formerly Netily, automates ISP billing, MikroTik PPPoE, RADIUS, hotspot access, M-Pesa, mobile money, card, ACH, Direct Debit, and regional payment workflows.",
     url: "https://netily.co.ke",
     images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "Internetily, formerly Netily - ISP Billing Software Kenya" }],
   },
@@ -256,7 +272,7 @@ const softwareSchema = {
   operatingSystem: "Web",
   url: "https://netily.co.ke",
   description:
-    "Internetily, formerly Netily, is ISP billing software for Kenya and East Africa. It automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and ISP management.",
+    "Internetily, formerly Netily, is ISP billing software for Kenya, Africa, UK, USA, Australia, New Zealand, and global WISPs. It automates M-Pesa STK Push payments, mobile money planning, cards, Direct Debit, ACH, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and ISP management.",
   publisher: {
     "@type": "Organization",
     "@id": "https://netily.co.ke/#organization",
@@ -305,6 +321,10 @@ const softwareSchema = {
     { "@type": "Country", name: "Rwanda" },
     { "@type": "Country", name: "Burundi" },
     { "@type": "Country", name: "South Sudan" },
+    { "@type": "Country", name: "United Kingdom" },
+    { "@type": "Country", name: "United States" },
+    { "@type": "Country", name: "Australia" },
+    { "@type": "Country", name: "New Zealand" },
   ],
   paymentAccepted: [
     "M-Pesa",
@@ -322,6 +342,12 @@ const softwareSchema = {
     "SBM Bank",
     "Stanbic Bank",
     "Standard Chartered",
+    "GoCardless",
+    "Stripe",
+    "ACH",
+    "BECS Direct Debit",
+    "Windcave",
+    "PayPal",
   ],
 }
 
@@ -391,7 +417,7 @@ const websiteSchema = {
   name: "Internetily",
   alternateName: ["Netily", "Internetily formerly Netily", "Netily ISP Blog"],
   url: "https://netily.co.ke",
-  description: "Internetily, formerly Netily, is ISP billing software and a management platform for Kenya and East Africa",
+  description: "Internetily, formerly Netily, is ISP billing software and a management platform for Kenya, Africa, and global WISP teams",
   potentialAction: {
     "@type": "SearchAction",
     target: "https://netily.co.ke/?q={search_term_string}",
@@ -420,6 +446,10 @@ const financialWorkflowSchema = {
     { "@type": "Country", name: "Rwanda" },
     { "@type": "Country", name: "Burundi" },
     { "@type": "Country", name: "South Sudan" },
+    { "@type": "Country", name: "United Kingdom" },
+    { "@type": "Country", name: "United States" },
+    { "@type": "Country", name: "Australia" },
+    { "@type": "Country", name: "New Zealand" },
   ],
   availableChannel: [
     { "@type": "ServiceChannel", name: "M-Pesa" },
@@ -429,6 +459,11 @@ const financialWorkflowSchema = {
     { "@type": "ServiceChannel", name: "Payfast" },
     { "@type": "ServiceChannel", name: "Ozow" },
     { "@type": "ServiceChannel", name: "Telkom Kash" },
+    { "@type": "ServiceChannel", name: "GoCardless Direct Debit" },
+    { "@type": "ServiceChannel", name: "Stripe" },
+    { "@type": "ServiceChannel", name: "ACH" },
+    { "@type": "ServiceChannel", name: "BECS Direct Debit" },
+    { "@type": "ServiceChannel", name: "Windcave" },
     { "@type": "ServiceChannel", name: "Bank-aligned billing workflows" },
   ],
 }
@@ -453,6 +488,11 @@ const ispSetupServiceSchema = {
     { "@type": "Country", name: "Rwanda" },
     { "@type": "Country", name: "Burundi" },
     { "@type": "Country", name: "South Sudan" },
+    { "@type": "Country", name: "South Africa" },
+    { "@type": "Country", name: "United Kingdom" },
+    { "@type": "Country", name: "United States" },
+    { "@type": "Country", name: "Australia" },
+    { "@type": "Country", name: "New Zealand" },
   ],
   hasOfferCatalog: {
     "@type": "OfferCatalog",
@@ -633,7 +673,7 @@ const localBusinessSchema = {
     "Netily ISP Billing Software",
     "Internetily formerly Netily",
   ],
-  description: "Internetily, formerly Netily, is a cloud-based ISP billing and management platform for Kenya and East Africa. It automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, and hotspot billing for internet service providers.",
+  description: "Internetily, formerly Netily, is a cloud-based ISP billing and management platform for Kenya, Africa, UK, USA, Australia, New Zealand, and global WISPs. It supports M-Pesa STK Push, regional payment workflows, MikroTik PPPoE provisioning, RADIUS authentication, and hotspot billing for internet service providers.",
   url: "https://netily.co.ke",
   telephone: "+254-700-000-000",
   email: "hello@netily.co.ke",
@@ -666,6 +706,10 @@ const localBusinessSchema = {
     { "@type": "Country", name: "Rwanda", "@id": "https://www.wikidata.org/wiki/Q1037" },
     { "@type": "Country", name: "Burundi", "@id": "https://www.wikidata.org/wiki/Q967" },
     { "@type": "Country", name: "South Sudan", "@id": "https://www.wikidata.org/wiki/Q958" },
+    { "@type": "Country", name: "United Kingdom", "@id": "https://www.wikidata.org/wiki/Q145" },
+    { "@type": "Country", name: "United States", "@id": "https://www.wikidata.org/wiki/Q30" },
+    { "@type": "Country", name: "Australia", "@id": "https://www.wikidata.org/wiki/Q408" },
+    { "@type": "Country", name: "New Zealand", "@id": "https://www.wikidata.org/wiki/Q664" },
     { "@type": "City", name: "Nairobi", containedInPlace: "Kenya" },
     { "@type": "City", name: "Mombasa", containedInPlace: "Kenya" },
     { "@type": "City", name: "Kisumu", containedInPlace: "Kenya" },
@@ -690,6 +734,14 @@ const localBusinessSchema = {
     { "@type": "City", name: "Kigali", containedInPlace: "Rwanda" },
     { "@type": "City", name: "Bujumbura", containedInPlace: "Burundi" },
     { "@type": "City", name: "Juba", containedInPlace: "South Sudan" },
+    { "@type": "City", name: "London", containedInPlace: "United Kingdom" },
+    { "@type": "City", name: "Manchester", containedInPlace: "United Kingdom" },
+    { "@type": "City", name: "New York", containedInPlace: "United States" },
+    { "@type": "City", name: "Dallas", containedInPlace: "United States" },
+    { "@type": "City", name: "Sydney", containedInPlace: "Australia" },
+    { "@type": "City", name: "Melbourne", containedInPlace: "Australia" },
+    { "@type": "City", name: "Auckland", containedInPlace: "New Zealand" },
+    { "@type": "City", name: "Wellington", containedInPlace: "New Zealand" },
   ],
   sameAs: [
     "https://x.com/netily",
@@ -711,8 +763,8 @@ const localBusinessSchema = {
     height: "630",
   },
   priceRange: "KES 500 - KES 50000",
-  paymentAccepted: ["M-Pesa", "Airtel Money", "MTN MoMo", "Tigo Pesa", "Payfast", "Ozow", "Telkom Kash", "Bank Transfer", "Credit Card"],
-  currenciesAccepted: "KES TZS UGX ZAR",
+  paymentAccepted: ["M-Pesa", "Airtel Money", "MTN MoMo", "Tigo Pesa", "Payfast", "Ozow", "Telkom Kash", "GoCardless", "Stripe", "ACH", "BECS Direct Debit", "Windcave", "Bank Transfer", "Credit Card"],
+  currenciesAccepted: "KES TZS UGX ZAR GBP USD AUD NZD",
   openingHours: "Mo-Fr 08:00-18:00",
   openingHoursSpecification: [
     {

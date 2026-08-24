@@ -570,7 +570,7 @@ export function LandingPage() {
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false)
 
   const { geo, fmt, setCountry, GEO_TABLE } = useGeo()
-  const supportedCountries = ["KE", "UG", "TZ", "RW", "ET", "BI", "SS", "NG"].filter((code) => !!GEO_TABLE[code])
+  const supportedCountries = ["KE", "UG", "TZ", "ZA", "RW", "ET", "BI", "SS", "NG", "GB", "US", "AU", "NZ"].filter((code) => !!GEO_TABLE[code])
 
   useEffect(() => {
     const onScroll = () => setIsHeaderScrolled(window.scrollY > 220)
@@ -783,7 +783,7 @@ export function LandingPage() {
               <Link href="/blog">Blog</Link>
               <Link href="/docs">Docs</Link>
               <div className="grid grid-cols-2 gap-2 border-t border-zinc-800 pt-4">
-                {supportedCountries.slice(0, 6).map((code) => {
+                {supportedCountries.map((code) => {
                   const item = GEO_TABLE[code]!
                   return (
                     <button
@@ -828,7 +828,7 @@ export function LandingPage() {
           <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col justify-end px-6 pb-14 pt-44 md:px-12 lg:px-16">
             <div className="max-w-5xl">
               <div className="mb-5 w-fit border border-white/20 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.24em] text-white/65 backdrop-blur">
-                ISP operations for Kenya and East Africa
+                ISP operations for Kenya, Africa, and global WISPs
               </div>
               <h1 className="max-w-4xl text-balance text-3xl font-normal tracking-tight text-white md:text-5xl lg:text-6xl">
                 Internetily runs <RotatingHeroText /> for growing ISPs.
@@ -1473,10 +1473,10 @@ export function LandingPage() {
         </section>
 
         <section className="sr-only" aria-label="SEO content for ISP billing software">
-          <h2>Internetily and Netily ISP billing software Kenya and East Africa</h2>
+          <h2>Internetily and Netily ISP billing software for Kenya, Africa, and global WISPs</h2>
           <p>
             Internetily, formerly Netily, is ISP billing software for Kenya, Uganda, Tanzania, South Africa, Rwanda, Burundi, South Sudan,
-            and East Africa. It supports M-Pesa STK Push, MTN MoMo, Airtel Money, Tigo Pesa, Payfast, Ozow, MikroTik PPPoE billing, hotspot billing,
+            East Africa, the United Kingdom, the United States, Australia, New Zealand, and international WISP teams. It supports M-Pesa STK Push, MTN MoMo, Airtel Money, Tigo Pesa, Payfast, Ozow, GoCardless, Stripe, ACH, BECS Direct Debit, Windcave, MikroTik PPPoE billing, hotspot billing,
             RADIUS authentication, subscriber management, automated invoicing, SMS payment reminders,
             customer self-service portals, payment reconciliation, bandwidth management, voucher billing,
             and internet service provider management.
@@ -1585,6 +1585,10 @@ export function LandingPage() {
                 <li><Link href="/solutions/isp-billing-software-tanzania">Tanzania ISP billing</Link></li>
                 <li><Link href="/solutions/isp-billing-software-uganda">Uganda ISP billing</Link></li>
                 <li><Link href="/solutions/isp-billing-software-south-africa">South Africa ISP billing</Link></li>
+                <li><Link href="/solutions/isp-billing-software-united-kingdom">UK ISP billing</Link></li>
+                <li><Link href="/solutions/isp-billing-software-usa">USA ISP billing</Link></li>
+                <li><Link href="/solutions/isp-billing-software-australia">Australia ISP billing</Link></li>
+                <li><Link href="/solutions/isp-billing-software-new-zealand">New Zealand ISP billing</Link></li>
               </ul>
             </div>
             <div>
