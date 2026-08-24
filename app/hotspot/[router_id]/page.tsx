@@ -901,12 +901,18 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     }
   }, [routerId, canonicalUsername]) // No `loading` dependency — fires in parallel with plans fetch
 
-  // 🔥 FIX 3: Warm modal chunks in the background right after plans render
-  // This eliminates cold-start chunk latency when user taps a plan
+  // 🔥 FIX: warm PaymentModal chunk IMMEDIATELY on mount, in parallel with
+  // the portal/ad/loyalty fetches — don't wait for `loading` or idle time,
+  // since idle time never really arrives before the user taps a plan.
+  useEffect(() => {
+    import("./PaymentModal")
+  }, [])
+
+  // Warm the remaining modal chunks in the background once plans render —
+  // these are less time-critical than PaymentModal.
   useEffect(() => {
     if (loading) return
     const warm = () => {
-      import("./PaymentModal")
       import("./AdVideoModal")
       import("./LoyaltyRedeemModal")
       import("./PhoneReconnectModal")
