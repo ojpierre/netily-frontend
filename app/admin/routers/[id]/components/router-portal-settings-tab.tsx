@@ -42,6 +42,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { adminApi } from "@/lib/admin-api"
+import { APPEARANCE_FONTS, type AppearanceFont } from "@/lib/appearance-fonts"
 
 // ==========================================
 // TEMPLATE DEFINITIONS
@@ -217,6 +218,54 @@ const TEMPLATES: TemplateOption[] = [
       text: "text-slate-700",
     },
   },
+  {
+    id: 14,
+    name: "Brutalist Sun",
+    description: "Neo brutalist yellow with black outlines and punchy poster energy",
+    icon: <Zap className="w-5 h-5" />,
+    preview: {
+      bg: "bg-[#f8e637]",
+      card: "bg-[#fff7d1] border-4 border-black shadow-[6px_6px_0_#111]",
+      accent: "bg-black",
+      text: "text-black",
+    },
+  },
+  {
+    id: 15,
+    name: "Brutalist Ink",
+    description: "Neo brutalist monochrome with high contrast and sharp structure",
+    icon: <Type className="w-5 h-5" />,
+    preview: {
+      bg: "bg-white",
+      card: "bg-white border-4 border-black shadow-[6px_6px_0_#f43f5e]",
+      accent: "bg-[#f43f5e]",
+      text: "text-black",
+    },
+  },
+  {
+    id: 16,
+    name: "Cyber Orchid",
+    description: "Retro cyberpunk glow with orchid, cyan, and midnight contrast",
+    icon: <Sparkles className="w-5 h-5" />,
+    preview: {
+      bg: "bg-gradient-to-br from-[#12071f] via-[#27105c] to-[#02121f]",
+      card: "bg-[#12071f] border border-cyan-300/60 shadow-[0_0_18px_rgba(34,211,238,0.35)]",
+      accent: "bg-fuchsia-400",
+      text: "text-cyan-300",
+    },
+  },
+  {
+    id: 17,
+    name: "Retro Terminal",
+    description: "Cyber terminal look with phosphor green, grid lines, and command-center feel",
+    icon: <Gauge className="w-5 h-5" />,
+    preview: {
+      bg: "bg-[#02130a]",
+      card: "bg-[#031f10] border border-lime-400/70 shadow-[0_0_18px_rgba(132,204,22,0.28)]",
+      accent: "bg-lime-400",
+      text: "text-lime-300",
+    },
+  },
 ]
 
 // ==========================================
@@ -226,6 +275,10 @@ const TEMPLATES: TemplateOption[] = [
 interface RouterPortalSettingsTabProps {
   routerId: number
   isDemo?: boolean
+}
+
+function coercePortalFont(value: unknown): AppearanceFont {
+  return APPEARANCE_FONTS.some((font) => font.value === value) ? (value as AppearanceFont) : "outfit"
 }
 
 // ==========================================
@@ -243,6 +296,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
   const [logoPreview, setLogoPreview] = useState<string>("")
   const [existingLogo, setExistingLogo] = useState<string>("")
   const [planLayout, setPlanLayout] = useState<"grid" | "list" | "default">("default")
+  const [portalFont, setPortalFont] = useState<AppearanceFont>("outfit")
 
   // UI state
   const [loading, setLoading] = useState(true)
@@ -259,6 +313,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     support_phone: "",
     announcement_text: "",
     hide_plan_speed: false,
+    portal_font: "outfit" as AppearanceFont,
     _planLayout: "default" as "grid" | "list" | "default",
   })
 
@@ -285,12 +340,14 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
         support_phone: router.support_phone ?? "",
         announcement_text: router.announcement_text ?? "",
         hide_plan_speed: router.hide_plan_speed ?? false,
+        portal_font: coercePortalFont(router.portal_font),
       }
       setTemplateId(baseTemplateId)
       setHotspotName(values.hotspot_name)
       setSupportPhone(values.support_phone)
       setAnnouncementText(values.announcement_text)
       setHidePlanSpeed(values.hide_plan_speed)
+      setPortalFont(values.portal_font)
       
       // Fix logo URL resolution - handle relative paths from backend
       const rawLogo = (router as any).logo || ""
@@ -305,6 +362,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
         support_phone: values.support_phone,
         announcement_text: values.announcement_text,
         hide_plan_speed: values.hide_plan_speed,
+        portal_font: values.portal_font,
         _planLayout: isGridLayout ? "grid" : isListLayout ? "list" : "default",
       })
       setPlanLayout(isGridLayout ? "grid" : isListLayout ? "list" : "default")
@@ -331,9 +389,10 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
       supportPhone !== original.support_phone ||
       announcementText !== original.announcement_text ||
       hidePlanSpeed !== original.hide_plan_speed ||
+      portalFont !== original.portal_font ||
       logoFile !== null
     setDirty(isDirty)
-  }, [templateId, hotspotName, supportPhone, announcementText, hidePlanSpeed, original, logoFile, planLayout])
+  }, [templateId, hotspotName, supportPhone, announcementText, hidePlanSpeed, portalFont, original, logoFile, planLayout])
 
   // ── Save — PATCH only changed fields ──
   const handleSave = async () => {
@@ -363,6 +422,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
     if (supportPhone !== original.support_phone) payload.support_phone = supportPhone
     if (announcementText !== original.announcement_text) payload.announcement_text = announcementText
     if (hidePlanSpeed !== original.hide_plan_speed) payload.hide_plan_speed = hidePlanSpeed
+    if (portalFont !== original.portal_font) payload.portal_font = portalFont
 
     if (Object.keys(payload).length === 0 && !logoFile) {
       toast.info("No changes to save")
@@ -386,6 +446,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
         support_phone: supportPhone,
         announcement_text: announcementText,
         hide_plan_speed: hidePlanSpeed,
+        portal_font: portalFont,
         _planLayout: planLayout,
       })
       setDirty(false)
@@ -617,6 +678,44 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
             </CardContent>
           </Card>
 
+          {/* Portal Font */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Type className="w-5 h-5" />
+                Portal Typeface
+              </CardTitle>
+              <CardDescription>
+                Choose the font customers see on login, plans, and payment screens
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-1 -mr-1">
+                {APPEARANCE_FONTS.map((font) => (
+                  <button
+                    key={font.value}
+                    type="button"
+                    data-font={font.value}
+                    onClick={() => setPortalFont(font.value)}
+                    className={`rounded-xl border p-3 text-left transition-all ${
+                      portalFont === font.value
+                        ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                        : "border-border bg-background hover:border-primary/40"
+                    }`}
+                    style={{ fontFamily: "var(--app-font-family)" }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold">{font.label}</span>
+                      {portalFont === font.value && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                    </div>
+                    <p className="mt-2 text-lg font-bold leading-none">{font.sample}</p>
+                    <p className="mt-2 line-clamp-2 text-[11px] text-muted-foreground">{font.description}</p>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Plan Display Options - NEW CARD */}
           <Card>
             <CardHeader>
@@ -792,6 +891,7 @@ export function RouterPortalSettingsTab({ routerId, isDemo = false }: RouterPort
                 existingLogo={existingLogo}
                 planLayout={planLayout}
                 hidePlanSpeed={hidePlanSpeed}
+                portalFont={portalFont}
               />
             </CardContent>
           </Card>
@@ -833,6 +933,7 @@ function PortalPreview({
   existingLogo,
   planLayout,
   hidePlanSpeed,
+  portalFont,
 }: {
   templateId: number
   hotspotName: string
@@ -842,6 +943,7 @@ function PortalPreview({
   existingLogo: string
   planLayout: "grid" | "list" | "default"
   hidePlanSpeed: boolean
+  portalFont: AppearanceFont
 }) {
   const template = TEMPLATES.find((t) => t.id === templateId) || TEMPLATES[0]
   const displayName = hotspotName || "WiFi Hotspot"
@@ -856,7 +958,11 @@ function PortalPreview({
     : planLayout
 
   return (
-    <div className={`rounded-xl overflow-hidden border ${styles.containerBg} transition-all duration-300`} style={{ minHeight: 420 }}>
+    <div
+      data-font={portalFont}
+      className={`rounded-xl overflow-hidden border ${styles.containerBg} transition-all duration-300`}
+      style={{ minHeight: 420, fontFamily: "var(--app-font-family)" }}
+    >
       <div className="flex flex-col items-center justify-center p-4" style={{ minHeight: 420 }}>
         {/* Mock phone frame */}
         <div className={`w-full max-w-[280px] rounded-2xl shadow-2xl overflow-hidden ${styles.cardBg}`}>
@@ -1213,6 +1319,86 @@ function getTemplateStyles(id: number): TemplateStyles {
         inputStyles: "border-transparent bg-[#e6e9f0] text-slate-700 shadow-[inset_3px_3px_6px_#c2c8d6,inset_-3px_-3px_6px_#ffffff]",
         ctaStyles: "bg-[#e6e9f0] text-slate-700 font-bold shadow-[5px_5px_10px_#c2c8d6,-5px_-5px_10px_#ffffff] hover:shadow-[3px_3px_6px_#c2c8d6,-3px_-3px_6px_#ffffff]",
         footer: "text-slate-400",
+      }
+    case 14: // Brutalist Sun
+      return {
+        containerBg: "bg-[#f8e637]",
+        cardBg: "bg-[#fff7d1] border-4 border-black rounded-none shadow-[10px_10px_0_#111]",
+        headerBg: "bg-black border-b-4 border-black",
+        headerIcon: "text-[#f8e637]",
+        headerText: "text-[#f8e637]",
+        headerSubtext: "text-white",
+        announcementBg: "bg-white border-4 border-black rounded-none shadow-[4px_4px_0_#111]",
+        announcementIcon: "text-black",
+        announcementText: "text-black",
+        planSelected: "border-black bg-[#f43f5e] text-white shadow-[4px_4px_0_#111]",
+        planNormal: "border-black bg-white text-black shadow-[3px_3px_0_#111]",
+        planTitle: "text-black",
+        planSub: "text-black/70",
+        planPrice: "text-black",
+        inputStyles: "border-4 border-black bg-white text-black rounded-none",
+        ctaStyles: "bg-black text-[#f8e637] rounded-none shadow-[4px_4px_0_#f43f5e]",
+        footer: "bg-black text-white",
+      }
+    case 15: // Brutalist Ink
+      return {
+        containerBg: "bg-white",
+        cardBg: "bg-white border-4 border-black rounded-none shadow-[10px_10px_0_#f43f5e]",
+        headerBg: "bg-white border-b-4 border-black",
+        headerIcon: "text-black",
+        headerText: "text-black",
+        headerSubtext: "text-black/60",
+        announcementBg: "bg-[#ccff00] border-4 border-black rounded-none shadow-[4px_4px_0_#111]",
+        announcementIcon: "text-black",
+        announcementText: "text-black",
+        planSelected: "border-black bg-black text-white shadow-[4px_4px_0_#ccff00]",
+        planNormal: "border-black bg-white text-black shadow-[3px_3px_0_#111]",
+        planTitle: "text-black",
+        planSub: "text-black/60",
+        planPrice: "text-[#f43f5e]",
+        inputStyles: "border-4 border-black bg-white text-black rounded-none",
+        ctaStyles: "bg-[#f43f5e] text-white rounded-none shadow-[4px_4px_0_#111]",
+        footer: "text-black/50",
+      }
+    case 16: // Cyber Orchid
+      return {
+        containerBg: "bg-gradient-to-br from-[#12071f] via-[#27105c] to-[#02121f]",
+        cardBg: "bg-[#12071f]/95 border border-cyan-300/50 shadow-[0_0_24px_rgba(34,211,238,0.28)]",
+        headerBg: "bg-gradient-to-r from-fuchsia-600/80 to-cyan-500/70 border-b border-cyan-300/40",
+        headerIcon: "text-cyan-100",
+        headerText: "text-white",
+        headerSubtext: "text-cyan-100",
+        announcementBg: "bg-fuchsia-950/40 border border-fuchsia-400/40",
+        announcementIcon: "text-fuchsia-300",
+        announcementText: "text-fuchsia-100",
+        planSelected: "border-cyan-300 bg-cyan-400/10 text-white shadow-[0_0_14px_rgba(34,211,238,0.25)]",
+        planNormal: "border-fuchsia-400/30 bg-white/5 text-white hover:border-cyan-300/60",
+        planTitle: "text-white",
+        planSub: "text-cyan-100/70",
+        planPrice: "text-cyan-300",
+        inputStyles: "border-cyan-300/40 bg-[#090414] text-cyan-50",
+        ctaStyles: "bg-gradient-to-r from-fuchsia-500 to-cyan-400 text-[#090414] font-bold shadow-[0_0_18px_rgba(217,70,239,0.35)]",
+        footer: "text-cyan-200/40",
+      }
+    case 17: // Retro Terminal
+      return {
+        containerBg: "bg-[#02130a]",
+        cardBg: "bg-[#031f10] border border-lime-400/60 shadow-[0_0_24px_rgba(132,204,22,0.22)]",
+        headerBg: "bg-[#052e16] border-b border-lime-400/50",
+        headerIcon: "text-lime-300",
+        headerText: "text-lime-200",
+        headerSubtext: "text-lime-400/70",
+        announcementBg: "bg-lime-400/10 border border-lime-400/40",
+        announcementIcon: "text-lime-300",
+        announcementText: "text-lime-100",
+        planSelected: "border-lime-300 bg-lime-400/15 text-lime-50 shadow-[0_0_14px_rgba(132,204,22,0.25)]",
+        planNormal: "border-lime-400/30 bg-black/20 text-lime-100 hover:border-lime-300",
+        planTitle: "text-lime-100",
+        planSub: "text-lime-500/80",
+        planPrice: "text-lime-300",
+        inputStyles: "border-lime-400/40 bg-black/40 text-lime-100",
+        ctaStyles: "bg-lime-300 text-[#02130a] font-bold shadow-[0_0_16px_rgba(132,204,22,0.35)]",
+        footer: "text-lime-500/40",
       }
     default: // Classic (1)
       return {

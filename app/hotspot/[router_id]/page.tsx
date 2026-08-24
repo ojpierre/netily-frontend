@@ -56,6 +56,7 @@ export interface PortalConfig {
   gateway_ip: string
   router_logo_url?: string | null
   hide_plan_speed?: boolean
+  portal_font?: string
 }
 
 export interface BrandingConfig {
@@ -90,6 +91,29 @@ interface PurchaseResponse {
   data_remaining_mb?: number
   speed?: string
   login_url?: string
+}
+
+const PORTAL_FONT_FAMILIES: Record<string, string> = {
+  outfit: 'var(--font-outfit), "Outfit", system-ui, sans-serif',
+  montserrat: 'var(--font-montserrat), "Montserrat", system-ui, sans-serif',
+  "space-grotesk": 'var(--font-space-grotesk), "Space Grotesk", system-ui, sans-serif',
+  calibri: 'Calibri, "Segoe UI", Arial, system-ui, sans-serif',
+  inter: 'var(--font-inter), "Inter", system-ui, sans-serif',
+  roboto: 'var(--font-roboto), "Roboto", system-ui, sans-serif',
+  lato: 'var(--font-lato), "Lato", system-ui, sans-serif',
+  "open-sans": 'var(--font-open-sans), "Open Sans", system-ui, sans-serif',
+  "source-sans-3": 'var(--font-source-sans-3), "Source Sans 3", system-ui, sans-serif',
+  "ibm-plex-sans": 'var(--font-ibm-plex-sans), "IBM Plex Sans", system-ui, sans-serif',
+  manrope: 'var(--font-manrope), "Manrope", system-ui, sans-serif',
+  "dm-sans": 'var(--font-dm-sans), "DM Sans", system-ui, sans-serif',
+  poppins: 'var(--font-poppins), "Poppins", system-ui, sans-serif',
+  "plus-jakarta-sans": 'var(--font-plus-jakarta-sans), "Plus Jakarta Sans", system-ui, sans-serif',
+  "work-sans": 'var(--font-work-sans), "Work Sans", system-ui, sans-serif',
+  archivo: 'var(--font-archivo), "Archivo", system-ui, sans-serif',
+}
+
+function getPortalFontFamily(value?: string) {
+  return PORTAL_FONT_FAMILIES[value || "outfit"] || PORTAL_FONT_FAMILIES.outfit
 }
 
 interface AutoLoginResponse {
@@ -734,6 +758,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const welcomeMessage = branding?.welcome_message || ""
   const supportPhone = branding?.support_phone || portalConfig?.support_phone || ""
   const announcement = portalConfig?.announcement_text || ""
+  const portalFontFamily = getPortalFontFamily(portalConfig?.portal_font)
 
   // Fix logo URL resolution - check both branding logo and portal_config router_logo_url as fallback
   const apiBaseUrl = getApiBase().replace('/api/v1', '')
@@ -1524,7 +1549,7 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
     : nonTrialPlans.filter(p => !p.is_tv_plan)
 
   return (
-    <div className={`${theme.pageBg} flex items-center justify-center p-4`}>
+    <div className={`${theme.pageBg} flex items-center justify-center p-4`} style={{ fontFamily: portalFontFamily }}>
       <div className={`${theme.cardClass} max-w-md w-full overflow-hidden`}>
         {/* ── Header — adapts to headerStyle ── */}
         <div

@@ -480,7 +480,7 @@ export default function RoutersPage() {
                 <Server className="w-5 h-5 text-slate-600 dark:text-slate-300" />
               </div>
               <div>
-                <p className="text-2xl font-bold bg-linear-to-r from-slate-700 to-slate-900 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">{localStats.total_routers}</p>
+                <p className="text-2xl font-extrabold text-foreground tabular-nums">{localStats.total_routers}</p>
                 <p className="text-xs text-muted-foreground font-medium">Total Routers</p>
               </div>
             </div>

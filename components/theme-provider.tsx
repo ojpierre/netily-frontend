@@ -26,6 +26,10 @@ export type ColorTheme =
   | 'sage-noir'
   | 'copper-graphite'
   | 'indigo-mist'
+  | 'brutalist-sun'
+  | 'brutalist-ink'
+  | 'cyber-orchid'
+  | 'retro-terminal'
 
 interface NetilyThemeContextValue {
   colorTheme: ColorTheme
@@ -58,6 +62,10 @@ export const COLOR_THEMES: { value: ColorTheme; label: string; preview: string }
   { value: 'sage-noir', label: 'Sage Noir', preview: 'linear-gradient(135deg,#6b8f71,#111814)' },
   { value: 'copper-graphite', label: 'Copper Graphite', preview: 'linear-gradient(135deg,#b45309,#1f2937)' },
   { value: 'indigo-mist', label: 'Indigo Mist', preview: 'linear-gradient(135deg,#4f46e5,#eef2ff)' },
+  { value: 'brutalist-sun', label: 'Brutalist Sun', preview: 'linear-gradient(135deg,#facc15,#111827)' },
+  { value: 'brutalist-ink', label: 'Brutalist Ink', preview: 'linear-gradient(135deg,#ffffff,#111111)' },
+  { value: 'cyber-orchid', label: 'Cyber Orchid', preview: 'linear-gradient(135deg,#22d3ee,#d946ef)' },
+  { value: 'retro-terminal', label: 'Retro Terminal', preview: 'linear-gradient(135deg,#052e16,#84cc16)' },
 ]
 
 const COLOR_THEME_VALUES = COLOR_THEMES.map((theme) => theme.value)

@@ -9,6 +9,12 @@ export type AppearanceFont =
   | "open-sans"
   | "source-sans-3"
   | "ibm-plex-sans"
+  | "manrope"
+  | "dm-sans"
+  | "poppins"
+  | "plus-jakarta-sans"
+  | "work-sans"
+  | "archivo"
 
 export const DEFAULT_APPEARANCE_FONT: AppearanceFont = "outfit"
 export const APPEARANCE_FONT_STORAGE_KEY = "netily-appearance-font"
@@ -29,6 +35,12 @@ export const APPEARANCE_FONTS: Array<{
   { value: "open-sans", label: "Open Sans", description: "Highly legible at small sizes", sample: "Aa 123" },
   { value: "source-sans-3", label: "Source Sans 3", description: "Clean enterprise typography", sample: "Aa 123" },
   { value: "ibm-plex-sans", label: "IBM Plex Sans", description: "Structured and polished", sample: "Aa 123" },
+  { value: "manrope", label: "Manrope", description: "Quiet, modern SaaS typography", sample: "Aa 123" },
+  { value: "dm-sans", label: "DM Sans", description: "Friendly product interface feel", sample: "Aa 123" },
+  { value: "poppins", label: "Poppins", description: "Rounded geometric brand voice", sample: "Aa 123" },
+  { value: "plus-jakarta-sans", label: "Plus Jakarta Sans", description: "Premium corporate clarity", sample: "Aa 123" },
+  { value: "work-sans", label: "Work Sans", description: "Practical and spacious for dashboards", sample: "Aa 123" },
+  { value: "archivo", label: "Archivo", description: "Strong headings with technical confidence", sample: "Aa 123" },
 ]
 
 export function isAppearanceFont(value: unknown): value is AppearanceFont {

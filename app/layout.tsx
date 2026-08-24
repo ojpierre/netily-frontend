@@ -1,15 +1,21 @@
 ﻿import type React from "react"
 import type { Metadata } from "next"
 import {
+  Archivo,
+  DM_Sans,
   IBM_Plex_Sans,
   Inter,
   Lato,
+  Manrope,
   Montserrat,
   Open_Sans,
   Outfit,
+  Plus_Jakarta_Sans,
+  Poppins,
   Roboto,
   Source_Sans_3,
   Space_Grotesk,
+  Work_Sans,
 } from "next/font/google"
 import Script from "next/script"
 import { AuthProvider } from "./auth-context"
@@ -41,6 +47,12 @@ const ibmPlexSans = IBM_Plex_Sans({
   variable: "--font-ibm-plex-sans",
   display: "swap",
 })
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" })
+const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" })
+const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], variable: "--font-poppins", display: "swap" })
+const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-plus-jakarta-sans", display: "swap" })
+const workSans = Work_Sans({ subsets: ["latin"], variable: "--font-work-sans", display: "swap" })
+const archivo = Archivo({ subsets: ["latin"], variable: "--font-archivo", display: "swap" })
 
 const fontVariables = [
   outfit.variable,
@@ -52,6 +64,12 @@ const fontVariables = [
   openSans.variable,
   sourceSans3.variable,
   ibmPlexSans.variable,
+  manrope.variable,
+  dmSans.variable,
+  poppins.variable,
+  plusJakartaSans.variable,
+  workSans.variable,
+  archivo.variable,
 ].join(" ")
 
 export const metadata: Metadata = {
