@@ -572,6 +572,13 @@ export default function UsersPage() {
   const [exporting, setExporting] = useState(false)
 
   // ============================================================
+  // CLAUDE CHANGE #1: SUSPEND STATE
+  // ============================================================
+  const [showSuspendDialog, setShowSuspendDialog] = useState(false)
+  const [suspendTarget, setSuspendTarget] = useState<User | null>(null)
+  const [suspending, setSuspending] = useState(false)
+
+  // ============================================================
   // IP BINDING FUNCTIONS
   // ============================================================
   const loadIPBindings = async () => {
@@ -2046,6 +2053,43 @@ export default function UsersPage() {
     }
   }
 
+  // ============================================================
+  // CLAUDE CHANGE #2: SUSPEND HELPERS & HANDLERS
+  // ============================================================
+  const isSuspended = (user: User) => user.radiusCredentials?.is_enabled === false
+
+  const handleOpenSuspendDialog = (user: User) => {
+    setSuspendTarget(user)
+    setShowSuspendDialog(true)
+  }
+
+  const confirmToggleSuspend = async () => {
+    if (!suspendTarget) return
+    const currentlySuspended = isSuspended(suspendTarget)
+    try {
+      setSuspending(true)
+      if (currentlySuspended) {
+        // Unsuspend: resume internet — subscription/expiry untouched
+        await adminApi.toggleRadius(suspendTarget.customerId, true, 'Unsuspended via admin panel')
+        toast.success(`${suspendTarget.name} unsuspended — internet access resumed`)
+      } else {
+        // Suspend: pause internet immediately, subscription kept intact
+        await adminApi.toggleRadius(suspendTarget.customerId, false, 'Suspended via admin panel')
+        if (suspendTarget.connectionStatus === 'online' && suspendTarget.radiusCredentials?.username) {
+          await adminApi.disconnectRADIUSUser(suspendTarget.radiusCredentials.username).catch(() => {})
+        }
+        toast.success(`${suspendTarget.name} suspended — internet access paused`)
+      }
+      setShowSuspendDialog(false)
+      setSuspendTarget(null)
+      await Promise.all([loadUsers(serverPage, searchQuery, statusFilter, false), loadOnlineMap()])
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update suspension status')
+    } finally {
+      setSuspending(false)
+    }
+  }
+
   const handleEditUser = (user: User) => {
     setEditForm({
       first_name: user.name.split(' ')[0] || '',
@@ -3370,22 +3414,14 @@ export default function UsersPage() {
                                     </DropdownMenuItem>
                                   )}
                                   <DropdownMenuSeparator className="dark:bg-slate-700" />
+                                  {/* CLAUDE CHANGE #3a: REPLACED DROPDOWN ITEMS - Active Subs tab */}
                                   {user.radiusCredentials && (
                                     <DropdownMenuItem 
-                                      onClick={() => handleToggleRadius(user, !user.radiusCredentials!.is_enabled)}
-                                      className={user.radiusCredentials.is_enabled ? "text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800" : "text-green-600 dark:text-green-400 dark:hover:bg-slate-800"}
+                                      onClick={() => handleOpenSuspendDialog(user)}
+                                      className={user.radiusCredentials.is_enabled === false ? "text-green-600 dark:text-green-400 dark:hover:bg-slate-800" : "text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800"}
                                     >
                                       <Power className="w-4 h-4 mr-2" />
-                                      {user.radiusCredentials.is_enabled ? 'Disable RADIUS' : 'Enable RADIUS'}
-                                    </DropdownMenuItem>
-                                  )}
-                                  {user.connectionStatus === "online" && (
-                                    <DropdownMenuItem 
-                                      onClick={() => handleDisconnectUser(user)}
-                                      className="text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800"
-                                    >
-                                      <Power className="w-4 h-4 mr-2" />
-                                      Disconnect
+                                      {user.radiusCredentials.is_enabled === false ? 'Unsuspend User' : 'Suspend User'}
                                     </DropdownMenuItem>
                                   )}
                                   {user.radiusCredentials && (
@@ -3948,22 +3984,14 @@ export default function UsersPage() {
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuSeparator className="dark:bg-slate-700" />
+                                    {/* CLAUDE CHANGE #3b: REPLACED DROPDOWN ITEMS - Main Users table */}
                                     {user.radiusCredentials && (
                                       <DropdownMenuItem 
-                                        onClick={() => handleToggleRadius(user, !user.radiusCredentials!.is_enabled)}
-                                        className={user.radiusCredentials.is_enabled ? "text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800" : "text-green-600 dark:text-green-400 dark:hover:bg-slate-800"}
+                                        onClick={() => handleOpenSuspendDialog(user)}
+                                        className={user.radiusCredentials.is_enabled === false ? "text-green-600 dark:text-green-400 dark:hover:bg-slate-800" : "text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800"}
                                       >
                                         <Power className="w-4 h-4 mr-2" />
-                                        {user.radiusCredentials.is_enabled ? 'Disable RADIUS' : 'Enable RADIUS'}
-                                      </DropdownMenuItem>
-                                    )}
-                                    {user.connectionStatus === "online" && (
-                                      <DropdownMenuItem 
-                                        onClick={() => handleDisconnectUser(user)}
-                                        className="text-yellow-600 dark:text-yellow-400 dark:hover:bg-slate-800"
-                                      >
-                                        <Power className="w-4 h-4 mr-2" />
-                                        Disconnect
+                                        {user.radiusCredentials.is_enabled === false ? 'Unsuspend User' : 'Suspend User'}
                                       </DropdownMenuItem>
                                     )}
                                     {user.radiusCredentials && (
@@ -5210,6 +5238,52 @@ export default function UsersPage() {
           </motion.div>
         </DialogContent>
       </Dialog>
+
+      {/* ============================================================
+          CLAUDE CHANGE #4: SUSPEND CONFIRMATION DIALOG
+          ============================================================ */}
+      <Dialog open={showSuspendDialog} onOpenChange={(open) => { setShowSuspendDialog(open); if (!open) setSuspendTarget(null) }}>
+        <DialogContent className="admin-theme-dialog sm:max-w-md p-0 border-0">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="p-6"
+          >
+            <DialogHeader>
+              <DialogTitle className={suspendTarget && isSuspended(suspendTarget) ? "text-green-600 dark:text-green-400" : "text-yellow-600 dark:text-yellow-400"}>
+                {suspendTarget && isSuspended(suspendTarget) ? "Unsuspend User?" : "Suspend User?"}
+              </DialogTitle>
+              <DialogDescription className="dark:text-slate-400">
+                {suspendTarget && isSuspended(suspendTarget) ? (
+                  <>Internet access for <strong>{suspendTarget.name}</strong> will be restored immediately. Their subscription and expiry date are unchanged — they simply resume where they left off.</>
+                ) : (
+                  <>Internet access for <strong>{suspendTarget?.name}</strong> will be paused immediately and they'll be disconnected. Their subscription, expiry date, and data are kept safe and will resume exactly where they left off once you unsuspend them.</>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowSuspendDialog(false)} disabled={suspending}>
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmToggleSuspend}
+                disabled={suspending}
+                className={suspendTarget && isSuspended(suspendTarget) ? "bg-green-600 hover:bg-green-700" : "bg-yellow-600 hover:bg-yellow-700"}
+              >
+                {suspending ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
+                ) : suspendTarget && isSuspended(suspendTarget) ? (
+                  <><CheckCircle2 className="w-4 h-4 mr-2" />Unsuspend</>
+                ) : (
+                  <><Power className="w-4 h-4 mr-2" />Suspend</>
+                )}
+              </Button>
+            </DialogFooter>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
+
     </PageWrapper>
   )
 }
