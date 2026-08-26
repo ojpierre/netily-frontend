@@ -205,13 +205,27 @@ function getApiBase(): string {
   return `${window.location.origin}/api/v1`
 }
 
-// 🔥 FIX 2: Updated fetchCaptivePortal with fetchWithRetry
+/** Detect if we're likely inside Android/iOS's sandboxed captive-portal WebView. */
+function isCaptivePortalContext(): boolean {
+  if (typeof window === "undefined") return false
+  const ua = navigator.userAgent || ""
+  const isKnownCaptiveUA = /CaptivePortalLogin|CaptiveNetworkSupport|Android.*wv\)/i.test(ua)
+  const isPlainHttp = window.location.protocol === "http:"
+  // Most captive WebViews still expose sessionStorage, so don't rely on that alone —
+  // keep it as a weak secondary signal, not primary.
+  return isKnownCaptiveUA || isPlainHttp
+}
+
+// 🔥 FIX 2: Updated fetchCaptivePortal — tighter timeout/retry when in captive context
 async function fetchCaptivePortal(routerId: string): Promise<CaptivePortalResponse> {
   const tenant = getTenant()
+  const captive = isCaptivePortalContext()
   const response = await fetchWithRetry(
     `${getApiBase()}/hotspot/captive-portal/?router=${routerId}&tenant=${tenant}`,
     { cache: "no-store" },
-    { timeoutMs: 4000, retries: 3, retryDelayMs: 300 }
+    captive
+      ? { timeoutMs: 2500, retries: 1, retryDelayMs: 200 }   // captive WebView: fail fast, don't hang
+      : { timeoutMs: 4000, retries: 3, retryDelayMs: 300 }   // normal browser: keep current resilience
   )
   if (!response.ok) {
     const err = await response.json().catch(() => ({}))
@@ -280,8 +294,10 @@ async function pollPurchaseStatus(sessionId: string, loginUrl?: string, tenant?:
   return response.json()
 }
 
+// 🔥 Bonus: apply the same tightened timeout to auto-login (it blocks the initial render path too)
 async function checkAutoLogin(routerId: string, macAddress: string): Promise<AutoLoginResponse> {
   const tenant = getTenant()
+  const captive = isCaptivePortalContext()
   const response = await fetchWithRetry(
     `${getApiBase()}/hotspot/auto-login/`,
     {
@@ -290,10 +306,22 @@ async function checkAutoLogin(routerId: string, macAddress: string): Promise<Aut
       body: JSON.stringify({ router_id: routerId, mac_address: macAddress, tenant }),
       cache: "no-store",
     },
-    { timeoutMs: 3000, retries: 1, retryDelayMs: 300 }
+    captive
+      ? { timeoutMs: 2000, retries: 0, retryDelayMs: 0 }   // never let this hold up first paint
+      : { timeoutMs: 3000, retries: 1, retryDelayMs: 300 }
   )
   if (!response.ok) throw new Error("Auto-login check failed")
   return response.json()
+}
+
+// ── NEW: verifyMikrotikAuth – checks if the router actually has a session ──
+async function verifyMikrotikAuth(routerId: string, mac: string): Promise<boolean> {
+  try {
+    const result = await checkAutoLogin(routerId, mac)
+    return !!result.has_session
+  } catch {
+    return false
+  }
 }
 
 interface VoucherRedeemResponse {
@@ -836,9 +864,10 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       })
   }, [routerId, loginUrl, autoLoginChecked])
 
-  // ── 🔥 OPTIMIZATION: Load hotspot plans + portal config with sessionStorage cache + timestamp TTL ──
+  // 🔥 FIX 2: 🔥 OPTIMIZATION: Load hotspot plans + portal config with sessionStorage cache + timestamp TTL
   // Cache carries a timestamp; skip the network call entirely if it's under 20s old
   // (matches backend cache_version TTL window)
+  // C. Stop the spinner the instant cached data exists, refresh silently after
   useEffect(() => {
     const cacheKey = `portal_cache:${routerId}`
     const cached = sessionStorage.getItem(cacheKey)
@@ -850,56 +879,67 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
         setPlans(data.plans || [])
         setPortalConfig(data.portal_config || null)
         setBranding(data.branding || null)
-        setLoading(false)
+        setLoading(false)              // ← spinner gone immediately, even if cache is stale
         hasCachedData = true
-        // 🔥 If cache is less than 20 seconds old, skip the network round trip entirely
+
         if (Date.now() - (data._cachedAt || 0) < 20000) {
-          return // fresh enough — no network call
+          return // fresh enough — skip the network round trip entirely
         }
       } catch {
         // Invalid cache, ignore
       }
     }
 
+    // Stale-while-revalidate: refetch in the background, never re-show the spinner
+    // once we already have something on screen.
     fetchCaptivePortal(routerId)
       .then((data) => {
         setPlans(data.plans)
         setPortalConfig(data.portal_config || null)
         setBranding(data.branding || null)
-        setLoading(false)
-        // Store in sessionStorage with timestamp for TTL check
+        if (!hasCachedData) setLoading(false)   // only needed on true cold start
         try {
           sessionStorage.setItem(cacheKey, JSON.stringify({ ...data, _cachedAt: Date.now() }))
         } catch {
-          // Storage full or unavailable — ignore
+          // Storage full/unavailable in this WebView — ignore, network fetch still worked
         }
       })
       .catch((err) => {
-        // Only show error if we have no cached data
         if (!hasCachedData) {
           setError(err.message || "Failed to load plans")
           setLoading(false)
         }
+        // If we have cached data, silently keep showing it — don't surface a
+        // background-refresh failure to a user who's already looking at plans.
       })
   }, [routerId])
 
-  // ── FIX 4: Fetch ad and loyalty in parallel, NOT gated behind loading ──
-  // These fire immediately on mount and don't wait for plans to load
+  // 🔥 FIX 2: D. Defer ads/loyalty fetch out of the captive-context critical path
   useEffect(() => {
     const tenant = getTenant()
     if (!tenant) return
 
-    // Fetch ad immediately
-    fetchServableAd(routerId, tenant).then(({ ad }) => setAvailableAd(ad))
+    const runSecondaryFetches = () => {
+      fetchServableAd(routerId, tenant).then(({ ad }) => setAvailableAd(ad))
 
-    // Fetch loyalty immediately
-    const mac = getMacAddress()
-    if (mac !== '00:00:00:00:00:00') {
-      fetchHotspotLoyalty(mac, tenant, canonicalUsername || undefined).then(data => {
-        if (data?.program_active) setLoyaltyData(data)
-      })
+      const mac = getMacAddress()
+      if (mac !== '00:00:00:00:00:00') {
+        fetchHotspotLoyalty(mac, tenant, canonicalUsername || undefined).then(data => {
+          if (data?.program_active) setLoyaltyData(data)
+        })
+      }
     }
-  }, [routerId, canonicalUsername]) // No `loading` dependency — fires in parallel with plans fetch
+
+    if (isCaptivePortalContext()) {
+      // Inside the sandboxed WebView, let the plans fetch/render win the race
+      // for bandwidth and JS thread time — defer non-critical calls slightly.
+      const t = setTimeout(runSecondaryFetches, 600)
+      return () => clearTimeout(t)
+    }
+
+    // Normal browser: no contention concerns, fire immediately as before.
+    runSecondaryFetches()
+  }, [routerId, canonicalUsername])
 
   // 🔥 FIX 3: Warm modal chunks in the background right after plans render
   // This eliminates cold-start chunk latency when user taps a plan
@@ -1223,11 +1263,24 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       })
       setShowPhoneModal(false)
       setPaymentStatus('success')
-      // RADIUS creds are already committed server-side, submit immediately
+
+      // ── Claude's fix: verify + retry ──────────────────────────
       if (loginUrl && result.credentials) {
         const { username, password } = result.credentials
         setReturningToRouter(true)
+        // First attempt
         submitRouterLogin(loginUrl, username, password)
+
+        // Give MikroTik a moment, then confirm it actually authenticated.
+        // If not, resubmit once — handles the race where the first POST
+        // lands before the router clears the stale binding for this MAC.
+        setTimeout(async () => {
+          const mac = getMacAddress()
+          const confirmed = await verifyMikrotikAuth(routerId, mac)
+          if (!confirmed) {
+            submitRouterLogin(loginUrl, username, password)
+          }
+        }, 2500)
       }
     } catch (err: any) {
       // Surface specific backend messages (slots full, expired, etc.)
