@@ -49,6 +49,38 @@ const SIMULATOR_API_BASE = "/api/netily-system-payment"
 const POLL_INTERVAL_MS = 3000
 const POLL_TIMEOUT_MS = 30000
 
+async function readSimulatorResponse(response: Response): Promise<SimulationState> {
+  const contentType = response.headers.get("content-type") || ""
+  const responseText = await response.text()
+
+  if (contentType.includes("application/json")) {
+    try {
+      return JSON.parse(responseText) as SimulationState
+    } catch {
+      return {
+        success: false,
+        message: "The simulator returned an invalid JSON response.",
+      }
+    }
+  }
+
+  const compactBody = responseText
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 160)
+
+  return {
+    success: false,
+    message:
+      response.status === 404
+        ? "The payment simulator endpoint is not available on this deployment yet. Redeploy the frontend and backend, then retry."
+        : compactBody || `The simulator returned HTTP ${response.status}.`,
+  }
+}
+
 const formatKes = (value: string | number | undefined) => {
   const amount = Number(value || 0)
   return new Intl.NumberFormat("en-KE", {
@@ -146,7 +178,7 @@ export default function NetilySystemPaymentPage() {
             cache: "no-store",
           },
         )
-        const data = (await response.json()) as SimulationState
+        const data = await readSimulatorResponse(response)
         if (!response.ok) throw new Error(data.message || "Could not read simulator status.")
         setState(data)
         if (["completed", "failed", "cancelled"].includes(String(data.status))) {
@@ -186,7 +218,7 @@ export default function NetilySystemPaymentPage() {
           test_key: testKey.trim(),
         }),
       })
-      const data = (await response.json()) as SimulationState
+      const data = await readSimulatorResponse(response)
       if (!response.ok || data.success === false) {
         throw new Error(data.message || "The STK request was not accepted.")
       }

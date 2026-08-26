@@ -50,6 +50,10 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/api/netily-system-payment/:path*',
+        destination: 'https://api.netily.co.ke/api/v1/billing/netily-system-payment/:path*',
+      },
+      {
         source: '/billing-estimator',
         destination: 'https://api.netily.co.ke/api/v1/subscriptions/calculator/',
       },
