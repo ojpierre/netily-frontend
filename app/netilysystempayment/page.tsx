@@ -44,8 +44,7 @@ type SimulationState = {
   daraja_response?: unknown
 }
 
-const API_BASE =
-  (process.env.NEXT_PUBLIC_API_URL || "https://api.netily.co.ke/api/v1").replace(/\/+$/, "")
+const SIMULATOR_API_BASE = "/api/netily-system-payment"
 
 const POLL_INTERVAL_MS = 3000
 const POLL_TIMEOUT_MS = 30000
@@ -141,7 +140,7 @@ export default function NetilySystemPaymentPage() {
 
       try {
         const response = await fetch(
-          `${API_BASE}/billing/netily-system-payment/status/${encodeURIComponent(state.checkout_request_id)}/`,
+          `${SIMULATOR_API_BASE}/status/${encodeURIComponent(state.checkout_request_id)}`,
           {
             headers: { "X-Netily-System-Payment-Token": testKey.trim() },
             cache: "no-store",
@@ -172,7 +171,7 @@ export default function NetilySystemPaymentPage() {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch(`${API_BASE}/billing/netily-system-payment/initiate/`, {
+      const response = await fetch(`${SIMULATOR_API_BASE}/initiate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
