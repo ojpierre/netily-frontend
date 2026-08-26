@@ -314,6 +314,16 @@ async function checkAutoLogin(routerId: string, macAddress: string): Promise<Aut
   return response.json()
 }
 
+// ── NEW: verifyMikrotikAuth – checks if the router actually has a session ──
+async function verifyMikrotikAuth(routerId: string, mac: string): Promise<boolean> {
+  try {
+    const result = await checkAutoLogin(routerId, mac)
+    return !!result.has_session
+  } catch {
+    return false
+  }
+}
+
 interface VoucherRedeemResponse {
   status: string
   message: string
@@ -1253,11 +1263,24 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
       })
       setShowPhoneModal(false)
       setPaymentStatus('success')
-      // RADIUS creds are already committed server-side, submit immediately
+
+      // ── Claude's fix: verify + retry ──────────────────────────
       if (loginUrl && result.credentials) {
         const { username, password } = result.credentials
         setReturningToRouter(true)
+        // First attempt
         submitRouterLogin(loginUrl, username, password)
+
+        // Give MikroTik a moment, then confirm it actually authenticated.
+        // If not, resubmit once — handles the race where the first POST
+        // lands before the router clears the stale binding for this MAC.
+        setTimeout(async () => {
+          const mac = getMacAddress()
+          const confirmed = await verifyMikrotikAuth(routerId, mac)
+          if (!confirmed) {
+            submitRouterLogin(loginUrl, username, password)
+          }
+        }, 2500)
       }
     } catch (err: any) {
       // Surface specific backend messages (slots full, expired, etc.)
