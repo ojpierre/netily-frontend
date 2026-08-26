@@ -44,7 +44,9 @@ type SimulationState = {
   daraja_response?: unknown
 }
 
-const SIMULATOR_API_BASE = "/api/netily-system-payment"
+const SIMULATOR_API_BASE = (
+  process.env.NEXT_PUBLIC_API_URL || "https://api.netily.co.ke/api/v1"
+).replace(/\/+$/, "") + "/billing/netily-system-payment"
 
 const POLL_INTERVAL_MS = 3000
 const POLL_TIMEOUT_MS = 30000
