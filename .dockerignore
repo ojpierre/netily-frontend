@@ -1,0 +1,13 @@
+node_modules
+.next
+.vercel
+.git
+.gitignore
+npm-debug.log*
+.pnpm-debug.log*
+*.md
+.env*
+!.env.production
+Dockerfile
+.dockerignore
+clocc

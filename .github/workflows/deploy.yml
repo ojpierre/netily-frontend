@@ -1,0 +1,73 @@
+﻿name: Deploy Frontend to DigitalOcean VPS
+
+on:
+  push:
+    branches:
+      - prod-frontend
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy frontend to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 12m
+          script: |
+            set -e
+
+            echo "==> Pulling latest frontend code..."
+            cd ~/netily_frontend
+            git fetch origin prod-frontend
+            git reset --hard origin/prod-frontend
+            echo "  Commit: $(git log --oneline -1)"
+
+            echo "==> Freeing disk space before build..."
+            docker image prune -af --filter "until=24h"
+            docker builder prune -f --keep-storage=2GB
+            echo "  Disk after cleanup: $(df -h /var/lib/containerd 2>/dev/null || df -h / | tail -1)"
+            echo "  NOTE: Never run docker system prune --volumes in production"
+
+            echo "==> Building frontend container (BuildKit + layer cache)..."
+            cd ~/netily_cloud/docker
+            DOCKER_BUILDKIT=1 docker compose build frontend
+
+            echo "==> Restarting frontend container..."
+            docker compose up -d --force-recreate --no-deps frontend
+
+            echo "==> Restarting nginx (re-resolve container IPs)..."
+            docker compose restart nginx
+
+            echo "==> Health check: verifying frontend responds..."
+            for i in 1 2 3 4 5 6; do
+              HTTP_CODE=$(docker exec netily_frontend node -e "fetch('http://localhost:3000/').then(r=>{console.log(r.status);process.exit(r.ok||r.status<400?0:1)}).catch(()=>{console.log(0);process.exit(1)})" 2>/dev/null || echo "0")
+              echo "  Attempt $i: HTTP $HTTP_CODE"
+              if [ "$HTTP_CODE" != "0" ] && [ "$HTTP_CODE" != "" ]; then
+                echo "  ✅ Frontend is healthy!"
+                break
+              fi
+              if [ "$i" = "6" ]; then
+                echo "  ❌ Frontend not responding after 30s. Logs:"
+                docker compose logs --tail=30 frontend
+                exit 1
+              fi
+              sleep 5
+            done
+
+            echo "==> Cleaning up dangling images and build cache..."
+            docker image prune -af --filter "until=24h"
+            docker builder prune -f --keep-storage=2GB
+
+            echo "==> Frontend deployment complete!"

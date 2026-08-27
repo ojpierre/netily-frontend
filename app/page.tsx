@@ -1,0 +1,1077 @@
+import { LandingPage } from "./landing-page"
+import type { Metadata } from "next"
+import { blogPosts } from "@/lib/blog-data"
+import { HomepagePreloader } from "@/components/homepage-preloader"
+
+// Static page â€” no per-request rendering needed; maximises caching and Core Web Vitals
+export const metadata: Metadata = {
+  title: "Internetily | ISP Billing Software for Kenya, Africa & Global WISPs",
+  description:
+    "Internetily, formerly Netily, is ISP billing software for Kenya, Africa, UK, USA, Australia, New Zealand, and global WISPs using MikroTik, PPPoE, hotspot, and regional payments.",
+  keywords: [
+    // â”€â”€ Exact-match Ahrefs targets (high intent) â”€â”€â”€â”€â”€â”€
+    "isp billing software",
+    "isp billing software nigeria",
+    "mikrotik billing lagos",
+    "paystack isp integration",
+    "isp billing software kenya",
+    "best isp billing software",
+    "best isp billing software in kenya",
+    "isp billing software free",
+    "free isp billing software",
+    "open source isp billing software",
+    "isp billing software open source",
+    "wireless isp billing software",
+    "isp billing software mikrotik",
+    "mikrotik isp billing software",
+    "free isp billing software for mikrotik",
+    "isp billing software github",
+    "isp management system",
+    "isp management software",
+    "isp management software free",
+    "free isp management software",
+    "free isp management system",
+    "best isp management software",
+    "open source isp management software",
+    "isp management system php",
+    "isp management system github",
+    "radius isp management system",
+    "isp management system with mikrotik api",
+    "mikrotik isp management software",
+    "isp management",
+    // â”€â”€ 2026-specific keywords â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    "isp billing software kenya 2026",
+    "best isp management software 2026",
+    "isp automation software 2026",
+    "cloud isp billing 2026",
+    "ai-powered isp billing 2026",
+    "modern isp management platform 2026",
+    "best ISP affiliate program 2026",
+    "best B2B SaaS affiliate program 2026",
+    "Internetily affiliate program 2026",
+    "Netily affiliate program 2026",
+    "global ISP affiliate program",
+    "ISP billing software affiliate program",
+    "WISP referral program worldwide",
+    "MikroTik consultant referral program",
+    "earn money referring ISPs",
+    "next-gen isp billing kenya 2026",
+    "isp saas platform 2026",
+    "isp billing automation 2026",
+    "smart isp management 2026",
+    "isp revenue optimization 2026",
+    "fiber isp billing 2026",
+    "wisp billing software 2026",
+    "5g isp billing kenya 2026",
+    "starlink isp billing kenya 2026",
+    "Starlink ISP setup Kenya",
+    "Starlink billing software Kenya",
+    "Starlink hotspot billing Kenya",
+    "Starlink backhaul ISP Kenya",
+    "Starlink outage recovery ISP",
+    "Starlink failover for ISP",
+    "Starlink WISP billing East Africa",
+    "router NAS billing software Kenya",
+    "NAS router billing software",
+    "Tenda router billing software",
+    "TP-Link router billing software",
+    "Ubiquiti ISP billing software",
+    "Cambium WISP billing software",
+    "Huawei FTTH billing software",
+    "start your own ISP Kenya",
+    "how to start an ISP in Kenya",
+    "ISP setup services Kenya",
+    "ISP hardware and software setup Kenya",
+    "full ISP business setup Kenya",
+    "internet provider startup Kenya",
+    // â”€â”€ Branded & geo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    "ISP billing software Kenya",
+    "ISP management software Kenya 2026",
+    "best ISP billing system Kenya",
+    "internet service provider software Kenya",
+    "M-Pesa ISP billing automation",
+    "M-Pesa STK push integration ISP",
+    "Safaricom Daraja API ISP billing",
+    "M-Pesa paybill internet subscription",
+    "MikroTik PPPoE billing software",
+    "MikroTik auto-provisioning Kenya",
+    "MikroTik RouterOS API billing",
+    "RADIUS authentication Kenya",
+    "FreeRADIUS management Kenya",
+    "hotspot billing software Kenya",
+    "captive portal billing M-Pesa",
+    "WiFi hotspot management Kenya",
+    "fiber ISP billing software Kenya",
+    "WISP billing Kenya",
+    "PPPoE subscriber management",
+    "ISP customer self-service portal Kenya",
+    "ISP subscriber portal M-Pesa",
+    "ISP auto-invoicing Kenya",
+    "ISP bandwidth management Kenya",
+    "ISP subscription management Kenya",
+    "ISP SMS payment reminder Kenya",
+    "Nairobi ISP software",
+    "Nairobi enterprise ISP billing",
+    "Nairobi co-working WiFi billing",
+    "Nairobi hotel WiFi billing",
+    "Mombasa ISP billing",
+    "Mombasa tourist hotel WiFi billing",
+    "Mombasa beach resort WiFi billing",
+    "Mombasa apartment internet billing",
+    "Kenya broadband billing system",
+    "Kisumu WISP billing software",
+    "Kisumu student hostel WiFi billing",
+    "Eldoret agricultural business internet billing",
+    "Eldoret retail chain WiFi billing",
+    "Nakuru shopping mall WiFi billing",
+    "Nakuru residential complex internet billing",
+    "ISP billing software all Kenya counties",
+    "East Africa ISP SaaS",
+    "affordable ISP billing software Africa",
+    "free trial ISP software",
+    // â”€â”€ Emerging tech & trends 2026 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    "ai isp billing kenya",
+    "machine learning isp churn prediction",
+    "predictive isp analytics 2026",
+    "isp revenue forecasting software",
+    "automated isp customer retention",
+    "isp business intelligence 2026",
+    "isp data analytics platform kenya",
+    "isp ml-powered billing",
+    "smart isp operations 2026",
+    "isp digital transformation kenya",
+    "cloud-native isp platform",
+    "kubernetes isp deployment",
+    "serverless isp billing",
+    "api-first isp management",
+    "headless isp billing cms",
+    // â”€â”€ Buyer evaluation terms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    "ISP billing software comparison Kenya",
+    "ISP management software evaluation Africa",
+    "local ISP billing tool comparison",
+    "local ISP billing tool comparison",
+    "affordable ISP billing software East Africa",
+    "ISP billing software evaluation 2026",
+    "modern ISP billing platform Kenya",
+    // â”€â”€ Vertical / use-case â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    "school WiFi billing software Kenya",
+    "hotel WiFi billing system Kenya",
+    "matatu WiFi billing Kenya",
+    "apartment estate WiFi management Kenya",
+    "FTTH billing software Kenya",
+    "fiber to the home ISP billing",
+    "fixed wireless access billing Kenya",
+    "church WiFi billing Kenya",
+    "campus WiFi management Kenya",
+    // â”€â”€ Long-tail queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    "how to automate ISP billing with M-Pesa",
+    "best ISP billing software with mikrotik api",
+    "mikrotik pppoe auto suspend on expiry Kenya",
+    "mikrotik hotspot billing with mpesa Kenya",
+    "ISP billing software with radius integration",
+    "internet subscription management Kenya",
+    "ISP reconciliation software M-Pesa Safaricom",
+    "automated internet billing Kenya",
+    "PPPoE subscriber auto-suspend software Kenya",
+    // â”€â”€ More cities/regions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    "Thika ISP billing",
+    "Machakos ISP software",
+    "Nyeri internet billing",
+    "Kampala ISP billing Uganda",
+    "Dar es Salaam ISP billing Tanzania",
+    "Johannesburg ISP billing South Africa",
+    "Cape Town ISP management software",
+    "Kigali ISP software Rwanda",
+    "Bujumbura ISP billing Burundi",
+    "Juba ISP billing South Sudan",
+    "ISP billing software Uganda",
+    "ISP billing software Tanzania",
+    "ISP billing software South Africa",
+    "WISP billing software South Africa",
+    "MikroTik billing software South Africa",
+    "ISP billing software UK",
+    "ISP billing software United Kingdom",
+    "UK altnet billing software",
+    "WISP billing software UK",
+    "ISP billing software USA",
+    "WISP billing software USA",
+    "fiber ISP billing software USA",
+    "ISP billing software Australia",
+    "WISP billing software Australia",
+    "ISP billing software New Zealand",
+    "WISP billing software New Zealand",
+    "Payfast ISP billing",
+    "Ozow ISP payments",
+    "GoCardless ISP billing",
+    "Stripe ISP billing software",
+    "ACH ISP billing software",
+    "BECS ISP billing software",
+    "Windcave ISP payments",
+    "MTN MoMo ISP billing Uganda",
+    "Airtel Money ISP billing Uganda",
+    "Tigo Pesa ISP billing Tanzania",
+    "ISP billing software Rwanda",
+    "ISP billing software Burundi",
+    "ISP billing software South Sudan",
+    // â”€â”€ Brand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    "Internetily",
+    "Internetily ISP billing",
+    "Internetily ISP platform",
+    "Internetily billing software",
+    "Internetily Kenya",
+    "Internetily formerly Netily",
+    "Netily now Internetily",
+    "Internetily Netily",
+    "Netily Internetily",
+    "Internetily Netily ISP billing",
+    "Internetily affiliate program",
+    "Internetily partner network",
+    "Netily affiliate program",
+    "Netily partner program",
+    "Internetily MikroTik integration",
+    "Internetily hotspot billing",
+    "Netily",
+    "Netily ISP billing",
+    "Netily ISP platform",
+    "Netily billing software",
+    "Netily Kenya",
+    "Netily vs Splynx",
+    "Netily MikroTik integration",
+    "Netily hotspot billing",
+  ],
+  alternates: {
+    canonical: "https://netily.co.ke",
+    languages: {
+      "en-KE": "https://netily.co.ke",
+      "x-default": "https://netily.co.ke",
+    },
+  },
+  openGraph: {
+    title: "Internetily | ISP Billing Software for Kenya, Africa & Global WISPs",
+    description:
+      "Internetily, formerly Netily, automates ISP billing, MikroTik PPPoE, RADIUS, hotspot access, M-Pesa, mobile money, card, ACH, Direct Debit, and regional payment workflows.",
+    url: "https://netily.co.ke",
+    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "Internetily, formerly Netily - ISP Billing Software Kenya" }],
+  },
+}
+
+// â”€â”€â”€ Structured Data (server-rendered in initial HTML) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+const softwareSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "@id": "https://netily.co.ke/#software",
+  name: "Internetily",
+  alternateName: [
+    "Netily",
+    "Internetily formerly Netily",
+    "Netily ISP Billing Software",
+    "Internetily ISP Billing Software",
+  ],
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  url: "https://netily.co.ke",
+  description:
+    "Internetily, formerly Netily, is ISP billing software for Kenya, Africa, UK, USA, Australia, New Zealand, and global WISPs. It automates M-Pesa STK Push payments, mobile money planning, cards, Direct Debit, ACH, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and ISP management.",
+  publisher: {
+    "@type": "Organization",
+    "@id": "https://netily.co.ke/#organization",
+    name: "Internetily",
+    alternateName: "Netily",
+    url: "https://netily.co.ke",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Nairobi",
+      addressCountry: "KE",
+    },
+  },
+  offers: {
+    "@type": "AggregateOffer",
+    priceCurrency: "KES",
+    lowPrice: "500",
+    offerCount: "4",
+    availability: "https://schema.org/InStock",
+  },
+  featureList: [
+    "M-Pesa STK Push integration",
+    "MikroTik PPPoE auto-provisioning",
+    "RADIUS authentication",
+    "Hotspot billing and captive portal",
+    "ISP customer self-service portal",
+    "Automated invoicing",
+    "Bandwidth management",
+    "ISP management dashboard",
+    "SMS payment reminders",
+    "Subscriber auto-suspension",
+    "Revenue analytics dashboard",
+    "Dashboard themes",
+    "Staff role edits and permissions",
+    "Lead capture and sales follow-up",
+    "Previous billing cycle breakdowns",
+    "NAS and router billing support",
+    "Starlink backhaul and failover workflows",
+    "ISP startup hardware and software setup",
+    "Full ISP business operations integration",
+  ],
+  areaServed: [
+    { "@type": "Country", name: "Kenya" },
+    { "@type": "Country", name: "Tanzania" },
+    { "@type": "Country", name: "Uganda" },
+    { "@type": "Country", name: "South Africa" },
+    { "@type": "Country", name: "Rwanda" },
+    { "@type": "Country", name: "Burundi" },
+    { "@type": "Country", name: "South Sudan" },
+    { "@type": "Country", name: "United Kingdom" },
+    { "@type": "Country", name: "United States" },
+    { "@type": "Country", name: "Australia" },
+    { "@type": "Country", name: "New Zealand" },
+  ],
+  paymentAccepted: [
+    "M-Pesa",
+    "Airtel Money",
+    "MTN MoMo",
+    "Tigo Pesa",
+    "Payfast",
+    "Ozow",
+    "Telkom Kash",
+    "Co-operative Bank",
+    "Equity Bank",
+    "I&M Bank",
+    "Kingdom Bank",
+    "National Bank",
+    "SBM Bank",
+    "Stanbic Bank",
+    "Standard Chartered",
+    "GoCardless",
+    "Stripe",
+    "ACH",
+    "BECS Direct Debit",
+    "Windcave",
+    "PayPal",
+  ],
+}
+
+const orgSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": "https://netily.co.ke/#organization",
+  name: "Internetily",
+  alternateName: [
+    "Netily",
+    "Internetily formerly Netily",
+    "Netily ISP Platform",
+  ],
+  url: "https://netily.co.ke",
+  logo: "https://netily.co.ke/internetily-icon-512.png",
+  description:
+    "Internetily is the current brand for the ISP billing and management platform also known as Netily.",
+  sameAs: [
+    "https://x.com/netily",
+    "https://linkedin.com/company/netily",
+    "https://facebook.com/netily",
+    "https://instagram.com/netily",
+  ],
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Nairobi",
+    addressCountry: "KE",
+  },
+  contactPoint: {
+    "@type": "ContactPoint",
+    contactType: "sales",
+    areaServed: "KE",
+    availableLanguage: "English",
+  },
+  knowsAbout: [
+    "ISP billing software",
+    "M-Pesa billing automation",
+    "MikroTik provisioning",
+    "Hotspot billing",
+    "Kenyan bank payment operations",
+    "RADIUS authentication",
+    "PPPoE subscriber management",
+    "Dashboard themes for ISP teams",
+    "Staff role edits and permission controls",
+    "Lead generation for internet service providers",
+    "ISP billing software comparison Kenya",
+    "ISP management software evaluation Africa",
+    "local ISP billing tool comparison",
+    "Starlink ISP setup",
+    "Starlink backhaul billing",
+    "Tenda router billing",
+    "TP-Link router billing",
+    "Ubiquiti ISP operations",
+    "Cambium WISP backhaul",
+    "Huawei FTTH billing",
+    "NAS router billing software",
+    "ISP setup services Kenya",
+    "Starting an ISP in Kenya",
+    "ISP hardware and software integration",
+  ],
+}
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "https://netily.co.ke/#website",
+  name: "Internetily",
+  alternateName: ["Netily", "Internetily formerly Netily", "Netily ISP Blog"],
+  url: "https://netily.co.ke",
+  description: "Internetily, formerly Netily, is ISP billing software and a management platform for Kenya, Africa, and global WISP teams",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: "https://netily.co.ke/?q={search_term_string}",
+    "query-input": "required name=search_term_string",
+  },
+}
+
+const financialWorkflowSchema = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: "Internetily / Netily Payment and Billing Workflow",
+  alternateName: "Netily Payment and Billing Workflow",
+  serviceType: "ISP billing automation",
+  provider: {
+    "@type": "Organization",
+    "@id": "https://netily.co.ke/#organization",
+    name: "Internetily",
+    alternateName: "Netily",
+    url: "https://netily.co.ke",
+  },
+  areaServed: [
+    { "@type": "Country", name: "Kenya" },
+    { "@type": "Country", name: "Uganda" },
+    { "@type": "Country", name: "Tanzania" },
+    { "@type": "Country", name: "South Africa" },
+    { "@type": "Country", name: "Rwanda" },
+    { "@type": "Country", name: "Burundi" },
+    { "@type": "Country", name: "South Sudan" },
+    { "@type": "Country", name: "United Kingdom" },
+    { "@type": "Country", name: "United States" },
+    { "@type": "Country", name: "Australia" },
+    { "@type": "Country", name: "New Zealand" },
+  ],
+  availableChannel: [
+    { "@type": "ServiceChannel", name: "M-Pesa" },
+    { "@type": "ServiceChannel", name: "Airtel Money" },
+    { "@type": "ServiceChannel", name: "MTN MoMo" },
+    { "@type": "ServiceChannel", name: "Tigo Pesa" },
+    { "@type": "ServiceChannel", name: "Payfast" },
+    { "@type": "ServiceChannel", name: "Ozow" },
+    { "@type": "ServiceChannel", name: "Telkom Kash" },
+    { "@type": "ServiceChannel", name: "GoCardless Direct Debit" },
+    { "@type": "ServiceChannel", name: "Stripe" },
+    { "@type": "ServiceChannel", name: "ACH" },
+    { "@type": "ServiceChannel", name: "BECS Direct Debit" },
+    { "@type": "ServiceChannel", name: "Windcave" },
+    { "@type": "ServiceChannel", name: "Bank-aligned billing workflows" },
+  ],
+}
+
+const ispSetupServiceSchema = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: "ISP Setup, Hardware, and Software Integration",
+  serviceType: "Internet service provider setup and operations integration",
+  provider: {
+    "@type": "Organization",
+    name: "Internetily",
+    alternateName: "Netily",
+    url: "https://netily.co.ke",
+  },
+  description:
+    "Internetily, formerly Netily, helps teams set up internet service provider businesses with hardware planning, MikroTik and RADIUS configuration, Starlink or fiber backhaul workflows, M-Pesa billing, hotspot portals, customer management, and staff operations.",
+  areaServed: [
+    { "@type": "Country", name: "Kenya" },
+    { "@type": "Country", name: "Uganda" },
+    { "@type": "Country", name: "Tanzania" },
+    { "@type": "Country", name: "Rwanda" },
+    { "@type": "Country", name: "Burundi" },
+    { "@type": "Country", name: "South Sudan" },
+    { "@type": "Country", name: "South Africa" },
+    { "@type": "Country", name: "United Kingdom" },
+    { "@type": "Country", name: "United States" },
+    { "@type": "Country", name: "Australia" },
+    { "@type": "Country", name: "New Zealand" },
+  ],
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "ISP Setup Services",
+    itemListElement: [
+      {
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: "ISP Hardware Planning",
+          description: "Router, NAS, access point, backhaul, Starlink failover, and customer premises equipment planning for new ISPs and WISPs.",
+        },
+      },
+      {
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: "ISP Billing Software Setup",
+          description: "Internetily billing setup with M-Pesa payments, RADIUS authentication, MikroTik provisioning, hotspot billing, SMS, and customer portal.",
+        },
+      },
+      {
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: "Full ISP Business Integration",
+          description: "Package design, customer onboarding, staff roles, payment workflows, support processes, and reporting for ISP operations.",
+        },
+      },
+    ],
+  },
+  keywords: [
+    "start ISP Kenya",
+    "Starlink ISP setup Kenya",
+    "MikroTik ISP setup",
+    "WISP setup Kenya",
+    "ISP hardware and software integration",
+    "NAS router billing software",
+    "M-Pesa ISP billing setup",
+  ],
+}
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "Are Internetily and Netily the same platform?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Internetily is the current brand for the ISP billing and management platform formerly known as Netily. Netily search terms, Netily billing software, Netily ISP platform, and Internetily refer to the same product family for M-Pesa billing, MikroTik automation, hotspot billing, and ISP operations.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is Netily?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Netily is the former and still-recognized name for Internetily, an ISP billing software platform for Kenya and East Africa. It automates M-Pesa STK Push payments, MikroTik PPPoE provisioning, RADIUS authentication, hotspot billing, and customer self-service for internet service providers.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does Netily support M-Pesa STK Push?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Netily has native M-Pesa STK Push integration. When a subscriber pays, their internet service activates automatically within seconds â€” no manual reconciliation.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does Netily work with MikroTik routers?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Netily connects to MikroTik RouterOS via API for zero-touch PPPoE and Hotspot provisioning, subscriber management, and bandwidth control.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How long does setup take?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Most ISPs are fully operational on Netily within 24 hours. Setup includes MikroTik integration, M-Pesa STK Push configuration, and RADIUS authentication.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is there a free trial?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Netily offers a free trial. No credit card required. Start managing your ISP with full access to all features immediately.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does Netily support hotspot billing?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Netily supports hotspot billing with branded captive portals, M-Pesa payments, voucher management, and session management for Wi-Fi hotspot providers.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is the best ISP billing software in Kenya?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Netily is widely regarded as the best ISP billing software in Kenya for small and medium ISPs. It natively supports M-Pesa STK Push, MikroTik PPPoE auto-provisioning, RADIUS authentication, and hotspot billing â€” all priced in KES with a free trial.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is there free ISP billing software?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Netily offers a free trial with no credit card required â€” giving ISPs full access to billing, M-Pesa integration, and MikroTik provisioning before committing. After the trial, tenants activate with KES 500, then recurring billing is based on PPPoE footprint and hotspot revenue usage. Open-source alternatives like ZAL ISP Management System exist but require self-hosting and technical setup.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is the best ISP affiliate program in 2026?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The Internetily / Netily affiliate program is a strong 2026 ISP affiliate program for partners who refer internet service providers, WISPs, hotspot operators, MikroTik consultants, fiber providers, and managed Wi-Fi teams to ISP billing software. It supports global referrals, affiliate links, lead tracking, and manually reviewed commissions.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Can international affiliates refer ISPs to Internetily?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Internetily accepts qualified affiliate referrals from Kenya, Uganda, Tanzania, South Africa, Nigeria, Ghana, Rwanda, Europe, Asia, the Americas, and other regions where ISPs, WISPs, and hotspot businesses need billing automation.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is an ISP management system?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "An ISP management system is software that helps internet service providers manage subscribers, billing, payments, router provisioning, and network access. Netily is an ISP management system built for Kenya and East Africa, integrating M-Pesa payments and MikroTik routers natively.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does Netily work with MikroTik routers?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Netily integrates with MikroTik RouterOS via the RouterOS API for zero-touch PPPoE and Hotspot provisioning, automatic subscriber suspension and reactivation, and bandwidth policy enforcement.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How does Netily compare to Splynx?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Netily is built specifically for Kenyan and East African ISPs. Unlike Splynx, Netily has native M-Pesa STK Push integration, is priced in KES, and is significantly more affordable for small and medium ISPs. Splynx is a European product that does not natively support M-Pesa.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is Netily a good ISP billing platform for Kenya?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Netily, now also Internetily, is built for Kenyan ISPs that need native M-Pesa STK Push, MikroTik auto-provisioning, RADIUS integration, hotspot billing, KES pricing, and practical onboarding. Most teams can move from evaluation to live operations quickly once router and payment details are ready.",
+      },
+    },
+  ],
+}
+
+// â”€â”€â”€ LocalBusiness Schema (2026) â€” Enhanced GEO targeting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const localBusinessSchema = {
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "@id": "https://netily.co.ke/#business",
+  name: "Internetily",
+  alternateName: [
+    "Netily",
+    "Netily ISP Billing Software",
+    "Internetily formerly Netily",
+  ],
+  description: "Internetily, formerly Netily, is a cloud-based ISP billing and management platform for Kenya, Africa, UK, USA, Australia, New Zealand, and global WISPs. It supports M-Pesa STK Push, regional payment workflows, MikroTik PPPoE provisioning, RADIUS authentication, and hotspot billing for internet service providers.",
+  url: "https://netily.co.ke",
+  telephone: "+254-700-000-000",
+  email: "hello@netily.co.ke",
+  foundingDate: "2024",
+  foundingLocation: {
+    "@type": "Place",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Nairobi",
+      addressRegion: "Nairobi County",
+      addressCountry: "KE",
+    },
+  },
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Nairobi",
+    addressRegion: "Nairobi County",
+    addressCountry: "KE",
+  },
+  geo: {
+    "@type": "GeoCoordinates",
+    latitude: "-1.286389",
+    longitude: "36.817223",
+  },
+  areaServed: [
+    { "@type": "Country", name: "Kenya", "@id": "https://www.wikidata.org/wiki/Q114" },
+    { "@type": "Country", name: "Tanzania", "@id": "https://www.wikidata.org/wiki/Q924" },
+    { "@type": "Country", name: "Uganda", "@id": "https://www.wikidata.org/wiki/Q1036" },
+    { "@type": "Country", name: "South Africa", "@id": "https://www.wikidata.org/wiki/Q258" },
+    { "@type": "Country", name: "Rwanda", "@id": "https://www.wikidata.org/wiki/Q1037" },
+    { "@type": "Country", name: "Burundi", "@id": "https://www.wikidata.org/wiki/Q967" },
+    { "@type": "Country", name: "South Sudan", "@id": "https://www.wikidata.org/wiki/Q958" },
+    { "@type": "Country", name: "United Kingdom", "@id": "https://www.wikidata.org/wiki/Q145" },
+    { "@type": "Country", name: "United States", "@id": "https://www.wikidata.org/wiki/Q30" },
+    { "@type": "Country", name: "Australia", "@id": "https://www.wikidata.org/wiki/Q408" },
+    { "@type": "Country", name: "New Zealand", "@id": "https://www.wikidata.org/wiki/Q664" },
+    { "@type": "City", name: "Nairobi", containedInPlace: "Kenya" },
+    { "@type": "City", name: "Mombasa", containedInPlace: "Kenya" },
+    { "@type": "City", name: "Kisumu", containedInPlace: "Kenya" },
+    { "@type": "City", name: "Nakuru", containedInPlace: "Kenya" },
+    { "@type": "City", name: "Eldoret", containedInPlace: "Kenya" },
+    { "@type": "City", name: "Thika", containedInPlace: "Kenya" },
+    { "@type": "AdministrativeArea", name: "Nairobi County", containedInPlace: "Kenya" },
+    { "@type": "AdministrativeArea", name: "Mombasa County", containedInPlace: "Kenya" },
+    { "@type": "AdministrativeArea", name: "Kisumu County", containedInPlace: "Kenya" },
+    { "@type": "AdministrativeArea", name: "Nakuru County", containedInPlace: "Kenya" },
+    { "@type": "AdministrativeArea", name: "Uasin Gishu County", containedInPlace: "Kenya" },
+    { "@type": "AdministrativeArea", name: "Kiambu County", containedInPlace: "Kenya" },
+    { "@type": "AdministrativeArea", name: "Machakos County", containedInPlace: "Kenya" },
+    { "@type": "AdministrativeArea", name: "Kajiado County", containedInPlace: "Kenya" },
+    { "@type": "AdministrativeArea", name: "Kilifi County", containedInPlace: "Kenya" },
+    { "@type": "AdministrativeArea", name: "Meru County", containedInPlace: "Kenya" },
+    { "@type": "City", name: "Kampala", containedInPlace: "Uganda" },
+    { "@type": "City", name: "Dar es Salaam", containedInPlace: "Tanzania" },
+    { "@type": "City", name: "Johannesburg", containedInPlace: "South Africa" },
+    { "@type": "City", name: "Cape Town", containedInPlace: "South Africa" },
+    { "@type": "City", name: "Durban", containedInPlace: "South Africa" },
+    { "@type": "City", name: "Kigali", containedInPlace: "Rwanda" },
+    { "@type": "City", name: "Bujumbura", containedInPlace: "Burundi" },
+    { "@type": "City", name: "Juba", containedInPlace: "South Sudan" },
+    { "@type": "City", name: "London", containedInPlace: "United Kingdom" },
+    { "@type": "City", name: "Manchester", containedInPlace: "United Kingdom" },
+    { "@type": "City", name: "New York", containedInPlace: "United States" },
+    { "@type": "City", name: "Dallas", containedInPlace: "United States" },
+    { "@type": "City", name: "Sydney", containedInPlace: "Australia" },
+    { "@type": "City", name: "Melbourne", containedInPlace: "Australia" },
+    { "@type": "City", name: "Auckland", containedInPlace: "New Zealand" },
+    { "@type": "City", name: "Wellington", containedInPlace: "New Zealand" },
+  ],
+  sameAs: [
+    "https://x.com/netily",
+    "https://linkedin.com/company/netily",
+    "https://facebook.com/netily",
+    "https://instagram.com/netily",
+    "https://github.com/netily",
+  ],
+  logo: {
+    "@type": "ImageObject",
+    url: "https://netily.co.ke/logo.png",
+    width: "512",
+    height: "512",
+  },
+  image: {
+    "@type": "ImageObject",
+    url: "https://netily.co.ke/og-image.svg",
+    width: "1200",
+    height: "630",
+  },
+  priceRange: "KES 500 - KES 50000",
+  paymentAccepted: ["M-Pesa", "Airtel Money", "MTN MoMo", "Tigo Pesa", "Payfast", "Ozow", "Telkom Kash", "GoCardless", "Stripe", "ACH", "BECS Direct Debit", "Windcave", "Bank Transfer", "Credit Card"],
+  currenciesAccepted: "KES TZS UGX ZAR GBP USD AUD NZD",
+  openingHours: "Mo-Fr 08:00-18:00",
+  openingHoursSpecification: [
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      opens: "08:00",
+      closes: "18:00",
+    },
+  ],
+  contactPoint: [
+    {
+      "@type": "ContactPoint",
+      telephone: "+254-700-000-000",
+      contactType: "customer support",
+      email: "support@netily.co.ke",
+      areaServed: "KE",
+      availableLanguage: ["English", "Swahili"],
+      hoursAvailable: {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        opens: "08:00",
+        closes: "18:00",
+      },
+    },
+    {
+      "@type": "ContactPoint",
+      telephone: "+254-700-000-000",
+      contactType: "sales",
+      email: "sales@netily.co.ke",
+      areaServed: ["KE", "TZ", "UG", "RW"],
+      availableLanguage: ["English", "Swahili"],
+    },
+    {
+      "@type": "ContactPoint",
+      contactType: "technical support",
+      email: "support@netily.co.ke",
+      areaServed: ["KE", "TZ", "UG", "RW"],
+      availableLanguage: ["English", "Swahili"],
+    },
+  ],
+  makesOffer: [
+    {
+      "@type": "Offer",
+      name: "Starter Plan â€” ISP Billing Software",
+      description: "Usage-based metered billing for small to medium ISPs. KES 500 activation + KES 25/PPPoE subscriber + 3% hotspot revenue share.",
+      price: "500",
+      priceCurrency: "KES",
+      priceSpecification: {
+        "@type": "UnitPriceSpecification",
+        price: "25",
+        priceCurrency: "KES",
+        unitText: "per PPPoE subscriber per month",
+      },
+      availability: "https://schema.org/InStock",
+      url: "https://netily.co.ke/#contact",
+      eligibleRegion: ["KE", "TZ", "UG", "RW"],
+      itemOffered: {
+        "@type": "SoftwareApplication",
+        name: "Internetily Starter Plan",
+        alternateName: "Netily Starter Plan",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+      },
+    },
+    {
+      "@type": "Offer",
+      name: "Enterprise Plan â€” Custom ISP Billing",
+      description: "Custom pricing for large ISPs with white-label branding, dedicated support, and SLA guarantees.",
+      price: "0",
+      priceCurrency: "KES",
+      availability: "https://schema.org/InStock",
+      url: "https://netily.co.ke/#contact",
+      eligibleRegion: ["KE", "TZ", "UG", "RW"],
+      itemOffered: {
+        "@type": "SoftwareApplication",
+        name: "Internetily Enterprise Plan",
+        alternateName: "Netily Enterprise Plan",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+      },
+    },
+  ],
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "ISP Billing Software Services",
+    itemListElement: [
+      {
+        "@type": "OfferCatalog",
+        name: "M-Pesa Integration Services",
+        itemListElement: [
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "M-Pesa STK Push Integration",
+              description: "Automated M-Pesa payment collection via Safaricom Daraja API with real-time subscriber activation",
+            },
+          },
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "M-Pesa Payment Reconciliation",
+              description: "Automatic payment reconciliation from M-Pesa paybill and till number transactions",
+            },
+          },
+        ],
+      },
+      {
+        "@type": "OfferCatalog",
+        name: "MikroTik Router Management",
+        itemListElement: [
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "MikroTik PPPoE Auto-Provisioning",
+              description: "Zero-touch subscriber provisioning on MikroTik RouterOS with automatic suspend/restore",
+            },
+          },
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "MikroTik Hotspot Billing",
+              description: "Captive portal management with voucher generation and session control",
+            },
+          },
+        ],
+      },
+      {
+        "@type": "OfferCatalog",
+        name: "ISP Management Features",
+        itemListElement: [
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "RADIUS Authentication",
+              description: "FreeRADIUS integration for PPPoE and hotspot authentication",
+            },
+          },
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "Customer Self-Service Portal",
+              description: "Subscriber portal for balance checks, M-Pesa payments, and support tickets",
+            },
+          },
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "Automated ISP Invoicing",
+              description: "Recurring invoice generation with SMS payment reminders",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  knowsAbout: [
+    "ISP billing software Kenya 2026",
+    "M-Pesa STK Push integration",
+    "MikroTik RouterOS API automation",
+    "RADIUS authentication systems",
+    "PPPoE subscriber management",
+    "Hotspot captive portal billing",
+    "ISP payment automation East Africa",
+    "ISP billing software Uganda",
+    "ISP billing software Tanzania",
+    "ISP billing software Rwanda",
+    "ISP billing software Burundi",
+    "ISP billing software South Sudan",
+    "Nairobi enterprise ISP billing",
+    "Nairobi co-working WiFi billing",
+    "Nairobi hotel WiFi billing",
+    "Mombasa tourist hotel WiFi billing",
+    "Mombasa beach resort WiFi billing",
+    "Mombasa apartment internet billing",
+    "Kisumu WISP billing software",
+    "Kisumu student hostel WiFi billing",
+    "Eldoret agricultural business internet billing",
+    "Eldoret retail chain WiFi billing",
+    "Nakuru shopping mall WiFi billing",
+    "Nakuru residential complex internet billing",
+    "ISP billing software all Kenya counties",
+    "Fiber ISP management Kenya",
+    "WISP billing software",
+    "Internet service provider SaaS",
+    "Safaricom Daraja API integration",
+    "Kenyan mobile money billing",
+    "ISP customer self-service portals",
+    "Bandwidth management systems",
+    "ISP analytics and reporting",
+    "Dashboard themes for ISP teams",
+    "Staff role edits and permissions",
+    "ISP lead generation software",
+    "ISP billing software comparison Kenya",
+    "ISP management software evaluation Africa",
+    "local ISP billing tool comparison",
+  ],
+  aggregateRating: {
+    "@type": "AggregateRating",
+    ratingValue: "4.8",
+    ratingCount: "17",
+    reviewCount: "17",
+    bestRating: "5",
+    worstRating: "1",
+  },
+}
+
+// â”€â”€â”€ BreadcrumbList Schema (2026) â€” Helps Google understand site hierarchy â”€â”€â”€â”€
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: "https://netily.co.ke",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "ISP Billing Software",
+      item: "https://netily.co.ke/#features",
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: "Pricing",
+      item: "https://netily.co.ke/#pricing",
+    },
+    {
+      "@type": "ListItem",
+      position: 4,
+      name: "Blog",
+      item: "https://netily.co.ke/blog",
+    },
+  ],
+}
+
+export default function Page() {
+  // Blog list schema â€” helps Google understand the content cluster
+  const blogListSchema = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "Internetily ISP Blog",
+    alternateName: "Netily ISP Blog",
+    url: "https://netily.co.ke/blog",
+    description: "Expert guides on ISP billing software, MikroTik automation, and M-Pesa integration for Kenyan ISPs",
+    blogPost: blogPosts.map((post) => ({
+      "@type": "BlogPosting",
+      headline: post.title,
+      description: post.metaDescription,
+      url: `https://netily.co.ke/blog/${post.slug}`,
+      datePublished: post.publishedAt,
+      dateModified: post.updatedAt,
+      author: { "@type": "Person", name: post.author.name },
+      keywords: post.keywords.join(", "),
+    })),
+  }
+
+  return (
+    <>
+      {/* JSON-LD schemas in initial server HTML â€” not afterInteractive */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(financialWorkflowSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ispSetupServiceSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogListSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <HomepagePreloader />
+      <LandingPage />
+    </>
+  )
+}
