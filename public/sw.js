@@ -1,17 +1,25 @@
-// public/sw.js
-const CACHE = "netily-shell-v1"
+const CACHE = "netily-shell-v2"
 
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   self.skipWaiting()
 })
 
-self.addEventListener("activate", (event) {
+self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim())
 })
 
-// Trivial network-first passthrough — installability only needs a fetch handler present
 self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url)
+  if (
+    url.pathname === "/netilysystempayment" ||
+    url.pathname.startsWith("/api/netily-system-payment") ||
+    url.hostname === "api.netily.co.ke"
+  ) {
+    event.respondWith(fetch(event.request))
+    return
+  }
+
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request).catch(() => caches.match(event.request)),
   )
 })

@@ -89,6 +89,18 @@ const nextConfig = {
         ],
       },
       {
+        source: '/netilysystempayment',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store, no-cache, max-age=0, must-revalidate' },
+        ],
+      },
+      {
+        source: '/api/netily-system-payment/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store, no-cache, max-age=0, must-revalidate' },
+        ],
+      },
+      {
         source: '/(.*)',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -109,6 +121,21 @@ const withPWA = withPWAInit({
   extendDefaultRuntimeCaching: true,
   workboxOptions: {
     runtimeCaching: [
+      {
+        urlPattern: ({ url }) =>
+          url.pathname === "/netilysystempayment" ||
+          url.pathname.startsWith("/api/netily-system-payment") ||
+          url.hostname === "api.netily.co.ke",
+        handler: "NetworkOnly",
+        method: "GET",
+      },
+      {
+        urlPattern: ({ url }) =>
+          url.pathname.startsWith("/api/netily-system-payment") ||
+          url.hostname === "api.netily.co.ke",
+        handler: "NetworkOnly",
+        method: "POST",
+      },
       {
         urlPattern: ({ url }) =>
           url.pathname === "/affiliate/verify" ||

@@ -119,6 +119,17 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hostname = request.headers.get('host') || ''
 
+  if (pathname === '/api/netily-system-payment' || pathname.startsWith('/api/netily-system-payment/')) {
+    const upstream = new URL(request.url)
+    upstream.protocol = 'https:'
+    upstream.host = 'api.netily.co.ke'
+    upstream.pathname = pathname.replace(
+      /^\/api\/netily-system-payment/,
+      '/api/v1/billing/netily-system-payment',
+    )
+    return NextResponse.rewrite(upstream)
+  }
+
   // ── 1a. Custom tenant domain redirect (e.g. bentrextechnologies.com) ──────
   // Only the bare root "/" is redirected — /admin/login, /customer/login,
   // /api/, static assets etc. all pass through untouched so the ISP's admin
