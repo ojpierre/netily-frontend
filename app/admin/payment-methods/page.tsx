@@ -50,12 +50,28 @@ import type { PaymentMethod, PaymentDashboardStats } from "@/lib/types"
 // CONSTANTS
 // =============================================================================
 const TUMA_BANKS = [
-  "Kenya Commercial Bank", "Equity Bank", "Cooperative Bank", "Absa Bank",
-  "Standard Chartered Bank", "Stanbic Bank", "Diamond Trust Bank", "Family Bank",
-  "National Bank of Kenya", "NCBA Bank", "I&M Bank", "Ecobank Savings & Current",
-  "Ecobank Xpress", "Faulu Bank", "Kingdom Bank", "SBM Bank Kenya", "Sidian Bank",
-  "Bank of Africa", "Bank of Baroda", "Post Bank", "LOOP BUSINESS", "LOOP C2B",
-  "Fortune Sacco", "K Unity Sacco", "Tower Sacco Society", "Zemo Pay",
+  "Kenya Commercial Bank",
+  "Equity Bank",
+  "Cooperative Bank",
+  "Absa Bank",
+  "Standard Chartered Bank",
+  "Stanbic Bank",
+  "Diamond Trust Bank",
+  "Family Bank",
+  "National Bank of Kenya",
+  "NCBA Bank",
+  "I&M Bank",
+  "Ecobank Xpress",
+  "Faulu Bank",
+  "Kingdom Bank",
+  "SBM Bank",
+  "Sidian Bank",
+  "Bank of Africa",
+  "Post Bank",
+  "LOOP Business",
+  "Fortune Sacco",
+  "K Unity Sacco",
+  "Tower Sacco Society",
 ]
 
 type ChannelKind = "bank" | "till" | "paybill"
