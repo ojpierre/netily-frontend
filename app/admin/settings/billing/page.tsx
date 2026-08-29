@@ -25,6 +25,28 @@ const kes = (amount: number | string) =>
     style: "currency", currency: "KES", maximumFractionDigits: 0,
   }).format(Number(amount))
 
+const getInvoiceBalance = (inv: Invoice) => {
+  const explicitBalance = (inv as any).balance_due ?? (inv as any).balance ?? (inv as any).invoice_balance
+  if (explicitBalance !== undefined && explicitBalance !== null && explicitBalance !== "") {
+    return Number(explicitBalance || 0)
+  }
+
+  const total = Number(inv.total_amount || 0)
+  const paid = Number(inv.amount_paid || (inv as any).invoice_amount_paid || 0)
+  return Math.max(total - paid, 0)
+}
+
+const isInvoicePaid = (inv: Invoice) => {
+  const status = String(inv?.status || "").toLowerCase()
+  return status === "paid" && getInvoiceBalance(inv) <= 0
+}
+
+const getInvoiceStatusLabel = (inv: Invoice) => {
+  if (isInvoicePaid(inv)) return "paid"
+  if (getInvoiceBalance(inv) > 0) return "unpaid"
+  return String(inv?.status || "pending").toLowerCase()
+}
+
 // Separate component to handle search params safely within Suspense
 function BillingContent() {
   const searchParams = useSearchParams()
@@ -255,7 +277,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
       return
     }
     const inv = invoices.find(i => i.id === invoiceId)
-    const invoiceAmount = inv ? Number(inv.total_amount) : 0
+    const invoiceAmount = inv ? getInvoiceBalance(inv) || Number(inv.total_amount) : 0
     if (!invoiceAmount) {
       toast.error("Could not determine invoice amount")
       return
@@ -637,10 +659,10 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                           <TableCell className="font-bold text-foreground">{kes(inv?.total_amount || 0)}</TableCell>
                           <TableCell>
                             <Badge 
-                              variant={inv?.status === 'paid' ? 'default' : 'destructive'} 
+                              variant={isInvoicePaid(inv) ? 'default' : 'destructive'}
                               className="uppercase text-[9px] font-black tracking-tighter"
                             >
-                              {inv?.status || 'pending'}
+                              {getInvoiceStatusLabel(inv)}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
@@ -690,7 +712,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                             <Button variant="outline" size="sm" className="h-8" onClick={() => handleDownloadPDF(inv)}>
                               <Download className="w-3 h-3 mr-2" /> PDF
                             </Button>
-                            {inv?.status !== 'paid' && (
+                            {!isInvoicePaid(inv) && (
                               <Dialog open={payingInvoiceId === inv.id} onOpenChange={(open) => { if (!open) { setPayingInvoiceId(null); setPayPhone("") } }}>
                                 <DialogTrigger asChild>
                                   <Button size="sm" className="ml-2 h-8 bg-success hover:bg-green-700" onClick={() => setPayingInvoiceId(inv.id)}>
@@ -700,7 +722,7 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
                                 <DialogContent className="sm:max-w-[400px]">
                                   <DialogHeader>
                                     <DialogTitle>Pay Invoice {inv.invoice_number}</DialogTitle>
-                                    <CardDescription>Amount: {kes(inv?.total_amount || 0)}</CardDescription>
+                                    <CardDescription>Amount: {kes(getInvoiceBalance(inv) || inv?.total_amount || 0)}</CardDescription>
                                   </DialogHeader>
                                   <div className="mt-4 space-y-4">
                                     <div>

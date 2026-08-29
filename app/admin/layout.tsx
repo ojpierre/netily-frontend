@@ -56,6 +56,9 @@ import {
 import { AdminAuthProvider, useAdminAuth } from "./admin-auth-context"
 import { PageTransition, AnimatedNavItem } from "@/components/page-transition"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   CommandDialog,
   CommandEmpty,
@@ -97,7 +100,7 @@ import {
   setRoleAccessPolicies,
   type AccessRule,
 } from "@/lib/rbac"
-import type { Customer, Invoice, Lead, Payment, Router, SupportTicket } from "@/lib/types"
+import type { BillingCycleBreakdown, CompanySubscription, Customer, Invoice, Lead, Payment, Router, SupportTicket, UsageStats } from "@/lib/types"
 
 type NavigationItem = {
   name: string
@@ -235,6 +238,234 @@ const bottomNavItems = [
   { name: "What's New", href: "/admin/whats-new", icon: Sparkles },
   { name: "Community Board", href: "/admin/community", icon: MessageSquareText },
 ]
+
+const kes = (amount: number | string | null | undefined) =>
+  new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency: "KES",
+    maximumFractionDigits: 0,
+  }).format(Number(amount || 0))
+
+function normalizePhone(phone: string) {
+  const digits = phone.replace(/\D/g, "")
+  if (digits.startsWith("0") && digits.length === 10) return `254${digits.slice(1)}`
+  if (digits.startsWith("7") && digits.length === 9) return `254${digits}`
+  return digits
+}
+
+function invoiceIsSettled(status: string | undefined, balance: unknown) {
+  return String(status || "").toLowerCase() === "paid" && Number(balance || 0) <= 0
+}
+
+function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
+  const [open, setOpen] = useState(false)
+  const [subscription, setSubscription] = useState<CompanySubscription | null>(null)
+  const [usage, setUsage] = useState<UsageStats | null>(null)
+  const [cycle, setCycle] = useState<BillingCycleBreakdown | null>(null)
+  const [phone, setPhone] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [loadingData, setLoadingData] = useState(false)
+  const [pendingPaymentId, setPendingPaymentId] = useState<string | null>(null)
+  const [statusText, setStatusText] = useState("")
+
+  const cycleBalance = Number(cycle?.invoice_balance || 0)
+  const estimateTotal = Number(
+    usage?.invoice_total_estimate ||
+    usage?.total_estimate ||
+    subscription?.plan?.base_license_fee ||
+    subscription?.plan?.price_monthly ||
+    500,
+  )
+  const payableAmount = cycleBalance > 0 ? cycleBalance : estimateTotal
+
+  const invoiceNumber = cycle?.invoice_number || usage?.invoice_number || ""
+  const isPaid = !!cycle && invoiceIsSettled(cycle.invoice_status || "", cycle.invoice_balance)
+
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    const load = async () => {
+      setLoadingData(true)
+      try {
+        const { adminApi } = await import("@/lib/admin-api")
+        adminApi.invalidateSubscriptionCache()
+        const [subData, usageData, breakdowns] = await Promise.all([
+          adminApi.getCurrentSubscription(),
+          adminApi.getUsageStats(),
+          adminApi.getBillingCycleBreakdowns(6).catch(() => ({ count: 0, results: [] })),
+        ])
+        if (cancelled) return
+        const cycles = (breakdowns?.results || []) as BillingCycleBreakdown[]
+        const outstanding = cycles.find((item) => Number(item.invoice_balance || 0) > 0)
+        setSubscription(subData)
+        setUsage(usageData)
+        setCycle(outstanding || null)
+      } catch {
+        if (!cancelled) toast.error("Could not load subscription billing details.")
+      } finally {
+        if (!cancelled) setLoadingData(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [open])
+
+  useEffect(() => {
+    if (!pendingPaymentId) return
+    let cancelled = false
+    let attempts = 0
+    const maxAttempts = 6
+    const poll = async () => {
+      if (cancelled) return
+      attempts += 1
+      try {
+        const { adminApi } = await import("@/lib/admin-api")
+        const result = await adminApi.checkSubscriptionPaymentStatus(pendingPaymentId)
+        if (cancelled) return
+        if (result.status === "completed") {
+          setPendingPaymentId(null)
+          setStatusText("")
+          setOpen(false)
+          toast.success(result.message || "Payment confirmed. Your subscription billing has been updated.")
+          return
+        }
+        if (result.status === "failed" || result.status === "cancelled") {
+          setPendingPaymentId(null)
+          setStatusText("")
+          toast.error(result.message || "Payment was not completed. Please try again.")
+          return
+        }
+        setStatusText("Still waiting for M-Pesa confirmation...")
+      } catch {
+        setStatusText("Still checking payment status...")
+      }
+      if (attempts < maxAttempts) window.setTimeout(poll, 5000)
+      else {
+        setPendingPaymentId(null)
+        setStatusText("")
+        toast.info("Payment is still processing. We will update billing once M-Pesa confirms it.")
+      }
+    }
+    window.setTimeout(poll, 4000)
+    return () => { cancelled = true }
+  }, [pendingPaymentId])
+
+  const pay = async () => {
+    const normalizedPhone = normalizePhone(phone)
+    if (!normalizedPhone || normalizedPhone.length < 12) {
+      toast.error("Enter a valid M-Pesa phone number.")
+      return
+    }
+    if (!subscription?.plan?.code) {
+      toast.error("Subscription plan is still loading. Please try again.")
+      return
+    }
+    if (!payableAmount || payableAmount <= 0 || isPaid) {
+      toast.info("There is no outstanding subscription amount to pay right now.")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { adminApi } = await import("@/lib/admin-api")
+      const response = await adminApi.initiateSubscriptionPayment({
+        plan_id: subscription.plan.code,
+        payment_method: "mpesa_stk",
+        phone_number: normalizedPhone,
+        billing_period: subscription.billing_period || "monthly",
+        amount: payableAmount,
+      })
+      setPendingPaymentId(response.payment_id)
+      setStatusText("STK sent. Enter your M-Pesa PIN to complete renewal.")
+      toast.success("STK Push sent. Check your phone.")
+    } catch (error: any) {
+      toast.error(error?.message || "Could not initiate renewal payment.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant={collapsed ? "ghost" : "default"}
+        size={collapsed ? "icon" : "default"}
+        className={collapsed ? "w-full" : "w-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"}
+        onClick={() => setOpen(true)}
+        title="Renew now"
+      >
+        <CreditCard className="h-5 w-5" />
+        {!collapsed && <span className="ml-2">Renew now</span>}
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[460px]">
+          <DialogHeader>
+            <DialogTitle>Renew subscription early</DialogTitle>
+            <DialogDescription>
+              Review the current Netily bill, then enter the M-Pesa number to receive an STK push.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border bg-muted/40 p-4">
+              {loadingData ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading billing breakdown...
+                </div>
+              ) : (
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Invoice</span>
+                    <span className="font-semibold">{invoiceNumber || "Current cycle estimate"}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Status</span>
+                    <Badge variant={isPaid ? "default" : "secondary"}>{isPaid ? "Paid" : "Unpaid / upcoming"}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Amount to pay</span>
+                    <span className="text-lg font-black text-primary">{kes(payableAmount)}</span>
+                  </div>
+                  <Separator />
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Payments are confirmed by M-Pesa before the subscription is marked paid. If you pay early, the active billing cycle remains intact.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sidebar-renew-phone">M-Pesa phone number</Label>
+              <Input
+                id="sidebar-renew-phone"
+                inputMode="tel"
+                placeholder="0712345678"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                maxLength={13}
+              />
+            </div>
+
+            {statusText && (
+              <div className="rounded-xl border border-primary/20 bg-primary/10 p-3 text-sm font-medium text-primary">
+                {pendingPaymentId && <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />}
+                {statusText}
+              </div>
+            )}
+
+            <Button className="w-full" disabled={loading || loadingData || !!pendingPaymentId || isPaid} onClick={pay}>
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
+              {isPaid ? "Invoice already paid" : `Send STK Push - ${kes(payableAmount)}`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -790,6 +1021,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Sidebar footer */}
         <div className="space-y-3 border-t border-slate-100 p-4 dark:border-slate-800">
+          <SidebarRenewNow collapsed={sidebarCollapsed} />
+
           {/* Trial countdown for sidebar (compact) */}
           {!sidebarCollapsed && (
             <div className="lg:hidden">
@@ -849,6 +1082,19 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               <TrialCountdown />
             </div>
 
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="hidden h-9 shrink-0 border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary sm:inline-flex"
+            >
+              <Link href="/customer/login">
+                <Globe className="mr-2 h-4 w-4" />
+                <span className="hidden xl:inline">Customer Portal</span>
+                <span className="xl:hidden">Portal</span>
+              </Link>
+            </Button>
+
             {/* Theme Toggle */}
             <div className="hidden min-[380px]:block">
               <ThemeToggle />
@@ -905,6 +1151,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 <DropdownMenuItem onClick={() => router.push("/admin/settings")}>
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/customer/login")}>
+                  <Globe className="w-4 h-4 mr-2" />
+                  Customer Portal
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive" onClick={logout}>

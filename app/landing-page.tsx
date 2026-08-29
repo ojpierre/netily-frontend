@@ -746,6 +746,12 @@ export function LandingPage() {
             </div>
             <ThemeToggle />
             <a
+              href="https://demo.netily.co.ke/admin/login"
+              className="border border-white/20 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              View Demo
+            </a>
+            <a
               href="#contact"
               onClick={(event) => {
                 event.preventDefault()
@@ -782,6 +788,17 @@ export function LandingPage() {
               ))}
               <Link href="/blog">Blog</Link>
               <Link href="/docs">Docs</Link>
+              <a href="https://demo.netily.co.ke/admin/login">View demo workspace</a>
+              <a
+                href="#contact"
+                onClick={(event) => {
+                  event.preventDefault()
+                  setMobileMenuOpen(false)
+                  scrollTo("contact")
+                }}
+              >
+                Contact sales
+              </a>
               <div className="grid grid-cols-2 gap-2 border-t border-zinc-800 pt-4">
                 {supportedCountries.map((code) => {
                   const item = GEO_TABLE[code]!

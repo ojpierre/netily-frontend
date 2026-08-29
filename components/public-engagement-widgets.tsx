@@ -75,6 +75,7 @@ function savePreferences(preferences: CookiePreferences) {
 export function PublicEngagementWidgets() {
   const pathname = usePathname() || "/"
   const isPublicRoute = isPublicMarketingRoute(pathname)
+  const isDemoRoute = pathname === "/demo" || pathname.startsWith("/demo/")
   const [ready, setReady] = useState(pathname !== "/")
   const [showCookieBanner, setShowCookieBanner] = useState(false)
   const [showPreferences, setShowPreferences] = useState(false)
@@ -151,6 +152,17 @@ export function PublicEngagementWidgets() {
           WhatsApp enquiry
         </span>
       </a>
+
+      {isDemoRoute && (
+        <Link
+          href="/#contact"
+          aria-label="Open Netily contact form"
+          className="fixed bottom-24 right-5 z-[80] inline-flex h-12 items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-950 shadow-2xl shadow-zinc-950/10 transition hover:-translate-y-0.5 hover:bg-zinc-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-300 md:bottom-24 md:right-6"
+        >
+          Contact Netily
+          <ChevronRight className="h-4 w-4" />
+        </Link>
+      )}
 
       {showCookieBanner && (
         <div className="fixed inset-x-3 bottom-3 z-[70] mx-auto max-w-4xl rounded-2xl border border-white/10 bg-zinc-950 p-4 text-white shadow-2xl shadow-black/30 sm:bottom-5 sm:p-5">

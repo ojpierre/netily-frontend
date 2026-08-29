@@ -22,6 +22,8 @@ import { ParticleBackground } from "@/components/auth/particle-background" // âœ
 
 // Check if using mock mode
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true'
+const DEMO_EMAIL = "fredezra03@gmail.com"
+const DEMO_PASSWORD = "Netilydemo@2028"
 
 interface LoginFormData {
   email: string
@@ -67,6 +69,7 @@ export default function AdminLoginPage() {
 
   // Passkey state
   const [passkeyLoading, setPasskeyLoading] = useState(false)
+  const [isDemoLogin, setIsDemoLogin] = useState(false)
 
   const clearStaleAdminAuth = () => {
     const scoped = (k: string) => `${k}:${window.location.hostname}`
@@ -136,6 +139,23 @@ export default function AdminLoginPage() {
     }
 
     fetchBranding()
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const host = window.location.hostname.toLowerCase()
+    const demoHost = host === "demo.netily.co.ke" || host.startsWith("demo.")
+    setIsDemoLogin(demoHost)
+    if (!demoHost) return
+    setFormData({ email: DEMO_EMAIL, password: DEMO_PASSWORD, rememberMe: true })
+    const event = { event: "demo_login_prefilled", at: new Date().toISOString(), host }
+    console.info("[Netily demo]", event)
+    try {
+      const previous = JSON.parse(localStorage.getItem("netily_demo_events") || "[]")
+      localStorage.setItem("netily_demo_events", JSON.stringify([...previous.slice(-20), event]))
+    } catch {
+      // Demo analytics are best-effort only.
+    }
   }, [])
 
   // Redirect if already logged in
@@ -221,6 +241,16 @@ export default function AdminLoginPage() {
     e.preventDefault()
     setError(null)
     setLoading(true)
+    if (isDemoLogin) {
+      const event = { event: "demo_sign_in_clicked", at: new Date().toISOString(), email: formData.email }
+      console.info("[Netily demo]", event)
+      try {
+        const previous = JSON.parse(localStorage.getItem("netily_demo_events") || "[]")
+        localStorage.setItem("netily_demo_events", JSON.stringify([...previous.slice(-20), event]))
+      } catch {
+        // Demo analytics are best-effort only.
+      }
+    }
 
     try {
       if (!formData.email || !formData.password) {
@@ -367,7 +397,7 @@ export default function AdminLoginPage() {
                 Sign in
               </CardTitle>
               <CardDescription className="text-muted-foreground text-sm">
-                Enter your credentials to access your workspace.
+                {isDemoLogin ? "Demo credentials are ready. Press Sign in to enter the workspace." : "Enter your credentials to access your workspace."}
               </CardDescription>
             </CardHeader>
 
@@ -435,7 +465,7 @@ export default function AdminLoginPage() {
                       Signing in...
                     </>
                   ) : (
-                    "Sign in"
+                    isDemoLogin ? "Sign in to demo" : "Sign in"
                   )}
                 </Button>
 
