@@ -569,6 +569,41 @@ export interface KnownHost {
   source: 'dhcp' | 'arp'
 }
 
+export type AccessPointStatus = 'online' | 'offline' | 'unknown'
+
+export interface AccessPoint {
+  id: string
+  router: number
+  router_name?: string
+  parent: string | null
+  name: string
+  mac_address: string
+  ip_address: string | null
+  pos_x: number
+  pos_y: number
+  status: AccessPointStatus
+  last_seen: string | null
+  last_checked: string | null
+  seconds_since_seen?: number | null
+  is_active: boolean
+  created_at: string
+  updated_at?: string
+}
+
+export interface AccessPointStatusMapEntry {
+  status: AccessPointStatus
+  last_seen: string | null
+}
+
+export type AccessPointStatusMap = Record<string, AccessPointStatusMapEntry>
+
+export interface AccessPointPositionUpdate {
+  id: string
+  pos_x: number
+  pos_y: number
+  parent?: string | null
+}
+
 export type VPNTunnelStatus = 'connected' | 'disconnected' | 'unknown'
 
 export interface RouterVPNStatus {

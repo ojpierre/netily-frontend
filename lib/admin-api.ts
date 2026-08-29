@@ -49,6 +49,9 @@ import type {
   PaymentDashboardStats,
   CustomerOutstanding,
   Router,
+  AccessPoint,
+  AccessPointPositionUpdate,
+  AccessPointStatusMap,
   RouterMetrics,
   RouterEvent,
   RouterReachabilityResponse,
@@ -1790,6 +1793,48 @@ async activateService(
 
   async getRouterKnownHosts(routerId: number): Promise<{ hosts: KnownHost[] }> {
     return this.request(`/network/routers/${routerId}/known-hosts/`)
+  }
+
+  // ------------------------------------------
+  // ACCESS POINT TOPOLOGY - /network/access-points/
+  // ------------------------------------------
+
+  async getAccessPoints(params?: { router_id?: number | string }): Promise<PaginatedResponse<AccessPoint> | AccessPoint[]> {
+    const qs = params ? '?' + new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)])).toString() : ''
+    return this.request<PaginatedResponse<AccessPoint> | AccessPoint[]>(`/network/access-points/${qs}`)
+  }
+
+  async createAccessPoint(data: Partial<AccessPoint>): Promise<AccessPoint> {
+    return this.request<AccessPoint>('/network/access-points/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateAccessPoint(id: string, data: Partial<AccessPoint>): Promise<AccessPoint> {
+    return this.request<AccessPoint>(`/network/access-points/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteAccessPoint(id: string): Promise<void> {
+    await this.request(`/network/access-points/${id}/`, { method: 'DELETE' })
+  }
+
+  async bulkUpdateAccessPointPositions(updates: AccessPointPositionUpdate[]): Promise<{ updated: number }> {
+    return this.request<{ updated: number }>('/network/access-points/bulk-position/', {
+      method: 'POST',
+      body: JSON.stringify(updates),
+    })
+  }
+
+  async getAccessPointStatusMap(routerId: number | string): Promise<AccessPointStatusMap> {
+    return this.request<AccessPointStatusMap>(`/network/access-points/status-map/?router_id=${routerId}`)
+  }
+
+  async checkAccessPointNow(id: string): Promise<AccessPoint> {
+    return this.request<AccessPoint>(`/network/access-points/${id}/check-now/`, { method: 'POST' })
   }
 
   // ------------------------------------------

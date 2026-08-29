@@ -176,6 +176,7 @@ const navigationSections: NavigationSection[] = [
       { name: "OLT Management", href: "/admin/olt", icon: Server },
       { name: "ONU Devices", href: "/admin/onu", icon: Box },
       { name: "Routers", href: "/admin/routers", icon: Wifi },
+      { name: "AP Map", href: "/admin/access-points", icon: Radio },
       { name: "IPv4 Networks", href: "/admin/networks", icon: Network },
       { name: "RADIUS", href: "/admin/radius", icon: Key },
       { name: "FUP", href: "/admin/fup", icon: Gauge },
