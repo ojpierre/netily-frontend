@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
@@ -257,11 +257,46 @@ function invoiceIsSettled(status: string | undefined, balance: unknown) {
   return String(status || "").toLowerCase() === "paid" && Number(balance || 0) <= 0
 }
 
+const RENEW_NOW_WINDOW_DAYS = 5
+
+function calendarDaysUntil(value?: string | null) {
+  if (!value) return null
+  const target = new Date(value)
+  if (Number.isNaN(target.getTime())) return null
+
+  const today = new Date()
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+  const targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime()
+  return Math.ceil((targetDay - startOfToday) / 86400000)
+}
+
+function getRenewalDueDate(subscription: CompanySubscription | null, usage: UsageStats | null) {
+  return usage?.billing_cycle_end || subscription?.current_period_end || null
+}
+
+function getRenewalEligibility(
+  outstandingCycle: BillingCycleBreakdown | null,
+  subscription: CompanySubscription | null,
+  usage: UsageStats | null,
+) {
+  const outstandingBalance = Number(outstandingCycle?.invoice_balance || 0)
+  if (outstandingBalance > 0) return { eligible: true, daysToDue: 0 }
+
+  const daysToDue = calendarDaysUntil(getRenewalDueDate(subscription, usage))
+  return {
+    eligible: daysToDue !== null && daysToDue >= 0 && daysToDue <= RENEW_NOW_WINDOW_DAYS,
+    daysToDue,
+  }
+}
+
 function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
   const [open, setOpen] = useState(false)
   const [subscription, setSubscription] = useState<CompanySubscription | null>(null)
   const [usage, setUsage] = useState<UsageStats | null>(null)
   const [cycle, setCycle] = useState<BillingCycleBreakdown | null>(null)
+  const [eligible, setEligible] = useState(false)
+  const [summaryLoaded, setSummaryLoaded] = useState(false)
+  const [daysToDue, setDaysToDue] = useState<number | null>(null)
   const [phone, setPhone] = useState("")
   const [loading, setLoading] = useState(false)
   const [loadingData, setLoadingData] = useState(false)
@@ -281,34 +316,43 @@ function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
   const invoiceNumber = cycle?.invoice_number || usage?.invoice_number || ""
   const isPaid = !!cycle && invoiceIsSettled(cycle.invoice_status || "", cycle.invoice_balance)
 
+  const loadBillingSummary = useCallback(async ({ showErrors = false } = {}) => {
+    setLoadingData(true)
+    try {
+      const { adminApi } = await import("@/lib/admin-api")
+      adminApi.invalidateSubscriptionCache()
+      const [subData, usageData, breakdowns] = await Promise.all([
+        adminApi.getCurrentSubscription(),
+        adminApi.getUsageStats(),
+        adminApi.getBillingCycleBreakdowns(6).catch(() => ({ count: 0, results: [] })),
+      ])
+      const cycles = (breakdowns?.results || []) as BillingCycleBreakdown[]
+      const outstanding = cycles.find((item) => Number(item.invoice_balance || 0) > 0) || null
+      const renewal = getRenewalEligibility(outstanding, subData, usageData)
+
+      setSubscription(subData)
+      setUsage(usageData)
+      setCycle(outstanding)
+      setEligible(renewal.eligible)
+      setDaysToDue(renewal.daysToDue)
+      if (!renewal.eligible) setOpen(false)
+    } catch {
+      if (showErrors) toast.error("Could not load subscription billing details.")
+      setEligible(false)
+    } finally {
+      setSummaryLoaded(true)
+      setLoadingData(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadBillingSummary()
+  }, [loadBillingSummary])
+
   useEffect(() => {
     if (!open) return
-    let cancelled = false
-    const load = async () => {
-      setLoadingData(true)
-      try {
-        const { adminApi } = await import("@/lib/admin-api")
-        adminApi.invalidateSubscriptionCache()
-        const [subData, usageData, breakdowns] = await Promise.all([
-          adminApi.getCurrentSubscription(),
-          adminApi.getUsageStats(),
-          adminApi.getBillingCycleBreakdowns(6).catch(() => ({ count: 0, results: [] })),
-        ])
-        if (cancelled) return
-        const cycles = (breakdowns?.results || []) as BillingCycleBreakdown[]
-        const outstanding = cycles.find((item) => Number(item.invoice_balance || 0) > 0)
-        setSubscription(subData)
-        setUsage(usageData)
-        setCycle(outstanding || null)
-      } catch {
-        if (!cancelled) toast.error("Could not load subscription billing details.")
-      } finally {
-        if (!cancelled) setLoadingData(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [open])
+    loadBillingSummary({ showErrors: true })
+  }, [loadBillingSummary, open])
 
   useEffect(() => {
     if (!pendingPaymentId) return
@@ -385,6 +429,8 @@ function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
     }
   }
 
+  if (!summaryLoaded || !eligible) return null
+
   return (
     <>
       <Button
@@ -425,6 +471,14 @@ function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
                     <span className="text-muted-foreground">Status</span>
                     <Badge variant={isPaid ? "default" : "secondary"}>{isPaid ? "Paid" : "Unpaid / upcoming"}</Badge>
                   </div>
+                  {daysToDue !== null && !cycle && (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">Due window</span>
+                      <span className="font-semibold">
+                        {daysToDue === 0 ? "Due today" : `${daysToDue} day${daysToDue === 1 ? "" : "s"} left`}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-muted-foreground">Amount to pay</span>
                     <span className="text-lg font-black text-primary">{kes(payableAmount)}</span>
