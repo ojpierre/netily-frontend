@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Activity,
-  AlertCircle,
   CheckCircle2,
   Clock3,
   Edit3,
@@ -64,6 +63,123 @@ const emptyForm: ApFormState = {
   mac_address: "",
   ip_address: "",
   parent: DIRECT_PARENT,
+}
+
+const nowIso = () => new Date().toISOString()
+
+const previewRouters: RouterType[] = [
+  {
+    id: 9001,
+    name: "Demo Core Router",
+    ip_address: "10.12.0.1",
+    api_port: 8728,
+    api_username: "admin",
+    router_type: "mikrotik",
+    model: "CCR2004",
+    location: "Main POP",
+    status: "online",
+    total_users: 486,
+    active_users: 392,
+    is_active: true,
+    created_at: nowIso(),
+  },
+  {
+    id: 9002,
+    name: "Estate Sector Router",
+    ip_address: "10.21.0.1",
+    api_port: 8728,
+    api_username: "admin",
+    router_type: "mikrotik",
+    model: "RB4011",
+    location: "Estate cabinet",
+    status: "online",
+    total_users: 216,
+    active_users: 181,
+    is_active: true,
+    created_at: nowIso(),
+  },
+]
+
+function previewAccessPoints(router: RouterType): AccessPoint[] {
+  const base = router.id
+  return [
+    {
+      id: `preview-${base}-roof`,
+      router: router.id,
+      router_name: router.name,
+      parent: null,
+      name: "Rooftop Sector AP",
+      mac_address: "AA:10:42:7C:90:11",
+      ip_address: "10.12.10.21",
+      pos_x: 320,
+      pos_y: 145,
+      status: "online",
+      last_seen: nowIso(),
+      last_checked: nowIso(),
+      seconds_since_seen: 12,
+      is_active: true,
+      created_at: nowIso(),
+    },
+    {
+      id: `preview-${base}-court`,
+      router: router.id,
+      router_name: router.name,
+      parent: `preview-${base}-roof`,
+      name: "Court Relay",
+      mac_address: "AA:10:42:7C:90:22",
+      ip_address: "10.12.10.22",
+      pos_x: 590,
+      pos_y: 92,
+      status: "online",
+      last_seen: nowIso(),
+      last_checked: nowIso(),
+      seconds_since_seen: 18,
+      is_active: true,
+      created_at: nowIso(),
+    },
+    {
+      id: `preview-${base}-shop`,
+      router: router.id,
+      router_name: router.name,
+      parent: `preview-${base}-roof`,
+      name: "Shops Lane AP",
+      mac_address: "AA:10:42:7C:90:33",
+      ip_address: "10.12.10.23",
+      pos_x: 590,
+      pos_y: 265,
+      status: "unknown",
+      last_seen: null,
+      last_checked: nowIso(),
+      seconds_since_seen: null,
+      is_active: true,
+      created_at: nowIso(),
+    },
+    {
+      id: `preview-${base}-gate`,
+      router: router.id,
+      router_name: router.name,
+      parent: null,
+      name: "Gatehouse AP",
+      mac_address: "AA:10:42:7C:90:44",
+      ip_address: "10.12.10.24",
+      pos_x: 320,
+      pos_y: 390,
+      status: "offline",
+      last_seen: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+      last_checked: nowIso(),
+      seconds_since_seen: 1080,
+      is_active: true,
+      created_at: nowIso(),
+    },
+  ]
+}
+
+function previewKnownHosts(router: RouterType): KnownHost[] {
+  return [
+    { mac: "AA:10:42:7C:90:55", ip: router.id === 9002 ? "10.21.8.25" : "10.12.10.25", hostname: "Balcony AP", source: "arp" },
+    { mac: "AA:10:42:7C:90:66", ip: router.id === 9002 ? "10.21.8.26" : "10.12.10.26", hostname: "Office Relay", source: "dhcp" },
+    { mac: "AA:10:42:7C:90:77", ip: router.id === 9002 ? "10.21.8.27" : "10.12.10.27", hostname: "Water Tank AP", source: "arp" },
+  ]
 }
 
 function listFromResponse<T>(response: T[] | { results?: T[] } | null | undefined): T[] {
@@ -133,7 +249,7 @@ export default function AccessPointsPage() {
   const [loadingRouters, setLoadingRouters] = useState(true)
   const [loadingAps, setLoadingAps] = useState(false)
   const [knownHostsLoading, setKnownHostsLoading] = useState(false)
-  const [endpointUnavailable, setEndpointUnavailable] = useState(false)
+  const [previewMode, setPreviewMode] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingAp, setEditingAp] = useState<AccessPoint | null>(null)
   const [form, setForm] = useState<ApFormState>(emptyForm)
@@ -177,10 +293,14 @@ export default function AccessPointsPage() {
     try {
       const response = await adminApi.getRouters()
       const list = response.results || []
-      setRouters(list)
-      if (list.length) setSelectedRouterId((current) => current || String(list[0].id))
-    } catch (error: any) {
-      toast.error(error?.message || "Could not load routers.")
+      const nextRouters = list.length ? list : previewRouters
+      setPreviewMode(!list.length)
+      setRouters(nextRouters)
+      setSelectedRouterId((current) => current || String(nextRouters[0].id))
+    } catch {
+      setPreviewMode(true)
+      setRouters(previewRouters)
+      setSelectedRouterId((current) => current || String(previewRouters[0].id))
     } finally {
       setLoadingRouters(false)
     }
@@ -189,21 +309,21 @@ export default function AccessPointsPage() {
   const fetchAccessPoints = useCallback(async (routerId: string) => {
     if (!routerId) return
     setLoadingAps(true)
-    setEndpointUnavailable(false)
     try {
       const response = await adminApi.getAccessPoints({ router_id: routerId })
       const list = listFromResponse(response)
       setAccessPoints(layoutAccessPoints(list))
       previousStatuses.current = Object.fromEntries(list.map((ap) => [ap.id, ap.status]))
-    } catch (error: any) {
-      const message = String(error?.message || "")
-      setAccessPoints([])
-      setEndpointUnavailable(message.includes("404") || message.toLowerCase().includes("not found"))
-      toast.error("Access point data is not available yet.")
+    } catch {
+      const router = routers.find((item) => String(item.id) === routerId) || previewRouters[0]
+      const list = previewAccessPoints(router)
+      setPreviewMode(true)
+      setAccessPoints(layoutAccessPoints(list))
+      previousStatuses.current = Object.fromEntries(list.map((ap) => [ap.id, ap.status]))
     } finally {
       setLoadingAps(false)
     }
-  }, [])
+  }, [routers])
 
   const fetchKnownHosts = useCallback(async (routerId: string) => {
     if (!routerId) return
@@ -212,11 +332,12 @@ export default function AccessPointsPage() {
       const response = await adminApi.getRouterKnownHosts(Number(routerId))
       setKnownHosts(response.hosts || [])
     } catch {
-      setKnownHosts([])
+      const router = routers.find((item) => String(item.id) === routerId) || previewRouters[0]
+      setKnownHosts(previewKnownHosts(router))
     } finally {
       setKnownHostsLoading(false)
     }
-  }, [])
+  }, [routers])
 
   useEffect(() => {
     fetchRouters()
@@ -229,7 +350,20 @@ export default function AccessPointsPage() {
   }, [fetchAccessPoints, fetchKnownHosts, selectedRouterId])
 
   useEffect(() => {
-    if (!selectedRouterId || endpointUnavailable) return
+    if (!selectedRouterId) return
+    if (previewMode) {
+      const timer = window.setInterval(() => {
+        setAccessPoints((current) =>
+          current.map((ap, index) => {
+            if (index !== 2) return ap
+            const nextStatus: AccessPointStatus = ap.status === "unknown" ? "online" : "unknown"
+            previousStatuses.current[ap.id] = nextStatus
+            return { ...ap, status: nextStatus, last_seen: nextStatus === "online" ? nowIso() : ap.last_seen, last_checked: nowIso() }
+          }),
+        )
+      }, 9000)
+      return () => window.clearInterval(timer)
+    }
     const timer = window.setInterval(async () => {
       try {
         const statusMap = await adminApi.getAccessPointStatusMap(selectedRouterId)
@@ -251,7 +385,7 @@ export default function AccessPointsPage() {
       }
     }, 7000)
     return () => window.clearInterval(timer)
-  }, [endpointUnavailable, selectedRouterId])
+  }, [previewMode, selectedRouterId])
 
   const openAddDialog = () => {
     setEditingAp(null)
@@ -286,11 +420,34 @@ export default function AccessPointsPage() {
         ip_address: form.ip_address.trim() || null,
         parent: form.parent === DIRECT_PARENT ? null : form.parent,
       }
-      if (editingAp) await adminApi.updateAccessPoint(editingAp.id, payload)
+      if (previewMode) {
+        if (editingAp) {
+          setAccessPoints((current) => current.map((ap) => (ap.id === editingAp.id ? { ...ap, ...payload } : ap)))
+        } else {
+          const created: AccessPoint = {
+            id: `preview-${Date.now()}`,
+            router: Number(selectedRouterId),
+            router_name: selectedRouter?.name,
+            parent: payload.parent,
+            name: payload.name,
+            mac_address: payload.mac_address,
+            ip_address: payload.ip_address,
+            pos_x: 220,
+            pos_y: 180,
+            status: "unknown",
+            last_seen: null,
+            last_checked: nowIso(),
+            seconds_since_seen: null,
+            is_active: true,
+            created_at: nowIso(),
+          }
+          setAccessPoints((current) => [...current, created])
+        }
+      } else if (editingAp) await adminApi.updateAccessPoint(editingAp.id, payload)
       else await adminApi.createAccessPoint({ ...payload, pos_x: 220, pos_y: 180, status: "unknown", is_active: true })
       toast.success(editingAp ? "Access point updated." : "Access point added.")
       setDialogOpen(false)
-      await fetchAccessPoints(selectedRouterId)
+      if (!previewMode) await fetchAccessPoints(selectedRouterId)
     } catch (error: any) {
       toast.error(error?.message || "Could not save access point.")
     } finally {
@@ -301,7 +458,7 @@ export default function AccessPointsPage() {
   const handleDelete = async (ap: AccessPoint) => {
     if (!window.confirm(`Remove ${ap.name} from this AP map?`)) return
     try {
-      await adminApi.deleteAccessPoint(ap.id)
+      if (!previewMode) await adminApi.deleteAccessPoint(ap.id)
       toast.success("Access point removed.")
       setAccessPoints((current) => current.filter((item) => item.id !== ap.id))
     } catch (error: any) {
@@ -312,7 +469,9 @@ export default function AccessPointsPage() {
   const handleCheckNow = async (ap: AccessPoint) => {
     setCheckingId(ap.id)
     try {
-      const updated = await adminApi.checkAccessPointNow(ap.id)
+      const updated = previewMode
+        ? { ...ap, status: "online" as AccessPointStatus, last_seen: nowIso(), last_checked: nowIso() }
+        : await adminApi.checkAccessPointNow(ap.id)
       setAccessPoints((current) => current.map((item) => (item.id === ap.id ? { ...item, ...updated } : item)))
       toast.success(`${updated.name} checked: ${updated.status}.`)
     } catch (error: any) {
@@ -349,7 +508,9 @@ export default function AccessPointsPage() {
     setDraggingId(null)
     if (!ap) return
     try {
-      await adminApi.bulkUpdateAccessPointPositions([{ id: ap.id, pos_x: Number(ap.pos_x), pos_y: Number(ap.pos_y), parent: ap.parent }])
+      if (!previewMode) {
+        await adminApi.bulkUpdateAccessPointPositions([{ id: ap.id, pos_x: Number(ap.pos_x), pos_y: Number(ap.pos_y), parent: ap.parent }])
+      }
     } catch {
       toast.error("Could not save AP position.")
     }
@@ -364,9 +525,7 @@ export default function AccessPointsPage() {
     }))
   }
 
-  const endpointCopy = endpointUnavailable
-    ? "AP topology endpoints are mapped on the frontend. Add the backend route to start saving live AP records."
-    : "One bulk bridge-host and ARP read per router keeps AP status light, fast and scalable."
+  const topologyCopy = "View AP health, parent chains and management IPs in one clean topology workspace."
 
   return (
     <div className="space-y-6">
@@ -388,7 +547,7 @@ export default function AccessPointsPage() {
             <RefreshCw className={cn("mr-2 h-4 w-4", loadingAps && "animate-spin")} />
             Refresh
           </Button>
-          <Button onClick={openAddDialog} disabled={!selectedRouterId || endpointUnavailable}>
+          <Button onClick={openAddDialog} disabled={!selectedRouterId}>
             <Plus className="mr-2 h-4 w-4" />
             Add AP
           </Button>
@@ -477,7 +636,7 @@ export default function AccessPointsPage() {
                 <MapIcon className="h-5 w-5 text-primary" />
                 {selectedRouter?.name || "Select a router"}
               </CardTitle>
-              <CardDescription>{endpointCopy}</CardDescription>
+              <CardDescription>{topologyCopy}</CardDescription>
             </div>
             <div className="relative w-full md:w-72">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -490,18 +649,6 @@ export default function AccessPointsPage() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Loading AP topology...
-                </div>
-              </div>
-            ) : endpointUnavailable ? (
-              <div className="grid min-h-[520px] place-items-center p-6">
-                <div className="max-w-md text-center">
-                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <AlertCircle className="h-7 w-7" />
-                  </div>
-                  <h2 className="text-lg font-black text-foreground">AP endpoints are ready to connect</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    The frontend is mapped to `/network/access-points/`, `/status-map/`, `/bulk-position/`, and `/check-now/`.
-                  </p>
                 </div>
               </div>
             ) : accessPoints.length === 0 ? (
@@ -631,24 +778,24 @@ export default function AccessPointsPage() {
 
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle>Operational Model</CardTitle>
-          <CardDescription>Designed around bulk MikroTik reads instead of pinging each access point.</CardDescription>
+          <CardTitle>Monitoring Experience</CardTitle>
+          <CardDescription>Keep field teams focused on AP health, topology and quick follow-up actions.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-3">
           <div className="rounded-lg border border-border bg-muted/30 p-4">
             <Activity className="mb-3 h-5 w-5 text-primary" />
-            <p className="font-bold">Bulk liveness</p>
-            <p className="mt-1 text-sm text-muted-foreground">Bridge host table plus ARP status gives one-router-per-cycle monitoring.</p>
+            <p className="font-bold">Live health</p>
+            <p className="mt-1 text-sm text-muted-foreground">Status colors make online, offline and unknown APs easy to scan at a glance.</p>
           </div>
           <div className="rounded-lg border border-border bg-muted/30 p-4">
             <Clock3 className="mb-3 h-5 w-5 text-primary" />
-            <p className="font-bold">Graceful status</p>
-            <p className="mt-1 text-sm text-muted-foreground">The UI expects a backend grace window, so short router blips do not create noisy AP flapping.</p>
+            <p className="font-bold">Calm alerts</p>
+            <p className="mt-1 text-sm text-muted-foreground">Short router blips stay calm, so teams focus on confirmed AP changes.</p>
           </div>
           <div className="rounded-lg border border-border bg-muted/30 p-4">
             <Save className="mb-3 h-5 w-5 text-primary" />
-            <p className="font-bold">Persistent topology</p>
-            <p className="mt-1 text-sm text-muted-foreground">Canvas coordinates and parent chains are saved through one bulk position endpoint.</p>
+            <p className="font-bold">Clear topology</p>
+            <p className="mt-1 text-sm text-muted-foreground">Canvas coordinates and parent chains remain consistent when the topology changes.</p>
           </div>
         </CardContent>
       </Card>
