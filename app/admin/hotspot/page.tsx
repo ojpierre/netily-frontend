@@ -120,7 +120,7 @@ interface HotspotStats {
 }
 
 // ========================================
-// HELPER FUNCTIONS
+// HELPER FUNCTION
 // ========================================
 
 function formatDuration(minutes: number): string {
