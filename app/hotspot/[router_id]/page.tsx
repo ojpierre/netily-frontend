@@ -216,7 +216,9 @@ function isCaptivePortalContext(): boolean {
   return isKnownCaptiveUA || isPlainHttp
 }
 
-// 🔥 FIX 2: Updated fetchCaptivePortal — tighter timeout/retry when in captive context
+// ============================================================
+// FIX 1: Tighten fetchCaptivePortal (worst case ~8.7s, not 17.8s)
+// ============================================================
 async function fetchCaptivePortal(routerId: string): Promise<CaptivePortalResponse> {
   const tenant = getTenant()
   const captive = isCaptivePortalContext()
@@ -294,7 +296,9 @@ async function pollPurchaseStatus(sessionId: string, loginUrl?: string, tenant?:
   return response.json()
 }
 
-// 🔥 Bonus: apply the same tightened timeout to auto-login (it blocks the initial render path too)
+// ============================================================
+// FIX 1: Tighten checkAutoLogin (worst case reduced)
+// ============================================================
 async function checkAutoLogin(routerId: string, macAddress: string): Promise<AutoLoginResponse> {
   const tenant = getTenant()
   const captive = isCaptivePortalContext()
@@ -659,6 +663,20 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
   const [branding, setBranding] = useState<BrandingConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // ============================================================
+  // FIX 2: Progressive reassurance - never let spinner look stuck
+  // ============================================================
+  const [slowNetwork, setSlowNetwork] = useState(false)
+
+  useEffect(() => {
+    if (!loading) {
+      setSlowNetwork(false)
+      return
+    }
+    const t = setTimeout(() => setSlowNetwork(true), 2000)
+    return () => clearTimeout(t)
+  }, [loading])
 
   // Selection & payment
   const [selectedPlan, setSelectedPlan] = useState<HotspotPlan | null>(null)
@@ -1411,6 +1429,12 @@ export default function HotspotPage({ params }: { params: Promise<{ router_id: s
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading hotspot plans...</p>
+          {/* FIX 2: Progressive reassurance - show slow network message after 2s */}
+          {slowNetwork && (
+            <p className="text-gray-400 text-sm mt-2">
+              Your connection looks slow — still trying, hang tight…
+            </p>
+          )}
         </div>
       </div>
     )
