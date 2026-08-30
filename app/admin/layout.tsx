@@ -309,6 +309,7 @@ function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
   const [loadingData, setLoadingData] = useState(false)
   const [pendingPaymentId, setPendingPaymentId] = useState<string | null>(null)
   const [statusText, setStatusText] = useState("")
+  const [paymentState, setPaymentState] = useState<"idle" | "checking" | "success" | "timeout" | "failed">("idle")
 
   const cycleBalance = Number(cycle?.invoice_balance || 0)
   const estimateTotal = Number(
@@ -374,27 +375,33 @@ function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
         const result = await adminApi.checkSubscriptionPaymentStatus(pendingPaymentId)
         if (cancelled) return
         if (result.status === "completed") {
+          adminApi.invalidateSubscriptionCache()
           setPendingPaymentId(null)
-          setStatusText("")
-          setOpen(false)
+          setPaymentState("success")
+          setStatusText("Payment confirmed. Refreshing your billing access...")
           toast.success(result.message || "Payment confirmed. Your subscription billing has been updated.")
+          await loadBillingSummary()
+          window.setTimeout(() => window.location.reload(), 1200)
           return
         }
         if (result.status === "failed" || result.status === "cancelled") {
           setPendingPaymentId(null)
-          setStatusText("")
+          setPaymentState("failed")
+          setStatusText(result.message || "Payment was not completed. Please try again.")
           toast.error(result.message || "Payment was not completed. Please try again.")
           return
         }
-        setStatusText("Still waiting for M-Pesa confirmation...")
+        setPaymentState("checking")
+        setStatusText(attempts <= 1 ? "Waiting for M-Pesa confirmation..." : "Still checking M-Pesa confirmation...")
       } catch {
+        setPaymentState("checking")
         setStatusText("Still checking payment status...")
       }
       if (attempts < maxAttempts) window.setTimeout(poll, 5000)
       else {
-        setPendingPaymentId(null)
-        setStatusText("")
-        toast.info("Payment is still processing. We will update billing once M-Pesa confirms it.")
+        setPaymentState("timeout")
+        setStatusText("We could not confirm this within 30 seconds. If you entered your PIN, tap Check status before sending another STK.")
+        toast.info("Payment is not confirmed yet. Check status in a moment or send a new STK.")
       }
     }
     window.setTimeout(poll, 4000)
@@ -427,6 +434,7 @@ function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
         amount: payableAmount,
       })
       setPendingPaymentId(response.payment_id)
+      setPaymentState("checking")
       setStatusText("STK sent. Enter your M-Pesa PIN to complete renewal.")
       toast.success("STK Push sent. Check your phone.")
     } catch (error: any) {
@@ -434,6 +442,44 @@ function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const checkPendingPayment = async () => {
+    if (!pendingPaymentId) return
+    setPaymentState("checking")
+    setStatusText("Checking M-Pesa confirmation...")
+    try {
+      const { adminApi } = await import("@/lib/admin-api")
+      const result = await adminApi.checkSubscriptionPaymentStatus(pendingPaymentId)
+      if (result.status === "completed") {
+        adminApi.invalidateSubscriptionCache()
+        setPendingPaymentId(null)
+        setPaymentState("success")
+        setStatusText("Payment confirmed. Refreshing your billing access...")
+        toast.success(result.message || "Payment confirmed. Your subscription billing has been updated.")
+        await loadBillingSummary()
+        window.setTimeout(() => window.location.reload(), 1200)
+        return
+      }
+      if (result.status === "failed" || result.status === "cancelled") {
+        setPendingPaymentId(null)
+        setPaymentState("failed")
+        setStatusText(result.message || "Payment was not completed. Please try again.")
+        toast.error(result.message || "Payment was not completed. Please try again.")
+        return
+      }
+      setPaymentState("timeout")
+      setStatusText("M-Pesa has not confirmed this payment yet. If no money left the phone, you can send a new STK.")
+    } catch {
+      setPaymentState("timeout")
+      setStatusText("We could not reach billing status right now. Try Check status again in a moment.")
+    }
+  }
+
+  const resetPendingPayment = () => {
+    setPendingPaymentId(null)
+    setPaymentState("idle")
+    setStatusText("")
   }
 
   if (!summaryLoaded || !eligible) return null
@@ -511,9 +557,29 @@ function SidebarRenewNow({ collapsed }: { collapsed: boolean }) {
             </div>
 
             {statusText && (
-              <div className="rounded-xl border border-primary/20 bg-primary/10 p-3 text-sm font-medium text-primary">
-                {pendingPaymentId && <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />}
-                {statusText}
+              <div className={`space-y-3 rounded-xl border p-3 text-sm font-medium ${
+                  paymentState === "success"
+                    ? "border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-300"
+                    : paymentState === "failed"
+                      ? "border-destructive/20 bg-destructive/10 text-destructive"
+                      : paymentState === "timeout"
+                        ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                        : "border-primary/20 bg-primary/10 text-primary"
+                }`}>
+                <div>
+                  {paymentState === "checking" && <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />}
+                  {statusText}
+                </div>
+                {paymentState === "timeout" && pendingPaymentId && (
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button type="button" size="sm" className="flex-1" onClick={checkPendingPayment}>
+                      Check status
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" className="flex-1" onClick={resetPendingPayment}>
+                      Send new STK
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 

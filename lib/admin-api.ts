@@ -3992,7 +3992,12 @@ async activateService(
     subscription_activated?: boolean
     invoice_balance_remaining?: string | null
   }> {
-    return this.request(`/subscriptions/payments/${paymentId}/status/`)
+    return this.request(`/subscriptions/payments/${paymentId}/status/`, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-store',
+      },
+    })
   }
 
   /** Invalidate cached subscription so the next fetch hits the server */

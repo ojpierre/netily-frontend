@@ -65,6 +65,7 @@ function BillingContent() {
   const [planPayLoading, setPlanPayLoading] = useState(false)
   const [pendingPaymentId, setPendingPaymentId] = useState<string | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<string>("")
+  const [paymentStage, setPaymentStage] = useState<"idle" | "checking" | "success" | "timeout" | "failed">("idle")
   const [enterpriseSupportOpen, setEnterpriseSupportOpen] = useState(false)
 
   // Pay Now dialog state (for expired trial activation)
@@ -157,14 +158,14 @@ function BillingContent() {
     if (!pendingPaymentId) return
     let cancelled = false
     let attempts = 0
-    const maxAttempts = 24 // ~2 minutes at 5s intervals
+    const maxAttempts = 6 // ~30 seconds after the STK prompt is sent
 
     const poll = async () => {
       if (cancelled || attempts >= maxAttempts) {
         if (attempts >= maxAttempts) {
-          setPaymentStatus("")
-          setPendingPaymentId(null)
-          toast.info("Payment is still processing. It will activate automatically once confirmed.")
+          setPaymentStage("timeout")
+          setPaymentStatus("We could not confirm this within 30 seconds. If you entered your PIN, tap Check status before sending another STK.")
+          toast.info("Payment is not confirmed yet. Check status in a moment or send a new STK.")
         }
         return
       }
@@ -174,32 +175,80 @@ function BillingContent() {
         if (cancelled) return
 
         if (res.status === 'completed') {
-          setPaymentStatus("")
+          adminApi.invalidateSubscriptionCache()
           setPendingPaymentId(null)
+          setPaymentStage("success")
+          setPaymentStatus("Payment confirmed. Refreshing your subscription access...")
           if (res.subscription_activated === false) {
             toast.info(res.message || "Payment received. Please settle the remaining invoice balance to reactivate.", { duration: 8000 })
           } else {
             toast.success("Payment confirmed! Your plan is now active.", { duration: 6000 })
           }
-          loadBillingData()
+          await loadBillingData()
+          window.setTimeout(() => window.location.reload(), 1200)
           return
         }
         if (res.status === 'failed' || res.status === 'cancelled') {
-          setPaymentStatus("")
           setPendingPaymentId(null)
+          setPaymentStage("failed")
+          setPaymentStatus(res.message || "Payment failed. Please try again.")
           toast.error(res.message || "Payment failed. Please try again.")
           return
         }
         // Still pending - poll again
+        setPaymentStage("checking")
+        setPaymentStatus(attempts <= 1 ? "Waiting for M-Pesa confirmation..." : "Still checking M-Pesa confirmation...")
         setTimeout(poll, 5000)
       } catch {
-        if (!cancelled) setTimeout(poll, 5000)
+        if (!cancelled) {
+          setPaymentStage("checking")
+          setPaymentStatus("Still checking payment status...")
+          setTimeout(poll, 5000)
+        }
       }
     }
 
+    setPaymentStage("checking")
     setTimeout(poll, 4000) // first poll after 4s (give user time to enter PIN)
     return () => { cancelled = true }
   }, [pendingPaymentId])
+
+  const checkPendingPaymentNow = async () => {
+    if (!pendingPaymentId) return
+    setPaymentStage("checking")
+    setPaymentStatus("Checking M-Pesa confirmation...")
+    try {
+      const res = await adminApi.checkSubscriptionPaymentStatus(pendingPaymentId)
+      if (res.status === "completed") {
+        adminApi.invalidateSubscriptionCache()
+        setPendingPaymentId(null)
+        setPaymentStage("success")
+        setPaymentStatus("Payment confirmed. Refreshing your subscription access...")
+        toast.success(res.message || "Payment confirmed. Your subscription is active.")
+        await loadBillingData()
+        window.setTimeout(() => window.location.reload(), 1200)
+        return
+      }
+      if (res.status === "failed" || res.status === "cancelled") {
+        setPendingPaymentId(null)
+        setPaymentStage("failed")
+        setPaymentStatus(res.message || "Payment was not completed. Please try again.")
+        toast.error(res.message || "Payment was not completed. Please try again.")
+        return
+      }
+      setPaymentStage("timeout")
+      setPaymentStatus("M-Pesa has not confirmed this payment yet. If no money left the phone, you can send a new STK.")
+    } catch {
+      setPaymentStage("timeout")
+      setPaymentStatus("We could not reach billing status right now. Try Check status again in a moment.")
+    }
+  }
+
+  const resetPendingPayment = () => {
+    setPendingPaymentId(null)
+    setPaymentStage("idle")
+    setPaymentStatus("")
+  }
 
   if (!hasMounted || isLoading) {
     return (
@@ -296,9 +345,11 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
       setPayPhone("")
       if (res.payment_id) {
         setPendingPaymentId(res.payment_id)
+        setPaymentStage("checking")
         setPaymentStatus("Waiting for M-Pesa confirmation...")
       }
     } catch (error: any) {
+      setPaymentStage("failed")
       toast.error(error?.message || "Payment initiation failed")
     } finally {
       setPayLoading(false)
@@ -334,9 +385,11 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
       // Start polling for payment confirmation
       if (res.payment_id) {
         setPendingPaymentId(res.payment_id)
+        setPaymentStage("checking")
         setPaymentStatus("Waiting for M-Pesa confirmation...")
       }
     } catch (error: any) {
+      setPaymentStage("failed")
       toast.error(error?.message || "Payment initiation failed")
     } finally {
       setPlanPayLoading(false)
@@ -365,9 +418,11 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
       setPayNowPhone("")
       if (res.payment_id) {
         setPendingPaymentId(res.payment_id)
+        setPaymentStage("checking")
         setPaymentStatus("Waiting for M-Pesa confirmation...")
       }
     } catch (error: any) {
+      setPaymentStage("failed")
       toast.error(error?.message || "Payment initiation failed")
     } finally {
       setPayNowLoading(false)
@@ -395,11 +450,29 @@ ${inv.items?.length ? inv.items.map((item: any) => `<tr><td>${item.description}<
       )}
 
       {pendingPaymentId && (
-        <Alert className="border-primary/20 bg-primary/10">
-          <Loader2 className="w-4 h-4 animate-spin text-primary" />
-          <AlertTitle className="text-primary">Processing Payment</AlertTitle>
-          <AlertDescription className="text-primary">
-            {paymentStatus || "Waiting for M-Pesa confirmation..."} This page will update automatically once your payment is confirmed.
+        <Alert className={
+          paymentStage === "timeout"
+            ? "border-amber-500/30 bg-amber-500/10"
+            : "border-primary/20 bg-primary/10"
+        }>
+          <Loader2 className={`w-4 h-4 text-primary ${paymentStage === "checking" ? "animate-spin" : "hidden"}`} />
+          <AlertTitle className={paymentStage === "timeout" ? "text-amber-700 dark:text-amber-300" : "text-primary"}>
+            {paymentStage === "timeout" ? "Confirmation delayed" : "Processing payment"}
+          </AlertTitle>
+          <AlertDescription className={paymentStage === "timeout" ? "text-amber-700 dark:text-amber-300" : "text-primary"}>
+            <div className="space-y-3">
+              <p>{paymentStatus || "Waiting for M-Pesa confirmation..."}</p>
+              {paymentStage === "timeout" && (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button type="button" size="sm" onClick={checkPendingPaymentNow}>
+                    Check status
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={resetPendingPayment}>
+                    Send new STK
+                  </Button>
+                </div>
+              )}
+            </div>
           </AlertDescription>
         </Alert>
       )}
