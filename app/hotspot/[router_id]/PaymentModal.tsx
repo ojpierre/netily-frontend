@@ -1,7 +1,7 @@
 "use client"
 
 import { AlertCircle, Clock, Database, Phone, Zap } from "lucide-react"
-import type { HotspotPlan, PortalConfig } from "./page"
+import type { HotspotPlan, PortalConfig } from "./HotspotClientView"
 
 // Local PhoneInput (original)
 function PhoneInputLocal({
