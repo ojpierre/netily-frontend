@@ -8,7 +8,6 @@ import {
   Plus,
   ReceiptText,
   RefreshCw,
-  Trash2,
   TrendingUp,
   WalletCards,
 } from "lucide-react"
@@ -116,7 +115,6 @@ export default function SuperadminExpenditurePage() {
   const [summary, setSummary] = useState<PlatformExpenditureSummary>(emptySummary)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [filters, setFilters] = useState({ start: "", end: "" })
@@ -187,20 +185,6 @@ export default function SuperadminExpenditurePage() {
       toast.error(err?.message || "Failed to save expenditure")
     } finally {
       setSaving(false)
-    }
-  }
-
-  const remove = async (entry: PlatformExpenditure) => {
-    if (!window.confirm(`Delete "${entry.title}" from expenditure?`)) return
-    setDeletingId(entry.id)
-    try {
-      await superadminApi.deleteExpenditure(entry.id)
-      toast.success("Expenditure deleted")
-      await fetchData()
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to delete expenditure")
-    } finally {
-      setDeletingId(null)
     }
   }
 
@@ -355,7 +339,6 @@ export default function SuperadminExpenditurePage() {
                       <th className="px-4 py-3 text-right">Amount</th>
                       <th className="px-4 py-3">Date</th>
                       <th className="px-4 py-3">Recorded by</th>
-                      <th className="px-4 py-3 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
@@ -373,17 +356,6 @@ export default function SuperadminExpenditurePage() {
                         <td className="px-4 py-3 text-right font-mono text-white">{kes(entry.amount)}</td>
                         <td className="px-4 py-3 text-slate-300">{dateLabel(entry.incurred_on)}</td>
                         <td className="px-4 py-3 text-slate-400">{entry.created_by_email || "Superadmin"}</td>
-                        <td className="px-4 py-3 text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => remove(entry)}
-                            disabled={deletingId === entry.id}
-                            className="text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
-                          >
-                            {deletingId === entry.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                          </Button>
-                        </td>
                       </tr>
                     ))}
                   </tbody>

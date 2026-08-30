@@ -21,6 +21,7 @@ import {
   LogOut,
   User,
   ChevronDown,
+  ChevronRight,
   MessageSquare,
   Image,
   Gift,
@@ -80,6 +81,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { TrialCountdown, TrialCountdownCompact } from "@/components/trial-countdown"
 import { TrialGuard } from "@/components/trial-guard"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -127,6 +129,7 @@ type AdminSearchResult = {
 
 const SEARCH_MIN_CHARS = 2
 const SEARCH_RESULT_LIMIT = 5
+const SIDEBAR_BREADCRUMB_MIN_ITEMS = 5
 
 const searchText = (value: unknown) => String(value || "").toLowerCase()
 
@@ -156,6 +159,9 @@ const detailSearchUrl = (href: string, query: string) => {
   if (!trimmed) return href
   return `${href}?search=${encodeURIComponent(trimmed)}`
 }
+
+const sidebarSectionId = (title: string) =>
+  `admin-sidebar-section-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
 
 // Navigation organized by sections
 const navigationSections: NavigationSection[] = [
@@ -535,6 +541,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [searchQuery, setSearchQuery] = useState("")
   const [recordResults, setRecordResults] = useState<AdminSearchResult[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
+  const [openSidebarSections, setOpenSidebarSections] = useState<Record<string, boolean>>({})
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout, loading } = useAdminAuth()
@@ -895,6 +902,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       return { ...section, items }
     })
     .filter((section) => section.items.length > 0)
+  const isNavItemActive = (href: string) => pathname === href || (href !== "/admin" && pathname.startsWith(href))
+  const activeSection = filteredSections.find((section) => section.items.some((item) => isNavItemActive(item.href))) || filteredSections[0]
+  const activeNavItem = activeSection?.items.find((item) => isNavItemActive(item.href))
+  const breadcrumbSections = filteredSections.filter((section) => section.items.length >= SIDEBAR_BREADCRUMB_MIN_ITEMS)
   const routeAccessRule = getAccessRuleForPath(pathname)
   const trimmedSearchQuery = searchQuery.trim()
   const allPageResults: AdminSearchResult[] = [
@@ -936,6 +947,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     setSearchQuery("")
     setRecordResults([])
     router.push(href)
+  }
+
+  const handleSidebarSectionJump = (sectionTitle: string) => {
+    setOpenSidebarSections((current) => ({ ...current, [sectionTitle]: true }))
+    const target = document.getElementById(sidebarSectionId(sectionTitle))
+    window.setTimeout(() => target?.scrollIntoView({ behavior: "smooth", block: "start" }), 40)
   }
 
   // ── Install App handler ──
@@ -990,19 +1007,87 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Navigation */}
         <nav className="sidebar-nav flex-1 overflow-y-auto py-4 px-2">
+          {!sidebarCollapsed && breadcrumbSections.length > 0 && (
+            <div className="sticky top-0 z-20 mb-4 rounded-xl border border-border bg-card/95 p-2 shadow-sm backdrop-blur">
+              <div role="navigation" aria-label="Sidebar section breadcrumb" className="mb-2">
+                <ol className="flex min-w-0 items-center gap-1 text-[11px] font-semibold text-muted-foreground">
+                  <li className="shrink-0">Admin</li>
+                  <li className="shrink-0 text-muted-foreground/60">
+                    <ChevronRight className="h-3 w-3" />
+                  </li>
+                  <li className="truncate text-foreground">{activeSection?.title || "Dashboard"}</li>
+                  {activeNavItem && (
+                    <>
+                      <li className="shrink-0 text-muted-foreground/60">
+                        <ChevronRight className="h-3 w-3" />
+                      </li>
+                      <li className="truncate text-primary">{activeNavItem.name}</li>
+                    </>
+                  )}
+                </ol>
+              </div>
+              <div className="flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {breadcrumbSections.map((section) => {
+                  const isSectionActive = section.title === activeSection?.title
+                  return (
+                    <button
+                      key={section.title}
+                      type="button"
+                      onClick={() => handleSidebarSectionJump(section.title)}
+                      className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold transition ${
+                        isSectionActive
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                      }`}
+                    >
+                      {section.title}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           {filteredSections.map((section, sectionIndex) => (
-            <div key={section.title} className={sectionIndex > 0 ? "mt-5" : ""}>
-              {!sidebarCollapsed && (
+            <Collapsible
+              key={section.title}
+              open={
+                sidebarCollapsed ||
+                section.items.length < SIDEBAR_BREADCRUMB_MIN_ITEMS ||
+                section.title === activeSection?.title ||
+                openSidebarSections[section.title] === true
+              }
+              onOpenChange={(open) => {
+                if (section.items.length < SIDEBAR_BREADCRUMB_MIN_ITEMS || section.title === activeSection?.title) return
+                setOpenSidebarSections((current) => ({ ...current, [section.title]: open }))
+              }}
+              id={sidebarSectionId(section.title)}
+              className={sectionIndex > 0 ? "scroll-mt-24 mt-5" : "scroll-mt-24"}
+            >
+              {!sidebarCollapsed && section.items.length >= SIDEBAR_BREADCRUMB_MIN_ITEMS && (
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground transition hover:bg-primary/10 hover:text-primary"
+                  >
+                    <span>{section.title}</span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform ${
+                        section.title === activeSection?.title || openSidebarSections[section.title] === true ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                </CollapsibleTrigger>
+              )}
+              {!sidebarCollapsed && section.items.length < SIDEBAR_BREADCRUMB_MIN_ITEMS && (
                 <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   {section.title}
                 </p>
               )}
-              {sidebarCollapsed && sectionIndex > 0 && (
-                <Separator className="my-2 bg-border" />
-              )}
+              {sidebarCollapsed && sectionIndex > 0 && <Separator className="my-2 bg-border" />}
+              <CollapsibleContent>
                 <ul className="space-y-0.5">
                   {section.items.map((item) => {
-                    const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href))
+                    const isActive = isNavItemActive(item.href)
                     return (
                       <AnimatedNavItem key={item.name} isActive={isActive}>
                         <Link
@@ -1030,7 +1115,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                     )
                   })}
                 </ul>
-            </div>
+              </CollapsibleContent>
+            </Collapsible>
           ))}
 
           {/* Bottom navigation items (Community features) - always at the bottom */}
