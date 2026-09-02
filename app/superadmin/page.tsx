@@ -46,30 +46,45 @@ export default function SuperAdminDashboardPage() {
   const [leadStats, setLeadStats] = useState<LeadStats | null>(null)
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("all")
   const [loading, setLoading] = useState(true)
+  const [dashboardError, setDashboardError] = useState("")
 
   const fetchData = useCallback(async () => {
     setLoading(true)
+    setDashboardError("")
     try {
-      const [dashData, actData, tenantData, paySummary, payData, trendData, leadsData, leadStatsData] = await Promise.all([
+      const [dashData, actData, tenantData, paySummary, payData, trendData, leadsData, leadStatsData] = await Promise.allSettled([
         superadminApi.getDashboard(),
         superadminApi.getActivity(10),
         superadminApi.getTenants({ ordering: "-created_at" }),
-        superadminApi.getPaymentSummary().catch(() => null),
-        superadminApi.getPayments({ page_size: "5", ordering: "-created_at" }).catch(() => ({ results: [] })),
-        superadminApi.getRevenueTrend(6).catch(() => []),
-        superadminApi.getLeads({ page_size: "5" }).catch(() => ({ results: [] })),
-        superadminApi.getLeadStats().catch(() => null),
+        superadminApi.getPaymentSummary(),
+        superadminApi.getPayments({ page_size: "5", ordering: "-created_at" }),
+        superadminApi.getRevenueTrend(6),
+        superadminApi.getLeads({ page_size: "5" }),
+        superadminApi.getLeadStats(),
       ])
-      setKpi(dashData)
-      setActivity(actData)
-      setTenants(tenantData.slice(0, 5))
-      setPaymentSummary(paySummary)
-      setRecentPayments((payData as any).results || [])
-      setRevenueTrend(trendData as RevenueTrendItem[])
-      setLeads((leadsData as any).results || [])
-      setLeadStats(leadStatsData as LeadStats | null)
+
+      if (dashData.status === "fulfilled") {
+        setKpi(dashData.value)
+      } else {
+        console.error("Dashboard KPI fetch error:", dashData.reason)
+        setKpi(null)
+        setDashboardError("Platform KPI totals could not be loaded. Other dashboard sections are still available.")
+      }
+
+      if (actData.status === "fulfilled") setActivity(actData.value)
+      else setActivity([])
+
+      if (tenantData.status === "fulfilled") setTenants(tenantData.value.slice(0, 5))
+      else setTenants([])
+
+      setPaymentSummary(paySummary.status === "fulfilled" ? paySummary.value : null)
+      setRecentPayments(payData.status === "fulfilled" ? ((payData.value as any).results || []) : [])
+      setRevenueTrend(trendData.status === "fulfilled" ? trendData.value as RevenueTrendItem[] : [])
+      setLeads(leadsData.status === "fulfilled" ? ((leadsData.value as any).results || []) : [])
+      setLeadStats(leadStatsData.status === "fulfilled" ? leadStatsData.value as LeadStats : null)
     } catch (err) {
       console.error("Dashboard fetch error:", err)
+      setDashboardError("Dashboard data could not be loaded. Please refresh or check the API logs.")
     } finally {
       setLoading(false)
     }
@@ -188,6 +203,12 @@ export default function SuperAdminDashboardPage() {
         <h1 className="text-2xl font-bold text-white">Platform Overview</h1>
         <p className="text-slate-400 text-sm mt-1">Real-time metrics across all Netily tenants</p>
       </div>
+
+      {dashboardError && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          {dashboardError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard

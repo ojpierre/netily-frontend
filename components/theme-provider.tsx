@@ -101,7 +101,7 @@ function ColorThemeProvider({ children }: { children: React.ReactNode }) {
       localStorage.getItem('adminToken') ||
       sessionStorage.getItem('adminToken')
 
-    if (token) {
+    if (token && window.location.pathname.startsWith('/admin')) {
       const knownDomains = ['netily.co.ke']
       const isTenantSubdomain = knownDomains.some(
         (domain) =>
