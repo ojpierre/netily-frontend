@@ -543,9 +543,16 @@ async function redeemHotspotLoyaltyPoints(data: {
  * page does — GET query-string redirects to link-login-only are
  * unreliable and can silently fail to authenticate (frontend shows
  * "connected" while the router never actually logs the user in).
+ * 
+ * 🔥 FIX: Provide a real dst URL (window.location.origin + pathname)
+ * so MikroTik can process the login POST correctly. Also log if loginUrl
+ * is missing to aid debugging.
  */
 function submitRouterLogin(loginUrl: string, username: string, password: string) {
-  if (!loginUrl) return false
+  if (!loginUrl) {
+    console.error("[hotspot] Missing login_url — cannot authenticate with MikroTik")
+    return false
+  }
   const form = document.createElement("form")
   form.method = "POST"
   form.action = loginUrl
@@ -559,7 +566,9 @@ function submitRouterLogin(loginUrl: string, username: string, password: string)
   }
   addField("username", username)
   addField("password", password)
-  addField("dst", "")
+  // 🔥 FIX: Provide a real destination URL (the current page) so the router
+  // can redirect properly and process the login.
+  addField("dst", window.location.origin + window.location.pathname)
   addField("popup", "true")
   document.body.appendChild(form)
   form.submit()
