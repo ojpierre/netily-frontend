@@ -37,6 +37,16 @@ export default async function HotspotPage({
   // client fetch, no window for an Android watchdog relaunch to strand it in.
   const initialData = tenant ? await fetchCaptivePortalServerSide(routerId, tenant) : null
 
+  // ── Claude's SSR safety net ──────────────────────────────────────────────
+  // Compute initialLoginUrl:
+  // - Prefer sp.login_url if present (MikroTik supplied it)
+  // - Otherwise, reconstruct from gateway_ip (since rlogin.html fast version omits it)
+  const initialLoginUrl =
+    sp.login_url ||
+    (initialData?.portal_config?.gateway_ip
+      ? `http://${initialData.portal_config.gateway_ip.trim()}/login`
+      : "")
+
   return (
     <HotspotClientView
       routerId={routerId}
@@ -45,7 +55,7 @@ export default async function HotspotPage({
       initialPortalConfig={initialData?.portal_config ?? null}
       initialBranding={initialData?.branding ?? null}
       initialRouterError={sp.error || null}
-      initialLoginUrl={sp.login_url || ""}
+      initialLoginUrl={initialLoginUrl}
     />
   )
 }
