@@ -76,7 +76,7 @@ import {
   APPEARANCE_FONTS,
   DEFAULT_APPEARANCE_FONT,
   applyAppearanceFont,
-  isAppearanceFont,
+  normalizeAppearanceFont,
   type AppearanceFont,
 } from "@/lib/appearance-fonts"
 
@@ -218,8 +218,9 @@ function AppearanceTab() {
         if (!res.ok) return
 
         const settings = await res.json()
-        if (isMounted && isAppearanceFont(settings.appearance_font)) {
-          setAppearanceFont(settings.appearance_font)
+        const font = normalizeAppearanceFont(settings.appearance_font)
+        if (isMounted && font) {
+          setAppearanceFont(font)
         }
       } catch {
         // Theme controls should remain usable even when settings sync is temporarily unavailable.
@@ -494,6 +495,36 @@ function AppearanceTab() {
       dark: "dark:bg-green-950",
       swatch: "bg-linear-to-br from-lime-300 via-emerald-700 to-green-950",
       activeText: "text-lime-700 dark:text-lime-300",
+    },
+    {
+      value: "brutalist-lime",
+      label: "Brutalist Lime",
+      accent: "text-lime-700 dark:text-lime-300",
+      ring: "ring-lime-500",
+      bg: "bg-lime-50",
+      dark: "dark:bg-neutral-950",
+      swatch: "bg-linear-to-br from-lime-300 via-neutral-950 to-rose-400",
+      activeText: "text-lime-700 dark:text-lime-300",
+    },
+    {
+      value: "aurora-noir",
+      label: "Aurora Noir",
+      accent: "text-teal-700 dark:text-teal-300",
+      ring: "ring-teal-500",
+      bg: "bg-teal-50",
+      dark: "dark:bg-slate-950",
+      swatch: "bg-linear-to-br from-slate-950 via-teal-400 to-violet-400",
+      activeText: "text-teal-700 dark:text-teal-300",
+    },
+    {
+      value: "coral-graphite",
+      label: "Coral Graphite",
+      accent: "text-rose-700 dark:text-rose-300",
+      ring: "ring-rose-500",
+      bg: "bg-rose-50",
+      dark: "dark:bg-slate-950",
+      swatch: "bg-linear-to-br from-rose-400 via-slate-700 to-amber-100",
+      activeText: "text-rose-700 dark:text-rose-300",
     },
   ]
 

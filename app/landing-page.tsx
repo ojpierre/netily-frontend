@@ -580,7 +580,18 @@ export function LandingPage() {
   }, [])
 
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase() || ""
+    const params = new URLSearchParams(window.location.search)
+    const source = params.get("lead_source")?.trim()
+    const message = params.get("message")?.trim()
+    if (source || message) {
+      setLeadForm((current) => ({
+        ...current,
+        lead_source: source && LEAD_SOURCE_OPTIONS.includes(source) ? source : current.lead_source || "Google Search",
+        message: message || current.message,
+      }))
+    }
+
+    const code = params.get("ref")?.trim().toUpperCase() || ""
     if (!/^[A-Z0-9_-]{4,64}$/.test(code)) return
     setAffiliateReferralCode(code)
     setLeadForm((current) => ({ ...current, lead_source: "Affiliate referral" }))
@@ -1466,7 +1477,7 @@ export function LandingPage() {
                       onChange={(event) => setLeadForm({ ...leadForm, message: event.target.value })}
                       rows={5}
                       className="w-full resize-none border border-zinc-700 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:border-amber-500"
-                      placeholder="Tell us about your ISP, subscriber size, router setup, or what you want to automate..."
+                      placeholder="Tell us your county, estates or towns served, subscriber size, router setup, payment workflow, and what you want to automate..."
                     />
                   </div>
                   <button

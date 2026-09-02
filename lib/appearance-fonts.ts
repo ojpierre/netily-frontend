@@ -43,12 +43,38 @@ export const APPEARANCE_FONTS: Array<{
   { value: "archivo", label: "Archivo", description: "Strong headings with technical confidence", sample: "Aa 123" },
 ]
 
+const APPEARANCE_FONT_ALIASES: Record<string, AppearanceFont> = {
+  "space grotesk": "space-grotesk",
+  "open sans": "open-sans",
+  "source sans": "source-sans-3",
+  "source sans 3": "source-sans-3",
+  "source-sans": "source-sans-3",
+  "source_sans_3": "source-sans-3",
+  "ibm plex sans": "ibm-plex-sans",
+  "ibm_plex_sans": "ibm-plex-sans",
+  "dm sans": "dm-sans",
+  "dm_sans": "dm-sans",
+  "plus jakarta sans": "plus-jakarta-sans",
+  "plus_jakarta_sans": "plus-jakarta-sans",
+  "work sans": "work-sans",
+  "work_sans": "work-sans",
+}
+
+export function normalizeAppearanceFont(value: unknown): AppearanceFont | null {
+  if (typeof value !== "string") {
+    return null
+  }
+  const normalized = value.trim().toLowerCase()
+  const canonical = APPEARANCE_FONT_ALIASES[normalized] || normalized.replace(/_/g, "-")
+  return APPEARANCE_FONTS.find((font) => font.value === canonical)?.value || null
+}
+
 export function isAppearanceFont(value: unknown): value is AppearanceFont {
   return typeof value === "string" && APPEARANCE_FONTS.some((font) => font.value === value)
 }
 
 export function applyAppearanceFont(value: unknown) {
-  const font = isAppearanceFont(value) ? value : DEFAULT_APPEARANCE_FONT
+  const font = normalizeAppearanceFont(value) || DEFAULT_APPEARANCE_FONT
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("data-font", font)
   }

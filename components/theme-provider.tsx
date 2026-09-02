@@ -9,7 +9,7 @@ import {
   APPEARANCE_FONT_STORAGE_KEY,
   DEFAULT_APPEARANCE_FONT,
   applyAppearanceFont,
-  isAppearanceFont,
+  normalizeAppearanceFont,
   type AppearanceFont,
 } from '@/lib/appearance-fonts'
 
@@ -30,6 +30,9 @@ export type ColorTheme =
   | 'brutalist-ink'
   | 'cyber-orchid'
   | 'retro-terminal'
+  | 'brutalist-lime'
+  | 'aurora-noir'
+  | 'coral-graphite'
 
 interface NetilyThemeContextValue {
   colorTheme: ColorTheme
@@ -66,6 +69,9 @@ export const COLOR_THEMES: { value: ColorTheme; label: string; preview: string }
   { value: 'brutalist-ink', label: 'Brutalist Ink', preview: 'linear-gradient(135deg,#ffffff,#111111)' },
   { value: 'cyber-orchid', label: 'Cyber Orchid', preview: 'linear-gradient(135deg,#22d3ee,#d946ef)' },
   { value: 'retro-terminal', label: 'Retro Terminal', preview: 'linear-gradient(135deg,#052e16,#84cc16)' },
+  { value: 'brutalist-lime', label: 'Brutalist Lime', preview: 'linear-gradient(135deg,#d9f99d,#111111 55%,#fb7185)' },
+  { value: 'aurora-noir', label: 'Aurora Noir', preview: 'linear-gradient(135deg,#0f172a,#14b8a6,#a78bfa)' },
+  { value: 'coral-graphite', label: 'Coral Graphite', preview: 'linear-gradient(135deg,#fb7185,#334155,#fef3c7)' },
 ]
 
 const COLOR_THEME_VALUES = COLOR_THEMES.map((theme) => theme.value)
@@ -114,8 +120,9 @@ function ColorThemeProvider({ children }: { children: React.ReactNode }) {
       })
         .then((res) => (res.ok ? res.json() : null))
         .then((settings) => {
-          if (settings && isAppearanceFont(settings.appearance_font)) {
-            setAppearanceFontState(applyAppearanceFont(settings.appearance_font))
+          const font = normalizeAppearanceFont(settings?.appearance_font)
+          if (font) {
+            setAppearanceFontState(applyAppearanceFont(font))
           }
         })
         .catch(() => {})
