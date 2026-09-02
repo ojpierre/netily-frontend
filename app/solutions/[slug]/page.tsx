@@ -37,6 +37,7 @@ type SolutionConfig = {
     intent: string
   }>
   keywordThemes?: string[]
+  demandSignals?: string[]
   leadGenerationAngles?: string[]
   buyerQuestions?: Array<{
     question: string
@@ -196,6 +197,15 @@ const KENYA_COUNTY_SEARCH_INTENTS = [
   "school WiFi billing software Kenya",
   "campus hotspot billing Kenya",
   "managed WiFi billing software Kenya",
+]
+
+const KENYA_COUNTY_DEMAND_SIGNALS = [
+  "County ISPs managing PPPoE renewals, hotspot access, and customer support from one dashboard.",
+  "Estate WiFi teams serving Nairobi, Kiambu, Kajiado, Machakos, Nakuru, Mombasa, Kisumu, and Eldoret corridors.",
+  "Apartment and hostel internet providers that need faster M-Pesa confirmation and cleaner reconnection.",
+  "Hotel, campus, school, mall, and public WiFi operators selling short sessions, vouchers, or recurring plans.",
+  "Rural WISPs and community networks coordinating customers, towers, routers, billing cycles, and field follow-up.",
+  "Growing fiber and fixed wireless teams moving away from spreadsheets, screenshots, and manual payment checks.",
 ]
 
 const SOLUTIONS: Record<string, SolutionConfig> = {
@@ -567,7 +577,7 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
     ],
     proofStats: [
       "Covers all 47 Kenya counties without creating thin duplicate pages",
-      "Targets county, estate, apartment, hotspot, PPPoE, WISP, and MikroTik search intent",
+      "Speaks to county, estate, apartment, hotspot, PPPoE, WISP, and MikroTik operators",
       "Connects public lead capture to the same ISP workflow used for billing and support",
     ],
     pricingNotes: [
@@ -584,6 +594,7 @@ const SOLUTIONS: Record<string, SolutionConfig> = {
     countyClusters: KENYA_COUNTY_CLUSTERS,
     estateClusters: KENYA_ESTATE_CLUSTERS,
     keywordThemes: KENYA_COUNTY_SEARCH_INTENTS,
+    demandSignals: KENYA_COUNTY_DEMAND_SIGNALS,
     leadGenerationAngles: KENYA_COUNTY_LEAD_ANGLES,
     buyerQuestions: KENYA_COUNTY_FAQS,
     seoTitle: "ISP Billing Software for All Kenya Counties, Towns & Estates | Internetily",
@@ -670,7 +681,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
   const pricingNotes = solution.pricingNotes || DEFAULT_PRICING_NOTES
   const onboardingSteps = solution.onboardingSteps || DEFAULT_ONBOARDING_STEPS
   const closingUseCases = solution.closingUseCases || solution.localUseCases || ["PPPoE billing", "Hotspot access", "Subscriber renewals"]
-  const keywordThemes = solution.keywordThemes || []
+  const demandSignals = solution.demandSignals || []
   const areaName = solution.regionLabel || solution.title.replace("ISP Billing Software ", "") || "your market"
   const leadMessage = `Hi Internetily, I want a demo for ${areaName}. We serve ISPs, WISPs, estates, apartments, hotspots, or managed WiFi customers and want help with billing, payments, MikroTik workflows, support, and lead follow-up.`
   const contactHref = `/?lead_source=${encodeURIComponent("Google Search")}&message=${encodeURIComponent(leadMessage)}#contact`
@@ -819,12 +830,69 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
         </div>
       </section>
 
+      <section className="border-b border-zinc-800 px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-200">Connected ISP workflow</p>
+            <h2 className="mt-4 text-3xl font-normal tracking-tight text-white md:text-5xl">
+              From payment to access, every team sees the same picture.
+            </h2>
+            <p className="mt-4 text-base leading-7 text-zinc-400">
+              Internetily brings billing, customer records, router work, support follow-up, and local enquiries into one operating view, so owners and staff can understand what changed and what needs attention.
+            </p>
+          </div>
+          <div className="relative overflow-hidden border border-zinc-800 bg-zinc-950 p-4 shadow-2xl">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(251,191,36,0.14),transparent_28rem),radial-gradient(circle_at_85%_75%,rgba(34,211,238,0.10),transparent_24rem)]" />
+            <div className="relative grid gap-3 sm:grid-cols-3">
+              {[
+                { title: "Payment lands", copy: solution.paymentGateways?.[0] || "Payment reference", icon: CreditCard },
+                { title: "Router updates", copy: "PPPoE, hotspot, or voucher state", icon: Router },
+                { title: "Team follows up", copy: "Support, leads, and renewals stay visible", icon: MessageSquare },
+              ].map((item, index) => {
+                const Icon = item.icon
+                return (
+                  <div key={item.title} className="min-h-44 border border-zinc-800 bg-zinc-900/90 p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center border border-amber-500/30 bg-amber-500/10 text-amber-200">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <span className="text-xs font-semibold text-zinc-500">0{index + 1}</span>
+                    </div>
+                    <h3 className="mt-6 text-lg font-semibold text-white">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-zinc-400">{item.copy}</p>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="relative mt-3 grid gap-3 sm:grid-cols-[1.2fr_0.8fr]">
+              <div className="border border-zinc-800 bg-zinc-900/80 p-4">
+                <div className="flex items-center justify-between text-xs text-zinc-500">
+                  <span>{areaName} operating view</span>
+                  <span className="text-emerald-300">Live context</span>
+                </div>
+                <div className="mt-4 h-2 overflow-hidden bg-zinc-800">
+                  <div className="h-full w-[78%] bg-amber-300" />
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-zinc-400">
+                  <span className="border border-zinc-800 bg-zinc-950 py-2">Leads</span>
+                  <span className="border border-zinc-800 bg-zinc-950 py-2">Invoices</span>
+                  <span className="border border-zinc-800 bg-zinc-950 py-2">Access</span>
+                </div>
+              </div>
+              <div className="border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm leading-6 text-emerald-100">
+                Faster confirmation, cleaner handover, and fewer manual checks after customers pay.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {solution.countyClusters?.length ? (
         <section className="border-b border-zinc-800 px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-200">County-to-county SEO coverage</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-200">County-to-county coverage</p>
                 <h2 className="mt-4 text-3xl font-normal tracking-tight text-white md:text-5xl">
                   Built for Kenyan ISP demand beyond one city.
                 </h2>
@@ -833,7 +901,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
                 </p>
               </div>
               <div className="border border-amber-500/20 bg-amber-500/10 p-5 text-sm leading-6 text-amber-100">
-                Use this page for searches like ISP billing software Nairobi, WiFi billing Kiambu estates, MikroTik billing Nakuru, hotspot billing Mombasa, WISP billing Eldoret, and ISP management software across Kenya counties.
+                A practical fit for Nairobi estates, Kiambu apartments, Nakuru MikroTik operators, Mombasa hotspots, Eldoret WISPs, and ISP teams expanding across Kenya counties.
               </div>
             </div>
 
@@ -865,7 +933,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
         <section className="border-b border-zinc-800 px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-6xl">
             <div className="max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-200">Estate, apartment, and hotspot intent</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-200">Estate, apartment, and hotspot operators</p>
               <h2 className="mt-4 text-3xl font-normal tracking-tight text-white md:text-5xl">
                 Capture buyers searching by estate, not only by county.
               </h2>
@@ -892,23 +960,24 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
         </section>
       ) : null}
 
-      {keywordThemes.length ? (
+      {demandSignals.length ? (
         <section className="border-b border-zinc-800 px-4 py-14 sm:px-6 lg:px-8">
           <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.75fr_1.25fr]">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-200">High-intent searches</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-200">Local demand signals</p>
               <h2 className="mt-4 text-3xl font-normal tracking-tight text-white md:text-4xl">
-                Match the phrases serious ISP buyers already use.
+                Built around the way Kenyan ISPs describe their work.
               </h2>
               <p className="mt-4 text-sm leading-7 text-zinc-400">
-                These searches usually come from operators with a real billing, payment, support, router, estate WiFi, hotspot, or county expansion problem to solve.
+                Whether you sell estate WiFi, PPPoE subscriptions, hotspot vouchers, hostel internet, school WiFi, hotel access, or rural WISP coverage, Internetily keeps the operating language close to the work your team already does.
               </p>
             </div>
-            <div className="flex flex-wrap content-start gap-2">
-              {keywordThemes.map((keyword) => (
-                <span key={keyword} className="border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-300">
-                  {keyword}
-                </span>
+            <div className="grid gap-3">
+              {demandSignals.map((signal) => (
+                <div key={signal} className="flex items-start gap-3 border border-zinc-800 bg-zinc-900 p-4 text-sm leading-6 text-zinc-300">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                  <span>{signal}</span>
+                </div>
               ))}
             </div>
           </div>

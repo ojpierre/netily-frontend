@@ -60,6 +60,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   CommandDialog,
   CommandEmpty,
@@ -87,6 +88,7 @@ import { TrialGuard } from "@/components/trial-guard"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { RoleGuard } from "@/components/role-guard"
 import { NetilySupportChat } from "@/components/netily-support-chat"
+import { submitLead } from "@/lib/api"
 import { usePwaInstall } from "@/hooks/use-pwa-install"   // ← ADDED
 import { toast } from "sonner"                            // ← ADDED
 import {
@@ -130,6 +132,9 @@ type AdminSearchResult = {
 const SEARCH_MIN_CHARS = 2
 const SEARCH_RESULT_LIMIT = 5
 const SIDEBAR_BREADCRUMB_MIN_ITEMS = 5
+const DEMO_LEAD_PROMPT_KEY = "netily-demo-lead-prompt-shown"
+const DEMO_LEAD_DEFAULT_MESSAGE =
+  "Hi Internetily, I explored the demo workspace and would like help setting this up for my ISP."
 
 const searchText = (value: unknown) => String(value || "").toLowerCase()
 
@@ -603,6 +608,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [companyName, setCompanyName] = useState<string>("Netily Admin")
   const [accessPolicyVersion, setAccessPolicyVersion] = useState(0)
   const [isDemoMode, setIsDemoMode] = useState(false)
+  const [demoLeadOpen, setDemoLeadOpen] = useState(false)
+  const [demoLeadSubmitting, setDemoLeadSubmitting] = useState(false)
+  const [demoLeadSubmitted, setDemoLeadSubmitted] = useState(false)
+  const [demoLeadError, setDemoLeadError] = useState("")
+  const [demoLeadForm, setDemoLeadForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    message: DEMO_LEAD_DEFAULT_MESSAGE,
+  })
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [recordResults, setRecordResults] = useState<AdminSearchResult[]>([])
@@ -672,6 +688,49 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     window.addEventListener("netily-demo-mode-blocked", handleDemoBlocked)
     return () => window.removeEventListener("netily-demo-mode-blocked", handleDemoBlocked)
   }, [])
+
+  useEffect(() => {
+    if (!mounted || !user || isPublicPage || !isDemoMode || typeof window === "undefined") return
+    if (window.sessionStorage.getItem(DEMO_LEAD_PROMPT_KEY)) return
+
+    const timer = window.setTimeout(() => {
+      window.sessionStorage.setItem(DEMO_LEAD_PROMPT_KEY, "1")
+      setDemoLeadOpen(true)
+    }, 35_000)
+
+    return () => window.clearTimeout(timer)
+  }, [mounted, user, isPublicPage, isDemoMode])
+
+  const openDemoLeadModal = useCallback(() => {
+    setDemoLeadError("")
+    setDemoLeadSubmitted(false)
+    setDemoLeadOpen(true)
+  }, [])
+
+  const submitDemoLead = useCallback(async () => {
+    if (!demoLeadForm.name.trim() || !demoLeadForm.email.trim() || !demoLeadForm.phone.trim()) {
+      setDemoLeadError("Please add your name, email, and phone number so we can reach you.")
+      return
+    }
+
+    setDemoLeadSubmitting(true)
+    setDemoLeadError("")
+
+    try {
+      await submitLead({
+        ...demoLeadForm,
+        company: demoLeadForm.company.trim() || "Demo workspace prospect",
+        lead_source: "Demo tenant workspace",
+        message: demoLeadForm.message.trim() || DEMO_LEAD_DEFAULT_MESSAGE,
+      })
+      setDemoLeadSubmitted(true)
+      toast.success("Thanks. Your demo enquiry has been sent.")
+    } catch (error) {
+      setDemoLeadError(error instanceof Error ? error.message : "We could not send your enquiry. Please try again.")
+    } finally {
+      setDemoLeadSubmitting(false)
+    }
+  }, [demoLeadForm])
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -1376,7 +1435,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         {/* Page content */}
         <main className="min-w-0 overflow-x-hidden p-3 sm:p-4 lg:p-6 lg:pt-10">
           {isDemoMode && (
-            <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
+            <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex min-w-0 items-start gap-3">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
               <div className="min-w-0">
                 <p className="font-semibold">Demo mode is active</p>
@@ -1384,6 +1444,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   You can browse every page, but changes are disabled in this workspace.
                 </p>
               </div>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={openDemoLeadModal}
+                className="shrink-0 border-amber-300 bg-white/80 text-amber-950 hover:bg-white dark:border-amber-500/50 dark:bg-amber-950/40 dark:text-amber-100"
+              >
+                Request setup
+                <ArrowUpRight className="ml-2 h-3.5 w-3.5" />
+              </Button>
             </div>
           )}
           <PageTransition>
@@ -1513,6 +1584,114 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             <span className="hidden sm:inline">Ctrl K</span>
           </div>
         </CommandDialog>
+        {isDemoMode && (
+          <>
+            <button
+              type="button"
+              onClick={openDemoLeadModal}
+              className="fixed bottom-24 right-5 z-[60] inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-3 text-sm font-semibold text-card-foreground shadow-2xl shadow-black/15 transition hover:-translate-y-0.5 hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-4 focus-visible:ring-ring/30 md:right-6"
+            >
+              <MessageSquare className="h-4 w-4 text-primary" />
+              Request setup
+            </button>
+
+            <Dialog open={demoLeadOpen} onOpenChange={setDemoLeadOpen}>
+              <DialogContent className="admin-theme-dialog max-h-[92vh] max-w-xl overflow-y-auto">
+                <DialogHeader>
+                  <div className="mb-2 inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Demo workspace
+                  </div>
+                  <DialogTitle>Want this setup for your ISP?</DialogTitle>
+                  <DialogDescription>
+                    Share your details and the Internetily team will contact you with the best setup path for your customers, routers, plans, and payment workflow.
+                  </DialogDescription>
+                </DialogHeader>
+
+                {demoLeadSubmitted ? (
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5 text-sm text-emerald-800 dark:text-emerald-100">
+                    <p className="font-semibold">Your enquiry has been sent.</p>
+                    <p className="mt-1 leading-6">We will reach out with a practical walkthrough based on what you explored in the demo.</p>
+                    <Button className="mt-4" onClick={() => setDemoLeadOpen(false)}>
+                      Continue browsing demo
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="demo-lead-name">Full name</Label>
+                        <Input
+                          id="demo-lead-name"
+                          value={demoLeadForm.name}
+                          onChange={(event) => setDemoLeadForm((form) => ({ ...form, name: event.target.value }))}
+                          placeholder="Jane Mwangi"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="demo-lead-phone">Phone / WhatsApp</Label>
+                        <Input
+                          id="demo-lead-phone"
+                          value={demoLeadForm.phone}
+                          onChange={(event) => setDemoLeadForm((form) => ({ ...form, phone: event.target.value }))}
+                          placeholder="0712 345 678"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="demo-lead-email">Email</Label>
+                        <Input
+                          id="demo-lead-email"
+                          type="email"
+                          value={demoLeadForm.email}
+                          onChange={(event) => setDemoLeadForm((form) => ({ ...form, email: event.target.value }))}
+                          placeholder="you@company.co.ke"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="demo-lead-company">ISP / company</Label>
+                        <Input
+                          id="demo-lead-company"
+                          value={demoLeadForm.company}
+                          onChange={(event) => setDemoLeadForm((form) => ({ ...form, company: event.target.value }))}
+                          placeholder="Your ISP name"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="demo-lead-message">What stood out in the demo?</Label>
+                      <Textarea
+                        id="demo-lead-message"
+                        value={demoLeadForm.message}
+                        onChange={(event) => setDemoLeadForm((form) => ({ ...form, message: event.target.value }))}
+                        rows={4}
+                      />
+                    </div>
+
+                    {demoLeadError && (
+                      <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                        {demoLeadError}
+                      </div>
+                    )}
+
+                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                      <Button type="button" variant="outline" onClick={() => setDemoLeadOpen(false)}>
+                        Later
+                      </Button>
+                      <Button type="button" onClick={submitDemoLead} disabled={demoLeadSubmitting}>
+                        {demoLeadSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowUpRight className="mr-2 h-4 w-4" />}
+                        Send enquiry
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
         <NetilySupportChat />
       </div>
     </div>
