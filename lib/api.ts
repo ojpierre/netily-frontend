@@ -758,19 +758,104 @@ export async function purchaseHotspotAccess({ routerId, planId, phoneNumber }: {
   return { status: 'success', message: 'Payment simulated. Access granted.' }
 }
 
-/**
- * Submit a lead from the landing page (public, no auth required)
- */
-export async function submitLead(data: { name: string; email: string; phone: string; company: string; lead_source?: string; referral_name?: string; referral_code?: string; message?: string }, signal?: AbortSignal): Promise<{ message: string; lead_id: number; affiliate_attributed: boolean }> {
-  const response = await fetch("/lead-submit", {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-    signal,
-  })
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: 'Failed to submit' }))
-    throw new Error(err.error || err.detail || 'Failed to submit lead')
+type LeadSubmissionPayload = {
+  name: string
+  email: string
+  phone: string
+  company: string
+  lead_source?: string
+  referral_name?: string
+  referral_code?: string
+  message?: string
+}
+
+type LeadSubmissionResponse = {
+  message: string
+  lead_id: number
+  affiliate_attributed: boolean
+}
+
+const LEAD_SUBMIT_ENDPOINTS = [
+  "/api/public/core/leads/submit",
+  "/lead-submit",
+] as const
+
+function parseJsonResponse(text: string) {
+  if (!text.trim()) return null
+
+  try {
+    return JSON.parse(text) as Record<string, unknown>
+  } catch {
+    return null
   }
-  return response.json()
+}
+
+function getLeadSubmissionError(statusCode: number, body: string, parsed: Record<string, unknown> | null) {
+  const serverMessage = parsed?.error || parsed?.detail || parsed?.message
+  if (typeof serverMessage === "string" && serverMessage.trim()) {
+    return serverMessage
+  }
+
+  if (body.trimStart().startsWith("<")) {
+    return "The lead form endpoint returned a webpage instead of a submission response. Please refresh and try again."
+  }
+
+  if (statusCode >= 500) {
+    return "Lead submission is temporarily unavailable. Please try again in a moment."
+  }
+
+  return "Failed to submit lead. Please check your details and try again."
+}
+
+function shouldTryNextLeadEndpoint(statusCode: number, body: string) {
+  return [404, 405, 502, 503, 504].includes(statusCode) || body.trimStart().startsWith("<")
+}
+
+/**
+ * Submit a lead from public surfaces and the demo workspace (no auth required).
+ */
+export async function submitLead(
+  data: LeadSubmissionPayload,
+  signal?: AbortSignal,
+): Promise<LeadSubmissionResponse> {
+  let lastError = new Error("Lead submission is temporarily unavailable. Please try again in a moment.")
+
+  for (const endpoint of LEAD_SUBMIT_ENDPOINTS) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+        signal,
+      })
+      const responseText = await response.text()
+      const parsed = parseJsonResponse(responseText)
+
+      if (!response.ok) {
+        lastError = new Error(getLeadSubmissionError(response.status, responseText, parsed))
+        if (shouldTryNextLeadEndpoint(response.status, responseText)) continue
+        throw lastError
+      }
+
+      if (!parsed || typeof parsed.message !== "string") {
+        lastError = new Error("Lead submitted, but the server returned an invalid response. Please contact support if you do not hear from us.")
+        if (shouldTryNextLeadEndpoint(response.status, responseText)) continue
+        throw lastError
+      }
+
+      return {
+        message: parsed.message,
+        lead_id: Number(parsed.lead_id || 0),
+        affiliate_attributed: Boolean(parsed.affiliate_attributed),
+      }
+    } catch (error) {
+      if (signal?.aborted) throw error
+      lastError = error instanceof Error ? error : lastError
+    }
+  }
+
+  throw lastError
 }

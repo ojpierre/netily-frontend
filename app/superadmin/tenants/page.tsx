@@ -111,7 +111,6 @@ export default function TenantsPage() {
     try {
       const params: Record<string, string> = { ordering }
       if (search) params.search = search
-      if (statusFilter && statusFilter !== "all") params.status = statusFilter
       const data = await superadminApi.getTenants(params)
       setTenants(data)
     } catch (err: any) {
@@ -119,7 +118,7 @@ export default function TenantsPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, statusFilter, ordering])
+  }, [search, ordering])
 
   useEffect(() => {
     const t = setTimeout(fetchTenants, 300)
@@ -309,6 +308,14 @@ export default function TenantsPage() {
         return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"><CheckCircle2 className="w-3 h-3 mr-1" />Active</Badge>
       case "trial":
         return <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30"><Clock className="w-3 h-3 mr-1" />Trial</Badge>
+      case "past_due":
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><Ban className="w-3 h-3 mr-1" />Past due</Badge>
+      case "expired":
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><Ban className="w-3 h-3 mr-1" />Expired</Badge>
+      case "trial_expired":
+        return <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30"><Clock className="w-3 h-3 mr-1" />Trial expired</Badge>
+      case "inactive":
+        return <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30"><XCircle className="w-3 h-3 mr-1" />Inactive</Badge>
       case "suspended":
         return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><Ban className="w-3 h-3 mr-1" />Suspended</Badge>
       case "cancelled":
@@ -322,7 +329,6 @@ export default function TenantsPage() {
     setTenants((current) =>
       current
         .map((tenant) => (tenant.id === updated.id ? { ...tenant, ...updated } : tenant))
-        .filter((tenant) => statusFilter === "all" || tenant.status === statusFilter),
     )
   }
 
@@ -356,6 +362,57 @@ export default function TenantsPage() {
 
   const deleteTargetName = confirmAction?.type === "delete" ? confirmAction.tenant.company_name : ""
   const deleteMatch = deleteConfirmation.trim() === deleteTargetName.trim()
+  const isExpiredStatus = (status: string) => ["expired", "past_due", "trial_expired"].includes(status)
+  const visibleTenants = tenants.filter((tenant) => {
+    if (statusFilter === "all") return true
+    if (statusFilter === "expired") return isExpiredStatus(tenant.status)
+    if (statusFilter === "inactive") return ["inactive", "cancelled"].includes(tenant.status)
+    return tenant.status === statusFilter
+  })
+  const summaryCards = [
+    {
+      key: "all",
+      label: "All tenants",
+      value: tenants.length,
+      helper: "Full searchable tenant list",
+      className: "border-violet-500/30 bg-violet-500/10 text-violet-300",
+    },
+    {
+      key: "active",
+      label: "Active subscriptions",
+      value: tenants.filter((tenant) => tenant.status === "active").length,
+      helper: "Paid and inside billing period",
+      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+    },
+    {
+      key: "trial",
+      label: "Active trials",
+      value: tenants.filter((tenant) => tenant.status === "trial").length,
+      helper: "Still evaluating",
+      className: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+    },
+    {
+      key: "expired",
+      label: "Expired / overdue",
+      value: tenants.filter((tenant) => isExpiredStatus(tenant.status)).length,
+      helper: "Needs billing follow-up",
+      className: "border-red-500/30 bg-red-500/10 text-red-300",
+    },
+    {
+      key: "suspended",
+      label: "Suspended",
+      value: tenants.filter((tenant) => tenant.status === "suspended").length,
+      helper: "Access paused manually",
+      className: "border-orange-500/30 bg-orange-500/10 text-orange-300",
+    },
+    {
+      key: "inactive",
+      label: "Inactive",
+      value: tenants.filter((tenant) => ["inactive", "cancelled"].includes(tenant.status)).length,
+      helper: "Cancelled or inactive records",
+      className: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+    },
+  ]
 
   return (
     <div className="space-y-6">
@@ -363,7 +420,9 @@ export default function TenantsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">Tenant Management</h1>
-          <p className="text-sm text-slate-400 mt-1">{tenants.length} tenants on the platform</p>
+          <p className="text-sm text-slate-400 mt-1">
+            {visibleTenants.length} visible · {tenants.length} total tenants on the platform
+          </p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -398,6 +457,30 @@ export default function TenantsPage() {
         </div>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        {summaryCards.map((card) => (
+          <button
+            key={card.key}
+            type="button"
+            onClick={() => setStatusFilter(card.key)}
+            className={`rounded-xl border p-4 text-left transition hover:-translate-y-0.5 ${
+              statusFilter === card.key ? "border-white/40 bg-slate-800 shadow-lg shadow-black/20" : "border-slate-800 bg-slate-900 hover:border-slate-700"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{card.label}</p>
+                <p className="mt-2 text-3xl font-black text-white">{card.value}</p>
+                <p className="mt-1 text-xs text-slate-500">{card.helper}</p>
+              </div>
+              <span className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${card.className}`}>
+                View
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+
       {/* Filters */}
       <Card className="bg-slate-900 border-slate-800">
         <CardContent className="p-4">
@@ -420,6 +503,10 @@ export default function TenantsPage() {
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="trial">Trial</SelectItem>
+                <SelectItem value="expired">Expired / Overdue</SelectItem>
+                <SelectItem value="past_due">Past Due</SelectItem>
+                <SelectItem value="trial_expired">Trial Expired</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
                 <SelectItem value="suspended">Suspended</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
@@ -446,7 +533,7 @@ export default function TenantsPage() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
         </div>
-      ) : tenants.length === 0 ? (
+      ) : visibleTenants.length === 0 ? (
         <div className="text-center py-20">
           <Building2 className="w-12 h-12 mx-auto text-slate-600 mb-3" />
           <p className="text-slate-400">No tenants found</p>
@@ -469,7 +556,7 @@ export default function TenantsPage() {
                 </tr>
               </thead>
               <tbody>
-                {tenants.map((t) => (
+                {visibleTenants.map((t) => (
                   <tr key={t.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
                     <td className="p-4">
                       <div>

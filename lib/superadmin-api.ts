@@ -13,10 +13,28 @@ export interface DashboardKPI {
   active_tenants: number
   trial_tenants: number
   suspended_tenants: number
+  expired_tenants?: number
+  past_due_tenants?: number
+  trial_expired_tenants?: number
+  inactive_tenants?: number
   total_users: number
   total_revenue: string
   mrr: string
   recent_signups: number
+  subscription_health?: Record<string, number>
+  tenant_subscription_health?: TenantSubscriptionHealth[]
+}
+
+export interface TenantSubscriptionHealth {
+  id: string
+  company_name: string
+  subdomain: string
+  status: string
+  subscription_plan: string
+  subscription_expiry: string | null
+  days_left: number | null
+  mrr: string
+  company_email: string
 }
 
 export interface TenantDomain {
@@ -51,7 +69,7 @@ export interface Tenant {
   id: string
   subdomain: string
   schema_name: string
-  status: "trial" | "active" | "suspended" | "cancelled"
+  status: "trial" | "active" | "suspended" | "cancelled" | "expired" | "past_due" | "trial_expired" | "inactive" | string
   trial_start: string | null
   trial_days: number
   subscription_expiry: string | null

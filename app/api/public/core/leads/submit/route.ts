@@ -46,8 +46,37 @@ function buildLeadSubmissionUrls() {
   })
 }
 
-function shouldTryNextCandidate(statusCode: number) {
-  return statusCode === 502 || statusCode === 503 || statusCode === 504
+function looksLikeHtml(value: string) {
+  return value.trimStart().startsWith("<")
+}
+
+function shouldTryNextCandidate(statusCode: number, responseBody = "") {
+  return [404, 405, 502, 503, 504].includes(statusCode) || looksLikeHtml(responseBody)
+}
+
+function isJsonContentType(contentType: string) {
+  return contentType.toLowerCase().includes("application/json")
+}
+
+function jsonErrorFromUpstream(statusCode: number, responseBody: string, requestId: string) {
+  if (statusCode >= 500) {
+    return {
+      detail: "Lead submission is temporarily unavailable. Please try again in a moment.",
+      request_id: requestId,
+    }
+  }
+
+  if (looksLikeHtml(responseBody)) {
+    return {
+      detail: "The lead submission service returned an unexpected page. Please refresh and try again.",
+      request_id: requestId,
+    }
+  }
+
+  return {
+    detail: responseBody.trim() || "Lead submission failed. Please check your details and try again.",
+    request_id: requestId,
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -109,19 +138,29 @@ export async function POST(request: NextRequest) {
         `[lead-submit:${requestId}] upstream ${leadSubmissionUrl} responded ${upstream.status}`,
       )
 
-      if (shouldTryNextCandidate(upstream.status)) {
+      if (shouldTryNextCandidate(upstream.status, responseBody)) {
         lastFailure = `Upstream ${leadSubmissionUrl} responded ${upstream.status}.`
         continue
       }
 
-      const response = new NextResponse(responseBody, {
-        status: upstream.status,
-        headers: {
-          "Content-Type": contentType,
-          "Cache-Control": "no-store, max-age=0",
-          "X-Request-ID": requestId,
-        },
-      })
+      const response = isJsonContentType(contentType)
+        ? new NextResponse(responseBody, {
+            status: upstream.status,
+            headers: {
+              "Content-Type": contentType,
+              "Cache-Control": "no-store, max-age=0",
+              "X-Request-ID": requestId,
+              "X-Lead-Submit-Upstream": leadSubmissionUrl,
+            },
+          })
+        : NextResponse.json(jsonErrorFromUpstream(upstream.status, responseBody, requestId), {
+            status: upstream.status,
+            headers: {
+              "Cache-Control": "no-store, max-age=0",
+              "X-Request-ID": requestId,
+              "X-Lead-Submit-Upstream": leadSubmissionUrl,
+            },
+          })
       if (upstream.ok) {
         response.cookies.delete("netily_referral_code")
         response.cookies.delete("netily_attribution_token")

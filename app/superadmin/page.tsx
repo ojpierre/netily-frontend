@@ -7,19 +7,15 @@ import {
   Users,
   CreditCard,
   TrendingUp,
-  Activity,
   ArrowUpRight,
   Loader2,
   UserPlus,
-  AlertTriangle,
   CheckCircle2,
   Clock,
   Ban,
   Mail,
-  Phone,
   BarChart3,
-  FileText,
-  ChevronRight,
+  XCircle,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -32,10 +28,12 @@ import {
   type PaymentSummary,
   type SubscriptionPayment,
   type RevenueTrendItem,
-  type PlanDistribution,
   type LeadItem,
   type LeadStats,
+  type TenantSubscriptionHealth,
 } from "@/lib/superadmin-api"
+
+type HealthFilter = "all" | "active" | "trial" | "expired" | "inactive" | "suspended"
 
 export default function SuperAdminDashboardPage() {
   const [kpi, setKpi] = useState<DashboardKPI | null>(null)
@@ -44,22 +42,21 @@ export default function SuperAdminDashboardPage() {
   const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null)
   const [recentPayments, setRecentPayments] = useState<SubscriptionPayment[]>([])
   const [revenueTrend, setRevenueTrend] = useState<RevenueTrendItem[]>([])
-  const [planDist, setPlanDist] = useState<PlanDistribution[]>([])
   const [leads, setLeads] = useState<LeadItem[]>([])
   const [leadStats, setLeadStats] = useState<LeadStats | null>(null)
+  const [healthFilter, setHealthFilter] = useState<HealthFilter>("all")
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [dashData, actData, tenantData, paySummary, payData, trendData, planData, leadsData, leadStatsData] = await Promise.all([
+      const [dashData, actData, tenantData, paySummary, payData, trendData, leadsData, leadStatsData] = await Promise.all([
         superadminApi.getDashboard(),
         superadminApi.getActivity(10),
         superadminApi.getTenants({ ordering: "-created_at" }),
         superadminApi.getPaymentSummary().catch(() => null),
         superadminApi.getPayments({ page_size: "5", ordering: "-created_at" }).catch(() => ({ results: [] })),
         superadminApi.getRevenueTrend(6).catch(() => []),
-        superadminApi.getPlanDistribution().catch(() => []),
         superadminApi.getLeads({ page_size: "5" }).catch(() => ({ results: [] })),
         superadminApi.getLeadStats().catch(() => null),
       ])
@@ -69,7 +66,6 @@ export default function SuperAdminDashboardPage() {
       setPaymentSummary(paySummary)
       setRecentPayments((payData as any).results || [])
       setRevenueTrend(trendData as RevenueTrendItem[])
-      setPlanDist(planData as PlanDistribution[])
       setLeads((leadsData as any).results || [])
       setLeadStats(leadStatsData as LeadStats | null)
     } catch (err) {
@@ -99,12 +95,91 @@ export default function SuperAdminDashboardPage() {
         return <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30"><Clock className="w-3 h-3 mr-1" />Trial</Badge>
       case "suspended":
         return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><Ban className="w-3 h-3 mr-1" />Suspended</Badge>
+      case "past_due":
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><Ban className="w-3 h-3 mr-1" />Past due</Badge>
+      case "expired":
+        return <Badge className="bg-red-500/20 text-red-400 border-red-500/30"><Ban className="w-3 h-3 mr-1" />Expired</Badge>
+      case "trial_expired":
+        return <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30"><Clock className="w-3 h-3 mr-1" />Trial expired</Badge>
+      case "inactive":
+        return <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30"><XCircle className="w-3 h-3 mr-1" />Inactive</Badge>
       default:
         return <Badge variant="outline" className="text-slate-400">{s}</Badge>
     }
   }
 
   const kes = (v: number | string) => `KES ${Number(v || 0).toLocaleString()}`
+  const healthRows = kpi?.tenant_subscription_health || []
+  const expiredRows = healthRows.filter((tenant) => ["expired", "past_due", "trial_expired"].includes(tenant.status))
+  const filteredHealthRows = healthRows.filter((tenant) => {
+    if (healthFilter === "all") return true
+    if (healthFilter === "expired") return ["expired", "past_due", "trial_expired"].includes(tenant.status)
+    if (healthFilter === "inactive") return ["inactive", "cancelled"].includes(tenant.status)
+    return tenant.status === healthFilter
+  })
+  const healthSummary = [
+    {
+      key: "active" as const,
+      label: "Active subscriptions",
+      value: kpi?.active_tenants ?? 0,
+      helper: "Paid and currently unlocked",
+      color: "emerald" as const,
+      icon: CheckCircle2,
+    },
+    {
+      key: "trial" as const,
+      label: "Active trials",
+      value: kpi?.trial_tenants ?? 0,
+      helper: "Still inside trial window",
+      color: "amber" as const,
+      icon: Clock,
+    },
+    {
+      key: "expired" as const,
+      label: "Expired / overdue",
+      value: kpi?.expired_tenants ?? expiredRows.length,
+      helper: "Needs renewal follow-up",
+      color: "red" as const,
+      icon: Ban,
+    },
+    {
+      key: "inactive" as const,
+      label: "Inactive",
+      value: kpi?.inactive_tenants ?? 0,
+      helper: "Cancelled or inactive records",
+      color: "slate" as const,
+      icon: XCircle,
+    },
+  ]
+
+  const healthBadge = (status: string) => {
+    switch (status) {
+      case "active":
+        return <Badge className="border-emerald-500/30 bg-emerald-500/20 text-emerald-400">Active</Badge>
+      case "trial":
+        return <Badge className="border-amber-500/30 bg-amber-500/20 text-amber-400">Trial</Badge>
+      case "past_due":
+        return <Badge className="border-red-500/30 bg-red-500/20 text-red-400">Past due</Badge>
+      case "trial_expired":
+        return <Badge className="border-orange-500/30 bg-orange-500/20 text-orange-300">Trial expired</Badge>
+      case "expired":
+        return <Badge className="border-red-500/30 bg-red-500/20 text-red-400">Expired</Badge>
+      case "suspended":
+        return <Badge className="border-red-500/30 bg-red-500/20 text-red-400">Suspended</Badge>
+      case "cancelled":
+      case "inactive":
+        return <Badge className="border-slate-500/30 bg-slate-500/20 text-slate-400">Inactive</Badge>
+      default:
+        return <Badge variant="outline" className="border-slate-600 text-slate-400">{status || "Unknown"}</Badge>
+    }
+  }
+
+  const relativeExpiry = (tenant: TenantSubscriptionHealth) => {
+    if (tenant.days_left === null || tenant.days_left === undefined) return "No billing date"
+    if (tenant.days_left < 0) return `${Math.abs(tenant.days_left)}d overdue`
+    if (tenant.days_left === 0) return "Due today"
+    return `${tenant.days_left}d left`
+  }
 
   return (
     <div className="space-y-6">
@@ -114,7 +189,6 @@ export default function SuperAdminDashboardPage() {
         <p className="text-slate-400 text-sm mt-1">Real-time metrics across all Netily tenants</p>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="Total Tenants"
@@ -146,18 +220,85 @@ export default function SuperAdminDashboardPage() {
         />
       </div>
 
-      {/* Status breakdown */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <MiniStat label="Active" value={kpi?.active_tenants ?? 0} className="text-emerald-400" />
-        <MiniStat label="Trial" value={kpi?.trial_tenants ?? 0} className="text-amber-400" />
-        <MiniStat label="Suspended" value={kpi?.suspended_tenants ?? 0} className="text-red-400" />
-        <MiniStat label="Recent Signups" value={kpi?.recent_signups ?? 0} className="text-blue-400" />
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {healthSummary.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => setHealthFilter((current) => current === item.key ? "all" : item.key)}
+            className={`rounded-xl border p-4 text-left transition hover:-translate-y-0.5 ${
+              healthFilter === item.key
+                ? "border-violet-400 bg-violet-500/15 shadow-lg shadow-violet-950/20"
+                : "border-slate-800 bg-slate-900 hover:border-slate-700"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{item.label}</p>
+                <p className="mt-2 text-3xl font-black text-white">{item.value}</p>
+                <p className="mt-1 text-xs text-slate-500">{item.helper}</p>
+              </div>
+              <div className={`rounded-lg p-2 ${healthIconClass(item.color)}`}>
+                <item.icon className="h-5 w-5" />
+              </div>
+            </div>
+          </button>
+        ))}
       </div>
 
-      {/* Revenue Analytics Row */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Revenue Trend */}
-        <Card className="lg:col-span-2 bg-slate-900 border-slate-800">
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-white">Subscription Health</CardTitle>
+              <CardDescription className="text-slate-400">
+                {healthFilter === "all" ? "Active, trial, overdue, and inactive tenant accounts" : `${filteredHealthRows.length} tenant records in this view`}
+              </CardDescription>
+            </div>
+            {healthFilter !== "all" && (
+              <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white" onClick={() => setHealthFilter("all")}>
+                Clear filter
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {filteredHealthRows.map((tenant) => (
+                <Link
+                  key={tenant.id}
+                  href={`/superadmin/tenants/${tenant.id}`}
+                  className="flex flex-col gap-3 rounded-lg border border-slate-800 bg-slate-950/40 p-4 transition hover:border-slate-700 hover:bg-slate-800/50 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold text-white">{tenant.company_name}</p>
+                      {healthBadge(tenant.status)}
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">{tenant.subdomain}.netily.co.ke · {tenant.company_email || "No email"}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center justify-between gap-6 sm:justify-end">
+                    <div>
+                      <p className="text-xs text-slate-500">MRR</p>
+                      <p className="text-sm font-bold text-emerald-400">{kes(tenant.mrr)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Billing</p>
+                      <p className={`text-sm font-semibold ${tenant.days_left !== null && tenant.days_left < 0 ? "text-red-400" : "text-slate-300"}`}>
+                        {relativeExpiry(tenant)}
+                      </p>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-slate-500" />
+                  </div>
+                </Link>
+              ))}
+              {filteredHealthRows.length === 0 && (
+                <p className="py-10 text-center text-sm text-slate-500">No tenants match this subscription view.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-slate-900 border-slate-800">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -200,44 +341,6 @@ export default function SuperAdminDashboardPage() {
               </div>
             ) : (
               <p className="text-sm text-slate-500 text-center py-8">No revenue data yet</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Plan Distribution */}
-        <Card className="bg-slate-900 border-slate-800">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <FileText className="w-5 h-5 text-violet-400" />
-              Plan Distribution
-            </CardTitle>
-            <CardDescription className="text-slate-400">Subscribers by plan</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {planDist.length > 0 ? (
-              <div className="space-y-3">
-                {planDist.map((p, i) => {
-                  const total = planDist.reduce((s, d) => s + (d.count || 0), 0) || 1
-                  const pct = Math.round(((p.count || 0) / total) * 100)
-                  const colors = ['bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500']
-                  return (
-                    <div key={i}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-slate-300">{p.plan_name || p.name}</span>
-                        <span className="text-slate-400">{p.count} ({pct}%)</span>
-                      </div>
-                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${colors[i % colors.length]}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-500 text-center py-8">No plan data yet</p>
             )}
           </CardContent>
         </Card>
@@ -466,11 +569,12 @@ function KPICard({
   )
 }
 
-function MiniStat({ label, value, className }: { label: string; value: number; className?: string }) {
-  return (
-    <div className="bg-slate-900 border border-slate-800 rounded-lg p-3 text-center">
-      <p className={`text-xl font-bold ${className}`}>{value}</p>
-      <p className="text-xs text-slate-500">{label}</p>
-    </div>
-  )
+function healthIconClass(color: "emerald" | "amber" | "red" | "slate") {
+  const colors = {
+    emerald: "bg-emerald-500/20 text-emerald-400",
+    amber: "bg-amber-500/20 text-amber-400",
+    red: "bg-red-500/20 text-red-400",
+    slate: "bg-slate-500/20 text-slate-400",
+  }
+  return colors[color]
 }
