@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useCallback, useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import {
   Banknote,
   Calculator,
@@ -29,6 +30,7 @@ import {
   superadminApi,
   type PlatformExpenditure,
   type PlatformExpenditureCategory,
+  type PlatformExpenditureLedger,
   type PlatformExpenditureSummary,
 } from "@/lib/superadmin-api"
 
@@ -47,6 +49,13 @@ const today = () => new Date().toISOString().slice(0, 10)
 
 const emptySummary: PlatformExpenditureSummary = {
   currency: "KES",
+  ledger: "primary",
+  ledger_label: "Original Business Account",
+  ledger_description: "Closed ledger ending at the gateway/account cutover.",
+  ledger_route: "/superadmin/expenditure",
+  cutover_at: null,
+  cutover_reference: "",
+  cutover_company: "",
   subscription_payments_total: "0.00",
   sms_topups_total: "0.00",
   accrued_total: "0.00",
@@ -65,6 +74,17 @@ function kes(value: string | number) {
 function dateLabel(value?: string | null) {
   if (!value) return "-"
   return new Date(value).toLocaleDateString("en-KE", { day: "2-digit", month: "short", year: "numeric" })
+}
+
+function dateTimeLabel(value?: string | null) {
+  if (!value) return "-"
+  return new Date(value).toLocaleString("en-KE", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 }
 
 function categoryLabel(value: PlatformExpenditureCategory) {
@@ -110,9 +130,9 @@ function MetricCard({
   )
 }
 
-export default function SuperadminExpenditurePage() {
+export function SuperadminExpenditurePage({ ledger = "primary" }: { ledger?: PlatformExpenditureLedger }) {
   const [entries, setEntries] = useState<PlatformExpenditure[]>([])
-  const [summary, setSummary] = useState<PlatformExpenditureSummary>(emptySummary)
+  const [summary, setSummary] = useState<PlatformExpenditureSummary>({ ...emptySummary, ledger })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [page, setPage] = useState(1)
@@ -140,7 +160,7 @@ export default function SuperadminExpenditurePage() {
       const params: Record<string, string> = { page: String(page), page_size: "20" }
       if (filters.start) params.start = filters.start
       if (filters.end) params.end = filters.end
-      const data = await superadminApi.getExpenditure(params)
+      const data = await superadminApi.getExpenditure(params, ledger)
       setEntries(data.results)
       setSummary(data.summary)
       setTotal(data.count)
@@ -149,7 +169,7 @@ export default function SuperadminExpenditurePage() {
     } finally {
       setLoading(false)
     }
-  }, [filters.end, filters.start, page])
+  }, [filters.end, filters.start, ledger, page])
 
   useEffect(() => {
     fetchData()
@@ -176,7 +196,7 @@ export default function SuperadminExpenditurePage() {
         currency: "KES",
         incurred_on: form.incurred_on || today(),
         notes: form.notes.trim(),
-      })
+      }, ledger)
       toast.success("Expenditure recorded")
       setForm({ title: "", category: "operations", amount: "", incurred_on: today(), notes: "" })
       setPage(1)
@@ -194,13 +214,21 @@ export default function SuperadminExpenditurePage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-white">
             <Calculator className="h-6 w-6 text-violet-400" />
-            Company Expenditure
+            {summary.ledger_label || "Company Expenditure"}
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Private profit view pegged to subscription payments, SMS top-ups, and manually recorded costs.
+            {summary.ledger_description || "Private profit view pegged to subscription payments, SMS top-ups, and manually recorded costs."}
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+        <div className="grid gap-3 lg:grid-cols-[auto_1fr_1fr_auto]">
+          <div className="grid grid-cols-2 gap-2 self-end rounded-xl border border-slate-800 bg-slate-950 p-1">
+            <Button asChild variant={ledger === "primary" ? "secondary" : "ghost"} className="text-slate-100">
+              <Link href="/superadmin/expenditure">Account 1</Link>
+            </Button>
+            <Button asChild variant={ledger === "new_business" ? "secondary" : "ghost"} className="text-slate-100">
+              <Link href="/superadmin/expenditure-2">Account 2</Link>
+            </Button>
+          </div>
           <div>
             <Label className="text-xs text-slate-400">Start date</Label>
             <Input
@@ -232,12 +260,33 @@ export default function SuperadminExpenditurePage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <MetricCard title="Accrued Total" value={kes(summary.accrued_total)} subtitle={rangeCopy} icon={WalletCards} />
-        <MetricCard title="Subscriptions" value={kes(summary.subscription_payments_total)} subtitle="Completed platform payments" icon={Banknote} tone="emerald" />
-        <MetricCard title="SMS Top-ups" value={kes(summary.sms_topups_total)} subtitle="Completed tenant top-ups" icon={ReceiptText} tone="cyan" />
+        <MetricCard title="Accrued Total" value={kes(summary.accrued_total)} subtitle={`${rangeCopy} · ${summary.ledger_label}`} icon={WalletCards} />
+        <MetricCard title="Subscriptions" value={kes(summary.subscription_payments_total)} subtitle="Completed tenant subscription payments" icon={Banknote} tone="emerald" />
+        <MetricCard title="SMS Top-ups" value={kes(summary.sms_topups_total)} subtitle="Completed inbuilt SMS top-ups" icon={ReceiptText} tone="cyan" />
         <MetricCard title="Manual Expenditure" value={kes(summary.manual_expenditure_total)} subtitle="Costs entered here" icon={ReceiptText} tone="rose" />
         <MetricCard title="Net Profit" value={kes(summary.net_profit)} subtitle="Accrued minus expenditure" icon={TrendingUp} tone={Number(summary.net_profit) >= 0 ? "emerald" : "rose"} />
       </div>
+
+      <Card className="border-slate-800 bg-slate-900">
+        <CardContent className="grid gap-4 pt-6 md:grid-cols-3">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Accounting window</p>
+            <p className="mt-1 text-sm font-medium text-slate-100">
+              {ledger === "new_business" ? "After cutover" : "Up to cutover"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Cutover payment</p>
+            <p className="mt-1 text-sm font-medium text-slate-100">{dateTimeLabel(summary.cutover_at)}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Boundary reference</p>
+            <p className="mt-1 truncate text-sm font-medium text-slate-100">
+              {summary.cutover_company || "Bentrex"}{summary.cutover_reference ? ` · ${summary.cutover_reference}` : ""}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
         <Card className="bg-slate-900 border-slate-800">
@@ -391,3 +440,5 @@ export default function SuperadminExpenditurePage() {
     </div>
   )
 }
+
+export default SuperadminExpenditurePage

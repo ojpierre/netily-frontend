@@ -475,8 +475,11 @@ export type PlatformExpenditureCategory =
   | "tax"
   | "other"
 
+export type PlatformExpenditureLedger = "primary" | "new_business"
+
 export interface PlatformExpenditure {
   id: string
+  ledger: PlatformExpenditureLedger
   category: PlatformExpenditureCategory
   title: string
   amount: string
@@ -500,6 +503,13 @@ export interface PlatformExpenditurePayload {
 
 export interface PlatformExpenditureSummary {
   currency: string
+  ledger: PlatformExpenditureLedger
+  ledger_label: string
+  ledger_description: string
+  ledger_route: string
+  cutover_at: string | null
+  cutover_reference: string
+  cutover_company: string
   subscription_payments_total: string
   sms_topups_total: string
   accrued_total: string
@@ -1245,27 +1255,31 @@ class SuperadminApiService {
     })
   }
 
-  async getExpenditure(params?: Record<string, string>): Promise<PlatformExpenditureResponse> {
-    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
-    return this.request(`/superadmin/expenditure/${qs}`)
+  private expenditurePath(ledger: PlatformExpenditureLedger = "primary") {
+    return ledger === "new_business" ? "/superadmin/expenditure-2/" : "/superadmin/expenditure/"
   }
 
-  async createExpenditure(data: PlatformExpenditurePayload): Promise<PlatformExpenditure> {
-    return this.request("/superadmin/expenditure/", {
+  async getExpenditure(params?: Record<string, string>, ledger: PlatformExpenditureLedger = "primary"): Promise<PlatformExpenditureResponse> {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : ""
+    return this.request(`${this.expenditurePath(ledger)}${qs}`)
+  }
+
+  async createExpenditure(data: PlatformExpenditurePayload, ledger: PlatformExpenditureLedger = "primary"): Promise<PlatformExpenditure> {
+    return this.request(this.expenditurePath(ledger), {
       method: "POST",
       body: JSON.stringify(data),
     })
   }
 
-  async updateExpenditure(id: string, data: Partial<PlatformExpenditurePayload>): Promise<PlatformExpenditure> {
-    return this.request(`/superadmin/expenditure/${id}/`, {
+  async updateExpenditure(id: string, data: Partial<PlatformExpenditurePayload>, ledger: PlatformExpenditureLedger = "primary"): Promise<PlatformExpenditure> {
+    return this.request(`${this.expenditurePath(ledger)}${id}/`, {
       method: "PATCH",
       body: JSON.stringify(data),
     })
   }
 
-  async deleteExpenditure(id: string): Promise<void> {
-    await this.request(`/superadmin/expenditure/${id}/`, { method: "DELETE" })
+  async deleteExpenditure(id: string, ledger: PlatformExpenditureLedger = "primary"): Promise<void> {
+    await this.request(`${this.expenditurePath(ledger)}${id}/`, { method: "DELETE" })
   }
 
   async getSubscriptionInvoices(params?: Record<string, string>): Promise<SubscriptionInvoiceListResponse> {
