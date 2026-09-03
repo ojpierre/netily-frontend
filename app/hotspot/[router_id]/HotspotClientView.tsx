@@ -884,6 +884,19 @@ export default function HotspotClientView({
     if (url && url !== loginUrl) setLoginUrl(url)
   }, [routerId]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Claude's fix: Backfill loginUrl from gateway_ip when MikroTik didn't supply it ──
+  // rlogin.html (fast version) intentionally omits $(link-login-only) because
+  // RouterOS variable substitution for it triggers a slow DNS-ish lookup.
+  // $(link-login-only) always resolves to http://<hotspot-gateway-ip>/login
+  // by RouterOS convention (dns_name is deliberately left blank), so we can
+  // reconstruct the exact same URL client-side with zero substitution cost.
+  useEffect(() => {
+    if (loginUrl || !portalConfig?.gateway_ip) return
+    const gw = portalConfig.gateway_ip.trim()
+    if (!gw) return
+    setLoginUrl(`http://${gw}/login`)
+  }, [portalConfig, loginUrl])
+
   // ── Auto-login check (no TV detection) ──
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
